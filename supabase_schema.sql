@@ -119,6 +119,15 @@ CREATE TABLE IF NOT EXISTS public.questions (
     subject VARCHAR(100) NOT NULL DEFAULT 'Matematik',
     grade_id VARCHAR(50) NOT NULL DEFAULT 'g1',
     topic VARCHAR(255) NOT NULL DEFAULT 'Genel',
+    topic_id VARCHAR(255) DEFAULT 'global_all',
+    type VARCHAR(100) DEFAULT 'coktan_secmeli',
+    content_type VARCHAR(100) DEFAULT 'text',
+    content_payload TEXT DEFAULT '',
+    is_bundle BOOLEAN DEFAULT FALSE,
+    answer_key JSONB DEFAULT '[]'::jsonb,
+    title TEXT DEFAULT '',
+    question_count INT DEFAULT 1,
+    raw_data JSONB DEFAULT '{}'::jsonb,
     question_text TEXT NOT NULL,
     options JSONB NOT NULL DEFAULT '[]'::jsonb,
     correct_answer VARCHAR(10) NOT NULL DEFAULT '0',
@@ -126,6 +135,16 @@ CREATE TABLE IF NOT EXISTS public.questions (
     image_url TEXT DEFAULT '',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS topic_id VARCHAR(255) DEFAULT 'global_all';
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS type VARCHAR(100) DEFAULT 'coktan_secmeli';
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS content_type VARCHAR(100) DEFAULT 'text';
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS content_payload TEXT DEFAULT '';
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS is_bundle BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS answer_key JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS title TEXT DEFAULT '';
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS question_count INT DEFAULT 1;
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS raw_data JSONB DEFAULT '{}'::jsonb;
 
 -- 11. ÖDEVLER TABLOSU (HOMEWORKS)
 CREATE TABLE IF NOT EXISTS public.homeworks (

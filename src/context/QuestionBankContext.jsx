@@ -55,8 +55,18 @@ export function QuestionBankProvider({ children }) {
     await dbDeleteQuestion(id);
   };
 
-  const updateQuestion = (id, updatedData) => {
-    setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updatedData } : q));
+  const updateQuestion = async (id, updatedData) => {
+    let updatedQ = null;
+    setQuestions(prev => prev.map(q => {
+      if (q.id === id) {
+        updatedQ = { ...q, ...updatedData };
+        return updatedQ;
+      }
+      return q;
+    }));
+    if (updatedQ) {
+      await dbAddQuestion(updatedQ);
+    }
   };
 
   return (

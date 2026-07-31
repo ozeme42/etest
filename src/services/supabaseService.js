@@ -382,17 +382,34 @@ export async function dbGetQuestions() {
   try {
     const { data, error } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    return data.map(q => ({
-      id: String(q.id),
-      subject: q.subject,
-      gradeId: q.grade_id,
-      topic: q.topic,
-      questionText: q.question_text,
-      options: q.options || [],
-      correctAnswer: q.correct_answer,
-      explanation: q.explanation || '',
-      imageUrl: q.image_url || ''
-    }));
+    return data.map(q => {
+      let raw = {};
+      if (q.raw_data && typeof q.raw_data === 'object') {
+        raw = q.raw_data;
+      } else if (q.explanation && typeof q.explanation === 'string' && q.explanation.startsWith('{')) {
+        try { raw = JSON.parse(q.explanation); } catch (e) {}
+      }
+      return {
+        id: String(q.id),
+        subject: q.subject || raw.subject || 'Matematik',
+        gradeId: q.grade_id || raw.gradeId || 'g1',
+        topic: q.topic || raw.topic || 'Genel',
+        topicId: q.topic_id || raw.topicId || 'global_all',
+        type: q.type || raw.type || 'coktan_secmeli',
+        contentType: q.content_type || raw.contentType || 'text',
+        contentPayload: q.content_payload || raw.contentPayload || '',
+        isBundle: q.is_bundle !== undefined ? q.is_bundle : (raw.isBundle || false),
+        answerKey: q.answer_key || raw.answerKey || [],
+        title: q.title || raw.title || '',
+        questionCount: q.question_count || raw.questionCount || 1,
+        questionText: q.question_text || raw.questionText || '',
+        options: q.options || raw.options || [],
+        correctAnswer: q.correct_answer || raw.correctAnswer || '0',
+        explanation: raw.explanation !== undefined ? raw.explanation : (q.explanation || ''),
+        imageUrl: q.image_url || raw.imageUrl || '',
+        ...raw
+      };
+    });
   } catch (err) {
     console.warn('[Supabase] dbGetQuestions error:', err.message);
     return null;
@@ -407,14 +424,39 @@ export async function dbAddQuestion(q) {
       subject: q.subject || 'Matematik',
       grade_id: q.gradeId || 'g1',
       topic: q.topic || 'Genel',
+      topic_id: q.topicId || 'global_all',
+      type: q.type || 'coktan_secmeli',
+      content_type: q.contentType || 'text',
+      content_payload: q.contentPayload || '',
+      is_bundle: Boolean(q.isBundle),
+      answer_key: q.answerKey || [],
+      title: q.title || '',
+      question_count: q.questionCount || 1,
+      raw_data: q,
       question_text: q.questionText || '',
       options: q.options || [],
-      correct_answer: String(q.correctAnswer || '0'),
+      correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
       explanation: q.explanation || '',
       image_url: q.imageUrl || ''
     };
-    const { data, error } = await supabase.from('questions').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error) throw error;
+    let { data, error } = await supabase.from('questions').upsert([payload], { onConflict: 'id' }).select();
+    if (error) {
+      // Fallback if some new columns don't exist yet in the Supabase schema
+      const fallbackPayload = {
+        id: String(q.id || `q_${Date.now()}`),
+        subject: q.subject || 'Matematik',
+        grade_id: q.gradeId || 'g1',
+        topic: q.topic || 'Genel',
+        question_text: q.questionText || '',
+        options: q.options || [],
+        correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
+        explanation: JSON.stringify(q),
+        image_url: q.imageUrl || ''
+      };
+      const res = await supabase.from('questions').upsert([fallbackPayload], { onConflict: 'id' }).select();
+      if (res.error) throw res.error;
+      data = res.data;
+    }
     return data;
   } catch (err) {
     console.warn('[Supabase] dbAddQuestion error:', err.message);
