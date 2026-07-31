@@ -23,6 +23,7 @@ import StatisticsDashboard from './pages/StatisticsDashboard';
 import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
+import StudentCoachingPage from './pages/StudentCoachingPage';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
 import './App.css';
@@ -211,6 +212,7 @@ function AppContent() {
           <Route path="/goals" element={<GoalsAndSchedulePage />} />
           <Route path="/student-results" element={<StudentResultsPage />} />
           <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
+          <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

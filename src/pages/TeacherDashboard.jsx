@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus, X, Edit2, Users, BookOpen, ClipboardCheck,
   Clock, ChevronRight, FileText, Activity, GraduationCap,
@@ -11,7 +12,6 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
-import StudentCoachingModal from '../components/StudentCoachingModal';
 
 /* ─── Renk Paleti ─────────────────────────────────────────────────── */
 const subjectColors = {
@@ -115,6 +115,7 @@ export default function TeacherDashboard() {
   const { submissions = [] } = useEvaluation();
   const { users = [] } = useUser();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const [showModal, setShowModal]         = useState(false);
   const [editingTestId, setEditingTestId] = useState(null);
@@ -524,7 +525,7 @@ export default function TeacherDashboard() {
                       {isCoached ? (
                         <>
                           <button
-                            onClick={() => setCoachingModalStudent(student)}
+                            onClick={() => navigate(`/coaching/${student.id}`)}
                             style={{
                               background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', border: 'none', borderRadius: '0.75rem',
                               padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -558,15 +559,6 @@ export default function TeacherDashboard() {
             )}
           </div>
         </div>
-      )}
-
-      {/* --- STUDENT COACHING DOSSIER MODAL --- */}
-      {coachingModalStudent && (
-        <StudentCoachingModal
-          student={coachingModalStudent}
-          teacherId={currentUser?.id || 'teacher_1'}
-          onClose={() => setCoachingModalStudent(null)}
-        />
       )}
 
       {/* ── MODAL ── */}
