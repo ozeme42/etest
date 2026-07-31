@@ -195,6 +195,21 @@ ALTER TABLE public.study_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tracked_books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tracked_book_tests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public users" ON public.users;
+DROP POLICY IF EXISTS "Allow public grades" ON public.grades;
+DROP POLICY IF EXISTS "Allow public subjects" ON public.subjects;
+DROP POLICY IF EXISTS "Allow public units" ON public.units;
+DROP POLICY IF EXISTS "Allow public topics" ON public.topics;
+DROP POLICY IF EXISTS "Allow public goals" ON public.goals;
+DROP POLICY IF EXISTS "Allow public schedules" ON public.schedules;
+DROP POLICY IF EXISTS "Allow public submissions" ON public.submissions;
+DROP POLICY IF EXISTS "Allow public questions" ON public.questions;
+DROP POLICY IF EXISTS "Allow public homeworks" ON public.homeworks;
+DROP POLICY IF EXISTS "Allow public study_plans" ON public.study_plans;
+DROP POLICY IF EXISTS "Allow public study_assignments" ON public.study_assignments;
+DROP POLICY IF EXISTS "Allow public tracked_books" ON public.tracked_books;
+DROP POLICY IF EXISTS "Allow public tracked_book_tests" ON public.tracked_book_tests;
+
 CREATE POLICY "Allow public users" ON public.users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public grades" ON public.grades FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public subjects" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
