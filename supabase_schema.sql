@@ -258,3 +258,53 @@ CREATE POLICY "Allow public study_plans" ON public.study_plans FOR ALL USING (tr
 CREATE POLICY "Allow public study_assignments" ON public.study_assignments FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public tracked_books" ON public.tracked_books FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public tracked_book_tests" ON public.tracked_book_tests FOR ALL USING (true) WITH CHECK (true);
+
+-- 12. KOÇLUK SİSTEMİ TABLOLARI
+CREATE TABLE IF NOT EXISTS public.coaching_links (
+    id VARCHAR(100) PRIMARY KEY,
+    teacher_id VARCHAR(100) NOT NULL,
+    student_id VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.coaching_notes (
+    id VARCHAR(100) PRIMARY KEY,
+    teacher_id VARCHAR(100) NOT NULL,
+    student_id VARCHAR(100) NOT NULL,
+    note TEXT,
+    goals JSONB DEFAULT '[]'::jsonb,
+    weekly_focus TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.mock_exams (
+    id VARCHAR(100) PRIMARY KEY,
+    student_id VARCHAR(100) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    date DATE DEFAULT CURRENT_DATE,
+    scores JSONB DEFAULT '{}'::jsonb,
+    total_net NUMERIC(6,2) DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.coaching_meetings (
+    id VARCHAR(100) PRIMARY KEY,
+    teacher_id VARCHAR(100) NOT NULL,
+    student_id VARCHAR(100) NOT NULL,
+    date DATE DEFAULT CURRENT_DATE,
+    topic VARCHAR(255),
+    notes TEXT,
+    decisions JSONB DEFAULT '[]'::jsonb,
+    next_meeting_date DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.coaching_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coaching_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mock_exams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coaching_meetings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public coaching_links" ON public.coaching_links FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public coaching_notes" ON public.coaching_notes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public mock_exams" ON public.mock_exams FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public coaching_meetings" ON public.coaching_meetings FOR ALL USING (true) WITH CHECK (true);
