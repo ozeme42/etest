@@ -5,10 +5,12 @@ import {
   Sparkles, ArrowRight, CheckCircle2, ShieldCheck, Zap, KeyRound
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCurriculum } from '../context/CurriculumContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, register, fastDemoLogin, currentUser, logout } = useAuth();
+  const { data: curData } = useCurriculum();
 
   const [isRegister, setIsRegister] = useState(false);
   const [selectedRole, setSelectedRole] = useState('student');
@@ -224,6 +226,28 @@ export default function LoginPage() {
               />
             </div>
           </div>
+
+          {isRegister && selectedRole === 'student' && (
+            <div>
+              <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Sınıf Seçiniz</label>
+              <div className="relative">
+                <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 z-10 pointer-events-none" />
+                <select
+                  value={gradeId}
+                  onChange={e => setGradeId(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-800 border border-white/15 text-white text-sm font-bold outline-none focus:border-indigo-400 appearance-none cursor-pointer"
+                  required
+                >
+                  <option value="">Sınıf Seçiniz</option>
+                  {(curData?.grades || []).map(g => (
+                    <option key={g.id} value={g.id} className="bg-slate-900 text-white">
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
