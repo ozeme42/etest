@@ -7,7 +7,9 @@ import {
   dbSaveMockExam,
   dbDeleteMockExam,
   dbGetCoachingMeetings,
-  dbSaveCoachingMeeting
+  dbSaveCoachingMeeting,
+  dbGetCoachingProfiles,
+  dbSaveCoachingProfile
 } from '../services/supabaseService';
 
 const CoachingContext = createContext();
@@ -37,6 +39,11 @@ export function CoachingProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [coachingProfiles, setCoachingProfiles] = useState(() => {
+    const saved = localStorage.getItem('eTestCoachingProfiles');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   useEffect(() => {
     async function syncCoachingFromSupabase() {
       const res = await dbGetCoachingData();
@@ -49,6 +56,9 @@ export function CoachingProvider({ children }) {
 
       const dbMeetings = await dbGetCoachingMeetings();
       if (dbMeetings && dbMeetings.length > 0) setCoachingMeetings(dbMeetings);
+
+      const dbProfiles = await dbGetCoachingProfiles();
+      if (dbProfiles && dbProfiles.length > 0) setCoachingProfiles(dbProfiles);
     }
     syncCoachingFromSupabase();
   }, []);
@@ -68,6 +78,10 @@ export function CoachingProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('eTestCoachingMeetings', JSON.stringify(coachingMeetings));
   }, [coachingMeetings]);
+
+  useEffect(() => {
+    localStorage.setItem('eTestCoachingProfiles', JSON.stringify(coachingProfiles));
+  }, [coachingProfiles]);
 
   const toggleCoachedStudent = async (teacherId, studentId) => {
     const exists = coachingLinks.some(l => l.teacherId === teacherId && l.studentId === studentId);
@@ -99,6 +113,26 @@ export function CoachingProvider({ children }) {
     });
     await dbSaveCoachingNote(newNote);
     return newNote;
+  };
+
+  const saveCoachingProfile = async (profileData) => {
+    const profileId = profileData.id || `cp_${profileData.studentId}`;
+    const newProfile = {
+      id: profileId,
+      createdAt: new Date().toISOString(),
+      ...profileData
+    };
+    setCoachingProfiles(prev => {
+      const idx = prev.findIndex(p => String(p.studentId) === String(profileData.studentId));
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], ...newProfile };
+        return copy;
+      }
+      return [newProfile, ...prev];
+    });
+    await dbSaveCoachingProfile(newProfile);
+    return newProfile;
   };
 
   const addMockExam = async (examData) => {
@@ -133,7 +167,11 @@ export function CoachingProvider({ children }) {
   };
 
   const getCoachingNoteForStudent = (studentId) => {
-    return coachingNotes.find(n => n.studentId === studentId) || null;
+    return coachingNotes.find(n => String(n.studentId) === String(studentId)) || null;
+  };
+
+  const getCoachingProfileForStudent = (studentId) => {
+    return coachingProfiles.find(p => String(p.studentId) === String(studentId)) || null;
   };
 
   const getMockExamsForStudent = (studentId) => {
@@ -150,13 +188,16 @@ export function CoachingProvider({ children }) {
       coachingNotes,
       mockExams,
       coachingMeetings,
+      coachingProfiles,
       toggleCoachedStudent,
       saveCoachingNote,
+      saveCoachingProfile,
       addMockExam,
       deleteMockExam,
       addCoachingMeeting,
       getCoachedStudentIds,
       getCoachingNoteForStudent,
+      getCoachingProfileForStudent,
       getMockExamsForStudent,
       getMeetingsForStudent
     }}>

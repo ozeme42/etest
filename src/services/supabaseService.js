@@ -995,3 +995,52 @@ export async function dbSaveCoachingMeeting(meeting) {
     return null;
   }
 }
+
+// Coaching Student Profiles Persistence
+export async function dbGetCoachingProfiles() {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.from('coaching_profiles').select('*');
+    if (error) throw error;
+    return (data || []).map(p => ({
+      id: String(p.id),
+      studentId: String(p.student_id),
+      targetSchool: p.target_school || '',
+      targetNet: p.target_net || 0,
+      learningStyle: p.learning_style || 'Görsel',
+      parentName: p.parent_name || '',
+      parentPhone: p.parent_phone || '',
+      parentNotes: p.parent_notes || '',
+      strengths: p.strengths || '',
+      hobbies: p.hobbies || '',
+      createdAt: p.created_at
+    }));
+  } catch (err) {
+    console.warn('[Supabase] dbGetCoachingProfiles info:', err.message);
+    return null;
+  }
+}
+
+export async function dbSaveCoachingProfile(profile) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = {
+      id: String(profile.id || `cp_${profile.studentId}`),
+      student_id: String(profile.studentId),
+      target_school: profile.targetSchool || '',
+      target_net: profile.targetNet || 0,
+      learning_style: profile.learningStyle || 'Görsel',
+      parent_name: profile.parentName || '',
+      parent_phone: profile.parentPhone || '',
+      parent_notes: profile.parentNotes || '',
+      strengths: profile.strengths || '',
+      hobbies: profile.hobbies || ''
+    };
+    const { data, error } = await supabase.from('coaching_profiles').upsert([payload], { onConflict: 'id' }).select().single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveCoachingProfile info:', err.message);
+    return null;
+  }
+}
