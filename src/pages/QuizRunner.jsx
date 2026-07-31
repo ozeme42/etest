@@ -175,7 +175,7 @@ export default function QuizRunner() {
     });
   };
 
-  const handleFinishTest = (autoSubmit = false) => {
+  function handleFinishTest(autoSubmit = false) {
     if (!autoSubmit && !showFinishModal) {
       setShowFinishModal(true);
       return;
