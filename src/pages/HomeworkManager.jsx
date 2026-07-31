@@ -43,15 +43,22 @@ export default function HomeworkManager() {
   const { users } = useUser();
   const { submissions } = useEvaluation();
 
+  const [isDirectAssignment, setIsDirectAssignment] = useState(false);
+
   useEffect(() => {
     if (location.state?.autoSelectQuestionId) {
       const qId = location.state.autoSelectQuestionId;
       setSelectedQuestionIds([qId]);
+      setIsDirectAssignment(true);
+      const matchingQ = questions.find(q => q.id === qId);
+      if (matchingQ && !title) {
+        setTitle(matchingQ.title || matchingQ.questionText || 'Soru Bankası Ödevi');
+      }
       setViewMode('create');
       setStep(1);
     }
-  }, [location.state]);
-  
+  }, [location.state, questions]);
+
   // View mode: 'list' (homework dashboard & tracker) vs 'create' (2-step workspace)
   const [viewMode, setViewMode] = useState('list');
   
@@ -240,6 +247,7 @@ export default function HomeworkManager() {
     setSelContentType('all');
     setSearchQuery('');
     setSelectedQuestionIds([]);
+    setIsDirectAssignment(false);
     setEditingHwId(null);
     setStep(1);
     setViewMode('list');
@@ -1069,9 +1077,14 @@ export default function HomeworkManager() {
                 if (canProceedToStep2) setStep(2);
                 else alert("Lütfen başlık, son tarih ve atanacak kitleyi eksiksiz doldurun.");
               }}
-              style={{ padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.85rem' }}
+              style={{
+                padding: '0.85rem 2rem', fontSize: '1rem', fontWeight: 900,
+                display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.85rem',
+                background: (isDirectAssignment && selectedQuestionIds.length > 0) ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : undefined,
+                boxShadow: (isDirectAssignment && selectedQuestionIds.length > 0) ? '0 6px 16px rgba(16,185,129,0.35)' : undefined
+              }}
             >
-              <span>Adım 2: Soru Bankası Seçimine Geç</span>
+              <span>{(isDirectAssignment && selectedQuestionIds.length > 0) ? 'Adım 2: Ödev Atamasını Tamamla 🚀' : 'Adım 2: Soru Bankası Seçimine Geç'}</span>
               <ArrowRight size={20} />
             </button>
           </div>
@@ -1080,29 +1093,131 @@ export default function HomeworkManager() {
       )}
 
       {/* ═════════════════════════════════════════════════════════════════════
-          STEP 2: EXACT QUESTION BANK PORTAL VIEW FOR SELECTION
+          STEP 2: EXACT QUESTION BANK PORTAL VIEW OR DIRECT ASSIGNMENT SUMMARY
       ═════════════════════════════════════════════════════════════════════ */}
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
           
-          {/* Top Switcher Tabs (Ders Kartları vs Sınıf Kartları vs Tüm Sorular) */}
-          <div className="card glass" style={{ padding: '0.75rem 1.25rem', borderRadius: '1.5rem', background: 'white' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          {/* DIRECT ASSIGNMENT MODE UI (SORU BANKASINDAN DİREKT ATAMA ÖZETİ) */}
+          {isDirectAssignment && selectedQuestionIds.length > 0 ? (
+            <div className="card glass" style={{ padding: '2.25rem', borderRadius: '1.75rem', background: 'white', display: 'flex', flexDirection: 'column', gap: '1.75rem', boxShadow: '0 10px 30px rgba(0,0,0,0.06)' }}>
               
-              <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.35rem', borderRadius: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1.25rem' }}>
+                <div>
+                  <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.82rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Sparkles size={16} /> Soru Bankasından Direkt Atama
+                  </span>
+                  <h3 style={{ margin: '0.5rem 0 0 0', fontWeight: 900, fontSize: '1.5rem', color: '#0f172a' }}>
+                    🚀 Ödev Atama Özeti ve Yayınlama Onayı
+                  </h3>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => { setStep2Mode('subjects'); setSelSubject('all'); setSelGrade('all'); }}
-                  style={{
-                    padding: '0.55rem 1.25rem', borderRadius: '0.65rem', border: 'none', cursor: 'pointer',
-                    fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    background: step2Mode === 'subjects' ? '#4f46e5' : 'transparent',
-                    color: step2Mode === 'subjects' ? 'white' : '#475569',
-                    boxShadow: step2Mode === 'subjects' ? '0 4px 10px rgba(79,70,229,0.3)' : 'none'
-                  }}
+                  onClick={() => setIsDirectAssignment(false)}
+                  style={{ background: '#eff6ff', color: '#4f46e5', border: '1.5px solid #c7d2fe', padding: '0.65rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
                 >
-                  <LayoutGrid size={18} /> Ders Kartları ile Seç ({curData.subjects.length} Ders)
+                  <Search size={16} /> Soru Bankasından Başka Sorular da Ekle
                 </button>
+              </div>
+
+              {/* Grid Summaries */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.35rem' }}>
+                
+                {/* Selected Question Details */}
+                <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.35rem', padding: '1.5rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+                    📚 Atanacak Soru / İçerik ({selectedQuestionIds.length})
+                  </div>
+                  {questions.filter(q => selectedQuestionIds.includes(q.id)).map(q => (
+                    <div key={q.id} style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.95rem', padding: '1rem', marginBottom: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35 }}>
+                        {q.title || q.questionText || 'Seçilen Soru'}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 700, marginTop: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>
+                          {q.subject || 'Ders'}
+                        </span>
+                        <span>
+                          {q.contentType === 'gorsel' ? '🖼️ Görsel Soru' : (q.contentType === 'pdf' ? '📕 PDF Paketi' : (q.contentType === 'html' ? '🌐 HTML Paketi' : (q.questionsList ? `📚 Toplu Test (${q.questionsList.length} Soru)` : '📝 Metin Sorusu')))}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Target Audience Summary */}
+                <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '1.35rem', padding: '1.5rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+                    👥 Atanacak Hedef Kitle
+                  </div>
+                  <div style={{ fontWeight: 900, color: '#1e3a8a', fontSize: '1.25rem' }}>
+                    {targetMode === 'grade' 
+                      ? curData.grades.filter(g => selectedTargets.includes(g.id)).map(g => g.name).join(', ')
+                      : `${selectedTargets.length} Öğrenci Seçildi`
+                    }
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 700, margin: '0.45rem 0 0 0' }}>
+                    Seçilen tüm öğrencilerin paneline ödev anında düşecektir.
+                  </p>
+                </div>
+
+                {/* Date & Duration Summary */}
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1.35rem', padding: '1.5rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+                    📅 Bitiş Tarihi &amp; Süre
+                  </div>
+                  <div style={{ fontWeight: 900, color: '#14532d', fontSize: '1.25rem' }}>
+                    {dueDate ? new Date(dueDate).toLocaleDateString('tr-TR') : '-'}
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: 700, margin: '0.45rem 0 0 0' }}>
+                    ⏱️ Soru başına {timePerQuestion} dakika süre verilecek.
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Primary Direct Save Footer */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '0.85rem 1.5rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <ArrowLeft size={18} />
+                  <span>1. Adıma Dön (Tarih &amp; Kitle Değiştir)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveHomework}
+                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '1rem 2.5rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '1.15rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem', boxShadow: '0 8px 24px rgba(16,185,129,0.4)' }}
+                >
+                  <CheckCircle size={22} />
+                  <span>Ödevi Hemen Atayarak Yayınla 🚀</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Top Switcher Tabs (Ders Kartları vs Sınıf Kartları vs Tüm Sorular) */}
+              <div className="card glass" style={{ padding: '0.75rem 1.25rem', borderRadius: '1.5rem', background: 'white' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.35rem', borderRadius: '0.85rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setStep2Mode('subjects'); setSelSubject('all'); setSelGrade('all'); }}
+                      style={{
+                        padding: '0.55rem 1.25rem', borderRadius: '0.65rem', border: 'none', cursor: 'pointer',
+                        fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        background: step2Mode === 'subjects' ? '#4f46e5' : 'transparent',
+                        color: step2Mode === 'subjects' ? 'white' : '#475569',
+                        boxShadow: step2Mode === 'subjects' ? '0 4px 10px rgba(79,70,229,0.3)' : 'none'
+                      }}
+                    >
+                      <LayoutGrid size={18} /> Ders Kartları ile Seç ({curData.subjects.length} Ders)
+                    </button>
 
                 <button
                   type="button"
@@ -1408,6 +1523,8 @@ export default function HomeworkManager() {
               </button>
             </div>
           </div>
+            </>
+          )}
 
         </div>
       )}
