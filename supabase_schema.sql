@@ -155,8 +155,19 @@ CREATE TABLE IF NOT EXISTS public.homeworks (
     target_type VARCHAR(50) DEFAULT 'grade',
     target_ids JSONB DEFAULT '[]'::jsonb,
     tests JSONB DEFAULT '[]'::jsonb,
+    question_ids JSONB DEFAULT '[]'::jsonb,
+    total_questions INT DEFAULT 0,
+    time_per_question INT DEFAULT 2,
+    time INT DEFAULT 20,
+    raw_data JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.homeworks ADD COLUMN IF NOT EXISTS question_ids JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.homeworks ADD COLUMN IF NOT EXISTS total_questions INT DEFAULT 0;
+ALTER TABLE public.homeworks ADD COLUMN IF NOT EXISTS time_per_question INT DEFAULT 2;
+ALTER TABLE public.homeworks ADD COLUMN IF NOT EXISTS time INT DEFAULT 20;
+ALTER TABLE public.homeworks ADD COLUMN IF NOT EXISTS raw_data JSONB DEFAULT '{}'::jsonb;
 
 -- 12. DERS ÇALIŞMA PLANLARI (STUDY PLANS)
 CREATE TABLE IF NOT EXISTS public.study_plans (

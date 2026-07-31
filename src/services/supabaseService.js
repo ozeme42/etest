@@ -509,16 +509,29 @@ export async function dbGetHomeworks() {
   try {
     const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    return data.map(h => ({
-      id: String(h.id),
-      title: h.title,
-      subject: h.subject,
-      dueDate: h.due_date,
-      targetType: h.target_type,
-      targetIds: h.target_ids || [],
-      tests: h.tests || [],
-      createdAt: h.created_at
-    }));
+    return data.map(h => {
+      let raw = {};
+      if (h.raw_data && typeof h.raw_data === 'object') {
+        raw = h.raw_data;
+      }
+      const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : []);
+      return {
+        id: String(h.id),
+        title: h.title || raw.title || '',
+        subject: h.subject || raw.subject || 'Genel',
+        dueDate: h.due_date || raw.dueDate,
+        targetType: h.target_type || raw.targetType || 'grade',
+        targetIds: h.target_ids || raw.targetIds || [],
+        tests: qIds,
+        questionIds: qIds,
+        totalQuestions: h.total_questions || raw.totalQuestions || qIds.length || 10,
+        timePerQuestion: h.time_per_question || raw.timePerQuestion || 2,
+        time: h.time || raw.time || 20,
+        createdAt: h.created_at,
+        submissions: h.submissions || raw.submissions || [],
+        ...raw
+      };
+    });
   } catch (err) {
     console.warn('[Supabase] dbGetHomeworks error:', err.message);
     return null;
@@ -528,6 +541,8 @@ export async function dbGetHomeworks() {
 export async function dbAddHomework(hw) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const qIds = hw.questionIds || hw.tests || [];
+    const fullRaw = { ...hw, questionIds: qIds, tests: qIds };
     const payload = {
       id: String(hw.id || `hw_${Date.now()}`),
       title: hw.title,
@@ -535,10 +550,29 @@ export async function dbAddHomework(hw) {
       due_date: hw.dueDate,
       target_type: hw.targetType || 'grade',
       target_ids: hw.targetIds || [],
-      tests: hw.tests || []
+      tests: qIds,
+      question_ids: qIds,
+      total_questions: hw.totalQuestions || qIds.length || 0,
+      time_per_question: hw.timePerQuestion || 2,
+      time: hw.time || 20,
+      raw_data: fullRaw
     };
-    const { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error) throw error;
+    let { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select();
+    if (error) {
+      // Fallback if question_ids or raw_data columns don't exist yet in Supabase schema
+      const fallbackPayload = {
+        id: String(hw.id || `hw_${Date.now()}`),
+        title: hw.title,
+        subject: hw.subject || 'Genel',
+        due_date: hw.dueDate,
+        target_type: hw.targetType || 'grade',
+        target_ids: hw.targetIds || [],
+        tests: qIds
+      };
+      const res = await supabase.from('homeworks').upsert([fallbackPayload], { onConflict: 'id' }).select();
+      if (res.error) throw res.error;
+      data = res.data;
+    }
     return data;
   } catch (err) {
     console.warn('[Supabase] dbAddHomework error:', err.message);
