@@ -37,8 +37,6 @@ export async function dbAddUser(user) {
       role: user.role || 'student',
       grade_id: user.gradeId || 'g1'
     };
-    
-    // Upsert using id conflict resolution
     const { data, error } = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
       if (error.code === '23505' || error.status === 409) {
@@ -62,6 +60,113 @@ export async function dbDeleteUser(userId) {
   } catch (err) {
     console.warn('[Supabase] dbDeleteUser error:', err.message);
     return false;
+  }
+}
+
+// ==========================================
+// 0.5. MÜFREDAT / SINIFLAR / DERSLER (CURRICULUM)
+// ==========================================
+export async function dbGetCurriculum() {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const [gRes, sRes, uRes, tRes] = await Promise.all([
+      supabase.from('grades').select('*').order('created_at', { ascending: true }),
+      supabase.from('subjects').select('*').order('created_at', { ascending: true }),
+      supabase.from('units').select('*').order('created_at', { ascending: true }),
+      supabase.from('topics').select('*').order('created_at', { ascending: true })
+    ]);
+
+    if (gRes.error || sRes.error || uRes.error || tRes.error) {
+      console.warn('[Supabase] dbGetCurriculum table select warning');
+      return null;
+    }
+
+    return {
+      grades: (gRes.data || []).map(g => ({ id: g.id, name: g.name })),
+      subjects: (sRes.data || []).map(s => ({ id: s.id, gradeId: s.grade_id, name: s.name })),
+      units: (uRes.data || []).map(u => ({ id: u.id, subjectId: u.subject_id, name: u.name })),
+      topics: (tRes.data || []).map(t => ({ id: t.id, unitId: t.unit_id, name: t.name })),
+      tests: []
+    };
+  } catch (err) {
+    console.warn('[Supabase] dbGetCurriculum error:', err.message);
+    return null;
+  }
+}
+
+export async function dbAddGrade(grade) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = { id: String(grade.id), name: grade.name };
+    const { data, error } = await supabase.from('grades').upsert([payload], { onConflict: 'id' }).select();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbAddGrade error:', err.message);
+    return null;
+  }
+}
+
+export async function dbDeleteGrade(gradeId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('grades').delete().eq('id', gradeId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteGrade error:', err.message);
+    return false;
+  }
+}
+
+export async function dbAddSubject(subject) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = { id: String(subject.id), grade_id: String(subject.gradeId), name: subject.name };
+    const { data, error } = await supabase.from('subjects').upsert([payload], { onConflict: 'id' }).select();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbAddSubject error:', err.message);
+    return null;
+  }
+}
+
+export async function dbDeleteSubject(subjectId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('subjects').delete().eq('id', subjectId);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteSubject error:', err.message);
+    return false;
+  }
+}
+
+export async function dbAddUnit(unit) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = { id: String(unit.id), subject_id: String(unit.subjectId), name: unit.name };
+    const { data, error } = await supabase.from('units').upsert([payload], { onConflict: 'id' }).select();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbAddUnit error:', err.message);
+    return null;
+  }
+}
+
+export async function dbAddTopic(topic) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = { id: String(topic.id), unit_id: String(topic.unitId), name: topic.name };
+    const { data, error } = await supabase.from('topics').upsert([payload], { onConflict: 'id' }).select();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbAddTopic error:', err.message);
+    return null;
   }
 }
 

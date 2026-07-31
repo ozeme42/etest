@@ -1,4 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  dbGetCurriculum,
+  dbAddGrade,
+  dbDeleteGrade,
+  dbAddSubject,
+  dbDeleteSubject,
+  dbAddUnit,
+  dbAddTopic
+} from '../services/supabaseService';
 
 const CurriculumContext = createContext();
 
@@ -23,7 +32,6 @@ export function CurriculumProvider({ children }) {
     const saved = localStorage.getItem('eTestCurriculum');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Clean old hardcoded mock items (g1, g2, s1, s2)
       return {
         grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)),
         subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)),
@@ -36,10 +44,20 @@ export function CurriculumProvider({ children }) {
   });
 
   useEffect(() => {
+    async function syncCurriculumFromSupabase() {
+      const dbCurData = await dbGetCurriculum();
+      if (dbCurData && dbCurData.grades.length > 0) {
+        setData(dbCurData);
+      }
+    }
+    syncCurriculumFromSupabase();
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('eTestCurriculum', JSON.stringify(data));
   }, [data]);
 
-  const addGrade = (name) => {
+  const addGrade = async (name) => {
     if (!name || !name.trim()) return;
     const newGrade = { id: generateUniqueId('g'), name: name.trim() };
     setData(prev => {
@@ -47,24 +65,28 @@ export function CurriculumProvider({ children }) {
       if (exists) return prev;
       return { ...prev, grades: [...(prev.grades || []), newGrade] };
     });
+    await dbAddGrade(newGrade);
   };
 
-  const addSubject = (gradeId, name) => {
+  const addSubject = async (gradeId, name) => {
     if (!name || !name.trim()) return;
     const newSubject = { id: generateUniqueId('s'), gradeId, name: name.trim() };
     setData(prev => ({ ...prev, subjects: [...(prev.subjects || []), newSubject] }));
+    await dbAddSubject(newSubject);
   };
 
-  const addUnit = (subjectId, name) => {
+  const addUnit = async (subjectId, name) => {
     if (!name || !name.trim()) return;
     const newUnit = { id: generateUniqueId('u'), subjectId, name: name.trim() };
     setData(prev => ({ ...prev, units: [...(prev.units || []), newUnit] }));
+    await dbAddUnit(newUnit);
   };
 
-  const addTopic = (unitId, name) => {
+  const addTopic = async (unitId, name) => {
     if (!name || !name.trim()) return;
     const newTopic = { id: generateUniqueId('t'), unitId, name: name.trim() };
     setData(prev => ({ ...prev, topics: [...(prev.topics || []), newTopic] }));
+    await dbAddTopic(newTopic);
   };
 
   const addTest = (test) => {
@@ -79,7 +101,7 @@ export function CurriculumProvider({ children }) {
     }));
   };
 
-  const deleteItem = (type, id) => {
+  const deleteItem = async (type, id) => {
     setData(prev => {
       const newData = { ...prev };
       if (newData[type]) {
@@ -87,6 +109,9 @@ export function CurriculumProvider({ children }) {
       }
       return newData;
     });
+
+    if (type === 'grades') await dbDeleteGrade(id);
+    else if (type === 'subjects') await dbDeleteSubject(id);
   };
 
   return (

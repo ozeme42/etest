@@ -39,7 +39,38 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 3. HEDEFLER TABLOSU (GOALS)
+-- 3. SINIFLAR (GRADES)
+CREATE TABLE IF NOT EXISTS public.grades (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. DERSLER (SUBJECTS)
+CREATE TABLE IF NOT EXISTS public.subjects (
+    id VARCHAR(100) PRIMARY KEY,
+    grade_id VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. ÜNİTELER (UNITS)
+CREATE TABLE IF NOT EXISTS public.units (
+    id VARCHAR(100) PRIMARY KEY,
+    subject_id VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. KONULAR (TOPICS)
+CREATE TABLE IF NOT EXISTS public.topics (
+    id VARCHAR(100) PRIMARY KEY,
+    unit_id VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. HEDEFLER TABLOSU (GOALS)
 CREATE TABLE IF NOT EXISTS public.goals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id VARCHAR(100) NOT NULL DEFAULT 'u1',
@@ -52,7 +83,7 @@ CREATE TABLE IF NOT EXISTS public.goals (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. HAFTALIK PROGRAM TABLOSU (SCHEDULES)
+-- 8. HAFTALIK PROGRAM TABLOSU (SCHEDULES)
 CREATE TABLE IF NOT EXISTS public.schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id VARCHAR(100) NOT NULL DEFAULT 'u1',
@@ -63,7 +94,7 @@ CREATE TABLE IF NOT EXISTS public.schedules (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. SINAV SONUÇLARI TABLOSU (SUBMISSIONS)
+-- 9. SINAV SONUÇLARI TABLOSU (SUBMISSIONS)
 CREATE TABLE IF NOT EXISTS public.submissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     test_id VARCHAR(100) NOT NULL,
@@ -78,7 +109,7 @@ CREATE TABLE IF NOT EXISTS public.submissions (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. SORU BANKASI TABLOSU (QUESTIONS)
+-- 10. SORU BANKASI TABLOSU (QUESTIONS)
 CREATE TABLE IF NOT EXISTS public.questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject VARCHAR(100) NOT NULL DEFAULT 'Matematik',
@@ -94,12 +125,20 @@ CREATE TABLE IF NOT EXISTS public.questions (
 
 -- Row Level Security (RLS) Policies
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.units ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public grades" ON public.grades FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public subjects" ON public.subjects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public units" ON public.units FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public topics" ON public.topics FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public goals" ON public.goals FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public schedules" ON public.schedules FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
