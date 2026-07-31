@@ -1,32 +1,36 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, NavLink, Link, useLocation, Navigate } from 'react-router-dom';
+import { 
+  GraduationCap, Users, Settings, Menu, X, BookOpen, 
+  Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree
+} from 'lucide-react';
+
 import Landing from './pages/Landing';
-import StudentDashboard from './pages/StudentDashboard';
-import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import TeacherDashboard from './pages/TeacherDashboard';
+import StudentDashboard from './pages/StudentDashboard';
+import HomeworkManager from './pages/HomeworkManager';
+import EvaluationManager from './pages/EvaluationManager';
 import QuestionBank from './pages/QuestionBank';
 import QuizRunner from './pages/QuizRunner';
 import BookQuizRunner from './pages/BookQuizRunner';
 import QuizReview from './pages/QuizReview';
-import HomeworkManager from './pages/HomeworkManager';
-import EvaluationManager from './pages/EvaluationManager';
 import BookManager from './pages/BookManager';
 import BookContentManager from './pages/BookContentManager';
 import StudyPlanManager from './pages/StudyPlanManager';
 import StudyPlanDetail from './pages/StudyPlanDetail';
 import StatisticsDashboard from './pages/StatisticsDashboard';
-import StudyPage from './pages/StudyPage';
 import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
-import { Settings, Database, BookOpen, ClipboardCheck, BookMarked, Map, Menu, X, Home, Users, GraduationCap, BarChart2, Target, ListTree, AlertCircle, LogIn, LogOut, Shield } from 'lucide-react';
 import './App.css';
 
 function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
+  const location = useLocation();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -45,7 +49,7 @@ function Sidebar() {
 
       <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={closeSidebar}></div>
 
-      <nav className={`sidebar glass ${isOpen ? 'open' : ''}`}>
+      <nav className={`sidebar glass ${isOpen ? 'open' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
         <div className="sidebar-header">
           <Link to="/" className="brand" onClick={closeSidebar}>
             <span className="brand-icon">✨</span>
@@ -56,30 +60,25 @@ function Sidebar() {
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
         <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(99,102,241,0.12)', padding: '0.6rem 0.8rem', borderRadius: '0.75rem', border: '1px solid rgba(99,102,241,0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
-                <div style={{ width: '2rem', height: '2rem', borderRadius: '50%', background: '#6366f1', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0 }}>
-                  {currentUser.name?.charAt(0)}
-                </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase' }}>{currentUser.role}</div>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(99,102,241,0.12)', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1px solid rgba(99,102,241,0.25)' }}>
+              <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                {currentUser.name?.charAt(0).toUpperCase()}
               </div>
-              <button onClick={logout} title="Çıkış Yap" style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '0.2rem' }}>
-                <LogOut size={16} />
-              </button>
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#a5b4fc', textTransform: 'uppercase', tracking: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
+              </div>
             </div>
           ) : (
             <Link to="/login" onClick={closeSidebar} style={{ textDecoration: 'none' }}>
-              <button style={{ width: '100%', padding: '0.6rem', borderRadius: '0.75rem', background: '#6366f1', color: 'white', fontWeight: 900, fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+              <button style={{ width: '100%', padding: '0.65rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
                 <LogIn size={16} /> Giriş Yap / Kayıt Ol
               </button>
             </Link>
           )}
         </div>
         
-        <div className="nav-links custom-scrollbar">
+        <div className="nav-links custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
           <div className="nav-section-title">Kullanıcı Panelleri</div>
           <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
             <GraduationCap size={20} /> Öğrenci Paneli
@@ -117,14 +116,45 @@ function Sidebar() {
             <Map size={20} /> Yol Haritası
           </NavLink>
 
-          <div className="nav-section-title">Hesap & Yönetim</div>
-          <NavLink to="/login" className="nav-link" onClick={closeSidebar}>
-            <LogIn size={20} /> Giriş / Kayıt Ol
-          </NavLink>
+          <div className="nav-section-title">Yönetim</div>
+          {!currentUser && (
+            <NavLink to="/login" className="nav-link" onClick={closeSidebar}>
+              <LogIn size={20} /> Giriş / Kayıt Ol
+            </NavLink>
+          )}
           <NavLink to="/admin" className="nav-link" onClick={closeSidebar}>
             <Settings size={20} /> Admin
           </NavLink>
         </div>
+
+        {/* LOGOUT BUTTON AT THE VERY BOTTOM FOR LOGGED IN USERS */}
+        {currentUser && (
+          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,23,42,0.4)' }}>
+            <button
+              onClick={() => { logout(); closeSidebar(); }}
+              style={{
+                width: '100%',
+                padding: '0.65rem 1rem',
+                borderRadius: '0.85rem',
+                background: 'rgba(244,63,94,0.12)',
+                border: '1px solid rgba(244,63,94,0.25)',
+                color: '#f43f5e',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = 'rgba(244,63,94,0.25)'}
+              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(244,63,94,0.12)'}
+            >
+              <LogOut size={16} /> Oturumu Kapat (Çıkış Yap)
+            </button>
+          </div>
+        )}
       </nav>
     </>
   );
@@ -138,40 +168,35 @@ function AppContent() {
   return (
     <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''}`}>
       {!shouldHideSidebar && <Sidebar />}
-      <main className="main-content" style={shouldHideSidebar ? { marginLeft: 0, paddingLeft: 0, width: '100%', maxWidth: '100%' } : {}}>
+
+      <main className="main-content">
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/student-results" element={<StudentResultsPage />} />
-          <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/teacher" element={<TeacherDashboard />} />
+          <Route path="/student" element={<StudentDashboard />} />
           <Route path="/homeworks" element={<HomeworkManager />} />
           <Route path="/evaluations" element={<EvaluationManager />} />
           <Route path="/questions" element={<QuestionBank />} />
+          <Route path="/quiz/:testId" element={<QuizRunner />} />
+          <Route path="/book-quiz/:testId" element={<BookQuizRunner />} />
+          <Route path="/review/:submissionId" element={<QuizReview />} />
           <Route path="/books" element={<BookManager />} />
           <Route path="/books/:id" element={<BookContentManager />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/quiz/:id" element={<QuizRunner />} />
-          <Route path="/book-quiz/:id" element={<BookQuizRunner />} />
-          <Route path="/review/:id" element={<QuizReview />} />
           <Route path="/study-plans" element={<StudyPlanManager />} />
           <Route path="/study-plans/:id" element={<StudyPlanDetail />} />
           <Route path="/statistics" element={<StatisticsDashboard />} />
-          <Route path="/study-page" element={<StudyPage />} />
           <Route path="/goals" element={<GoalsAndSchedulePage />} />
+          <Route path="/student-results" element={<StudentResultsPage />} />
+          <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
   );
 }
 
-function App() {
-  return (
-    <Router>
-      <AppContent />
-    </Router>
-  );
+export default function App() {
+  return <AppContent />;
 }
-
-export default App;
