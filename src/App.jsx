@@ -162,8 +162,9 @@ function Sidebar() {
 
 function AppContent() {
   const location = useLocation();
+  const { currentUser } = useAuth();
   const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login'];
-  const shouldHideSidebar = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
+  const shouldHideSidebar = !currentUser || hideSidebarRoutes.some(route => location.pathname.startsWith(route));
 
   return (
     <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''}`}>
