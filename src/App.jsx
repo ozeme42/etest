@@ -107,32 +107,37 @@ function Sidebar() {
             </NavLink>
           )}
 
-          <div className="nav-section-title">Modüller</div>
-          <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
-            <BarChart2 size={20} /> İstatistik & Analiz
-          </NavLink>
-          <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
-            <BookOpen size={20} /> Ödevler
-          </NavLink>
-          <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
-            <ClipboardCheck size={20} /> Değerlendirmeler
-          </NavLink>
+          {/* Modüller: Sadece Öğretmen ve Admin Görebilir */}
+          {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+            <>
+              <div className="nav-section-title">Modüller</div>
+              <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
+                <BarChart2 size={20} /> İstatistik & Analiz
+              </NavLink>
+              <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
+                <BookOpen size={20} /> Ödevler
+              </NavLink>
+              <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
+                <ClipboardCheck size={20} /> Değerlendirmeler
+              </NavLink>
 
-          {/* Soru Bankası: Sadece Admin Görebilir (Öğretmen Göremez) */}
-          {currentUser?.role === 'admin' && (
-            <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
-              <Database size={20} /> Soru Bankası
-            </NavLink>
+              {/* Soru Bankası: Sadece Admin Görebilir */}
+              {currentUser?.role === 'admin' && (
+                <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
+                  <Database size={20} /> Soru Bankası
+                </NavLink>
+              )}
+
+              <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
+                <BookMarked size={20} /> Kitap Takibi
+              </NavLink>
+              <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
+                <Map size={20} /> Yol Haritası
+              </NavLink>
+            </>
           )}
 
-          <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
-            <BookMarked size={20} /> Kitap Takibi
-          </NavLink>
-          <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
-            <Map size={20} /> Yol Haritası
-          </NavLink>
-
-          {/* Admin Tuşu: Sadece Admin Görebilir (Öğretmen Göremez) */}
+          {/* Admin Tuşu: Sadece Admin Görebilir */}
           {currentUser?.role === 'admin' && (
             <>
               <div className="nav-section-title">Yönetim</div>
