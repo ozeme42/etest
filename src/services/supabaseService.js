@@ -354,7 +354,7 @@ export async function dbSaveSubmission(sub) {
   if (!isSupabaseConfigured()) return null;
   try {
     const payload = {
-      id: String(sub.id || `sub_${Date.now()}`),
+      id: toUUID(sub.id || `sub_${Date.now()}`),
       test_id: String(sub.testId || 'test_1'),
       student_id: String(sub.studentId || 'u1'),
       score: sub.score || 0,
