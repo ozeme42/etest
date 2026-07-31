@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Plus, X, Edit2, Users, BookOpen, ClipboardCheck,
   Clock, ChevronRight, FileText, Activity, GraduationCap,
-  Search, Calendar, Layers, BarChart3, TrendingUp
+  Search, Calendar, Layers, BarChart3, TrendingUp, Target, UserCheck, Sparkles, MessageSquare
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -10,6 +10,8 @@ import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
+import { useCoaching } from '../context/CoachingContext';
+import StudentCoachingModal from '../components/StudentCoachingModal';
 
 /* ─── Renk Paleti ─────────────────────────────────────────────────── */
 const subjectColors = {
@@ -185,10 +187,16 @@ export default function TeacherDashboard() {
   });
   const recentSubs = [...submissions].sort((a,b) => new Date(b.submittedAt||0) - new Date(a.submittedAt||0)).slice(0, 5);
 
+  const { toggleCoachedStudent, getCoachedStudentIds } = useCoaching();
+  const [coachingModalStudent, setCoachingModalStudent] = useState(null);
+
+  const coachedIds = getCoachedStudentIds(currentUser?.id || 'teacher_1');
+
   const tabs = [
     { id: 'overview', label: 'Genel Bakış', icon: Activity },
     { id: 'tests',    label: 'Testler',     icon: FileText },
     { id: 'students', label: 'Öğrenciler',  icon: Users },
+    { id: 'coaching', label: '🎯 Koçluk Sistemi', icon: Target },
   ];
 
   /* ─── Render ─── */
@@ -378,7 +386,7 @@ export default function TeacherDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
-                    {['Öğrenci', 'Sınıf', 'E-posta', 'Çözülen Sınav'].map(h => (
+                    {['Öğrenci', 'Sınıf', 'E-posta', 'Çözülen Sınav', 'Koçluk Durumu'].map(h => (
                       <th key={h} style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                     ))}
                   </tr>
@@ -387,6 +395,7 @@ export default function TeacherDashboard() {
                   {students.map((student, i) => {
                     const grade  = data.grades.find(g => g.id === student.gradeId);
                     const solved = submissions.filter(s => s.studentId === student.id).length;
+                    const isCoached = coachedIds.includes(student.id);
                     const avatarColors = ['#6366f1','#3b82f6','#22c55e','#f97316','#a855f7','#f43f5e'];
                     const av = avatarColors[i % avatarColors.length];
                     return (
@@ -411,6 +420,15 @@ export default function TeacherDashboard() {
                         <td style={{ padding: '0.9rem 1.25rem' }}>
                           <span style={{ fontWeight: 800, fontSize: '0.9rem', color: solved > 0 ? '#16a34a' : '#94a3b8' }}>{solved}</span>
                         </td>
+                        <td style={{ padding: '0.9rem 1.25rem' }}>
+                          {isCoached ? (
+                            <span style={{ fontSize: '0.7rem', background: '#f3e8ff', color: '#7e22ce', fontWeight: 800, padding: '0.25rem 0.75rem', borderRadius: 99 }}>
+                              🎯 Koçluk Takibinde
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>—</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -419,6 +437,136 @@ export default function TeacherDashboard() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── COACHING TAB ── */}
+      {tab === 'coaching' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Hero info card */}
+          <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', borderRadius: '1.25rem', padding: '1.5rem 1.75rem', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 8px 30px rgba(99,102,241,0.25)' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.75rem', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800, marginBottom: 8 }}>
+                <Sparkles size={14} color="#fbbf24" /> Öğrenci Koçluk & Rehberlik Merkezi
+              </div>
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900 }}>Birebir Öğrenci Koçluk & Gelişim Takibi</h2>
+              <p style={{ margin: '0.3rem 0 0', fontSize: '0.84rem', color: 'rgba(255,255,255,0.85)', maxWidth: '600px' }}>
+                Öğrencilerinizi koçluk takibine alın; ders çalışma planlarını atayın, otomatik eksik konu analizlerini inceleyin ve özel haftalık koçluk tavsiyeleri verin.
+              </p>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: '0.85rem 1.25rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)' }}>Aktif Koçluk Takibindeki</div>
+              <div style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 1.1 }}>{coachedIds.length} Öğrenci</div>
+            </div>
+          </div>
+
+          {/* Student Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {students.length === 0 ? (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#94a3b8', background: 'white', borderRadius: '1.25rem', border: '1.5px solid #e2e8f0' }}>
+                Kayıtlı öğrenci bulunmuyor.
+              </div>
+            ) : (
+              students.map((student, i) => {
+                const isCoached = coachedIds.includes(student.id);
+                const grade = data.grades.find(g => g.id === student.gradeId);
+                const studentSubs = submissions.filter(s => s.studentId === student.id);
+                const solvedCount = studentSubs.length;
+
+                let avgScore = 0;
+                if (solvedCount > 0) {
+                  const sum = studentSubs.reduce((a, b) => a + (b.score || 0), 0);
+                  avgScore = Math.round(sum / solvedCount);
+                }
+
+                const avatarColors = ['#6366f1','#3b82f6','#22c55e','#f97316','#a855f7','#f43f5e'];
+                const av = avatarColors[i % avatarColors.length];
+
+                return (
+                  <div key={student.id} style={{
+                    background: 'white', border: isCoached ? '2px solid #7c3aed' : '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.25rem',
+                    boxShadow: isCoached ? '0 8px 24px rgba(124,58,237,0.12)' : '0 2px 10px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1rem',
+                    transition: 'all 0.2s', position: 'relative'
+                  }}>
+                    {isCoached && (
+                      <span style={{ position: 'absolute', top: 12, right: 12, background: '#7c3aed', color: 'white', fontSize: '0.62rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: 99 }}>
+                        🎯 Koçlukta
+                      </span>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: av, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1rem', flexShrink: 0 }}>
+                        {student.name?.charAt(0) || 'Ö'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{student.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '0.1rem 0.5rem', borderRadius: 99 }}>
+                            {grade?.name || '—'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick stats bar */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1px solid #f1f5f9', fontSize: '0.75rem' }}>
+                      <div>
+                        <span style={{ color: '#64748b', fontWeight: 600 }}>Çözülen Sınav:</span>
+                        <span style={{ fontWeight: 800, color: '#0f172a', marginLeft: 4 }}>{solvedCount}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b', fontWeight: 600 }}>Ort. Başarı:</span>
+                        <span style={{ fontWeight: 900, color: avgScore >= 70 ? '#16a34a' : '#d97706', marginLeft: 4 }}>%{avgScore}</span>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: 'auto' }}>
+                      {isCoached ? (
+                        <>
+                          <button
+                            onClick={() => setCoachingModalStudent(student)}
+                            style={{
+                              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', border: 'none', borderRadius: '0.75rem',
+                              padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                              boxShadow: '0 4px 14px rgba(124,58,237,0.25)'
+                            }}
+                          >
+                            <Target size={16} /> Özel Koçluk Dosyası & Analiz
+                          </button>
+                          <button
+                            onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', student.id)}
+                            style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2', borderRadius: '0.65rem', padding: '0.4rem', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Koçluk Listesinden Çıkar
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', student.id)}
+                          style={{
+                            background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: '0.75rem',
+                            padding: '0.6rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                          }}
+                        >
+                          <UserCheck size={16} /> Koçluk Takibine Al
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- STUDENT COACHING DOSSIER MODAL --- */}
+      {coachingModalStudent && (
+        <StudentCoachingModal
+          student={coachingModalStudent}
+          teacherId={currentUser?.id || 'teacher_1'}
+          onClose={() => setCoachingModalStudent(null)}
+        />
       )}
 
       {/* ── MODAL ── */}

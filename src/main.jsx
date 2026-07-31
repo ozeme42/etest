@@ -13,6 +13,7 @@ import { TrackedBookProvider } from './context/TrackedBookContext.jsx'
 import { StudyPlanProvider } from './context/StudyPlanContext.jsx'
 import { GoalProvider } from './context/GoalContext.jsx'
 import { ScheduleProvider } from './context/ScheduleContext.jsx'
+import { CoachingProvider } from './context/CoachingContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -27,7 +28,9 @@ createRoot(document.getElementById('root')).render(
                     <StudyPlanProvider>
                       <GoalProvider>
                         <ScheduleProvider>
-                          <App />
+                          <CoachingProvider>
+                            <App />
+                          </CoachingProvider>
                         </ScheduleProvider>
                       </GoalProvider>
                     </StudyPlanProvider>

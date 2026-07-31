@@ -820,3 +820,80 @@ export async function dbDeleteTrackedBookTest(testId) {
     return false;
   }
 }
+
+// ==========================================
+// 8. KOÇLUK SİSTEMİ (COACHING SYSTEM)
+// ==========================================
+export async function dbGetCoachingData() {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const [cRes, nRes] = await Promise.all([
+      supabase.from('coaching_links').select('*'),
+      supabase.from('coaching_notes').select('*').order('created_at', { ascending: false })
+    ]);
+
+    if (cRes.error || nRes.error) return null;
+
+    const links = (cRes.data || []).map(c => ({
+      id: String(c.id),
+      teacherId: String(c.teacher_id),
+      studentId: String(c.student_id),
+      createdAt: c.created_at
+    }));
+
+    const notes = (nRes.data || []).map(n => ({
+      id: String(n.id),
+      teacherId: String(n.teacher_id),
+      studentId: String(n.student_id),
+      note: n.note,
+      goals: n.goals || [],
+      weeklyFocus: n.weekly_focus || '',
+      createdAt: n.created_at
+    }));
+
+    return { links, notes };
+  } catch (err) {
+    console.warn('[Supabase] dbGetCoachingData info:', err.message);
+    return null;
+  }
+}
+
+export async function dbSaveCoachingNote(noteObj) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = {
+      id: String(noteObj.id || `cn_${Date.now()}`),
+      teacher_id: String(noteObj.teacherId || 'teacher_1'),
+      student_id: String(noteObj.studentId),
+      note: noteObj.note || '',
+      goals: noteObj.goals || [],
+      weekly_focus: noteObj.weeklyFocus || ''
+    };
+    const { data, error } = await supabase.from('coaching_notes').upsert([payload], { onConflict: 'id' }).select().single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveCoachingNote info:', err.message);
+    return null;
+  }
+}
+
+export async function dbToggleCoachedStudent(teacherId, studentId, isCoached) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    if (isCoached) {
+      const payload = {
+        id: `cl_${teacherId}_${studentId}`,
+        teacher_id: String(teacherId),
+        student_id: String(studentId)
+      };
+      await supabase.from('coaching_links').upsert([payload], { onConflict: 'id' });
+    } else {
+      await supabase.from('coaching_links').delete().match({ teacher_id: String(teacherId), student_id: String(studentId) });
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbToggleCoachedStudent info:', err.message);
+    return false;
+  }
+}
