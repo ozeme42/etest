@@ -175,7 +175,7 @@ export default function QuizRunner() {
     });
   };
 
-  function handleFinishTest(autoSubmit = false) {
+  async function handleFinishTest(autoSubmit = false) {
     if (!autoSubmit && !showFinishModal) {
       setShowFinishModal(true);
       return;
@@ -309,7 +309,7 @@ export default function QuizRunner() {
       totalQuestions: correctCount + wrongCount + blankCount + pendingCount
     });
 
-    const newSubId = addSubmission({
+    const newSubId = await addSubmission({
       testId: test.id,
       testTitle: test.title,
       studentId: student.id,
