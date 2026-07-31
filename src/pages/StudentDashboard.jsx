@@ -252,12 +252,14 @@ export default function StudentDashboard() {
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
-  const { getCoachingNoteForStudent } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent } = useCoaching();
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const coachingNote = getCoachingNoteForStudent(selectedStudent?.id);
+  const studentMeetings = getMeetingsForStudent(selectedStudent?.id);
+  const upcomingMeeting = studentMeetings.find(m => m.nextMeetingDate);
 
   useEffect(() => {
     if (currentUser?.role === 'student') setSelectedStudent(currentUser);
@@ -384,23 +386,31 @@ export default function StudentDashboard() {
       <div style={{ width: '100%', padding: 'clamp(1rem,2.5vw,2rem)' }}>
 
         {/* 👨‍🏫 TEACHER COACHING GUIDANCE CARD */}
-        {coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0)) && (
+        {( (coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting ) && (
           <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', border: '1.5px solid #ddd6fe', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(124,58,237,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Target size={18} color="#7c3aed" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👨‍🏫 Koçunuzdan Tavsiye & Rehberlik Notu</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Target size={18} color="#7c3aed" />
+                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👨‍🏫 Koçunuzdan Tavsiye & Rehberlik Notu</span>
+              </div>
+              {upcomingMeeting && (
+                <span style={{ fontSize: '0.72rem', background: '#7c3aed', color: 'white', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: 99 }}>
+                  📅 Gelecek Görüşme: {upcomingMeeting.nextMeetingDate}
+                </span>
+              )}
             </div>
-            {coachingNote.weeklyFocus && (
+
+            {coachingNote?.weeklyFocus && (
               <div style={{ background: 'white', borderRadius: '0.75rem', padding: '0.6rem 0.9rem', marginBottom: 10, border: '1px solid #c4b5fd', fontWeight: 800, fontSize: '0.85rem', color: '#5b21b6' }}>
                 🎯 Haftalık Odak: {coachingNote.weeklyFocus}
               </div>
             )}
-            {coachingNote.note && (
+            {coachingNote?.note && (
               <p style={{ margin: '0 0 10px', fontSize: '0.85rem', color: '#4c1d95', lineHeight: 1.5, fontWeight: 600 }}>
                 "{coachingNote.note}"
               </p>
             )}
-            {coachingNote.goals && coachingNote.goals.length > 0 && (
+            {coachingNote?.goals && coachingNote.goals.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase' }}>Haftalık Koçluk Hedefleriniz:</div>
                 {coachingNote.goals.map(g => (

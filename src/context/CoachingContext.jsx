@@ -1,5 +1,14 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { dbGetCoachingData, dbSaveCoachingNote, dbToggleCoachedStudent } from '../services/supabaseService';
+import {
+  dbGetCoachingData,
+  dbSaveCoachingNote,
+  dbToggleCoachedStudent,
+  dbGetMockExams,
+  dbSaveMockExam,
+  dbDeleteMockExam,
+  dbGetCoachingMeetings,
+  dbSaveCoachingMeeting
+} from '../services/supabaseService';
 
 const CoachingContext = createContext();
 
@@ -18,6 +27,16 @@ export function CoachingProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [mockExams, setMockExams] = useState(() => {
+    const saved = localStorage.getItem('eTestMockExams');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [coachingMeetings, setCoachingMeetings] = useState(() => {
+    const saved = localStorage.getItem('eTestCoachingMeetings');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   useEffect(() => {
     async function syncCoachingFromSupabase() {
       const res = await dbGetCoachingData();
@@ -25,6 +44,11 @@ export function CoachingProvider({ children }) {
         if (res.links && res.links.length > 0) setCoachingLinks(res.links);
         if (res.notes && res.notes.length > 0) setCoachingNotes(res.notes);
       }
+      const dbExams = await dbGetMockExams();
+      if (dbExams && dbExams.length > 0) setMockExams(dbExams);
+
+      const dbMeetings = await dbGetCoachingMeetings();
+      if (dbMeetings && dbMeetings.length > 0) setCoachingMeetings(dbMeetings);
     }
     syncCoachingFromSupabase();
   }, []);
@@ -36,6 +60,14 @@ export function CoachingProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('eTestCoachingNotes', JSON.stringify(coachingNotes));
   }, [coachingNotes]);
+
+  useEffect(() => {
+    localStorage.setItem('eTestMockExams', JSON.stringify(mockExams));
+  }, [mockExams]);
+
+  useEffect(() => {
+    localStorage.setItem('eTestCoachingMeetings', JSON.stringify(coachingMeetings));
+  }, [coachingMeetings]);
 
   const toggleCoachedStudent = async (teacherId, studentId) => {
     const exists = coachingLinks.some(l => l.teacherId === teacherId && l.studentId === studentId);
@@ -69,6 +101,33 @@ export function CoachingProvider({ children }) {
     return newNote;
   };
 
+  const addMockExam = async (examData) => {
+    const newExam = {
+      id: `me_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      ...examData
+    };
+    setMockExams(prev => [...prev, newExam]);
+    await dbSaveMockExam(newExam);
+    return newExam;
+  };
+
+  const deleteMockExam = async (id) => {
+    setMockExams(prev => prev.filter(m => m.id !== id));
+    await dbDeleteMockExam(id);
+  };
+
+  const addCoachingMeeting = async (meetingData) => {
+    const newMeeting = {
+      id: `cm_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      ...meetingData
+    };
+    setCoachingMeetings(prev => [newMeeting, ...prev]);
+    await dbSaveCoachingMeeting(newMeeting);
+    return newMeeting;
+  };
+
   const getCoachedStudentIds = (teacherId) => {
     return coachingLinks.filter(l => l.teacherId === teacherId).map(l => l.studentId);
   };
@@ -77,14 +136,29 @@ export function CoachingProvider({ children }) {
     return coachingNotes.find(n => n.studentId === studentId) || null;
   };
 
+  const getMockExamsForStudent = (studentId) => {
+    return mockExams.filter(m => String(m.studentId) === String(studentId));
+  };
+
+  const getMeetingsForStudent = (studentId) => {
+    return coachingMeetings.filter(m => String(m.studentId) === String(studentId));
+  };
+
   return (
     <CoachingContext.Provider value={{
       coachingLinks,
       coachingNotes,
+      mockExams,
+      coachingMeetings,
       toggleCoachedStudent,
       saveCoachingNote,
+      addMockExam,
+      deleteMockExam,
+      addCoachingMeeting,
       getCoachedStudentIds,
-      getCoachingNoteForStudent
+      getCoachingNoteForStudent,
+      getMockExamsForStudent,
+      getMeetingsForStudent
     }}>
       {children}
     </CoachingContext.Provider>

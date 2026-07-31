@@ -897,3 +897,101 @@ export async function dbToggleCoachedStudent(teacherId, studentId, isCoached) {
     return false;
   }
 }
+
+// Mock Exams Persistence
+export async function dbGetMockExams() {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.from('mock_exams').select('*').order('date', { ascending: true });
+    if (error) throw error;
+    return (data || []).map(m => ({
+      id: String(m.id),
+      studentId: String(m.student_id),
+      title: m.title,
+      date: m.date,
+      scores: m.scores || {},
+      totalNet: m.total_net || 0,
+      createdAt: m.created_at
+    }));
+  } catch (err) {
+    console.warn('[Supabase] dbGetMockExams info:', err.message);
+    return null;
+  }
+}
+
+export async function dbSaveMockExam(exam) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = {
+      id: String(exam.id || `me_${Date.now()}`),
+      student_id: String(exam.studentId),
+      title: exam.title || 'Deneme Sınavı',
+      date: exam.date || new Date().toISOString().split('T')[0],
+      scores: exam.scores || {},
+      total_net: exam.totalNet || 0
+    };
+    const { data, error } = await supabase.from('mock_exams').upsert([payload], { onConflict: 'id' }).select().single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveMockExam info:', err.message);
+    return null;
+  }
+}
+
+export async function dbDeleteMockExam(id) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('mock_exams').delete().eq('id', String(id));
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteMockExam info:', err.message);
+    return false;
+  }
+}
+
+// Coaching Meetings Persistence
+export async function dbGetCoachingMeetings() {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.from('coaching_meetings').select('*').order('date', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(m => ({
+      id: String(m.id),
+      teacherId: String(m.teacher_id),
+      studentId: String(m.student_id),
+      date: m.date,
+      topic: m.topic,
+      notes: m.notes,
+      decisions: m.decisions || [],
+      nextMeetingDate: m.next_meeting_date,
+      createdAt: m.created_at
+    }));
+  } catch (err) {
+    console.warn('[Supabase] dbGetCoachingMeetings info:', err.message);
+    return null;
+  }
+}
+
+export async function dbSaveCoachingMeeting(meeting) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = {
+      id: String(meeting.id || `cm_${Date.now()}`),
+      teacher_id: String(meeting.teacherId || 'teacher_1'),
+      student_id: String(meeting.studentId),
+      date: meeting.date || new Date().toISOString().split('T')[0],
+      topic: meeting.topic || 'Genel Değerlendirme',
+      notes: meeting.notes || '',
+      decisions: meeting.decisions || [],
+      next_meeting_date: meeting.nextMeetingDate || null
+    };
+    const { data, error } = await supabase.from('coaching_meetings').upsert([payload], { onConflict: 'id' }).select().single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveCoachingMeeting info:', err.message);
+    return null;
+  }
+}
