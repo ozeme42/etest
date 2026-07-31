@@ -61,6 +61,9 @@ export default function StudentCoachingPage() {
   // --- FORM STATES ---
   // 1. Profile / Dossier Info Form
   const existingProfile = getCoachingProfileForStudent(studentId) || {};
+  const [schoolName, setSchoolName] = useState(existingProfile.schoolName || '');
+  const [studentNumber, setStudentNumber] = useState(existingProfile.studentNumber || '');
+  const [birthDate, setBirthDate] = useState(existingProfile.birthDate || '');
   const [targetSchool, setTargetSchool] = useState(existingProfile.targetSchool || '');
   const [targetNet, setTargetNet] = useState(existingProfile.targetNet || '90');
   const [learningStyle, setLearningStyle] = useState(existingProfile.learningStyle || 'Görsel Öğrenen');
@@ -185,6 +188,9 @@ export default function StudentCoachingPage() {
     e.preventDefault();
     await saveCoachingProfile({
       studentId: student.id,
+      schoolName,
+      studentNumber,
+      birthDate,
       targetSchool,
       targetNet: Number(targetNet) || 0,
       learningStyle,
@@ -376,7 +382,7 @@ export default function StudentCoachingPage() {
         {/* FOLDER TABS NAVIGATION (Hidden on Print) */}
         <div className="no-print" style={{ display: 'flex', background: '#e2e8f0', padding: '0.5rem 1rem 0', gap: '0.4rem', overflowX: 'auto', borderBottom: '2px solid #cbd5e1' }}>
           {[
-            { id: 'profile', label: '📁 1. Öğrenci Künyesi & Hedefler', icon: User },
+            { id: 'profile', label: '📁 1. Öğrenci Künyesi & Bilgileri', icon: User },
             { id: 'analytics', label: '📊 2. Akademik Performans', icon: BarChart3 },
             { id: 'mock_exams', label: '📈 3. Deneme Net Takibi', icon: TrendingUp, badge: studentMockExams.length },
             { id: 'weaknesses', label: '⚠️ 4. Eksik Haritası & Ödev', icon: AlertTriangle, badge: weakTopics.length },
@@ -405,35 +411,62 @@ export default function StudentCoachingPage() {
         {/* DOSSIER INNER SHEET CONTENT */}
         <div style={{ padding: '2rem', background: '#fcfaf6', minHeight: '600px' }}>
 
-          {/* TAB 1: STUDENT PROFILE & IDENTITY */}
+          {/* TAB 1: STUDENT PROFILE & PERSONAL INFO */}
           {(activeTab === 'profile' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
                 <h3 style={{ margin: '0 0 1.25rem', fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                  <User size={20} color="#4f46e5" /> Öğrenci Kimlik & Veli İletişim Formu
+                  <User size={20} color="#4f46e5" /> Öğrenci Kimliği & Kişisel Bilgileri Formu
                 </h3>
 
                 <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                  {/* Readonly identity row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
                     <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedeflenen Lise / Üniversite & Bölüm</label>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Öğrenci Adı Soyadı</span>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{student.name}</div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Sınıf / Düzey</span>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#1d4ed8', marginTop: 2 }}>{gradeName}</div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>E-Posta Adresi</span>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginTop: 2 }}>{student.email || 'Kayıtlı Değil'}</div>
+                    </div>
+                  </div>
+
+                  {/* Personal details inputs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Okul Adı</label>
                       <input
                         type="text"
-                        placeholder="Örn: Galatasaray Lisesi / İTÜ Bilgisayar Müh."
-                        value={targetSchool}
-                        onChange={e => setTargetSchool(e.target.value)}
+                        placeholder="Örn: Atatürk Ortaokulu / Anadolu Lisesi"
+                        value={schoolName}
+                        onChange={e => setSchoolName(e.target.value)}
                         style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedeflenen Toplam Net</label>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Öğrenci / Okul No</label>
                       <input
-                        type="number"
-                        placeholder="Örn: 85 Net"
-                        value={targetNet}
-                        onChange={e => setTargetNet(e.target.value)}
+                        type="text"
+                        placeholder="Örn: 1042"
+                        value={studentNumber}
+                        onChange={e => setStudentNumber(e.target.value)}
                         style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Doğum Tarihi</label>
+                      <input
+                        type="date"
+                        value={birthDate}
+                        onChange={e => setBirthDate(e.target.value)}
+                        style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}
                       />
                     </div>
 
@@ -445,9 +478,12 @@ export default function StudentCoachingPage() {
                         <option value="Kinestetik Öğrenen">✍️ Kinestetik (Yazarak & Uygulamalı)</option>
                       </select>
                     </div>
+                  </div>
 
+                  {/* Parent contact info */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
                     <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Veli Adı Soyadı</label>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Veli Adı Soyadı & Yakınlığı</label>
                       <input
                         type="text"
                         placeholder="Örn: Mehmet Yılmaz (Baba)"
@@ -490,6 +526,36 @@ export default function StudentCoachingPage() {
                         onChange={e => setStrengths(e.target.value)}
                         style={{ width: '100%', padding: '0.8rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none' }}
                       />
+                    </div>
+                  </div>
+
+                  {/* Target Goal Section */}
+                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1rem', padding: '1.25rem', marginTop: '0.5rem' }}>
+                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Target size={18} color="#7c3aed" /> Akademik Hedefler & Hedef Net Girişi
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Lise / Üniversite & Bölüm</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: Galatasaray Lisesi / İTÜ Bilgisayar Müh."
+                          value={targetSchool}
+                          onChange={e => setTargetSchool(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedeflenen Toplam Net</label>
+                        <input
+                          type="number"
+                          placeholder="Örn: 85 Net"
+                          value={targetNet}
+                          onChange={e => setTargetNet(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
                     </div>
                   </div>
 
