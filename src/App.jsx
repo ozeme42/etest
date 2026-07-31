@@ -81,21 +81,31 @@ function Sidebar() {
         
         <div className="nav-links custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
           <div className="nav-section-title">Kullanıcı Panelleri</div>
-          <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
-            <GraduationCap size={20} /> Öğrenci Paneli
-          </NavLink>
-          <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-            <ListTree size={20} /> Sonuçlarım
-          </NavLink>
-          <NavLink to="/wrong-answers" className="nav-link" onClick={closeSidebar}>
-            <AlertCircle size={20} /> Yanlışlarım
-          </NavLink>
-          <NavLink to="/goals" className="nav-link" onClick={closeSidebar}>
-            <Target size={20} /> Hedefler & Program
-          </NavLink>
-          <NavLink to="/teacher" className="nav-link" onClick={closeSidebar}>
-            <Users size={20} /> Öğretmen Paneli
-          </NavLink>
+          
+          {/* Öğrenciye Özel Menüler (Öğretmen ve Admin Göremez) */}
+          {(currentUser?.role === 'student' || (!currentUser && true)) && (
+            <>
+              <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
+                <GraduationCap size={20} /> Öğrenci Paneli
+              </NavLink>
+              <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
+                <ListTree size={20} /> Sonuçlarım
+              </NavLink>
+              <NavLink to="/wrong-answers" className="nav-link" onClick={closeSidebar}>
+                <AlertCircle size={20} /> Yanlışlarım
+              </NavLink>
+              <NavLink to="/goals" className="nav-link" onClick={closeSidebar}>
+                <Target size={20} /> Hedefler & Program
+              </NavLink>
+            </>
+          )}
+
+          {/* Öğretmen ve Admin Paneli */}
+          {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
+            <NavLink to="/teacher" className="nav-link" onClick={closeSidebar}>
+              <Users size={20} /> Öğretmen Paneli
+            </NavLink>
+          )}
 
           <div className="nav-section-title">Modüller</div>
           <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
@@ -107,9 +117,14 @@ function Sidebar() {
           <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
             <ClipboardCheck size={20} /> Değerlendirmeler
           </NavLink>
-          <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
-            <Database size={20} /> Soru Bankası
-          </NavLink>
+
+          {/* Soru Bankası: Sadece Admin Görebilir (Öğretmen Göremez) */}
+          {currentUser?.role === 'admin' && (
+            <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
+              <Database size={20} /> Soru Bankası
+            </NavLink>
+          )}
+
           <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
             <BookMarked size={20} /> Kitap Takibi
           </NavLink>
@@ -117,15 +132,15 @@ function Sidebar() {
             <Map size={20} /> Yol Haritası
           </NavLink>
 
-          <div className="nav-section-title">Yönetim</div>
-          {!currentUser && (
-            <NavLink to="/login" className="nav-link" onClick={closeSidebar}>
-              <LogIn size={20} /> Giriş / Kayıt Ol
-            </NavLink>
+          {/* Admin Tuşu: Sadece Admin Görebilir (Öğretmen Göremez) */}
+          {currentUser?.role === 'admin' && (
+            <>
+              <div className="nav-section-title">Yönetim</div>
+              <NavLink to="/admin" className="nav-link" onClick={closeSidebar}>
+                <Settings size={20} /> Admin
+              </NavLink>
+            </>
           )}
-          <NavLink to="/admin" className="nav-link" onClick={closeSidebar}>
-            <Settings size={20} /> Admin
-          </NavLink>
         </div>
 
         {/* LOGOUT BUTTON AT THE VERY BOTTOM FOR LOGGED IN USERS */}
