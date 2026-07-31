@@ -59,13 +59,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleFastDemo = (role) => {
-    const user = fastDemoLogin(role);
-    if (role === 'student') navigate('/student');
-    else if (role === 'teacher') navigate('/teacher');
-    else navigate('/admin');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans text-slate-100">
       
@@ -257,34 +250,6 @@ export default function LoginPage() {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* DEMO FAST LOGINS */}
-        <div className="mt-8 pt-6 border-t border-white/10">
-          <p className="text-center text-[10px] font-black text-indigo-200/60 uppercase tracking-widest mb-3">Hızlı Demo Girişi (Tek Tıkla)</p>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => handleFastDemo('student')}
-              className="py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-all"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
-              <span>Öğrenci</span>
-            </button>
-            <button
-              onClick={() => handleFastDemo('teacher')}
-              className="py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-all"
-            >
-              <Users className="w-3.5 h-3.5 text-purple-400" />
-              <span>Öğretmen</span>
-            </button>
-            <button
-              onClick={() => handleFastDemo('admin')}
-              className="py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-all"
-            >
-              <Settings className="w-3.5 h-3.5 text-pink-400" />
-              <span>Yönetici</span>
-            </button>
-          </div>
-        </div>
 
       </div>
     </div>
