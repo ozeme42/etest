@@ -31,6 +31,7 @@ function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -131,7 +132,7 @@ function Sidebar() {
         {currentUser && (
           <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,23,42,0.4)' }}>
             <button
-              onClick={() => { logout(); closeSidebar(); }}
+              onClick={() => { logout(); closeSidebar(); navigate('/'); }}
               style={{
                 width: '100%',
                 padding: '0.65rem 1rem',
