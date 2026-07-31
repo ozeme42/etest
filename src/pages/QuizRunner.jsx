@@ -10,7 +10,8 @@ import DrawingOverlay from '../components/DrawingOverlay';
 import './QuizRunner.css';
 
 export default function QuizRunner() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.testId || params.id || '';
   const navigate = useNavigate();
   const location = useLocation();
   const { data } = useCurriculum();

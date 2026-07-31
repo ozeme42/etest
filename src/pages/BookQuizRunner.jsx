@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 
 export default function BookQuizRunner() {
-  const { id } = useParams(); // homework ID
+  const params = useParams();
+  const id = params.testId || params.id || '';
   const [searchParams] = useSearchParams();
   const studentId = searchParams.get('studentId');
   const navigate = useNavigate();

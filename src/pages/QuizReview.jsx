@@ -7,7 +7,8 @@ import DrawingOverlay from '../components/DrawingOverlay';
 import './QuizRunner.css';
 
 export default function QuizReview() {
-  const { id } = useParams(); // submissionId
+  const params = useParams();
+  const id = params.submissionId || params.id || '';
   const navigate = useNavigate();
   const location = useLocation();
   const { submissions } = useEvaluation();
