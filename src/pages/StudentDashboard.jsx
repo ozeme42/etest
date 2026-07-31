@@ -337,23 +337,23 @@ export default function StudentDashboard() {
         <div style={{ position: 'absolute', bottom: -40, left: 80, width: 160, height: 160, background: 'rgba(255,255,255,0.05)', borderRadius: '50%', filter: 'blur(25px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: '50%', right: '10%', width: 100, height: 100, background: 'rgba(251,191,36,0.12)', borderRadius: '50%', filter: 'blur(20px)', pointerEvents: 'none', transform: 'translateY(-50%)' }} />
 
-        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
-          <Avatar name={selectedStudent?.name} size={68} color={avatarColor} />
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '1.25rem', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
+          <Avatar name={selectedStudent?.name} size={56} color={avatarColor} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.25rem 0.75rem', marginBottom: 8 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', marginBottom: 6 }}>
               <Sparkles size={12} color="#fbbf24" />
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Hoş Geldin 👋</span>
+              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Hoş Geldin 👋</span>
             </div>
-            <h1 style={{ fontSize: 'clamp(1.4rem,4vw,2.2rem)', fontWeight: 900, color: 'white', margin: 0, lineHeight: 1.1 }}>
+            <h1 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', fontWeight: 900, color: 'white', margin: 0, lineHeight: 1.1 }}>
               {selectedStudent?.name || 'Öğrenci'}
             </h1>
-            {gradeLabel && <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', marginTop: 4, fontWeight: 600 }}>{gradeLabel} · Öğrenci Paneli</p>}
+            {gradeLabel && <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>{gradeLabel} · Öğrenci Paneli</p>}
           </div>
           {/* Score bubble */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1.25rem', padding: '1rem 1.5rem', textAlign: 'center', flexShrink: 0 }}>
-            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.65)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Genel Başarı</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.floor(stats.successRate)}</div>
-            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{tests.filter(t => t.status === 'Sonuçlandı').length} sınav tamamlandı</div>
+          <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: '0.75rem 1.25rem', textAlign: 'center', flexShrink: 0 }}>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.65)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Genel Başarı</div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.floor(stats.successRate)}</div>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{tests.filter(t => t.status === 'Sonuçlandı').length} sınav tamamlandı</div>
           </div>
         </div>
 
