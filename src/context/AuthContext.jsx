@@ -1,0 +1,194 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useUser } from './UserContext';
+import { dbAddUser } from '../services/supabaseService';
+
+const AuthContext = createContext();
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+export function translateAuthError(msg) {
+  if (!msg) return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+  const str = String(msg).toLowerCase();
+
+  if (str.includes('user already registered') || str.includes('already exists') || str.includes('already registered')) {
+    return '⚠️ Bu e-posta adresiyle zaten kayıtlı bir hesap var! Lütfen "Giriş Yap" sekmesinden giriş yapın.';
+  }
+  if (str.includes('password should be at least')) {
+    return '🔒 Şifreniz çok kısa! Şifreniz en az 6 karakterden oluşmalıdır.';
+  }
+  if (str.includes('invalid login credentials') || str.includes('invalid credentials')) {
+    return '❌ E-posta adresi veya şifre hatalı. Lütfen kontrol edip tekrar deneyin.';
+  }
+  if (str.includes('email format') || str.includes('unable to validate email')) {
+    return '📧 Geçersiz e-posta adresi formatı. Lütfen doğru bir e-posta girin.';
+  }
+  if (str.includes('rate limit')) {
+    return '⏳ Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.';
+  }
+  return `⚠️ ${msg}`;
+}
+
+export function AuthProvider({ children }) {
+  const { users, addUser } = useUser();
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('eTestAuthUser');
+    if (saved) return JSON.parse(saved);
+    return null;
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('eTestAuthUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('eTestAuthUser');
+    }
+  }, [currentUser]);
+
+  // Login handler
+  const login = async (email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (isSupabaseConfigured()) {
+        const { data, error: supaErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (supaErr) {
+          const friendlyErr = translateAuthError(supaErr.message);
+          setLoading(false);
+          setError(friendlyErr);
+          return { success: false, error: friendlyErr };
+        } else if (data?.user) {
+          const userObj = {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+            role: data.user.user_metadata?.role || 'student',
+            gradeId: data.user.user_metadata?.gradeId || 'g1'
+          };
+          setCurrentUser(userObj);
+          await dbAddUser(userObj);
+          setLoading(false);
+          return { success: true, user: userObj };
+        }
+      }
+
+      // Local / DB user search fallback
+      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (foundUser) {
+        setCurrentUser(foundUser);
+        setLoading(false);
+        return { success: true, user: foundUser };
+      } else {
+        const newUser = {
+          id: `u_${Date.now()}`,
+          name: email.split('@')[0],
+          email,
+          role: 'student',
+          gradeId: 'g1'
+        };
+        await addUser(newUser);
+        setCurrentUser(newUser);
+        setLoading(false);
+        return { success: true, user: newUser };
+      }
+    } catch (err) {
+      const friendlyErr = translateAuthError(err.message);
+      setError(friendlyErr);
+      setLoading(false);
+      return { success: false, error: friendlyErr };
+    }
+  };
+
+  // Register handler - Direct insertion into Supabase public.users table & auth
+  const register = async ({ name, email, password, role = 'student', gradeId = 'g1' }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      let supaUserId = `u_${Date.now()}`;
+      
+      if (isSupabaseConfigured()) {
+        const { data, error: supaErr } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name, role, gradeId }
+          }
+        });
+
+        if (supaErr) {
+          const friendlyErr = translateAuthError(supaErr.message);
+          console.error('[Supabase Auth] SignUp Error:', supaErr.message);
+          setLoading(false);
+          setError(friendlyErr);
+          return { success: false, error: friendlyErr };
+        }
+
+        if (data?.user) {
+          supaUserId = data.user.id;
+        }
+      }
+
+      const newUser = {
+        id: supaUserId,
+        name,
+        email,
+        role,
+        gradeId
+      };
+      
+      // Save directly to Supabase DB users table
+      await dbAddUser(newUser);
+      await addUser(newUser);
+      setCurrentUser(newUser);
+      setLoading(false);
+      return { success: true, user: newUser };
+    } catch (err) {
+      const friendlyErr = translateAuthError(err.message);
+      setError(friendlyErr);
+      setLoading(false);
+      return { success: false, error: friendlyErr };
+    }
+  };
+
+  // 1-Click Fast Demo Login
+  const fastDemoLogin = async (role) => {
+    const demoUser = users.find(u => u.role === role) || {
+      id: `u_${role}_${Date.now()}`,
+      name: role === 'student' ? 'Ahmet Yılmaz' : role === 'teacher' ? 'Mehmet Hoca' : 'Sistem Admin',
+      email: `${role}@example.com`,
+      role,
+      gradeId: 'g1'
+    };
+    setCurrentUser(demoUser);
+    await dbAddUser(demoUser);
+    return demoUser;
+  };
+
+  // Logout handler
+  const logout = async () => {
+    if (isSupabaseConfigured()) {
+      await supabase.auth.signOut();
+    }
+    setCurrentUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{
+      currentUser,
+      loading,
+      error,
+      login,
+      register,
+      logout,
+      fastDemoLogin
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}

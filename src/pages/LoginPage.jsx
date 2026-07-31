@@ -1,0 +1,264 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  GraduationCap, Users, Settings, Mail, Lock, User,
+  Sparkles, ArrowRight, CheckCircle2, ShieldCheck, Zap, KeyRound
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, register, fastDemoLogin, currentUser, logout } = useAuth();
+
+  const [isRegister, setIsRegister] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('student');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [gradeId, setGradeId] = useState('g1');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (isRegister) {
+      if (!name || !email || !password) {
+        setErrorMessage('Lütfen tüm alanları doldurun.');
+        return;
+      }
+      const res = await register({ name, email, password, role: selectedRole, gradeId });
+      if (res.success) {
+        if (selectedRole === 'student') navigate('/student');
+        else if (selectedRole === 'teacher') navigate('/teacher');
+        else navigate('/admin');
+      } else {
+        setErrorMessage(res.error || 'Kayıt başarısız oldu.');
+      }
+    } else {
+      if (!email || !password) {
+        setErrorMessage('Lütfen e-posta ve şifrenizi girin.');
+        return;
+      }
+      const res = await login(email, password);
+      if (res.success) {
+        if (res.user.role === 'student') navigate('/student');
+        else if (res.user.role === 'teacher') navigate('/teacher');
+        else navigate('/admin');
+      } else {
+        setErrorMessage(res.error || 'Giriş bilgileri hatalı.');
+      }
+    }
+  };
+
+  const handleFastDemo = (role) => {
+    const user = fastDemoLogin(role);
+    if (role === 'student') navigate('/student');
+    else if (role === 'teacher') navigate('/teacher');
+    else navigate('/admin');
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans text-slate-100">
+      
+      {/* GLOWING AURAS */}
+      <div className="absolute top-1/4 left-10 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-xl bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 sm:p-10 shadow-2xl relative z-10">
+        
+        {/* LOGO HEADER */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/30 mb-3">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">E-Test Platform Portal</h1>
+          <p className="text-indigo-200/70 text-xs sm:text-sm font-semibold mt-1">Öğrenci, Öğretmen ve Yönetici Giriş Portalı</p>
+        </div>
+
+        {/* LOGGED IN ACTIVE USER NOTICE */}
+        {currentUser && (
+          <div className="mb-6 p-4 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white">
+                {currentUser.name?.charAt(0)}
+              </div>
+              <div>
+                <p className="text-xs font-black text-white">{currentUser.name}</p>
+                <p className="text-[10px] text-indigo-200 uppercase font-bold">{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Admin'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(currentUser.role === 'student' ? '/student' : currentUser.role === 'teacher' ? '/teacher' : '/admin')}
+                className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-500"
+              >
+                Panele Git ➔
+              </button>
+              <button onClick={logout} className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 font-bold text-xs hover:bg-rose-500 hover:text-white">
+                Çıkış
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TABS SWITCHER (GİRİŞ YAP / KAYIT OL) */}
+        <div className="grid grid-cols-2 p-1.5 bg-black/30 rounded-2xl mb-6">
+          <button
+            type="button"
+            onClick={() => { setIsRegister(false); setErrorMessage(''); }}
+            className={`py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${!isRegister ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          >
+            Giriş Yap
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsRegister(true); setErrorMessage(''); }}
+            className={`py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${isRegister ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+          >
+            Kayıt Ol
+          </button>
+        </div>
+
+        {/* ROLE SELECTION CARDS */}
+        <div className="mb-6">
+          <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-2">Hesap Rolü Seçin</label>
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { id: 'student', label: 'Öğrenci', icon: GraduationCap, color: 'from-blue-500 to-indigo-600' },
+              { id: 'teacher', label: 'Öğretmen', icon: Users, color: 'from-purple-500 to-violet-600' },
+              { id: 'admin', label: 'Yönetici', icon: Settings, color: 'from-rose-500 to-pink-600' }
+            ].map(r => {
+              const active = selectedRole === r.id;
+              const Icon = r.icon;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setSelectedRole(r.id)}
+                  className={`p-3 rounded-2xl border transition-all flex flex-col items-center gap-1.5 ${
+                    active
+                      ? 'bg-white/20 border-indigo-400 text-white shadow-lg ring-2 ring-indigo-400/30'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${active ? 'text-indigo-300' : 'text-slate-400'}`} />
+                  <span className="text-xs font-black">{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ERROR MESSAGE ALERT */}
+        {errorMessage && (
+          <div className="mb-4 p-3 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs font-bold text-center">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          
+          {isRegister && (
+            <div>
+              <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Ad Soyad</label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Örn: Ahmet Yılmaz"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">E-Posta Adresi</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="ornek@ogrenci.com"
+                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Şifre</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
+              />
+            </div>
+          </div>
+
+          {isRegister && selectedRole === 'student' && (
+            <div>
+              <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Sınıf / Derece</label>
+              <select
+                value={gradeId}
+                onChange={e => setGradeId(e.target.value)}
+                className="w-full p-3 rounded-2xl bg-slate-900 border border-white/15 text-white text-sm font-bold outline-none"
+              >
+                <option value="g1">8. Sınıf LGS</option>
+                <option value="g2">12. Sınıf YKS</option>
+                <option value="g3">7. Sınıf</option>
+              </select>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 hover:from-indigo-600 hover:to-purple-600 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+          >
+            <span>{isRegister ? 'Kayıt Ol & Başla' : 'Sisteme Giriş Yap'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        {/* 1-CLICK FAST DEMO LOGIN BUTTONS */}
+        <div className="mt-8 pt-6 border-t border-white/10">
+          <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-amber-400" /> Hızlı Demo Girişi (Tek Tıkla Dene)
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => handleFastDemo('student')}
+              className="py-2 px-2 rounded-xl bg-blue-500/20 hover:bg-blue-500 text-blue-200 hover:text-white border border-blue-400/30 font-bold text-[11px] transition-all truncate"
+            >
+              🎓 Öğrenci Demo
+            </button>
+            <button
+              onClick={() => handleFastDemo('teacher')}
+              className="py-2 px-2 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-200 hover:text-white border border-purple-400/30 font-bold text-[11px] transition-all truncate"
+            >
+              👩‍🏫 Öğretmen Demo
+            </button>
+            <button
+              onClick={() => handleFastDemo('admin')}
+              className="py-2 px-2 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-200 hover:text-white border border-rose-400/30 font-bold text-[11px] transition-all truncate"
+            >
+              ⚙️ Admin Demo
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
