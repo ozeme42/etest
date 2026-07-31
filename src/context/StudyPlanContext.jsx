@@ -1,20 +1,17 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  dbGetStudyPlans,
+  dbAddStudyPlan,
+  dbDeleteStudyPlan,
+  dbAddStudyAssignment,
+  dbUpdateStudyAssignment
+} from '../services/supabaseService';
 
 const StudyPlanContext = createContext();
 
 export function useStudyPlan() {
   return useContext(StudyPlanContext);
 }
-
-// Plan Structure:
-// {
-//   id: 'plan_1',
-//   title: 'YKS 2027 Sayısal Yol Haritası',
-//   createdAt: '2026-07-27...',
-//   subjects: [
-//     { id: 'subj_1', name: 'Matematik', topics: [{ id: 'top_1', name: 'Üslü Sayılar' }] }
-//   ]
-// }
 
 export function StudyPlanProvider({ children }) {
   const [studyPlans, setStudyPlans] = useState(() => {
@@ -28,6 +25,17 @@ export function StudyPlanProvider({ children }) {
   });
 
   useEffect(() => {
+    async function syncStudyPlansFromSupabase() {
+      const res = await dbGetStudyPlans();
+      if (res) {
+        if (res.plans) setStudyPlans(res.plans);
+        if (res.assignments) setStudyAssignments(res.assignments);
+      }
+    }
+    syncStudyPlansFromSupabase();
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('eTestStudyPlans', JSON.stringify(studyPlans));
   }, [studyPlans]);
 
@@ -35,36 +43,46 @@ export function StudyPlanProvider({ children }) {
     localStorage.setItem('eTestStudyAssignments', JSON.stringify(studyAssignments));
   }, [studyAssignments]);
 
-  const addStudyPlan = (planData) => {
+  const addStudyPlan = async (planData) => {
     const newPlan = {
       id: `plan_${Date.now()}`,
       createdAt: new Date().toISOString(),
       ...planData
     };
     setStudyPlans(prev => [...prev, newPlan]);
+    await dbAddStudyPlan(newPlan);
+    return newPlan;
   };
 
-  const updateStudyPlan = (id, planData) => {
+  const updateStudyPlan = async (id, planData) => {
     setStudyPlans(prev => prev.map(p => p.id === id ? { ...p, ...planData } : p));
+    const target = studyPlans.find(p => p.id === id);
+    if (target) {
+      await dbAddStudyPlan({ ...target, ...planData });
+    }
   };
 
-  const deleteStudyPlan = (id) => {
+  const deleteStudyPlan = async (id) => {
     setStudyPlans(prev => prev.filter(p => p.id !== id));
+    await dbDeleteStudyPlan(id);
   };
 
-  const addStudyAssignment = (assignmentData) => {
+  const addStudyAssignment = async (assignmentData) => {
     const newAssignment = {
       id: `sa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
-      status: 'assigned', // assigned, completed
+      status: 'assigned',
       ...assignmentData
     };
     setStudyAssignments(prev => [...prev, newAssignment]);
+    await dbAddStudyAssignment(newAssignment);
+    return newAssignment;
   };
 
-  const updateStudyAssignment = (id, data) => {
+  const updateStudyAssignment = async (id, data) => {
     setStudyAssignments(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
-  }
+    await dbUpdateStudyAssignment(id, data);
+  };
 
   return (
     <StudyPlanContext.Provider value={{

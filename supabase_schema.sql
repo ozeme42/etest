@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS public.topics (
 
 -- 7. HEDEFLER TABLOSU (GOALS)
 CREATE TABLE IF NOT EXISTS public.goals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY,
     student_id VARCHAR(100) NOT NULL DEFAULT 'u1',
     title VARCHAR(255) NOT NULL,
     type VARCHAR(50) NOT NULL DEFAULT 'Soru',
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.goals (
 
 -- 8. HAFTALIK PROGRAM TABLOSU (SCHEDULES)
 CREATE TABLE IF NOT EXISTS public.schedules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY,
     student_id VARCHAR(100) NOT NULL DEFAULT 'u1',
     day VARCHAR(50) NOT NULL,
     time VARCHAR(50) NOT NULL,
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS public.schedules (
 
 -- 9. SINAV SONUÇLARI TABLOSU (SUBMISSIONS)
 CREATE TABLE IF NOT EXISTS public.submissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY,
     test_id VARCHAR(100) NOT NULL,
     student_id VARCHAR(100) NOT NULL,
     score NUMERIC(5,2) DEFAULT 0,
@@ -105,13 +105,13 @@ CREATE TABLE IF NOT EXISTS public.submissions (
     empty_count INTEGER DEFAULT 0,
     subject VARCHAR(100),
     title VARCHAR(255),
-    answers JSONB DEFAULT '{}'::jsonb,
+    answers JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 10. SORU BANKASI TABLOSU (QUESTIONS)
 CREATE TABLE IF NOT EXISTS public.questions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(100) PRIMARY KEY,
     subject VARCHAR(100) NOT NULL DEFAULT 'Matematik',
     grade_id VARCHAR(50) NOT NULL DEFAULT 'g1',
     topic VARCHAR(255) NOT NULL DEFAULT 'Genel',
@@ -120,6 +120,62 @@ CREATE TABLE IF NOT EXISTS public.questions (
     correct_answer VARCHAR(10) NOT NULL DEFAULT '0',
     explanation TEXT DEFAULT '',
     image_url TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. ÖDEVLER TABLOSU (HOMEWORKS)
+CREATE TABLE IF NOT EXISTS public.homeworks (
+    id VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    subject VARCHAR(100) NOT NULL,
+    due_date TIMESTAMPTZ,
+    target_type VARCHAR(50) DEFAULT 'grade',
+    target_ids JSONB DEFAULT '[]'::jsonb,
+    tests JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12. DERS ÇALIŞMA PLANLARI (STUDY PLANS)
+CREATE TABLE IF NOT EXISTS public.study_plans (
+    id VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    subjects JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. DERS ÇALIŞMA ATAMALARI (STUDY ASSIGNMENTS)
+CREATE TABLE IF NOT EXISTS public.study_assignments (
+    id VARCHAR(100) PRIMARY KEY,
+    student_id VARCHAR(100) NOT NULL,
+    study_plan_id VARCHAR(100),
+    subject VARCHAR(100) NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    due_date TIMESTAMPTZ,
+    status VARCHAR(50) DEFAULT 'assigned',
+    duration_minutes INTEGER DEFAULT 30,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. KİTAP TAKİBİ - KİTAPLAR (TRACKED BOOKS)
+CREATE TABLE IF NOT EXISTS public.tracked_books (
+    id VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    publisher VARCHAR(255) DEFAULT '',
+    book_type VARCHAR(50) DEFAULT 'standard',
+    subjects JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15. KİTAP TAKİBİ - KİTAP TESTLERİ (TRACKED BOOK TESTS)
+CREATE TABLE IF NOT EXISTS public.tracked_book_tests (
+    id VARCHAR(100) PRIMARY KEY,
+    book_id VARCHAR(100) NOT NULL,
+    subject_id VARCHAR(100),
+    topic_id VARCHAR(100),
+    name VARCHAR(255) NOT NULL,
+    question_count INTEGER DEFAULT 20,
+    answer_key JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -133,6 +189,11 @@ ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeworks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tracked_books ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tracked_book_tests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public users" ON public.users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public grades" ON public.grades FOR ALL USING (true) WITH CHECK (true);
@@ -143,3 +204,8 @@ CREATE POLICY "Allow public goals" ON public.goals FOR ALL USING (true) WITH CHE
 CREATE POLICY "Allow public schedules" ON public.schedules FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public questions" ON public.questions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public homeworks" ON public.homeworks FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public study_plans" ON public.study_plans FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public study_assignments" ON public.study_assignments FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public tracked_books" ON public.tracked_books FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public tracked_book_tests" ON public.tracked_book_tests FOR ALL USING (true) WITH CHECK (true);

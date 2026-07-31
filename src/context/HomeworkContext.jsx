@@ -1,14 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { dbGetHomeworks, dbAddHomework, dbDeleteHomework } from '../services/supabaseService';
 
 const HomeworkContext = createContext();
 
 export function useHomework() {
   return useContext(HomeworkContext);
 }
-
-// targetType: 'grade' or 'student'
-// targetIds: array of gradeIds or studentIds
-// status: array of submissions: { studentId, score, completedAt, totalQuestions }
 
 export function HomeworkProvider({ children }) {
   const [homeworks, setHomeworks] = useState(() => {
@@ -17,10 +14,20 @@ export function HomeworkProvider({ children }) {
   });
 
   useEffect(() => {
+    async function syncHomeworksFromSupabase() {
+      const dbHws = await dbGetHomeworks();
+      if (dbHws) {
+        setHomeworks(dbHws);
+      }
+    }
+    syncHomeworksFromSupabase();
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('eTestHomeworks', JSON.stringify(homeworks));
   }, [homeworks]);
 
-  const addHomework = (hwData) => {
+  const addHomework = async (hwData) => {
     const newHw = {
       id: `hw_${Date.now()}`,
       createdAt: new Date().toISOString(),
@@ -28,22 +35,28 @@ export function HomeworkProvider({ children }) {
       ...hwData
     };
     setHomeworks(prev => [...prev, newHw]);
+    await dbAddHomework(newHw);
+    return newHw;
   };
 
-  const updateHomework = (id, hwData) => {
+  const updateHomework = async (id, hwData) => {
     setHomeworks(prev => prev.map(hw => hw.id === id ? { ...hw, ...hwData } : hw));
+    const targetHw = homeworks.find(h => h.id === id);
+    if (targetHw) {
+      await dbAddHomework({ ...targetHw, ...hwData });
+    }
   };
 
-  const deleteHomework = (id) => {
+  const deleteHomework = async (id) => {
     setHomeworks(prev => prev.filter(hw => hw.id !== id));
+    await dbDeleteHomework(id);
   };
 
   const submitHomework = (hwId, studentId, score, totalQuestions) => {
     setHomeworks(prev => prev.map(hw => {
       if (hw.id === hwId) {
-        // Prevent duplicate submissions or update existing
-        const existing = hw.submissions.find(s => s.studentId === studentId);
-        let newSubmissions = [...hw.submissions];
+        const existing = (hw.submissions || []).find(s => s.studentId === studentId);
+        let newSubmissions = [...(hw.submissions || [])];
         if (existing) {
           newSubmissions = newSubmissions.map(s => 
             s.studentId === studentId ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions } : s
@@ -51,7 +64,9 @@ export function HomeworkProvider({ children }) {
         } else {
           newSubmissions.push({ studentId, score, completedAt: new Date().toISOString(), totalQuestions });
         }
-        return { ...hw, submissions: newSubmissions };
+        const updated = { ...hw, submissions: newSubmissions };
+        dbAddHomework(updated);
+        return updated;
       }
       return hw;
     }));

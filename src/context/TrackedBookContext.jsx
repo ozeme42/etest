@@ -1,4 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  dbGetTrackedBooks,
+  dbAddTrackedBook,
+  dbUpdateTrackedBook,
+  dbDeleteTrackedBook,
+  dbAddTrackedBookTest,
+  dbDeleteTrackedBookTest
+} from '../services/supabaseService';
 
 const TrackedBookContext = createContext();
 
@@ -6,19 +14,27 @@ export function useTrackedBooks() {
   return useContext(TrackedBookContext);
 }
 
-const INITIAL_BOOKS = [];
-const INITIAL_TESTS = [];
-
 export function TrackedBookProvider({ children }) {
   const [books, setBooks] = useState(() => {
     const saved = localStorage.getItem('eTestTrackedBooks');
-    return saved ? JSON.parse(saved) : INITIAL_BOOKS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [bookTests, setBookTests] = useState(() => {
     const saved = localStorage.getItem('eTestTrackedBookTests');
-    return saved ? JSON.parse(saved) : INITIAL_TESTS;
+    return saved ? JSON.parse(saved) : [];
   });
+
+  useEffect(() => {
+    async function syncTrackedBooksFromSupabase() {
+      const res = await dbGetTrackedBooks();
+      if (res) {
+        if (res.books) setBooks(res.books);
+        if (res.bookTests) setBookTests(res.bookTests);
+      }
+    }
+    syncTrackedBooksFromSupabase();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('eTestTrackedBooks', JSON.stringify(books));
@@ -28,44 +44,52 @@ export function TrackedBookProvider({ children }) {
     localStorage.setItem('eTestTrackedBookTests', JSON.stringify(bookTests));
   }, [bookTests]);
 
-  const addTrackedBook = (bookData) => {
+  const addTrackedBook = async (bookData) => {
     const newBook = {
-      id: `tb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `tb_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       createdAt: new Date().toISOString(),
       subjects: [],
       ...bookData
     };
     setBooks(prev => [...prev, newBook]);
+    await dbAddTrackedBook(newBook);
     return newBook;
   };
 
-  const updateTrackedBook = (id, updates) => {
+  const updateTrackedBook = async (id, updates) => {
     setBooks(prev => prev.map(book => book.id === id ? { ...book, ...updates } : book));
+    await dbUpdateTrackedBook(id, updates);
   };
 
-  const deleteTrackedBook = (id) => {
+  const deleteTrackedBook = async (id) => {
     setBooks(prev => prev.filter(book => book.id !== id));
-    // Also delete associated tests
     setBookTests(prev => prev.filter(test => test.bookId !== id));
+    await dbDeleteTrackedBook(id);
   };
 
-  const addTrackedBookTest = (bookId, testData) => {
+  const addTrackedBookTest = async (bookId, testData) => {
     const newTest = {
-      id: `tbt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `tbt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       bookId,
       createdAt: new Date().toISOString(),
       ...testData
     };
     setBookTests(prev => [...prev, newTest]);
+    await dbAddTrackedBookTest(newTest);
     return newTest;
   };
 
-  const updateTrackedBookTest = (id, updates) => {
+  const updateTrackedBookTest = async (id, updates) => {
     setBookTests(prev => prev.map(test => test.id === id ? { ...test, ...updates } : test));
+    const target = bookTests.find(t => t.id === id);
+    if (target) {
+      await dbAddTrackedBookTest({ ...target, ...updates });
+    }
   };
 
-  const deleteTrackedBookTest = (id) => {
+  const deleteTrackedBookTest = async (id) => {
     setBookTests(prev => prev.filter(test => test.id !== id));
+    await dbDeleteTrackedBookTest(id);
   };
 
   return (
