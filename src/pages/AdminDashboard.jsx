@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
-import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus } from 'lucide-react';
+import { dbAddUser } from '../services/supabaseService';
+import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
 import './AdminDashboard.css';
 
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
           className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          Kullanıcı Yönetimi
+          Kullanıcı Yönetimi & Onaylar
         </button>
         <button 
           className={`admin-tab ${activeTab === 'homeworks' ? 'active' : ''}`}
@@ -98,46 +99,44 @@ function CurriculumManager() {
         </ul>
         <div className="add-form">
           <input type="text" placeholder="Yeni (virgülle toplu)" value={selectedGrade ? '' : newItemName} onChange={(e) => !selectedGrade && setNewItemName(e.target.value)} onFocus={() => { setSelectedGrade(null); setSelectedSubject(null); setSelectedUnit(null); }} />
-          <button className="btn btn-primary" onClick={() => handleAdd('grade')} disabled={selectedGrade !== null}><Plus size={16} /></button>
+          <button className="btn btn-primary" onClick={() => handleAdd('grade')}><Plus size={16} /></button>
         </div>
       </div>
 
       {/* SUBJECTS */}
       <div className="admin-column card glass">
         <h3 className="column-title">Dersler</h3>
-        {!selectedGrade ? (
-          <p className="empty-text">Önce bir sınıf seçin</p>
-        ) : (
+        {selectedGrade ? (
           <>
             <ul className="item-list">
-              {filteredSubjects.map(sub => (
+              {filteredSubjects.map(subject => (
                 <li 
-                  key={sub.id} 
-                  className={`list-item ${selectedSubject === sub.id ? 'active' : ''}`}
-                  onClick={() => { setSelectedSubject(sub.id); setSelectedUnit(null); }}
+                  key={subject.id} 
+                  className={`list-item ${selectedSubject === subject.id ? 'active' : ''}`}
+                  onClick={() => { setSelectedSubject(subject.id); setSelectedUnit(null); }}
                 >
-                  <span>{sub.name}</span>
+                  <span>{subject.name}</span>
                   <div className="item-actions">
                     <ArrowRight size={16} className="text-muted" />
-                    <button className="btn-icon text-error" onClick={(e) => { e.stopPropagation(); deleteItem('subjects', sub.id); }}><Trash2 size={16} /></button>
+                    <button className="btn-icon text-error" onClick={(e) => { e.stopPropagation(); deleteItem('subjects', subject.id); }}><Trash2 size={16} /></button>
                   </div>
                 </li>
               ))}
             </ul>
             <div className="add-form">
-              <input type="text" placeholder="Yeni (virgülle toplu)" value={selectedSubject ? '' : newItemName} onChange={(e) => (!selectedSubject || (selectedGrade && !selectedSubject)) && setNewItemName(e.target.value)} onFocus={() => { setSelectedSubject(null); setSelectedUnit(null); }} />
-              <button className="btn btn-primary" onClick={() => handleAdd('subject', selectedGrade)} disabled={!selectedGrade || selectedSubject !== null}><Plus size={16} /></button>
+              <input type="text" placeholder="Yeni (virgülle toplu)" value={selectedSubject ? '' : newItemName} onChange={(e) => !selectedSubject && setNewItemName(e.target.value)} onFocus={() => { setSelectedSubject(null); setSelectedUnit(null); }} />
+              <button className="btn btn-primary" onClick={() => handleAdd('subject', selectedGrade)}><Plus size={16} /></button>
             </div>
           </>
+        ) : (
+          <p className="text-muted text-center p-3">Lütfen önce bir sınıf seçin.</p>
         )}
       </div>
 
       {/* UNITS */}
       <div className="admin-column card glass">
         <h3 className="column-title">Üniteler</h3>
-        {!selectedSubject ? (
-          <p className="empty-text">Önce bir ders seçin</p>
-        ) : (
+        {selectedSubject ? (
           <>
             <ul className="item-list">
               {filteredUnits.map(unit => (
@@ -155,25 +154,27 @@ function CurriculumManager() {
               ))}
             </ul>
             <div className="add-form">
-              <input type="text" placeholder="Yeni (virgülle toplu)" value={selectedUnit ? '' : newItemName} onChange={(e) => (!selectedUnit || (selectedSubject && !selectedUnit)) && setNewItemName(e.target.value)} onFocus={() => { setSelectedUnit(null); }} />
-              <button className="btn btn-primary" onClick={() => handleAdd('unit', selectedSubject)} disabled={!selectedSubject || selectedUnit !== null}><Plus size={16} /></button>
+              <input type="text" placeholder="Yeni (virgülle toplu)" value={selectedUnit ? '' : newItemName} onChange={(e) => !selectedUnit && setNewItemName(e.target.value)} onFocus={() => setSelectedUnit(null)} />
+              <button className="btn btn-primary" onClick={() => handleAdd('unit', selectedSubject)}><Plus size={16} /></button>
             </div>
           </>
+        ) : (
+          <p className="text-muted text-center p-3">Lütfen önce bir ders seçin.</p>
         )}
       </div>
 
       {/* TOPICS */}
       <div className="admin-column card glass">
         <h3 className="column-title">Konular</h3>
-        {!selectedUnit ? (
-          <p className="empty-text">Önce bir ünite seçin</p>
-        ) : (
+        {selectedUnit ? (
           <>
             <ul className="item-list">
               {filteredTopics.map(topic => (
                 <li key={topic.id} className="list-item">
                   <span>{topic.name}</span>
-                  <button className="btn-icon text-error" onClick={() => deleteItem('topics', topic.id)}><Trash2 size={16} /></button>
+                  <div className="item-actions">
+                    <button className="btn-icon text-error" onClick={() => deleteItem('topics', topic.id)}><Trash2 size={16} /></button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -182,6 +183,8 @@ function CurriculumManager() {
               <button className="btn btn-primary" onClick={() => handleAdd('topic', selectedUnit)} disabled={!selectedUnit}><Plus size={16} /></button>
             </div>
           </>
+        ) : (
+          <p className="text-muted text-center p-3">Lütfen önce bir ünite seçin.</p>
         )}
       </div>
     </div>
@@ -195,25 +198,41 @@ function UserManager() {
   const [showModal, setShowModal] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'student', gradeId: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', role: 'student', gradeId: '', isApproved: true });
+
+  const pendingTeachers = users.filter(u => u.role === 'teacher' && u.isApproved === false);
+
+  const handleApproveTeacher = async (user) => {
+    const updated = { ...user, isApproved: true };
+    updateUser(user.id, updated);
+    await dbAddUser(updated);
+  };
 
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUserId(user.id);
-      setFormData({ name: user.name, email: user.email, role: user.role, gradeId: user.gradeId || '' });
+      setFormData({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        gradeId: user.gradeId || '',
+        isApproved: user.isApproved !== undefined ? user.isApproved : true
+      });
     } else {
       setEditingUserId(null);
-      setFormData({ name: '', email: '', role: 'student', gradeId: '' });
+      setFormData({ name: '', email: '', role: 'student', gradeId: '', isApproved: true });
     }
     setShowModal(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (editingUserId) {
       updateUser(editingUserId, formData);
+      await dbAddUser({ id: editingUserId, ...formData });
     } else {
-      addUser(formData);
+      const newUser = await addUser(formData);
+      if (newUser) await dbAddUser(newUser);
     }
     setShowModal(false);
   };
@@ -230,47 +249,112 @@ function UserManager() {
   };
 
   return (
-    <div className="card glass">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '1rem' }}>
-        <h3>Kullanıcı Listesi</h3>
-        <button className="btn btn-primary" onClick={() => handleOpenModal()}><UserPlus size={18} /> Yeni Kullanıcı</button>
-      </div>
+    <div className="space-y-6">
+      {/* PENDING TEACHER APPROVALS BANNER */}
+      {pendingTeachers.length > 0 && (
+        <div className="card glass" style={{ borderLeft: '4px solid #f59e0b', background: 'rgba(245, 158, 11, 0.08)', padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Clock className="text-warning" size={20} />
+            <h3 style={{ margin: 0, color: '#f59e0b', fontWeight: 800 }}>Onay Bekleyen Öğretmen Kayıtları ({pendingTeachers.length})</h3>
+          </div>
+          <div className="users-table-container">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>Ad Soyad</th>
+                  <th>E-posta</th>
+                  <th>Durum</th>
+                  <th style={{ textAlign: 'right' }}>Onay İşlemi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingTeachers.map(teacher => (
+                  <tr key={teacher.id}>
+                    <td style={{ fontWeight: 600 }}>{teacher.name}</td>
+                    <td>{teacher.email}</td>
+                    <td>
+                      <span className="role-badge" style={{ background: '#f59e0b22', color: '#f59e0b', border: '1px solid #f59e0b55' }}>⏳ Onay Bekliyor</span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ background: '#10b981', borderColor: '#10b981', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                          onClick={() => handleApproveTeacher(teacher)}
+                        >
+                          <Check size={14} /> Onayla
+                        </button>
+                        <button
+                          className="btn-icon text-error"
+                          onClick={() => deleteUser(teacher.id)}
+                          title="Talebi Reddet ve Sil"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-      <div className="users-table-container">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>Ad Soyad</th>
-              <th>E-posta</th>
-              <th>Rol</th>
-              <th>Sınıf (Öğrenci)</th>
-              <th style={{ textAlign: 'right' }}>İşlemler</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                <td style={{ fontWeight: 500 }}>{user.name}</td>
-                <td>{user.email}</td>
-                <td>
-                  <span className={`role-badge role-${user.role}`}>{getRoleLabel(user.role)}</span>
-                </td>
-                <td>{user.role === 'student' ? getGradeName(user.gradeId) : '-'}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                    <button className="btn-icon" onClick={() => handleOpenModal(user)}><Edit size={16} /></button>
-                    <button className="btn-icon text-error" onClick={() => deleteUser(user.id)}><Trash2 size={16} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && (
+      <div className="card glass">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '1rem' }}>
+          <h3>Kullanıcı Listesi</h3>
+          <button className="btn btn-primary" onClick={() => handleOpenModal()}><UserPlus size={18} /> Yeni Kullanıcı</button>
+        </div>
+
+        <div className="users-table-container">
+          <table className="users-table">
+            <thead>
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Kayıtlı kullanıcı yok.</td>
+                <th>Ad Soyad</th>
+                <th>E-posta</th>
+                <th>Rol</th>
+                <th>Sınıf (Öğrenci)</th>
+                <th>Onay Durumu</th>
+                <th style={{ textAlign: 'right' }}>İşlemler</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td style={{ fontWeight: 500 }}>{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>
+                    <span className={`role-badge role-${user.role}`}>{getRoleLabel(user.role)}</span>
+                  </td>
+                  <td>{user.role === 'student' ? getGradeName(user.gradeId) : '-'}</td>
+                  <td>
+                    {user.role === 'teacher' ? (
+                      user.isApproved !== false ? (
+                        <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.8rem' }}>✅ Onaylı</span>
+                      ) : (
+                        <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.8rem' }}>⏳ Bekliyor</span>
+                      )
+                    ) : (
+                      <span style={{ color: '#64748b', fontSize: '0.8rem' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                      <button className="btn-icon" onClick={() => handleOpenModal(user)}><Edit size={16} /></button>
+                      <button className="btn-icon text-error" onClick={() => deleteUser(user.id)}><Trash2 size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Kayıtlı kullanıcı yok.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showModal && (

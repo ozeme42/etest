@@ -19,6 +19,7 @@ export async function dbGetUsers() {
       name: u.name,
       role: u.role,
       gradeId: u.grade_id,
+      isApproved: u.is_approved !== undefined ? Boolean(u.is_approved) : (u.role === 'teacher' ? false : true),
       createdAt: u.created_at
     }));
   } catch (err) {
@@ -30,12 +31,17 @@ export async function dbGetUsers() {
 export async function dbAddUser(user) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const isApprovedVal = user.isApproved !== undefined 
+      ? Boolean(user.isApproved) 
+      : (user.role === 'teacher' ? false : true);
+
     const payload = {
       id: String(user.id || `u_${Date.now()}`),
       email: user.email,
       name: user.name,
       role: user.role || 'student',
-      grade_id: user.gradeId || 'g1'
+      grade_id: user.gradeId || 'g1',
+      is_approved: isApprovedVal
     };
     const { data, error } = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
     if (error) {

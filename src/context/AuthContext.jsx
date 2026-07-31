@@ -64,12 +64,28 @@ export function AuthProvider({ children }) {
           setError(friendlyErr);
           return { success: false, error: friendlyErr };
         } else if (data?.user) {
+          // Check if teacher approval is pending from local users list or metadata
+          const foundInList = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+          const role = data.user.user_metadata?.role || foundInList?.role || 'student';
+          const isApproved = foundInList?.isApproved !== undefined 
+            ? foundInList.isApproved 
+            : (data.user.user_metadata?.isApproved !== undefined ? data.user.user_metadata.isApproved : (role === 'teacher' ? false : true));
+
+          if (role === 'teacher' && !isApproved) {
+            await supabase.auth.signOut();
+            setLoading(false);
+            const pendingErr = '⏳ Öğretmen hesabınız yönetici onayı bekliyor. Onaylandıktan sonra giriş yapabilirsiniz.';
+            setError(pendingErr);
+            return { success: false, error: pendingErr };
+          }
+
           const userObj = {
             id: data.user.id,
             email: data.user.email,
             name: data.user.user_metadata?.name || data.user.email.split('@')[0],
-            role: data.user.user_metadata?.role || 'student',
-            gradeId: data.user.user_metadata?.gradeId || 'g1'
+            role,
+            gradeId: data.user.user_metadata?.gradeId || 'g1',
+            isApproved
           };
           setCurrentUser(userObj);
           await dbAddUser(userObj);
@@ -81,6 +97,13 @@ export function AuthProvider({ children }) {
       // Local / DB user search fallback
       const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (foundUser) {
+        if (foundUser.role === 'teacher' && foundUser.isApproved === false) {
+          setLoading(false);
+          const pendingErr = '⏳ Öğretmen hesabınız yönetici onayı bekliyor. Onaylandıktan sonra giriş yapabilirsiniz.';
+          setError(pendingErr);
+          return { success: false, error: pendingErr };
+        }
+
         setCurrentUser(foundUser);
         setLoading(false);
         return { success: true, user: foundUser };
@@ -90,7 +113,8 @@ export function AuthProvider({ children }) {
           name: email.split('@')[0],
           email,
           role: 'student',
-          gradeId: 'g1'
+          gradeId: 'g1',
+          isApproved: true
         };
         await addUser(newUser);
         setCurrentUser(newUser);
@@ -111,13 +135,14 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       let supaUserId = `u_${Date.now()}`;
+      const isApproved = role === 'teacher' ? false : true;
       
       if (isSupabaseConfigured()) {
         const { data, error: supaErr } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name, role, gradeId }
+            data: { name, role, gradeId, isApproved }
           }
         });
 
@@ -139,12 +164,25 @@ export function AuthProvider({ children }) {
         name,
         email,
         role,
-        gradeId
+        gradeId,
+        isApproved
       };
       
       // Save directly to Supabase DB users table
       await dbAddUser(newUser);
       await addUser(newUser);
+
+      if (role === 'teacher') {
+        // Teachers must wait for admin approval
+        await logout();
+        setLoading(false);
+        return {
+          success: true,
+          pendingApproval: true,
+          message: '⏳ Öğretmen kaydınız başarıyla alındı! Yönetici hesabınızı onayladıktan sonra giriş yapabileceksiniz.'
+        };
+      }
+
       setCurrentUser(newUser);
       setLoading(false);
       return { success: true, user: newUser };

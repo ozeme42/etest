@@ -17,10 +17,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [gradeId, setGradeId] = useState('g1');
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
     if (isRegister) {
       if (!name || !email || !password) {
@@ -28,7 +30,11 @@ export default function LoginPage() {
         return;
       }
       const res = await register({ name, email, password, role: selectedRole, gradeId });
-      if (res.success) {
+      if (res.pendingApproval) {
+        setSuccessMessage(res.message || '⏳ Öğretmen kaydınız alındı! Yönetici onayı sonrası giriş yapabilirsiniz.');
+        setIsRegister(false);
+        setPassword('');
+      } else if (res.success) {
         if (selectedRole === 'student') navigate('/student');
         else if (selectedRole === 'teacher') navigate('/teacher');
         else navigate('/admin');
@@ -73,7 +79,7 @@ export default function LoginPage() {
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">E-Test Platform Portal</h1>
-          <p className="text-indigo-200/70 text-xs sm:text-sm font-semibold mt-1">Öğrenci, Öğretmen ve Yönetici Giriş Portalı</p>
+          <p className="text-indigo-200/70 text-xs sm:text-sm font-semibold mt-1">Giriş Yap ve Kayıt Ol</p>
         </div>
 
         {/* LOGGED IN ACTIVE USER NOTICE */}
@@ -106,53 +112,65 @@ export default function LoginPage() {
         <div className="grid grid-cols-2 p-1.5 bg-black/30 rounded-2xl mb-6">
           <button
             type="button"
-            onClick={() => { setIsRegister(false); setErrorMessage(''); }}
+            onClick={() => { setIsRegister(false); setErrorMessage(''); setSuccessMessage(''); }}
             className={`py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${!isRegister ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
             Giriş Yap
           </button>
           <button
             type="button"
-            onClick={() => { setIsRegister(true); setErrorMessage(''); }}
+            onClick={() => { setIsRegister(true); setErrorMessage(''); setSuccessMessage(''); setSelectedRole('student'); }}
             className={`py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${isRegister ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
             Kayıt Ol
           </button>
         </div>
 
-        {/* ROLE SELECTION CARDS */}
-        <div className="mb-6">
-          <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-2">Hesap Rolü Seçin</label>
-          <div className="grid grid-cols-3 gap-2.5">
-            {[
-              { id: 'student', label: 'Öğrenci', icon: GraduationCap, color: 'from-blue-500 to-indigo-600' },
-              { id: 'teacher', label: 'Öğretmen', icon: Users, color: 'from-purple-500 to-violet-600' },
-              { id: 'admin', label: 'Yönetici', icon: Settings, color: 'from-rose-500 to-pink-600' }
-            ].map(r => {
-              const active = selectedRole === r.id;
-              const Icon = r.icon;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setSelectedRole(r.id)}
-                  className={`p-3 rounded-2xl border transition-all flex flex-col items-center gap-1.5 ${
-                    active
-                      ? 'bg-white/20 border-indigo-400 text-white shadow-lg ring-2 ring-indigo-400/30'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${active ? 'text-indigo-300' : 'text-slate-400'}`} />
-                  <span className="text-xs font-black">{r.label}</span>
-                </button>
-              );
-            })}
+        {/* ROLE SELECTION CARDS - ONLY FOR REGISTER MODE (ADMIN REMOVED FROM REGISTER) */}
+        {isRegister && (
+          <div className="mb-6">
+            <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-2">Kayıt Türü Seçin</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'student', label: 'Öğrenci Kaydı', icon: GraduationCap, desc: 'Sınav çöz, takip et' },
+                { id: 'teacher', label: 'Öğretmen Kaydı', icon: Users, desc: 'Yönetici onayı gerektirir' }
+              ].map(r => {
+                const active = selectedRole === r.id;
+                const Icon = r.icon;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setSelectedRole(r.id)}
+                    className={`p-3.5 rounded-2xl border transition-all flex flex-col items-center text-center gap-1.5 ${
+                      active
+                        ? 'bg-white/20 border-indigo-400 text-white shadow-lg ring-2 ring-indigo-400/30'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className={`w-6 h-6 ${active ? 'text-indigo-300' : 'text-slate-400'}`} />
+                    <div>
+                      <div className="text-xs font-black">{r.label}</div>
+                      <div className="text-[10px] opacity-70 mt-0.5">{r.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* SUCCESS MESSAGE ALERT */}
+        {successMessage && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-bold text-center flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{successMessage}</span>
+          </div>
+        )}
 
         {/* ERROR MESSAGE ALERT */}
         {errorMessage && (
-          <div className="mb-4 p-3 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs font-bold text-center">
+          <div className="mb-4 p-3.5 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs font-bold text-center">
             {errorMessage}
           </div>
         )}
@@ -186,7 +204,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="ornek@ogrenci.com"
+                placeholder="ornek@email.com"
                 className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
               />
             </div>
@@ -207,53 +225,39 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {isRegister && selectedRole === 'student' && (
-            <div>
-              <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Sınıf / Derece</label>
-              <select
-                value={gradeId}
-                onChange={e => setGradeId(e.target.value)}
-                className="w-full p-3 rounded-2xl bg-slate-900 border border-white/15 text-white text-sm font-bold outline-none"
-              >
-                <option value="g1">8. Sınıf LGS</option>
-                <option value="g2">12. Sınıf YKS</option>
-                <option value="g3">7. Sınıf</option>
-              </select>
-            </div>
-          )}
-
           <button
             type="submit"
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 hover:from-indigo-600 hover:to-purple-600 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 mt-2"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-black text-sm shadow-xl shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            <span>{isRegister ? 'Kayıt Ol & Başla' : 'Sisteme Giriş Yap'}</span>
+            <span>{isRegister ? (selectedRole === 'teacher' ? 'Öğretmen Kaydı Gönder' : 'Kayıt Ol') : 'Giriş Yap'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* 1-CLICK FAST DEMO LOGIN BUTTONS */}
+        {/* DEMO FAST LOGINS */}
         <div className="mt-8 pt-6 border-t border-white/10">
-          <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-amber-400" /> Hızlı Demo Girişi (Tek Tıkla Dene)
-          </p>
+          <p className="text-center text-[10px] font-black text-indigo-200/60 uppercase tracking-widest mb-3">Hızlı Demo Girişi (Tek Tıkla)</p>
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => handleFastDemo('student')}
-              className="py-2 px-2 rounded-xl bg-blue-500/20 hover:bg-blue-500 text-blue-200 hover:text-white border border-blue-400/30 font-bold text-[11px] transition-all truncate"
+              className="py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-all"
             >
-              🎓 Öğrenci Demo
+              <GraduationCap className="w-3.5 h-3.5 text-blue-400" />
+              <span>Öğrenci</span>
             </button>
             <button
               onClick={() => handleFastDemo('teacher')}
-              className="py-2 px-2 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-200 hover:text-white border border-purple-400/30 font-bold text-[11px] transition-all truncate"
+              className="py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-all"
             >
-              👩‍🏫 Öğretmen Demo
+              <Users className="w-3.5 h-3.5 text-purple-400" />
+              <span>Öğretmen</span>
             </button>
             <button
               onClick={() => handleFastDemo('admin')}
-              className="py-2 px-2 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-200 hover:text-white border border-rose-400/30 font-bold text-[11px] transition-all truncate"
+              className="py-2 px-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-all"
             >
-              ⚙️ Admin Demo
+              <Settings className="w-3.5 h-3.5 text-pink-400" />
+              <span>Yönetici</span>
             </button>
           </div>
         </div>

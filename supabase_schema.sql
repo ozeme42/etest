@@ -11,20 +11,24 @@ CREATE TABLE IF NOT EXISTS public.users (
     name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'student',
     grade_id VARCHAR(50) DEFAULT 'g1',
+    is_approved BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
 
 -- 2. AUTOMATIC SYNC FROM SUPABASE AUTH TO PUBLIC.USERS TABLE
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, name, role, grade_id)
+  INSERT INTO public.users (id, email, name, role, grade_id, is_approved)
   VALUES (
     NEW.id::text,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'role', 'student'),
-    COALESCE(NEW.raw_user_meta_data->>'gradeId', 'g1')
+    COALESCE(NEW.raw_user_meta_data->>'gradeId', 'g1'),
+    CASE WHEN COALESCE(NEW.raw_user_meta_data->>'role', 'student') = 'teacher' THEN FALSE ELSE TRUE END
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
