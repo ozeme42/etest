@@ -337,7 +337,7 @@ export default function StudentDashboard() {
         <div style={{ position: 'absolute', bottom: -40, left: 80, width: 160, height: 160, background: 'rgba(255,255,255,0.05)', borderRadius: '50%', filter: 'blur(25px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: '50%', right: '10%', width: 100, height: 100, background: 'rgba(251,191,36,0.12)', borderRadius: '50%', filter: 'blur(20px)', pointerEvents: 'none', transform: 'translateY(-50%)' }} />
 
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
           <Avatar name={selectedStudent?.name} size={68} color={avatarColor} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.25rem 0.75rem', marginBottom: 8 }}>
@@ -359,7 +359,7 @@ export default function StudentDashboard() {
 
         {/* Student switcher pills */}
         {studentMembers.length > 1 && (
-          <div style={{ maxWidth: 1100, margin: '1rem auto 0', position: 'relative', zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ width: '100%', position: 'relative', zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {studentMembers.map((s, i) => {
               const active = selectedStudent?.id === s.id;
               const col = avatarColors[i % avatarColors.length];
@@ -377,7 +377,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* ═══ CONTENT ═══ */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(1rem,3vw,2rem)' }}>
+      <div style={{ width: '100%', padding: 'clamp(1rem,2.5vw,2rem)' }}>
 
         {/* STAT CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: '0.85rem', marginBottom: '2rem' }}>
