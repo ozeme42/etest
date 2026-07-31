@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import { CurriculumProvider } from './context/CurriculumContext.jsx'
@@ -15,26 +16,28 @@ import { ScheduleProvider } from './context/ScheduleContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <UserProvider>
-      <AuthProvider>
-        <CurriculumProvider>
-          <QuestionBankProvider>
-            <HomeworkProvider>
-              <EvaluationProvider>
-                <TrackedBookProvider>
-                  <StudyPlanProvider>
-                    <GoalProvider>
-                      <ScheduleProvider>
-                        <App />
-                      </ScheduleProvider>
-                    </GoalProvider>
-                  </StudyPlanProvider>
-                </TrackedBookProvider>
-              </EvaluationProvider>
-            </HomeworkProvider>
-          </QuestionBankProvider>
-        </CurriculumProvider>
-      </AuthProvider>
-    </UserProvider>
+    <BrowserRouter>
+      <UserProvider>
+        <AuthProvider>
+          <CurriculumProvider>
+            <QuestionBankProvider>
+              <HomeworkProvider>
+                <EvaluationProvider>
+                  <TrackedBookProvider>
+                    <StudyPlanProvider>
+                      <GoalProvider>
+                        <ScheduleProvider>
+                          <App />
+                        </ScheduleProvider>
+                      </GoalProvider>
+                    </StudyPlanProvider>
+                  </TrackedBookProvider>
+                </EvaluationProvider>
+              </HomeworkProvider>
+            </QuestionBankProvider>
+          </CurriculumProvider>
+        </AuthProvider>
+      </UserProvider>
+    </BrowserRouter>
   </StrictMode>,
 )
