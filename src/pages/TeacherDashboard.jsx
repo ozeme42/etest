@@ -26,24 +26,24 @@ function StatCard({ icon: Icon, label, value, sub, color, bg }) {
   return (
     <div style={{
       background: bg,
-      border: `1.5px solid ${color}33`,
-      borderRadius: '1.25rem',
-      padding: '1.4rem 1.25rem',
-      display: 'flex', alignItems: 'center', gap: '1rem',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      border: `1px solid ${color}33`,
+      borderRadius: '1rem',
+      padding: '1rem',
+      display: 'flex', alignItems: 'center', gap: '0.75rem',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
       transition: 'transform 0.18s, box-shadow 0.18s',
       cursor: 'default'
     }}
-    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 28px ${color}33`; }}
-    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; }}
+    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${color}33`; }}
+    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.04)'; }}
     >
-      <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={22} color={color} />
+      <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={18} color={color} />
       </div>
       <div>
-        <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        {sub && <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600, marginTop: '1px' }}>{sub}</div>}
-        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.3rem' }}>{label}</div>
+        <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+        {sub && <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, marginTop: '2px' }}>{sub}</div>}
+        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.2rem' }}>{label}</div>
       </div>
     </div>
   );
@@ -55,9 +55,9 @@ function TestCard({ test, onEdit }) {
   return (
     <div style={{
       background: 'white',
-      border: `1.5px solid ${sc.border}`,
-      borderRadius: '1.1rem',
-      padding: '1.1rem',
+      border: `1px solid ${sc.border}`,
+      borderRadius: '0.85rem',
+      padding: '0.9rem',
       display: 'flex', flexDirection: 'column', gap: '0.8rem',
       boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
       transition: 'transform 0.18s, box-shadow 0.18s',
@@ -201,7 +201,7 @@ export default function TeacherDashboard() {
           <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.3rem' }}>
             🎓 Öğretmen Paneli
           </div>
-          <h1 style={{ fontSize: 'clamp(1.3rem,3vw,1.9rem)', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.7rem)', fontWeight: 900, color: '#0f172a', margin: 0 }}>
             Hoş Geldiniz, {currentUser?.name?.split(' ')[0] || 'Öğretmen'} 👋
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.86rem', marginTop: '0.3rem' }}>
