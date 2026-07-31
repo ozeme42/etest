@@ -15,11 +15,11 @@ export default function Landing() {
               Sınavlara hazırlanmanın en keyifli, en dinamik ve en premium yolu. Öğrenciler için test çözme, öğretmenler için analiz!
             </p>
             <div className="hero-actions">
-              <Link to="/student" className="btn btn-primary btn-lg">
+              <Link to="/login" className="btn btn-primary btn-lg">
                 Hemen Test Çözmeye Başla
               </Link>
-              <Link to="/teacher" className="btn btn-outline btn-lg glass">
-                Öğretmen Girişi
+              <Link to="/login" className="btn btn-outline btn-lg glass">
+                Giriş Yap
               </Link>
             </div>
           </div>
