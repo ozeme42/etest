@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route, NavLink, Link, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, NavLink, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree

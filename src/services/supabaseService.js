@@ -48,6 +48,11 @@ export async function dbAddUser(user) {
       if (error.code === '23505' || error.status === 409) {
         return { success: true, data: [payload] };
       }
+      if (error.message && error.message.includes('is_approved')) {
+        delete payload.is_approved;
+        const fallbackRes = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
+        return { success: true, data: fallbackRes.data };
+      }
       console.warn('[Supabase] dbAddUser upsert note:', error.message);
       return { error };
     }
