@@ -377,6 +377,23 @@ export async function dbSaveSubmission(sub) {
 // ==========================================
 // 4. SORU BANKASI (QUESTIONS)
 // ==========================================
+function toUUID(id) {
+  if (!id) return '00000000-0000-4000-8000-000000000000';
+  const str = String(id);
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(str)) return str;
+
+  let hex = '';
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16);
+  }
+  while (hex.length < 32) {
+    hex += '0';
+  }
+  hex = hex.substring(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
+}
+
 export async function dbGetQuestions() {
   if (!isSupabaseConfigured()) return null;
   try {
@@ -390,7 +407,7 @@ export async function dbGetQuestions() {
         try { raw = JSON.parse(q.explanation); } catch (e) {}
       }
       return {
-        id: String(q.id),
+        id: raw.id || String(q.id),
         subject: q.subject || raw.subject || 'Matematik',
         gradeId: q.grade_id || raw.gradeId || 'g1',
         topic: q.topic || raw.topic || 'Genel',
@@ -419,8 +436,12 @@ export async function dbGetQuestions() {
 export async function dbAddQuestion(q) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const qId = q.id || `q_${Date.now()}`;
+    const dbId = toUUID(qId);
+    const fullRaw = { ...q, id: qId };
+
     const payload = {
-      id: String(q.id || `q_${Date.now()}`),
+      id: dbId,
       subject: q.subject || 'Matematik',
       grade_id: q.gradeId || 'g1',
       topic: q.topic || 'Genel',
@@ -432,7 +453,7 @@ export async function dbAddQuestion(q) {
       answer_key: q.answerKey || [],
       title: q.title || '',
       question_count: q.questionCount || 1,
-      raw_data: q,
+      raw_data: fullRaw,
       question_text: q.questionText || '',
       options: q.options || [],
       correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
@@ -443,14 +464,14 @@ export async function dbAddQuestion(q) {
     if (error) {
       // Fallback if some new columns don't exist yet in the Supabase schema
       const fallbackPayload = {
-        id: String(q.id || `q_${Date.now()}`),
+        id: dbId,
         subject: q.subject || 'Matematik',
         grade_id: q.gradeId || 'g1',
         topic: q.topic || 'Genel',
         question_text: q.questionText || '',
         options: q.options || [],
         correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
-        explanation: JSON.stringify(q),
+        explanation: JSON.stringify(fullRaw),
         image_url: q.imageUrl || ''
       };
       const res = await supabase.from('questions').upsert([fallbackPayload], { onConflict: 'id' }).select();
@@ -467,8 +488,12 @@ export async function dbAddQuestion(q) {
 export async function dbDeleteQuestion(qId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { error } = await supabase.from('questions').delete().eq('id', String(qId));
-    if (error) throw error;
+    const dbId = toUUID(qId);
+    let { error } = await supabase.from('questions').delete().eq('id', dbId);
+    if (error) {
+      // Try raw string id if toUUID didn't match
+      await supabase.from('questions').delete().eq('id', String(qId));
+    }
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteQuestion error:', err.message);
