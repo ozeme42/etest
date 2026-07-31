@@ -127,7 +127,7 @@ export default function BookQuizRunner() {
     
     // Redirect after brief delay
     setTimeout(() => {
-      navigate(`/review/${newSubId}`);
+      navigate(`/review/${newSubId}`, { replace: true, state: { from: '/student' } });
     }, 2500);
   };
 

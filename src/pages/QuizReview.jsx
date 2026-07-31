@@ -20,7 +20,9 @@ export default function QuizReview() {
     if (location.state?.from) {
       navigate(location.state.from, { state: { subject: location.state.subject } });
     } else {
-      navigate(-1);
+      // Fallback to student dashboard instead of blindly going back in history
+      // which might reopen the finished test
+      navigate('/student');
     }
   };
 

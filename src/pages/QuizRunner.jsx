@@ -550,7 +550,7 @@ export default function QuizRunner() {
             <button className="btn btn-secondary btn-lg" onClick={() => navigate('/student')} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
               Panele Dön
             </button>
-            <button className="btn btn-primary btn-lg" onClick={() => navigate(`/review/${submissionId}`)} style={{ flex: '1 1 200px', maxWidth: '300px', background: statusColor, borderColor: statusColor }}>
+            <button className="btn btn-primary btn-lg" onClick={() => navigate(`/review/${submissionId}`, { replace: true, state: { from: '/student' } })} style={{ flex: '1 1 200px', maxWidth: '300px', background: statusColor, borderColor: statusColor }}>
               Soruları İncele
             </button>
           </div>
