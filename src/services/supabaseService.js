@@ -398,33 +398,43 @@ export async function dbGetQuestions() {
   if (!isSupabaseConfigured()) return null;
   try {
     const { data, error } = await supabase.from('questions')
-      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, created_at')
+      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, raw_data, created_at')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(q => {
-      // content_payload may be a Supabase Storage public URL (https://...) or empty/base64
-      const rawPayload = q.content_payload || '';
-      // If it's a large base64, skip it here (avoid memory overload) - it should be in Storage
+      let rawData = q.raw_data;
+      if (typeof rawData === 'string') {
+        try { rawData = JSON.parse(rawData); } catch (e) { rawData = {}; }
+      }
+      rawData = rawData && typeof rawData === 'object' ? rawData : {};
+
+      const rawPayload = q.content_payload || rawData.contentPayload || '';
       const contentPayload = rawPayload.startsWith('http') ? rawPayload : 
                              (rawPayload.startsWith('data:') && rawPayload.length > 500000 ? '' : rawPayload);
+
+      const realId = rawData.id || String(q.id);
+
       return {
-        id: String(q.id),
-        subject: q.subject || 'Matematik',
-        gradeId: q.grade_id || 'g1',
-        topic: q.topic || 'Genel',
-        topicId: q.topic_id || 'global_all',
-        type: q.type || 'coktan_secmeli',
-        contentType: q.content_type || 'text',
-        contentPayload,
-        isBundle: q.is_bundle !== undefined ? q.is_bundle : false,
-        answerKey: q.answer_key || [],
-        title: q.title || '',
-        questionCount: q.question_count || 1,
-        questionText: q.question_text || '',
-        options: q.options || [],
-        correctAnswer: q.correct_answer || '0',
-        explanation: q.explanation || '',
-        imageUrl: q.image_url || ''
+        ...rawData,
+        id: realId,
+        subject: q.subject || rawData.subject || 'Matematik',
+        gradeId: q.grade_id || rawData.gradeId || 'g1',
+        topic: q.topic || rawData.topic || 'Genel',
+        topicId: q.topic_id || rawData.topicId || 'global_all',
+        type: q.type || rawData.type || 'coktan_secmeli',
+        contentType: q.content_type || rawData.contentType || 'text',
+        contentPayload: contentPayload || rawData.contentPayload || '',
+        isBundle: q.is_bundle !== undefined ? q.is_bundle : (rawData.isBundle || false),
+        questionsList: rawData.questionsList || q.questionsList || null,
+        imageUrls: rawData.imageUrls || q.imageUrls || null,
+        answerKey: q.answer_key || rawData.answerKey || [],
+        title: q.title || rawData.title || '',
+        questionCount: q.question_count || rawData.questionCount || 1,
+        questionText: q.question_text || rawData.questionText || '',
+        options: q.options || rawData.options || [],
+        correctAnswer: q.correct_answer !== undefined ? q.correct_answer : (rawData.correctAnswer || '0'),
+        explanation: q.explanation || rawData.explanation || '',
+        imageUrl: q.image_url || rawData.imageUrl || ''
       };
     });
   } catch (err) {

@@ -51,7 +51,7 @@ export function QuestionBankProvider({ children }) {
         return Array.from(mergedMap.values());
       });
 
-      // 2. Safely merge from Supabase database
+      // 2. Safely merge from Supabase database without creating duplicate cards
       const dbQs = await dbGetQuestions();
       if (dbQs && dbQs.length > 0) {
         setQuestions(prev => {
@@ -60,19 +60,31 @@ export function QuestionBankProvider({ children }) {
 
           dbQs.forEach(dbQ => {
             if (dbQ.id === 'q1') return;
-            const existing = mergedMap.get(String(dbQ.id));
+
+            let existingKey = String(dbQ.id);
+            if (!mergedMap.has(existingKey)) {
+              for (const [key, val] of mergedMap.entries()) {
+                if (val.title && dbQ.title && val.title === dbQ.title && val.questionCount === dbQ.questionCount && val.contentType === dbQ.contentType) {
+                  existingKey = key;
+                  break;
+                }
+              }
+            }
+
+            const existing = mergedMap.get(existingKey);
             if (existing) {
-              // If local has full base64 data, keep it
               const hasFullLocalPayload = typeof existing.contentPayload === 'string' &&
                 existing.contentPayload.length > 500 &&
                 !existing.contentPayload.includes('[STORED_IN_INDEXEDDB]') &&
                 !existing.contentPayload.includes('[LOCALSTORAGE_CACHE]');
 
-              // If DB has a Storage HTTP URL, always prefer it (it means it was uploaded to Supabase Storage)
               const dbHasStorageUrl = typeof dbQ.contentPayload === 'string' && dbQ.contentPayload.startsWith('http');
 
-              mergedMap.set(String(dbQ.id), {
+              mergedMap.set(existingKey, {
                 ...dbQ,
+                ...existing,
+                id: existing.id || dbQ.id,
+                questionsList: existing.questionsList || dbQ.questionsList || null,
                 contentPayload: dbHasStorageUrl ? dbQ.contentPayload :
                                 hasFullLocalPayload ? existing.contentPayload :
                                 (dbQ.contentPayload || existing.contentPayload)
