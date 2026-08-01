@@ -618,7 +618,8 @@ export default function QuizRunner() {
                 )}
 
                 {(() => {
-                  const hasRealTextOptions = qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
+                  const isAcikUcluItem = q.type === 'acik_uclu' || test?.type === 'acik_uclu' || qItem.type === 'acik_uclu';
+                  const hasRealTextOptions = !isAcikUcluItem && qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
                   if (!hasRealTextOptions) return null;
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
@@ -654,7 +655,8 @@ export default function QuizRunner() {
       return (
         <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {subQuestions.map((qItem, sIdx) => {
-            const hasRealTextOptions = qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
+            const isAcikUcluItem = q.type === 'acik_uclu' || test?.type === 'acik_uclu' || qItem.type === 'acik_uclu';
+            const hasRealTextOptions = !isAcikUcluItem && qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
             return (
               <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                 {subQuestions.length > 1 && (
@@ -1084,7 +1086,7 @@ export default function QuizRunner() {
             <div className="mobile-drawer-content" onClick={e => e.stopPropagation()}>
               <div className="mobile-drawer-header">
                 <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>
-                  📝 Hızlı Optik Cevap Anahtarı
+                  {(currentQuestion?.type === 'acik_uclu' || test?.type === 'acik_uclu' || (currentQuestion?.questionsList && currentQuestion.questionsList[0]?.type === 'acik_uclu')) ? '📝 Yazılı Yanıt Formu' : '📝 Hızlı Optik Cevap Anahtarı'}
                 </span>
                 <button
                   type="button"
@@ -1096,27 +1098,46 @@ export default function QuizRunner() {
               </div>
 
               <div className="mobile-optic-grid" style={{ maxHeight: '60vh' }}>
-                {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
-                  <div key={i} className="mobile-optic-row">
-                    <span className="mobile-optic-num">Soru {i + 1}</span>
-                    <div className="mobile-optic-bubbles">
-                      {[0, 1, 2, 3, 4].map(optIdx => {
-                        const letter = String.fromCharCode(65 + optIdx);
-                        const isSelected = bundleAns[i] === optIdx;
-                        return (
-                          <button
-                            key={optIdx}
-                            type="button"
-                            className={`mobile-optic-bubble ${isSelected ? 'selected' : ''}`}
-                            onClick={() => handleBundleOptionSelect(i, optIdx)}
-                          >
-                            {letter}
-                          </button>
-                        );
-                      })}
-                    </div>
+                {(currentQuestion?.type === 'acik_uclu' || test?.type === 'acik_uclu' || (currentQuestion?.questionsList && currentQuestion.questionsList[0]?.type === 'acik_uclu')) ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '0.5rem 0' }}>
+                    {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
+                      <div key={i} style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
+                        <label style={{ display: 'block', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', marginBottom: '0.35rem' }}>
+                          Soru {i + 1} Yanıtınız:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={bundleAns[i] || ''}
+                          onChange={(e) => handleBundleTextChange(i, e.target.value)}
+                          placeholder={`${i + 1}. sorunun cevabını buraya yazınız...`}
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'inherit', resize: 'vertical' }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
+                    <div key={i} className="mobile-optic-row">
+                      <span className="mobile-optic-num">Soru {i + 1}</span>
+                      <div className="mobile-optic-bubbles">
+                        {[0, 1, 2, 3, 4].map(optIdx => {
+                          const letter = String.fromCharCode(65 + optIdx);
+                          const isSelected = bundleAns[i] === optIdx;
+                          return (
+                            <button
+                              key={optIdx}
+                              type="button"
+                              className={`mobile-optic-bubble ${isSelected ? 'selected' : ''}`}
+                              onClick={() => handleBundleOptionSelect(i, optIdx)}
+                            >
+                              {letter}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -1128,7 +1149,10 @@ export default function QuizRunner() {
   // --- BUNDLE VIEW (PDF, HTML, Visual, JSON Multi-question packages) ---
   if (currentQuestion?.isBundle) {
     const bundleAns = studentAnswers[currentQuestion.id] || {};
-    
+    const isAcikUcluBundle = currentQuestion?.type === 'acik_uclu' 
+      || test?.type === 'acik_uclu' 
+      || (currentQuestion?.questionsList && currentQuestion.questionsList[0]?.type === 'acik_uclu');
+
     return (
       <>
         {/* Modals */}
@@ -1189,10 +1213,10 @@ export default function QuizRunner() {
           {showOptic && (
             <div className="bundle-optic" style={{ flex: '1', overflowY: 'auto' }}>
               <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>{(currentQuestion.type === 'acik_uclu' || test?.type === 'acik_uclu') ? '📝 Yazılı Yanıt Formu' : 'Optik Form'}</span>
+                <span>{isAcikUcluBundle ? '📝 Yazılı Yanıt Formu' : 'Optik Form'}</span>
               </h3>
 
-              {(currentQuestion.type === 'acik_uclu' || test?.type === 'acik_uclu') ? (
+              {isAcikUcluBundle ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   {Array.from({ length: currentQuestion.questionCount }).map((_, i) => {
                     const textVal = bundleAns[i] || '';
