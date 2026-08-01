@@ -100,8 +100,12 @@ export default function QuizRunner() {
       if (rawTestQuestions.length === 0) return;
       const enriched = await Promise.all(rawTestQuestions.map(async (q) => {
         let payload = q.contentPayload;
-        if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && payload.includes('[LOCALSTORAGE_CACHE]'))) {
-          const fullPayload = await idbGetPayload(q.id);
+        if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && (payload.length < 500 || payload.includes('[LOCALSTORAGE_CACHE]')))) {
+          const fullPayload = (await idbGetPayload(q.id)) ||
+                              (await idbGetPayload(q.id?.replace(/^q_/, ''))) ||
+                              (await idbGetPayload(id)) ||
+                              (await idbGetPayload(test?.id)) ||
+                              (await idbGetPayload(testQuestionIds[0]));
           if (fullPayload) {
             payload = fullPayload;
           }
@@ -111,7 +115,7 @@ export default function QuizRunner() {
       setTestQuestions(enriched);
     }
     loadFullPayloads();
-  }, [rawTestQuestions]);
+  }, [rawTestQuestions, id, test, testQuestionIds]);
 
   useEffect(() => {
     if (test?.sourceType === 'trackedBook') {
@@ -526,7 +530,15 @@ export default function QuizRunner() {
             </div>
           );
         }
-        return <iframe src={pdfEmbedUrl} title="PDF Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: 'none'}}></iframe>;
+        return (
+          <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', height: 'calc(100vh - 140px)', minHeight: '600px', width: '100%' }}>
+            <iframe
+              src={pdfEmbedUrl}
+              title="PDF Soru"
+              style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
+            />
+          </div>
+        );
       }
       case 'html': return <iframe srcDoc={q.contentPayload} title="HTML Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: 'none'}}></iframe>;
       default: return null;
