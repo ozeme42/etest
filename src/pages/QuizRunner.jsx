@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Clock, ChevronRight, ChevronLeft, Maximize, Minimize, Layout, LayoutPanelTop, PanelRightClose, PanelRightOpen, GripVertical, GripHorizontal, CheckCircle, XCircle, Clock3 } from 'lucide-react';
+import { Clock, ChevronRight, ChevronLeft, Maximize, Minimize, Layout, LayoutPanelTop, PanelRightClose, PanelRightOpen, GripVertical, GripHorizontal, CheckCircle, XCircle, Clock3, FileText } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useHomework } from '../context/HomeworkContext';
@@ -8,7 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
-import { idbGetPayload } from '../services/indexedDbService';
+import { idbGetPayload, idbSetPayload } from '../services/indexedDbService';
 import './QuizRunner.css';
 
 export default function QuizRunner() {
@@ -17,7 +17,25 @@ export default function QuizRunner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data } = useCurriculum();
+  const { updateQuestion } = useQuestionBank();
   const { questions: allQuestions } = useQuestionBank();
+
+  const handleDirectPdfUploadInRunner = (file, questionId) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Pdf = e.target.result;
+      if (questionId) {
+        await idbSetPayload(questionId, base64Pdf);
+        updateQuestion(questionId, { contentPayload: base64Pdf });
+      }
+      if (id) {
+        await idbSetPayload(id, base64Pdf);
+      }
+      setTestQuestions(prev => prev.map(q => (q.id === questionId || q.id === id) ? { ...q, contentPayload: base64Pdf } : q));
+    };
+    reader.readAsDataURL(file);
+  };
   const { homeworks, submitHomework } = useHomework();
   const { addSubmission } = useEvaluation();
   const { users } = useUser();
@@ -489,7 +507,24 @@ export default function QuizRunner() {
       case 'pdf': {
         const pdfEmbedUrl = getEmbeddableUrl(q.contentPayload);
         if (!pdfEmbedUrl) {
-          return <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>📄 PDF Dokümanı yükleniyor veya bulunamadı.</div>;
+          return (
+            <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: '#fff5f5', border: '2px dashed #fca5a5', borderRadius: '1rem', margin: '2rem' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                <FileText size={28} />
+              </div>
+              <p style={{ fontSize: '1.1rem', fontWeight: 900, color: '#991b1b', margin: '0 0 0.5rem 0' }}>
+                📕 Bu Test İçin PDF Dosyası Yüklü Değil veya Erişilemiyor
+              </p>
+              <p style={{ fontSize: '0.85rem', color: '#7f1d1d', margin: '0 0 1.5rem 0', maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto' }}>
+                Sınav dokümanı cihaz hafızasında bulunamadı. Lütfen bilgisayarınızdan veya telefonunuzdan bu teste ait PDF dosyasını seçerek hemen sınava başlayın:
+              </p>
+
+              <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.85rem 2rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(220,38,38,0.35)' }}>
+                <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handleDirectPdfUploadInRunner(e.target.files[0], q.id)} />
+                📁 Bilgisayardan PDF Seç & Sınava Başla
+              </label>
+            </div>
+          );
         }
         return <iframe src={pdfEmbedUrl} title="PDF Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: 'none'}}></iframe>;
       }
