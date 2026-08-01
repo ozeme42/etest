@@ -1,17 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText } from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
 
 export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
+  const wrapperRef = useRef(null);
 
   const embedUrl = getEmbeddablePdfUrl(payload);
 
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 20, 220));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
-  const handleResetZoom = () => setZoomLevel(100);
-  const toggleExpanded = () => setIsExpanded(prev => !prev);
+  const handleZoomIn = (e) => {
+    e.preventDefault();
+    setZoomLevel(prev => Math.min(prev + 20, 220));
+  };
+  const handleZoomOut = (e) => {
+    e.preventDefault();
+    setZoomLevel(prev => Math.max(prev - 20, 60));
+  };
+  const handleResetZoom = (e) => {
+    e.preventDefault();
+    setZoomLevel(100);
+  };
+  
+  const toggleExpanded = (e) => {
+    e.preventDefault();
+    if (!wrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      wrapperRef.current.requestFullscreen().catch(() => setIsExpanded(prev => !prev));
+    } else {
+      document.exitFullscreen().catch(() => setIsExpanded(prev => !prev));
+    }
+  };
 
   if (!embedUrl) {
     return (
@@ -36,17 +55,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
     );
   }
 
-  const containerStyle = isExpanded ? {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 99999,
-    background: '#0f172a',
-    display: 'flex',
-    flexDirection: 'column'
-  } : {
+  const containerStyle = {
     position: 'relative',
     width: '100%',
     height: height,
@@ -56,7 +65,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
   };
 
   return (
-    <div style={containerStyle}>
+    <div ref={wrapperRef} style={containerStyle}>
       {/* Sleek Minimal Controls Bar - Seamless Edge-to-Edge */}
       <div style={{
         display: 'flex',
@@ -80,6 +89,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
           {/* Zoom Controls */}
           <div style={{ display: 'flex', background: '#0f172a', borderRadius: '0.4rem', padding: '0.15rem', alignItems: 'center' }}>
             <button
+              type="button"
               onClick={handleZoomOut}
               title="Küçült (-20%)"
               style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
@@ -87,6 +97,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
               <ZoomOut size={15} />
             </button>
             <button
+              type="button"
               onClick={handleResetZoom}
               title="Yakınlaştırmayı Sıfırla (%100)"
               style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: '0.72rem', fontWeight: 800 }}
@@ -94,6 +105,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
               <RotateCcw size={12} style={{ marginRight: '0.2rem' }} /> {zoomLevel}%
             </button>
             <button
+              type="button"
               onClick={handleZoomIn}
               title="Büyüt (+20%)"
               style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
@@ -104,15 +116,16 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
 
           {/* Fullscreen Expansion Toggle */}
           <button
+            type="button"
             onClick={toggleExpanded}
-            title={isExpanded ? "Tam Ekrandan Çık" : "Pencereyi Tam Ekran Yap"}
-            style={{ background: isExpanded ? '#ef4444' : '#4f46e5', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            title="Pencereyi Tam Ekran Yap"
+            style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
           >
             {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             <span>{isExpanded ? 'Küçült' : 'Tam Ekran'}</span>
           </button>
 
-          {/* Change File (ONLY FOR TEACHER / ADMIN - HIDDEN FOR STUDENTS) */}
+          {/* Change File */}
           {allowUpload && onUploadFile && (
             <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && onUploadFile(e.target.files[0])} />
@@ -135,21 +148,31 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
         </div>
       </div>
 
-      {/* Direct Seamless PDF Iframe - Fill 100% */}
-      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-        <iframe
-          key={`${embedUrl}-${zoomLevel}`}
-          src={embedUrl.includes('#') ? embedUrl : `${embedUrl}#zoom=${zoomLevel}`}
-          title="PDF Sınav Dokümanı"
+      {/* Direct Seamless PDF Iframe - Smooth CSS Zoom Without Unmounting */}
+      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659' }}>
+        <div
           style={{
-            width: zoomLevel > 100 ? `${zoomLevel}%` : '100%',
-            height: zoomLevel > 100 ? `${zoomLevel}%` : '100%',
+            width: `${zoomLevel}%`,
+            height: `${zoomLevel}%`,
             minWidth: '100%',
             minHeight: '100%',
-            border: 'none',
-            background: 'white'
+            transition: 'width 0.15s ease, height 0.15s ease'
           }}
-        />
+        >
+          <iframe
+            key={embedUrl}
+            src={embedUrl}
+            title="PDF Sınav Dokümanı"
+            style={{
+              width: '100%',
+              height: '100%',
+              minWidth: '100%',
+              minHeight: '100%',
+              border: 'none',
+              background: 'white'
+            }}
+          />
+        </div>
       </div>
     </div>
   );

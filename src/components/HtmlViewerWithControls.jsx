@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Globe } from 'lucide-react';
 
 export default function HtmlViewerWithControls({ payload, title = "HTML Dokümanı", height = "100%" }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
+  const wrapperRef = useRef(null);
 
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 20, 200));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 20, 60));
-  const handleResetZoom = () => setZoomLevel(100);
-  const toggleExpanded = () => setIsExpanded(prev => !prev);
+  const handleZoomIn = (e) => {
+    e.preventDefault();
+    setZoomLevel(prev => Math.min(prev + 20, 200));
+  };
+  const handleZoomOut = (e) => {
+    e.preventDefault();
+    setZoomLevel(prev => Math.max(prev - 20, 60));
+  };
+  const handleResetZoom = (e) => {
+    e.preventDefault();
+    setZoomLevel(100);
+  };
+  
+  const toggleExpanded = (e) => {
+    e.preventDefault();
+    if (!wrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      wrapperRef.current.requestFullscreen().catch(() => setIsExpanded(prev => !prev));
+    } else {
+      document.exitFullscreen().catch(() => setIsExpanded(prev => !prev));
+    }
+  };
 
   const isUrl = typeof payload === 'string' && (payload.startsWith('http://') || payload.startsWith('https://') || payload.startsWith('blob:'));
 
@@ -25,17 +44,7 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
     );
   }
 
-  const containerStyle = isExpanded ? {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 99999,
-    background: '#0f172a',
-    display: 'flex',
-    flexDirection: 'column'
-  } : {
+  const containerStyle = {
     position: 'relative',
     width: '100%',
     height: height,
@@ -45,7 +54,7 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
   };
 
   return (
-    <div style={containerStyle}>
+    <div ref={wrapperRef} style={containerStyle}>
       {/* Sleek Minimal Controls Bar */}
       <div style={{
         display: 'flex',
@@ -98,8 +107,8 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
           <button
             type="button"
             onClick={toggleExpanded}
-            title={isExpanded ? "Tam Ekrandan Çık" : "Pencereyi Tam Ekran Yap"}
-            style={{ background: isExpanded ? '#ef4444' : '#059669', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            title="Pencereyi Tam Ekran Yap"
+            style={{ background: '#059669', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
           >
             {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             <span>{isExpanded ? 'Küçült' : 'Tam Ekran'}</span>
@@ -107,22 +116,32 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
         </div>
       </div>
 
-      {/* Direct HTML Iframe */}
-      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-        <iframe
-          key={`${isUrl ? payload : 'html'}-${zoomLevel}`}
-          src={isUrl ? payload : undefined}
-          srcDoc={!isUrl ? payload : undefined}
-          title="HTML Soru Dokümanı"
+      {/* Direct HTML Iframe - Smooth CSS Zoom Without Unmounting */}
+      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#f8fafc' }}>
+        <div
           style={{
-            width: zoomLevel > 100 ? `${zoomLevel}%` : '100%',
-            height: zoomLevel > 100 ? `${zoomLevel}%` : '100%',
+            width: `${zoomLevel}%`,
+            height: `${zoomLevel}%`,
             minWidth: '100%',
             minHeight: '100%',
-            border: 'none',
-            background: 'white'
+            transition: 'width 0.15s ease, height 0.15s ease'
           }}
-        />
+        >
+          <iframe
+            key={isUrl ? payload : 'html_frame'}
+            src={isUrl ? payload : undefined}
+            srcDoc={!isUrl ? payload : undefined}
+            title="HTML Soru Dokümanı"
+            style={{
+              width: '100%',
+              height: '100%',
+              minWidth: '100%',
+              minHeight: '100%',
+              border: 'none',
+              background: 'white'
+            }}
+          />
+        </div>
       </div>
     </div>
   );
