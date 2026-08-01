@@ -60,9 +60,27 @@ export default function DrawingOverlay({ children }) {
     }
   }, [color, lineWidth, tool, isDrawingMode]);
 
+  const getCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { offsetX: 0, offsetY: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : (e.clientX !== undefined ? e.clientX : 0);
+    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : (e.clientY !== undefined ? e.clientY : 0);
+    return {
+      offsetX: clientX - rect.left,
+      offsetY: clientY - rect.top
+    };
+  };
+
   const startDrawing = (e) => {
     if (!isDrawingMode || !contextRef.current) return;
-    const { offsetX, offsetY } = getCoordinates(e);
+    if (e.preventDefault) e.preventDefault();
+    const { offsetX, offsetY } = getCoordinates(e.nativeEvent || e);
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(offsetX, offsetY);
+    contextRef.current.arc(offsetX, offsetY, (contextRef.current.lineWidth || 3) / 2, 0, Math.PI * 2);
+    contextRef.current.fillStyle = contextRef.current.strokeStyle;
+    contextRef.current.fill();
     contextRef.current.beginPath();
     contextRef.current.moveTo(offsetX, offsetY);
     setIsDrawing(true);
@@ -76,26 +94,10 @@ export default function DrawingOverlay({ children }) {
 
   const draw = (e) => {
     if (!isDrawing || !isDrawingMode || !contextRef.current) return;
-    const { offsetX, offsetY } = getCoordinates(e);
+    if (e.preventDefault) e.preventDefault();
+    const { offsetX, offsetY } = getCoordinates(e.nativeEvent || e);
     contextRef.current.lineTo(offsetX, offsetY);
     contextRef.current.stroke();
-  };
-
-  const getCoordinates = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { offsetX: 0, offsetY: 0 };
-    const rect = canvas.getBoundingClientRect();
-    
-    if (e.touches && e.touches[0]) {
-      return {
-        offsetX: e.touches[0].clientX - rect.left,
-        offsetY: e.touches[0].clientY - rect.top
-      };
-    }
-    return {
-      offsetX: e.nativeEvent.offsetX,
-      offsetY: e.nativeEvent.offsetY
-    };
   };
 
   const clearCanvas = () => {
@@ -240,13 +242,11 @@ export default function DrawingOverlay({ children }) {
         {/* The Drawing Canvas overlay */}
         <canvas
           ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseUp={finishDrawing}
-          onMouseMove={draw}
-          onMouseLeave={finishDrawing}
-          onTouchStart={startDrawing}
-          onTouchEnd={finishDrawing}
-          onTouchMove={draw}
+          onPointerDown={startDrawing}
+          onPointerMove={draw}
+          onPointerUp={finishDrawing}
+          onPointerCancel={finishDrawing}
+          onPointerLeave={finishDrawing}
           style={{
             position: 'absolute',
             top: 0,
@@ -255,6 +255,7 @@ export default function DrawingOverlay({ children }) {
             height: '100%',
             pointerEvents: isDrawingMode ? 'auto' : 'none',
             cursor: isDrawingMode ? (tool === 'eraser' ? 'cell' : 'crosshair') : 'default',
+            touchAction: 'none',
             zIndex: 50
           }}
         />
