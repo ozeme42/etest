@@ -2772,13 +2772,24 @@ export default function QuestionBank() {
                 {/* 4. PDF BUNDLE PREVIEW */}
                 {!q.questionsList && q.contentType === 'pdf' && (
                   <div style={{ marginBottom: '1.25rem' }}>
-                    <PdfViewerWithControls
-                      payload={q.contentPayload}
-                      title={q.title || 'PDF Sınav Dokümanı'}
-                      height="650px"
-                      allowUpload={true}
-                      onUploadFile={(file) => handlePdfUploadForPreview(file, q.id)}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 800, color: '#334155', fontSize: '0.9rem' }}>📄 PDF Sınav Önizleme:</span>
+                      <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem' }}>
+                        <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handlePdfUploadForPreview(e.target.files[0], q.id)} />
+                        📁 PDF Değiştir / Yükle
+                      </label>
+                    </div>
+                    {getEmbeddableUrl(q.contentPayload) ? (
+                      <iframe
+                        src={getEmbeddableUrl(q.contentPayload)}
+                        title="PDF Döküman"
+                        style={{ width: '100%', height: '550px', border: '1px solid #cbd5e1', borderRadius: '0.5rem' }}
+                      />
+                    ) : (
+                      <div style={{ padding: '3rem', textAlign: 'center', color: '#dc2626', background: '#fff5f5', border: '1px dashed #fca5a5', borderRadius: '0.5rem' }}>
+                        📄 Bu test için henüz bir PDF dosyası yüklenmedi. Lütfen yukarıdaki butondan bir PDF seçin.
+                      </div>
+                    )}
                   </div>
                 )}
 

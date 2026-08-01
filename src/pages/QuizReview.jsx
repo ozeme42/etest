@@ -76,7 +76,7 @@ export default function QuizReview() {
   const renderContentPreview = (q) => {
     switch (q.contentType) {
       case 'gorsel': return <div className="q-preview-gorsel" style={{marginBottom: '1rem'}}><img src={q.contentPayload} alt="Soru Görseli" style={{maxWidth: '100%', borderRadius: 'var(--border-radius-md)'}} /></div>;
-      case 'pdf': return <div style={{ marginBottom: '1.25rem' }}><PdfViewerWithControls payload={q.contentPayload} title={q.title || "İnceleme PDF Sınavı"} height="600px" /></div>;
+      case 'pdf': return <iframe src={getEmbeddableUrl(q.contentPayload)} title="PDF Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: '1px solid #cbd5e1', borderRadius: '0.5rem', marginBottom: '1rem'}}></iframe>;
       case 'html': return <iframe srcDoc={q.contentPayload} title="HTML Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-md)', marginBottom: '1rem'}}></iframe>;
       default: return null;
     }
