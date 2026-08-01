@@ -45,6 +45,31 @@ export default function QuizRunner() {
   const studentId = queryParams.get('studentId') || 'u1';
   const student = users.find(u => u.id === studentId) || { name: 'Öğrenci' };
 
+  const savedState = JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null');
+
+  // Core Quiz States
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(savedState?.currentQuestionIdx || 0);
+  const [studentAnswers, setStudentAnswers] = useState(savedState?.studentAnswers || {});
+  const [timeLeft, setTimeLeft] = useState(savedState?.timeLeft ?? null);
+  const [isFinished, setIsFinished] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
+  const [finalStats, setFinalStats] = useState(null);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+
+  // Advanced Layout States
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [layoutMode, setLayoutMode] = useState('horizontal');
+  const [showOptic, setShowOptic] = useState(true);
+  const [splitRatio, setSplitRatio] = useState(65);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Dedicated Mobile Solver States
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [mobileTab, setMobileTab] = useState('doc'); // 'doc', 'optic', 'scratch', 'split'
+  const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
+  const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
+
   // Check if test is already completed by this student
   const existingSubmission = useMemo(() => {
     if (!id || !studentId) return null;
@@ -71,32 +96,6 @@ export default function QuizRunner() {
       return () => window.removeEventListener('popstate', handlePopState);
     }
   }, [isFinished, showResultsModal, id, navigate]);
-
-  const savedState = JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null');
-
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(savedState?.currentQuestionIdx || 0);
-  const [studentAnswers, setStudentAnswers] = useState(savedState?.studentAnswers || {});
-  
-  const [timeLeft, setTimeLeft] = useState(savedState?.timeLeft ?? null);
-  const [isFinished, setIsFinished] = useState(false);
-  const [showFinishModal, setShowFinishModal] = useState(false);
-  const [submissionId, setSubmissionId] = useState(null);
-  
-  const [finalStats, setFinalStats] = useState(null);
-  const [showResultsModal, setShowResultsModal] = useState(false);
-
-  // Advanced Layout States
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [layoutMode, setLayoutMode] = useState('horizontal');
-  const [showOptic, setShowOptic] = useState(true);
-  const [splitRatio, setSplitRatio] = useState(65);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Dedicated Mobile Solver States
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
-  const [mobileTab, setMobileTab] = useState('doc'); // 'doc', 'optic', 'scratch', 'split'
-  const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
-  const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
