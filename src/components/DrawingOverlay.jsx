@@ -23,15 +23,36 @@ export default function DrawingOverlay({ children }) {
       if (!canvas || !container) return;
       const rect = container.getBoundingClientRect();
       
-      // Update canvas size
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      const width = Math.max(rect.width, container.clientWidth, container.offsetWidth || 300);
+      const height = Math.max(rect.height, container.clientHeight, container.offsetHeight || 500);
+
+      let tempCanvasData = null;
+      if (canvas.width > 0 && canvas.height > 0 && contextRef.current) {
+        try {
+          tempCanvasData = contextRef.current.getImageData(0, 0, canvas.width, canvas.height);
+        } catch (e) {}
+      }
+
+      canvas.width = width;
+      canvas.height = height;
       
       const context = canvas.getContext('2d');
       if (context) {
         context.lineCap = 'round';
         context.lineJoin = 'round';
+        context.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
+        context.lineWidth = lineWidth;
+        if (tool === 'eraser') {
+          context.globalCompositeOperation = 'destination-out';
+        } else {
+          context.globalCompositeOperation = 'source-over';
+        }
         contextRef.current = context;
+        if (tempCanvasData) {
+          try {
+            context.putImageData(tempCanvasData, 0, 0);
+          } catch (e) {}
+        }
       }
     };
     
@@ -45,7 +66,7 @@ export default function DrawingOverlay({ children }) {
       observer.observe(containerRef.current);
     }
     return () => observer.disconnect();
-  }, [isDrawingMode]); // Re-init when toggling mode to ensure correct sizing
+  }, [isDrawingMode]);
 
   // Update context when tools change
   useEffect(() => {
@@ -64,8 +85,9 @@ export default function DrawingOverlay({ children }) {
     const canvas = canvasRef.current;
     if (!canvas) return { offsetX: 0, offsetY: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : (e.clientX !== undefined ? e.clientX : 0);
-    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : (e.clientY !== undefined ? e.clientY : 0);
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null);
+    const clientX = touch ? touch.clientX : (e.clientX !== undefined ? e.clientX : 0);
+    const clientY = touch ? touch.clientY : (e.clientY !== undefined ? e.clientY : 0);
     return {
       offsetX: clientX - rect.left,
       offsetY: clientY - rect.top
@@ -234,8 +256,8 @@ export default function DrawingOverlay({ children }) {
           overflow: isDrawingMode ? 'hidden' : 'auto' 
         }}
       >
-        {/* The actual content (PDF, Image, Text) */}
-        <div style={{ width: '100%', height: '100%' }}>
+        {/* The actual content (PDF, HTML iframe, Image, Text) */}
+        <div style={{ width: '100%', height: '100%', pointerEvents: isDrawingMode ? 'none' : 'auto' }}>
           {children}
         </div>
         
@@ -247,6 +269,13 @@ export default function DrawingOverlay({ children }) {
           onPointerUp={finishDrawing}
           onPointerCancel={finishDrawing}
           onPointerLeave={finishDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={finishDrawing}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={finishDrawing}
+          onMouseLeave={finishDrawing}
           style={{
             position: 'absolute',
             top: 0,
@@ -256,7 +285,7 @@ export default function DrawingOverlay({ children }) {
             pointerEvents: isDrawingMode ? 'auto' : 'none',
             cursor: isDrawingMode ? (tool === 'eraser' ? 'cell' : 'crosshair') : 'default',
             touchAction: 'none',
-            zIndex: 50
+            zIndex: 99
           }}
         />
       </div>
