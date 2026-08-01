@@ -513,19 +513,11 @@ export default function QuizRunner() {
     switch (q.contentType) {
       case 'gorsel': return <div className="q-preview-gorsel"><img src={q.contentPayload} alt="Soru Görseli" style={{maxWidth: '100%', borderRadius: 'var(--border-radius-md)'}} /></div>;
       case 'pdf': {
-        const pdfEmbedUrl = getEmbeddableUrl(q.contentPayload);
-        if (!pdfEmbedUrl) {
-          return (
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-              📄 PDF Dokümanı yükleniyor veya bulunamadı.
-            </div>
-          );
-        }
         return (
-          <iframe
-            src={pdfEmbedUrl}
-            title="PDF Soru"
-            style={{ width: '100%', height: '100%', minHeight: '80vh', border: 'none', background: 'white' }}
+          <PdfViewerWithControls
+            payload={q.contentPayload}
+            title={test?.title || "PDF Soru Dokümanı"}
+            height="100%"
           />
         );
       }
