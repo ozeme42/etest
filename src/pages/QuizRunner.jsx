@@ -1302,22 +1302,39 @@ export default function QuizRunner() {
 
               <div className="mobile-optic-grid" style={{ maxHeight: '60vh' }}>
                 {(currentQuestion?.type === 'acik_uclu' || test?.type === 'acik_uclu' || (currentQuestion?.questionsList && currentQuestion.questionsList[0]?.type === 'acik_uclu')) ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '0.5rem 0' }}>
-                    {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
-                      <div key={i} style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
+                  (currentQuestion?.isBundle || (currentQuestion?.questionsList && currentQuestion.questionsList.length > 1)) ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '0.5rem 0' }}>
+                      {Array.from({ length: currentQuestion?.questionCount || currentQuestion?.questionsList?.length || 1 }).map((_, i) => (
+                        <div key={i} style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
+                          <label style={{ display: 'block', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', marginBottom: '0.35rem' }}>
+                            Soru {i + 1} Yanıtınız:
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={typeof bundleAns === 'object' && bundleAns !== null ? (bundleAns[i] || '') : ''}
+                            onChange={(e) => handleBundleTextChange(i, e.target.value)}
+                            placeholder={`${i + 1}. sorunun cevabını buraya yazınız...`}
+                            style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'inherit', resize: 'vertical' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '0.5rem 0' }}>
+                      <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
                         <label style={{ display: 'block', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', marginBottom: '0.35rem' }}>
-                          Soru {i + 1} Yanıtınız:
+                          Soru {currentQuestionIdx + 1} Yanıtınız:
                         </label>
                         <textarea
-                          rows={2}
-                          value={bundleAns[i] || ''}
-                          onChange={(e) => handleBundleTextChange(i, e.target.value)}
-                          placeholder={`${i + 1}. sorunun cevabını buraya yazınız...`}
+                          rows={4}
+                          value={typeof studentAnswers[currentQuestion.id] === 'string' ? studentAnswers[currentQuestion.id] : ''}
+                          onChange={(e) => handleOpenAnswerChange(e.target.value)}
+                          placeholder="Cevabınızı buraya yazınız..."
                           style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'inherit', resize: 'vertical' }}
                         />
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )
                 ) : (
                   Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
                     <div key={i} className="mobile-optic-row">
