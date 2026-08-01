@@ -205,8 +205,11 @@ export default function QuizRunner() {
     if (!testQuestions || testQuestions.length === 0) return 1;
     let count = 0;
     testQuestions.forEach(q => {
-      if (q.isBundle || q.questionCount || q.questionsList?.length > 0 || q.imageUrls?.length > 0) {
-        count += (q.questionCount || q.questionsList?.length || q.imageUrls?.length || 1);
+      const subListCount = q.questionsList?.length || q.imageUrls?.length;
+      if (subListCount > 0) {
+        count += subListCount;
+      } else if (q.questionCount && q.questionCount > 0) {
+        count += q.questionCount;
       } else {
         count += 1;
       }
@@ -216,12 +219,11 @@ export default function QuizRunner() {
 
   useEffect(() => {
     if (test && test.sourceType !== 'trackedBook') {
-      const specifiedMinutes = test.durationMinutes || test.duration || test.time;
-      const minutes = specifiedMinutes ? Number(specifiedMinutes) : (totalQuestionsCount * 2);
-      const expectedTime = minutes * 60;
+      const expectedMinutes = totalQuestionsCount * 2;
+      const expectedTime = expectedMinutes * 60;
 
-      // If time is not set yet, or if previous saved state had outdated single-question duration
-      if (timeLeft === null || (savedState?.timeLeft && savedState.timeLeft <= 120 && totalQuestionsCount > 1)) {
+      // Always sync duration to actual questions count (2 mins / q) if time is null or saved state had different question count
+      if (timeLeft === null || !savedState || savedState?.totalQuestionsCount !== totalQuestionsCount || savedState?.timeLeft > expectedTime + 60) {
         setTimeLeft(expectedTime);
       }
     }
@@ -237,9 +239,10 @@ export default function QuizRunner() {
       currentQuestionIdx,
       studentAnswers,
       timeLeft,
+      totalQuestionsCount
     };
     localStorage.setItem(`quiz_state_${id}`, JSON.stringify(stateToSave));
-  }, [id, currentQuestionIdx, studentAnswers, timeLeft, isFinished]);
+  }, [id, currentQuestionIdx, studentAnswers, timeLeft, totalQuestionsCount, isFinished]);
 
   useEffect(() => {
     if (timeLeft === null || isFinished) return;
