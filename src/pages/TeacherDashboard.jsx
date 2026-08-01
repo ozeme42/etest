@@ -23,23 +23,16 @@ const subjectThemes = {
 };
 const getSubTheme = (sub) => subjectThemes[sub] || { bg: 'bg-slate-50 dark:bg-slate-900/30', text: 'text-slate-700 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-700', accent: 'bg-slate-500' };
 
-/* ── Stat Card Component ── */
-function StatCard({ icon: Icon, label, value, sub, grad, shadow }) {
+/* ── Compact Stat Card Component ── */
+function StatCard({ icon: Icon, label, value, grad }) {
   return (
-    <div className={`rounded-2xl p-4 text-white shadow-lg ${grad} ${shadow} transition-all duration-300 hover:scale-[1.02] active:scale-95 flex flex-col justify-between relative overflow-hidden`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-        {sub && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-white/90">
-            {sub}
-          </span>
-        )}
+    <div className={`rounded-2xl p-2.5 sm:p-3 text-white shadow-md ${grad} flex items-center gap-2 sm:gap-3 min-w-[90px] sm:min-w-0 shrink-0 flex-1 hover:scale-[1.02] active:scale-95 transition-all`}>
+      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-white" />
       </div>
-      <div>
-        <p className="text-2xl sm:text-3xl font-black leading-none">{value}</p>
-        <p className="text-xs font-bold text-white/80 mt-1 uppercase tracking-wider">{label}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-base sm:text-xl font-black leading-none">{value}</p>
+        <p className="text-[10px] sm:text-xs font-bold text-white/90 truncate mt-0.5" title={label}>{label}</p>
       </div>
     </div>
   );
@@ -312,13 +305,13 @@ export default function TeacherDashboard() {
           </div>
         </section>
 
-        {/* ── STAT CARDS ── */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard icon={FileText}       label="Toplam Test"  value={visibleTests.length} sub="oluşturulmuş" grad="bg-gradient-to-br from-indigo-500 to-blue-600" shadow="shadow-indigo-500/20" />
-          <StatCard icon={Users}          label="Öğrenci"      value={students.length}   sub="kayıtlı"     grad="bg-gradient-to-br from-blue-500 to-cyan-600" shadow="shadow-blue-500/20" />
-          <StatCard icon={BookOpen}       label="Ödev"         value={teacherHomeworks.length}  sub="verilmiş"    grad="bg-gradient-to-br from-amber-500 to-orange-600" shadow="shadow-amber-500/20" />
-          <StatCard icon={ClipboardCheck} label="Çözülen Sınav" value={teacherSubmissions.length} sub="toplam"   grad="bg-gradient-to-br from-emerald-500 to-teal-600" shadow="shadow-emerald-500/20" />
-          <StatCard icon={Layers}         label="Soru Bankası" value={teacherQuestions.length}  sub="soru"        grad="bg-gradient-to-br from-purple-500 to-violet-600" shadow="shadow-purple-500/20" />
+        {/* ── STAT CARDS (SINGLE ROW) ── */}
+        <section className="grid grid-cols-5 gap-1.5 sm:gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          <StatCard icon={FileText}       label="Toplam Test"  value={visibleTests.length} grad="bg-gradient-to-br from-indigo-500 to-blue-600" />
+          <StatCard icon={Users}          label="Öğrenci"      value={students.length}     grad="bg-gradient-to-br from-blue-500 to-cyan-600" />
+          <StatCard icon={BookOpen}       label="Ödev"         value={teacherHomeworks.length} grad="bg-gradient-to-br from-amber-500 to-orange-600" />
+          <StatCard icon={ClipboardCheck} label="Çözülen Sınav" value={teacherSubmissions.length} grad="bg-gradient-to-br from-emerald-500 to-teal-600" />
+          <StatCard icon={Layers}         label="Soru Bankası" value={teacherQuestions.length} grad="bg-gradient-to-br from-purple-500 to-violet-600" />
         </section>
 
         {/* ── QUICK ACTIONS BAR ── */}
