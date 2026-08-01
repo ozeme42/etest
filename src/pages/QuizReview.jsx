@@ -19,6 +19,15 @@ export default function QuizReview() {
   
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [enrichedQuestions, setEnrichedQuestions] = useState([]);
+  const [isReviewed, setIsReviewed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eTestReviewedSubmissions');
+      const set = saved ? new Set(JSON.parse(saved)) : new Set();
+      return set.has(id);
+    } catch (e) {
+      return false;
+    }
+  });
 
   const submission = submissions.find(s => s.id === id);
 
@@ -121,28 +130,12 @@ export default function QuizReview() {
     }
   };
 
-  useEffect(() => {
-    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
   const formatDisplayTitle = (rawTitle) => {
     if (!rawTitle) return 'Test İncelemesi';
     const cleaned = rawTitle.replace(/^json\s*[-:_]\s*/i, '').replace(/^json$/i, '').trim();
     if (!cleaned) return 'Test İncelemesi';
     return `${cleaned} - Test İncelemesi`;
   };
-
-  const [isReviewed, setIsReviewed] = useState(() => {
-    try {
-      const saved = localStorage.getItem('eTestReviewedSubmissions');
-      const set = saved ? new Set(JSON.parse(saved)) : new Set();
-      return set.has(id);
-    } catch (e) {
-      return false;
-    }
-  });
 
   const toggleTestReviewed = () => {
     try {
