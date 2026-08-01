@@ -74,31 +74,33 @@ function Pill({ children, color = '#6366f1', bg, border }) {
 /* ─── Stat Card ─────────────────────────────────────────────────── */
 function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) {
   if (isMobile) {
+    const shortLabel = label === 'Toplam Ödev' ? 'Toplam'
+      : label === 'Tamamlanan' ? 'Biten'
+      : label === 'Bekleyen' ? 'Bekleyen'
+      : label === 'Gecikmiş' ? 'Geciken'
+      : label === 'Tamamlanma' ? 'Oran' : label;
+
     return (
       <div
         style={{
           background: 'white',
           border: `1.5px solid ${color}30`,
-          borderRadius: '0.9rem',
-          padding: '0.55rem 0.75rem',
+          borderRadius: '0.75rem',
+          padding: '0.5rem 0.2rem',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: '0.55rem',
+          justifyContent: 'center',
+          textAlign: 'center',
           boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-          flexShrink: 0,
-          minWidth: '135px'
+          minWidth: 0
         }}
       >
-        <div style={{ width: 34, height: 34, borderRadius: '0.65rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${color}33` }}>
-          <Icon size={16} color={color} />
+        <div style={{ width: 24, height: 24, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 3, border: `1px solid ${color}33` }}>
+          <Icon size={12} color={color} />
         </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</span>
-            {sub && <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700 }}>{sub}</span>}
-          </div>
-          <div style={{ fontSize: '0.63rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-        </div>
+        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{shortLabel}</div>
       </div>
     );
   }
@@ -475,16 +477,12 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* STAT CARDS - Compact Mobile Touch Ribbon */}
+        {/* STAT CARDS - Non-scrollable 5-Column Grid on Mobile */}
         <div style={{
-          display: isMobile ? 'flex' : 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: isMobile ? '0.5rem' : '0.85rem',
-          overflowX: isMobile ? 'auto' : 'visible',
-          paddingBottom: isMobile ? '0.35rem' : 0,
-          marginBottom: '1.25rem',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch'
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(5, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: isMobile ? '0.35rem' : '0.85rem',
+          marginBottom: '1.25rem'
         }}>
           <StatCard icon={ClipboardList} label="Toplam Ödev"   value={tests.length}              sub="verilmiş"    color="#6366f1" bg="#eff6ff" isMobile={isMobile} />
           <StatCard icon={CheckCircle2} label="Tamamlanan"    value={tests.filter(t=>t.status==='Sonuçlandı').length} sub="sınav" color="#22c55e" bg="#f0fdf4" isMobile={isMobile} />
