@@ -1365,6 +1365,8 @@ export default function QuestionBank() {
                     const theme = subjectThemes[s.name] || subjectThemes['Diğer'];
                     const Icon = theme.icon;
                     const count = subjectCounts[s.id] || 0;
+                    const gradeObj = curData.grades.find(g => g.id === s.gradeId);
+                    const gradeName = gradeObj ? gradeObj.name : '';
 
                     return (
                       <div
@@ -1396,9 +1398,16 @@ export default function QuestionBank() {
                           <Icon size={120} />
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-                          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon size={28} color="white" />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Icon size={28} color="white" />
+                            </div>
+                            {gradeName && (
+                              <span style={{ background: 'rgba(255,255,255,0.25)', color: 'white', fontSize: '0.8rem', fontWeight: 900, padding: '0.3rem 0.75rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(4px)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+                                🎓 {gradeName}
+                              </span>
+                            )}
                           </div>
 
                           <span style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
@@ -1407,8 +1416,10 @@ export default function QuestionBank() {
                         </div>
 
                         <div style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>{s.name}</h3>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.9 }}>
+                          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, lineHeight: 1.2 }}>
+                            {gradeName ? `${gradeName} ${s.name}` : s.name}
+                          </h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
                             <span>Ders Sayfasına Git</span>
                             <ChevronRight size={16} />
                           </div>
