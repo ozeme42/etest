@@ -55,9 +55,9 @@ const getThemeKey = (cat) => {
 };
 
 /* ─── Atom Components ──────────────────────────────────────────── */
-function Avatar({ name, size = 40, color = '#6366f1' }) {
+function Avatar({ name, size = 44, color = '#6366f1' }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.38, fontWeight: 900, color: 'white', flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.38, fontWeight: 900, color: 'white', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
       {name?.charAt(0) || 'Ö'}
     </div>
   );
@@ -72,21 +72,32 @@ function Pill({ children, color = '#6366f1', bg, border }) {
 }
 
 /* ─── Stat Card ─────────────────────────────────────────────────── */
-function StatCard({ icon: Icon, label, value, sub, color, bg, glow }) {
+function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) {
   const [hov, setHov] = useState(false);
   return (
     <div
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      style={{ background: hov ? bg : 'white', border: `1.5px solid ${hov ? color + '44' : '#f1f5f9'}`, borderRadius: '1.25rem', padding: '1.25rem', display: 'flex', gap: '0.9rem', alignItems: 'center', boxShadow: hov ? `0 8px 28px ${glow || color + '30'}` : '0 2px 10px rgba(0,0,0,0.05)', transition: 'all 0.2s', transform: hov ? 'translateY(-2px)' : 'none' }}
+      style={{
+        background: hov ? bg : 'white',
+        border: `1.5px solid ${hov ? color + '44' : '#f1f5f9'}`,
+        borderRadius: '1.25rem',
+        padding: isMobile ? '0.85rem' : '1.25rem',
+        display: 'flex',
+        gap: isMobile ? '0.65rem' : '0.9rem',
+        alignItems: 'center',
+        boxShadow: hov ? `0 8px 28px ${glow || color + '30'}` : '0 2px 10px rgba(0,0,0,0.05)',
+        transition: 'all 0.2s',
+        transform: hov ? 'translateY(-2px)' : 'none'
+      }}
     >
-      <div style={{ width: 48, height: 48, borderRadius: '0.9rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}33` }}>
-        <Icon size={22} color={color} />
+      <div style={{ width: isMobile ? 38 : 48, height: isMobile ? 38 : 48, borderRadius: '0.9rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}33` }}>
+        <Icon size={isMobile ? 18 : 22} color={color} />
       </div>
-      <div>
-        <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        {sub && <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{sub}</div>}
-        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 3 }}>{label}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: isMobile ? '1.3rem' : '1.7rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+        {sub && <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>{label}</div>
       </div>
     </div>
   );
@@ -215,16 +226,16 @@ function QuickCard({ icon: Icon, label, sub, to, gradient, shadow }) {
   const navigate = useNavigate();
   return (
     <button onClick={() => navigate(to)}
-      style={{ background: gradient, borderRadius: '1.1rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', border: 'none', cursor: 'pointer', boxShadow: `0 4px 18px ${shadow}`, transition: 'all 0.2s', textAlign: 'left' }}
+      style={{ background: gradient, borderRadius: '1.1rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: 'none', cursor: 'pointer', boxShadow: `0 4px 18px ${shadow}`, transition: 'all 0.2s', textAlign: 'left' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)'; e.currentTarget.style.boxShadow = `0 12px 28px ${shadow}`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 4px 18px ${shadow}`; }}
     >
-      <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 36, height: 36, borderRadius: '0.75rem', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Icon size={18} color="white" />
       </div>
       <div>
         <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'white', lineHeight: 1.2 }}>{label}</div>
-        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginTop: 2 }}>{sub}</div>
+        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600, marginTop: 2 }}>{sub}</div>
       </div>
     </button>
   );
@@ -253,6 +264,14 @@ export default function StudentDashboard() {
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
   const { getCoachingNoteForStudent, getMeetingsForStudent } = useCoaching();
+
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -337,41 +356,41 @@ export default function StudentDashboard() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#f0f4ff 0%,#ffffff 55%,#fdf4ff 100%)', fontFamily: 'inherit' }}>
 
       {/* ═══ HERO BANNER ═══ */}
-      <div style={{ background: 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a21caf 100%)', padding: 'clamp(1.5rem,4vw,2.5rem) clamp(1rem,4vw,2rem)', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ background: 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a21caf 100%)', padding: isMobile ? '1.25rem 1rem' : 'clamp(1.5rem,4vw,2.5rem) clamp(1rem,4vw,2rem)', position: 'relative', overflow: 'hidden' }}>
         {/* decorative blobs */}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, background: 'rgba(255,255,255,0.08)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: -40, left: 80, width: 160, height: 160, background: 'rgba(255,255,255,0.05)', borderRadius: '50%', filter: 'blur(25px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: '50%', right: '10%', width: 100, height: 100, background: 'rgba(251,191,36,0.12)', borderRadius: '50%', filter: 'blur(20px)', pointerEvents: 'none', transform: 'translateY(-50%)' }} />
 
-        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '1.25rem', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
-          <Avatar name={selectedStudent?.name} size={56} color={avatarColor} />
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
+          <Avatar name={selectedStudent?.name} size={isMobile ? 48 : 56} color={avatarColor} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', marginBottom: 6 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', marginBottom: 4 }}>
               <Sparkles size={12} color="#fbbf24" />
               <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Hoş Geldin 👋</span>
             </div>
-            <h1 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', fontWeight: 900, color: 'white', margin: 0, lineHeight: 1.1 }}>
+            <h1 style={{ fontSize: isMobile ? '1.3rem' : '1.8rem', fontWeight: 900, color: 'white', margin: 0, lineHeight: 1.1 }}>
               {selectedStudent?.name || 'Öğrenci'}
             </h1>
-            {gradeLabel && <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', marginTop: 4, fontWeight: 600 }}>{gradeLabel} · Öğrenci Paneli</p>}
+            {gradeLabel && <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem', marginTop: 3, fontWeight: 700 }}>{gradeLabel} · Öğrenci Paneli</p>}
           </div>
+
           {/* Score bubble */}
-          <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: '0.75rem 1.25rem', textAlign: 'center', flexShrink: 0 }}>
-            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.65)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Genel Başarı</div>
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.floor(stats.successRate)}</div>
-            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{tests.filter(t => t.status === 'Sonuçlandı').length} sınav tamamlandı</div>
+          <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem', textAlign: 'center', flexShrink: 0, width: isMobile ? '100%' : 'auto', marginTop: isMobile ? 6 : 0 }}>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.75)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Genel Başarı</div>
+            <div style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.floor(stats.successRate)}</div>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{tests.filter(t => t.status === 'Sonuçlandı').length} sınav tamamlandı</div>
           </div>
         </div>
 
         {/* Student switcher pills */}
         {studentMembers.length > 1 && (
-          <div style={{ width: '100%', position: 'relative', zIndex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ width: '100%', position: 'relative', zIndex: 1, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginTop: 12, scrollbarWidth: 'none' }}>
             {studentMembers.map((s, i) => {
               const active = selectedStudent?.id === s.id;
               const col = avatarColors[i % avatarColors.length];
               return (
                 <button key={s.id} onClick={() => setSelectedStudent(s)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.85rem', borderRadius: 99, border: `2px solid ${active ? 'white' : 'rgba(255,255,255,0.3)'}`, background: active ? 'white' : 'rgba(255,255,255,0.12)', color: active ? col : 'rgba(255,255,255,0.8)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.85rem', borderRadius: 99, border: `2px solid ${active ? 'white' : 'rgba(255,255,255,0.3)'}`, background: active ? 'white' : 'rgba(255,255,255,0.12)', color: active ? col : 'rgba(255,255,255,0.85)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
                 >
                   <div style={{ width: 20, height: 20, borderRadius: '50%', background: col, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', fontWeight: 900, color: 'white' }}>{s.name.charAt(0)}</div>
                   {s.name}
@@ -383,11 +402,11 @@ export default function StudentDashboard() {
       </div>
 
       {/* ═══ CONTENT ═══ */}
-      <div style={{ width: '100%', padding: 'clamp(1rem,2.5vw,2rem)' }}>
+      <div style={{ width: '100%', padding: isMobile ? '0.85rem' : 'clamp(1rem,2.5vw,2rem)', boxSizing: 'border-box' }}>
 
         {/* 👨‍🏫 TEACHER COACHING GUIDANCE CARD */}
         {( (coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting ) && (
-          <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', border: '1.5px solid #ddd6fe', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(124,58,237,0.08)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', border: '1.5px solid #ddd6fe', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(124,58,237,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Target size={18} color="#7c3aed" />
@@ -426,42 +445,47 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* STAT CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: '0.85rem', marginBottom: '2rem' }}>
-          <StatCard icon={ClipboardList} label="Toplam Ödev"   value={tests.length}              sub="verilmiş"    color="#6366f1" bg="#eff6ff" />
-          <StatCard icon={CheckCircle2} label="Tamamlanan"    value={tests.filter(t=>t.status==='Sonuçlandı').length} sub="sınav" color="#22c55e" bg="#f0fdf4" />
-          <StatCard icon={Flame}        label="Bekleyen"       value={stats.pendingCount}          sub="ödev var"    color="#f97316" bg="#fff7ed" />
-          <StatCard icon={AlertCircle}  label="Gecikmiş"       value={stats.overdueCount}          sub="ödev"        color="#ef4444" bg="#fff1f2" />
-          <StatCard icon={TrendingUp}   label="Tamamlanma"     value={`%${Math.floor(stats.completedRate)}`} sub="oranı" color="#a855f7" bg="#faf5ff" />
+        {/* STAT CARDS - Sleek Touch 2-Column Grid on Mobile */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: isMobile ? '0.65rem' : '0.85rem',
+          marginBottom: '1.5rem'
+        }}>
+          <StatCard icon={ClipboardList} label="Toplam Ödev"   value={tests.length}              sub="verilmiş"    color="#6366f1" bg="#eff6ff" isMobile={isMobile} />
+          <StatCard icon={CheckCircle2} label="Tamamlanan"    value={tests.filter(t=>t.status==='Sonuçlandı').length} sub="sınav" color="#22c55e" bg="#f0fdf4" isMobile={isMobile} />
+          <StatCard icon={Flame}        label="Bekleyen"       value={stats.pendingCount}          sub="ödev var"    color="#f97316" bg="#fff7ed" isMobile={isMobile} />
+          <StatCard icon={AlertCircle}  label="Gecikmiş"       value={stats.overdueCount}          sub="ödev"        color="#ef4444" bg="#fff1f2" isMobile={isMobile} />
+          <StatCard icon={TrendingUp}   label="Tamamlanma"     value={`%${Math.floor(stats.completedRate)}`} sub="oranı" color="#a855f7" bg="#faf5ff" isMobile={isMobile} />
         </div>
 
         {/* PROGRESS BAR */}
-        <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', marginBottom: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Trophy size={16} color="#f59e0b" /> Genel İlerleme
             </span>
             <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#6366f1' }}>%{Math.floor(stats.completedRate)}</span>
           </div>
-          <ProgressBar value={stats.completedRate} color="linear-gradient(90deg,#6366f1,#a855f7)" bg="#f0f4ff" height={12} />
+          <ProgressBar value={stats.completedRate} color="linear-gradient(90deg,#6366f1,#a855f7)" bg="#f0f4ff" height={10} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
             <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{tests.filter(t=>t.status==='Sonuçlandı').length} tamamlandı</span>
             <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{tests.length} toplam</span>
           </div>
         </div>
 
-        {/* TWO-COL LAYOUT */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: '1.5rem', alignItems: 'start' }}>
+        {/* MAIN LAYOUT: Single Column on Mobile, Split 2-Column on Desktop */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 300px', gap: '1.5rem', alignItems: 'start' }}>
 
-          {/* LEFT: Homeworks + Quick Links */}
+          {/* LEFT SECTION: Homeworks + Quick Links */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
             {/* Quick Links */}
             <div>
-              <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Zap size={14} color="#f59e0b" /> Hızlı Erişim
               </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
                 <QuickCard icon={BarChart3}    label="Sonuçlarım"      sub="Karne & grafikler"      to="/student-results" gradient="linear-gradient(135deg,#6366f1,#8b5cf6)" shadow="rgba(99,102,241,0.35)" />
                 <QuickCard icon={AlertCircle} label="Yanlışlarım"     sub="Hata havuzu"            to="/wrong-answers"   gradient="linear-gradient(135deg,#f43f5e,#db2777)" shadow="rgba(244,63,94,0.35)" />
                 <QuickCard icon={Target}      label="Hedeflerim"      sub="Hedef & program"        to="/goals"           gradient="linear-gradient(135deg,#f97316,#dc2626)" shadow="rgba(249,115,22,0.35)" />
@@ -471,7 +495,7 @@ export default function StudentDashboard() {
 
             {/* Pending Homeworks */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
                   <BookOpen size={14} color="#6366f1" /> Bekleyen Ödevler
                   {stats.pendingCount > 0 && (
@@ -480,13 +504,13 @@ export default function StudentDashboard() {
                 </h2>
               </div>
               {pendingTasks.length === 0 ? (
-                <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: '3rem', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
+                <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '2rem 1rem' : '3rem', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎉</div>
                   <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem', marginBottom: 4 }}>Harika! Tüm ödevler tamamlandı.</div>
                   <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Bekleyen göreviniz bulunmuyor.</div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '0.85rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.85rem' }}>
                   {pendingTasks.map(task => (
                     <HomeworkCard key={task.id} task={task} selectedStudent={selectedStudent} />
                   ))}
@@ -497,7 +521,7 @@ export default function StudentDashboard() {
             {/* Completed exams */}
             {tests.filter(t => t.status === 'Sonuçlandı').length > 0 && (
               <div>
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <CheckCircle2 size={14} color="#22c55e" /> Tamamlanan Sınavlar
                 </h2>
                 <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
@@ -506,7 +530,7 @@ export default function StudentDashboard() {
                     const score = test.correctAnswers || 0;
                     const good = score >= 70;
                     return (
-                      <div key={test.id} style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', padding: '0.9rem 1.1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none', transition: 'background 0.15s' }}
+                      <div key={test.id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none', transition: 'background 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                         onMouseLeave={e => e.currentTarget.style.background = 'white'}
                       >
@@ -518,8 +542,8 @@ export default function StudentDashboard() {
                           <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{new Date(test.assignedDate).toLocaleDateString('tr-TR')}</div>
                         </div>
                         <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                          <div style={{ fontWeight: 900, fontSize: '1rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
-                          <div style={{ width: 60, marginTop: 3 }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.98rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
+                          <div style={{ width: 56, marginTop: 3 }}>
                             <ProgressBar value={score} color={good ? '#22c55e' : '#ef4444'} bg={good ? '#f0fdf4' : '#fff1f2'} height={5} />
                           </div>
                         </div>
@@ -531,12 +555,12 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          {/* RIGHT SIDEBAR: Goals + Schedule */}
+          {/* RIGHT SIDEBAR: Goals + Motivation */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Goals */}
-            <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 5 }}><Target size={15} color="#f43f5e" /> Hedeflerim</span>
                 <button onClick={() => setShowGoalModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', background: '#eff6ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
                   <Plus size={12} /> Ekle
@@ -617,8 +641,8 @@ export default function StudentDashboard() {
       {/* ═══ GOAL MODAL ═══ */}
       {showGoalModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '2rem', width: '100%', maxWidth: 460, boxShadow: '0 24px 80px rgba(0,0,0,0.18)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '1.75rem', width: '100%', maxWidth: 460, boxShadow: '0 24px 80px rgba(0,0,0,0.18)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h2 style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', margin: 0 }}>🎯 Yeni Hedef Ekle</h2>
               <button onClick={() => setShowGoalModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '0.65rem', padding: '0.5rem', cursor: 'pointer', display: 'flex' }}><X size={16} color="#64748b" /></button>
             </div>
