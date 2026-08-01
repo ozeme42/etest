@@ -119,9 +119,42 @@ export default function QuizRunner() {
 
   const rawTestQuestions = useMemo(() => {
     if (!test) return [];
-    if (test.contentType === 'pdf' || test.contentType === 'gorsel' || test.contentType === 'html') {
+
+    // PDF and HTML remain as single bundle document
+    if (test.contentType === 'pdf' || test.contentType === 'html') {
       return [test];
     }
+
+    // Visual multi-image tests: unroll images into single sequential questions so they come 1-by-1 on screen!
+    if (test.contentType === 'gorsel') {
+      const validUrls = test.imageUrls && test.imageUrls.length > 0 ? test.imageUrls : (test.contentPayload ? [test.contentPayload] : []);
+      const rawSubList = (test.questionsList && test.questionsList.length > 0) 
+        ? test.questionsList 
+        : validUrls.map((url, idx) => ({
+            id: `${test.id}_sub_${idx}`,
+            title: `Görsel Soru ${idx + 1}`,
+            contentType: 'gorsel',
+            contentPayload: url,
+            type: test.type || 'coktan_secmeli',
+            options: test.type === 'acik_uclu' ? [] : ['A', 'B', 'C', 'D', 'E'],
+            correctAnswer: test.answerKey?.[idx] ? test.answerKey[idx].charCodeAt(0) - 65 : 0
+          }));
+
+      if (rawSubList.length > 0) {
+        return rawSubList.map((sq, idx) => ({
+          ...sq,
+          id: sq.id || `${test.id}_sub_${idx}`,
+          parentTestId: test.id,
+          subIndex: idx,
+          questionCount: rawSubList.length,
+          isSubOfBundle: true,
+          type: sq.type || test.type || 'coktan_secmeli',
+          contentType: 'gorsel',
+          contentPayload: sq.contentPayload || sq.imageUrl || validUrls[idx] || test.contentPayload
+        }));
+      }
+    }
+
     if (testQuestionList.length > 0) {
       if (typeof testQuestionList[0] === 'object' && testQuestionList[0] !== null) {
         return testQuestionList;
@@ -131,8 +164,37 @@ export default function QuizRunner() {
         return foundInBank;
       }
     }
+
     const directQuestion = allQuestions.find(q => q.id === test.id || testQuestionIds.includes(q.id));
     if (directQuestion) {
+      if (directQuestion.contentType === 'gorsel') {
+        const validUrls = directQuestion.imageUrls && directQuestion.imageUrls.length > 0 ? directQuestion.imageUrls : (directQuestion.contentPayload ? [directQuestion.contentPayload] : []);
+        const rawSubList = (directQuestion.questionsList && directQuestion.questionsList.length > 0) 
+          ? directQuestion.questionsList 
+          : validUrls.map((url, idx) => ({
+              id: `${directQuestion.id}_sub_${idx}`,
+              title: `Görsel Soru ${idx + 1}`,
+              contentType: 'gorsel',
+              contentPayload: url,
+              type: directQuestion.type || 'coktan_secmeli',
+              options: directQuestion.type === 'acik_uclu' ? [] : ['A', 'B', 'C', 'D', 'E'],
+              correctAnswer: directQuestion.answerKey?.[idx] ? directQuestion.answerKey[idx].charCodeAt(0) - 65 : 0
+            }));
+
+        if (rawSubList.length > 0) {
+          return rawSubList.map((sq, idx) => ({
+            ...sq,
+            id: sq.id || `${directQuestion.id}_sub_${idx}`,
+            parentTestId: directQuestion.id,
+            subIndex: idx,
+            questionCount: rawSubList.length,
+            isSubOfBundle: true,
+            type: sq.type || directQuestion.type || 'coktan_secmeli',
+            contentType: 'gorsel',
+            contentPayload: sq.contentPayload || sq.imageUrl || validUrls[idx] || directQuestion.contentPayload
+          }));
+        }
+      }
       return [directQuestion];
     }
     return [];
@@ -287,7 +349,6 @@ export default function QuizRunner() {
       setCurrentQuestionIdx(currentQuestionIdx + 1);
     }
   };
-
   const handlePrev = () => {
     if (currentQuestionIdx > 0) {
       setCurrentQuestionIdx(currentQuestionIdx - 1);
@@ -295,17 +356,33 @@ export default function QuizRunner() {
   };
 
   const handleOptionSelect = (idx) => {
-    setStudentAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: idx
-    }));
+    const q = currentQuestion;
+    setStudentAnswers(prev => {
+      const updated = { ...prev, [q.id]: idx };
+      if (q.parentTestId) {
+        const parentAns = prev[q.parentTestId] || {};
+        updated[q.parentTestId] = {
+          ...parentAns,
+          [q.subIndex]: idx
+        };
+      }
+      return updated;
+    });
   };
 
   const handleOpenAnswerChange = (val) => {
-    setStudentAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: val
-    }));
+    const q = currentQuestion;
+    setStudentAnswers(prev => {
+      const updated = { ...prev, [q.id]: val };
+      if (q.parentTestId) {
+        const parentAns = prev[q.parentTestId] || {};
+        updated[q.parentTestId] = {
+          ...parentAns,
+          [q.subIndex]: val
+        };
+      }
+      return updated;
+    });
   };
 
   const handleBundleOptionSelect = (subIndex, optIdx) => {
@@ -352,10 +429,16 @@ export default function QuizRunner() {
     const collected = [];
     const wrongList = [];
 
-    testQuestions.forEach(q => {
-      const ans = studentAnswers[q.id];
+    testQuestions.forEach((q, idx) => {
+      const ans = studentAnswers[q.id] !== undefined 
+        ? studentAnswers[q.id] 
+        : (q.parentTestId && studentAnswers[q.parentTestId] ? studentAnswers[q.parentTestId][q.subIndex] : undefined);
       
-      if (q.isBundle) {
+      const targetQId = q.parentTestId || q.id;
+      const isBundleItem = !!q.parentTestId || q.isBundle;
+      const subIdx = q.subIndex !== undefined ? q.subIndex : idx;
+
+      if (q.isBundle && !q.isSubOfBundle) {
         const bundleAns = ans || {};
         const isAcikUclu = q.type === 'acik_uclu' || test?.type === 'acik_uclu' || (q.questionsList && q.questionsList[0] && q.questionsList[0].type === 'acik_uclu');
         
@@ -436,12 +519,13 @@ export default function QuizRunner() {
             correctCount++;
           } else {
             wrongCount++;
-            wrongList.push({ qId: q.id, isBundle: false });
+            wrongList.push({ qId: targetQId, subIndex: subIdx, isBundle: isBundleItem });
           }
           collected.push({
-            questionId: q.id,
+            questionId: targetQId,
+            isBundle: isBundleItem,
+            subIndex: subIdx,
             type: 'coktan_secmeli',
-            isBundle: false,
             userAnswer: ans,
             correctAnswer: q.correctAnswer,
             isCorrect: isCorrect,
@@ -449,11 +533,12 @@ export default function QuizRunner() {
           });
         } else {
           blankCount++;
-          wrongList.push({ qId: q.id, isBundle: false });
+          wrongList.push({ qId: targetQId, subIndex: subIdx, isBundle: isBundleItem });
           collected.push({
-            questionId: q.id,
+            questionId: targetQId,
+            isBundle: isBundleItem,
+            subIndex: subIdx,
             type: 'coktan_secmeli',
-            isBundle: false,
             userAnswer: null,
             correctAnswer: q.correctAnswer,
             isCorrect: false,
@@ -462,22 +547,25 @@ export default function QuizRunner() {
         }
       } else {
         // Open-ended
-        if (ans && ans.trim().length > 0) {
+        const userText = typeof ans === 'string' ? ans.trim() : '';
+        if (userText.length > 0) {
           pendingCount++;
           collected.push({
-            questionId: q.id,
+            questionId: targetQId,
+            isBundle: isBundleItem,
+            subIndex: subIdx,
             type: 'acik_uclu',
-            isBundle: false,
-            userAnswerText: ans,
+            userAnswerText: userText,
             isCorrect: null, // Pending evaluation
             earnedPoints: 0
           });
         } else {
           blankCount++;
           collected.push({
-            questionId: q.id,
+            questionId: targetQId,
+            isBundle: isBundleItem,
+            subIndex: subIdx,
             type: 'acik_uclu',
-            isBundle: false,
             userAnswerText: null,
             isCorrect: false, // Left blank, implicitly 0 points
             earnedPoints: 0
