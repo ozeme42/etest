@@ -31,16 +31,28 @@ export function QuestionBankProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('eTestQuestions', JSON.stringify(questions));
+      // Sanitize questions to prevent LocalStorage QuotaExceededError (5MB limit) when storing large images/PDFs
+      const lightweightQuestions = (questions || []).map(q => {
+        let safePayload = q.contentPayload;
+        if (typeof safePayload === 'string' && safePayload.length > 500 && safePayload.startsWith('data:')) {
+          safePayload = safePayload.slice(0, 100) + '...[LOCALSTORAGE_CACHE]';
+        }
+        let safeRaw = q.raw_data;
+        if (safeRaw && typeof safeRaw === 'object') {
+          safeRaw = { ...safeRaw };
+          if (typeof safeRaw.contentPayload === 'string' && safeRaw.contentPayload.length > 500) {
+            safeRaw.contentPayload = '[LOCALSTORAGE_CACHE]';
+          }
+        }
+        return {
+          ...q,
+          contentPayload: safePayload,
+          raw_data: safeRaw
+        };
+      });
+      localStorage.setItem('eTestQuestions', JSON.stringify(lightweightQuestions));
     } catch (err) {
-      console.warn('[LocalStorage] QuotaExceededError: eTestQuestions exceeds 5MB limit. Storing questions in-memory and syncing with Supabase database.', err);
-      try {
-        // Fallback: Save recent 50 questions to localStorage to avoid quota crash
-        const recentQuestions = (questions || []).slice(-50);
-        localStorage.setItem('eTestQuestions', JSON.stringify(recentQuestions));
-      } catch (innerErr) {
-        console.warn('[LocalStorage] Could not save fallback questions:', innerErr);
-      }
+      console.warn('[LocalStorage] QuotaExceededError avoided safely:', err.message);
     }
   }, [questions]);
 
