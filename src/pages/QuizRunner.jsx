@@ -730,6 +730,24 @@ export default function QuizRunner() {
                 })}
               </div>
             )}
+
+            {isAcikUcluItem && (
+              <div style={{ marginTop: '1rem', background: '#fffef0', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #fde68a' }}>
+                <label style={{ display: 'block', fontWeight: 900, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.4rem' }}>
+                  ✍️ Cevabınızı Yazın:
+                </label>
+                <textarea
+                  rows={4}
+                  value={(() => {
+                    const bundleAns = studentAnswers[q.id] || {};
+                    return typeof bundleAns === 'object' && bundleAns[safeSubIdx] ? bundleAns[safeSubIdx] : '';
+                  })()}
+                  onChange={(e) => handleBundleTextChange(safeSubIdx, e.target.value)}
+                  placeholder="Yazılı cevabınızı buraya detaylıca yazınız..."
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1.5px solid #d97706', fontSize: '0.9rem', fontFamily: 'inherit', background: 'white', fontWeight: 600 }}
+                />
+              </div>
+            )}
           </div>
 
         </div>
@@ -842,7 +860,88 @@ export default function QuizRunner() {
           />
         );
       }
-      default: return null;
+      case 'text':
+      default: {
+        const isAcikUclu = q.type === 'acik_uclu' || test?.type === 'acik_uclu';
+        const hasOptions = !isAcikUclu && q.options && q.options.length > 0;
+        const currentAns = studentAnswers[q.id];
+
+        return (
+          <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+              
+              {/* Question Text */}
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem', lineHeight: 1.5 }}>
+                {q.questionText || q.title || 'Yazılı / Açık Uçlu Soru'}
+              </div>
+
+              {/* Question Image if any */}
+              {q.contentPayload && (
+                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                  <img
+                    src={q.contentPayload}
+                    alt="Soru Görseli"
+                    style={{ maxWidth: '100%', maxHeight: '450px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
+              )}
+
+              {/* Multiple choice options if available */}
+              {hasOptions && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                  {q.options.map((optText, oIdx) => {
+                    const isSelected = currentAns === oIdx;
+                    return (
+                      <div
+                        key={oIdx}
+                        onClick={() => handleOptionSelect(oIdx)}
+                        style={{
+                          background: isSelected ? '#ecfdf5' : '#f1f5f9',
+                          padding: '0.65rem 0.9rem',
+                          borderRadius: '0.65rem',
+                          fontSize: '0.88rem',
+                          fontWeight: 700,
+                          color: isSelected ? '#065f46' : '#334155',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.65rem',
+                          border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        className="hover:scale-[1.01] active:scale-95"
+                      >
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#10b981' : '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {String.fromCharCode(65 + oIdx)}
+                        </span>
+                        <span style={{ flex: 1 }}>{optText}</span>
+                        {isSelected && <span style={{ color: '#10b981', fontWeight: 900, fontSize: '0.85rem' }}>✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Open-ended written answer text box */}
+              {isAcikUclu && (
+                <div style={{ marginTop: '1rem', background: '#fffef0', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #fde68a' }}>
+                  <label style={{ display: 'block', fontWeight: 900, fontSize: '0.85rem', color: '#92400e', marginBottom: '0.4rem' }}>
+                    ✍️ Cevabınızı Yazın:
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={typeof currentAns === 'string' ? currentAns : ''}
+                    onChange={(e) => handleOpenAnswerChange(e.target.value)}
+                    placeholder="Yazılı cevabınızı buraya detaylıca yazınız..."
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1.5px solid #d97706', fontSize: '0.9rem', fontFamily: 'inherit', background: 'white', fontWeight: 600 }}
+                  />
+                </div>
+              )}
+
+            </div>
+          </div>
+        );
+      }
     }
   };
 
