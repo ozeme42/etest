@@ -140,9 +140,26 @@ export function QuestionBankProvider({ children }) {
   };
 
   const deleteQuestion = async (id) => {
+    const targetQ = questions.find(q => q.id === id);
     setQuestions(prev => prev.filter(q => q.id !== id));
+
+    // 1. Delete from IndexedDB (main ID and ID variants)
     await idbDeletePayload(id);
-    await dbDeleteQuestion(id);
+    await idbDeletePayload(String(id).replace(/^q_/, ''));
+    await idbDeletePayload(`q_${id}`);
+
+    // 2. Delete sub-question payloads if bundle
+    if (targetQ && Array.isArray(targetQ.questionsList)) {
+      for (const subQ of targetQ.questionsList) {
+        if (subQ.id) {
+          await idbDeletePayload(subQ.id);
+          await idbDeletePayload(String(subQ.id).replace(/^q_/, ''));
+        }
+      }
+    }
+
+    // 3. Delete from Supabase Database & Storage Bucket ('question_files')
+    await dbDeleteQuestion(targetQ || id);
   };
 
   const updateQuestion = async (id, updatedData) => {

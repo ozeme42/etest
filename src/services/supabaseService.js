@@ -550,13 +550,55 @@ export async function dbAddQuestion(q) {
   }
 }
 
-export async function dbDeleteQuestion(qId) {
-  if (!isSupabaseConfigured()) return null;
+export async function dbDeleteQuestion(q) {
+  if (!isSupabaseConfigured() || !q) return null;
   try {
+    const qId = typeof q === 'object' ? q.id : q;
     const dbId = toUUID(qId);
+
+    // 1. Fetch question record to extract storage URLs if only ID was passed
+    let questionObj = typeof q === 'object' ? q : null;
+    if (!questionObj) {
+      const { data } = await supabase.from('questions').select('*').or(`id.eq.${dbId},id.eq.${String(qId)}`).maybeSingle();
+      if (data) questionObj = data;
+    }
+
+    // 2. Extract and delete any uploaded files from Supabase Storage ('question_files' bucket)
+    if (questionObj) {
+      const urlsToDelete = [];
+      const payloadUrl = questionObj.content_payload || questionObj.contentPayload;
+      if (typeof payloadUrl === 'string' && payloadUrl.includes('/storage/v1/object/public/question_files/')) {
+        urlsToDelete.push(payloadUrl);
+      }
+      if (questionObj.raw_data && typeof questionObj.raw_data === 'object') {
+        const rawUrl = questionObj.raw_data.contentPayload;
+        if (typeof rawUrl === 'string' && rawUrl.includes('/storage/v1/object/public/question_files/')) {
+          urlsToDelete.push(rawUrl);
+        }
+        if (Array.isArray(questionObj.raw_data.imageUrls)) {
+          questionObj.raw_data.imageUrls.forEach(url => {
+            if (typeof url === 'string' && url.includes('/storage/v1/object/public/question_files/')) {
+              urlsToDelete.push(url);
+            }
+          });
+        }
+      }
+
+      // Perform file deletion from Storage bucket
+      const fileNames = urlsToDelete.map(url => url.split('/question_files/').pop()).filter(Boolean);
+      if (fileNames.length > 0) {
+        try {
+          await supabase.storage.from('question_files').remove(fileNames);
+          console.log('[Supabase Storage] Deleted files from storage bucket:', fileNames);
+        } catch (storageErr) {
+          console.warn('[Supabase Storage] Delete error:', storageErr.message);
+        }
+      }
+    }
+
+    // 3. Delete row from Supabase database
     let { error } = await supabase.from('questions').delete().eq('id', dbId);
     if (error) {
-      // Try raw string id if toUUID didn't match
       await supabase.from('questions').delete().eq('id', String(qId));
     }
     return true;
