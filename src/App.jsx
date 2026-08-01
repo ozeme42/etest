@@ -122,8 +122,8 @@ function Sidebar() {
                 <ClipboardCheck size={20} /> Değerlendirmeler
               </NavLink>
 
-              {/* Soru Bankası: Sadece Admin Görebilir */}
-              {currentUser?.role === 'admin' && (
+              {/* Soru Bankası: Öğretmen ve Admin Görebilir */}
+              {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
                 <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
                   <Database size={20} /> Soru Bankası
                 </NavLink>
