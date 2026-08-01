@@ -114,21 +114,46 @@ export function QuestionBankProvider({ children }) {
 
   const addQuestion = async (questionData) => {
     if (Array.isArray(questionData)) {
-      const newQuestions = questionData.map((q, idx) => ({
-        id: `q${Date.now()}_${idx}`,
-        ...q
+      if (questionData.length === 0) return;
+
+      const bundleId = `q${Date.now()}`;
+      const firstQ = questionData[0] || {};
+
+      const subQuestions = questionData.map((q, idx) => ({
+        id: q.id || `sub_${idx}_${Date.now()}`,
+        questionText: q.questionText || q.title || `Soru ${idx + 1}`,
+        options: q.options || ['A', 'B', 'C', 'D'],
+        correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0,
+        contentType: q.contentType || firstQ.contentType || 'text',
+        contentPayload: q.contentPayload || ''
       }));
 
-      for (const q of newQuestions) {
-        if (q.contentPayload && typeof q.contentPayload === 'string' && q.contentPayload.length > 500) {
-          await idbSetPayload(q.id, q.contentPayload);
-        }
+      const answerKey = subQuestions.map(q => {
+        const idx = typeof q.correctAnswer === 'number' ? q.correctAnswer : 0;
+        return String.fromCharCode(65 + idx);
+      });
+
+      const singleBundleQuestion = {
+        id: bundleId,
+        title: firstQ.title || `${firstQ.subject || 'Ders'} Toplu Test Paketi (${subQuestions.length} Soru)`,
+        topicId: firstQ.topicId || 'global_all',
+        subject: firstQ.subject || 'Matematik',
+        gradeId: firstQ.gradeId || 'g1',
+        contentType: firstQ.contentType || 'json',
+        type: firstQ.type || 'coktan_secmeli',
+        isBundle: true,
+        questionCount: subQuestions.length,
+        questionsList: subQuestions,
+        answerKey: answerKey,
+        contentPayload: JSON.stringify(subQuestions, null, 2)
+      };
+
+      if (singleBundleQuestion.contentPayload && singleBundleQuestion.contentPayload.length > 500) {
+        await idbSetPayload(singleBundleQuestion.id, singleBundleQuestion.contentPayload);
       }
 
-      setQuestions(prev => [...prev, ...newQuestions]);
-      for (const q of newQuestions) {
-        await dbAddQuestion(q);
-      }
+      setQuestions(prev => [...prev, singleBundleQuestion]);
+      await dbAddQuestion(singleBundleQuestion);
     } else {
       const newQuestion = { id: `q${Date.now()}`, ...questionData };
       if (newQuestion.contentPayload && typeof newQuestion.contentPayload === 'string' && newQuestion.contentPayload.length > 500) {
