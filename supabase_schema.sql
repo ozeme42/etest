@@ -327,3 +327,14 @@ CREATE POLICY "Allow public coaching_notes" ON public.coaching_notes FOR ALL USI
 CREATE POLICY "Allow public mock_exams" ON public.mock_exams FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public coaching_meetings" ON public.coaching_meetings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public coaching_profiles" ON public.coaching_profiles FOR ALL USING (true) WITH CHECK (true);
+
+-- ==========================================
+-- 8. SUPABASE STORAGE BUCKET FOR PDF & IMAGE FILES
+-- ==========================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('question_files', 'question_files', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public Read Access for question_files" ON storage.objects FOR SELECT USING (bucket_id = 'question_files');
+CREATE POLICY "Public Insert Access for question_files" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'question_files');
+CREATE POLICY "Public Update Access for question_files" ON storage.objects FOR UPDATE WITH CHECK (bucket_id = 'question_files');

@@ -426,15 +426,76 @@ export async function dbGetQuestions() {
   }
 }
 
+export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'file') {
+  if (!isSupabaseConfigured() || !fileOrDataUrl) return null;
+  try {
+    let fileBlob = null;
+    let fileExt = 'pdf';
+
+    if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
+      const arr = fileOrDataUrl.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+      fileExt = mime.includes('pdf') ? 'pdf' : (mime.includes('image') ? 'png' : 'bin');
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      fileBlob = new Blob([u8arr], { type: mime });
+    } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+      fileBlob = fileOrDataUrl;
+      if (fileOrDataUrl.name) {
+        fileExt = fileOrDataUrl.name.split('.').pop().toLowerCase();
+      }
+    }
+
+    if (!fileBlob) return null;
+
+    const fileName = `${filenamePrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from('question_files')
+      .upload(fileName, fileBlob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      console.warn('[Supabase Storage] Upload error:', error.message);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('question_files')
+      .getPublicUrl(fileName);
+
+    return publicUrlData?.publicUrl || null;
+  } catch (err) {
+    console.warn('[Supabase Storage] dbUploadFileToStorage failed:', err.message);
+    return null;
+  }
+}
+
 export async function dbAddQuestion(q) {
   if (!isSupabaseConfigured()) return null;
   try {
     const qId = q.id || `q_${Date.now()}`;
     const dbId = toUUID(qId);
-    const fullRaw = { ...q, id: qId };
-    if (typeof fullRaw.contentPayload === 'string' && fullRaw.contentPayload.length > 500) {
-      delete fullRaw.contentPayload;
+
+    let finalContentPayload = q.contentPayload || '';
+
+    // Automatically upload Base64 PDF/Image DataURLs to Supabase Storage Bucket!
+    if (typeof finalContentPayload === 'string' && finalContentPayload.startsWith('data:')) {
+      const publicUrl = await dbUploadFileToStorage(finalContentPayload, `q_${dbId}`);
+      if (publicUrl) {
+        finalContentPayload = publicUrl;
+        q.contentPayload = publicUrl; // Update in-memory object URL
+      }
     }
+
+    const fullRaw = { ...q, id: qId, contentPayload: finalContentPayload };
 
     const payload = {
       id: dbId,
@@ -444,7 +505,7 @@ export async function dbAddQuestion(q) {
       topic_id: q.topicId || 'global_all',
       type: q.type || 'coktan_secmeli',
       content_type: q.contentType || 'text',
-      content_payload: q.contentPayload || '',
+      content_payload: finalContentPayload,
       is_bundle: Boolean(q.isBundle),
       answer_key: q.answerKey || [],
       title: q.title || '',
@@ -456,6 +517,7 @@ export async function dbAddQuestion(q) {
       explanation: q.explanation || '',
       image_url: q.imageUrl || ''
     };
+
     let { data, error } = await supabase.from('questions').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
       // Fallback if some new columns don't exist yet in the Supabase schema
