@@ -120,39 +120,74 @@ export default function QuizRunner() {
   const rawTestQuestions = useMemo(() => {
     if (!test) return [];
 
-    // PDF and HTML remain as single bundle document
+    // PDF and HTML remain as single bundle document (with PDF/HTML viewer)
     if (test.contentType === 'pdf' || test.contentType === 'html') {
       return [test];
     }
 
-    // Visual multi-image tests: unroll images into single sequential questions so they come 1-by-1 on screen!
-    if (test.contentType === 'gorsel') {
-      const validUrls = test.imageUrls && test.imageUrls.length > 0 ? test.imageUrls : (test.contentPayload ? [test.contentPayload] : []);
-      const rawSubList = (test.questionsList && test.questionsList.length > 0) 
-        ? test.questionsList 
-        : validUrls.map((url, idx) => ({
-            id: `${test.id}_sub_${idx}`,
-            title: `Görsel Soru ${idx + 1}`,
-            contentType: 'gorsel',
-            contentPayload: url,
-            type: test.type || 'coktan_secmeli',
-            options: test.type === 'acik_uclu' ? [] : ['A', 'B', 'C', 'D', 'E'],
-            correctAnswer: test.answerKey?.[idx] ? test.answerKey[idx].charCodeAt(0) - 65 : 0
-          }));
-
-      if (rawSubList.length > 0) {
-        return rawSubList.map((sq, idx) => ({
-          ...sq,
-          id: sq.id || `${test.id}_sub_${idx}`,
-          parentTestId: test.id,
-          subIndex: idx,
-          questionCount: rawSubList.length,
-          isSubOfBundle: true,
-          type: sq.type || test.type || 'coktan_secmeli',
+    const extractSubQuestions = (target) => {
+      if (!target) return [];
+      let list = target.questionsList || [];
+      if ((!list || list.length === 0) && target.contentPayload && typeof target.contentPayload === 'string' && target.contentPayload.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(target.contentPayload);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed;
+          }
+        } catch (e) {
+          // not JSON array
+        }
+      }
+      if ((!list || list.length === 0) && target.imageUrls && target.imageUrls.length > 0) {
+        list = target.imageUrls.map((url, idx) => ({
+          id: `${target.id}_sub_${idx}`,
+          title: `Soru ${idx + 1}`,
           contentType: 'gorsel',
-          contentPayload: sq.contentPayload || sq.imageUrl || validUrls[idx] || test.contentPayload
+          contentPayload: url,
+          type: target.type || 'coktan_secmeli',
+          options: target.type === 'acik_uclu' ? [] : ['A', 'B', 'C', 'D', 'E'],
+          correctAnswer: target.answerKey?.[idx] ? target.answerKey[idx].charCodeAt(0) - 65 : 0
         }));
       }
+      return list;
+    };
+
+    const targetObj = test;
+    const subList = extractSubQuestions(targetObj);
+
+    if (subList.length > 0) {
+      return subList.map((sq, idx) => {
+        let corrAns = sq.correctAnswer;
+        if (typeof corrAns === 'string') {
+          const upper = corrAns.trim().toUpperCase();
+          if (upper === 'A') corrAns = 0;
+          else if (upper === 'B') corrAns = 1;
+          else if (upper === 'C') corrAns = 2;
+          else if (upper === 'D') corrAns = 3;
+          else if (upper === 'E') corrAns = 4;
+        }
+        if (corrAns === undefined && targetObj.answerKey && targetObj.answerKey[idx]) {
+          corrAns = targetObj.answerKey[idx].charCodeAt(0) - 65;
+        }
+
+        const qType = sq.type || targetObj.type || 'coktan_secmeli';
+        const qOptions = qType === 'acik_uclu' ? [] : (sq.options || ['A', 'B', 'C', 'D', 'E']);
+
+        return {
+          ...sq,
+          id: sq.id || `${targetObj.id}_sub_${idx}`,
+          parentTestId: targetObj.id,
+          subIndex: idx,
+          questionCount: subList.length,
+          isSubOfBundle: true,
+          type: qType,
+          contentType: sq.contentType || targetObj.contentType || 'gorsel',
+          contentPayload: sq.contentPayload || sq.imageUrl,
+          questionText: sq.questionText || sq.title || `Soru ${idx + 1}`,
+          options: qOptions,
+          correctAnswer: typeof corrAns === 'number' ? corrAns : 0
+        };
+      });
     }
 
     if (testQuestionList.length > 0) {
@@ -167,38 +202,45 @@ export default function QuizRunner() {
 
     const directQuestion = allQuestions.find(q => q.id === test.id || testQuestionIds.includes(q.id));
     if (directQuestion) {
-      if (directQuestion.contentType === 'gorsel') {
-        const validUrls = directQuestion.imageUrls && directQuestion.imageUrls.length > 0 ? directQuestion.imageUrls : (directQuestion.contentPayload ? [directQuestion.contentPayload] : []);
-        const rawSubList = (directQuestion.questionsList && directQuestion.questionsList.length > 0) 
-          ? directQuestion.questionsList 
-          : validUrls.map((url, idx) => ({
-              id: `${directQuestion.id}_sub_${idx}`,
-              title: `Görsel Soru ${idx + 1}`,
-              contentType: 'gorsel',
-              contentPayload: url,
-              type: directQuestion.type || 'coktan_secmeli',
-              options: directQuestion.type === 'acik_uclu' ? [] : ['A', 'B', 'C', 'D', 'E'],
-              correctAnswer: directQuestion.answerKey?.[idx] ? directQuestion.answerKey[idx].charCodeAt(0) - 65 : 0
-            }));
+      const bankSubList = extractSubQuestions(directQuestion);
+      if (bankSubList.length > 0) {
+        return bankSubList.map((sq, idx) => {
+          let corrAns = sq.correctAnswer;
+          if (typeof corrAns === 'string') {
+            const upper = corrAns.trim().toUpperCase();
+            if (upper === 'A') corrAns = 0;
+            else if (upper === 'B') corrAns = 1;
+            else if (upper === 'C') corrAns = 2;
+            else if (upper === 'D') corrAns = 3;
+            else if (upper === 'E') corrAns = 4;
+          }
+          if (corrAns === undefined && directQuestion.answerKey && directQuestion.answerKey[idx]) {
+            corrAns = directQuestion.answerKey[idx].charCodeAt(0) - 65;
+          }
 
-        if (rawSubList.length > 0) {
-          return rawSubList.map((sq, idx) => ({
+          const qType = sq.type || directQuestion.type || 'coktan_secmeli';
+          const qOptions = qType === 'acik_uclu' ? [] : (sq.options || ['A', 'B', 'C', 'D', 'E']);
+
+          return {
             ...sq,
             id: sq.id || `${directQuestion.id}_sub_${idx}`,
             parentTestId: directQuestion.id,
             subIndex: idx,
-            questionCount: rawSubList.length,
+            questionCount: bankSubList.length,
             isSubOfBundle: true,
-            type: sq.type || directQuestion.type || 'coktan_secmeli',
-            contentType: 'gorsel',
-            contentPayload: sq.contentPayload || sq.imageUrl || validUrls[idx] || directQuestion.contentPayload
-          }));
-        }
+            type: qType,
+            contentType: sq.contentType || directQuestion.contentType || 'gorsel',
+            contentPayload: sq.contentPayload || sq.imageUrl,
+            questionText: sq.questionText || sq.title || `Soru ${idx + 1}`,
+            options: qOptions,
+            correctAnswer: typeof corrAns === 'number' ? corrAns : 0
+          };
+        });
       }
       return [directQuestion];
     }
-    return [];
-  }, [test?.id, test?.contentType, allQuestions, JSON.stringify(testQuestionIds)]);
+    return [test];
+  }, [test, testQuestionList, testQuestionIds, allQuestions]);
 
   const [testQuestions, setTestQuestions] = useState(rawTestQuestions);
 
