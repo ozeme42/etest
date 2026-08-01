@@ -8,6 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
+import { idbGetPayload } from '../services/indexedDbService';
 import './QuizRunner.css';
 
 export default function QuizRunner() {
@@ -48,11 +49,30 @@ export default function QuizRunner() {
   const isHomework = id.startsWith('hw_');
   const test = isHomework 
     ? homeworks.find(hw => hw.id === id) 
-    : data.tests.find(t => t.id === id);
+    : (data?.tests?.find(t => t.id === id) || allQuestions.find(q => q.id === id));
 
   const testQuestionList = test?.questionIds || test?.questions || [];
   const testQuestionIds = testQuestionList.map(q => typeof q === 'string' ? q : (q.id || q));
-  const testQuestions = test ? allQuestions.filter(q => testQuestionIds.includes(q.id)) : [];
+  const rawTestQuestions = test ? (testQuestionList.length > 0 ? allQuestions.filter(q => testQuestionIds.includes(q.id)) : (test.contentType || test.type ? [test] : [])) : [];
+
+  const [testQuestions, setTestQuestions] = useState(rawTestQuestions);
+
+  useEffect(() => {
+    async function loadFullPayloads() {
+      const baseQs = rawTestQuestions.length > 0 ? rawTestQuestions : (test && (test.contentType || test.type) ? [test] : []);
+      const enriched = await Promise.all(baseQs.map(async (q) => {
+        if (!q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
+          const fullPayload = await idbGetPayload(q.id);
+          if (fullPayload) {
+            return { ...q, contentPayload: fullPayload };
+          }
+        }
+        return q;
+      }));
+      setTestQuestions(enriched);
+    }
+    loadFullPayloads();
+  }, [allQuestions, test]);
 
   useEffect(() => {
     if (test?.sourceType === 'trackedBook') {

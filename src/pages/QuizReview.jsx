@@ -5,6 +5,7 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { CheckCircle, XCircle, ArrowLeft, Clock3, Maximize, Minimize } from 'lucide-react';
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
+import { idbGetPayload } from '../services/indexedDbService';
 import './QuizRunner.css';
 
 export default function QuizReview() {
@@ -51,7 +52,26 @@ export default function QuizReview() {
     groupedAnswers[ans.questionId].push(ans);
   });
 
-  const uniqueQuestions = Object.keys(groupedAnswers).map(qId => questions.find(q => q.id === qId)).filter(Boolean);
+  const baseQuestions = Object.keys(groupedAnswers).map(qId => questions.find(q => q.id === qId)).filter(Boolean);
+  const [enrichedQuestions, setEnrichedQuestions] = useState(baseQuestions);
+
+  useEffect(() => {
+    async function loadFullPayloads() {
+      const enriched = await Promise.all(baseQuestions.map(async (q) => {
+        if (!q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
+          const fullPayload = await idbGetPayload(q.id);
+          if (fullPayload) {
+            return { ...q, contentPayload: fullPayload };
+          }
+        }
+        return q;
+      }));
+      setEnrichedQuestions(enriched);
+    }
+    loadFullPayloads();
+  }, [questions, submission]);
+
+  const uniqueQuestions = enrichedQuestions;
 
   const stats = submission.answers.reduce((acc, ans) => {
     if (ans.isCorrect === true) {
