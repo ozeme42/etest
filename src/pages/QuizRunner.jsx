@@ -617,72 +617,6 @@ export default function QuizRunner() {
       return (
         <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          {/* Sub-questions Header / Pagination Bar if subQuestions > 1 */}
-          {subQuestions.length > 1 && (
-            <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.82rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
-                  📌 Soru {safeSubIdx + 1} / {subQuestions.length}
-                </span>
-                
-                <div style={{ display: 'flex', gap: '0.3rem', overflowX: 'auto', padding: '0.1rem' }}>
-                  {subQuestions.map((_, pIdx) => {
-                    const bundleAns = studentAnswers[q.id] || {};
-                    const isAns = (typeof bundleAns === 'object' && bundleAns !== null) && (bundleAns[pIdx] !== undefined && bundleAns[pIdx] !== null && bundleAns[pIdx] !== '');
-                    const isCurr = pIdx === safeSubIdx;
-                    return (
-                      <button
-                        key={pIdx}
-                        onClick={() => setSubQuestionIdx(pIdx)}
-                        style={{
-                          width: '28px', height: '28px', borderRadius: '50%',
-                          border: isCurr ? '2px solid #4f46e5' : (isAns ? '1.5px solid #10b981' : '1px solid #cbd5e1'),
-                          background: isCurr ? '#4f46e5' : (isAns ? '#dcfce7' : '#f1f5f9'),
-                          color: isCurr ? 'white' : (isAns ? '#166534' : '#475569'),
-                          fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer'
-                        }}
-                      >
-                        {pIdx + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button
-                  type="button"
-                  disabled={safeSubIdx === 0}
-                  onClick={() => setSubQuestionIdx(prev => Math.max(0, prev - 1))}
-                  style={{
-                    padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
-                    border: '1px solid #cbd5e1', background: safeSubIdx === 0 ? '#f1f5f9' : '#e0e7ff',
-                    color: safeSubIdx === 0 ? '#94a3b8' : '#3730a3',
-                    fontWeight: 800, fontSize: '0.8rem', cursor: safeSubIdx === 0 ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '0.3rem'
-                  }}
-                >
-                  <ChevronLeft size={16} /> Önceki
-                </button>
-
-                <button
-                  type="button"
-                  disabled={safeSubIdx === subQuestions.length - 1}
-                  onClick={() => setSubQuestionIdx(prev => Math.min(subQuestions.length - 1, prev + 1))}
-                  style={{
-                    padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
-                    border: '1px solid #cbd5e1', background: safeSubIdx === subQuestions.length - 1 ? '#f1f5f9' : '#4f46e5',
-                    color: safeSubIdx === subQuestions.length - 1 ? '#94a3b8' : 'white',
-                    fontWeight: 800, fontSize: '0.8rem', cursor: safeSubIdx === subQuestions.length - 1 ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '0.3rem'
-                  }}
-                >
-                  Sonraki <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Current Sub Question */}
           <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
             {qItem.contentPayload && (
@@ -750,6 +684,72 @@ export default function QuizRunner() {
             )}
           </div>
 
+          {/* Sub-questions Footer / Pagination Bar if subQuestions > 1 */}
+          {subQuestions.length > 1 && (
+            <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.82rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                  📌 Soru {safeSubIdx + 1} / {subQuestions.length}
+                </span>
+                
+                <div style={{ display: 'flex', gap: '0.3rem', overflowX: 'auto', padding: '0.1rem' }}>
+                  {subQuestions.map((_, pIdx) => {
+                    const bundleAns = studentAnswers[q.id] || {};
+                    const isAns = (typeof bundleAns === 'object' && bundleAns !== null) && (bundleAns[pIdx] !== undefined && bundleAns[pIdx] !== null && bundleAns[pIdx] !== '');
+                    const isCurr = pIdx === safeSubIdx;
+                    return (
+                      <button
+                        key={pIdx}
+                        onClick={() => setSubQuestionIdx(pIdx)}
+                        style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          border: isCurr ? '2px solid #4f46e5' : (isAns ? '1.5px solid #10b981' : '1px solid #cbd5e1'),
+                          background: isCurr ? '#4f46e5' : (isAns ? '#dcfce7' : '#f1f5f9'),
+                          color: isCurr ? 'white' : (isAns ? '#166534' : '#475569'),
+                          fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                      >
+                        {pIdx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  disabled={safeSubIdx === 0}
+                  onClick={() => setSubQuestionIdx(prev => Math.max(0, prev - 1))}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
+                    border: '1px solid #cbd5e1', background: safeSubIdx === 0 ? '#f1f5f9' : '#e0e7ff',
+                    color: safeSubIdx === 0 ? '#94a3b8' : '#3730a3',
+                    fontWeight: 800, fontSize: '0.8rem', cursor: safeSubIdx === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.3rem'
+                  }}
+                >
+                  <ChevronLeft size={16} /> Önceki
+                </button>
+
+                <button
+                  type="button"
+                  disabled={safeSubIdx === subQuestions.length - 1}
+                  onClick={() => setSubQuestionIdx(prev => Math.min(subQuestions.length - 1, prev + 1))}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
+                    border: '1px solid #cbd5e1', background: safeSubIdx === subQuestions.length - 1 ? '#f1f5f9' : '#4f46e5',
+                    color: safeSubIdx === subQuestions.length - 1 ? '#94a3b8' : 'white',
+                    fontWeight: 800, fontSize: '0.8rem', cursor: safeSubIdx === subQuestions.length - 1 ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.3rem'
+                  }}
+                >
+                  Sonraki <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       );
     }
@@ -767,6 +767,14 @@ export default function QuizRunner() {
 
         return (
           <div className="q-preview-gorsel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc' }}>
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', width: '100%', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+              <img
+                src={url}
+                alt={`Soru Görseli ${safeImgIdx + 1}`}
+                style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+              />
+            </div>
+
             {urls.length > 1 && (
               <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #fcd34d', display: 'flex', alignItems: 'center', justify: 'space-between', gap: '0.5rem', flexWrap: 'wrap', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -831,14 +839,6 @@ export default function QuizRunner() {
                 </div>
               </div>
             )}
-
-            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', width: '100%', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-              <img
-                src={url}
-                alt={`Soru Görseli ${safeImgIdx + 1}`}
-                style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
-              />
-            </div>
           </div>
         );
       }
