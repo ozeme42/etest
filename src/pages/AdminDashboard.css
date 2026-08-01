@@ -179,3 +179,37 @@
 .role-admin { background: rgba(239, 68, 68, 0.1); color: var(--color-error); }
 .role-teacher { background: rgba(249, 115, 22, 0.1); color: var(--color-secondary); }
 .role-student { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
+
+@media (max-width: 768px) {
+  .admin-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 0.75rem;
+    gap: 0.4rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .admin-tab {
+    font-size: 0.8rem;
+    padding: 0.45rem 0.75rem;
+    flex-shrink: 0;
+  }
+  .admin-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .admin-column {
+    min-height: auto;
+    padding: 1rem;
+  }
+  .users-table-container {
+    -webkit-overflow-scrolling: touch;
+  }
+  .users-table th, .users-table td {
+    padding: 0.65rem 0.45rem;
+    font-size: 0.78rem;
+  }
+  .card.glass {
+    padding: 1rem !important;
+  }
+}
