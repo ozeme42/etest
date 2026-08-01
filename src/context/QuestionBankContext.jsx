@@ -62,14 +62,20 @@ export function QuestionBankProvider({ children }) {
             if (dbQ.id === 'q1') return;
             const existing = mergedMap.get(String(dbQ.id));
             if (existing) {
+              // If local has full base64 data, keep it
               const hasFullLocalPayload = typeof existing.contentPayload === 'string' &&
                 existing.contentPayload.length > 500 &&
                 !existing.contentPayload.includes('[STORED_IN_INDEXEDDB]') &&
                 !existing.contentPayload.includes('[LOCALSTORAGE_CACHE]');
 
+              // If DB has a Storage HTTP URL, always prefer it (it means it was uploaded to Supabase Storage)
+              const dbHasStorageUrl = typeof dbQ.contentPayload === 'string' && dbQ.contentPayload.startsWith('http');
+
               mergedMap.set(String(dbQ.id), {
                 ...dbQ,
-                contentPayload: hasFullLocalPayload ? existing.contentPayload : (dbQ.contentPayload || existing.contentPayload)
+                contentPayload: dbHasStorageUrl ? dbQ.contentPayload :
+                                hasFullLocalPayload ? existing.contentPayload :
+                                (dbQ.contentPayload || existing.contentPayload)
               });
             } else {
               mergedMap.set(String(dbQ.id), dbQ);

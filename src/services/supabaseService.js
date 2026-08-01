@@ -398,28 +398,35 @@ export async function dbGetQuestions() {
   if (!isSupabaseConfigured()) return null;
   try {
     const { data, error } = await supabase.from('questions')
-      .select('id, subject, grade_id, topic, topic_id, type, content_type, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, created_at')
+      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, created_at')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []).map(q => ({
-      id: String(q.id),
-      subject: q.subject || 'Matematik',
-      gradeId: q.grade_id || 'g1',
-      topic: q.topic || 'Genel',
-      topicId: q.topic_id || 'global_all',
-      type: q.type || 'coktan_secmeli',
-      contentType: q.content_type || 'text',
-      contentPayload: '',
-      isBundle: q.is_bundle !== undefined ? q.is_bundle : false,
-      answerKey: q.answer_key || [],
-      title: q.title || '',
-      questionCount: q.question_count || 1,
-      questionText: q.question_text || '',
-      options: q.options || [],
-      correctAnswer: q.correct_answer || '0',
-      explanation: q.explanation || '',
-      imageUrl: q.image_url || ''
-    }));
+    return (data || []).map(q => {
+      // content_payload may be a Supabase Storage public URL (https://...) or empty/base64
+      const rawPayload = q.content_payload || '';
+      // If it's a large base64, skip it here (avoid memory overload) - it should be in Storage
+      const contentPayload = rawPayload.startsWith('http') ? rawPayload : 
+                             (rawPayload.startsWith('data:') && rawPayload.length > 500000 ? '' : rawPayload);
+      return {
+        id: String(q.id),
+        subject: q.subject || 'Matematik',
+        gradeId: q.grade_id || 'g1',
+        topic: q.topic || 'Genel',
+        topicId: q.topic_id || 'global_all',
+        type: q.type || 'coktan_secmeli',
+        contentType: q.content_type || 'text',
+        contentPayload,
+        isBundle: q.is_bundle !== undefined ? q.is_bundle : false,
+        answerKey: q.answer_key || [],
+        title: q.title || '',
+        questionCount: q.question_count || 1,
+        questionText: q.question_text || '',
+        options: q.options || [],
+        correctAnswer: q.correct_answer || '0',
+        explanation: q.explanation || '',
+        imageUrl: q.image_url || ''
+      };
+    });
   } catch (err) {
     console.warn('[Supabase] dbGetQuestions error:', err.message);
     return null;
