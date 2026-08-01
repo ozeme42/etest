@@ -38,12 +38,39 @@ export default function QuizRunner() {
     reader.readAsDataURL(file);
   };
   const { homeworks, submitHomework } = useHomework();
-  const { addSubmission } = useEvaluation();
+  const { submissions = [], addSubmission } = useEvaluation();
   const { users } = useUser();
   
   const queryParams = new URLSearchParams(location.search);
   const studentId = queryParams.get('studentId') || 'u1';
   const student = users.find(u => u.id === studentId) || { name: 'Öğrenci' };
+
+  // Check if test is already completed by this student
+  const existingSubmission = useMemo(() => {
+    if (!id || !studentId) return null;
+    return (submissions || []).find(s => (s.testId === id || s.id === id) && s.studentId === studentId);
+  }, [submissions, id, studentId]);
+
+  // If already finished or existing submission found, lock test solver and redirect to review
+  useEffect(() => {
+    if (existingSubmission && !showResultsModal && !isFinished) {
+      navigate(`/review/${existingSubmission.id}`, { replace: true });
+    }
+  }, [existingSubmission, showResultsModal, isFinished, navigate]);
+
+  // Prevent browser back button from re-opening test solver once test is finished
+  useEffect(() => {
+    if (isFinished || showResultsModal) {
+      localStorage.removeItem(`quiz_state_${id}`);
+      window.history.pushState(null, '', window.location.href);
+      const handlePopState = (e) => {
+        e.preventDefault();
+        navigate('/student', { replace: true });
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [isFinished, showResultsModal, id, navigate]);
 
   const savedState = JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null');
 
@@ -599,7 +626,7 @@ export default function QuizRunner() {
               Tebrikler, testi bitirdiniz. Ancak bu testte yer alan <strong>Açık Uçlu sorular</strong> öğretmeniniz tarafından değerlendirildikten sonra puanınız ve sınav sonuçlarınız kesinleşecektir.
             </p>
 
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/student')} style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
+            <button className="btn btn-primary btn-lg" onClick={() => navigate('/student', { replace: true })} style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
               Kontrol Paneline Dön
             </button>
             
@@ -668,7 +695,7 @@ export default function QuizRunner() {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate('/student')} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
+            <button className="btn btn-secondary btn-lg" onClick={() => navigate('/student', { replace: true })} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
               Panele Dön
             </button>
             <button className="btn btn-primary btn-lg" onClick={() => navigate(`/review/${submissionId}`, { replace: true, state: { from: '/student' } })} style={{ flex: '1 1 200px', maxWidth: '300px', background: statusColor, borderColor: statusColor }}>
