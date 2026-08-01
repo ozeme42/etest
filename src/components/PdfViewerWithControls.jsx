@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText } from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
 
@@ -7,7 +7,9 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
   const [isExpanded, setIsExpanded] = useState(false);
   const wrapperRef = useRef(null);
 
-  const embedUrl = getEmbeddablePdfUrl(payload);
+  const embedUrl = useMemo(() => {
+    return getEmbeddablePdfUrl(payload);
+  }, [payload]);
 
   const handleZoomIn = (e) => {
     e.preventDefault();

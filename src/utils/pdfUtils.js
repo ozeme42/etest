@@ -19,6 +19,8 @@ export function dataURLtoBlob(dataurl) {
   }
 }
 
+const blobUrlCache = new Map();
+
 export function getEmbeddablePdfUrl(url) {
   if (!url || typeof url !== 'string' || url.trim() === '' || url.includes('[STORED_IN_INDEXEDDB]')) {
     return null;
@@ -36,9 +38,14 @@ export function getEmbeddablePdfUrl(url) {
   }
 
   if (url.startsWith('data:application/pdf') || url.startsWith('data:')) {
+    if (blobUrlCache.has(url)) {
+      return blobUrlCache.get(url);
+    }
     const blob = dataURLtoBlob(url);
     if (blob) {
-      return URL.createObjectURL(blob);
+      const createdUrl = URL.createObjectURL(blob);
+      blobUrlCache.set(url, createdUrl);
+      return createdUrl;
     }
   }
 
