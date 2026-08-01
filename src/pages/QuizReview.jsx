@@ -19,6 +19,7 @@ export default function QuizReview() {
   
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [enrichedQuestions, setEnrichedQuestions] = useState([]);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [isReviewed, setIsReviewed] = useState(() => {
     try {
       const saved = localStorage.getItem('eTestReviewedSubmissions');
@@ -28,6 +29,12 @@ export default function QuizReview() {
       return false;
     }
   });
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const submission = submissions.find(s => s.id === id);
 
@@ -77,17 +84,32 @@ export default function QuizReview() {
   };
 
   if (!submission) {
-    return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Sonuç bulunamadı.</div>;
+    return <div className="container" style={{ padding: '4rem', textAlign: 'center', fontWeight: 800 }}>Sonuç bulunamadı.</div>;
   }
 
   const isPending = submission.status === 'pending_evaluation';
 
   const renderContentPreview = (q) => {
+    if (q.contentType === 'pdf') {
+      return <PdfViewerWithControls payload={q.contentPayload} title={q.title || "PDF Soru Dokümanı"} height="100%" />;
+    }
     switch (q.contentType) {
-      case 'gorsel': return <div className="q-preview-gorsel" style={{marginBottom: '1rem'}}><img src={q.contentPayload} alt="Soru Görseli" style={{maxWidth: '100%', borderRadius: 'var(--border-radius-md)'}} /></div>;
-      case 'pdf': return <iframe src={getEmbeddableUrl(q.contentPayload)} title="PDF Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: '1px solid #cbd5e1', borderRadius: '0.5rem', marginBottom: '1rem'}}></iframe>;
-      case 'html': return <iframe srcDoc={q.contentPayload} title="HTML Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-md)', marginBottom: '1rem'}}></iframe>;
-      default: return null;
+      case 'gorsel':
+        return (
+          <div className="q-preview-gorsel" style={{ marginBottom: '1rem', textAlign: 'center' }}>
+            <img src={q.contentPayload} alt="Soru Görseli" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '0.75rem', objectFit: 'contain' }} />
+          </div>
+        );
+      case 'html':
+        return (
+          <iframe
+            srcDoc={q.contentPayload}
+            title="HTML Soru"
+            style={{ width: '100%', height: '100%', minHeight: '60vh', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '0.75rem', marginBottom: '1rem' }}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -153,27 +175,29 @@ export default function QuizReview() {
   };
 
   return (
-    <div className={`container quiz-container animate-fade-in ${isFullscreen ? 'fullscreen-mode' : ''}`} style={{ maxWidth: isFullscreen ? '100vw' : '1400px', width: isFullscreen ? '100vw' : '95%', margin: isFullscreen ? '0' : '2rem auto' }}>
+    <div className={`container quiz-container animate-fade-in ${isFullscreen ? 'fullscreen-mode' : ''}`} style={{ maxWidth: isFullscreen ? '100vw' : '1400px', width: isFullscreen ? '100vw' : (isMobile ? '100%' : '95%'), margin: isFullscreen ? '0' : (isMobile ? '0 auto' : '2rem auto'), padding: isMobile ? '0.75rem' : '1rem' }}>
       
       {!isFullscreen && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={handleBack}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '0.75rem', fontWeight: 800 }} onClick={handleBack}>
             <ArrowLeft size={18} /> Geri Dön
           </button>
 
           <button
             onClick={toggleTestReviewed}
             style={{
+              width: isMobile ? '100%' : 'auto',
               background: isReviewed ? '#dcfce7' : '#10b981',
               color: isReviewed ? '#166534' : 'white',
               border: isReviewed ? '2px solid #86efac' : 'none',
-              padding: '0.65rem 1.25rem',
+              padding: '0.7rem 1.25rem',
               borderRadius: '0.75rem',
               fontWeight: 900,
-              fontSize: '0.9rem',
+              fontSize: isMobile ? '0.85rem' : '0.9rem',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
+              justify: 'center',
               gap: '0.5rem',
               boxShadow: isReviewed ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
               transition: 'all 0.2s'
@@ -193,61 +217,69 @@ export default function QuizReview() {
         </div>
       )}
 
-      <div className="quiz-header card glass" style={{ marginBottom: isFullscreen ? '1rem' : '2rem', display: isFullscreen ? 'none' : 'block' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ marginBottom: '0.5rem' }}>{formatDisplayTitle(submission.testTitle)}</h2>
-          <button className="btn-icon" onClick={toggleFullscreen} title="Tam Ekran" style={{ background: 'rgba(0,0,0,0.05)' }}>
+      {/* Header Card */}
+      <div className="quiz-header card glass" style={{ marginBottom: isFullscreen ? '1rem' : '1.5rem', padding: isMobile ? '1rem' : '1.5rem', display: isFullscreen ? 'none' : 'block' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+          <h2 style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', margin: 0, fontWeight: 900, color: '#0f172a' }}>{formatDisplayTitle(submission.testTitle)}</h2>
+          <button className="btn-icon" onClick={toggleFullscreen} title="Tam Ekran" style={{ background: 'rgba(0,0,0,0.05)', flexShrink: 0 }}>
             <Maximize size={20} />
           </button>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '1rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '0.75rem', marginTop: '0.85rem' }}>
           <div>
-            <div className="text-muted" style={{ fontSize: '0.9rem' }}>Durum</div>
+            <div className="text-muted" style={{ fontSize: '0.78rem', fontWeight: 800 }}>DURUM</div>
             {isPending ? (
-              <div style={{ color: 'var(--color-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Clock3 size={18} /> Öğretmen Değerlendirmesi Bekleniyor
+              <div style={{ color: 'var(--color-secondary)', fontWeight: 900, fontSize: isMobile ? '0.85rem' : '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Clock3 size={16} /> Değerlendirme Bekliyor
               </div>
             ) : (
-              <div style={{ color: 'var(--color-success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <CheckCircle size={18} /> Tamamlandı
+              <div style={{ color: '#10b981', fontWeight: 900, fontSize: isMobile ? '0.85rem' : '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <CheckCircle size={16} /> Tamamlandı
               </div>
             )}
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="text-muted" style={{ fontSize: '0.9rem' }}>Toplam Puan</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+            <div className="text-muted" style={{ fontSize: '0.78rem', fontWeight: 800 }}>TOPLAM PUAN</div>
+            <div style={{ fontSize: isMobile ? '1.3rem' : '1.6rem', fontWeight: 900, color: '#4f46e5' }}>
               {isPending ? '?' : submission.score}
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <div className="card glass" style={{ textAlign: 'center', borderBottom: '4px solid var(--color-success)' }}>
-          <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-success)' }}>{stats.correct}</div>
-          <div className="text-muted" style={{ fontWeight: 600 }}>Doğru</div>
+      {/* Sleek Touch-Optimized Stat Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: isMobile ? '0.65rem' : '1rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div className="card glass" style={{ textAlign: 'center', padding: isMobile ? '0.75rem' : '1.25rem', borderBottom: '4px solid #10b981', background: '#ecfdf5' }}>
+          <div style={{ fontSize: isMobile ? '1.7rem' : '2.5rem', fontWeight: 900, color: '#10b981', lineHeight: 1 }}>{stats.correct}</div>
+          <div style={{ fontWeight: 800, color: '#047857', fontSize: '0.75rem', marginTop: '0.25rem', textTransform: 'uppercase' }}>Doğru</div>
         </div>
-        <div className="card glass" style={{ textAlign: 'center', borderBottom: '4px solid var(--color-error)' }}>
-          <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-error)' }}>{stats.wrong}</div>
-          <div className="text-muted" style={{ fontWeight: 600 }}>Yanlış</div>
+        <div className="card glass" style={{ textAlign: 'center', padding: isMobile ? '0.75rem' : '1.25rem', borderBottom: '4px solid #ef4444', background: '#fef2f2' }}>
+          <div style={{ fontSize: isMobile ? '1.7rem' : '2.5rem', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>{stats.wrong}</div>
+          <div style={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.75rem', marginTop: '0.25rem', textTransform: 'uppercase' }}>Yanlış</div>
         </div>
-        <div className="card glass" style={{ textAlign: 'center', borderBottom: '4px solid var(--color-text-muted)' }}>
-          <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{stats.blank}</div>
-          <div className="text-muted" style={{ fontWeight: 600 }}>Boş</div>
+        <div className="card glass" style={{ textAlign: 'center', padding: isMobile ? '0.75rem' : '1.25rem', borderBottom: '4px solid #64748b', background: '#f8fafc' }}>
+          <div style={{ fontSize: isMobile ? '1.7rem' : '2.5rem', fontWeight: 900, color: '#64748b', lineHeight: 1 }}>{stats.blank}</div>
+          <div style={{ fontWeight: 800, color: '#334155', fontSize: '0.75rem', marginTop: '0.25rem', textTransform: 'uppercase' }}>Boş</div>
         </div>
         {stats.pending > 0 && (
-          <div className="card glass" style={{ textAlign: 'center', borderBottom: '4px solid var(--color-secondary)' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-secondary)' }}>{stats.pending}</div>
-            <div className="text-muted" style={{ fontWeight: 600 }}>Bekleyen</div>
+          <div className="card glass" style={{ textAlign: 'center', padding: isMobile ? '0.75rem' : '1.25rem', borderBottom: '4px solid #f59e0b', background: '#fffbeb' }}>
+            <div style={{ fontSize: isMobile ? '1.7rem' : '2.5rem', fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>{stats.pending}</div>
+            <div style={{ fontWeight: 800, color: '#b45309', fontSize: '0.75rem', marginTop: '0.25rem', textTransform: 'uppercase' }}>Bekleyen</div>
           </div>
         )}
-        <div className="card glass" style={{ textAlign: 'center', borderBottom: '4px solid var(--color-primary)' }}>
-          <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>%{isNaN(successRate) ? 0 : successRate}</div>
-          <div className="text-muted" style={{ fontWeight: 600 }}>Başarı Oranı</div>
+        <div className="card glass" style={{ textAlign: 'center', padding: isMobile ? '0.75rem' : '1.25rem', borderBottom: '4px solid #6366f1', background: '#e0e7ff' }}>
+          <div style={{ fontSize: isMobile ? '1.7rem' : '2.5rem', fontWeight: 900, color: '#4f46e5', lineHeight: 1 }}>%{isNaN(successRate) ? 0 : successRate}</div>
+          <div style={{ fontWeight: 800, color: '#3730a3', fontSize: '0.75rem', marginTop: '0.25rem', textTransform: 'uppercase' }}>Başarı</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', overflowY: isFullscreen ? 'auto' : 'visible', flex: isFullscreen ? 1 : 'none', padding: isFullscreen ? '1rem' : 0 }}>
+      {/* Main Review Questions List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: isFullscreen ? 'auto' : 'visible', flex: isFullscreen ? 1 : 'none', padding: isFullscreen ? '1rem' : 0 }}>
         {uniqueQuestions.map((q, qIdx) => {
           const qAnswers = groupedAnswers[q.id];
           const isBundle = q.isBundle;
@@ -266,10 +298,10 @@ export default function QuizReview() {
               }
 
               return (
-                <div key={q.id} className="card glass" style={{ borderLeft: '4px solid #4f46e5', marginBottom: '1.5rem', padding: '1.75rem' }}>
-                  <div style={{ fontWeight: 900, color: '#312e81', fontSize: '1.15rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.75rem' }}>
+                <div key={q.id} className="card glass" style={{ borderLeft: '4px solid #4f46e5', marginBottom: '1.25rem', padding: isMobile ? '1rem' : '1.75rem' }}>
+                  <div style={{ fontWeight: 900, color: '#312e81', fontSize: isMobile ? '1rem' : '1.15rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.75rem' }}>
                     <span>📚 {formatDisplayTitle(q.title || submission.testTitle)}</span>
-                    <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px' }}>
+                    <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '0.8rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '20px' }}>
                       Toplam {subQuestions.length} Soru
                     </span>
                   </div>
@@ -311,7 +343,7 @@ export default function QuizReview() {
                       }
 
                       return (
-                        <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: `2px solid ${statusColor}`, boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                        <div key={sIdx} style={{ background: 'white', padding: isMobile ? '1rem' : '1.25rem', borderRadius: '1rem', border: `2px solid ${statusColor}`, boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                             <span style={{ fontWeight: 900, color: '#1e293b', fontSize: '0.95rem' }}>
                               Soru {sIdx + 1}
@@ -321,13 +353,13 @@ export default function QuizReview() {
                             </span>
                           </div>
 
-                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                          <h4 style={{ fontSize: isMobile ? '0.98rem' : '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
                             {qItem.questionText || `Soru ${sIdx + 1}`}
                           </h4>
 
                           {/* Options for Multiple Choice */}
                           {qItem.options && qItem.options.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.65rem' }}>
                               {qItem.options.map((optText, oIdx) => {
                                 const isUserSelected = userAnsIdx === oIdx;
                                 const isCorrectOpt = correctAnsIdx === oIdx;
@@ -350,25 +382,27 @@ export default function QuizReview() {
                                   <div
                                     key={oIdx}
                                     style={{
-                                      padding: '0.75rem 1rem',
+                                      padding: '0.65rem 0.85rem',
                                       borderRadius: '0.75rem',
                                       background: optBg,
                                       border: optBorder,
                                       color: optColor,
                                       fontWeight: isUserSelected || isCorrectOpt ? 800 : 600,
+                                      fontSize: '0.88rem',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justify: 'space-between'
+                                      justify: 'space-between',
+                                      gap: '0.5rem'
                                     }}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isCorrectOpt ? '#10b981' : (isUserSelected ? '#ef4444' : '#cbd5e1'), color: 'white', fontWeight: 900, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isCorrectOpt ? '#10b981' : (isUserSelected ? '#ef4444' : '#cbd5e1'), color: 'white', fontWeight: 900, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                         {String.fromCharCode(65 + oIdx)}
                                       </span>
                                       <span>{optText}</span>
                                     </div>
-                                    {isCorrectOpt && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981' }}>✓ Doğru Şık</span>}
-                                    {isUserSelected && !isCorrectOpt && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#ef4444' }}>✕ Seçiminiz</span>}
+                                    {isCorrectOpt && <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#10b981', flexShrink: 0 }}>✓ Doğru Şık</span>}
+                                    {isUserSelected && !isCorrectOpt && <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#ef4444', flexShrink: 0 }}>✕ Seçiminiz</span>}
                                   </div>
                                 );
                               })}
@@ -377,9 +411,9 @@ export default function QuizReview() {
 
                           {/* Text Answer for Open Ended */}
                           {(!qItem.options || qItem.options.length === 0 || qItem.type === 'acik_uclu') && (
-                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: '0.35rem' }}>Öğrencinin Cevabı (Açık Uçlu):</span>
-                              <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>Öğrencinin Cevabı (Açık Uçlu):</span>
+                              <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>
                                 {ans?.userAnswerText || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>(Boş Bırakılmış)</span>}
                               </div>
                             </div>
@@ -395,29 +429,41 @@ export default function QuizReview() {
 
             // PDF / HTML Bundle Review
             return (
-              <div key={q.id} className="card glass" style={{ borderLeft: '4px solid var(--color-primary)' }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-primary)', marginBottom: '1rem' }}>Bölüm {qIdx + 1} (Çoklu Soru Paketi)</div>
-                <div className="bundle-layout" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 2, height: '80vh' }}>
+              <div key={q.id} className="card glass" style={{ borderLeft: '4px solid #4f46e5', padding: isMobile ? '0.85rem' : '1.5rem' }}>
+                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '1rem', fontSize: isMobile ? '0.95rem' : '1.05rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>📚 Bölüm {qIdx + 1} (Çoklu Soru Paketi)</span>
+                  <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '0.8rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '20px' }}>
+                    {qAnswers.length} Soru
+                  </span>
+                </div>
+                <div className="bundle-layout" style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1.25rem', alignItems: 'stretch' }}>
+                  <div style={{ flex: isMobile ? 'none' : '2', width: '100%', height: isMobile ? '450px' : '75vh', minHeight: '350px' }}>
                     <DrawingOverlay>
                       {renderContentPreview(q)}
                     </DrawingOverlay>
                   </div>
-                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: 'var(--border-radius-md)' }}>
-                    <h4 style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '0.5rem' }}>Optik Form Sonuçları</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ flex: isMobile ? 'none' : '1', width: '100%', background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0', overflowY: 'auto', maxHeight: isMobile ? '380px' : '75vh' }}>
+                    <h4 style={{ marginBottom: '1rem', borderBottom: '2px solid #cbd5e1', paddingBottom: '0.5rem', fontWeight: 900, color: '#0f172a', fontSize: '0.95rem' }}>Optik Form Sonuçları</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                       {qAnswers.map((ans, idx) => {
-                        const statusColor = ans.isCorrect ? 'var(--color-success)' : 'var(--color-error)';
+                        const isCorrect = ans.isCorrect === true;
+                        const isBlank = ans.userAnswer === null || ans.userAnswer === undefined;
+                        const statusColor = isCorrect ? '#10b981' : (isBlank ? '#64748b' : '#ef4444');
+                        const statusBg = isCorrect ? '#ecfdf5' : (isBlank ? '#f8fafc' : '#fef2f2');
                         return (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.75rem', borderRadius: '4px', borderLeft: `3px solid ${statusColor}` }}>
-                            <span style={{ fontWeight: 600 }}>{ans.subIndex + 1}.</span>
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: statusBg, padding: '0.75rem 1rem', borderRadius: '0.75rem', borderLeft: `4px solid ${statusColor}`, border: `1px solid ${statusColor}33` }}>
+                            <span style={{ fontWeight: 900, color: '#1e293b', fontSize: '0.9rem' }}>Soru {ans.subIndex + 1}</span>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Cevabınız</div>
-                              <div style={{ fontWeight: 600, color: statusColor }}>{ans.userAnswer !== null ? String.fromCharCode(65 + ans.userAnswer) : 'Boş'}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>CEVABINIZ</div>
+                              <div style={{ fontWeight: 900, color: statusColor, fontSize: '0.95rem' }}>
+                                {ans.userAnswer !== null && ans.userAnswer !== undefined ? String.fromCharCode(65 + ans.userAnswer) : 'Boş'}
+                              </div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Doğru</div>
-                              <div style={{ fontWeight: 600, color: 'var(--color-success)' }}>{ans.correctAnswer !== null ? String.fromCharCode(65 + ans.correctAnswer) : '?'}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>DOĞRU</div>
+                              <div style={{ fontWeight: 900, color: '#10b981', fontSize: '0.95rem' }}>
+                                {ans.correctAnswer !== null && ans.correctAnswer !== undefined ? String.fromCharCode(65 + ans.correctAnswer) : '?'}
+                              </div>
                             </div>
                           </div>
                         );
@@ -431,110 +477,118 @@ export default function QuizReview() {
 
           // Single question (Text or Image)
           const ans = qAnswers[0];
-          let statusColor = 'var(--color-text-muted)';
-          let statusIcon = <Clock3 size={20} />;
+          let statusColor = '#64748b';
+          let statusIcon = <Clock3 size={18} />;
           let statusText = 'Değerlendirme Bekliyor';
 
           const isBlank = ans.userAnswer === null || ans.userAnswer === undefined || (ans.type === 'acik_uclu' && (!ans.userAnswerText || ans.userAnswerText.trim() === ''));
 
           if (ans.isCorrect === true) {
-            statusColor = 'var(--color-success)';
-            statusIcon = <CheckCircle size={20} />;
+            statusColor = '#10b981';
+            statusIcon = <CheckCircle size={18} />;
             statusText = 'Doğru';
           } else if (ans.isCorrect === false) {
             if (isBlank) {
-              statusColor = 'var(--color-text-muted)';
-              statusIcon = <Clock3 size={20} />;
+              statusColor = '#64748b';
+              statusIcon = <Clock3 size={18} />;
               statusText = 'Boş Bırakıldı';
             } else {
-              statusColor = 'var(--color-error)';
-              statusIcon = <XCircle size={20} />;
+              statusColor = '#ef4444';
+              statusIcon = <XCircle size={18} />;
               statusText = 'Yanlış';
             }
           }
 
           return (
-            <div key={q.id} className="card glass" style={{ borderLeft: `4px solid ${statusColor}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>Soru {qIdx + 1}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: statusColor, fontWeight: 600 }}>
+            <div key={q.id} className="card glass" style={{ borderLeft: `4px solid ${statusColor}`, padding: isMobile ? '1rem' : '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '1rem' }}>Soru {qIdx + 1}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: statusColor, fontWeight: 900, fontSize: '0.85rem', background: `${statusColor}15`, padding: '0.25rem 0.65rem', borderRadius: '20px' }}>
                   {statusIcon} {statusText}
                 </div>
               </div>
 
               {q.contentType !== 'text' && (
-                <div style={{ height: '80vh', marginBottom: '1rem' }}>
+                <div style={{ height: isMobile ? '450px' : '75vh', marginBottom: '1rem' }}>
                   <DrawingOverlay>
                     {renderContentPreview(q)}
                   </DrawingOverlay>
                 </div>
               )}
               
-              {q.questionText && <div style={{ fontSize: '1.05rem', marginBottom: '1.5rem', fontWeight: 500 }}>{q.questionText}</div>}
+              {q.questionText && <div style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', marginBottom: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{q.questionText}</div>}
 
               {ans.type === 'coktan_secmeli' ? (
-                <div style={{ display: 'flex', gap: '2rem', background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', gap: '1.5rem', background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
                   <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Sizin Cevabınız</div>
-                    <div style={{ fontWeight: 600, fontSize: '1.2rem', color: statusColor }}>
-                      {ans.userAnswer !== null ? String.fromCharCode(65 + ans.userAnswer) : 'Boş'}
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800 }}>CEVABINIZ</div>
+                    <div style={{ fontWeight: 900, fontSize: '1.2rem', color: statusColor }}>
+                      {ans.userAnswer !== null && ans.userAnswer !== undefined ? String.fromCharCode(65 + ans.userAnswer) : 'Boş'}
                     </div>
                   </div>
+                  <div style={{ width: '1px', background: '#cbd5e1' }} />
                   <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Doğru Cevap</div>
-                    <div style={{ fontWeight: 600, fontSize: '1.2rem', color: 'var(--color-success)' }}>
-                      {ans.correctAnswer !== null ? String.fromCharCode(65 + ans.correctAnswer) : '?'}
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800 }}>DOĞRU CEVAP</div>
+                    <div style={{ fontWeight: 900, fontSize: '1.2rem', color: '#10b981' }}>
+                      {ans.correctAnswer !== null && ans.correctAnswer !== undefined ? String.fromCharCode(65 + ans.correctAnswer) : '?'}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>Verdiğiniz Cevap (Açık Uçlu)</div>
-                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '1.05rem' }}>{ans.userAnswerText || <span className="text-muted">(Boş Bırakılmış)</span>}</div>
+                <div style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, marginBottom: '0.35rem' }}>VERDİĞİNİZ CEVAP (AÇIK UÇLU)</div>
+                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                    {ans.userAnswerText || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>(Boş Bırakılmış)</span>}
+                  </div>
                 </div>
               )}
             </div>
           );
         })}
+
         {uniqueQuestions.length === 0 && submission.answers.length > 0 && (
-          <div className="card glass">
-            <h3 style={{ marginBottom: '1.5rem', color: 'var(--color-primary)' }}>Optik Form İncelemesi</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+          <div className="card glass" style={{ padding: isMobile ? '1rem' : '1.5rem' }}>
+            <h3 style={{ marginBottom: '1.25rem', color: '#4f46e5', fontWeight: 900 }}>Optik Form İncelemesi</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
               {submission.answers.map((ans, idx) => {
                 const isPending = ans.type === 'acik_uclu';
-                let statusColor = 'var(--color-text-muted)';
+                let statusColor = '#64748b';
                 let statusText = 'Boş / Değerlendiriliyor';
                 
                 if (!isPending) {
                    if (ans.isCorrect === true) {
-                     statusColor = 'var(--color-success)';
+                     statusColor = '#10b981';
                      statusText = 'Doğru';
                    } else if (ans.isCorrect === false) {
-                     statusColor = 'var(--color-error)';
+                     statusColor = '#ef4444';
                      statusText = 'Yanlış / Boş';
                    }
                 }
 
                 return (
-                  <div key={idx} style={{ background: 'rgba(0,0,0,0.02)', borderLeft: `4px solid ${statusColor}`, borderRadius: 'var(--border-radius-sm)', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ width: '30px', height: '30px', background: 'var(--color-primary)', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
-                      {ans.questionId}
+                  <div key={idx} style={{ background: '#f8fafc', borderLeft: `4px solid ${statusColor}`, borderRadius: '0.75rem', padding: '0.85rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start', border: '1px solid #e2e8f0' }}>
+                    <div style={{ width: '28px', height: '28px', background: '#4f46e5', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.8rem', flexShrink: 0 }}>
+                      {ans.questionId || (idx + 1)}
                     </div>
                     <div style={{ flexGrow: 1 }}>
                       {isPending ? (
                         <>
-                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Cevabınız (Açık Uçlu)</div>
-                           <div style={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>{ans.userAnswer || <span style={{ fontStyle: 'italic', color: 'var(--color-text-muted)' }}>Boş bırakıldı</span>}</div>
+                           <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>CEVABINIZ (AÇIK UÇLU)</div>
+                           <div style={{ fontWeight: 700, whiteSpace: 'pre-wrap', fontSize: '0.88rem', color: '#1e293b' }}>{ans.userAnswer || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Boş bırakıldı</span>}</div>
                         </>
                       ) : (
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                            <div>
-                             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Cevabınız</div>
-                             <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: statusColor }}>{ans.userAnswer || 'Boş'}</div>
+                             <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>CEVABINIZ</div>
+                             <div style={{ fontWeight: 900, fontSize: '1rem', color: statusColor }}>
+                               {ans.userAnswer !== null && ans.userAnswer !== undefined ? (typeof ans.userAnswer === 'number' ? String.fromCharCode(65 + ans.userAnswer) : ans.userAnswer) : 'Boş'}
+                             </div>
                            </div>
                            <div style={{ textAlign: 'right' }}>
-                             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Doğru Cevap</div>
-                             <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--color-success)' }}>{ans.correctAnswer || '?'}</div>
+                             <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>DOĞRU CEVAP</div>
+                             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#10b981' }}>
+                               {ans.correctAnswer !== null && ans.correctAnswer !== undefined ? (typeof ans.correctAnswer === 'number' ? String.fromCharCode(65 + ans.correctAnswer) : ans.correctAnswer) : '?'}
+                             </div>
                            </div>
                         </div>
                       )}
