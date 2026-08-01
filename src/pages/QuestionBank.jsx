@@ -180,6 +180,110 @@ export default function QuestionBank() {
   const [opticAnswers, setOpticAnswers] = useState({});
   const [imageUrls, setImageUrls] = useState([]);
   const [imageAnswers, setImageAnswers] = useState({});
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
+
+  const handleFileSelected = (file) => {
+    if (!file) return;
+
+    const fileSizeStr = (file.size / 1024).toFixed(1) + ' KB';
+    const fileName = file.name;
+    const fileExt = fileName.split('.').pop().toLowerCase();
+
+    // 1. Image Files (.png, .jpg, .jpeg, .webp, .gif)
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt) || file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Data = e.target.result;
+        setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'gorsel', data: base64Data });
+        setFormData(prev => ({
+          ...prev,
+          contentType: 'gorsel',
+          contentPayload: base64Data,
+          title: prev.title || fileName.replace(/\.[^/.]+$/, '')
+        }));
+        setImageUrls([base64Data]);
+        if (creationStep === 1) setCreationStep(2);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // 2. PDF Files (.pdf)
+    if (fileExt === 'pdf' || file.type === 'application/pdf') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Pdf = e.target.result;
+        setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'pdf', data: base64Pdf });
+        setFormData(prev => ({
+          ...prev,
+          contentType: 'pdf',
+          contentPayload: base64Pdf,
+          title: prev.title || fileName.replace(/\.pdf$/i, '')
+        }));
+        if (creationStep === 1) setCreationStep(2);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // 3. HTML Files (.html, .htm)
+    if (['html', 'htm'].includes(fileExt) || file.type === 'text/html') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const htmlText = e.target.result;
+        setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'html', data: htmlText });
+        setFormData(prev => ({
+          ...prev,
+          contentType: 'html',
+          contentPayload: htmlText,
+          title: prev.title || fileName.replace(/\.html?$/i, '')
+        }));
+        if (creationStep === 1) setCreationStep(2);
+      };
+      reader.readAsText(file);
+      return;
+    }
+
+    // 4. JSON Files (.json)
+    if (fileExt === 'json' || file.type === 'application/json') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const jsonText = e.target.result;
+        try {
+          const parsed = JSON.parse(jsonText);
+          let qArray = [];
+          if (Array.isArray(parsed)) {
+            qArray = parsed;
+          } else if (parsed.questions && Array.isArray(parsed.questions)) {
+            qArray = parsed.questions;
+          }
+
+          const formattedQs = qArray.map((q, i) => ({
+            id: `q_${Date.now()}_${i}`,
+            questionText: q.questionText || q.question || q.title || `Soru ${i+1}`,
+            options: q.options || q.choices || ['', '', '', ''],
+            correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : (typeof q.correctAnswer === 'string' ? ['A','B','C','D','E'].indexOf(q.correctAnswer.toUpperCase()) : 0)
+          }));
+
+          setUploadedFileInfo({ name: fileName, size: fileSizeStr, type: 'json', data: jsonText, count: formattedQs.length });
+          setEditableQuestionsList(formattedQs);
+          setFormData(prev => ({
+            ...prev,
+            contentType: 'json',
+            contentPayload: JSON.stringify(formattedQs, null, 2),
+            title: prev.title || fileName.replace(/\.json$/i, '')
+          }));
+          if (creationStep === 1) setCreationStep(2);
+        } catch (err) {
+          alert('Yüklenen JSON dosyası geçerli bir soru paketi formatında değil.');
+        }
+      };
+      reader.readAsText(file);
+      return;
+    }
+
+    alert('Lütfen geçerli bir Görsel (PNG/JPG), PDF, HTML veya JSON dosyası seçiniz.');
+  };
 
   const activeSubject = useMemo(() => {
     if (!activeSubjectId) return null;
@@ -467,6 +571,7 @@ export default function QuestionBank() {
     setCreationStep(1);
     setEditableQuestionsList([]);
     setJsonEditMode('visual');
+    setUploadedFileInfo(null);
 
     if (activeSubjectId && activeSubjectId !== 'all_subjects') {
       setSelectedSubject(activeSubjectId);
@@ -1681,8 +1786,33 @@ export default function QuestionBank() {
             {/* STEP 1: TYPE SELECTION WIZARD */}
             {creationStep === 1 && !editingQuestionId ? (
               <div>
+                {/* FAST FILE UPLOAD DROPZONE */}
+                <div style={{ background: '#f0f4ff', border: '2px dashed #6366f1', borderRadius: '1.25rem', padding: '1.5rem', marginBottom: '1.75rem', textAlign: 'center' }}>
+                  <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                    <input
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.webp,.pdf,.html,.htm,.json"
+                      style={{ display: 'none' }}
+                      onChange={e => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleFileSelected(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <div style={{ width: 52, height: 52, borderRadius: '1rem', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(79,70,229,0.3)' }}>
+                      <Plus size={28} />
+                    </div>
+                    <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#1e1b4b' }}>
+                      📁 Bilgisayardan Doğrudan Dosya Yükleyin
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#4338ca', fontWeight: 600 }}>
+                      Görsel (PNG/JPG), PDF (.pdf), HTML (.html) veya JSON (.json) dosyanızı seçin veya buraya sürükleyin
+                    </div>
+                  </label>
+                </div>
+
                 <p style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600, marginBottom: '1.75rem', textAlign: 'center' }}>
-                  Ne tür bir içerik eklemek istiyorsunuz? Seçtiğiniz türe özel sade düzenleme ekranı açılacaktır:
+                  Veya manuel içerik türü seçerek devam edin:
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1rem' }}>
@@ -1751,7 +1881,7 @@ export default function QuestionBank() {
                         🖼️ Görsel Soru (Tekli / Toplu)
                       </h4>
                       <p style={{ fontSize: '0.85rem', color: '#92400e', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
-                        Bir veya birden fazla resim URL'si ekleyerek görsel soru veya sorular ekleyin.
+                        Bir veya birden fazla resim dosyası yükleyerek görsel soru veya sorular ekleyin.
                       </p>
                     </div>
                   </div>
@@ -1774,7 +1904,7 @@ export default function QuestionBank() {
                         📕 PDF Test Paketi
                       </h4>
                       <p style={{ fontSize: '0.85rem', color: '#991b1b', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
-                        Hazır bir PDF dokümanı (Google Drive / URL linki) ve cevap anahtarını tanımlayın.
+                        Hazır bir PDF doküman dosyası yükleyin ve cevap anahtarını tanımlayın.
                       </p>
                     </div>
                   </div>
@@ -1797,7 +1927,7 @@ export default function QuestionBank() {
                         🌐 HTML Web Sayfası / Testi
                       </h4>
                       <p style={{ fontSize: '0.85rem', color: '#065f46', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
-                        Canlı bir HTML web sayfası bağlantısı veya HTML kodları ile cevap anahtarlı test ekleyin.
+                        HTML dosyanızı doğrudan yükleyin veya canlı web adresi yapıştırın.
                       </p>
                     </div>
                   </div>
@@ -1824,6 +1954,26 @@ export default function QuestionBank() {
                     </button>
                   )}
                 </div>
+
+                {/* UPLOADED FILE BADGE DISPLAY IF ANY */}
+                {uploadedFileInfo && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1.5px solid #bbf7d0', padding: '0.85rem 1.25rem', borderRadius: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ background: '#16a34a', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: 99, textTransform: 'uppercase' }}>
+                        {uploadedFileInfo.type} Yüklendi
+                      </span>
+                      <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem' }}>{uploadedFileInfo.name}</span>
+                      <span style={{ color: '#15803d', fontSize: '0.75rem' }}>({uploadedFileInfo.size})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUploadedFileInfo(null)}
+                      style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                )}
 
                 {/* Title & Soru Tipi Selector */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
@@ -1859,16 +2009,24 @@ export default function QuestionBank() {
                 {formData.contentType === 'pdf' && (
                   <div className="form-group" style={{ background: '#fff5f5', border: '1.5px solid #fecaca', padding: '1.5rem', borderRadius: '1.25rem' }}>
                     <label style={{ fontWeight: 900, fontSize: '1rem', color: '#991b1b', marginBottom: '0.5rem', display: 'block' }}>
-                      📕 PDF Dosyası / Doküman Bağlantısı (URL veya Google Drive Linki)
+                      📕 PDF Dosyası Yükleyin veya Bağlantı Yapıştırın
                     </label>
+                    
+                    <div style={{ background: 'white', border: '2px dashed #fca5a5', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#dc2626', fontWeight: 800, fontSize: '0.9rem' }}>
+                        <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
+                        📁 Bilgisayardan PDF Seç
+                      </label>
+                    </div>
+
                     <p style={{ fontSize: '0.85rem', color: '#7f1d1d', margin: '0 0 0.85rem 0' }}>
-                      Öğrencilerin test çözerken ekranda göreceği PDF dosyasının doğrudan web linkini veya Google Drive önizleme bağlantısını yapıştırın.
+                      Veya PDF dosyasının doğrudan web linkini yapıştırın:
                     </p>
                     <input 
                       type="text" 
                       value={formData.contentPayload} 
                       onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
-                      placeholder="Örn: https://example.com/matematik-deneme.pdf veya Google Drive Önizleme Bağlantısı" 
+                      placeholder="Örn: https://example.com/matematik-deneme.pdf veya Google Drive Linki" 
                       style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #fca5a5', width: '100%', fontSize: '0.95rem', background: 'white' }}
                       required 
                     />
@@ -1879,11 +2037,16 @@ export default function QuestionBank() {
                 {formData.contentType === 'html' && (
                   <div className="form-group" style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', padding: '1.5rem', borderRadius: '1.25rem' }}>
                     <label style={{ fontWeight: 900, fontSize: '1rem', color: '#065f46', marginBottom: '0.5rem', display: 'block' }}>
-                      🌐 HTML Canlı Web Sayfası Linki veya HTML Kodu
+                      🌐 HTML Dosyası Yükleyin veya Kod Yapıştırın
                     </label>
-                    <p style={{ fontSize: '0.85rem', color: '#047857', margin: '0 0 0.85rem 0' }}>
-                      Canlı bir web adresi (https://...) veya doğrudan HTML kodlarını yapıştırabilirsiniz. Sistem ekranda canlı işleyecektir.
-                    </p>
+
+                    <div style={{ background: 'white', border: '2px dashed #6ee7b7', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#059669', fontWeight: 800, fontSize: '0.9rem' }}>
+                        <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
+                        📁 Bilgisayardan HTML Dosyası Seç (.html)
+                      </label>
+                    </div>
+
                     <textarea 
                       rows="8" 
                       value={formData.contentPayload} 
@@ -1910,31 +2073,37 @@ export default function QuestionBank() {
                         </p>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '0.5rem', background: '#e2e8f0', padding: '0.25rem', borderRadius: '0.75rem' }}>
-                        <button
-                          type="button"
-                          onClick={() => setJsonEditMode('visual')}
-                          style={{
-                            padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
-                            fontWeight: 800, fontSize: '0.85rem',
-                            background: jsonEditMode === 'visual' ? '#4f46e5' : 'transparent',
-                            color: jsonEditMode === 'visual' ? 'white' : '#475569'
-                          }}
-                        >
-                          📝 Görsel Test Düzenleyici
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setJsonEditMode('code')}
-                          style={{
-                            padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
-                            fontWeight: 800, fontSize: '0.85rem',
-                            background: jsonEditMode === 'code' ? '#0f172a' : 'transparent',
-                            color: jsonEditMode === 'code' ? 'white' : '#475569'
-                          }}
-                        >
-                          ⚡ Ham JSON Kodu
-                        </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <label style={{ cursor: 'pointer', background: '#e0e7ff', color: '#3730a3', padding: '0.45rem 0.95rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
+                          📁 JSON Dosyası Yükle
+                        </label>
+                        <div style={{ display: 'flex', gap: '0.25rem', background: '#e2e8f0', padding: '0.25rem', borderRadius: '0.75rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setJsonEditMode('visual')}
+                            style={{
+                              padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
+                              fontWeight: 800, fontSize: '0.85rem',
+                              background: jsonEditMode === 'visual' ? '#4f46e5' : 'transparent',
+                              color: jsonEditMode === 'visual' ? 'white' : '#475569'
+                            }}
+                          >
+                            📝 Görsel Test Düzenleyici
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setJsonEditMode('code')}
+                            style={{
+                              padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
+                              fontWeight: 800, fontSize: '0.85rem',
+                              background: jsonEditMode === 'code' ? '#0f172a' : 'transparent',
+                              color: jsonEditMode === 'code' ? 'white' : '#475569'
+                            }}
+                          >
+                            ⚡ Ham JSON Kodu
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -2043,10 +2212,28 @@ export default function QuestionBank() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div className="form-group" style={{ background: '#fffbeb', border: '1.5px solid #fde68a', padding: '1.5rem', borderRadius: '1.25rem' }}>
                       <label style={{ fontWeight: 900, fontSize: '1rem', color: '#78350f', marginBottom: '0.5rem', display: 'block' }}>
-                        🖼️ Resim / Görsel URL Bağlantıları
+                        🖼️ Resim / Görsel Yükleyin veya URL Yapıştırın
                       </label>
+
+                      <div style={{ background: 'white', border: '2px dashed #fcd34d', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#d97706', fontWeight: 800, fontSize: '0.9rem' }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={e => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                Array.from(e.target.files).forEach(file => handleFileSelected(file));
+                              }
+                            }}
+                          />
+                          📁 Bilgisayardan Görsel Seç (PNG / JPG / WEBP)
+                        </label>
+                      </div>
+
                       <p style={{ fontSize: '0.85rem', color: '#92400e', margin: '0 0 0.85rem 0' }}>
-                        Tek bir görsel soru için 1 resim bağlantısı, birden fazla görsel soru eklemek için her satıra bir resim URL'si yapıştırın.
+                        Veya resim URL'lerini buraya alt alta yapıştırın:
                       </p>
                       <textarea 
                         rows={editingQuestionId ? "2" : "5"} 
