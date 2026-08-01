@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
-import { CheckCircle, XCircle, HelpCircle, ArrowRight, Save, Clock3, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, HelpCircle, Save, Clock3 } from 'lucide-react';
 import './Dashboard.css';
 
 export default function EvaluationManager() {
@@ -15,10 +15,11 @@ export default function EvaluationManager() {
 
   const activeSubmission = submissions.find(s => s.id === activeSubmissionId);
 
-  // We only care about pending (open-ended) answers in this view
-  const pendingAnswers = activeSubmission 
-    ? activeSubmission.answers.filter(ans => ans.isCorrect === null) 
-    : [];
+  // Show all open-ended / bundle answers for this submission
+  const allSubmissionAnswers = activeSubmission ? (activeSubmission.answers || []) : [];
+  
+  // Pending ones for count
+  const remainingPendingCount = allSubmissionAnswers.filter(ans => ans.isCorrect === null).length;
 
   const handleEvaluate = (ans, isCorrectResult) => {
     evaluateAnswer(activeSubmissionId, ans.questionId, ans.isBundle, ans.subIndex, isCorrectResult);
@@ -116,18 +117,22 @@ export default function EvaluationManager() {
                   <h3 style={{ margin: 0 }}>{activeSubmission.studentName}</h3>
                   <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{activeSubmission.testTitle} Sınavı Kağıdı</div>
                 </div>
-                <div className="test-badge bg-primary-light text-primary" style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-                  Kalan Soru: {pendingAnswers.length}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="test-badge bg-primary-light text-primary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.85rem' }}>
+                    Kalan Soru: {remainingPendingCount} / {allSubmissionAnswers.length}
+                  </div>
                 </div>
               </div>
 
-              {pendingAnswers.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '600px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                  {pendingAnswers.map((ans, idx) => {
+              {allSubmissionAnswers.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '650px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                  {allSubmissionAnswers.map((ans, idx) => {
                     const q = questions.find(q => q.id === ans.questionId);
                     if (!q) return null;
 
                     let displayQuestionText = q.questionText || 'Açık Uçlu Soru';
+                    let subItemPayload = null;
+
                     if ((q.contentType === 'json' || q.questionsList) && ans.subIndex !== undefined) {
                       let subQuestions = q.questionsList || [];
                       if (!subQuestions.length && q.contentPayload) {
@@ -140,32 +145,121 @@ export default function EvaluationManager() {
                       }
                       if (subQuestions[ans.subIndex]) {
                         displayQuestionText = subQuestions[ans.subIndex].questionText || `Soru ${ans.subIndex + 1}`;
+                        subItemPayload = subQuestions[ans.subIndex].contentPayload;
                       }
                     }
-                    
+
+                    const isEvaluated = ans.isCorrect !== null;
+                    const isCorrectVal = ans.isCorrect === true;
+
                     return (
-                      <div key={idx} style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>
-                          Soru {ans.subIndex !== undefined ? ans.subIndex + 1 : ''}:
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          background: isEvaluated ? (isCorrectVal ? '#f0fdf4' : '#fef2f2') : 'rgba(0,0,0,0.02)', 
+                          padding: '1.25rem', 
+                          borderRadius: 'var(--border-radius-md)', 
+                          border: isEvaluated ? (isCorrectVal ? '2px solid #10b981' : '2px solid #ef4444') : '1px solid rgba(0,0,0,0.1)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '0.9rem' }}>
+                            Soru {ans.subIndex !== undefined ? ans.subIndex + 1 : idx + 1}:
+                          </div>
+                          {isEvaluated && (
+                            <span style={{ 
+                              background: isCorrectVal ? '#10b981' : '#ef4444', 
+                              color: 'white', 
+                              fontWeight: 900, 
+                              fontSize: '0.75rem', 
+                              padding: '0.2rem 0.6rem', 
+                              borderRadius: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              {isCorrectVal ? <><CheckCircle size={13} /> Doğru (+10 Puan)</> : <><XCircle size={13} /> Yanlış (0 Puan)</>}
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '1.05rem', marginBottom: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{displayQuestionText}</div>
+
+                        <div style={{ fontSize: '1rem', marginBottom: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                          {displayQuestionText}
+                        </div>
+
+                        {/* Image for Visual Question */}
+                        {(subItemPayload || q.contentPayload) && (q.contentType === 'gorsel' || subItemPayload) && (
+                          <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                            <img
+                              src={subItemPayload || q.contentPayload}
+                              alt="Soru Görseli"
+                              style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+                            />
+                          </div>
+                        )}
                         
-                        <div style={{ fontWeight: 600, color: 'var(--color-secondary)', marginBottom: '0.5rem' }}>Öğrencinin Cevabı:</div>
-                        <div style={{ background: 'white', padding: '1rem', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)', minHeight: '80px', marginBottom: '1.5rem', whiteSpace: 'pre-wrap' }}>
-                          {ans.userAnswerText || <span className="text-muted">(Boş Bırakılmış)</span>}
+                        <div style={{ fontWeight: 700, color: '#475569', fontSize: '0.85rem', marginBottom: '0.35rem' }}>Öğrencinin Cevabı:</div>
+                        <div style={{ background: 'white', padding: '0.85rem', borderRadius: '0.5rem', border: '1px solid rgba(0,0,0,0.1)', minHeight: '60px', marginBottom: '1.25rem', whiteSpace: 'pre-wrap', fontWeight: 700, color: '#1e293b' }}>
+                          {ans.userAnswerText || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>(Boş Bırakılmış)</span>}
                         </div>
                         
+                        {/* Evaluation Buttons - Clicked button stays marked, can be changed */}
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn btn-success" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={() => handleEvaluate(ans, true)}>
-                            <CheckCircle size={18} /> Doğru (+10)
+                          <button 
+                            type="button"
+                            className="btn" 
+                            style={{ 
+                              flex: 1, 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justify: 'center', 
+                              gap: '0.4rem',
+                              background: isCorrectVal ? '#10b981' : '#ecfdf5',
+                              color: isCorrectVal ? 'white' : '#047857',
+                              border: isCorrectVal ? '2px solid #059669' : '1px solid #a7f3d0',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }} 
+                            onClick={() => handleEvaluate(ans, true)}
+                          >
+                            <CheckCircle size={18} /> {isCorrectVal ? '✓ Doğru Olarak İşaretlendi' : 'Doğru Ver (+10)'}
                           </button>
-                          <button className="btn btn-error" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={() => handleEvaluate(ans, false)}>
-                            <XCircle size={18} /> Yanlış / Boş (0)
+                          
+                          <button 
+                            type="button"
+                            className="btn" 
+                            style={{ 
+                              flex: 1, 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justify: 'center', 
+                              gap: '0.4rem',
+                              background: (isEvaluated && !isCorrectVal) ? '#ef4444' : '#fef2f2',
+                              color: (isEvaluated && !isCorrectVal) ? 'white' : '#b91c1c',
+                              border: (isEvaluated && !isCorrectVal) ? '2px solid #dc2626' : '1px solid #fca5a5',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }} 
+                            onClick={() => handleEvaluate(ans, false)}
+                          >
+                            <XCircle size={18} /> {(isEvaluated && !isCorrectVal) ? '✕ Yanlış Olarak İşaretlendi' : 'Yanlış / Boş (0)'}
                           </button>
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* Finalize Button */}
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                    <button 
+                      className="btn btn-primary btn-lg" 
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justify: 'center', gap: '0.5rem', background: remainingPendingCount === 0 ? '#10b981' : '#4f46e5', borderColor: remainingPendingCount === 0 ? '#10b981' : '#4f46e5' }} 
+                      onClick={handleFinalize}
+                    >
+                      <Save size={20} /> Sonucu Kaydet ve Öğrenciye Bildir
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
