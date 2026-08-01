@@ -14,17 +14,22 @@ export function QuestionBankProvider({ children }) {
   const [questions, setQuestions] = useState(() => {
     const saved = localStorage.getItem('eTestQuestions');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      return (parsed || []).filter(q => q.id !== 'q1');
+      try {
+        const parsed = JSON.parse(saved);
+        return (parsed || []).filter(q => q.id !== 'q1');
+      } catch (e) {
+        console.warn('[LocalStorage] Error parsing saved questions:', e);
+      }
     }
     return INITIAL_QUESTIONS;
   });
 
   useEffect(() => {
     async function syncAndRestorePayloads() {
-      // 1. Restore full PDF/Image payloads from IndexedDB if cached locally
-      const restored = await Promise.all((questions || []).map(async (q) => {
-        if (!q.contentPayload || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
+      // 1. Restore full PDF/Image payloads from IndexedDB for questions loaded from localStorage metadata
+      const currentQs = questions || [];
+      const restored = await Promise.all(currentQs.map(async (q) => {
+        if (!q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
           const fullPayload = await idbGetPayload(q.id);
           if (fullPayload) {
             return { ...q, contentPayload: fullPayload };
@@ -33,24 +38,33 @@ export function QuestionBankProvider({ children }) {
         return q;
       }));
 
-      setQuestions(restored);
+      setQuestions(prev => {
+        const mergedMap = new Map();
+        (restored || []).forEach(q => mergedMap.set(String(q.id), q));
+        (prev || []).forEach(q => {
+          const existing = mergedMap.get(String(q.id));
+          // If current in-memory question has full PDF DataURL, keep it!
+          if (!existing || (typeof q.contentPayload === 'string' && q.contentPayload.startsWith('data:'))) {
+            mergedMap.set(String(q.id), q);
+          }
+        });
+        return Array.from(mergedMap.values());
+      });
 
-      // 2. Safely merge from Supabase database without overwriting local PDF payloads
+      // 2. Safely merge from Supabase database
       const dbQs = await dbGetQuestions();
       if (dbQs && dbQs.length > 0) {
         setQuestions(prev => {
           const mergedMap = new Map();
-          // Keep existing local questions and their full PDF DataURLs
-          (prev || []).forEach(q => {
-            if (q.id !== 'q1') mergedMap.set(String(q.id), q);
-          });
-          // Merge Supabase questions
+          (prev || []).forEach(q => mergedMap.set(String(q.id), q));
+
           dbQs.forEach(dbQ => {
             if (dbQ.id === 'q1') return;
             const existing = mergedMap.get(String(dbQ.id));
             if (existing) {
               const hasFullLocalPayload = typeof existing.contentPayload === 'string' &&
                 existing.contentPayload.length > 500 &&
+                !existing.contentPayload.includes('[STORED_IN_INDEXEDDB]') &&
                 !existing.contentPayload.includes('[LOCALSTORAGE_CACHE]');
 
               mergedMap.set(String(dbQ.id), {
@@ -65,29 +79,26 @@ export function QuestionBankProvider({ children }) {
         });
       }
     }
+
     syncAndRestorePayloads();
   }, []);
 
   useEffect(() => {
     try {
-      // Sanitize questions for LocalStorage (5MB limit). Full PDF/Image payloads are stored safely in IndexedDB and Supabase.
+      // Store lightweight metadata in LocalStorage (5MB limit).
+      // Full PDF/Image DataURLs remain safely stored in React State & IndexedDB.
       const lightweightQuestions = (questions || []).map(q => {
-        let safePayload = q.contentPayload;
-        if (typeof safePayload === 'string' && safePayload.length > 500 && safePayload.startsWith('data:')) {
-          safePayload = safePayload.slice(0, 80) + '...[LOCALSTORAGE_CACHE]';
+        const copy = { ...q };
+        if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500) {
+          copy.contentPayload = '[STORED_IN_INDEXEDDB]';
         }
-        let safeRaw = q.raw_data;
-        if (safeRaw && typeof safeRaw === 'object') {
-          safeRaw = { ...safeRaw };
-          if (typeof safeRaw.contentPayload === 'string' && safeRaw.contentPayload.length > 500) {
-            safeRaw.contentPayload = '[LOCALSTORAGE_CACHE]';
+        if (copy.raw_data && typeof copy.raw_data === 'object') {
+          copy.raw_data = { ...copy.raw_data };
+          if (typeof copy.raw_data.contentPayload === 'string' && copy.raw_data.contentPayload.length > 500) {
+            copy.raw_data.contentPayload = '[STORED_IN_INDEXEDDB]';
           }
         }
-        return {
-          ...q,
-          contentPayload: safePayload,
-          raw_data: safeRaw
-        };
+        return copy;
       });
       localStorage.setItem('eTestQuestions', JSON.stringify(lightweightQuestions));
     } catch (err) {
