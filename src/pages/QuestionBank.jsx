@@ -1235,6 +1235,12 @@ export default function QuestionBank() {
               Soruları görüntülemek, yönetmek ve yeni içerik eklemek için bir ders veya sınıf kartına giriş yapın.
             </p>
 
+            {currentUser?.role === 'teacher' && (
+              <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#eff6ff', border: '1px solid #93c5fd', color: '#1e40af', padding: '0.35rem 0.85rem', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 800 }}>
+                <span>🔒 Öğretmen Özel Bankası: Sadece kendi eklediğiniz soru ve test içeriklerini görüyorsunuz.</span>
+              </div>
+            )}
+
             {/* SEARCH BAR ON MAIN PORTAL */}
             <div style={{ position: 'relative', width: '100%', maxWidth: '540px', marginTop: '1.25rem' }}>
               <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#818cf8', pointerEvents: 'none' }} />
