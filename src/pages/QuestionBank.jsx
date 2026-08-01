@@ -174,6 +174,7 @@ export default function QuestionBank() {
   const [imageUrls, setImageUrls] = useState([]);
   const [imageAnswers, setImageAnswers] = useState({});
   const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const handlePdfUploadForPreview = (file, questionId) => {
     if (!file || !questionId) return;
@@ -2330,54 +2331,71 @@ export default function QuestionBank() {
                           />
                         </div>
 
-                        {/* 3-COLUMN INTERACTIVE OPTIC BUBBLE BUTTON GRID FOR IMAGE QUESTIONS */}
-                        <div style={{ maxHeight: '320px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', padding: '0.25rem' }}>
+                        {/* LARGE READABLE VISUAL QUESTION CARDS WITH OPTIC BUBBLE BUTTONS */}
+                        <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', padding: '0.25rem' }}>
                           {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
                             const selectedOpt = imageAnswers[idx];
                             return (
-                              <div key={idx} style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                  {url && (
-                                    <img src={url} alt="Önizleme" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} onError={e => { e.target.style.display = 'none'; }} />
+                              <div key={idx} style={{ background: 'white', padding: '1rem', borderRadius: '1rem', border: '1.5px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>🖼️ Görsel Soru {idx + 1}</span>
+                                  {selectedOpt !== undefined && (
+                                    <span style={{ background: '#dcfce7', color: '#166534', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                                      ✓ Cevap: {String.fromCharCode(65 + selectedOpt)}
+                                    </span>
                                   )}
-                                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Görsel Soru {idx + 1}</span>
                                 </div>
 
+                                {/* Large Readable Image Box */}
+                                {url ? (
+                                  <div
+                                    onClick={() => setPreviewImage(url)}
+                                    title="Görseli daha da büyütmek için tıklayın"
+                                    style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '320px', overflow: 'hidden', cursor: 'pointer' }}
+                                  >
+                                    <img src={url} alt={`Görsel Soru ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '0.5rem' }} onError={e => { e.target.style.display = 'none'; }} />
+                                  </div>
+                                ) : (
+                                  <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
+                                    Resim yüklenmedi
+                                  </div>
+                                )}
+
                                 {/* Optic Bubbles A B C D E */}
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                  {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
-                                    const isSelected = selectedOpt === optIdx;
-                                    return (
-                                      <button
-                                        key={letter}
-                                        type="button"
-                                        onClick={() => setImageAnswers({ ...imageAnswers, [idx]: isSelected ? undefined : optIdx })}
-                                        style={{
-                                          width: '38px',
-                                          height: '38px',
-                                          borderRadius: '50%',
-                                          border: isSelected ? '2px solid #059669' : '1.5px solid #cbd5e1',
-                                          background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f8fafc',
-                                          color: isSelected ? 'white' : '#334155',
-                                          fontWeight: 900,
-                                          fontSize: '0.9rem',
-                                          cursor: 'pointer',
-                                          boxShadow: isSelected ? '0 4px 10px rgba(16,185,129,0.35)' : 'none',
-                                          transition: 'all 0.15s ease',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          textAlign: 'center',
-                                          lineHeight: '1',
-                                          padding: 0
-                                        }}
-                                        className="hover:scale-110 active:scale-95"
-                                        title={`Görsel Soru ${idx + 1} için ${letter} şıkkını doğru cevap olarak seç`}
-                                      >
-                                        {letter}
-                                      </button>
-                                    );
-                                  })}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #f1f5f9' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Doğru Cevabı Seçin:</div>
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
+                                      const isSelected = selectedOpt === optIdx;
+                                      return (
+                                        <button
+                                          key={letter}
+                                          type="button"
+                                          onClick={() => setImageAnswers({ ...imageAnswers, [idx]: isSelected ? undefined : optIdx })}
+                                          style={{
+                                            flex: 1,
+                                            height: '42px',
+                                            borderRadius: '0.65rem',
+                                            border: isSelected ? '2px solid #059669' : '1.5px solid #cbd5e1',
+                                            background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'white',
+                                            color: isSelected ? 'white' : '#334155',
+                                            fontWeight: 900,
+                                            fontSize: '1rem',
+                                            cursor: 'pointer',
+                                            boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.35)' : 'none',
+                                            transition: 'all 0.15s ease',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justify: 'center'
+                                          }}
+                                          className="hover:scale-105 active:scale-95"
+                                          title={`Görsel Soru ${idx + 1} için ${letter} şıkkını seç`}
+                                        >
+                                          {letter}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -2846,28 +2864,28 @@ export default function QuestionBank() {
                   </div>
                 )}
 
-                    {/* Optical Answer Key Grid */}
-                    {q.type === 'coktan_secmeli' && (
-                      <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
-                        <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#1e293b', fontSize: '0.95rem' }}>
-                          🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
-                        </h5>
+                {/* Optical Answer Key Grid */}
+                {q.type === 'coktan_secmeli' && (
+                  <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
+                    <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#1e293b', fontSize: '0.95rem' }}>
+                      🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
+                    </h5>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
-                          {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
-                            const ans = q.answerKey ? q.answerKey[idx] : null;
-                            return (
-                              <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? '#ecfdf5' : '#f8fafc', border: ans && ans !== ' ' ? '1px solid #a7f3d0' : '1px solid #e2e8f0', textAlign: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#059669' : '#94a3b8' }}>
-                                  {ans && ans !== ' ' ? ans : '—'}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(85px, 1fr))', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto' }}>
+                      {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
+                        const ans = q.answerKey ? q.answerKey[idx] : null;
+                        return (
+                          <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? '#ecfdf5' : '#f8fafc', border: ans && ans !== ' ' ? '1px solid #a7f3d0' : '1px solid #e2e8f0', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#059669' : '#94a3b8' }}>
+                              {ans && ans !== ' ' ? ans : '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               </div>
 
@@ -2882,6 +2900,15 @@ export default function QuestionBank() {
           </div>
         );
       })()}
+
+      {previewImage && (
+        <div onClick={() => setPreviewImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem', cursor: 'pointer' }}>
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+            <img src={previewImage} alt="Büyük Görsel" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
+            <button onClick={() => setPreviewImage(null)} style={{ position: 'absolute', top: -15, right: -15, background: 'white', color: '#0f172a', border: 'none', borderRadius: '50%', width: 36, height: 36, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
