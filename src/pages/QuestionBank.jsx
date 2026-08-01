@@ -1311,8 +1311,6 @@ export default function QuestionBank() {
               {/* TAB 1: SUBJECT CARDS GRID */}
               {overviewTab === 'subjects' && (
                 <div className="qbank-grid">
-                  
-                  {/* SPECIAL "TÜM DERSLER / GENEL PORTFÖY" CARD */}
                   <div
                     onClick={() => {
                       setActiveSubjectId('all_subjects');
@@ -1321,7 +1319,19 @@ export default function QuestionBank() {
                     }}
                     style={{
                       background: subjectThemes['all_subjects'].bg,
+                      borderRadius: '1.5rem',
+                      padding: '1.75rem',
+                      color: 'white',
+                      cursor: 'pointer',
                       boxShadow: subjectThemes['all_subjects'].shadow,
+                      border: '2px solid rgba(255,255,255,0.4)',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justify: 'space-between',
+                      minHeight: '190px'
                     }}
                     className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
                   >
@@ -1329,21 +1339,21 @@ export default function QuestionBank() {
                       <GraduationCap size={130} />
                     </div>
 
-                    <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
-                      <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '0.85rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <GraduationCap size={26} color="white" />
+                    <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                      <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <GraduationCap size={28} color="white" />
                       </div>
 
-                      <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.8rem', fontWeight: 900, padding: '0.3rem 0.75rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                      <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
                         ⚡ {questions.length} İçerik / Test
                       </span>
                     </div>
 
-                    <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm Dersler (Genel Portföy)</h3>
-                      <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, opacity: 0.95 }}>
-                        <span>Tüm İçerikleri Göster</span>
-                        <ChevronRight size={15} />
+                    <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm Dersler (Genel Portföy)</h3>
+                      <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
+                        <span>Tüm Genel İçerikleri Göster</span>
+                        <ChevronRight size={16} />
                       </div>
                     </div>
                   </div>
@@ -1366,7 +1376,19 @@ export default function QuestionBank() {
                         }}
                         style={{
                           background: theme.bg,
+                          borderRadius: '1.5rem',
+                          padding: '1.75rem',
+                          color: 'white',
+                          cursor: 'pointer',
                           boxShadow: theme.shadow,
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justify: 'space-between',
+                          minHeight: '190px'
                         }}
                         className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
                       >
@@ -1374,30 +1396,30 @@ export default function QuestionBank() {
                           <Icon size={120} />
                         </div>
 
-                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                            <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '0.85rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon size={26} color="white" />
+                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Icon size={28} color="white" />
                             </div>
                             {gradeName && (
-                              <span className="card-badge" style={{ background: 'rgba(255,255,255,0.25)', color: 'white', fontSize: '0.78rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(4px)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+                              <span className="card-badge" style={{ background: 'rgba(255,255,255,0.25)', color: 'white', fontSize: '0.8rem', fontWeight: 900, padding: '0.3rem 0.75rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(4px)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
                                 🎓 {gradeName}
                               </span>
                             )}
                           </div>
 
-                          <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.8rem', fontWeight: 900, padding: '0.3rem 0.75rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
-                            ⚡ {count} İçerik
+                          <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                            ⚡ {count} İçerik / Test
                           </span>
                         </div>
 
-                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>
+                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, lineHeight: 1.2 }}>
                             {gradeName ? `${gradeName} ${s.name}` : s.name}
                           </h3>
-                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, opacity: 0.95 }}>
+                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
                             <span>Ders Sayfasına Git</span>
-                            <ChevronRight size={15} />
+                            <ChevronRight size={16} />
                           </div>
                         </div>
                       </div>
@@ -1425,7 +1447,19 @@ export default function QuestionBank() {
                         }}
                         style={{
                           background: theme.bg,
+                          borderRadius: '1.5rem',
+                          padding: '1.75rem',
+                          color: 'white',
+                          cursor: 'pointer',
                           boxShadow: theme.shadow,
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justify: 'space-between',
+                          minHeight: '190px'
                         }}
                         className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
                       >
@@ -1433,21 +1467,21 @@ export default function QuestionBank() {
                           <Icon size={120} />
                         </div>
 
-                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
-                          <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '0.85rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon size={26} color="white" />
+                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                          <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon size={28} color="white" />
                           </div>
 
-                          <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.8rem', fontWeight: 900, padding: '0.3rem 0.75rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
-                            ⚡ {count} İçerik
+                          <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                            ⚡ {count} İçerik / Test
                           </span>
                         </div>
 
-                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>🎓 {g.name}</h3>
-                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, opacity: 0.9 }}>
+                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🎓 {g.name}</h3>
+                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.9 }}>
                             <span>Sınıf Sayfasına Git</span>
-                            <ChevronRight size={15} />
+                            <ChevronRight size={16} />
                           </div>
                         </div>
                       </div>
