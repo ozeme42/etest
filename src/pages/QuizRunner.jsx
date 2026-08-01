@@ -199,7 +199,10 @@ export default function QuizRunner() {
     );
   }
 
-  const currentQuestion = testQuestions[currentQuestionIdx];
+  const currentQuestion = testQuestions[currentQuestionIdx] || testQuestions[0];
+  if (!currentQuestion) {
+    return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Soru yüklenirken bir sorun oluştu.</div>;
+  }
 
   const handleNext = () => {
     if (currentQuestionIdx < testQuestions.length - 1) {
@@ -645,7 +648,7 @@ export default function QuizRunner() {
   }
 
   // --- BUNDLE VIEW (PDF / HTML Multi-question) ---
-  if (currentQuestion.isBundle) {
+  if (currentQuestion?.isBundle) {
     const bundleAns = studentAnswers[currentQuestion.id] || {};
     
     return (
