@@ -321,6 +321,19 @@ export default function QuizRunner() {
     });
   };
 
+  const handleBundleTextChange = (subIndex, textVal) => {
+    setStudentAnswers(prev => {
+      const currentBundleAnswers = prev[currentQuestion.id] || {};
+      return {
+        ...prev,
+        [currentQuestion.id]: {
+          ...currentBundleAnswers,
+          [subIndex]: textVal
+        }
+      };
+    });
+  };
+
   async function handleFinishTest(autoSubmit = false) {
     if (!autoSubmit && !showFinishModal) {
       setShowFinishModal(true);
@@ -344,45 +357,75 @@ export default function QuizRunner() {
       
       if (q.isBundle) {
         const bundleAns = ans || {};
-        const answerKey = q.answerKey || [];
+        const isAcikUclu = q.type === 'acik_uclu' || test?.type === 'acik_uclu' || (q.questionsList && q.questionsList[0] && q.questionsList[0].type === 'acik_uclu');
         
         for (let i = 0; i < q.questionCount; i++) {
-          const userAnsIdx = bundleAns[i];
-          const correctAnsLetter = answerKey[i];
-          const correctIdx = correctAnsLetter ? correctAnsLetter.charCodeAt(0) - 65 : null;
-          
-          if (userAnsIdx !== undefined && correctAnsLetter) {
-            const userLetter = String.fromCharCode(65 + userAnsIdx);
-            const isCorrect = userLetter === correctAnsLetter;
-            if (isCorrect) {
-              totalScore += 10;
-              correctCount++;
+          const userVal = bundleAns[i];
+
+          if (isAcikUclu) {
+            const userText = typeof userVal === 'string' ? userVal.trim() : '';
+            if (userText.length > 0) {
+              pendingCount++;
+              collected.push({
+                questionId: q.id,
+                isBundle: true,
+                subIndex: i,
+                type: 'acik_uclu',
+                userAnswerText: userText,
+                isCorrect: null, // Pending evaluation
+                earnedPoints: 0
+              });
             } else {
-              wrongCount++;
-              wrongList.push({ qId: q.id, subIndex: i, isBundle: true });
+              blankCount++;
+              collected.push({
+                questionId: q.id,
+                isBundle: true,
+                subIndex: i,
+                type: 'acik_uclu',
+                userAnswerText: null,
+                isCorrect: false,
+                earnedPoints: 0
+              });
             }
-            
-            collected.push({
-              questionId: q.id,
-              isBundle: true,
-              subIndex: i,
-              userAnswer: userAnsIdx,
-              correctAnswer: correctIdx,
-              isCorrect: isCorrect,
-              earnedPoints: isCorrect ? 10 : 0
-            });
           } else {
-            blankCount++;
-            wrongList.push({ qId: q.id, subIndex: i, isBundle: true });
-            collected.push({
-              questionId: q.id,
-              isBundle: true,
-              subIndex: i,
-              userAnswer: null,
-              correctAnswer: correctIdx,
-              isCorrect: false, // Blank counts as wrong/missed for pool
-              earnedPoints: 0
-            });
+            const answerKey = q.answerKey || [];
+            const userAnsIdx = typeof userVal === 'number' ? userVal : undefined;
+            const correctAnsLetter = answerKey[i];
+            const correctIdx = correctAnsLetter ? correctAnsLetter.charCodeAt(0) - 65 : null;
+            
+            if (userAnsIdx !== undefined && correctAnsLetter) {
+              const userLetter = String.fromCharCode(65 + userAnsIdx);
+              const isCorrect = userLetter === correctAnsLetter;
+              if (isCorrect) {
+                totalScore += 10;
+                correctCount++;
+              } else {
+                wrongCount++;
+                wrongList.push({ qId: q.id, subIndex: i, isBundle: true });
+              }
+              
+              collected.push({
+                questionId: q.id,
+                isBundle: true,
+                subIndex: i,
+                userAnswer: userAnsIdx,
+                correctAnswer: correctIdx,
+                isCorrect: isCorrect,
+                earnedPoints: isCorrect ? 10 : 0
+              });
+            } else {
+              blankCount++;
+              wrongList.push({ qId: q.id, subIndex: i, isBundle: true });
+              collected.push({
+                questionId: q.id,
+                isBundle: true,
+                subIndex: i,
+                userAnswer: null,
+                correctAnswer: correctIdx,
+                isCorrect: false,
+                earnedPoints: 0
+              });
+            }
           }
         }
       } else if (q.type === 'coktan_secmeli') {
@@ -1075,38 +1118,70 @@ export default function QuizRunner() {
           )}
 
           {showOptic && (
-            <div className="bundle-optic" style={{ flex: '1' }}>
-              <h3 style={{marginBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '0.5rem'}}>Optik Form</h3>
-              <div className="optic-grid">
-                {Array.from({length: currentQuestion.questionCount}).map((_, i) => {
-                
-                return (
-                  <div key={i} className="optic-row">
-                    <span className="optic-num">{i + 1}.</span>
-                    <div className="optic-options">
-                      {[0,1,2,3,4].map(optIdx => {
-                        const letter = String.fromCharCode(65 + optIdx);
-                        let bubbleClass = "optic-bubble";
-                        
-                        if (bundleAns[i] === optIdx) {
-                          bubbleClass += " selected";
-                        }
+            <div className="bundle-optic" style={{ flex: '1', overflowY: 'auto' }}>
+              <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>{(currentQuestion.type === 'acik_uclu' || test?.type === 'acik_uclu') ? '📝 Yazılı Yanıt Formu' : 'Optik Form'}</span>
+              </h3>
 
-                        return (
-                          <button 
-                            key={optIdx} 
-                            className={bubbleClass} 
-                            onClick={() => handleBundleOptionSelect(i, optIdx)}
-                          >
-                            {letter}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+              {(currentQuestion.type === 'acik_uclu' || test?.type === 'acik_uclu') ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {Array.from({ length: currentQuestion.questionCount }).map((_, i) => {
+                    const textVal = bundleAns[i] || '';
+                    return (
+                      <div key={i} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
+                        <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#1e293b', marginBottom: '0.5rem' }}>
+                          Soru {i + 1} Yanıtınız:
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={textVal}
+                          onChange={(e) => handleBundleTextChange(i, e.target.value)}
+                          placeholder={`${i + 1}. sorunun cevabını buraya detaylı yazınız...`}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            borderRadius: '0.65rem',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.9rem',
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            outline: 'none',
+                            background: 'white'
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="optic-grid">
+                  {Array.from({ length: currentQuestion.questionCount }).map((_, i) => {
+                    return (
+                      <div key={i} className="optic-row">
+                        <span className="optic-num">{i + 1}.</span>
+                        <div className="optic-options">
+                          {[0, 1, 2, 3, 4].map(optIdx => {
+                            const letter = String.fromCharCode(65 + optIdx);
+                            let bubbleClass = "optic-bubble";
+                            if (bundleAns[i] === optIdx) {
+                              bubbleClass += " selected";
+                            }
+                            return (
+                              <button 
+                                key={optIdx} 
+                                className={bubbleClass} 
+                                onClick={() => handleBundleOptionSelect(i, optIdx)}
+                              >
+                                {letter}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               {testQuestions.length > 1 && (
