@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Clock, ChevronRight, ChevronLeft, Maximize, Minimize, Layout, LayoutPanelTop, PanelRightClose, PanelRightOpen, GripVertical, GripHorizontal, CheckCircle, XCircle, Clock3, FileText, X } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
@@ -109,8 +109,13 @@ export default function QuizRunner() {
     ? homeworks.find(hw => hw.id === id) 
     : (data?.tests?.find(t => t.id === id) || allQuestions.find(q => q.id === id));
 
-  const testQuestionList = test?.questionIds || test?.questions || test?.tests || (test?.testId ? [test.testId] : []);
-  const testQuestionIds = testQuestionList.map(q => typeof q === 'string' ? q : (q?.id || q));
+  const testQuestionList = useMemo(() => {
+    return test?.questionIds || test?.questions || test?.tests || (test?.testId ? [test.testId] : []);
+  }, [test]);
+
+  const testQuestionIds = useMemo(() => {
+    return testQuestionList.map(q => typeof q === 'string' ? q : (q?.id || q));
+  }, [testQuestionList]);
 
   const rawTestQuestions = useMemo(() => {
     if (!test) return [];
@@ -131,13 +136,19 @@ export default function QuizRunner() {
       return [directQuestion];
     }
     return [];
-  }, [test, allQuestions, testQuestionList, testQuestionIds]);
+  }, [test?.id, test?.contentType, allQuestions, JSON.stringify(testQuestionIds)]);
 
   const [testQuestions, setTestQuestions] = useState(rawTestQuestions);
 
+  const loadedTestIdRef = useRef(null);
   useEffect(() => {
+    let isSubscribed = true;
     async function loadFullPayloads() {
       if (rawTestQuestions.length === 0) return;
+      
+      const currentKey = `${id}-${test?.id}-${rawTestQuestions.map(q => q.id).join(',')}`;
+      if (loadedTestIdRef.current === currentKey) return;
+
       const enriched = await Promise.all(rawTestQuestions.map(async (q) => {
         let payload = q.contentPayload;
         if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && (payload.length < 500 || payload.includes('[LOCALSTORAGE_CACHE]')))) {
@@ -152,10 +163,15 @@ export default function QuizRunner() {
         }
         return { ...q, contentPayload: payload };
       }));
-      setTestQuestions(enriched);
+
+      if (isSubscribed) {
+        loadedTestIdRef.current = currentKey;
+        setTestQuestions(enriched);
+      }
     }
     loadFullPayloads();
-  }, [rawTestQuestions, id, test]);
+    return () => { isSubscribed = false; };
+  }, [rawTestQuestions, id, test?.id]);
 
   useEffect(() => {
     if (test?.sourceType === 'trackedBook') {

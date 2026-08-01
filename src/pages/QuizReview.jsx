@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -47,14 +47,20 @@ export default function QuizReview() {
       groupedAnswers[ans.questionId].push(ans);
     });
     return Object.keys(groupedAnswers).map(qId => questions.find(q => q.id === qId)).filter(Boolean);
-  }, [submission, questions]);
+  }, [submission?.id, JSON.stringify(submission?.answers), questions]);
 
+  const loadedSubIdRef = useRef(null);
   useEffect(() => {
+    let isSubscribed = true;
     async function loadFullPayloads() {
       if (baseQuestions.length === 0) {
         setEnrichedQuestions([]);
         return;
       }
+
+      const currentKey = `${id}-${baseQuestions.map(q => q.id).join(',')}`;
+      if (loadedSubIdRef.current === currentKey) return;
+
       const enriched = await Promise.all(baseQuestions.map(async (q) => {
         let payload = q.contentPayload;
         if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && payload.includes('[LOCALSTORAGE_CACHE]'))) {
@@ -65,10 +71,15 @@ export default function QuizReview() {
         }
         return { ...q, contentPayload: payload };
       }));
-      setEnrichedQuestions(enriched);
+
+      if (isSubscribed) {
+        loadedSubIdRef.current = currentKey;
+        setEnrichedQuestions(enriched);
+      }
     }
     loadFullPayloads();
-  }, [baseQuestions]);
+    return () => { isSubscribed = false; };
+  }, [baseQuestions, id]);
 
   useEffect(() => {
     const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
