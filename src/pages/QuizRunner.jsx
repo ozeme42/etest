@@ -65,6 +65,17 @@ export default function QuizRunner() {
   const [splitRatio, setSplitRatio] = useState(65);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Dedicated Mobile Solver States
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [mobileTab, setMobileTab] = useState('doc'); // 'doc', 'optic', 'scratch', 'split'
+  const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const isHomework = id.startsWith('hw_');
   const test = isHomework 
     ? homeworks.find(hw => hw.id === id) 
@@ -649,6 +660,251 @@ export default function QuizRunner() {
     );
   }
 
+  // --- DEDICATED MOBILE TEST SOLVER VIEW ---
+  if (isMobile) {
+    const bundleAns = studentAnswers[currentQuestion?.id] || {};
+    const answeredCount = Object.keys(bundleAns).length;
+    const totalCount = currentQuestion?.questionCount || testQuestions.length || 1;
+
+    return (
+      <div className="mobile-quiz-runner">
+        {/* Modals */}
+        {showFinishModal && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)' }}>
+            <div className="modal-content card glass animate-fade-in" style={{ width: '90%', maxWidth: '380px', textAlign: 'center', padding: '1.5rem', background: '#ffffff', borderRadius: '1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+              <h3 style={{ marginBottom: '0.75rem', color: '#1e293b', fontWeight: 900 }}>Testi Bitir</h3>
+              <p style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: '#475569' }}>Testi bitirmek istediğinize emin misiniz? <br/><br/>Seçimleriniz kaydedilecek ve değerlendirilecektir.</p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowFinishModal(false)}>İptal</button>
+                <button className="btn btn-primary" style={{ flex: 1, background: '#10b981', borderColor: '#10b981' }} onClick={() => handleFinishTest(true)}>Evet, Bitir</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 1. Mobile Top Header */}
+        <div className="mobile-top-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/student')}
+              style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="mobile-top-bar-title">{test?.title || 'Test Çözümü'}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="mobile-timer-badge">
+              <Clock size={14} />
+              <span>{formatTime(timeLeft)}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFinishModal(true)}
+              style={{ background: '#10b981', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '8px', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer' }}
+            >
+              🏁 Bitir
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Mobile View Mode Sub-Header Tabs */}
+        <div className="mobile-tab-bar">
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === 'doc' ? 'active' : ''}`}
+            onClick={() => setMobileTab('doc')}
+          >
+            📄 Soru / Doküman
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === 'optic' ? 'active' : ''}`}
+            onClick={() => setMobileTab('optic')}
+          >
+            📝 Optik Form
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === 'scratch' ? 'active' : ''}`}
+            onClick={() => setMobileTab('scratch')}
+          >
+            ✏️ Karalama
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab-btn ${mobileTab === 'split' ? 'active' : ''}`}
+            onClick={() => setMobileTab('split')}
+          >
+            🔀 Bölünmüş
+          </button>
+        </div>
+
+        {/* 3. Mobile Main View Area */}
+        <div className="mobile-main-content">
+          {mobileTab === 'doc' && (
+            <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+              <DrawingOverlay>
+                {renderContentPreview(currentQuestion)}
+              </DrawingOverlay>
+            </div>
+          )}
+
+          {mobileTab === 'optic' && (
+            <div className="mobile-optic-grid">
+              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '8px' }}>
+                Optik Cevap Anahtarı ({answeredCount}/{totalCount} Cevaplandı)
+              </div>
+              {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
+                <div key={i} className="mobile-optic-row">
+                  <span className="mobile-optic-num">Soru {i + 1}</span>
+                  <div className="mobile-optic-bubbles">
+                    {[0, 1, 2, 3, 4].map(optIdx => {
+                      const letter = String.fromCharCode(65 + optIdx);
+                      const isSelected = bundleAns[i] === optIdx;
+                      return (
+                        <button
+                          key={optIdx}
+                          type="button"
+                          className={`mobile-optic-bubble ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleBundleOptionSelect(i, optIdx)}
+                        >
+                          {letter}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {mobileTab === 'scratch' && (
+            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+              <DrawingOverlay>
+                <div style={{ width: '100%', height: '100%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontWeight: 800 }}>
+                  ✏️ Mobil Karalama Tahtası
+                </div>
+              </DrawingOverlay>
+            </div>
+          )}
+
+          {mobileTab === 'split' && (
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ height: '55%', width: '100%', borderBottom: '2px solid #cbd5e1', overflow: 'hidden' }}>
+                {renderContentPreview(currentQuestion)}
+              </div>
+              <div className="mobile-optic-grid" style={{ height: '45%', background: '#f1f5f9' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#1e293b' }}>
+                  Optik Form ({answeredCount}/{totalCount})
+                </div>
+                {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
+                  <div key={i} className="mobile-optic-row" style={{ padding: '6px 10px' }}>
+                    <span className="mobile-optic-num" style={{ fontSize: '0.82rem' }}>S{i + 1}</span>
+                    <div className="mobile-optic-bubbles">
+                      {[0, 1, 2, 3, 4].map(optIdx => {
+                        const letter = String.fromCharCode(65 + optIdx);
+                        const isSelected = bundleAns[i] === optIdx;
+                        return (
+                          <button
+                            key={optIdx}
+                            type="button"
+                            className={`mobile-optic-bubble ${isSelected ? 'selected' : ''}`}
+                            style={{ width: '36px', height: '36px', fontSize: '0.8rem' }}
+                            onClick={() => handleBundleOptionSelect(i, optIdx)}
+                          >
+                            {letter}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 4. Mobile Bottom Action Bar */}
+        <div className="mobile-bottom-bar">
+          <button
+            type="button"
+            className="mobile-nav-btn prev"
+            onClick={handlePrev}
+            disabled={currentQuestionIdx === 0}
+            style={{ opacity: currentQuestionIdx === 0 ? 0.5 : 1 }}
+          >
+            <ChevronLeft size={18} /> Önceki
+          </button>
+
+          <button
+            type="button"
+            className="mobile-optic-toggle-btn"
+            onClick={() => setShowMobileOpticDrawer(true)}
+          >
+            📝 Optik ({answeredCount}/{totalCount})
+          </button>
+
+          {currentQuestionIdx < testQuestions.length - 1 ? (
+            <button type="button" className="mobile-nav-btn next" onClick={handleNext}>
+              Sonraki <ChevronRight size={18} />
+            </button>
+          ) : (
+            <button type="button" className="mobile-nav-btn finish" onClick={() => setShowFinishModal(true)}>
+              Bitir 🏁
+            </button>
+          )}
+        </div>
+
+        {/* 5. Mobile Slide-Up Optic Drawer */}
+        {showMobileOpticDrawer && (
+          <div className="mobile-drawer-overlay" onClick={() => setShowMobileOpticDrawer(false)}>
+            <div className="mobile-drawer-content" onClick={e => e.stopPropagation()}>
+              <div className="mobile-drawer-header">
+                <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>
+                  📝 Hızlı Optik Cevap Anahtarı
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileOpticDrawer(false)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mobile-optic-grid" style={{ maxHeight: '60vh' }}>
+                {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
+                  <div key={i} className="mobile-optic-row">
+                    <span className="mobile-optic-num">Soru {i + 1}</span>
+                    <div className="mobile-optic-bubbles">
+                      {[0, 1, 2, 3, 4].map(optIdx => {
+                        const letter = String.fromCharCode(65 + optIdx);
+                        const isSelected = bundleAns[i] === optIdx;
+                        return (
+                          <button
+                            key={optIdx}
+                            type="button"
+                            className={`mobile-optic-bubble ${isSelected ? 'selected' : ''}`}
+                            onClick={() => handleBundleOptionSelect(i, optIdx)}
+                          >
+                            {letter}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // --- BUNDLE VIEW (PDF / HTML Multi-question) ---
   if (currentQuestion?.isBundle) {
     const bundleAns = studentAnswers[currentQuestion.id] || {};
@@ -672,6 +928,9 @@ export default function QuizRunner() {
         <div className={`container quiz-container animate-fade-in ${isFullscreen ? 'fullscreen-mode' : ''}`}>
           
           <div className="quiz-toolbar">
+          <button className="btn-icon" title="Mobil Görünüm" onClick={() => setIsMobile(!isMobile)}>
+            📱
+          </button>
           <button className="btn-icon" title="Optik Formu Gizle/Göster" onClick={() => setShowOptic(!showOptic)}>
             {showOptic ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
           </button>
