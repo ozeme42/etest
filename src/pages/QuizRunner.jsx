@@ -51,28 +51,49 @@ export default function QuizRunner() {
     ? homeworks.find(hw => hw.id === id) 
     : (data?.tests?.find(t => t.id === id) || allQuestions.find(q => q.id === id));
 
-  const testQuestionList = test?.questionIds || test?.questions || [];
-  const testQuestionIds = testQuestionList.map(q => typeof q === 'string' ? q : (q.id || q));
-  const rawTestQuestions = test ? (testQuestionList.length > 0 ? allQuestions.filter(q => testQuestionIds.includes(q.id)) : (test.contentType || test.type ? [test] : [])) : [];
+  const testQuestionList = test?.questionIds || test?.questions || test?.tests || (test?.testId ? [test.testId] : []);
+  const testQuestionIds = testQuestionList.map(q => typeof q === 'string' ? q : (q?.id || q));
+
+  const rawTestQuestions = useMemo(() => {
+    if (!test) return [];
+    if (test.contentType === 'pdf' || test.contentType === 'gorsel' || test.contentType === 'html') {
+      return [test];
+    }
+    if (testQuestionList.length > 0) {
+      if (typeof testQuestionList[0] === 'object' && testQuestionList[0] !== null) {
+        return testQuestionList;
+      }
+      const foundInBank = allQuestions.filter(q => testQuestionIds.includes(q.id));
+      if (foundInBank.length > 0) {
+        return foundInBank;
+      }
+    }
+    const directQuestion = allQuestions.find(q => q.id === test.id || testQuestionIds.includes(q.id));
+    if (directQuestion) {
+      return [directQuestion];
+    }
+    return [];
+  }, [test, allQuestions, testQuestionList, testQuestionIds]);
 
   const [testQuestions, setTestQuestions] = useState(rawTestQuestions);
 
   useEffect(() => {
     async function loadFullPayloads() {
-      const baseQs = rawTestQuestions.length > 0 ? rawTestQuestions : (test && (test.contentType || test.type) ? [test] : []);
-      const enriched = await Promise.all(baseQs.map(async (q) => {
-        if (!q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
+      if (rawTestQuestions.length === 0) return;
+      const enriched = await Promise.all(rawTestQuestions.map(async (q) => {
+        let payload = q.contentPayload;
+        if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && payload.includes('[LOCALSTORAGE_CACHE]'))) {
           const fullPayload = await idbGetPayload(q.id);
           if (fullPayload) {
-            return { ...q, contentPayload: fullPayload };
+            payload = fullPayload;
           }
         }
-        return q;
+        return { ...q, contentPayload: payload };
       }));
       setTestQuestions(enriched);
     }
     loadFullPayloads();
-  }, [allQuestions, test]);
+  }, [rawTestQuestions]);
 
   useEffect(() => {
     if (test?.sourceType === 'trackedBook') {
