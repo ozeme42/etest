@@ -120,81 +120,14 @@ export default function QuizRunner() {
   const rawTestQuestions = useMemo(() => {
     if (!test) return [];
 
-    // PDF and HTML remain as single bundle document (with PDF/HTML viewer)
-    if (test.contentType === 'pdf' || test.contentType === 'html') {
-      return [test];
-    }
-
-    const extractSubQuestions = (target) => {
-      if (!target) return [];
-      
-      // If target has questionCount === 1 or 1 answer key, all uploaded images belong to THIS single question!
-      if (target.questionCount === 1 || (target.answerKey && target.answerKey.length === 1)) {
-        return [];
-      }
-
-      let list = target.questionsList || [];
-      if ((!list || list.length === 0) && target.contentPayload && typeof target.contentPayload === 'string' && target.contentPayload.trim().startsWith('[')) {
-        try {
-          const parsed = JSON.parse(target.contentPayload);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            list = parsed;
-          }
-        } catch (e) {
-          // not JSON array
-        }
-      }
-      if ((!list || list.length === 0) && target.imageUrls && target.imageUrls.length > 0) {
-        list = target.imageUrls.map((url, idx) => ({
-          id: `${target.id}_sub_${idx}`,
-          title: `Soru ${idx + 1}`,
-          contentType: 'gorsel',
-          contentPayload: url,
-          type: target.type || 'coktan_secmeli',
-          options: target.type === 'acik_uclu' ? [] : ['A', 'B', 'C', 'D', 'E'],
-          correctAnswer: target.answerKey?.[idx] ? target.answerKey[idx].charCodeAt(0) - 65 : 0
-        }));
-      }
-      return list;
-    };
-
-    const targetObj = test;
-    const subList = extractSubQuestions(targetObj);
-
-    if (subList.length > 0) {
-      return subList.map((sq, idx) => {
-        let corrAns = sq.correctAnswer;
-        if (typeof corrAns === 'string') {
-          const upper = corrAns.trim().toUpperCase();
-          if (upper === 'A') corrAns = 0;
-          else if (upper === 'B') corrAns = 1;
-          else if (upper === 'C') corrAns = 2;
-          else if (upper === 'D') corrAns = 3;
-          else if (upper === 'E') corrAns = 4;
-        }
-        if (corrAns === undefined && targetObj.answerKey && targetObj.answerKey[idx]) {
-          corrAns = targetObj.answerKey[idx].charCodeAt(0) - 65;
-        }
-
-        const qType = sq.type || targetObj.type || 'coktan_secmeli';
-        const qOptions = qType === 'acik_uclu' ? [] : (sq.options || ['A', 'B', 'C', 'D', 'E']);
-
-        return {
-          ...sq,
-          id: sq.id || `${targetObj.id}_sub_${idx}`,
-          parentTestId: targetObj.id,
-          subIndex: idx,
-          questionCount: subList.length,
-          isSubOfBundle: true,
-          isBundle: false,
-          type: qType,
-          contentType: sq.contentType || targetObj.contentType || 'gorsel',
-          contentPayload: sq.contentPayload || sq.imageUrl,
-          questionText: sq.questionText || sq.title || `Soru ${idx + 1}`,
-          options: qOptions,
-          correctAnswer: typeof corrAns === 'number' ? corrAns : 0
-        };
-      });
+    // Bundle tests (isBundle: true, pdf, html, gorsel packages, json packages) stay as a single bundle package with right-hand optic form
+    if (test.isBundle || test.contentType === 'pdf' || test.contentType === 'gorsel' || test.contentType === 'html' || test.contentType === 'json' || test.questionsList?.length > 1) {
+      const qCount = test.questionCount || test.questionsList?.length || test.imageUrls?.length || 1;
+      return [{
+        ...test,
+        isBundle: true,
+        questionCount: qCount
+      }];
     }
 
     if (testQuestionList.length > 0) {
@@ -209,40 +142,13 @@ export default function QuizRunner() {
 
     const directQuestion = allQuestions.find(q => q.id === test.id || testQuestionIds.includes(q.id));
     if (directQuestion) {
-      const bankSubList = extractSubQuestions(directQuestion);
-      if (bankSubList.length > 0) {
-        return bankSubList.map((sq, idx) => {
-          let corrAns = sq.correctAnswer;
-          if (typeof corrAns === 'string') {
-            const upper = corrAns.trim().toUpperCase();
-            if (upper === 'A') corrAns = 0;
-            else if (upper === 'B') corrAns = 1;
-            else if (upper === 'C') corrAns = 2;
-            else if (upper === 'D') corrAns = 3;
-            else if (upper === 'E') corrAns = 4;
-          }
-          if (corrAns === undefined && directQuestion.answerKey && directQuestion.answerKey[idx]) {
-            corrAns = directQuestion.answerKey[idx].charCodeAt(0) - 65;
-          }
-
-          const qType = sq.type || directQuestion.type || 'coktan_secmeli';
-          const qOptions = qType === 'acik_uclu' ? [] : (sq.options || ['A', 'B', 'C', 'D', 'E']);
-
-          return {
-            ...sq,
-            id: sq.id || `${directQuestion.id}_sub_${idx}`,
-            parentTestId: directQuestion.id,
-            subIndex: idx,
-            questionCount: bankSubList.length,
-            isSubOfBundle: true,
-            type: qType,
-            contentType: sq.contentType || directQuestion.contentType || 'gorsel',
-            contentPayload: sq.contentPayload || sq.imageUrl,
-            questionText: sq.questionText || sq.title || `Soru ${idx + 1}`,
-            options: qOptions,
-            correctAnswer: typeof corrAns === 'number' ? corrAns : 0
-          };
-        });
+      if (directQuestion.isBundle || directQuestion.contentType === 'gorsel' || directQuestion.contentType === 'pdf' || directQuestion.contentType === 'html' || directQuestion.contentType === 'json' || directQuestion.questionsList?.length > 1) {
+        const qCount = directQuestion.questionCount || directQuestion.questionsList?.length || directQuestion.imageUrls?.length || 1;
+        return [{
+          ...directQuestion,
+          isBundle: true,
+          questionCount: qCount
+        }];
       }
       return [directQuestion];
     }
@@ -760,14 +666,22 @@ export default function QuizRunner() {
           : (q.contentPayload ? [q.contentPayload] : []);
         
         return (
-          <div className="q-preview-gorsel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', overflowY: 'auto', padding: '1rem' }}>
+          <div className="q-preview-gorsel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center', width: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc' }}>
             {urls.map((url, imgIdx) => (
-              <img
-                key={imgIdx}
-                src={url}
-                alt={`Soru Görseli ${imgIdx + 1}`}
-                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 'var(--border-radius-md)', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}
-              />
+              <div key={imgIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', width: '100%', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                {urls.length > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.25rem 0.75rem', borderRadius: '6px' }}>
+                      Görsel {imgIdx + 1}
+                    </span>
+                  </div>
+                )}
+                <img
+                  src={url}
+                  alt={`Soru Görseli ${imgIdx + 1}`}
+                  style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+                />
+              </div>
             ))}
           </div>
         );
@@ -1179,8 +1093,8 @@ export default function QuizRunner() {
     );
   }
 
-  // --- BUNDLE VIEW (Only for multi-page PDF or HTML documents) ---
-  if (currentQuestion?.isBundle && !currentQuestion?.isSubOfBundle && (currentQuestion?.contentType === 'pdf' || currentQuestion?.contentType === 'html')) {
+  // --- BUNDLE VIEW (PDF, HTML, Visual, JSON Multi-question packages) ---
+  if (currentQuestion?.isBundle) {
     const bundleAns = studentAnswers[currentQuestion.id] || {};
     
     return (
