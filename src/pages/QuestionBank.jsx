@@ -2428,6 +2428,20 @@ export default function QuestionBank() {
                             Toplam {imageUrls.length || 1} Görsel Soru
                           </span>
                         </div>
+                        {/* FAST BULK ANSWER KEY STRING INPUT BOX FOR IMAGE QUESTIONS */}
+                        <div style={{ marginBottom: '1.25rem', background: '#e0e7ff', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #c7d2fe' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#3730a3', display: 'block', marginBottom: '0.35rem' }}>
+                            ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.bulkAnswerKey}
+                            onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
+                            placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #818cf8', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: 'white' }}
+                          />
+                        </div>
+
                         {/* LARGE READABLE VISUAL QUESTION CARDS WITH OPTIC BUBBLE BUTTONS */}
                         <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', padding: '0.25rem' }}>
                           {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
@@ -2891,13 +2905,8 @@ export default function QuestionBank() {
                             const correctIdx = getCorrectIdxForImg(imgIdx);
                             return (
                               <div key={imgIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 10px rgba(0,0,0,0.04)' }}>
-                                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>🖼️ Görsel / Soru {imgIdx + 1} / {imageList.length}</span>
-                                  {correctIdx >= 0 && (
-                                    <span style={{ background: '#ecfdf5', color: '#065f46', fontSize: '0.8rem', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid #a7f3d0' }}>
-                                      ✓ Doğru Cevap: {String.fromCharCode(65 + correctIdx)}
-                                    </span>
-                                  )}
+                                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left' }}>
+                                  🖼️ Görsel / Soru {imgIdx + 1} / {imageList.length}
                                 </div>
 
                                 <img 
