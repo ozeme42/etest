@@ -59,6 +59,16 @@
   margin: 0 0.5rem;
 }
 
+/* DESKTOP 3-COLUMN GRID */
+.qbank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 2.5rem;
+}
+
 /* COMPACT LIST */
 .qbank-main {
   width: 100%;
