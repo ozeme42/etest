@@ -932,13 +932,14 @@ export default function QuestionBank() {
           }
         }
 
+        const isAcikUclu = formData.type === 'acik_uclu';
         const subQuestions = validUrls.map((url, idx) => ({
           id: `subq_${idx}_${Date.now()}`,
           title: `Görsel Soru ${idx + 1}`,
           contentType: 'gorsel',
           contentPayload: url,
           type: formData.type || 'coktan_secmeli',
-          options: ['A', 'B', 'C', 'D', 'E'],
+          options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
           correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
         }));
 
@@ -982,6 +983,7 @@ export default function QuestionBank() {
       else if (formData.contentType === 'gorsel') {
         const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? [formData.contentPayload] : []);
         const totalQs = validUrls.length || 1;
+        const isAcikUclu = formData.type === 'acik_uclu';
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -998,7 +1000,7 @@ export default function QuestionBank() {
           contentType: 'gorsel',
           contentPayload: url,
           type: formData.type || 'coktan_secmeli',
-          options: ['A', 'B', 'C', 'D', 'E'],
+          options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
           correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
         }));
 

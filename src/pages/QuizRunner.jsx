@@ -572,7 +572,7 @@ export default function QuizRunner() {
                   {qItem.questionText}
                 </h4>
 
-                {qItem.options && qItem.options.length > 0 && (
+                {qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && qItem.type !== 'acik_uclu' && test?.type !== 'acik_uclu' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.65rem' }}>
                     {qItem.options.map((opt, oIdx) => {
                       const isSelected = userSel === oIdx;
