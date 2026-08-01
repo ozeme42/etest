@@ -24,7 +24,7 @@ export function QuestionBankProvider({ children }) {
     async function syncAndRestorePayloads() {
       // 1. Restore full PDF/Image payloads from IndexedDB if cached locally
       const restored = await Promise.all((questions || []).map(async (q) => {
-        if (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]')) {
+        if (!q.contentPayload || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
           const fullPayload = await idbGetPayload(q.id);
           if (fullPayload) {
             return { ...q, contentPayload: fullPayload };
@@ -33,14 +33,36 @@ export function QuestionBankProvider({ children }) {
         return q;
       }));
 
-      if (JSON.stringify(restored) !== JSON.stringify(questions)) {
-        setQuestions(restored);
-      }
+      setQuestions(restored);
 
-      // 2. Sync from Supabase database
+      // 2. Safely merge from Supabase database without overwriting local PDF payloads
       const dbQs = await dbGetQuestions();
       if (dbQs && dbQs.length > 0) {
-        setQuestions(dbQs.filter(q => q.id !== 'q1'));
+        setQuestions(prev => {
+          const mergedMap = new Map();
+          // Keep existing local questions and their full PDF DataURLs
+          (prev || []).forEach(q => {
+            if (q.id !== 'q1') mergedMap.set(String(q.id), q);
+          });
+          // Merge Supabase questions
+          dbQs.forEach(dbQ => {
+            if (dbQ.id === 'q1') return;
+            const existing = mergedMap.get(String(dbQ.id));
+            if (existing) {
+              const hasFullLocalPayload = typeof existing.contentPayload === 'string' &&
+                existing.contentPayload.length > 500 &&
+                !existing.contentPayload.includes('[LOCALSTORAGE_CACHE]');
+
+              mergedMap.set(String(dbQ.id), {
+                ...dbQ,
+                contentPayload: hasFullLocalPayload ? existing.contentPayload : (dbQ.contentPayload || existing.contentPayload)
+              });
+            } else {
+              mergedMap.set(String(dbQ.id), dbQ);
+            }
+          });
+          return Array.from(mergedMap.values());
+        });
       }
     }
     syncAndRestorePayloads();

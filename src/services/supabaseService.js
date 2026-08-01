@@ -397,36 +397,29 @@ function toUUID(id) {
 export async function dbGetQuestions() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data, error } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('questions')
+      .select('id, subject, grade_id, topic, topic_id, type, content_type, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, created_at')
+      .order('created_at', { ascending: false });
     if (error) throw error;
-    return data.map(q => {
-      let raw = {};
-      if (q.raw_data && typeof q.raw_data === 'object') {
-        raw = q.raw_data;
-      } else if (q.explanation && typeof q.explanation === 'string' && q.explanation.startsWith('{')) {
-        try { raw = JSON.parse(q.explanation); } catch (e) {}
-      }
-      return {
-        id: raw.id || String(q.id),
-        subject: q.subject || raw.subject || 'Matematik',
-        gradeId: q.grade_id || raw.gradeId || 'g1',
-        topic: q.topic || raw.topic || 'Genel',
-        topicId: q.topic_id || raw.topicId || 'global_all',
-        type: q.type || raw.type || 'coktan_secmeli',
-        contentType: q.content_type || raw.contentType || 'text',
-        contentPayload: q.content_payload || raw.contentPayload || '',
-        isBundle: q.is_bundle !== undefined ? q.is_bundle : (raw.isBundle || false),
-        answerKey: q.answer_key || raw.answerKey || [],
-        title: q.title || raw.title || '',
-        questionCount: q.question_count || raw.questionCount || 1,
-        questionText: q.question_text || raw.questionText || '',
-        options: q.options || raw.options || [],
-        correctAnswer: q.correct_answer || raw.correctAnswer || '0',
-        explanation: raw.explanation !== undefined ? raw.explanation : (q.explanation || ''),
-        imageUrl: q.image_url || raw.imageUrl || '',
-        ...raw
-      };
-    });
+    return (data || []).map(q => ({
+      id: String(q.id),
+      subject: q.subject || 'Matematik',
+      gradeId: q.grade_id || 'g1',
+      topic: q.topic || 'Genel',
+      topicId: q.topic_id || 'global_all',
+      type: q.type || 'coktan_secmeli',
+      contentType: q.content_type || 'text',
+      contentPayload: '',
+      isBundle: q.is_bundle !== undefined ? q.is_bundle : false,
+      answerKey: q.answer_key || [],
+      title: q.title || '',
+      questionCount: q.question_count || 1,
+      questionText: q.question_text || '',
+      options: q.options || [],
+      correctAnswer: q.correct_answer || '0',
+      explanation: q.explanation || '',
+      imageUrl: q.image_url || ''
+    }));
   } catch (err) {
     console.warn('[Supabase] dbGetQuestions error:', err.message);
     return null;
