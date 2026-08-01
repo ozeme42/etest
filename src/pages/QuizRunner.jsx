@@ -201,12 +201,27 @@ export default function QuizRunner() {
     }
   }, [test, id, navigate, location.search]);
 
+  const totalQuestionsCount = useMemo(() => {
+    if (!testQuestions || testQuestions.length === 0) return 1;
+    let count = 0;
+    testQuestions.forEach(q => {
+      if (q.isBundle || q.questionCount || q.questionsList?.length > 0 || q.imageUrls?.length > 0) {
+        count += (q.questionCount || q.questionsList?.length || q.imageUrls?.length || 1);
+      } else {
+        count += 1;
+      }
+    });
+    return count > 0 ? count : 1;
+  }, [testQuestions]);
+
   useEffect(() => {
     if (test && test.sourceType !== 'trackedBook' && timeLeft === null && !savedState) {
-      const initialTime = (test.time || (testQuestions.length * 2)) * 60;
-      setTimeLeft(initialTime > 0 ? initialTime : 3600);
+      const specifiedMinutes = test.durationMinutes || test.duration || test.time;
+      const minutes = specifiedMinutes ? Number(specifiedMinutes) : (totalQuestionsCount * 2);
+      const initialTime = minutes * 60;
+      setTimeLeft(initialTime > 0 ? initialTime : 120);
     }
-  }, [test, testQuestions.length, timeLeft, savedState]);
+  }, [test, totalQuestionsCount, timeLeft, savedState]);
 
   // AUTOSAVE LOGIC
   useEffect(() => {
@@ -1061,8 +1076,8 @@ export default function QuizRunner() {
   // --- DEDICATED MOBILE TEST SOLVER VIEW ---
   if (isMobile) {
     const bundleAns = studentAnswers[currentQuestion?.id] || {};
-    const answeredCount = Object.keys(bundleAns).length;
-    const totalCount = currentQuestion?.questionCount || testQuestions.length || 1;
+    const answeredCount = typeof bundleAns === 'object' && bundleAns !== null ? Object.keys(bundleAns).length : (studentAnswers[currentQuestion?.id] ? 1 : 0);
+    const totalCount = currentQuestion?.questionCount || totalQuestionsCount || 1;
 
     return (
       <div className="mobile-quiz-runner">
