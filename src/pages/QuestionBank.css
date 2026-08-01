@@ -323,39 +323,55 @@
     display: inline !important;
   }
   .qbank-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 0.5rem !important;
     margin-bottom: 1.5rem !important;
+    width: 100% !important;
   }
   .qbank-card {
-    padding: 0.75rem 0.85rem !important;
-    min-height: 95px !important;
+    padding: 0.75rem 0.9rem !important;
+    min-height: auto !important;
     border-radius: 0.85rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
   }
-  .qbank-card .card-bg-icon {
+  .card-top-row {
+    width: 100% !important;
+  }
+  .card-bottom-row {
+    margin-top: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+  .card-bg-icon {
     display: none !important;
   }
-  .qbank-card .card-icon-box {
+  .card-icon-box {
     width: 34px !important;
     height: 34px !important;
     border-radius: 0.6rem !important;
   }
-  .qbank-card .card-icon-box svg {
+  .card-icon-box svg {
     width: 18px !important;
     height: 18px !important;
   }
-  .qbank-card .card-badge {
-    font-size: 0.68rem !important;
-    padding: 0.15rem 0.5rem !important;
+  .card-badge {
+    font-size: 0.7rem !important;
+    padding: 0.18rem 0.55rem !important;
   }
   .qbank-card h3 {
-    font-size: 0.88rem !important;
+    font-size: 0.92rem !important;
     font-weight: 800 !important;
-    line-height: 1.15 !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
   }
-  .qbank-card .card-footer-text {
-    font-size: 0.7rem !important;
-    margin-top: 0.25rem !important;
+  .card-footer-text {
+    font-size: 0.72rem !important;
+    margin-top: 0 !important;
   }
   .form-row {
     flex-direction: column;

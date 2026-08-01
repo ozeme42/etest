@@ -1329,7 +1329,7 @@ export default function QuestionBank() {
                       <GraduationCap size={130} />
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
+                    <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
                       <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '0.85rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <GraduationCap size={26} color="white" />
                       </div>
@@ -1339,7 +1339,7 @@ export default function QuestionBank() {
                       </span>
                     </div>
 
-                    <div style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
+                    <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm Dersler (Genel Portföy)</h3>
                       <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, opacity: 0.95 }}>
                         <span>Tüm İçerikleri Göster</span>
@@ -1374,7 +1374,7 @@ export default function QuestionBank() {
                           <Icon size={120} />
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
+                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                             <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '0.85rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <Icon size={26} color="white" />
@@ -1391,7 +1391,7 @@ export default function QuestionBank() {
                           </span>
                         </div>
 
-                        <div style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
+                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
                           <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>
                             {gradeName ? `${gradeName} ${s.name}` : s.name}
                           </h3>
@@ -1433,7 +1433,7 @@ export default function QuestionBank() {
                           <Icon size={120} />
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
+                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.35rem' }}>
                           <div className="card-icon-box" style={{ width: '48px', height: '48px', borderRadius: '0.85rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Icon size={26} color="white" />
                           </div>
@@ -1443,7 +1443,7 @@ export default function QuestionBank() {
                           </span>
                         </div>
 
-                        <div style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
+                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1rem' }}>
                           <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>🎓 {g.name}</h3>
                           <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, opacity: 0.9 }}>
                             <span>Sınıf Sayfasına Git</span>
