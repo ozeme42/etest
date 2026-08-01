@@ -187,6 +187,58 @@ export default function QuestionBank() {
     reader.readAsDataURL(file);
   };
 
+  const handleMultipleFilesSelected = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const files = Array.from(fileList);
+    const imageFiles = files.filter(f => f.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(f.name.split('.').pop().toLowerCase()));
+
+    if (imageFiles.length === 0) {
+      handleFileSelected(files[0]);
+      return;
+    }
+
+    if (imageFiles.length === 1 && files.length === 1) {
+      handleFileSelected(files[0]);
+      return;
+    }
+
+    const readAsDataURL = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve({ name: file.name, data: e.target.result, size: file.size / 1024 });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
+
+    try {
+      const results = await Promise.all(imageFiles.map(readAsDataURL));
+      const base64List = results.map(r => r.data);
+      const totalKb = results.reduce((sum, r) => sum + r.size, 0).toFixed(1);
+
+      setUploadedFileInfo({
+        name: `${results.length} Adet Görsel Soru Dosyası`,
+        size: `${totalKb} KB`,
+        type: 'gorsel',
+        data: results[0].data,
+        count: results.length
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        contentType: 'gorsel',
+        contentPayload: base64List.join('\n\n'),
+        title: prev.title || `Görsel Soru Seti (${results.length} Soru)`
+      }));
+
+      setImageUrls(base64List);
+      if (creationStep === 1) setCreationStep(2);
+    } catch (err) {
+      console.error('Toplu görsel yükleme hatası:', err);
+    }
+  };
+
   const handleFileSelected = (file) => {
     if (!file) return;
 
@@ -1797,10 +1849,11 @@ export default function QuestionBank() {
                     <input
                       type="file"
                       accept=".png,.jpg,.jpeg,.webp,.pdf,.html,.htm,.json"
+                      multiple
                       style={{ display: 'none' }}
                       onChange={e => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleFileSelected(e.target.files[0]);
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleMultipleFilesSelected(e.target.files);
                         }
                       }}
                     />
@@ -2229,7 +2282,7 @@ export default function QuestionBank() {
                             style={{ display: 'none' }}
                             onChange={e => {
                               if (e.target.files && e.target.files.length > 0) {
-                                Array.from(e.target.files).forEach(file => handleFileSelected(file));
+                                handleMultipleFilesSelected(e.target.files);
                               }
                             }}
                           />
