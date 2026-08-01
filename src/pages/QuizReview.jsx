@@ -330,21 +330,21 @@ export default function QuizReview() {
                       }
 
                       const isCorrect = ans?.isCorrect;
-                      const isPending = ans?.isCorrect === null || qItem.type === 'acik_uclu';
-                      const isBlank = userAnsIdx === null || userAnsIdx === undefined;
+                      const isPending = ans?.isCorrect === null || ans?.isCorrect === undefined;
+                      const isBlank = (ans?.userAnswer === null || ans?.userAnswer === undefined) && (!ans?.userAnswerText || ans?.userAnswerText.trim() === '');
 
-                      let statusColor = '#64748b';
-                      let statusText = 'Değerlendiriliyor';
+                      let statusColor = '#f59e0b';
+                      let statusText = '⏳ Değerlendiriliyor';
                       if (!isPending) {
                         if (isCorrect === true) {
                           statusColor = '#10b981';
-                          statusText = '✓ Doğru';
-                        } else if (isBlank) {
+                          statusText = '✓ Doğru (+10)';
+                        } else if (isBlank && (ans?.type === 'coktan_secmeli' || ans?.isBundle)) {
                           statusColor = '#64748b';
                           statusText = '⚪ Boş';
                         } else {
                           statusColor = '#ef4444';
-                          statusText = '✕ Yanlış';
+                          statusText = '✕ Yanlış / 0 Puan';
                         }
                       }
 
@@ -568,17 +568,17 @@ export default function QuizReview() {
             <h3 style={{ marginBottom: '1.25rem', color: '#4f46e5', fontWeight: 900 }}>Optik Form İncelemesi</h3>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
               {submission.answers.map((ans, idx) => {
-                const isPending = ans.type === 'acik_uclu';
-                let statusColor = '#64748b';
-                let statusText = 'Boş / Değerlendiriliyor';
+                const isPending = ans.isCorrect === null || ans.isCorrect === undefined;
+                let statusColor = '#f59e0b';
+                let statusText = '⏳ Değerlendirme Bekliyor';
                 
                 if (!isPending) {
                    if (ans.isCorrect === true) {
                      statusColor = '#10b981';
-                     statusText = 'Doğru';
+                     statusText = '✓ Doğru (+10)';
                    } else if (ans.isCorrect === false) {
                      statusColor = '#ef4444';
-                     statusText = 'Yanlış / Boş';
+                     statusText = '✕ Yanlış (0 Puan)';
                    }
                 }
 

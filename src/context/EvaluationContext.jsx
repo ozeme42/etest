@@ -39,35 +39,53 @@ export function EvaluationProvider({ children }) {
   };
 
   const evaluateAnswer = (submissionId, questionId, isBundle, subIndex, evaluationResult) => {
-    setSubmissions(prev => prev.map(sub => {
-      if (sub.id !== submissionId) return sub;
+    setSubmissions(prev => {
+      let updatedSub = null;
+      const nextSubs = prev.map(sub => {
+        if (sub.id !== submissionId) return sub;
 
-      let updatedAnswers = sub.answers.map(ans => {
-        const isMatch = isBundle 
-          ? ans.questionId === questionId && ans.isBundle && ans.subIndex === subIndex
-          : ans.questionId === questionId && !ans.isBundle;
-          
-        if (isMatch) {
-          return {
-            ...ans,
-            isCorrect: evaluationResult,
-            earnedPoints: evaluationResult ? 10 : 0
-          };
-        }
-        return ans;
+        let updatedAnswers = sub.answers.map(ans => {
+          const isMatch = isBundle 
+            ? ans.questionId === questionId && ans.isBundle && ans.subIndex === subIndex
+            : ans.questionId === questionId && !ans.isBundle;
+            
+          if (isMatch) {
+            return {
+              ...ans,
+              isCorrect: evaluationResult,
+              earnedPoints: evaluationResult ? 10 : 0
+            };
+          }
+          return ans;
+        });
+
+        updatedSub = { ...sub, answers: updatedAnswers };
+        return updatedSub;
       });
 
-      return { ...sub, answers: updatedAnswers };
-    }));
+      if (updatedSub) {
+        dbSaveSubmission(updatedSub);
+      }
+      return nextSubs;
+    });
   };
 
   const finalizeSubmission = (submissionId) => {
-    setSubmissions(prev => prev.map(sub => {
-      if (sub.id !== submissionId) return sub;
-      
-      const totalScore = sub.answers.reduce((acc, ans) => acc + (ans.earnedPoints || 0), 0);
-      return { ...sub, status: 'completed', score: totalScore };
-    }));
+    setSubmissions(prev => {
+      let updatedSub = null;
+      const nextSubs = prev.map(sub => {
+        if (sub.id !== submissionId) return sub;
+        
+        const totalScore = sub.answers.reduce((acc, ans) => acc + (ans.earnedPoints || 0), 0);
+        updatedSub = { ...sub, status: 'completed', score: totalScore };
+        return updatedSub;
+      });
+
+      if (updatedSub) {
+        dbSaveSubmission(updatedSub);
+      }
+      return nextSubs;
+    });
   };
 
   return (
