@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
+import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
-import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock } from 'lucide-react';
+import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users, GraduationCap, ShieldCheck } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum' or 'users'
+  const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum', 'users', 'matrix', 'homeworks'
 
   return (
     <div className="container dashboard">
       <header className="dashboard-header">
         <div>
           <h2>Admin Paneli 🛠️</h2>
-          <p className="text-muted">Sistemi ve kullanıcıları yönetin</p>
+          <p className="text-muted">Sistemi, müfredatı, kullanıcıları ve öğretmen-öğrenci eşleşmelerini yönetin</p>
         </div>
       </header>
 
@@ -32,6 +33,12 @@ export default function AdminDashboard() {
           Kullanıcı Yönetimi & Onaylar
         </button>
         <button 
+          className={`admin-tab ${activeTab === 'matrix' ? 'active' : ''}`}
+          onClick={() => setActiveTab('matrix')}
+        >
+          👨‍🏫 Öğretmen & Öğrenci Eşleşmeleri
+        </button>
+        <button 
           className={`admin-tab ${activeTab === 'homeworks' ? 'active' : ''}`}
           onClick={() => setActiveTab('homeworks')}
         >
@@ -41,6 +48,7 @@ export default function AdminDashboard() {
 
       {activeTab === 'curriculum' && <CurriculumManager />}
       {activeTab === 'users' && <UserManager />}
+      {activeTab === 'matrix' && <TeacherStudentMatrix />}
       {activeTab === 'homeworks' && <AdminHomeworkTracker />}
 
     </div>
@@ -198,8 +206,9 @@ function UserManager() {
   const [showModal, setShowModal] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'student', gradeId: '', isApproved: true });
+  const [formData, setFormData] = useState({ name: '', email: '', role: 'student', gradeId: '', teacherId: '', isApproved: true });
 
+  const teachers = users.filter(u => u.role === 'teacher');
   const pendingTeachers = users.filter(u => u.role === 'teacher' && u.isApproved === false);
 
   const handleApproveTeacher = async (user) => {
@@ -216,11 +225,12 @@ function UserManager() {
         email: user.email,
         role: user.role,
         gradeId: user.gradeId || '',
+        teacherId: user.teacherId || '',
         isApproved: user.isApproved !== undefined ? user.isApproved : true
       });
     } else {
       setEditingUserId(null);
-      setFormData({ name: '', email: '', role: 'student', gradeId: '', isApproved: true });
+      setFormData({ name: '', email: '', role: 'student', gradeId: '', teacherId: '', isApproved: true });
     }
     setShowModal(true);
   };
@@ -244,8 +254,14 @@ function UserManager() {
   };
   
   const getGradeName = (gradeId) => {
-    const grade = curData.grades.find(g => g.id === gradeId);
+    const grade = curData.grades.find(g => String(g.id) === String(gradeId) || g.name === gradeId);
     return grade ? grade.name : '-';
+  };
+
+  const getTeacherName = (teacherId) => {
+    if (!teacherId) return '— (Atanmamış)';
+    const t = teachers.find(u => u.id === teacherId);
+    return t ? `👨‍🏫 ${t.name}` : '— (Atanmamış)';
   };
 
   return (
@@ -315,6 +331,7 @@ function UserManager() {
                 <th>E-posta</th>
                 <th>Rol</th>
                 <th>Sınıf (Öğrenci)</th>
+                <th>Bağlı Öğretmen</th>
                 <th>Onay Durumu</th>
                 <th style={{ textAlign: 'right' }}>İşlemler</th>
               </tr>
@@ -328,6 +345,9 @@ function UserManager() {
                     <span className={`role-badge role-${user.role}`}>{getRoleLabel(user.role)}</span>
                   </td>
                   <td>{user.role === 'student' ? getGradeName(user.gradeId) : '-'}</td>
+                  <td style={{ fontWeight: user.teacherId ? 700 : 400, color: user.teacherId ? '#4338ca' : '#64748b', fontSize: '0.85rem' }}>
+                    {user.role === 'student' ? getTeacherName(user.teacherId) : '-'}
+                  </td>
                   <td>
                     {user.role === 'teacher' ? (
                       user.isApproved !== false ? (
@@ -349,7 +369,7 @@ function UserManager() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Kayıtlı kullanıcı yok.</td>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Kayıtlı kullanıcı yok.</td>
                 </tr>
               )}
             </tbody>
@@ -384,7 +404,7 @@ function UserManager() {
               />
               <select 
                 value={formData.role} 
-                onChange={e => setFormData({...formData, role: e.target.value, gradeId: e.target.value === 'student' ? formData.gradeId : ''})}
+                onChange={e => setFormData({...formData, role: e.target.value, gradeId: e.target.value === 'student' ? formData.gradeId : '', teacherId: e.target.value === 'student' ? formData.teacherId : ''})}
                 style={{ padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.1)', fontFamily: 'inherit' }}
               >
                 <option value="student">Öğrenci</option>
@@ -393,15 +413,26 @@ function UserManager() {
               </select>
 
               {formData.role === 'student' && (
-                <select 
-                  value={formData.gradeId} 
-                  onChange={e => setFormData({...formData, gradeId: e.target.value})}
-                  style={{ padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.1)', fontFamily: 'inherit' }}
-                  required
-                >
-                  <option value="">Sınıf Seçiniz</option>
-                  {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
+                <>
+                  <select 
+                    value={formData.gradeId} 
+                    onChange={e => setFormData({...formData, gradeId: e.target.value})}
+                    style={{ padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.1)', fontFamily: 'inherit' }}
+                    required
+                  >
+                    <option value="">Sınıf Seçiniz</option>
+                    {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+
+                  <select 
+                    value={formData.teacherId} 
+                    onChange={e => setFormData({...formData, teacherId: e.target.value})}
+                    style={{ padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.1)', fontFamily: 'inherit' }}
+                  >
+                    <option value="">Bağlı Öğretmen Seçiniz (Opsiyonel)</option>
+                    {teachers.map(t => <option key={t.id} value={t.id}>{t.name} ({t.email})</option>)}
+                  </select>
+                </>
               )}
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -411,6 +442,187 @@ function UserManager() {
             </form>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function TeacherStudentMatrix() {
+  const { users, updateUser } = useUser();
+  const { data: curData } = useCurriculum();
+  const { submissions = [] } = useEvaluation();
+  const [searchQ, setSearchQ] = useState('');
+
+  const teachers = users.filter(u => u.role === 'teacher');
+  const students = users.filter(u => u.role === 'student');
+
+  const handleAssignTeacher = async (studentId, teacherId) => {
+    await updateUser(studentId, { teacherId: teacherId || null });
+  };
+
+  const getGradeName = (gradeId) => {
+    const grade = curData.grades.find(g => String(g.id) === String(gradeId) || g.name === gradeId);
+    return grade ? grade.name : '—';
+  };
+
+  const unassignedStudents = students.filter(s => !s.teacherId || !teachers.some(t => t.id === s.teacherId));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* HEADER & SEARCH BAR */}
+      <div className="card glass" style={{ padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users color="#6366f1" size={20} /> Öğretmen & Öğrenci Eşleşme Dağılımı
+          </h3>
+          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+            Hangi öğretmenin hangi öğrencileri olduğunu görün ve öğrencilerin öğretmenlerini yönetin.
+          </p>
+        </div>
+        <div>
+          <input
+            type="text"
+            placeholder="🔍 Öğrenci veya öğretmen ara..."
+            value={searchQ}
+            onChange={e => setSearchQ(e.target.value)}
+            style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', minWidth: '240px' }}
+          />
+        </div>
+      </div>
+
+      {/* UNASSIGNED STUDENTS ALERT CARD */}
+      {unassignedStudents.length > 0 && (
+        <div className="card glass" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #f59e0b', background: 'rgba(245,158,11,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#b45309', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚠️ Henüz Öğretmeni Atanmamış Öğrenciler ({unassignedStudents.length})
+            </h4>
+          </div>
+          <div className="users-table-container">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>Öğrenci Adı</th>
+                  <th>Sınıfı</th>
+                  <th>E-posta / Kullanıcı Adı</th>
+                  <th>Giriş Şifresi</th>
+                  <th style={{ textAlign: 'right' }}>Öğretmen Ata</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unassignedStudents.map(std => (
+                  <tr key={std.id}>
+                    <td style={{ fontWeight: 700, color: '#0f172a' }}>{std.name}</td>
+                    <td>{getGradeName(std.gradeId)}</td>
+                    <td>{std.email}</td>
+                    <td>🔑 {std.password || '123456'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <select
+                        value=""
+                        onChange={e => handleAssignTeacher(std.id, e.target.value)}
+                        style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #f59e0b', fontSize: '0.78rem', background: '#fffef0', fontWeight: 700, color: '#b45309', cursor: 'pointer' }}
+                      >
+                        <option value="">Öğretmen Seçiniz...</option>
+                        {teachers.map(t => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TEACHER CARDS GRID */}
+      {teachers.length === 0 ? (
+        <div className="card glass" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+          Sistemde henüz kayıtlı öğretmen bulunmuyor.
+        </div>
+      ) : (
+        teachers.map(teacher => {
+          const teacherStudents = students.filter(s => s.teacherId === teacher.id && (!searchQ || s.name.toLowerCase().includes(searchQ.toLowerCase()) || s.email.toLowerCase().includes(searchQ.toLowerCase())));
+          
+          if (searchQ && teacherStudents.length === 0 && !teacher.name.toLowerCase().includes(searchQ.toLowerCase())) {
+            return null;
+          }
+
+          return (
+            <div key={teacher.id} className="card glass" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid #6366f1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1rem' }}>
+                    {teacher.name?.charAt(0) || 'Ö'}
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{teacher.name}</h4>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>📧 {teacher.email}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, background: '#e0e7ff', color: '#4338ca', padding: '0.25rem 0.75rem', borderRadius: '99px' }}>
+                    🎓 {teacherStudents.length} Bağlı Öğrenci
+                  </span>
+                </div>
+              </div>
+
+              {teacherStudents.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0.5rem 0' }}>Bu öğretmene henüz bağlı öğrenci bulunmuyor.</p>
+              ) : (
+                <div className="users-table-container">
+                  <table className="users-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Öğrenci Adı</th>
+                        <th>Sınıfı</th>
+                        <th>E-posta / Kullanıcı Adı</th>
+                        <th>Giriş Şifresi</th>
+                        <th>Çözülen Sınav</th>
+                        <th style={{ textAlign: 'right' }}>Başka Öğretmene Aktar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teacherStudents.map(std => {
+                        const solvedCount = submissions.filter(sub => sub.studentId === std.id).length;
+                        return (
+                          <tr key={std.id}>
+                            <td style={{ fontWeight: 700, color: '#0f172a' }}>{std.name}</td>
+                            <td>
+                              <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1d4ed8', padding: '0.2rem 0.6rem', borderRadius: '99px', fontWeight: 700 }}>
+                                {getGradeName(std.gradeId)}
+                              </span>
+                            </td>
+                            <td style={{ color: '#64748b', fontSize: '0.82rem', fontWeight: 600 }}>{std.email}</td>
+                            <td>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#fef3c7', color: '#b45309', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', fontFamily: 'monospace' }}>
+                                🔑 {std.password || '123456'}
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: 800, color: solvedCount > 0 ? '#10b981' : '#94a3b8' }}>{solvedCount}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              <select
+                                value={std.teacherId || ''}
+                                onChange={e => handleAssignTeacher(std.id, e.target.value)}
+                                style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: 'white', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                {teachers.map(t => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                                <option value="">Atanmamış Yap</option>
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })
       )}
     </div>
   );
