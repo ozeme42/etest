@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Plus, X, Edit2, Users, BookOpen, ClipboardCheck,
   Clock, ChevronRight, FileText, Activity, GraduationCap,
-  Search, Calendar, Layers, BarChart3, TrendingUp, Target, UserCheck, Sparkles, MessageSquare, UserPlus
+  Search, Calendar, Layers, BarChart3, TrendingUp, Target, UserCheck, Sparkles, MessageSquare, UserPlus, Zap, Eye, CheckCircle2, ShieldCheck, Flame, BookMarked
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -13,101 +13,76 @@ import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 
-/* ─── Renk Paleti ─────────────────────────────────────────────────── */
-const subjectColors = {
-  'Matematik':       { light: '#eff6ff', border: '#bfdbfe', badge: '#3b82f6', dark: '#1d4ed8', text: '#1e40af' },
-  'Fen Bilimleri':   { light: '#f0fdf4', border: '#bbf7d0', badge: '#22c55e', dark: '#16a34a', text: '#15803d' },
-  'Türkçe':          { light: '#fff7ed', border: '#fed7aa', badge: '#f97316', dark: '#ea580c', text: '#c2410c' },
-  'Sosyal Bilgiler': { light: '#faf5ff', border: '#e9d5ff', badge: '#a855f7', dark: '#9333ea', text: '#7e22ce' },
-  'İngilizce':       { light: '#fff1f2', border: '#fecdd3', badge: '#f43f5e', dark: '#e11d48', text: '#be123c' },
+/* ── Subject Themes ── */
+const subjectThemes = {
+  'Matematik': { bg: 'bg-blue-50/80 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800/50', accent: 'bg-blue-500' },
+  'Fen Bilimleri': { bg: 'bg-teal-50/80 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800/50', accent: 'bg-teal-500' },
+  'Türkçe': { bg: 'bg-orange-50/80 dark:bg-orange-950/30', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800/50', accent: 'bg-orange-500' },
+  'Sosyal Bilgiler': { bg: 'bg-purple-50/80 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-800/50', accent: 'bg-purple-500' },
+  'İngilizce': { bg: 'bg-rose-50/80 dark:bg-rose-950/30', text: 'text-rose-700 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-800/50', accent: 'bg-rose-500' },
 };
-const getSubC = (sub) => subjectColors[sub] || { light: '#f8fafc', border: '#e2e8f0', badge: '#64748b', dark: '#475569', text: '#334155' };
+const getSubTheme = (sub) => subjectThemes[sub] || { bg: 'bg-slate-50 dark:bg-slate-900/30', text: 'text-slate-700 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-700', accent: 'bg-slate-500' };
 
-/* ─── Stat Card ────────────────────────────────────────────────────── */
-function StatCard({ icon: Icon, label, value, sub, color, bg }) {
+/* ── Stat Card Component ── */
+function StatCard({ icon: Icon, label, value, sub, grad, shadow }) {
   return (
-    <div style={{
-      background: bg,
-      border: `1px solid ${color}33`,
-      borderRadius: '1rem',
-      padding: '1rem',
-      display: 'flex', alignItems: 'center', gap: '0.75rem',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
-      transition: 'transform 0.18s, box-shadow 0.18s',
-      cursor: 'default'
-    }}
-    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${color}33`; }}
-    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.04)'; }}
-    >
-      <div style={{ width: '42px', height: '42px', borderRadius: '0.85rem', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
-        <Icon size={22} />
+    <div className={`rounded-2xl p-4 text-white shadow-lg ${grad} ${shadow} transition-all duration-300 hover:scale-[1.02] active:scale-95 flex flex-col justify-between relative overflow-hidden`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+        {sub && (
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-white/90">
+            {sub}
+          </span>
+        )}
       </div>
       <div>
-        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', marginTop: '0.2rem' }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.7rem', color: color, fontWeight: 700, marginTop: '0.1rem' }}>{sub}</div>}
+        <p className="text-2xl sm:text-3xl font-black leading-none">{value}</p>
+        <p className="text-xs font-bold text-white/80 mt-1 uppercase tracking-wider">{label}</p>
       </div>
     </div>
   );
 }
 
-/* ─── Test Card ────────────────────────────────────────────────────── */
+/* ── Test Card Component ── */
 function TestCard({ test, onEdit }) {
-  const sc = getSubC(test.subject);
+  const theme = getSubTheme(test.subject);
   return (
-    <div style={{
-      background: 'white',
-      border: `1px solid ${sc.border}`,
-      borderRadius: '0.85rem',
-      padding: '0.9rem',
-      display: 'flex', flexDirection: 'column', gap: '0.8rem',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-      transition: 'transform 0.18s, box-shadow 0.18s',
-    }}
-    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.1)'; }}
-    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)'; }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ fontSize: '0.62rem', fontWeight: 800, background: sc.badge, color: 'white', padding: '0.2rem 0.65rem', borderRadius: '99px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {test.subject}
-        </span>
-        <button onClick={() => onEdit(test)} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.3rem 0.65rem', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: 700, transition: 'background 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-        >
-          <Edit2 size={11} /> Düzenle
-        </button>
+    <div className={`rounded-2xl border ${theme.bg} ${theme.border} p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 relative overflow-hidden group`}>
+      <div className={`h-1 w-full absolute top-0 left-0 ${theme.accent}`} />
+      <div>
+        <div className="flex items-start justify-between gap-2 mb-2 pt-1">
+          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border ${theme.border} ${theme.text}`}>
+            {test.subject}
+          </span>
+          <button
+            onClick={() => onEdit(test)}
+            className="p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shadow-sm"
+            title="Testi Düzenle"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug line-clamp-2 mb-3">
+          {test.title}
+        </h3>
       </div>
-      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.35 }}>{test.title}</div>
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', fontSize: '0.7rem', fontWeight: 700, color: sc.text, background: sc.light, border: `1px solid ${sc.border}`, borderRadius: '99px', padding: '0.15rem 0.55rem' }}>
-          <FileText size={11} /> {test.questions || 0} Soru
+      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+        <span className="flex items-center gap-1 font-semibold">
+          <FileText className="w-3.5 h-3.5 text-indigo-500" /> {test.questions || 0} Soru
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>
-          <Clock size={11} /> {test.time || 0} dk
+        <span className="flex items-center gap-1 font-semibold">
+          <Clock className="w-3.5 h-3.5 text-amber-500" /> {test.time || 0} dk
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>
-          <Calendar size={11} /> {new Date(test.date).toLocaleDateString('tr-TR')}
+        <span className="flex items-center gap-1 text-[11px]">
+          <Calendar className="w-3 h-3 text-slate-400" /> {new Date(test.date).toLocaleDateString('tr-TR')}
         </span>
       </div>
     </div>
   );
 }
 
-/* ─── Select Style (modal) ──────────────────────────────────────────── */
-const selStyle = {
-  padding: '0.7rem 0.9rem',
-  borderRadius: '0.7rem',
-  border: '1.5px solid #e2e8f0',
-  fontFamily: 'inherit',
-  background: 'white',
-  color: '#0f172a',
-  fontSize: '0.88rem',
-  outline: 'none',
-  width: '100%',
-};
-
-/* ─── Main ────────────────────────────────────────────────────────── */
 export default function TeacherDashboard() {
   const { data, addTest, updateTest } = useCurriculum();
   const { questions } = useQuestionBank();
@@ -242,479 +217,624 @@ export default function TeacherDashboard() {
   });
 
   const { toggleCoachedStudent, getCoachedStudentIds } = useCoaching();
-  const [coachingModalStudent, setCoachingModalStudent] = useState(null);
-
   const coachedIds = getCoachedStudentIds(currentUser?.id || 'teacher_1');
 
   const tabs = [
     { id: 'overview', label: 'Genel Bakış', icon: Activity },
-    { id: 'tests',    label: 'Testler',     icon: FileText },
-    { id: 'students', label: 'Öğrenciler',  icon: Users },
-    { id: 'coaching', label: '🎯 Koçluk Sistemi', icon: Target },
+    { id: 'tests',    label: 'Testler',     icon: FileText, badge: visibleTests.length },
+    { id: 'students', label: 'Öğrenciler',  icon: Users, badge: students.length },
+    { id: 'coaching', label: '🎯 Koçluk Takibi', icon: Target },
   ];
 
-  /* ─── Render ─── */
+  const quickLinks = [
+    { label: 'Öğrenci Ekle', sub: 'Hızlı kayıt aç', icon: UserPlus, grad: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/20', action: () => setShowAddStudentModal(true) },
+    { label: 'Test Oluştur', sub: 'Yeni soru ekle', icon: Plus, grad: 'from-indigo-500 to-blue-600', shadow: 'shadow-indigo-500/20', action: () => { resetForm(); setShowModal(true); } },
+    { label: 'Soru Bankası', sub: 'Kendi soruların', icon: Layers, grad: 'from-purple-500 to-violet-600', shadow: 'shadow-purple-500/20', action: () => navigate('/questions') },
+    { label: 'Ödev Ver', sub: 'Sınıfa ödev tanımla', icon: BookOpen, grad: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/20', action: () => navigate('/homeworks') },
+  ];
+
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#f0f4ff 0%,#fafafa 60%,#f5f3ff 100%)', padding: 'clamp(1rem,3vw,2rem)', fontFamily: 'inherit' }}>
-
-      {/* ── HEADER ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.3rem' }}>
-            🎓 Öğretmen Paneli
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B1120] dark:via-[#0d1528] dark:to-[#0B1120] font-sans text-slate-800 dark:text-slate-200">
+      
+      {/* ── STICKY GLASS HEADER ── */}
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#0d1528]/80 backdrop-blur-2xl border-b border-slate-200/60 dark:border-slate-800/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block">Öğretmen Paneli</span>
+              <h1 className="text-base font-black text-slate-900 dark:text-white leading-none mt-0.5">
+                {currentUser?.name || 'Öğretmen'}
+              </h1>
+            </div>
           </div>
-          <h1 style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.7rem)', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-            Hoş Geldiniz, {currentUser?.name?.split(' ')[0] || 'Öğretmen'} 👋
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.86rem', marginTop: '0.3rem' }}>
-            Sınıfınızı yönetin, testler oluşturun ve öğrenci gelişimini takip edin.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button
-            onClick={() => {
-              if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id);
-              setShowAddStudentModal(true);
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.4rem', borderRadius: '0.9rem', background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', fontWeight: 800, fontSize: '0.88rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 18px rgba(16,185,129,0.35)', transition: 'transform 0.2s, box-shadow 0.2s' }}
-          >
-            <UserPlus size={17} /> Öğrenci Ekle
-          </button>
-          <button
-            onClick={() => { resetForm(); setShowModal(true); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.4rem', borderRadius: '0.9rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', fontWeight: 800, fontSize: '0.88rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 18px rgba(99,102,241,0.35)', transition: 'transform 0.2s, box-shadow 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(99,102,241,0.45)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(99,102,241,0.35)'; }}
-          >
-            <Plus size={17} /> Yeni Test Oluştur
-          </button>
-        </div>
-      </div>
-
-      {/* ── STAT CARDS ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(155px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <StatCard icon={FileText}       label="Toplam Test"  value={visibleTests.length} sub="oluşturulmuş" color="#6366f1" bg="#eff6ff" />
-        <StatCard icon={Users}          label="Öğrenci"      value={students.length}   sub="kayıtlı"     color="#3b82f6" bg="#eff6ff" />
-        <StatCard icon={BookOpen}       label="Ödev"         value={teacherHomeworks.length}  sub="verilmiş"    color="#f97316" bg="#fff7ed" />
-        <StatCard icon={ClipboardCheck} label="Çözülen Sınav" value={teacherSubmissions.length} sub="toplam"   color="#22c55e" bg="#f0fdf4" />
-        <StatCard icon={Layers}         label="Soru Bankası" value={teacherQuestions.length}  sub="soru"        color="#a855f7" bg="#faf5ff" />
-      </div>
-
-      {/* ── TABS ── */}
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '0.85rem', padding: '0.35rem', width: 'fit-content' }}>
-        {tabs.map(t => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.5rem 1rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', transition: 'all 0.18s', background: active ? 'white' : 'transparent', color: active ? '#6366f1' : '#64748b', boxShadow: active ? '0 2px 10px rgba(0,0,0,0.1)' : 'none' }}>
-              <Icon size={15} /> {t.label}
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id);
+                setShowAddStudentModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-black text-xs text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Öğrenci Ekle</span>
             </button>
-          );
-        })}
-      </div>
+            <button
+              onClick={() => { resetForm(); setShowModal(true); }}
+              className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-black text-xs text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Test Oluştur</span>
+            </button>
+          </div>
+        </div>
+      </header>
 
-      {/* ── OVERVIEW ── */}
-      {tab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '1.5rem' }}>
-          {/* Son Testler */}
-          <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                <FileText size={18} color="#6366f1" /> Son Testler
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16">
+
+        {/* ── HERO BANNER ── */}
+        <section className="rounded-3xl p-6 sm:p-8 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-violet-700 shadow-2xl shadow-indigo-500/25 text-white">
+          <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute -left-8 -bottom-8 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-indigo-100 text-xs font-black uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Sınıf Yönetim Sistemi
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black leading-tight">
+                Hoş Geldiniz, {currentUser?.name?.split(' ')[0] || 'Hocam'} 👋
+              </h2>
+              <p className="text-indigo-100/80 text-sm max-w-xl">
+                Öğrencilerinizi yönetin, müfredata uygun testler oluşturun ve öğrenci sınav gelişimlerini anlık takip edin.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3 self-stretch md:self-auto overflow-x-auto pb-1 md:pb-0">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 px-4 text-center shrink-0 min-w-[100px]">
+                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-200">Sınıfım</p>
+                <p className="text-2xl font-black mt-0.5">{students.length}</p>
+                <p className="text-[9px] text-white/60">Öğrenci</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 px-4 text-center shrink-0 min-w-[100px]">
+                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-200">Testlerim</p>
+                <p className="text-2xl font-black mt-0.5">{visibleTests.length}</p>
+                <p className="text-[9px] text-white/60">Oluşturulan</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 px-4 text-center shrink-0 min-w-[100px]">
+                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-200">Çözülen</p>
+                <p className="text-2xl font-black mt-0.5">{teacherSubmissions.length}</p>
+                <p className="text-[9px] text-white/60">Sınav Kağıdı</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── STAT CARDS ── */}
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StatCard icon={FileText}       label="Toplam Test"  value={visibleTests.length} sub="oluşturulmuş" grad="bg-gradient-to-br from-indigo-500 to-blue-600" shadow="shadow-indigo-500/20" />
+          <StatCard icon={Users}          label="Öğrenci"      value={students.length}   sub="kayıtlı"     grad="bg-gradient-to-br from-blue-500 to-cyan-600" shadow="shadow-blue-500/20" />
+          <StatCard icon={BookOpen}       label="Ödev"         value={teacherHomeworks.length}  sub="verilmiş"    grad="bg-gradient-to-br from-amber-500 to-orange-600" shadow="shadow-amber-500/20" />
+          <StatCard icon={ClipboardCheck} label="Çözülen Sınav" value={teacherSubmissions.length} sub="toplam"   grad="bg-gradient-to-br from-emerald-500 to-teal-600" shadow="shadow-emerald-500/20" />
+          <StatCard icon={Layers}         label="Soru Bankası" value={teacherQuestions.length}  sub="soru"        grad="bg-gradient-to-br from-purple-500 to-violet-600" shadow="shadow-purple-500/20" />
+        </section>
+
+        {/* ── QUICK ACTIONS BAR ── */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {quickLinks.map(({ label, sub, icon: Icon, grad, shadow, action }) => (
+            <button
+              key={label}
+              onClick={action}
+              className={`rounded-2xl p-3.5 text-white shadow-md transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center gap-3 bg-gradient-to-br ${grad} ${shadow} text-left`}
+            >
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-black text-xs sm:text-sm leading-tight truncate">{label}</h3>
+                <p className="text-white/70 text-[10px] mt-0.5 truncate hidden sm:block">{sub}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 opacity-60 shrink-0" />
+            </button>
+          ))}
+        </section>
+
+        {/* ── NAVIGATION TABS ── */}
+        <section className="border-b border-slate-200 dark:border-slate-800 pb-2">
+          <div className="flex items-center gap-2 overflow-x-auto max-w-full" style={{ scrollbarWidth: 'none' }}>
+            {tabs.map(t => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all whitespace-nowrap shrink-0 ${
+                    active
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-2 ring-indigo-600/50"
+                      : "bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{t.label}</span>
+                  {t.badge !== undefined && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"}`}>
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── TAB 1: OVERVIEW ── */}
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Recent Tests Card */}
+            <div className="lg:col-span-2 bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-500" /> Son Testler
+                </h3>
+                <button onClick={() => setTab('tests')} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline">
+                  Tümünü Gör <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {data.tests.slice(-5).reverse().map(test => {
+                  const theme = getSubTheme(test.subject);
+                  return (
+                    <div key={test.id} className={`flex items-center justify-between gap-3 p-3 rounded-2xl border ${theme.bg} ${theme.border} transition-all hover:shadow-md`}>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={`w-2.5 h-2.5 rounded-full ${theme.accent} shrink-0`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">{test.title}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span>{test.questions} soru</span>
+                            <span>•</span>
+                            <span>{test.time} dk</span>
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border ${theme.border} ${theme.text} shrink-0`}>
+                        {test.subject}
+                      </span>
+                    </div>
+                  );
+                })}
+                {data.tests.length === 0 && (
+                  <div className="text-center py-8 text-slate-400 text-xs font-medium">Henüz test oluşturulmadı</div>
+                )}
+              </div>
+            </div>
+
+            {/* Recent Submissions */}
+            <div className="bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-500" /> Son Aktiviteler
+                </h3>
+              </div>
+
+              <div className="space-y-2.5">
+                {recentSubs.map((sub, i) => {
+                  const student = users.find(u => u.id === sub.studentId);
+                  const test    = data.tests.find(t => t.id === sub.testId);
+                  const score   = sub.score !== undefined ? `${sub.score}%` : '—';
+                  const good    = parseInt(score) >= 70;
+                  return (
+                    <div key={sub.id || i} className={`flex items-center justify-between gap-3 p-3 rounded-2xl border ${good ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50' : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/50'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-white shrink-0 ${good ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                        {(student?.name || 'Ö').charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">{student?.name || 'Öğrenci'}</p>
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{test?.title || 'Test'}</p>
+                      </div>
+                      <span className={`font-black text-xs shrink-0 px-2 py-0.5 rounded-lg ${good ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'}`}>
+                        {score}
+                      </span>
+                    </div>
+                  );
+                })}
+                {recentSubs.length === 0 && (
+                  <div className="text-center py-8 text-slate-400 text-xs font-medium">Henüz çözülen sınav yok</div>
+                )}
+              </div>
+            </div>
+
+            {/* Grade Distribution */}
+            <div className="lg:col-span-3 bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-4">
+              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-blue-500" /> Sınıf Bazında Öğrenci Dağılımı
               </h3>
-              <button onClick={() => setTab('tests')} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                Tümü <ChevronRight size={14} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {data.grades.map(grade => {
+                  const count = students.filter(s => String(s.gradeId) === String(grade.id) || s.gradeId === grade.name).length;
+                  const pct   = students.length ? Math.round((count / students.length) * 100) : 0;
+                  return (
+                    <div key={grade.id} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 text-center">
+                      <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{count}</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-0.5">{grade.name}</p>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-bold block mt-1">%{pct}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ── TAB 2: TESTS ── */}
+        {tab === 'tests' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Test başlığı ile ara..."
+                  value={searchQ}
+                  onChange={e => setSearchQ(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <select
+                value={filterSub}
+                onChange={e => setFilterSub(e.target.value)}
+                className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Tüm Dersler</option>
+                {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {visibleTests.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800/60 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700/60 p-12 text-center">
+                <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">Arama kriterlerine uygun test bulunamadı.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {visibleTests.map(test => <TestCard key={test.id} test={test} onEdit={openEdit} />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB 3: STUDENTS ── */}
+        {tab === 'students' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500" /> Sınıfım
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold">
+                  {students.length} Öğrenci
+                </span>
+              </h3>
+              <button
+                onClick={() => {
+                  if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id);
+                  setShowAddStudentModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-sm"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Yeni Öğrenci
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {data.tests.slice(-5).reverse().map(test => {
-                const sc = getSubC(test.subject);
-                return (
-                  <div key={test.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.9rem', background: sc.light, border: `1px solid ${sc.border}`, borderRadius: '0.75rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sc.badge, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.83rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.title}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{test.questions} soru · {test.time} dk</div>
-                    </div>
-                    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: sc.badge, color: 'white', padding: '0.15rem 0.5rem', borderRadius: '99px', whiteSpace: 'nowrap' }}>{test.subject}</span>
-                  </div>
-                );
-              })}
-              {data.tests.length === 0 && <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.85rem' }}>Henüz test oluşturulmadı</div>}
-            </div>
-          </div>
 
-          {/* Son Aktiviteler */}
-          <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-            <h3 style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1.25rem' }}>
-              <Activity size={18} color="#22c55e" /> Son Aktiviteler
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {recentSubs.map((sub, i) => {
-                const student = users.find(u => u.id === sub.studentId);
-                const test    = data.tests.find(t => t.id === sub.testId);
-                const score   = sub.score !== undefined ? `${sub.score}%` : '—';
-                const good    = parseInt(score) >= 70;
-                return (
-                  <div key={sub.id || i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.9rem', background: good ? '#f0fdf4' : '#fff1f2', border: `1px solid ${good ? '#bbf7d0' : '#fecdd3'}`, borderRadius: '0.75rem' }}>
-                    <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: good ? '#22c55e' : '#f43f5e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 900, color: 'white', flexShrink: 0 }}>
-                      {(student?.name || 'Ö').charAt(0)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student?.name || 'Öğrenci'}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test?.title || 'Test'}</div>
-                    </div>
-                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: good ? '#16a34a' : '#dc2626', flexShrink: 0 }}>{score}</div>
-                  </div>
-                );
-              })}
-              {recentSubs.length === 0 && <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.85rem' }}>Henüz çözülen sınav yok</div>}
-            </div>
-          </div>
-
-          {/* Sınıf Dağılımı */}
-          <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', gridColumn: '1 / -1' }}>
-            <h3 style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1.25rem' }}>
-              <GraduationCap size={18} color="#3b82f6" /> Sınıf Bazında Öğrenci Dağılımı
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              {data.grades.map(grade => {
-                const count = students.filter(s => s.gradeId === grade.id).length;
-                const pct   = students.length ? Math.round((count / students.length) * 100) : 0;
-                return (
-                  <div key={grade.id} style={{ flex: '1 1 130px', background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '0.9rem', padding: '1rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#1e40af' }}>{count}</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b82f6', marginTop: '0.2rem' }}>{grade.name}</div>
-                    <div style={{ marginTop: '0.75rem', background: '#dbeafe', borderRadius: '99px', height: '5px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#6366f1,#3b82f6)', borderRadius: '99px', transition: 'width 1s ease' }} />
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700, marginTop: '0.25rem' }}>{pct}%</div>
-                  </div>
-                );
-              })}
-              {data.grades.length === 0 && <div style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '1rem' }}>Sınıf tanımlanmamış</div>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── TESTS TAB ── */}
-      {tab === 'tests' && (
-        <div>
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1 1 220px' }}>
-              <Search size={15} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
-              <input placeholder="Test ara..." value={searchQ} onChange={e => setSearchQ(e.target.value)} style={{ ...selStyle, paddingLeft: '2.5rem' }} />
-            </div>
-            <select value={filterSub} onChange={e => setFilterSub(e.target.value)} style={{ ...selStyle, flex: '0 1 180px' }}>
-              <option value="">Tüm Dersler</option>
-              {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(270px,1fr))', gap: '1rem' }}>
-            {/* Yeni Test Kartı */}
-            <div
-              onClick={() => { resetForm(); setShowModal(true); }}
-              style={{ background: 'white', border: '2px dashed #c7d2fe', borderRadius: '1.1rem', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'all 0.2s', minHeight: '155px' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#6366f1'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
-            >
-              <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Plus size={24} color="#6366f1" />
+            {students.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800/60 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700/60 p-12 text-center">
+                <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">Henüz sınıfınıza öğrenci eklemediniz.</p>
+                <button
+                  onClick={() => setShowAddStudentModal(true)}
+                  className="mt-3 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs inline-flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4" /> Öğrenci Eklemek İçin Tıklayın
+                </button>
               </div>
-              <span style={{ fontWeight: 800, color: '#6366f1', fontSize: '0.88rem' }}>Yeni Test Oluştur</span>
-            </div>
-            {visibleTests.map(test => <TestCard key={test.id} test={test} onEdit={openEdit} />)}
-            {visibleTests.length === 0 && searchQ === '' && (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Henüz test oluşturulmadı.</div>
-            )}
-            {visibleTests.length === 0 && searchQ !== '' && (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Arama sonucu bulunamadı.</div>
-            )}
-          </div>
-        </div>
-      )}
+            ) : (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700/60 text-slate-400 font-black uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Öğrenci</th>
+                        <th className="py-3.5 px-4">Sınıfı</th>
+                        <th className="py-3.5 px-4">E-posta / Kullanıcı Adı</th>
+                        <th className="py-3.5 px-4">Giriş Şifresi</th>
+                        <th className="py-3.5 px-4">Çözülen Sınav</th>
+                        <th className="py-3.5 px-4">Koçluk Durumu</th>
+                        <th className="py-3.5 px-4 text-right">İşlemler</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {students.map((student, i) => {
+                        const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId);
+                        const solved = submissions.filter(s => s.studentId === student.id).length;
+                        const isCoached = coachedIds.includes(student.id);
+                        const avatarColors = ['bg-indigo-500','bg-blue-500','bg-emerald-500','bg-orange-500','bg-purple-500','bg-rose-500'];
+                        const av = avatarColors[i % avatarColors.length];
+                        return (
+                          <tr key={student.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full ${av} text-white font-black flex items-center justify-center text-xs shrink-0`}>
+                                  {student.name?.charAt(0) || 'Ö'}
+                                </div>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{student.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2.5 py-0.5 rounded-full font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-[10px]">
+                                {grade?.name || '—'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-semibold">{student.email}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 font-mono font-black text-[11px]">
+                                🔑 {student.password || '123456'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-black text-slate-700 dark:text-slate-200">{solved}</td>
+                            <td className="py-3 px-4">
+                              {isCoached ? (
+                                <span className="px-2.5 py-0.5 rounded-full font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 text-[10px]">
+                                  🎯 Koçluk Takibinde
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => openEditStudentModal(student)}
+                                className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-indigo-600 hover:text-white font-bold transition-colors inline-flex items-center gap-1"
+                              >
+                                <Edit2 className="w-3 h-3" /> Düzenle
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-      {/* ── STUDENTS TAB ── */}
-      {tab === 'students' && (
-        <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa' }}>
-            <h3 style={{ color: '#0f172a', fontWeight: 800, fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={18} color="#3b82f6" /> Kayıtlı Öğrenciler
-              <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1d4ed8', borderRadius: '99px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>{students.length}</span>
-            </h3>
-          </div>
-          {students.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '0.9rem' }}>Kayıtlı öğrenci yok.</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc' }}>
-                    {['Öğrenci', 'Sınıf', 'E-posta / Kullanıcı Adı', 'Giriş Şifresi', 'Çözülen Sınav', 'Koçluk Durumu', 'İşlemler'].map(h => (
-                      <th key={h} style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: h === 'İşlemler' ? 'right' : 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
+                {/* Mobile Cards View */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
                   {students.map((student, i) => {
                     const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId);
                     const solved = submissions.filter(s => s.studentId === student.id).length;
                     const isCoached = coachedIds.includes(student.id);
-                    const avatarColors = ['#6366f1','#3b82f6','#22c55e','#f97316','#a855f7','#f43f5e'];
+                    const avatarColors = ['bg-indigo-500','bg-blue-500','bg-emerald-500','bg-orange-500','bg-purple-500','bg-rose-500'];
                     const av = avatarColors[i % avatarColors.length];
                     return (
-                      <tr key={student.id} style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                      >
-                        <td style={{ padding: '0.9rem 1.25rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: av, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 900, color: 'white', flexShrink: 0 }}>
+                      <div key={student.id} className="bg-white dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-4 space-y-3 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-full ${av} text-white font-black flex items-center justify-center text-sm shrink-0`}>
                               {student.name?.charAt(0) || 'Ö'}
                             </div>
-                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem' }}>{student.name}</div>
+                            <div>
+                              <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{student.name}</h4>
+                              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                                {grade?.name || 'Sınıf Belirtilmemiş'}
+                              </span>
+                            </div>
                           </div>
-                        </td>
-                        <td style={{ padding: '0.9rem 1.25rem' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', borderRadius: '99px', padding: '0.2rem 0.65rem' }}>
-                            {grade?.name || '—'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.9rem 1.25rem', color: '#64748b', fontSize: '0.82rem', fontWeight: 700 }}>{student.email}</td>
-                        <td style={{ padding: '0.9rem 1.25rem' }}>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 900, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.2rem 0.6rem', fontFamily: 'monospace' }}>
-                            🔑 {student.password || '123456'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.9rem 1.25rem' }}>
-                          <span style={{ fontWeight: 800, fontSize: '0.9rem', color: solved > 0 ? '#16a34a' : '#94a3b8' }}>{solved}</span>
-                        </td>
-                        <td style={{ padding: '0.9rem 1.25rem' }}>
-                          {isCoached ? (
-                            <span style={{ fontSize: '0.7rem', background: '#f3e8ff', color: '#7e22ce', fontWeight: 800, padding: '0.25rem 0.75rem', borderRadius: 99 }}>
-                              🎯 Koçluk Takibinde
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
                           <button
                             onClick={() => openEditStudentModal(student)}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.5rem', padding: '0.35rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200"
                           >
-                            <Edit2 size={13} /> Düzenle
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                        </div>
 
-      {/* ── COACHING TAB ── */}
-      {tab === 'coaching' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Hero info card */}
-          <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', borderRadius: '1.25rem', padding: '1.5rem 1.75rem', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 8px 30px rgba(99,102,241,0.25)' }}>
-            <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.75rem', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800, marginBottom: 8 }}>
-                <Sparkles size={14} color="#fbbf24" /> Öğrenci Koçluk & Rehberlik Merkezi
-              </div>
-              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900 }}>Birebir Öğrenci Koçluk & Gelişim Takibi</h2>
-              <p style={{ margin: '0.3rem 0 0', fontSize: '0.84rem', color: 'rgba(255,255,255,0.85)', maxWidth: '600px' }}>
-                Öğrencilerinizi koçluk takibine alın; ders çalışma planlarını atayın, otomatik eksik konu analizlerini inceleyin ve özel haftalık koçluk tavsiyeleri verin.
-              </p>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: '0.85rem 1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)' }}>Aktif Koçluk Takibindeki</div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 1.1 }}>{coachedIds.length} Öğrenci</div>
-            </div>
-          </div>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1 text-xs">
+                          <p className="text-slate-500 dark:text-slate-400 truncate">📧 {student.email}</p>
+                          <p className="font-mono font-bold text-amber-600 dark:text-amber-400">🔑 Şifre: {student.password || '123456'}</p>
+                        </div>
 
-          {/* Student Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            {students.length === 0 ? (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#94a3b8', background: 'white', borderRadius: '1.25rem', border: '1.5px solid #e2e8f0' }}>
-                Kayıtlı öğrenci bulunmuyor.
-              </div>
-            ) : (
-              students.map((student, i) => {
-                const isCoached = coachedIds.includes(student.id);
-                const grade = data.grades.find(g => g.id === student.gradeId);
-                const studentSubs = submissions.filter(s => s.studentId === student.id);
-                const solvedCount = studentSubs.length;
-
-                let avgScore = 0;
-                if (solvedCount > 0) {
-                  const sum = studentSubs.reduce((a, b) => a + (b.score || 0), 0);
-                  avgScore = Math.round(sum / solvedCount);
-                }
-
-                const avatarColors = ['#6366f1','#3b82f6','#22c55e','#f97316','#a855f7','#f43f5e'];
-                const av = avatarColors[i % avatarColors.length];
-
-                return (
-                  <div key={student.id} style={{
-                    background: 'white', border: isCoached ? '2px solid #7c3aed' : '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.25rem',
-                    boxShadow: isCoached ? '0 8px 24px rgba(124,58,237,0.12)' : '0 2px 10px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1rem',
-                    transition: 'all 0.2s', position: 'relative'
-                  }}>
-                    {isCoached && (
-                      <span style={{ position: 'absolute', top: 12, right: 12, background: '#7c3aed', color: 'white', fontSize: '0.62rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: 99 }}>
-                        🎯 Koçlukta
-                      </span>
-                    )}
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: av, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1rem', flexShrink: 0 }}>
-                        {student.name?.charAt(0) || 'Ö'}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{student.name}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '0.1rem 0.5rem', borderRadius: 99 }}>
-                            {grade?.name || '—'}
-                          </span>
+                        <div className="flex items-center justify-between text-xs pt-1">
+                          <span className="font-semibold text-slate-500 dark:text-slate-400">Çözülen Sınav: <strong className="text-slate-800 dark:text-slate-100">{solved}</strong></span>
+                          {isCoached && (
+                            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full">
+                              🎯 Koçlukta
+                            </span>
+                          )}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Quick stats bar */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1px solid #f1f5f9', fontSize: '0.75rem' }}>
-                      <div>
-                        <span style={{ color: '#64748b', fontWeight: 600 }}>Çözülen Sınav:</span>
-                        <span style={{ fontWeight: 800, color: '#0f172a', marginLeft: 4 }}>{solvedCount}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#64748b', fontWeight: 600 }}>Ort. Başarı:</span>
-                        <span style={{ fontWeight: 900, color: avgScore >= 70 ? '#16a34a' : '#d97706', marginLeft: 4 }}>%{avgScore}</span>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: 'auto' }}>
-                      {isCoached ? (
-                        <>
-                          <button
-                            onClick={() => navigate(`/coaching/${student.id}`)}
-                            style={{
-                              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', border: 'none', borderRadius: '0.75rem',
-                              padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                              boxShadow: '0 4px 14px rgba(124,58,237,0.25)'
-                            }}
-                          >
-                            <Target size={16} /> Özel Koçluk Dosyası & Analiz
-                          </button>
-                          <button
-                            onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', student.id)}
-                            style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2', borderRadius: '0.65rem', padding: '0.4rem', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            Koçluk Listesinden Çıkar
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', student.id)}
-                          style={{
-                            background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: '0.75rem',
-                            padding: '0.6rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-                          }}
-                        >
-                          <UserCheck size={16} /> Koçluk Takibine Al
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── MODAL ── */}
+        {/* ── TAB 4: COACHING ── */}
+        {tab === 'coaching' && (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-1">
+              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-500" /> Koçluk Sistemi Takibi
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Bireysel koçluk takibine almak istediğiniz öğrencileri seçin ve detaylı yol haritasını görüntüleyin.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {students.map(std => {
+                const isCoached = coachedIds.includes(std.id);
+                return (
+                  <div key={std.id} className="bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-4 space-y-3 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-black text-sm text-slate-900 dark:text-white">{std.name}</h4>
+                        <button
+                          onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', std.id)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
+                            isCoached ? "bg-purple-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                          }`}
+                        >
+                          {isCoached ? '✓ Koçlukta' : '+ Eklemeler'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-400">{std.email}</p>
+                    </div>
+
+                    <Link to={`/coaching/${std.id}`} className="w-full">
+                      <button className="w-full py-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-bold text-xs hover:bg-purple-600 hover:text-white transition-colors flex items-center justify-center gap-1">
+                        Yol Haritası & Detaylar <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* ── ADD TEST MODAL ── */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ width: '100%', maxWidth: '740px', maxHeight: '90vh', overflowY: 'auto', background: 'white', borderRadius: '1.5rem', padding: '2rem', boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem' }}>
-              <div>
-                <h2 style={{ color: '#0f172a', fontWeight: 900, fontSize: '1.2rem', margin: 0 }}>
-                  {editingTestId ? '✏️ Testi Düzenle' : '🚀 Yeni Test Oluştur'}
-                </h2>
-                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.3rem 0 0' }}>Soru bankasından sorular seçerek test oluşturun</p>
-              </div>
-              <button onClick={resetForm} style={{ background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.55rem', cursor: 'pointer', color: '#64748b', display: 'flex', transition: 'background 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-                onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-              >
-                <X size={18} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-indigo-500" />
+                {editingTestId ? 'Testi Düzenle' : 'Yeni Test Oluştur'}
+              </h3>
+              <button onClick={resetForm} className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-              <div style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
-                <input type="text" placeholder="Test Adı (Örn: Doğal Sayılar Quiz 1)" value={testName} onChange={e => setTestName(e.target.value)} style={{ ...selStyle, flex: '3 1 200px' }} required />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '0.7rem', padding: '0.5rem 0.85rem', flex: '1 1 120px' }}>
-                  <Clock size={14} color="#94a3b8" />
-                  <label style={{ fontSize: '0.73rem', fontWeight: 700, color: '#94a3b8', whiteSpace: 'nowrap' }}>Soru/Dk:</label>
-                  <input type="number" min="1" max="60" value={timePerQ} onChange={e => setTimePerQ(e.target.value)} style={{ border: 'none', outline: 'none', width: '45px', fontWeight: 800, background: 'transparent', color: '#0f172a' }} required />
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Test Adı *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: 8. Sınıf Üslü Sayılar Tarama Testi"
+                  value={testName}
+                  onChange={e => setTestName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Soru Başı Süre (dk)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={timePerQ}
+                    onChange={e => setTimePerQ(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sınıf</label>
+                  <select
+                    value={selGrade}
+                    onChange={e => { setSelGrade(e.target.value); setSelSubject(''); setSelUnit(''); setSelTopic(''); setSelQIds([]); }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Sınıf Seçiniz</option>
+                    <option value="all">Tüm Sınıflar</option>
+                    {data.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <select value={selGrade}   onChange={e => { setSelGrade(e.target.value); setSelSubject(''); setSelUnit(''); setSelTopic(''); }} style={selStyle} required>
-                  <option value="">Sınıf Seçin...</option>
-                  <option value="all">Tümü (Genel)</option>
-                  {data.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
-                <select value={selSubject} onChange={e => { setSelSubject(e.target.value); setSelUnit(''); setSelTopic(''); }} style={selStyle} disabled={!selGrade} required>
-                  <option value="">Ders Seçin...</option>
-                  <option value="all">Tümü (Genel)</option>
-                  {filtSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                <select value={selUnit}    onChange={e => { setSelUnit(e.target.value); setSelTopic(''); }} style={selStyle} disabled={!selSubject} required>
-                  <option value="">Ünite Seçin...</option>
-                  <option value="all">Tümü (Genel)</option>
-                  {filtUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-                <select value={selTopic}   onChange={e => setSelTopic(e.target.value)} style={selStyle} disabled={!selUnit} required>
-                  <option value="">Konu Seçin...</option>
-                  <option value="all">Tümü (Genel)</option>
-                  {filtTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
+              {selGrade && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ders</label>
+                  <select
+                    value={selSubject}
+                    onChange={e => { setSelSubject(e.target.value); setSelUnit(''); setSelTopic(''); setSelQIds([]); }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Ders Seçiniz</option>
+                    <option value="all">Tüm Dersler</option>
+                    {filtSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {selSubject && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ünite</label>
+                  <select
+                    value={selUnit}
+                    onChange={e => { setSelUnit(e.target.value); setSelTopic(''); setSelQIds([]); }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Ünite Seçiniz</option>
+                    <option value="all">Tüm Üniteler</option>
+                    {filtUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {selUnit && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Konu</label>
+                  <select
+                    value={selTopic}
+                    onChange={e => { setSelTopic(e.target.value); setSelQIds([]); }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Konu Seçiniz</option>
+                    <option value="all">Tüm Konular</option>
+                    {filtTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               {catId && (
-                <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1rem', padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h4 style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.88rem', margin: 0 }}>📚 Havuzdaki Sorular</h4>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#eff6ff', color: '#4338ca', borderRadius: '99px', padding: '0.2rem 0.7rem', border: '1px solid #c7d2fe' }}>
-                      {selQIds.length}/{poolQs.length} seçili
-                    </span>
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Soru Havuzu ({poolQs.length} Soru)</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelQIds(selQIds.length === poolQs.length ? [] : poolQs.map(q => q.id))}
+                      className="text-indigo-600 font-bold hover:underline"
+                    >
+                      {selQIds.length === poolQs.length ? 'Seçimleri Kaldır' : 'Tümünü Seç'}
+                    </button>
                   </div>
+
                   {poolQs.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', color: '#dc2626', fontSize: '0.85rem', background: '#fff1f2', borderRadius: '0.75rem', border: '1px solid #fecdd3' }}>
-                      Bu kategoriye ait soru bulunamadı. Önce Soru Bankası'ndan soru ekleyin.
-                    </div>
+                    <p className="text-xs text-slate-400 py-4 text-center">Bu kategoride henüz soru eklenmemiş.</p>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '260px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                       {poolQs.map(q => {
-                        const sel = selQIds.includes(q.id);
+                        const checked = selQIds.includes(q.id);
                         return (
-                          <label key={q.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.85rem', background: sel ? '#eff6ff' : 'white', border: `1.5px solid ${sel ? '#a5b4fc' : '#e2e8f0'}`, borderRadius: '0.75rem', cursor: 'pointer', transition: 'all 0.15s' }}>
-                            <input type="checkbox" checked={sel} onChange={() => toggleQ(q.id)} style={{ accentColor: '#6366f1', width: '16px', height: '16px', flexShrink: 0, marginTop: '2px' }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: sel ? '#4338ca' : '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>
-                                {q.type === 'coktan_secmeli' ? '✅ Çoktan Seçmeli' : '✏️ Açık Uçlu'} · {q.contentType}
-                              </div>
-                              <div style={{ fontSize: '0.87rem', color: '#0f172a', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.questionText}</div>
-                            </div>
+                          <label key={q.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleQ(q.id)}
+                              className="rounded text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1">{q.title || q.name || 'Soru'}</span>
                           </label>
                         );
                       })}
@@ -723,8 +843,14 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              <button type="submit" disabled={selQIds.length === 0} style={{ padding: '0.88rem', borderRadius: '0.85rem', background: selQIds.length === 0 ? '#e2e8f0' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: selQIds.length === 0 ? '#94a3b8' : 'white', fontWeight: 800, fontSize: '0.92rem', border: 'none', cursor: selQIds.length === 0 ? 'not-allowed' : 'pointer', boxShadow: selQIds.length > 0 ? '0 4px 16px rgba(99,102,241,0.35)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                {editingTestId ? <><Edit2 size={16} /> Testi Güncelle</> : <><Plus size={16} /> Testi Oluştur ({selQIds.length} Soru)</>}
+              <button
+                type="submit"
+                disabled={selQIds.length === 0}
+                className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg transition-all ${
+                  selQIds.length === 0 ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/25 active:scale-95'
+                }`}
+              >
+                {editingTestId ? 'Testi Güncelle' : `Testi Oluştur (${selQIds.length} Soru)`}
               </button>
             </form>
           </div>
@@ -733,23 +859,24 @@ export default function TeacherDashboard() {
 
       {/* ── ADD STUDENT MODAL ── */}
       {showAddStudentModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '440px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <UserPlus size={20} color="#10b981" /> Hesabıma Öğrenci Ekle
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-emerald-500" /> Sınıfıma Öğrenci Ekle
               </h3>
-              <button onClick={() => setShowAddStudentModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={16} color="#64748b" />
+              <button onClick={() => setShowAddStudentModal(false)} className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Quick Unassigned System Student Claim */}
             {(() => {
               const unassignedSystemStudents = (users || []).filter(u => u.role === 'student' && !u.teacherId);
               if (unassignedSystemStudents.length === 0) return null;
               return (
-                <div style={{ background: '#eff6ff', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #bfdbfe', marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#1e40af', marginBottom: '0.35rem' }}>
+                <div className="bg-blue-50 dark:bg-blue-950/40 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800/50 space-y-2">
+                  <label className="block text-xs font-black text-blue-700 dark:text-blue-300">
                     💡 VEYA Sistemdeki Sahipsiz Öğrencilerden Seç & Bağla:
                   </label>
                   <select
@@ -763,7 +890,7 @@ export default function TeacherDashboard() {
                         alert(`🎉 ${selectedStd.name} öğrencisi başarıyla sınıfınıza bağlandı!`);
                       }
                     }}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '0.6rem', border: '1px solid #93c5fd', fontSize: '0.85rem', outline: 'none', background: 'white', fontWeight: 700, color: '#1d4ed8', cursor: 'pointer' }}
+                    className="w-full p-2.5 rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 text-xs font-bold text-blue-700 dark:text-blue-300 focus:outline-none"
                   >
                     <option value="">Sınıfıma Eklenecek Öğrenciyi Seçin...</option>
                     {unassignedSystemStudents.map(s => (
@@ -787,59 +914,60 @@ export default function TeacherDashboard() {
               setNewStudentEmail('');
               setNewStudentPassword('123456');
               setShowAddStudentModal(false);
-              alert("🎉 Öğrenci başarıyla hesabınıza eklendi ve kullanıcı hesabı oluşturuldu!");
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Öğrenci Adı Soyadı *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Örn: Ahmet Yılmaz"
-                    value={newStudentName}
-                    onChange={e => setNewStudentName(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>E-posta / Kullanıcı Adı (Opsiyonel)</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: ahmet veya ahmet@gmail.com"
-                    value={newStudentEmail}
-                    onChange={e => setNewStudentEmail(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Öğrenci Giriş Şifresi *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Örn: 123456"
-                    value={newStudentPassword}
-                    onChange={e => setNewStudentPassword(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', fontWeight: 800, letterSpacing: '0.05em', color: '#b45309', background: '#fffef0' }}
-                  />
-                  <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.25rem 0 0 0' }}>Öğrenci sisteme girerken bu şifreyi kullanacaktır.</p>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Sınıf Seviyesi</label>
-                  <select
-                    value={newStudentGrade}
-                    onChange={e => setNewStudentGrade(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: 'white' }}
-                  >
-                    {data.grades.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
+              alert("🎉 Öğrenci başarıyla sınıfınıza eklendi ve giriş hesabı oluşturuldu!");
+            }} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Öğrenci Adı Soyadı *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: Ahmet Yılmaz"
+                  value={newStudentName}
+                  onChange={e => setNewStudentName(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">E-posta / Kullanıcı Adı (Opsiyonel)</label>
+                <input
+                  type="text"
+                  placeholder="Örn: ahmet veya ahmet@gmail.com"
+                  value={newStudentEmail}
+                  onChange={e => setNewStudentEmail(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Giriş Şifresi *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: 123456"
+                  value={newStudentPassword}
+                  onChange={e => setNewStudentPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-mono font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sınıf Seviyesi</label>
+                <select
+                  value={newStudentGrade}
+                  onChange={e => setNewStudentGrade(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {data.grades.map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowAddStudentModal(false)} style={{ padding: '0.65rem 1.1rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', background: 'white', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
-                <button type="submit" style={{ padding: '0.65rem 1.4rem', borderRadius: '0.65rem', border: 'none', background: '#10b981', color: 'white', fontWeight: 800, cursor: 'pointer' }}>💾 Kaydet & Ekle</button>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setShowAddStudentModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  İptal
+                </button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black shadow-md hover:bg-emerald-500 transition-colors">
+                  💾 Kaydet & Ekle
+                </button>
               </div>
             </form>
           </div>
@@ -848,17 +976,17 @@ export default function TeacherDashboard() {
 
       {/* ── EDIT STUDENT MODAL ── */}
       {editingStudent && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '440px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Edit2 size={20} color="#3b82f6" /> Öğrenci Bilgilerini Düzenle
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-indigo-500" /> Öğrenci Bilgilerini Düzenle
               </h3>
-              <button onClick={() => setEditingStudent(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={16} color="#64748b" />
+              <button onClick={() => setEditingStudent(null)} className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!editingStudent || !editStudentName) return;
@@ -875,62 +1003,65 @@ export default function TeacherDashboard() {
 
               setEditingStudent(null);
               alert("🎉 Öğrenci bilgileri ve şifresi başarıyla güncellendi!");
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Öğrenci Adı Soyadı *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Örn: Ahmet Yılmaz"
-                    value={editStudentName}
-                    onChange={e => setEditStudentName(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>E-posta / Kullanıcı Adı</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: ahmet veya ahmet@gmail.com"
-                    value={editStudentEmail}
-                    onChange={e => setEditStudentEmail(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Giriş Şifresi *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Örn: 123456"
-                    value={editStudentPassword}
-                    onChange={e => setEditStudentPassword(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', fontWeight: 800, letterSpacing: '0.05em', color: '#b45309', background: '#fffef0' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Sınıf Seviyesi</label>
-                  <select
-                    value={editStudentGrade}
-                    onChange={e => setEditStudentGrade(e.target.value)}
-                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: 'white' }}
-                  >
-                    {data.grades.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
+            }} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Öğrenci Adı Soyadı *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: Ahmet Yılmaz"
+                  value={editStudentName}
+                  onChange={e => setEditStudentName(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">E-posta / Kullanıcı Adı</label>
+                <input
+                  type="text"
+                  placeholder="Örn: ahmet veya ahmet@gmail.com"
+                  value={editStudentEmail}
+                  onChange={e => setEditStudentEmail(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Giriş Şifresi *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: 123456"
+                  value={editStudentPassword}
+                  onChange={e => setEditStudentPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-mono font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sınıf Seviyesi</label>
+                <select
+                  value={editStudentGrade}
+                  onChange={e => setEditStudentGrade(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {data.grades.map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setEditingStudent(null)} style={{ padding: '0.65rem 1.1rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', background: 'white', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
-                <button type="submit" style={{ padding: '0.65rem 1.4rem', borderRadius: '0.65rem', border: 'none', background: '#3b82f6', color: 'white', fontWeight: 800, cursor: 'pointer' }}>💾 Güncelle & Kaydet</button>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setEditingStudent(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  İptal
+                </button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-black shadow-md hover:bg-indigo-500 transition-colors">
+                  💾 Güncelle & Kaydet
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 }
