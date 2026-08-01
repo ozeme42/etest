@@ -115,7 +115,7 @@ export default function QuizRunner() {
       setTestQuestions(enriched);
     }
     loadFullPayloads();
-  }, [rawTestQuestions, id, test, testQuestionIds]);
+  }, [rawTestQuestions, id, test]);
 
   useEffect(() => {
     if (test?.sourceType === 'trackedBook') {
