@@ -56,48 +56,10 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      if (isSupabaseConfigured()) {
-        const { data, error: supaErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (supaErr) {
-          const friendlyErr = translateAuthError(supaErr.message);
-          setLoading(false);
-          setError(friendlyErr);
-          return { success: false, error: friendlyErr };
-        } else if (data?.user) {
-          // Check if teacher approval is pending from local users list or metadata
-          const foundInList = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-          const role = data.user.user_metadata?.role || foundInList?.role || 'student';
-          const isApproved = foundInList?.isApproved !== undefined 
-            ? foundInList.isApproved 
-            : (data.user.user_metadata?.isApproved !== undefined ? data.user.user_metadata.isApproved : (role === 'teacher' ? false : true));
-
-          if (role === 'teacher' && !isApproved) {
-            await supabase.auth.signOut();
-            setLoading(false);
-            const pendingErr = '⏳ Öğretmen hesabınız yönetici onayı bekliyor. Onaylandıktan sonra giriş yapabilirsiniz.';
-            setError(pendingErr);
-            return { success: false, error: pendingErr };
-          }
-
-          const userObj = {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
-            role,
-            gradeId: data.user.user_metadata?.gradeId || 'g1',
-            isApproved
-          };
-          setCurrentUser(userObj);
-          await dbAddUser(userObj);
-          setLoading(false);
-          return { success: true, user: userObj };
-        }
-      }
-
-      // Local / DB user search fallback (Match email or username)
       const cleanEmail = email.trim().toLowerCase();
       const fullEmail = cleanEmail.includes('@') ? cleanEmail : `${cleanEmail.replace(/\s+/g, '')}@etest.com`;
 
+      // 1. Search in local / DB users list first
       const foundUser = users.find(u => 
         u.email.toLowerCase() === cleanEmail || 
         u.email.toLowerCase() === fullEmail ||
@@ -112,31 +74,79 @@ export function AuthProvider({ children }) {
           return { success: false, error: pendingErr };
         }
 
-        // Validate password if set
-        if (foundUser.password && password && foundUser.password !== password) {
+        // Validate password if user has a defined password (e.g. set or updated by Admin or Teacher)
+        if (foundUser.password) {
+          if (password !== foundUser.password) {
+            setLoading(false);
+            const pwdErr = '❌ Şifre hatalı! Lütfen geçerli şifrenizi giriniz.';
+            setError(pwdErr);
+            return { success: false, error: pwdErr };
+          }
+          setCurrentUser(foundUser);
           setLoading(false);
-          const pwdErr = '❌ Şifre hatalı! Lütfen öğretmeninizin belirlediği şifreyi giriniz.';
-          setError(pwdErr);
-          return { success: false, error: pwdErr };
+          return { success: true, user: foundUser };
         }
+      }
 
+      // 2. If user is in Supabase Auth (e.g. teacher/admin who signed up directly with Supabase Auth)
+      if (isSupabaseConfigured()) {
+        const { data, error: supaErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (!supaErr && data?.user) {
+          const role = data.user.user_metadata?.role || foundUser?.role || 'student';
+          const isApproved = foundUser?.isApproved !== undefined 
+            ? foundUser.isApproved 
+            : (data.user.user_metadata?.isApproved !== undefined ? data.user.user_metadata.isApproved : (role === 'teacher' ? false : true));
+
+          if (role === 'teacher' && !isApproved) {
+            await supabase.auth.signOut();
+            setLoading(false);
+            const pendingErr = '⏳ Öğretmen hesabınız yönetici onayı bekliyor. Onaylandıktan sonra giriş yapabilirsiniz.';
+            setError(pendingErr);
+            return { success: false, error: pendingErr };
+          }
+
+          const userObj = {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+            password: password,
+            role,
+            gradeId: data.user.user_metadata?.gradeId || 'g1',
+            isApproved
+          };
+          setCurrentUser(userObj);
+          await dbAddUser(userObj);
+          setLoading(false);
+          return { success: true, user: userObj };
+        } else if (supaErr && !foundUser) {
+          const friendlyErr = translateAuthError(supaErr.message);
+          setLoading(false);
+          setError(friendlyErr);
+          return { success: false, error: friendlyErr };
+        }
+      }
+
+      // 3. Fallback: If user found in local DB without explicit password mismatch
+      if (foundUser) {
         setCurrentUser(foundUser);
         setLoading(false);
         return { success: true, user: foundUser };
-      } else {
-        const newUser = {
-          id: `u_${Date.now()}`,
-          name: email.split('@')[0],
-          email,
-          role: 'student',
-          gradeId: 'g1',
-          isApproved: true
-        };
-        await addUser(newUser);
-        setCurrentUser(newUser);
-        setLoading(false);
-        return { success: true, user: newUser };
       }
+
+      // 4. Auto-register new student if completely new email
+      const newUser = {
+        id: `u_${Date.now()}`,
+        name: email.split('@')[0],
+        email: fullEmail,
+        password: password || '123456',
+        role: 'student',
+        gradeId: 'g1',
+        isApproved: true
+      };
+      await addUser(newUser);
+      setCurrentUser(newUser);
+      setLoading(false);
+      return { success: true, user: newUser };
     } catch (err) {
       const friendlyErr = translateAuthError(err.message);
       setError(friendlyErr);
