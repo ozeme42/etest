@@ -2278,7 +2278,18 @@ export default function QuestionBank() {
                                     {(qItem.options || ['', '', '', '']).map((optText, oIdx) => {
                                       const isCorrect = qItem.correctAnswer === oIdx;
                                       return (
-                                        <div key={oIdx} style={{ background: isCorrect ? '#ecfdf5' : '#f8fafc', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: isCorrect ? '2px solid #10b981' : '1px solid #e2e8f0' }}>
+                                        <div 
+                                          key={oIdx} 
+                                          onClick={() => handleUpdateVisualCorrectAnswer(qIdx, oIdx)}
+                                          style={{ 
+                                            background: isCorrect ? '#ecfdf5' : '#f8fafc', 
+                                            padding: '0.65rem 0.85rem', 
+                                            borderRadius: '0.65rem', 
+                                            border: isCorrect ? '2px solid #10b981' : '1px solid #e2e8f0',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                        >
                                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                                             <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isCorrect ? '#059669' : '#475569' }}>
                                               {String.fromCharCode(65 + oIdx)}) Şıkkı
@@ -2509,7 +2520,18 @@ export default function QuestionBank() {
                           {formData.options.map((opt, idx) => {
                             const isSelected = formData.correctAnswer === idx;
                             return (
-                              <div key={idx} style={{ background: isSelected ? '#ecfdf5' : 'white', padding: '1rem', borderRadius: '0.75rem', border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1' }}>
+                              <div 
+                                key={idx} 
+                                onClick={() => setFormData({...formData, correctAnswer: idx})}
+                                style={{ 
+                                  background: isSelected ? '#ecfdf5' : 'white', 
+                                  padding: '1rem', 
+                                  borderRadius: '0.75rem', 
+                                  border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
                                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', cursor: 'pointer' }}>
                                   <span style={{ fontWeight: 900, color: isSelected ? '#059669' : '#334155', fontSize: '0.95rem' }}>{String.fromCharCode(65 + idx)}) Şıkkı</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -2528,6 +2550,7 @@ export default function QuestionBank() {
                                 <input 
                                   type="text" 
                                   value={opt} 
+                                  onClick={e => e.stopPropagation()}
                                   onChange={e => {
                                     const newOpts = [...formData.options];
                                     newOpts[idx] = e.target.value;

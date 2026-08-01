@@ -623,14 +623,37 @@ export default function QuizRunner() {
                   if (!hasRealTextOptions) return null;
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
-                      {qItem.options.map((optText, oIdx) => (
-                        <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
-                          <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {String.fromCharCode(65 + oIdx)}
-                          </span>
-                          <span>{optText}</span>
-                        </div>
-                      ))}
+                      {qItem.options.map((optText, oIdx) => {
+                        const bundleAns = studentAnswers[q.id] || {};
+                        const isSelected = (typeof bundleAns === 'object' && bundleAns !== null) ? bundleAns[iIdx] === oIdx : false;
+                        return (
+                          <div 
+                            key={oIdx} 
+                            onClick={() => handleBundleOptionSelect(iIdx, oIdx)}
+                            style={{ 
+                              background: isSelected ? '#ecfdf5' : '#f1f5f9', 
+                              padding: '0.65rem 0.9rem', 
+                              borderRadius: '0.65rem', 
+                              fontSize: '0.88rem', 
+                              fontWeight: 700, 
+                              color: isSelected ? '#065f46' : '#334155', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.65rem', 
+                              border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            className="hover:scale-[1.01] active:scale-95"
+                          >
+                            <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#10b981' : '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {String.fromCharCode(65 + oIdx)}
+                            </span>
+                            <span style={{ flex: 1 }}>{optText}</span>
+                            {isSelected && <span style={{ color: '#10b981', fontWeight: 900, fontSize: '0.85rem' }}>✓</span>}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })()}
@@ -676,14 +699,37 @@ export default function QuizRunner() {
                 )}
                 {hasRealTextOptions && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
-                    {qItem.options.map((optText, oIdx) => (
-                      <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
-                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {String.fromCharCode(65 + oIdx)}
-                        </span>
-                        <span>{optText}</span>
-                      </div>
-                    ))}
+                    {qItem.options.map((optText, oIdx) => {
+                      const bundleAns = studentAnswers[q.id] || {};
+                      const isSelected = (typeof bundleAns === 'object' && bundleAns !== null) ? bundleAns[sIdx] === oIdx : false;
+                      return (
+                        <div 
+                          key={oIdx} 
+                          onClick={() => handleBundleOptionSelect(sIdx, oIdx)}
+                          style={{ 
+                            background: isSelected ? '#ecfdf5' : '#f1f5f9', 
+                            padding: '0.65rem 0.9rem', 
+                            borderRadius: '0.65rem', 
+                            fontSize: '0.88rem', 
+                            fontWeight: 700, 
+                            color: isSelected ? '#065f46' : '#334155', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.65rem', 
+                            border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          className="hover:scale-[1.01] active:scale-95"
+                        >
+                          <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#10b981' : '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {String.fromCharCode(65 + oIdx)}
+                          </span>
+                          <span style={{ flex: 1 }}>{optText}</span>
+                          {isSelected && <span style={{ color: '#10b981', fontWeight: 900, fontSize: '0.85rem' }}>✓</span>}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
