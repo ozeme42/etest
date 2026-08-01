@@ -417,6 +417,16 @@ export default function QuizRunner() {
   };
 
   const renderContentPreview = (q) => {
+    if (q.contentType === 'pdf') {
+      return (
+        <PdfViewerWithControls
+          payload={q.contentPayload}
+          title={test?.title || "PDF Soru Dokümanı"}
+          height="100%"
+        />
+      );
+    }
+
     if (q.questionsList && q.questionsList.length > 0) {
       const bundleAns = studentAnswers[q.id] || {};
       return (
