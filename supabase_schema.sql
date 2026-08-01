@@ -299,12 +299,31 @@ CREATE TABLE IF NOT EXISTS public.coaching_meetings (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS public.coaching_profiles (
+    id VARCHAR(100) PRIMARY KEY,
+    student_id VARCHAR(100) NOT NULL,
+    school_name VARCHAR(255),
+    student_number VARCHAR(100),
+    birth_date DATE,
+    target_school VARCHAR(255),
+    target_net NUMERIC(6,2) DEFAULT 0,
+    learning_style VARCHAR(100) DEFAULT 'Görsel Öğrenen',
+    parent_name VARCHAR(255),
+    parent_phone VARCHAR(100),
+    parent_notes TEXT,
+    strengths TEXT,
+    hobbies TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 ALTER TABLE public.coaching_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coaching_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mock_exams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coaching_meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coaching_profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public coaching_links" ON public.coaching_links FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public coaching_notes" ON public.coaching_notes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public mock_exams" ON public.mock_exams FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public coaching_meetings" ON public.coaching_meetings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public coaching_profiles" ON public.coaching_profiles FOR ALL USING (true) WITH CHECK (true);

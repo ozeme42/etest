@@ -30,7 +30,18 @@ export function QuestionBankProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('eTestQuestions', JSON.stringify(questions));
+    try {
+      localStorage.setItem('eTestQuestions', JSON.stringify(questions));
+    } catch (err) {
+      console.warn('[LocalStorage] QuotaExceededError: eTestQuestions exceeds 5MB limit. Storing questions in-memory and syncing with Supabase database.', err);
+      try {
+        // Fallback: Save recent 50 questions to localStorage to avoid quota crash
+        const recentQuestions = (questions || []).slice(-50);
+        localStorage.setItem('eTestQuestions', JSON.stringify(recentQuestions));
+      } catch (innerErr) {
+        console.warn('[LocalStorage] Could not save fallback questions:', innerErr);
+      }
+    }
   }, [questions]);
 
   const addQuestion = async (questionData) => {
