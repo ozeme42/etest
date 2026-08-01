@@ -612,9 +612,22 @@ export default function QuizRunner() {
                 )}
 
                 {qItem.questionText && (
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', lineHeight: 1.5 }}>
                     {qItem.questionText}
                   </h4>
+                )}
+
+                {qItem.options && qItem.options.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                    {qItem.options.map((optText, oIdx) => (
+                      <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {String.fromCharCode(65 + oIdx)}
+                        </span>
+                        <span>{optText}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             );
@@ -640,7 +653,7 @@ export default function QuizRunner() {
             <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               {subQuestions.length > 1 && (
                 <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                  Görsel / Soru {sIdx + 1}
+                  Soru {sIdx + 1}
                 </div>
               )}
               {qItem.contentPayload && (
@@ -651,6 +664,18 @@ export default function QuizRunner() {
               {qItem.questionText && (
                 <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
                   {qItem.questionText}
+                </div>
+              )}
+              {qItem.options && qItem.options.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                  {qItem.options.map((optText, oIdx) => (
+                    <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
+                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {String.fromCharCode(65 + oIdx)}
+                      </span>
+                      <span>{optText}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
