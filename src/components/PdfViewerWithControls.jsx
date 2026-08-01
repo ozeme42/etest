@@ -136,17 +136,18 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
       </div>
 
       {/* Direct Seamless PDF Iframe - Fill 100% */}
-      <div style={{ flex: 1, width: '100%', overflow: 'hidden', background: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
         <iframe
-          src={`${embedUrl}#zoom=${zoomLevel}`}
+          key={`${embedUrl}-${zoomLevel}`}
+          src={embedUrl.includes('#') ? embedUrl : `${embedUrl}#zoom=${zoomLevel}`}
           title="PDF Sınav Dokümanı"
           style={{
-            width: '100%',
-            height: '100%',
+            width: zoomLevel > 100 ? `${zoomLevel}%` : '100%',
+            height: zoomLevel > 100 ? `${zoomLevel}%` : '100%',
+            minWidth: '100%',
+            minHeight: '100%',
             border: 'none',
-            transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : 'none',
-            transformOrigin: 'top center',
-            transition: 'transform 0.2s ease-in-out'
+            background: 'white'
           }}
         />
       </div>
