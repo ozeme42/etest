@@ -2772,8 +2772,8 @@ export default function QuestionBank() {
               {/* QUESTION BODY PREVIEW */}
               <div style={{ background: '#f8fafc', borderRadius: '1.25rem', padding: '1.75rem', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '1.5rem' }}>
                 
-                {/* 0. WRITTEN TEXT BUNDLE PREVIEW (questionsList) */}
-                {q.questionsList && q.questionsList.length > 0 && (
+                {/* 0. WRITTEN TEXT BUNDLE PREVIEW (questionsList for non-visual tests) */}
+                {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.questionsList && q.questionsList.length > 0 && (
                   <div>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e293b', marginBottom: '1.25rem' }}>
                       📚 Toplu Yazılı Test Soruları ({q.questionsList.length} Soru - Art Arda Sıralı):
@@ -3054,8 +3054,8 @@ export default function QuestionBank() {
                   </div>
                 )}
 
-                {/* Optical Answer Key Grid */}
-                {q.type === 'coktan_secmeli' && (
+                {/* Optical Answer Key Grid for PDF/HTML Tests */}
+                {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.type === 'coktan_secmeli' && (
                   <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
                     <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#1e293b', fontSize: '0.95rem' }}>
                       🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
