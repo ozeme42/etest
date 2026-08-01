@@ -686,13 +686,9 @@ export default function QuizRunner() {
     }
 
     if (q.questionsList && q.questionsList.length > 0) {
-      const isSingleMode = !q.isBundle || q.isSubOfBundle || q.questionCount === 1;
-      const bundleAns = studentAnswers[q.id] || {};
-
       return (
         <div style={{ padding: '1.25rem', background: '#f8fafc', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
           {q.questionsList.map((qItem, iIdx) => {
-            const userSel = bundleAns[iIdx];
             return (
               <div key={iIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
                 {q.questionsList.length > 1 && (
@@ -714,36 +710,6 @@ export default function QuizRunner() {
                     {qItem.questionText}
                   </h4>
                 )}
-
-                {!isSingleMode && qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && qItem.type !== 'acik_uclu' && test?.type !== 'acik_uclu' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.65rem' }}>
-                    {qItem.options.map((opt, oIdx) => {
-                      const isSelected = userSel === oIdx;
-                      return (
-                        <button
-                          key={oIdx}
-                          type="button"
-                          onClick={() => handleBundleOptionSelect(iIdx, oIdx)}
-                          style={{
-                            padding: '0.75rem 1rem', borderRadius: '0.75rem',
-                            border: isSelected ? '2px solid #4f46e5' : '1px solid #cbd5e1',
-                            background: isSelected ? '#e0e7ff' : 'white',
-                            color: isSelected ? '#3730a3' : '#334155',
-                            fontWeight: isSelected ? 900 : 700,
-                            textAlign: 'left', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#4f46e5' : '#f1f5f9', color: isSelected ? 'white' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 900, flexShrink: 0 }}>
-                            {String.fromCharCode(65 + oIdx)}
-                          </span>
-                          <span>{opt}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -751,7 +717,7 @@ export default function QuizRunner() {
       );
     }
 
-    if (q.contentType === 'json' || q.questionsList) {
+    if (q.contentType === 'json') {
       let subQuestions = q.questionsList || [];
       if (!subQuestions.length && q.contentPayload) {
         try {
@@ -761,8 +727,6 @@ export default function QuizRunner() {
           subQuestions = [];
         }
       }
-
-      const isSingleMode = !q.isBundle || q.isSubOfBundle || q.questionCount === 1;
 
       return (
         <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -778,19 +742,9 @@ export default function QuizRunner() {
                   <img src={qItem.contentPayload} alt={`Soru Görseli ${sIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
                 </div>
               )}
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-                {qItem.questionText || `Soru ${sIdx + 1}`}
-              </div>
-              {!isSingleMode && qItem.options && qItem.options.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                  {qItem.options.map((optText, oIdx) => (
-                    <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.6rem 0.85rem', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#cbd5e1', color: '#1e293b', fontWeight: 900, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {String.fromCharCode(65 + oIdx)}
-                      </span>
-                      <span>{optText}</span>
-                    </div>
-                  ))}
+              {qItem.questionText && (
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+                  {qItem.questionText}
                 </div>
               )}
             </div>
