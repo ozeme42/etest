@@ -439,6 +439,9 @@ export async function dbAddQuestion(q) {
     const qId = q.id || `q_${Date.now()}`;
     const dbId = toUUID(qId);
     const fullRaw = { ...q, id: qId };
+    if (typeof fullRaw.contentPayload === 'string' && fullRaw.contentPayload.length > 500) {
+      delete fullRaw.contentPayload;
+    }
 
     const payload = {
       id: dbId,
