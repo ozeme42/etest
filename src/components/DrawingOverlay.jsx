@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { PenTool, Eraser, Trash2, X, Maximize, Minimize } from 'lucide-react';
 
 export default function DrawingOverlay({ children }) {
@@ -11,93 +11,98 @@ export default function DrawingOverlay({ children }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const contextRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  const isDrawingRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
-    
-    const initCanvas = () => {
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (!canvas || !container) return;
-      const rect = container.getBoundingClientRect();
-      
-      const width = Math.max(rect.width, container.clientWidth, container.offsetWidth || 300);
-      const height = Math.max(rect.height, container.clientHeight, container.offsetHeight || 500);
+  // Initialize canvas size without infinite ResizeObserver reflow loop
+  const initCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
 
-      let tempCanvasData = null;
-      if (canvas.width > 0 && canvas.height > 0 && contextRef.current) {
+    const rect = container.getBoundingClientRect();
+    const newWidth = Math.floor(rect.width || container.clientWidth || 300);
+    const newHeight = Math.floor(rect.height || container.clientHeight || 500);
+
+    // Prevent redundant canvas resizing & infinite reflow loop
+    if (canvas.width === newWidth && canvas.height === newHeight && contextRef.current) {
+      return;
+    }
+
+    let tempCanvasData = null;
+    if (canvas.width > 0 && canvas.height > 0 && contextRef.current) {
+      try {
+        tempCanvasData = contextRef.current.getImageData(0, 0, canvas.width, canvas.height);
+      } catch (e) {}
+    }
+
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
+      context.lineWidth = lineWidth;
+      if (tool === 'eraser') {
+        context.globalCompositeOperation = 'destination-out';
+      } else {
+        context.globalCompositeOperation = 'source-over';
+      }
+      contextRef.current = context;
+      if (tempCanvasData) {
         try {
-          tempCanvasData = contextRef.current.getImageData(0, 0, canvas.width, canvas.height);
+          context.putImageData(tempCanvasData, 0, 0);
         } catch (e) {}
       }
+    }
+  }, [color, lineWidth, tool]);
 
-      canvas.width = width;
-      canvas.height = height;
-      
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.lineCap = 'round';
-        context.lineJoin = 'round';
-        context.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
-        context.lineWidth = lineWidth;
-        if (tool === 'eraser') {
-          context.globalCompositeOperation = 'destination-out';
-        } else {
-          context.globalCompositeOperation = 'source-over';
-        }
-        contextRef.current = context;
-        if (tempCanvasData) {
-          try {
-            context.putImageData(tempCanvasData, 0, 0);
-          } catch (e) {}
-        }
-      }
-    };
-    
+  useEffect(() => {
     initCanvas();
-    
+
+    let animationFrameId = null;
     const observer = new ResizeObserver(() => {
-      initCanvas();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(() => {
+        initCanvas();
+      });
     });
-    
+
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
-    return () => observer.disconnect();
-  }, [isDrawingMode]);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
+    };
+  }, [initCanvas, isDrawingMode]);
 
-  // Update context when tools change
+  // Update context properties when tools change
   useEffect(() => {
     if (!contextRef.current) return;
     contextRef.current.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
     contextRef.current.lineWidth = lineWidth;
-    
-    if (tool === 'eraser') {
-      contextRef.current.globalCompositeOperation = 'destination-out';
-    } else {
-      contextRef.current.globalCompositeOperation = 'source-over';
-    }
-  }, [color, lineWidth, tool, isDrawingMode]);
+    contextRef.current.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+  }, [color, lineWidth, tool]);
 
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return { offsetX: 0, offsetY: 0 };
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null);
-    const clientX = touch ? touch.clientX : (e.clientX !== undefined ? e.clientX : 0);
-    const clientY = touch ? touch.clientY : (e.clientY !== undefined ? e.clientY : 0);
     return {
-      offsetX: clientX - rect.left,
-      offsetY: clientY - rect.top
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top
     };
   };
 
   const startDrawing = (e) => {
     if (!isDrawingMode || !contextRef.current) return;
-    if (e.preventDefault) e.preventDefault();
-    const { offsetX, offsetY } = getCoordinates(e.nativeEvent || e);
+    e.preventDefault();
+    isDrawingRef.current = true;
+
+    const { offsetX, offsetY } = getCoordinates(e);
     contextRef.current.beginPath();
     contextRef.current.moveTo(offsetX, offsetY);
     contextRef.current.arc(offsetX, offsetY, (contextRef.current.lineWidth || 3) / 2, 0, Math.PI * 2);
@@ -105,19 +110,19 @@ export default function DrawingOverlay({ children }) {
     contextRef.current.fill();
     contextRef.current.beginPath();
     contextRef.current.moveTo(offsetX, offsetY);
-    setIsDrawing(true);
   };
 
-  const finishDrawing = () => {
-    if (!isDrawingMode || !contextRef.current) return;
+  const finishDrawing = (e) => {
+    if (!isDrawingRef.current || !contextRef.current) return;
+    if (e && e.preventDefault) e.preventDefault();
     contextRef.current.closePath();
-    setIsDrawing(false);
+    isDrawingRef.current = false;
   };
 
   const draw = (e) => {
-    if (!isDrawing || !isDrawingMode || !contextRef.current) return;
-    if (e.preventDefault) e.preventDefault();
-    const { offsetX, offsetY } = getCoordinates(e.nativeEvent || e);
+    if (!isDrawingRef.current || !isDrawingMode || !contextRef.current) return;
+    e.preventDefault();
+    const { offsetX, offsetY } = getCoordinates(e);
     contextRef.current.lineTo(offsetX, offsetY);
     contextRef.current.stroke();
   };
@@ -168,6 +173,7 @@ export default function DrawingOverlay({ children }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button 
+            type="button"
             className={`btn-icon ${isDrawingMode ? 'active-white' : ''}`} 
             onClick={() => setIsDrawingMode(!isDrawingMode)}
             title={isDrawingMode ? "Çizim Modunu Kapat" : "Çizim Modunu Aç"}
@@ -183,6 +189,7 @@ export default function DrawingOverlay({ children }) {
           </button>
           
           <button 
+            type="button"
             className="btn-icon" 
             onClick={toggleFullscreen}
             title={isFullscreen ? "Tam Ekrandan Çık" : "PDF/HTML Tam Ekran"}
@@ -201,6 +208,7 @@ export default function DrawingOverlay({ children }) {
               {['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#111827'].map(c => (
                 <button
                   key={c}
+                  type="button"
                   onClick={() => { setTool('pen'); setColor(c); }}
                   style={{
                     width: '24px', height: '24px', borderRadius: '50%', background: c,
@@ -226,6 +234,7 @@ export default function DrawingOverlay({ children }) {
             <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.3)' }}></div>
             
             <button 
+              type="button"
               className="btn-icon"
               style={{ background: tool === 'eraser' ? 'rgba(255,255,255,0.2)' : 'transparent', color: 'white' }}
               onClick={() => setTool('eraser')}
@@ -235,6 +244,7 @@ export default function DrawingOverlay({ children }) {
             </button>
             
             <button 
+              type="button"
               className="btn-icon"
               style={{ background: 'transparent', color: 'white' }}
               onClick={clearCanvas}
@@ -269,13 +279,6 @@ export default function DrawingOverlay({ children }) {
           onPointerUp={finishDrawing}
           onPointerCancel={finishDrawing}
           onPointerLeave={finishDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={finishDrawing}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={finishDrawing}
-          onMouseLeave={finishDrawing}
           style={{
             position: 'absolute',
             top: 0,
