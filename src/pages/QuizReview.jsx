@@ -7,6 +7,7 @@ import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { idbGetPayload } from '../services/indexedDbService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
+import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
 import './QuizRunner.css';
 
 export default function QuizReview() {
@@ -101,13 +102,7 @@ export default function QuizReview() {
           </div>
         );
       case 'html':
-        return (
-          <iframe
-            srcDoc={q.contentPayload}
-            title="HTML Soru"
-            style={{ width: '100%', height: '100%', minHeight: '60vh', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '0.75rem', marginBottom: '1rem' }}
-          />
-        );
+        return <HtmlViewerWithControls payload={q.contentPayload} title={q.title || "HTML Soru Dokümanı"} height="100%" />;
       default:
         return null;
     }

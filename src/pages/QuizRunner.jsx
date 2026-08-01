@@ -10,6 +10,7 @@ import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { idbGetPayload, idbSetPayload } from '../services/indexedDbService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
+import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
 import './QuizRunner.css';
 
 export default function QuizRunner() {
@@ -592,7 +593,15 @@ export default function QuizRunner() {
           />
         );
       }
-      case 'html': return <iframe srcDoc={q.contentPayload} title="HTML Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: 'none'}}></iframe>;
+      case 'html': {
+        return (
+          <HtmlViewerWithControls
+            payload={q.contentPayload}
+            title={test?.title || "HTML Soru Dokümanı"}
+            height="100%"
+          />
+        );
+      }
       default: return null;
     }
   };
