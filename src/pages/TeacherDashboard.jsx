@@ -121,20 +121,27 @@ export default function TeacherDashboard() {
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [newStudentPassword, setNewStudentPassword] = useState('123456');
-  const [newStudentGrade, setNewStudentGrade] = useState('g1');
+  const [newStudentGrade, setNewStudentGrade] = useState('');
+
+  // Automatically set default grade when curriculum data loads
+  useEffect(() => {
+    if (data?.grades?.length > 0 && !newStudentGrade) {
+      setNewStudentGrade(data.grades[0].id);
+    }
+  }, [data?.grades]);
 
   const [editingStudent, setEditingStudent] = useState(null);
   const [editStudentName, setEditStudentName] = useState('');
   const [editStudentEmail, setEditStudentEmail] = useState('');
   const [editStudentPassword, setEditStudentPassword] = useState('');
-  const [editStudentGrade, setEditStudentGrade] = useState('g1');
+  const [editStudentGrade, setEditStudentGrade] = useState('');
 
   const openEditStudentModal = (student) => {
     setEditingStudent(student);
     setEditStudentName(student.name || '');
     setEditStudentEmail(student.email || '');
     setEditStudentPassword(student.password || '123456');
-    setEditStudentGrade(student.gradeId || 'g1');
+    setEditStudentGrade(student.gradeId || data?.grades?.[0]?.id || 'g1');
   };
 
   const [showModal, setShowModal]         = useState(false);
@@ -265,7 +272,10 @@ export default function TeacherDashboard() {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
-            onClick={() => setShowAddStudentModal(true)}
+            onClick={() => {
+              if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id);
+              setShowAddStudentModal(true);
+            }}
             style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.4rem', borderRadius: '0.9rem', background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', fontWeight: 800, fontSize: '0.88rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 18px rgba(16,185,129,0.35)', transition: 'transform 0.2s, box-shadow 0.2s' }}
           >
             <UserPlus size={17} /> Öğrenci Ekle
@@ -448,7 +458,7 @@ export default function TeacherDashboard() {
                 </thead>
                 <tbody>
                   {students.map((student, i) => {
-                    const grade  = data.grades.find(g => g.id === student.gradeId);
+                    const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId);
                     const solved = submissions.filter(s => s.studentId === student.id).length;
                     const isCoached = coachedIds.includes(student.id);
                     const avatarColors = ['#6366f1','#3b82f6','#22c55e','#f97316','#a855f7','#f43f5e'];

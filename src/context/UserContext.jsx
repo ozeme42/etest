@@ -44,8 +44,18 @@ export function UserProvider({ children }) {
     return newUser;
   };
 
-  const updateUser = (id, updatedData) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updatedData } : u)));
+  const updateUser = async (id, updatedData) => {
+    let updatedUserObj = null;
+    setUsers(prev => prev.map(u => {
+      if (u.id === id) {
+        updatedUserObj = { ...u, ...updatedData };
+        return updatedUserObj;
+      }
+      return u;
+    }));
+    if (updatedUserObj) {
+      await dbAddUser(updatedUserObj);
+    }
   };
 
   const deleteUser = async (id) => {
