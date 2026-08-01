@@ -2428,21 +2428,6 @@ export default function QuestionBank() {
                             Toplam {imageUrls.length || 1} Görsel Soru
                           </span>
                         </div>
-
-                        {/* FAST BULK ANSWER KEY STRING INPUT BOX FOR IMAGE QUESTIONS */}
-                        <div style={{ marginBottom: '1.25rem', background: '#e0e7ff', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #c7d2fe' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#3730a3', display: 'block', marginBottom: '0.35rem' }}>
-                            ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.bulkAnswerKey}
-                            onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
-                            placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #818cf8', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: 'white' }}
-                          />
-                        </div>
-
                         {/* LARGE READABLE VISUAL QUESTION CARDS WITH OPTIC BUBBLE BUTTONS */}
                         <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem', padding: '0.25rem' }}>
                           {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
@@ -2621,20 +2606,6 @@ export default function QuestionBank() {
                             style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #4f46e5', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem' }}
                           />
                         </div>
-                      </div>
-
-                      {/* FAST BULK ANSWER KEY STRING INPUT BOX */}
-                      <div style={{ marginBottom: '1.25rem', background: '#e0e7ff', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #c7d2fe' }}>
-                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#3730a3', display: 'block', marginBottom: '0.35rem' }}>
-                          ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.bulkAnswerKey}
-                          onChange={e => handleBulkAnswerKeyChange(e.target.value)}
-                          placeholder="Örn: ABCDEABCDE veya A,B,C,D,E veya 1A 2B 3C..."
-                          style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #818cf8', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: 'white' }}
-                        />
                       </div>
 
                       {/* 3-COLUMN INTERACTIVE OPTIC BUBBLE BUTTON GRID FOR PDF / HTML BUNDLES */}
