@@ -322,6 +322,41 @@
   .action-label {
     display: inline !important;
   }
+  .qbank-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .qbank-card {
+    padding: 0.75rem 0.85rem !important;
+    min-height: 95px !important;
+    border-radius: 0.85rem !important;
+  }
+  .qbank-card .card-bg-icon {
+    display: none !important;
+  }
+  .qbank-card .card-icon-box {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 0.6rem !important;
+  }
+  .qbank-card .card-icon-box svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .qbank-card .card-badge {
+    font-size: 0.68rem !important;
+    padding: 0.15rem 0.5rem !important;
+  }
+  .qbank-card h3 {
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+  }
+  .qbank-card .card-footer-text {
+    font-size: 0.7rem !important;
+    margin-top: 0.25rem !important;
+  }
   .form-row {
     flex-direction: column;
     gap: 0.75rem;
