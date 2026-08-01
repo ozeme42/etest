@@ -346,8 +346,21 @@ function UserManager() {
                     <span className={`role-badge role-${user.role}`}>{getRoleLabel(user.role)}</span>
                   </td>
                   <td>{user.role === 'student' ? getGradeName(user.gradeId) : '-'}</td>
-                  <td style={{ fontWeight: user.teacherId ? 700 : 400, color: user.teacherId ? '#4338ca' : '#64748b', fontSize: '0.85rem' }}>
-                    {user.role === 'student' ? getTeacherName(user.teacherId) : '-'}
+                  <td style={{ fontSize: '0.85rem' }}>
+                    {user.role === 'student' ? (
+                      <select
+                        value={user.teacherId || ''}
+                        onChange={e => {
+                          updateUser(user.id, { teacherId: e.target.value || null });
+                        }}
+                        style={{ padding: '0.3rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: user.teacherId ? '#e0e7ff' : '#fffef0', color: user.teacherId ? '#4338ca' : '#b45309', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        <option value="">— Atanmamış</option>
+                        {teachers.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    ) : '-'}
                   </td>
                   <td>
                     {user.role === 'teacher' ? (

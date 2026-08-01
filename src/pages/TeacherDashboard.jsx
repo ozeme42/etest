@@ -743,7 +743,37 @@ export default function TeacherDashboard() {
                 <X size={16} color="#64748b" />
               </button>
             </div>
-            
+
+            {(() => {
+              const unassignedSystemStudents = (users || []).filter(u => u.role === 'student' && !u.teacherId);
+              if (unassignedSystemStudents.length === 0) return null;
+              return (
+                <div style={{ background: '#eff6ff', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #bfdbfe', marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.8rem', color: '#1e40af', marginBottom: '0.35rem' }}>
+                    💡 VEYA Sistemdeki Sahipsiz Öğrencilerden Seç & Bağla:
+                  </label>
+                  <select
+                    defaultValue=""
+                    onChange={async (e) => {
+                      if (!e.target.value) return;
+                      const selectedStd = unassignedSystemStudents.find(s => s.id === e.target.value);
+                      if (selectedStd) {
+                        await updateUser(selectedStd.id, { teacherId: currentUser.id });
+                        setShowAddStudentModal(false);
+                        alert(`🎉 ${selectedStd.name} öğrencisi başarıyla sınıfınıza bağlandı!`);
+                      }
+                    }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '0.6rem', border: '1px solid #93c5fd', fontSize: '0.85rem', outline: 'none', background: 'white', fontWeight: 700, color: '#1d4ed8', cursor: 'pointer' }}
+                  >
+                    <option value="">Sınıfıma Eklenecek Öğrenciyi Seçin...</option>
+                    {unassignedSystemStudents.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })()}
+
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!newStudentName) return;
