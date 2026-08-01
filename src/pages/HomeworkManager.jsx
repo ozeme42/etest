@@ -57,10 +57,10 @@ export default function HomeworkManager() {
     return (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id);
   }, [allHomeworks, currentUser]);
 
-  // Filter questions: Teachers see only their created questions, Admin sees all
+  // Filter questions: Teachers see ONLY questions created by themselves, Admin sees all
   const questions = useMemo(() => {
-    if (currentUser?.role === 'admin') return allQuestions;
-    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id || !q.createdBy);
+    if (currentUser?.role === 'admin') return allQuestions || [];
+    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id);
   }, [allQuestions, currentUser]);
 
   const [isDirectAssignment, setIsDirectAssignment] = useState(false);

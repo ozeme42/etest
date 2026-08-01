@@ -183,20 +183,34 @@ export default function TeacherDashboard() {
     resetForm();
   };
 
-  /* stats - scoped to teacher */
+  /* stats - strictly scoped to teacher */
   const students = useMemo(() => {
     return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id));
   }, [users, currentUser]);
 
   const teacherStudentIds = useMemo(() => students.map(s => s.id), [students]);
-  const teacherHwIds = useMemo(() => (homeworks || []).filter(h => h.assignedBy === currentUser?.id).map(h => h.id), [homeworks, currentUser]);
+  
+  const teacherHomeworks = useMemo(() => {
+    if (currentUser?.role === 'admin') return homeworks || [];
+    return (homeworks || []).filter(h => h.assignedBy === currentUser?.id);
+  }, [homeworks, currentUser]);
 
-  const recentSubs = useMemo(() => {
-    const filtered = (submissions || []).filter(sub =>
+  const teacherHwIds = useMemo(() => teacherHomeworks.map(h => h.id), [teacherHomeworks]);
+
+  const teacherQuestions = useMemo(() => {
+    if (currentUser?.role === 'admin') return questions || [];
+    return (questions || []).filter(q => q.createdBy === currentUser?.id);
+  }, [questions, currentUser]);
+
+  const teacherSubmissions = useMemo(() => {
+    return (submissions || []).filter(sub =>
       currentUser?.role === 'admin' || teacherStudentIds.includes(sub.studentId) || teacherHwIds.includes(sub.testId)
     );
-    return [...filtered].sort((a,b) => new Date(b.submittedAt||0) - new Date(a.submittedAt||0)).slice(0, 5);
   }, [submissions, teacherStudentIds, teacherHwIds, currentUser]);
+
+  const recentSubs = useMemo(() => {
+    return [...teacherSubmissions].sort((a,b) => new Date(b.submittedAt||0) - new Date(a.submittedAt||0)).slice(0, 5);
+  }, [teacherSubmissions]);
 
   const allSubjects = [...new Set(data.tests.map(t => t.subject).filter(Boolean))];
   const visibleTests = data.tests.filter(t => {
@@ -254,11 +268,11 @@ export default function TeacherDashboard() {
 
       {/* ── STAT CARDS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(155px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <StatCard icon={FileText}       label="Toplam Test"  value={data.tests.length} sub="oluşturulmuş" color="#6366f1" bg="#eff6ff" />
+        <StatCard icon={FileText}       label="Toplam Test"  value={visibleTests.length} sub="oluşturulmuş" color="#6366f1" bg="#eff6ff" />
         <StatCard icon={Users}          label="Öğrenci"      value={students.length}   sub="kayıtlı"     color="#3b82f6" bg="#eff6ff" />
-        <StatCard icon={BookOpen}       label="Ödev"         value={homeworks.length}  sub="verilmiş"    color="#f97316" bg="#fff7ed" />
-        <StatCard icon={ClipboardCheck} label="Çözülen Sınav" value={submissions.length} sub="toplam"   color="#22c55e" bg="#f0fdf4" />
-        <StatCard icon={Layers}         label="Soru Bankası" value={questions.length}  sub="soru"        color="#a855f7" bg="#faf5ff" />
+        <StatCard icon={BookOpen}       label="Ödev"         value={teacherHomeworks.length}  sub="verilmiş"    color="#f97316" bg="#fff7ed" />
+        <StatCard icon={ClipboardCheck} label="Çözülen Sınav" value={teacherSubmissions.length} sub="toplam"   color="#22c55e" bg="#f0fdf4" />
+        <StatCard icon={Layers}         label="Soru Bankası" value={teacherQuestions.length}  sub="soru"        color="#a855f7" bg="#faf5ff" />
       </div>
 
       {/* ── TABS ── */}

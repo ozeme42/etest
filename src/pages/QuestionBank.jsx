@@ -131,10 +131,10 @@ export default function QuestionBank() {
   const { data: curData } = useCurriculum();
   const { questions: allQuestions, addQuestion, updateQuestion, deleteQuestion } = useQuestionBank();
 
-  // Teacher sees only their created questions, Admin sees all
+  // Teacher sees ONLY questions created by themselves, Admin sees all
   const questions = useMemo(() => {
-    if (currentUser?.role === 'admin') return allQuestions;
-    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id || !q.createdBy);
+    if (currentUser?.role === 'admin') return allQuestions || [];
+    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id);
   }, [allQuestions, currentUser]);
   
   // Portal Overview Active Tab: 'subjects' | 'grades'
