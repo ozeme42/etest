@@ -733,8 +733,30 @@ export default function QuestionBank() {
       }
       setOpticAnswers(newOptic);
     } else if (q.contentType === 'gorsel') {
-      setImageUrls([q.contentPayload]);
-      setImageAnswers({ 0: q.correctAnswer || 0 });
+      const urls = Array.isArray(q.imageUrls) && q.imageUrls.length > 0 
+        ? q.imageUrls 
+        : (q.contentPayload ? [q.contentPayload] : []);
+
+      setImageUrls(urls);
+      
+      const ansMap = {};
+      if (Array.isArray(q.answerKey)) {
+        q.answerKey.forEach((k, idx) => {
+          if (k && k !== ' ') {
+            ansMap[idx] = k.charCodeAt(0) - 65;
+          }
+        });
+      } else if (q.imageAnswers) {
+        Object.assign(ansMap, q.imageAnswers);
+      } else {
+        ansMap[0] = q.correctAnswer || 0;
+      }
+      setImageAnswers(ansMap);
+
+      setFormData(prev => ({
+        ...prev,
+        contentPayload: urls.join('\n')
+      }));
     }
     
     setShowModal(true);
