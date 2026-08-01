@@ -215,13 +215,17 @@ export default function QuizRunner() {
   }, [testQuestions]);
 
   useEffect(() => {
-    if (test && test.sourceType !== 'trackedBook' && timeLeft === null && !savedState) {
+    if (test && test.sourceType !== 'trackedBook') {
       const specifiedMinutes = test.durationMinutes || test.duration || test.time;
       const minutes = specifiedMinutes ? Number(specifiedMinutes) : (totalQuestionsCount * 2);
-      const initialTime = minutes * 60;
-      setTimeLeft(initialTime > 0 ? initialTime : 120);
+      const expectedTime = minutes * 60;
+
+      // If time is not set yet, or if previous saved state had outdated single-question duration
+      if (timeLeft === null || (savedState?.timeLeft && savedState.timeLeft <= 120 && totalQuestionsCount > 1)) {
+        setTimeLeft(expectedTime);
+      }
     }
-  }, [test, totalQuestionsCount, timeLeft, savedState]);
+  }, [test, totalQuestionsCount, savedState]);
 
   // AUTOSAVE LOGIC
   useEffect(() => {
