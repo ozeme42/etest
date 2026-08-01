@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import './QuestionBank.css';
 
+import { idbSetPayload } from '../services/indexedDbService';
+
 const JSON_TEMPLATE = `[
   {
     "questionText": "1) Türkiye'nin başkenti hangi şehirdir?",
@@ -181,6 +183,18 @@ export default function QuestionBank() {
   const [imageUrls, setImageUrls] = useState([]);
   const [imageAnswers, setImageAnswers] = useState({});
   const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
+
+  const handlePdfUploadForPreview = (file, questionId) => {
+    if (!file || !questionId) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Pdf = e.target.result;
+      await idbSetPayload(questionId, base64Pdf);
+      updateQuestion(questionId, { contentPayload: base64Pdf });
+      setPreviewQuestion(prev => (prev ? { ...prev, contentPayload: base64Pdf } : null));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleFileSelected = (file) => {
     if (!file) return;
@@ -2767,16 +2781,24 @@ export default function QuestionBank() {
                 {/* 4. PDF BUNDLE PREVIEW */}
                 {!q.questionsList && q.contentType === 'pdf' && (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justify: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                       <p style={{ margin: 0, fontWeight: 800, color: '#334155', fontSize: '0.95rem' }}>
                         📄 Görsel PDF Döküman / Test Önizlemesi:
                       </p>
-                      <a href={q.contentPayload} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        PDF'i Yeni Sekmede Aç <ExternalLink size={14} />
-                      </a>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.45rem 0.95rem', borderRadius: '0.65rem', fontWeight: 800, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 4px rgba(220,38,38,0.2)' }}>
+                          <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handlePdfUploadForPreview(e.target.files[0], q.id)} />
+                          📁 {getEmbeddableUrl(q.contentPayload) ? 'PDF Değiştir' : 'PDF Dosyası Seç & Yükle'}
+                        </label>
+                        {getEmbeddableUrl(q.contentPayload) && (
+                          <a href={q.contentPayload} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            Sekmede Aç <ExternalLink size={14} />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Live Rendered PDF Frame */}
+                    {/* Live Rendered PDF Frame or Interactive Upload Dropzone */}
                     <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '1.25rem' }}>
                       {getEmbeddableUrl(q.contentPayload) ? (
                         <iframe
@@ -2785,8 +2807,21 @@ export default function QuestionBank() {
                           style={{ width: '100%', height: '500px', border: 'none' }}
                         />
                       ) : (
-                        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-                          📄 PDF Dokümanı yükleniyor veya gösterilecek içerik bulunamadı.
+                        <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: '#fff5f5', border: '2px dashed #fca5a5', borderRadius: '1rem' }}>
+                          <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                            <FileText size={28} />
+                          </div>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 900, color: '#991b1b', margin: '0 0 0.5rem 0' }}>
+                            📕 Bu Test İçin PDF Dosyası Yüklenmedi
+                          </p>
+                          <p style={{ fontSize: '0.85rem', color: '#7f1d1d', margin: '0 0 1.5rem 0', maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto' }}>
+                            Bilgisayarınızdan bu teste ait PDF sınav dokümanını seçerek hemen yükleyebilirsiniz:
+                          </p>
+
+                          <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.85rem 2rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(220,38,38,0.35)', transition: 'all 0.2s' }}>
+                            <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handlePdfUploadForPreview(e.target.files[0], q.id)} />
+                            📁 Bilgisayardan PDF Seç & Yükle
+                          </label>
                         </div>
                       )}
                     </div>
