@@ -54,14 +54,23 @@ export function UserProvider({ children }) {
   };
 
   const addStudentForTeacher = async (studentData, teacherId) => {
+    let inputEmail = (studentData.email || '').trim().toLowerCase();
+    if (!inputEmail) {
+      inputEmail = `ogrenci_${Date.now()}@etest.com`;
+    } else if (!inputEmail.includes('@')) {
+      inputEmail = `${inputEmail.replace(/\s+/g, '')}@etest.com`;
+    }
+
     const newStudent = {
-      id: studentData.id || `u_${Date.now()}`,
+      id: studentData.id || `u_std_${Date.now()}`,
       name: studentData.name,
-      email: studentData.email || `ogrenci_${Date.now()}@etest.com`,
+      email: inputEmail,
+      password: studentData.password || '123456',
       role: 'student',
       gradeId: studentData.gradeId || 'g1',
       teacherId: teacherId,
       isApproved: true,
+      createdAt: new Date().toISOString(),
       ...studentData
     };
     return await addUser(newStudent);

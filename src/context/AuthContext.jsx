@@ -94,14 +94,30 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // Local / DB user search fallback
-      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      // Local / DB user search fallback (Match email or username)
+      const cleanEmail = email.trim().toLowerCase();
+      const fullEmail = cleanEmail.includes('@') ? cleanEmail : `${cleanEmail.replace(/\s+/g, '')}@etest.com`;
+
+      const foundUser = users.find(u => 
+        u.email.toLowerCase() === cleanEmail || 
+        u.email.toLowerCase() === fullEmail ||
+        (u.email.split('@')[0] && u.email.split('@')[0].toLowerCase() === cleanEmail)
+      );
+
       if (foundUser) {
         if (foundUser.role === 'teacher' && foundUser.isApproved === false) {
           setLoading(false);
           const pendingErr = '⏳ Öğretmen hesabınız yönetici onayı bekliyor. Onaylandıktan sonra giriş yapabilirsiniz.';
           setError(pendingErr);
           return { success: false, error: pendingErr };
+        }
+
+        // Validate password if set
+        if (foundUser.password && password && foundUser.password !== password) {
+          setLoading(false);
+          const pwdErr = '❌ Şifre hatalı! Lütfen öğretmeninizin belirlediği şifreyi giriniz.';
+          setError(pwdErr);
+          return { success: false, error: pwdErr };
         }
 
         setCurrentUser(foundUser);

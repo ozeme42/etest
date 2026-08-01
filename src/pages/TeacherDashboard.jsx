@@ -120,6 +120,7 @@ export default function TeacherDashboard() {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentPassword, setNewStudentPassword] = useState('123456');
   const [newStudentGrade, setNewStudentGrade] = useState('g1');
 
   const [showModal, setShowModal]         = useState(false);
@@ -426,7 +427,7 @@ export default function TeacherDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
-                    {['Öğrenci', 'Sınıf', 'E-posta', 'Çözülen Sınav', 'Koçluk Durumu'].map(h => (
+                    {['Öğrenci', 'Sınıf', 'E-posta / Kullanıcı Adı', 'Giriş Şifresi', 'Çözülen Sınav', 'Koçluk Durumu'].map(h => (
                       <th key={h} style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                     ))}
                   </tr>
@@ -456,7 +457,12 @@ export default function TeacherDashboard() {
                             {grade?.name || '—'}
                           </span>
                         </td>
-                        <td style={{ padding: '0.9rem 1.25rem', color: '#64748b', fontSize: '0.82rem' }}>{student.email}</td>
+                        <td style={{ padding: '0.9rem 1.25rem', color: '#64748b', fontSize: '0.82rem', fontWeight: 700 }}>{student.email}</td>
+                        <td style={{ padding: '0.9rem 1.25rem' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 900, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.2rem 0.6rem', fontFamily: 'monospace' }}>
+                            🔑 {student.password || '123456'}
+                          </span>
+                        </td>
                         <td style={{ padding: '0.9rem 1.25rem' }}>
                           <span style={{ fontWeight: 800, fontSize: '0.9rem', color: solved > 0 ? '#16a34a' : '#94a3b8' }}>{solved}</span>
                         </td>
@@ -712,12 +718,14 @@ export default function TeacherDashboard() {
               await addStudentForTeacher({
                 name: newStudentName,
                 email: newStudentEmail || `ogrenci_${Date.now()}@etest.com`,
+                password: newStudentPassword || '123456',
                 gradeId: newStudentGrade
               }, currentUser.id);
               setNewStudentName('');
               setNewStudentEmail('');
+              setNewStudentPassword('123456');
               setShowAddStudentModal(false);
-              alert("🎉 Öğrenci başarıyla hesabınıza eklendi!");
+              alert("🎉 Öğrenci başarıyla hesabınıza eklendi ve kullanıcı hesabı oluşturuldu!");
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div>
@@ -732,14 +740,26 @@ export default function TeacherDashboard() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>E-posta Adresi (Opsiyonel)</label>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>E-posta / Kullanıcı Adı (Opsiyonel)</label>
                   <input
-                    type="email"
-                    placeholder="Örn: ahmet@gmail.com"
+                    type="text"
+                    placeholder="Örn: ahmet veya ahmet@gmail.com"
                     value={newStudentEmail}
                     onChange={e => setNewStudentEmail(e.target.value)}
                     style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
                   />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Öğrenci Giriş Şifresi *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: 123456"
+                    value={newStudentPassword}
+                    onChange={e => setNewStudentPassword(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', fontWeight: 800, letterSpacing: '0.05em', color: '#b45309', background: '#fffef0' }}
+                  />
+                  <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.25rem 0 0 0' }}>Öğrenci sisteme girerken bu şifreyi kullanacaktır.</p>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Sınıf Seviyesi</label>
