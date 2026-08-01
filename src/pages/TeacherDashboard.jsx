@@ -185,7 +185,7 @@ export default function TeacherDashboard() {
 
   /* stats - scoped to teacher */
   const students = useMemo(() => {
-    return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id || !u.teacherId));
+    return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id));
   }, [users, currentUser]);
 
   const teacherStudentIds = useMemo(() => students.map(s => s.id), [students]);

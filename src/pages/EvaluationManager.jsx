@@ -16,10 +16,10 @@ export default function EvaluationManager() {
   
   const [activeSubmissionId, setActiveSubmissionId] = useState(null);
 
-  // Filter submissions: Teachers see only their students' submissions, Admin sees all
+  // Filter submissions: Teachers see ONLY their added students' submissions, Admin sees all
   const submissions = useMemo(() => {
     if (currentUser?.role === 'admin') return allSubmissions || [];
-    const teacherStudentIds = (users || []).filter(u => u.role === 'student' && (u.teacherId === currentUser?.id || !u.teacherId)).map(u => u.id);
+    const teacherStudentIds = (users || []).filter(u => u.role === 'student' && u.teacherId === currentUser?.id).map(u => u.id);
     const teacherHwIds = (homeworks || []).filter(h => h.assignedBy === currentUser?.id).map(h => h.id);
     return (allSubmissions || []).filter(sub => teacherStudentIds.includes(sub.studentId) || teacherHwIds.includes(sub.testId));
   }, [allSubmissions, users, homeworks, currentUser]);

@@ -46,15 +46,15 @@ export default function HomeworkManager() {
   const { users } = useUser();
   const { submissions } = useEvaluation();
 
-  // Filter students: Teachers see only their assigned students, Admin sees all
+  // Filter students: Teachers see ONLY students added by themselves, Admin sees all
   const students = useMemo(() => {
-    return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id || !u.teacherId));
+    return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id));
   }, [users, currentUser]);
 
-  // Filter homeworks: Teachers see only their assigned homeworks, Admin sees all
+  // Filter homeworks: Teachers see ONLY homeworks assigned by themselves, Admin sees all
   const homeworks = useMemo(() => {
     if (currentUser?.role === 'admin') return allHomeworks;
-    return (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id || !hw.assignedBy);
+    return (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id);
   }, [allHomeworks, currentUser]);
 
   // Filter questions: Teachers see only their created questions, Admin sees all
