@@ -66,9 +66,9 @@ export default function QuizRunner() {
   const [isDragging, setIsDragging] = useState(false);
 
   // Dedicated Mobile Solver States
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [mobileTab, setMobileTab] = useState('doc'); // 'doc', 'optic', 'scratch', 'split'
   const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
+  const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -169,24 +169,47 @@ export default function QuizRunner() {
 
   useEffect(() => {
     if (!isDragging) return;
-    const handleMouseMove = (e) => {
-      e.preventDefault();
-      if (layoutMode === 'horizontal') {
-        const ratio = (e.clientX / window.innerWidth) * 100;
-        if (ratio > 20 && ratio < 80) setSplitRatio(ratio);
+    const handleMove = (e) => {
+      const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+
+      if (isMobile) {
+        const mainEl = document.querySelector('.mobile-main-content');
+        if (mainEl) {
+          const rect = mainEl.getBoundingClientRect();
+          const relY = clientY - rect.top;
+          const ratio = (relY / rect.height) * 100;
+          if (ratio >= 15 && ratio <= 85) {
+            setMobileSplitRatio(ratio);
+          }
+        }
       } else {
-        const ratio = (e.clientY / window.innerHeight) * 100;
-        if (ratio > 20 && ratio < 80) setSplitRatio(ratio);
+        if (layoutMode === 'horizontal') {
+          const ratio = (clientX / window.innerWidth) * 100;
+          if (ratio > 15 && ratio < 85) setSplitRatio(ratio);
+        } else {
+          const ratio = (clientY / window.innerHeight) * 100;
+          if (ratio > 15 && ratio < 85) setSplitRatio(ratio);
+        }
       }
     };
-    const handleMouseUp = () => setIsDragging(false);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+
+    const handleEnd = () => setIsDragging(false);
+
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
+    document.addEventListener('touchcancel', handleEnd);
+
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener('touchcancel', handleEnd);
     };
-  }, [isDragging, layoutMode]);
+  }, [isDragging, layoutMode, isMobile]);
 
   useEffect(() => {
     const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -792,13 +815,40 @@ export default function QuizRunner() {
           )}
 
           {mobileTab === 'split' && (
-            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ height: '55%', width: '100%', borderBottom: '2px solid #cbd5e1', overflow: 'hidden' }}>
-                {renderContentPreview(currentQuestion)}
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              {/* Top Section: PDF / Question Preview */}
+              <div style={{ height: `${mobileSplitRatio}%`, width: '100%', overflow: 'hidden', position: 'relative' }}>
+                <DrawingOverlay>
+                  {renderContentPreview(currentQuestion)}
+                </DrawingOverlay>
               </div>
-              <div className="mobile-optic-grid" style={{ height: '45%', background: '#f1f5f9' }}>
-                <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#1e293b' }}>
-                  Optik Form ({answeredCount}/{totalCount})
+
+              {/* Touch Resizer Divider Bar */}
+              <div
+                onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onTouchStart={(e) => { setIsDragging(true); }}
+                style={{
+                  height: '14px',
+                  background: isDragging ? '#4f46e5' : '#cbd5e1',
+                  cursor: 'row-resize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'center',
+                  touchAction: 'none',
+                  zIndex: 20,
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                  transition: 'background 0.2s',
+                  flexShrink: 0
+                }}
+              >
+                <GripHorizontal size={18} color={isDragging ? '#ffffff' : '#475569'} />
+              </div>
+
+              {/* Bottom Section: Touch Optic Form */}
+              <div className="mobile-optic-grid" style={{ height: `calc(${100 - mobileSplitRatio}% - 14px)`, background: '#f1f5f9' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Optik Form ({answeredCount}/{totalCount})</span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>↕️ Çizgiyi kaydırarak alanı ayarlayın</span>
                 </div>
                 {Array.from({ length: currentQuestion?.questionCount || 1 }).map((_, i) => (
                   <div key={i} className="mobile-optic-row" style={{ padding: '6px 10px' }}>
