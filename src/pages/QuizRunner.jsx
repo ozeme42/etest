@@ -686,30 +686,36 @@ export default function QuizRunner() {
     }
 
     if (q.questionsList && q.questionsList.length > 0) {
+      const isSingleMode = !q.isBundle || q.isSubOfBundle || q.questionCount === 1;
       const bundleAns = studentAnswers[q.id] || {};
+
       return (
         <div style={{ padding: '1.25rem', background: '#f8fafc', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
           {q.questionsList.map((qItem, iIdx) => {
             const userSel = bundleAns[iIdx];
             return (
               <div key={iIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
-                    Soru {iIdx + 1}
-                  </span>
-                </div>
-
-                {qItem.contentPayload && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img src={qItem.contentPayload} alt={`Görsel Soru ${iIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
+                {q.questionsList.length > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
+                      Görsel {iIdx + 1}
+                    </span>
                   </div>
                 )}
 
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
-                  {qItem.questionText}
-                </h4>
+                {qItem.contentPayload && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img src={qItem.contentPayload} alt={`Görsel ${iIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
+                  </div>
+                )}
 
-                {qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && qItem.type !== 'acik_uclu' && test?.type !== 'acik_uclu' && (
+                {qItem.questionText && (
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                    {qItem.questionText}
+                  </h4>
+                )}
+
+                {!isSingleMode && qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && qItem.type !== 'acik_uclu' && test?.type !== 'acik_uclu' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.65rem' }}>
                     {qItem.options.map((opt, oIdx) => {
                       const isSelected = userSel === oIdx;
@@ -756,17 +762,26 @@ export default function QuizRunner() {
         }
       }
 
+      const isSingleMode = !q.isBundle || q.isSubOfBundle || q.questionCount === 1;
+
       return (
         <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {subQuestions.map((qItem, sIdx) => (
             <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                Soru {sIdx + 1}
-              </div>
+              {subQuestions.length > 1 && (
+                <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                  Görsel / Soru {sIdx + 1}
+                </div>
+              )}
+              {qItem.contentPayload && (
+                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                  <img src={qItem.contentPayload} alt={`Soru Görseli ${sIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
+                </div>
+              )}
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
                 {qItem.questionText || `Soru ${sIdx + 1}`}
               </div>
-              {qItem.options && qItem.options.length > 0 && (
+              {!isSingleMode && qItem.options && qItem.options.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {qItem.options.map((optText, oIdx) => (
                     <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.6rem 0.85rem', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
