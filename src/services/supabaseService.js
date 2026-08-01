@@ -19,6 +19,8 @@ export async function dbGetUsers() {
       name: u.name,
       role: u.role,
       gradeId: u.grade_id,
+      teacherId: u.teacher_id,
+      password: u.password,
       isApproved: u.is_approved !== undefined ? Boolean(u.is_approved) : (u.role === 'teacher' ? false : true),
       createdAt: u.created_at
     }));
@@ -41,6 +43,8 @@ export async function dbAddUser(user) {
       name: user.name,
       role: user.role || 'student',
       grade_id: user.gradeId || 'g1',
+      teacher_id: user.teacherId || null,
+      password: user.password || null,
       is_approved: isApprovedVal
     };
     const { data, error } = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
@@ -48,13 +52,14 @@ export async function dbAddUser(user) {
       if (error.code === '23505' || error.status === 409) {
         return { success: true, data: [payload] };
       }
-      if (error.message && error.message.includes('is_approved')) {
-        delete payload.is_approved;
-        const fallbackRes = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
-        return { success: true, data: fallbackRes.data };
-      }
-      console.warn('[Supabase] dbAddUser upsert note:', error.message);
-      return { error };
+      // Fallback if password or teacher_id columns don't exist in remote table
+      const fallbackPayload = { ...payload };
+      if (error.message && error.message.includes('is_approved')) delete fallbackPayload.is_approved;
+      if (error.message && error.message.includes('teacher_id')) delete fallbackPayload.teacher_id;
+      if (error.message && error.message.includes('password')) delete fallbackPayload.password;
+      
+      const fallbackRes = await supabase.from('users').upsert([fallbackPayload], { onConflict: 'id' }).select();
+      return { success: true, data: fallbackRes.data };
     }
     return { success: true, data };
   } catch (err) {

@@ -206,7 +206,7 @@ function UserManager() {
   const [showModal, setShowModal] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'student', gradeId: '', teacherId: '', isApproved: true });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '123456', role: 'student', gradeId: '', teacherId: '', isApproved: true });
 
   const teachers = users.filter(u => u.role === 'teacher');
   const pendingTeachers = users.filter(u => u.role === 'teacher' && u.isApproved === false);
@@ -221,16 +221,17 @@ function UserManager() {
     if (user) {
       setEditingUserId(user.id);
       setFormData({
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        name: user.name || '',
+        email: user.email || '',
+        password: user.password || '123456',
+        role: user.role || 'student',
         gradeId: user.gradeId || '',
         teacherId: user.teacherId || '',
         isApproved: user.isApproved !== undefined ? user.isApproved : true
       });
     } else {
       setEditingUserId(null);
-      setFormData({ name: '', email: '', role: 'student', gradeId: '', teacherId: '', isApproved: true });
+      setFormData({ name: '', email: '', password: '123456', role: 'student', gradeId: '', teacherId: '', isApproved: true });
     }
     setShowModal(true);
   };
@@ -395,11 +396,19 @@ function UserManager() {
                 required
               />
               <input 
-                type="email" 
-                placeholder="E-posta" 
+                type="text" 
+                placeholder="E-posta / Kullanıcı Adı" 
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
                 style={{ padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.1)', fontFamily: 'inherit' }}
+                required
+              />
+              <input 
+                type="text" 
+                placeholder="Giriş Şifresi" 
+                value={formData.password}
+                onChange={e => setFormData({...formData, password: e.target.value})}
+                style={{ padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.1)', fontFamily: 'inherit', fontWeight: 700, color: '#b45309', background: '#fffef0' }}
                 required
               />
               <select 
