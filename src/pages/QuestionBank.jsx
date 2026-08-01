@@ -1136,64 +1136,166 @@ export default function QuestionBank() {
     return path ? `📌 ${path}` : null;
   };
 
+  // ─── Content type config ────────────────────────────────────────────────────
+  const contentConfig = {
+    gorsel: { label: 'Görselli Test',   icon: '🖼️', bgFrom: '#f0fdf4', bgTo: '#dcfce7', border: '#86efac', accent: '#16a34a', badge: 'bg-green-100 text-green-800',  iconBg: 'linear-gradient(135deg,#22c55e,#16a34a)' },
+    pdf:    { label: 'PDF Test',        icon: '📄', bgFrom: '#fff7ed', bgTo: '#ffedd5', border: '#fdba74', accent: '#ea580c', badge: 'bg-orange-100 text-orange-800', iconBg: 'linear-gradient(135deg,#f97316,#ea580c)' },
+    html:   { label: 'Web Test',        icon: '🌐', bgFrom: '#f0f9ff', bgTo: '#e0f2fe', border: '#7dd3fc', accent: '#0284c7', badge: 'bg-sky-100 text-sky-800',        iconBg: 'linear-gradient(135deg,#38bdf8,#0284c7)' },
+    json:   { label: 'Metin Testi',     icon: '📚', bgFrom: '#faf5ff', bgTo: '#ede9fe', border: '#c4b5fd', accent: '#7c3aed', badge: 'bg-violet-100 text-violet-800',  iconBg: 'linear-gradient(135deg,#a78bfa,#7c3aed)' },
+    text:   { label: 'Tek Soru',        icon: '📝', bgFrom: '#fefce8', bgTo: '#fef9c3', border: '#fde047', accent: '#ca8a04', badge: 'bg-yellow-100 text-yellow-800', iconBg: 'linear-gradient(135deg,#facc15,#ca8a04)' },
+  };
+
   const renderQuestionCard = (q) => {
     const hierarchyBadge = getQuestionHierarchyBadge(q);
+    const cfg = contentConfig[q.contentType] || contentConfig.text;
+
+    // figure out image count
+    const imgCount = Array.isArray(q.imageUrls) && q.imageUrls.length > 0
+      ? q.imageUrls.length
+      : (q.contentType === 'gorsel' ? 1 : 0);
+
+    // question count label
+    const qCount = q.questionsList?.length
+      || q.questionCount
+      || (q.answerKey?.filter(k => k && k !== ' ').length)
+      || (imgCount > 0 ? imgCount : null);
+
+    // first image thumbnail
+    const thumbUrl = Array.isArray(q.imageUrls) && q.imageUrls[0]
+      ? q.imageUrls[0]
+      : (q.contentType === 'gorsel' ? q.contentPayload : null);
+
     return (
-      <div key={q.id} className="compact-item" style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1rem 1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
-        <div className="ci-icon" style={{ background: q.contentType === 'json' ? '#e0e7ff' : (q.contentType === 'pdf' ? '#fee2e2' : (q.contentType === 'html' ? '#ecfdf5' : '#f1f5f9')), color: q.contentType === 'json' ? '#4f46e5' : (q.contentType === 'pdf' ? '#dc2626' : (q.contentType === 'html' ? '#059669' : '#334155')), padding: '0.65rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {getTypeIcon(q.contentType, q.isBundle)}
-        </div>
-        
-        <div className="ci-content" style={{ cursor: 'pointer', flex: 1 }} onClick={() => setPreviewQuestion(q)}>
-          <div className="ci-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-            {(q.title || q.name) && <span style={{ background: '#4f46e5', color: 'white', fontSize: '0.8rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: '6px' }}>🏷️ {q.title || q.name}</span>}
-            {hierarchyBadge && <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '6px' }}>{hierarchyBadge}</span>}
-            <span style={{ background: '#f1f5f9', color: '#334155', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>{getTypeLabel(q)}</span>
-            <span style={{ background: q.type === 'coktan_secmeli' ? '#dcfce7' : '#fef3c7', color: q.type === 'coktan_secmeli' ? '#166534' : '#92400e', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
-              {q.type === 'coktan_secmeli' ? '🔘 Çoktan Seçmeli' : '📝 Açık Uçlu'}
-            </span>
-          </div>
-        
-        <div className="ci-preview" style={{ fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>
-          {q.questionsList && (
-            <span style={{ color: '#4f46e5', fontWeight: 700 }}>📚 Toplu Yazılı Test ({q.questionsList.length} Soru Art Arda)</span>
-          )}
-          {!q.questionsList && q.contentType === 'text' && (q.questionText || 'Metin Sorusu')}
-          {!q.questionsList && q.contentType === 'gorsel' && (
-            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-              <img src={q.contentPayload} alt="önizleme" style={{width:'36px', height:'36px', objectFit:'cover', borderRadius:'6px', border: '1px solid #cbd5e1'}} onError={(e) => { e.target.style.display = 'none' }} />
-              <span>Görsel Soru: {q.questionText || 'Görsel içerik'}</span>
+      <div
+        key={q.id}
+        style={{
+          background: `linear-gradient(145deg, ${cfg.bgFrom} 0%, ${cfg.bgTo} 100%)`,
+          border: `1.5px solid ${cfg.border}`,
+          borderRadius: '1.25rem',
+          overflow: 'hidden',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+        }}
+        className="qbank-question-card hover:shadow-lg hover:-translate-y-0.5"
+      >
+        {/* ── TOP COLOURED STRIPE ── */}
+        <div style={{ height: '4px', background: `linear-gradient(90deg,${cfg.accent},${cfg.border})` }} />
+
+        {/* ── CARD BODY ── */}
+        <div style={{ padding: '1.1rem 1.2rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+
+          {/* ROW 1: icon + title + type badges */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+
+            {/* Big content-type icon */}
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '1rem', flexShrink: 0,
+              background: cfg.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.5rem', boxShadow: `0 4px 12px ${cfg.accent}33`
+            }}>
+              {cfg.icon}
             </div>
-          )}
-          {!q.questionsList && q.contentType === 'html' && (
-            <span>🌐 HTML Web Sayfası / Test Paketi İçeriği</span>
-          )}
-          {!q.questionsList && q.contentType === 'pdf' && (
-            <span>📕 PDF Dokümanı / Test Paketi İçeriği</span>
-          )}
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Title */}
+              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', lineHeight: 1.3, marginBottom: '0.35rem' }}>
+                {q.title || q.name || cfg.label}
+              </div>
+
+              {/* Breadcrumb hierarchy */}
+              {hierarchyBadge && (
+                <div style={{ fontSize: '0.72rem', color: cfg.accent, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                  {hierarchyBadge}
+                </div>
+              )}
+
+              {/* Type badges row */}
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span style={{
+                  background: cfg.iconBg, color: 'white',
+                  fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: '20px',
+                  letterSpacing: '0.02em'
+                }}>
+                  {cfg.label}
+                </span>
+                <span style={{
+                  background: q.type === 'coktan_secmeli' ? '#dcfce7' : '#fef3c7',
+                  color: q.type === 'coktan_secmeli' ? '#166534' : '#92400e',
+                  fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: '20px'
+                }}>
+                  {q.type === 'coktan_secmeli' ? '🔘 Çoktan Seçmeli' : '📝 Açık Uçlu'}
+                </span>
+              </div>
+            </div>
+
+            {/* Thumbnail (image tests only) */}
+            {thumbUrl && (
+              <div style={{ width: '56px', height: '56px', borderRadius: '0.75rem', overflow: 'hidden', border: `2px solid ${cfg.border}`, flexShrink: 0 }}>
+                <img src={thumbUrl} alt="önizleme" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
+              </div>
+            )}
+          </div>
+
+          {/* ROW 2: STATS CHIPS */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {qCount && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+                <span>📊</span>
+                <span>{qCount} Soru</span>
+              </div>
+            )}
+            {q.contentType === 'gorsel' && imgCount > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+                <span>🖼️</span>
+                <span>{imgCount} Görsel</span>
+              </div>
+            )}
+            {q.answerKey && q.answerKey.filter(k => k && k !== ' ').length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+                <span>🗝️</span>
+                <span>Cevap Anahtarlı</span>
+              </div>
+            )}
+            {q.contentType === 'text' && q.questionText && (
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, background: 'rgba(255,255,255,0.7)', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '0.25rem 0.7rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                "{q.questionText}"
+              </div>
+            )}
+          </div>
+
+          {/* ROW 3: ACTIONS */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.5rem', borderTop: `1px solid ${cfg.border}55`, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setPreviewQuestion(q)}
+              style={{ flex: 1, minWidth: '80px', background: cfg.iconBg, color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: `0 3px 8px ${cfg.accent}33` }}
+            >
+              <Eye size={14} /> Önizle
+            </button>
+            <button
+              onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })}
+              style={{ flex: 1, minWidth: '80px', background: '#10b981', color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 3px 8px rgba(16,185,129,0.3)' }}
+            >
+              <Calendar size={14} /> Ödev Ata
+            </button>
+            <button
+              onClick={() => openEditModal(q)}
+              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.8)', color: '#334155', border: `1.5px solid ${cfg.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
+            >
+              <Edit2 size={14} /> Düzenle
+            </button>
+            <button
+              onClick={() => deleteQuestion(q.id)}
+              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
-      
-      <div className="ci-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-        <button
-          onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })}
-          title="Bu İçeriği Ödev Olarak Ata"
-          style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '0.65rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 2px 4px rgba(16,185,129,0.25)' }}
-        >
-          <Calendar size={15} /> Ödev Ata
-        </button>
-        <button className="btn-icon text-primary" onClick={() => setPreviewQuestion(q)} title="Önizle & Hata Kontrolü Yap" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: '#e0e7ff', color: '#4f46e5', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, fontSize: '0.78rem' }}>
-          <Eye size={15} /> <span className="action-label">Önizle</span>
-        </button>
-        <button className="btn-icon" onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: '#f1f5f9', color: '#334155', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, fontSize: '0.78rem' }}>
-          <Edit2 size={15} /> <span className="action-label">Düzenle</span>
-        </button>
-        <button className="btn-icon text-error" onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, fontSize: '0.78rem' }}>
-          <Trash2 size={15} /> <span className="action-label">Sil</span>
-        </button>
-      </div>
-    </div>
-  );
+    );
   };
 
   const renderSearchResults = () => (
@@ -1220,8 +1322,8 @@ export default function QuestionBank() {
         </button>
       </div>
 
-      {/* LINE-BY-LINE LIST OF SEARCH RESULTS (2-Column Grid) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.15rem' }}>
+      {/* CARD GRID - SEARCH RESULTS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.15rem' }}>
         {filteredQuestions.map(q => renderQuestionCard(q))}
 
         {filteredQuestions.length === 0 && (
@@ -1681,8 +1783,8 @@ export default function QuestionBank() {
                     </span>
                   </div>
 
-                  {/* Question Cards (2-Column Grid) */}
-                  <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.15rem', background: '#fafafa' }}>
+                  {/* Question Cards - Card Grid */}
+                  <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', background: '#fafafa' }}>
                     {group.items.map(q => renderQuestionCard(q))}
                   </div>
 
@@ -1881,8 +1983,8 @@ export default function QuestionBank() {
                     </span>
                   </div>
 
-                  {/* Question Cards */}
-                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#fafafa' }}>
+                  {/* Question Cards - Card Grid */}
+                  <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', background: '#fafafa' }}>
                     {group.items.map(q => renderQuestionCard(q))}
                   </div>
 
