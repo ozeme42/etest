@@ -2776,6 +2776,7 @@ export default function QuestionBank() {
                       payload={q.contentPayload}
                       title={q.title || 'PDF Sınav Dokümanı'}
                       height="650px"
+                      allowUpload={true}
                       onUploadFile={(file) => handlePdfUploadForPreview(file, q.id)}
                     />
                   </div>

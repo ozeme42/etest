@@ -515,7 +515,7 @@ export default function QuizRunner() {
             payload={q.contentPayload}
             title={q.title || test?.title || 'PDF Test Sınavı'}
             height="calc(100vh - 140px)"
-            onUploadFile={(file) => handleDirectPdfUploadInRunner(file, q.id)}
+            allowUpload={false}
           />
         );
       }
