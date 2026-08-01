@@ -127,6 +127,12 @@ export default function QuizRunner() {
 
     const extractSubQuestions = (target) => {
       if (!target) return [];
+      
+      // If target has questionCount === 1 or 1 answer key, all uploaded images belong to THIS single question!
+      if (target.questionCount === 1 || (target.answerKey && target.answerKey.length === 1)) {
+        return [];
+      }
+
       let list = target.questionsList || [];
       if ((!list || list.length === 0) && target.contentPayload && typeof target.contentPayload === 'string' && target.contentPayload.trim().startsWith('[')) {
         try {
@@ -779,7 +785,24 @@ export default function QuizRunner() {
     }
 
     switch (q.contentType) {
-      case 'gorsel': return <div className="q-preview-gorsel"><img src={q.contentPayload} alt="Soru Görseli" style={{maxWidth: '100%', borderRadius: 'var(--border-radius-md)'}} /></div>;
+      case 'gorsel': {
+        const urls = (q.imageUrls && q.imageUrls.length > 0)
+          ? q.imageUrls
+          : (q.contentPayload ? [q.contentPayload] : []);
+        
+        return (
+          <div className="q-preview-gorsel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', overflowY: 'auto', padding: '1rem' }}>
+            {urls.map((url, imgIdx) => (
+              <img
+                key={imgIdx}
+                src={url}
+                alt={`Soru Görseli ${imgIdx + 1}`}
+                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 'var(--border-radius-md)', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}
+              />
+            ))}
+          </div>
+        );
+      }
       case 'pdf': {
         return (
           <PdfViewerWithControls

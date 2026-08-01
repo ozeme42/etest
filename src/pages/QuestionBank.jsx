@@ -921,7 +921,10 @@ export default function QuestionBank() {
         });
       } else if (formData.contentType === 'gorsel') {
         const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? [formData.contentPayload] : []);
-        const totalQs = validUrls.length || 1;
+        const filledAnswersCount = Object.keys(imageAnswers).length;
+        const totalQs = (formData.questionCount && parseInt(formData.questionCount) > 0)
+          ? parseInt(formData.questionCount)
+          : (filledAnswersCount > 0 ? filledAnswersCount : validUrls.length);
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -933,7 +936,9 @@ export default function QuestionBank() {
         }
 
         const isAcikUclu = formData.type === 'acik_uclu';
-        const subQuestions = validUrls.map((url, idx) => ({
+        const isSingleQuestion = totalQs <= 1;
+
+        const subQuestions = isSingleQuestion ? [] : validUrls.slice(0, totalQs).map((url, idx) => ({
           id: `subq_${idx}_${Date.now()}`,
           title: `Görsel Soru ${idx + 1}`,
           contentType: 'gorsel',
@@ -946,7 +951,7 @@ export default function QuestionBank() {
         updateQuestion(editingQuestionId, {
           ...formData,
           topicId: categoryId,
-          isBundle: true,
+          isBundle: !isSingleQuestion,
           questionCount: totalQs,
           imageUrls: validUrls,
           contentPayload: validUrls[0] || formData.contentPayload,
@@ -982,8 +987,10 @@ export default function QuestionBank() {
       }
       else if (formData.contentType === 'gorsel') {
         const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? [formData.contentPayload] : []);
-        const totalQs = validUrls.length || 1;
-        const isAcikUclu = formData.type === 'acik_uclu';
+        const filledAnswersCount = Object.keys(imageAnswers).length;
+        const totalQs = (formData.questionCount && parseInt(formData.questionCount) > 0)
+          ? parseInt(formData.questionCount)
+          : (filledAnswersCount > 0 ? filledAnswersCount : validUrls.length);
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -994,7 +1001,10 @@ export default function QuestionBank() {
           }
         }
 
-        const subQuestions = validUrls.map((url, idx) => ({
+        const isAcikUclu = formData.type === 'acik_uclu';
+        const isSingleQuestion = totalQs <= 1;
+
+        const subQuestions = isSingleQuestion ? [] : validUrls.slice(0, totalQs).map((url, idx) => ({
           id: `subq_${idx}_${Date.now()}`,
           title: `Görsel Soru ${idx + 1}`,
           contentType: 'gorsel',
@@ -1007,7 +1017,7 @@ export default function QuestionBank() {
         addQuestion({
           ...formData,
           topicId: categoryId,
-          isBundle: true,
+          isBundle: !isSingleQuestion,
           questionCount: totalQs,
           imageUrls: validUrls,
           contentPayload: validUrls[0] || formData.contentPayload,

@@ -106,12 +106,16 @@ export default function QuizReview() {
       return <PdfViewerWithControls payload={q.contentPayload} title={q.title || "PDF Soru Dokümanı"} height="100%" />;
     }
     switch (q.contentType) {
-      case 'gorsel':
+      case 'gorsel': {
+        const urls = (q.imageUrls && q.imageUrls.length > 0) ? q.imageUrls : [q.contentPayload];
         return (
-          <div className="q-preview-gorsel" style={{ marginBottom: '1rem', textAlign: 'center' }}>
-            <img src={q.contentPayload} alt="Soru Görseli" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '0.75rem', objectFit: 'contain' }} />
+          <div className="q-preview-gorsel" style={{ marginBottom: '1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+            {urls.map((url, idx) => (
+              <img key={idx} src={url} alt={`Soru Görseli ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid #cbd5e1' }} />
+            ))}
           </div>
         );
+      }
       case 'html':
         return <HtmlViewerWithControls payload={q.contentPayload} title={q.title || "HTML Soru Dokümanı"} height="100%" />;
       default:
