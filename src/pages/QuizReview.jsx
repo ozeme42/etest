@@ -363,8 +363,19 @@ export default function QuizReview() {
                             {qItem.questionText || `Soru ${sIdx + 1}`}
                           </h4>
 
+                          {/* Image for Visual Subquestion */}
+                          {qItem.contentPayload && (
+                            <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                              <img
+                                src={qItem.contentPayload}
+                                alt={`Soru ${sIdx + 1} Görseli`}
+                                style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}
+                              />
+                            </div>
+                          )}
+
                           {/* Options for Multiple Choice */}
-                          {qItem.options && qItem.options.length > 0 && (
+                          {qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && qItem.type !== 'acik_uclu' && (
                             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.65rem' }}>
                               {qItem.options.map((optText, oIdx) => {
                                 const isUserSelected = userAnsIdx === oIdx;
@@ -416,11 +427,11 @@ export default function QuizReview() {
                           )}
 
                           {/* Text Answer for Open Ended */}
-                          {(!qItem.options || qItem.options.length === 0 || qItem.type === 'acik_uclu') && (
-                            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }}>
-                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>Öğrencinin Cevabı (Açık Uçlu):</span>
-                              <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>
-                                {ans?.userAnswerText || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>(Boş Bırakılmış)</span>}
+                          {(!qItem.options || qItem.options.length === 0 || qItem.type === 'acik_uclu' || q.type === 'acik_uclu') && (
+                            <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #cbd5e1', marginTop: '0.5rem' }}>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>📝 Öğrencinin Yazılı Cevabı (Açık Uçlu):</span>
+                              <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.92rem', whiteSpace: 'pre-wrap' }}>
+                                {ans?.userAnswerText || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>(Boş Bırakılmış / Yanıt Verilmedi)</span>}
                               </div>
                             </div>
                           )}
