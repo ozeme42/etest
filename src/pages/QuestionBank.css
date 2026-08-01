@@ -273,11 +273,16 @@
 }
 
 @media (max-width: 768px) {
-  .qbank-container {
-    padding: 0.75rem 0.5rem;
+  .dashboard,
+  .qbank-container,
+  .container {
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .top-filter-bar {
-    padding: 1rem;
+    padding: 0.85rem !important;
     margin-bottom: 1rem;
   }
   .filter-grid select {
@@ -286,13 +291,13 @@
     font-size: 0.9rem;
   }
   .list-container {
-    padding: 0.75rem 0.5rem;
+    padding: 0.5rem 0.25rem !important;
   }
   .compact-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
-    padding: 1rem !important;
+    padding: 0.85rem !important;
     width: 100%;
   }
   .ci-content {
@@ -325,9 +330,10 @@
   .qbank-grid {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.5rem !important;
+    gap: 0.4rem !important;
     margin-bottom: 1.5rem !important;
     width: 100% !important;
+    padding: 0 !important;
   }
   .qbank-card {
     padding: 0.75rem 0.65rem !important;
