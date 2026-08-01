@@ -1156,18 +1156,18 @@ export default function QuestionBank() {
         <button
           onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })}
           title="Bu İçeriği Ödev Olarak Ata"
-          style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.45rem 0.75rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(16,185,129,0.25)' }}
+          style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '0.65rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 2px 4px rgba(16,185,129,0.25)' }}
         >
-          <Calendar size={14} /> Ödev Ata
+          <Calendar size={15} /> Ödev Ata
         </button>
-        <button className="btn-icon text-primary" onClick={() => setPreviewQuestion(q)} title="Önizle &amp; Hata Kontrolü Yap" style={{ padding: '0.5rem', borderRadius: '0.5rem', background: '#e0e7ff', color: '#4f46e5', border: 'none', cursor: 'pointer' }}>
-          <Eye size={18} />
+        <button className="btn-icon text-primary" onClick={() => setPreviewQuestion(q)} title="Önizle & Hata Kontrolü Yap" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: '#e0e7ff', color: '#4f46e5', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, fontSize: '0.78rem' }}>
+          <Eye size={15} /> <span className="action-label">Önizle</span>
         </button>
-        <button className="btn-icon" onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.5rem', borderRadius: '0.5rem', background: '#f1f5f9', color: '#334155', border: 'none', cursor: 'pointer' }}>
-          <Edit2 size={18} />
+        <button className="btn-icon" onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: '#f1f5f9', color: '#334155', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, fontSize: '0.78rem' }}>
+          <Edit2 size={15} /> <span className="action-label">Düzenle</span>
         </button>
-        <button className="btn-icon text-error" onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.5rem', borderRadius: '0.5rem', background: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>
-          <Trash2 size={18} />
+        <button className="btn-icon text-error" onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', background: '#fee2e2', color: '#dc2626', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, fontSize: '0.78rem' }}>
+          <Trash2 size={15} /> <span className="action-label">Sil</span>
         </button>
       </div>
     </div>
