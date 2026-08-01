@@ -617,18 +617,22 @@ export default function QuizRunner() {
                   </h4>
                 )}
 
-                {qItem.options && qItem.options.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
-                    {qItem.options.map((optText, oIdx) => (
-                      <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
-                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {String.fromCharCode(65 + oIdx)}
-                        </span>
-                        <span>{optText}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  const hasRealTextOptions = qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
+                  if (!hasRealTextOptions) return null;
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                      {qItem.options.map((optText, oIdx) => (
+                        <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
+                          <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {String.fromCharCode(65 + oIdx)}
+                          </span>
+                          <span>{optText}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -649,37 +653,40 @@ export default function QuizRunner() {
 
       return (
         <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {subQuestions.map((qItem, sIdx) => (
-            <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              {subQuestions.length > 1 && (
-                <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                  Soru {sIdx + 1}
-                </div>
-              )}
-              {qItem.contentPayload && (
-                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                  <img src={qItem.contentPayload} alt={`Soru Görseli ${sIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
-                </div>
-              )}
-              {qItem.questionText && (
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-                  {qItem.questionText}
-                </div>
-              )}
-              {qItem.options && qItem.options.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
-                  {qItem.options.map((optText, oIdx) => (
-                    <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
-                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {String.fromCharCode(65 + oIdx)}
-                      </span>
-                      <span>{optText}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          {subQuestions.map((qItem, sIdx) => {
+            const hasRealTextOptions = qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
+            return (
+              <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                {subQuestions.length > 1 && (
+                  <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                    Soru {sIdx + 1}
+                  </div>
+                )}
+                {qItem.contentPayload && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img src={qItem.contentPayload} alt={`Soru Görseli ${sIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
+                  </div>
+                )}
+                {qItem.questionText && (
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+                    {qItem.questionText}
+                  </div>
+                )}
+                {hasRealTextOptions && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                    {qItem.options.map((optText, oIdx) => (
+                      <div key={oIdx} style={{ background: '#f1f5f9', padding: '0.65rem 0.9rem', borderRadius: '0.65rem', fontSize: '0.88rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.65rem', border: '1px solid #cbd5e1' }}>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {String.fromCharCode(65 + oIdx)}
+                        </span>
+                        <span>{optText}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }
