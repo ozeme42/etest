@@ -113,9 +113,14 @@ export default function TeacherDashboard() {
   const { questions } = useQuestionBank();
   const { homeworks = [] } = useHomework();
   const { submissions = [] } = useEvaluation();
-  const { users = [] } = useUser();
+  const { users = [], addStudentForTeacher } = useUser();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentGrade, setNewStudentGrade] = useState('g1');
 
   const [showModal, setShowModal]         = useState(false);
   const [editingTestId, setEditingTestId] = useState(null);
