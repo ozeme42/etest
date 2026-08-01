@@ -519,6 +519,12 @@ export default function QuizRunner() {
                   </span>
                 </div>
 
+                {qItem.contentPayload && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img src={qItem.contentPayload} alt={`Görsel Soru ${iIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
+                  </div>
+                )}
+
                 <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
                   {qItem.questionText}
                 </h4>
