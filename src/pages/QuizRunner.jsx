@@ -9,6 +9,7 @@ import { useUser } from '../context/UserContext';
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { idbGetPayload, idbSetPayload } from '../services/indexedDbService';
+import PdfViewerWithControls from '../components/PdfViewerWithControls';
 import './QuizRunner.css';
 
 export default function QuizRunner() {
@@ -509,35 +510,13 @@ export default function QuizRunner() {
     switch (q.contentType) {
       case 'gorsel': return <div className="q-preview-gorsel"><img src={q.contentPayload} alt="Soru Görseli" style={{maxWidth: '100%', borderRadius: 'var(--border-radius-md)'}} /></div>;
       case 'pdf': {
-        const pdfEmbedUrl = getEmbeddableUrl(q.contentPayload);
-        if (!pdfEmbedUrl) {
-          return (
-            <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', background: '#fff5f5', border: '2px dashed #fca5a5', borderRadius: '1rem', margin: '2rem' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                <FileText size={28} />
-              </div>
-              <p style={{ fontSize: '1.1rem', fontWeight: 900, color: '#991b1b', margin: '0 0 0.5rem 0' }}>
-                📕 Bu Test İçin PDF Dosyası Yüklü Değil veya Erişilemiyor
-              </p>
-              <p style={{ fontSize: '0.85rem', color: '#7f1d1d', margin: '0 0 1.5rem 0', maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto' }}>
-                Sınav dokümanı cihaz hafızasında bulunamadı. Lütfen bilgisayarınızdan veya telefonunuzdan bu teste ait PDF dosyasını seçerek hemen sınava başlayın:
-              </p>
-
-              <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.85rem 2rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(220,38,38,0.35)' }}>
-                <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handleDirectPdfUploadInRunner(e.target.files[0], q.id)} />
-                📁 Bilgisayardan PDF Seç & Sınava Başla
-              </label>
-            </div>
-          );
-        }
         return (
-          <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', height: 'calc(100vh - 140px)', minHeight: '600px', width: '100%' }}>
-            <iframe
-              src={pdfEmbedUrl}
-              title="PDF Soru"
-              style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
-            />
-          </div>
+          <PdfViewerWithControls
+            payload={q.contentPayload}
+            title={q.title || test?.title || 'PDF Test Sınavı'}
+            height="calc(100vh - 140px)"
+            onUploadFile={(file) => handleDirectPdfUploadInRunner(file, q.id)}
+          />
         );
       }
       case 'html': return <iframe srcDoc={q.contentPayload} title="HTML Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: 'none'}}></iframe>;

@@ -6,6 +6,7 @@ import { CheckCircle, XCircle, ArrowLeft, Clock3, Maximize, Minimize } from 'luc
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { idbGetPayload } from '../services/indexedDbService';
+import PdfViewerWithControls from '../components/PdfViewerWithControls';
 import './QuizRunner.css';
 
 export default function QuizReview() {
@@ -39,7 +40,7 @@ export default function QuizReview() {
   const renderContentPreview = (q) => {
     switch (q.contentType) {
       case 'gorsel': return <div className="q-preview-gorsel" style={{marginBottom: '1rem'}}><img src={q.contentPayload} alt="Soru Görseli" style={{maxWidth: '100%', borderRadius: 'var(--border-radius-md)'}} /></div>;
-      case 'pdf': return <iframe src={getEmbeddableUrl(q.contentPayload)} title="PDF Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-md)', marginBottom: '1rem'}}></iframe>;
+      case 'pdf': return <div style={{ marginBottom: '1.25rem' }}><PdfViewerWithControls payload={q.contentPayload} title={q.title || "İnceleme PDF Sınavı"} height="600px" /></div>;
       case 'html': return <iframe srcDoc={q.contentPayload} title="HTML Soru" style={{width: '100%', height: '100%', minHeight: '80vh', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-md)', marginBottom: '1rem'}}></iframe>;
       default: return null;
     }
