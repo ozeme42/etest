@@ -66,6 +66,7 @@ export default function QuizRunner() {
   const [isDragging, setIsDragging] = useState(false);
 
   // Dedicated Mobile Solver States
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
   const [mobileTab, setMobileTab] = useState('doc'); // 'doc', 'optic', 'scratch', 'split'
   const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
   const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
