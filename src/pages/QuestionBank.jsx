@@ -2888,7 +2888,7 @@ export default function QuestionBank() {
                       <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1e293b', marginBottom: '1.25rem' }}>{q.questionText}</p>
                     )}
 
-                    {/* RENDER ALL IMAGES IN PREVIEW MODAL */}
+                    {/* RENDER ALL IMAGES WITH THEIR OPTIONS DIRECTLY UNDERNEATH */}
                     {(() => {
                       const imgs = [];
                       if (q.contentPayload && typeof q.contentPayload === 'string' && (q.contentPayload.startsWith('data:image') || q.contentPayload.startsWith('http') || q.contentType === 'gorsel')) {
@@ -2901,39 +2901,96 @@ export default function QuestionBank() {
                       }
                       const imageList = imgs.length > 0 ? imgs : [q.contentPayload].filter(Boolean);
 
+                      const getCorrectIdxForImg = (imgIdx) => {
+                        if (Array.isArray(q.answerKey) && q.answerKey[imgIdx] && q.answerKey[imgIdx] !== ' ') {
+                          return q.answerKey[imgIdx].toUpperCase().charCodeAt(0) - 65;
+                        }
+                        if (q.imageAnswers && q.imageAnswers[imgIdx] !== undefined) {
+                          return q.imageAnswers[imgIdx];
+                        }
+                        if (imgIdx === 0 && q.correctAnswer !== undefined) {
+                          return q.correctAnswer;
+                        }
+                        return -1;
+                      };
+
                       return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                          {imageList.map((imgUrl, imgIdx) => (
-                            <div key={imgIdx} style={{ background: 'white', padding: '1rem', borderRadius: '1.25rem', border: '1px solid #cbd5e1', boxShadow: '0 4px 8px rgba(0,0,0,0.04)' }}>
-                              {imageList.length > 1 && (
-                                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '0.75rem', fontSize: '0.9rem', textAlign: 'left' }}>
-                                  🖼️ Soru / Görsel {imgIdx + 1} / {imageList.length}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', marginBottom: '1.5rem' }}>
+                          {imageList.map((imgUrl, imgIdx) => {
+                            const correctIdx = getCorrectIdxForImg(imgIdx);
+                            return (
+                              <div key={imgIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 10px rgba(0,0,0,0.04)' }}>
+                                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>🖼️ Görsel / Soru {imgIdx + 1} / {imageList.length}</span>
+                                  {correctIdx >= 0 && (
+                                    <span style={{ background: '#ecfdf5', color: '#065f46', fontSize: '0.8rem', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid #a7f3d0' }}>
+                                      ✓ Doğru Cevap: {String.fromCharCode(65 + correctIdx)}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              <img 
-                                src={imgUrl} 
-                                alt={`Soru Görseli ${imgIdx + 1}`} 
-                                style={{ maxWidth: '100%', maxHeight: '600px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }} 
-                                onError={(e) => { e.target.alt = "Görsel yüklenemedi. Lütfen URL'yi kontrol edin."; }}
-                              />
-                            </div>
-                          ))}
+
+                                <img 
+                                  src={imgUrl} 
+                                  alt={`Soru Görseli ${imgIdx + 1}`} 
+                                  style={{ maxWidth: '100%', maxHeight: '550px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }} 
+                                  onError={(e) => { e.target.alt = "Görsel yüklenemedi. Lütfen URL'yi kontrol edin."; }}
+                                />
+
+                                {/* OPTIONS DIRECTLY UNDER EACH IMAGE */}
+                                {q.type === 'coktan_secmeli' && (
+                                  <div style={{ marginTop: '1.15rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      Soru {imgIdx + 1} Cevap Seçenekleri:
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+                                      {['A', 'B', 'C', 'D', 'E'].map((letter, oIdx) => {
+                                        const isCorrect = correctIdx === oIdx;
+                                        const optText = (q.options && q.options[oIdx]) ? q.options[oIdx] : letter;
+
+                                        return (
+                                          <div
+                                            key={letter}
+                                            style={{
+                                              padding: '0.55rem 0.95rem',
+                                              borderRadius: '0.75rem',
+                                              border: isCorrect ? '2px solid #10b981' : '1.5px solid #cbd5e1',
+                                              background: isCorrect ? '#ecfdf5' : 'white',
+                                              fontWeight: 800,
+                                              fontSize: '0.9rem',
+                                              color: isCorrect ? '#065f46' : '#334155',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '0.4rem',
+                                              boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.2)' : 'none'
+                                            }}
+                                          >
+                                            <span style={{
+                                              width: '24px', height: '24px', borderRadius: '50%',
+                                              background: isCorrect ? '#10b981' : '#cbd5e1',
+                                              color: 'white', fontWeight: 900, fontSize: '0.8rem',
+                                              display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                              {letter}
+                                            </span>
+                                            <span>{optText !== letter ? `${letter}) ${optText}` : `${letter} Şıkkı`}</span>
+                                            {isCorrect && (
+                                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
+                                                <Check size={14} strokeWidth={3} /> Doğru
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })()}
-                    
-                    {q.type === 'coktan_secmeli' && q.options && (
-                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                        {q.options.map((opt, oIdx) => {
-                          const isCorrect = q.correctAnswer === oIdx;
-                          return (
-                            <div key={oIdx} style={{ padding: '0.6rem 1.25rem', borderRadius: '20px', border: isCorrect ? '2px solid #10b981' : '1px solid #cbd5e1', background: isCorrect ? '#ecfdf5' : 'white', fontWeight: 800, color: isCorrect ? '#065f46' : '#64748b' }}>
-                              {String.fromCharCode(65 + oIdx)}) {opt} {isCorrect && '✓'}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
                 )}
 
