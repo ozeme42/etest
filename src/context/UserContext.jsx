@@ -17,7 +17,28 @@ export function UserProvider({ children }) {
     async function syncUsersFromSupabase() {
       const dbUsersList = await dbGetUsers();
       if (dbUsersList && dbUsersList.length > 0) {
-        setUsers(dbUsersList);
+        setUsers(prev => {
+          const merged = dbUsersList.map(dbU => {
+            const localU = prev.find(l => l.id === dbU.id || (l.email && dbU.email && l.email.toLowerCase() === dbU.email.toLowerCase()));
+            return {
+              ...localU,
+              ...dbU,
+              teacherId: dbU.teacherId !== undefined && dbU.teacherId !== null ? dbU.teacherId : (localU?.teacherId || null),
+              password: dbU.password || localU?.password || null,
+              gradeId: dbU.gradeId || localU?.gradeId || 'g1'
+            };
+          });
+
+          // Preserve any locally created users not present in Supabase
+          prev.forEach(localU => {
+            if (!merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.toLowerCase() === localU.email.toLowerCase()))) {
+              merged.push(localU);
+            }
+          });
+
+          localStorage.setItem('eTestUsers', JSON.stringify(merged));
+          return merged;
+        });
       }
     }
     syncUsersFromSupabase();
@@ -34,8 +55,9 @@ export function UserProvider({ children }) {
     };
     setUsers(prev => {
       const exists = prev.some(u => u.email === newUser.email);
-      if (exists) return prev.map(u => u.email === newUser.email ? { ...u, ...newUser } : u);
-      return [...prev, newUser];
+      const newList = exists ? prev.map(u => u.email === newUser.email ? { ...u, ...newUser } : u) : [...prev, newUser];
+      localStorage.setItem('eTestUsers', JSON.stringify(newList));
+      return newList;
     });
     const res = await dbAddUser(newUser);
     if (res?.error) {
@@ -46,13 +68,18 @@ export function UserProvider({ children }) {
 
   const updateUser = async (id, updatedData) => {
     let updatedUserObj = null;
-    setUsers(prev => prev.map(u => {
-      if (u.id === id) {
-        updatedUserObj = { ...u, ...updatedData };
-        return updatedUserObj;
-      }
-      return u;
-    }));
+    setUsers(prev => {
+      const newList = prev.map(u => {
+        if (u.id === id) {
+          updatedUserObj = { ...u, ...updatedData };
+          return updatedUserObj;
+        }
+        return u;
+      });
+      localStorage.setItem('eTestUsers', JSON.stringify(newList));
+      return newList;
+    });
+
     if (updatedUserObj) {
       await dbAddUser(updatedUserObj);
     }
