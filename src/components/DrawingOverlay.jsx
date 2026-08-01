@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { PenTool, Eraser, Trash2, X, Maximize, Minimize } from 'lucide-react';
 
 export default function DrawingOverlay({ children }) {
@@ -14,78 +14,69 @@ export default function DrawingOverlay({ children }) {
   const isDrawingRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Initialize canvas size without infinite ResizeObserver reflow loop
-  const initCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const rect = container.getBoundingClientRect();
-    const newWidth = Math.floor(rect.width || container.clientWidth || 300);
-    const newHeight = Math.floor(rect.height || container.clientHeight || 500);
-
-    // Prevent redundant canvas resizing & infinite reflow loop
-    if (canvas.width === newWidth && canvas.height === newHeight && contextRef.current) {
-      return;
-    }
-
-    let tempCanvasData = null;
-    if (canvas.width > 0 && canvas.height > 0 && contextRef.current) {
-      try {
-        tempCanvasData = contextRef.current.getImageData(0, 0, canvas.width, canvas.height);
-      } catch (e) {}
-    }
-
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-    
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
-      context.lineWidth = lineWidth;
-      if (tool === 'eraser') {
-        context.globalCompositeOperation = 'destination-out';
-      } else {
-        context.globalCompositeOperation = 'source-over';
-      }
-      contextRef.current = context;
-      if (tempCanvasData) {
-        try {
-          context.putImageData(tempCanvasData, 0, 0);
-        } catch (e) {}
-      }
-    }
-  }, [color, lineWidth, tool]);
-
-  useEffect(() => {
-    initCanvas();
-
-    let animationFrameId = null;
-    const observer = new ResizeObserver(() => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      animationFrameId = requestAnimationFrame(() => {
-        initCanvas();
-      });
-    });
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-    return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      observer.disconnect();
-    };
-  }, [initCanvas, isDrawingMode]);
-
-  // Update context properties when tools change
+  // 1. Lightweight tool & color update - Instantaneous 0ms cost, no DOM reflow
   useEffect(() => {
     if (!contextRef.current) return;
     contextRef.current.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
     contextRef.current.lineWidth = lineWidth;
     contextRef.current.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
   }, [color, lineWidth, tool]);
+
+  // 2. Physical Resize Handler ONLY - Runs only when container size changes
+  useEffect(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    const resizeCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      const w = Math.floor(rect.width || container.clientWidth || 300);
+      const h = Math.floor(rect.height || container.clientHeight || 500);
+
+      if (w <= 0 || h <= 0) return;
+      if (canvas.width === w && canvas.height === h && contextRef.current) return;
+
+      // Offscreen canvas for fast GPU-accelerated state preservation
+      const offscreen = document.createElement('canvas');
+      offscreen.width = canvas.width;
+      offscreen.height = canvas.height;
+      const offCtx = offscreen.getContext('2d');
+      if (offCtx && canvas.width > 0 && canvas.height > 0) {
+        offCtx.drawImage(canvas, 0, 0);
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
+        context.lineWidth = lineWidth;
+        context.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+        contextRef.current = context;
+        if (offscreen.width > 0 && offscreen.height > 0) {
+          context.drawImage(offscreen, 0, 0);
+        }
+      }
+    };
+
+    resizeCanvas();
+
+    let rafId = null;
+    const observer = new ResizeObserver(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(resizeCanvas);
+    });
+
+    observer.observe(container);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+  }, []); // Run ONLY ON MOUNT! Never run on button clicks!
 
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
@@ -278,7 +269,6 @@ export default function DrawingOverlay({ children }) {
           onPointerMove={draw}
           onPointerUp={finishDrawing}
           onPointerCancel={finishDrawing}
-          onPointerLeave={finishDrawing}
           style={{
             position: 'absolute',
             top: 0,
