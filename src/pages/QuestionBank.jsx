@@ -162,6 +162,9 @@ export default function QuestionBank() {
   // Preview State for Error Checking
   const [previewQuestion, setPreviewQuestion] = useState(null);
 
+  // View mode: 'card' (rich cards) | 'row' (compact table rows)
+  const [viewMode, setViewMode] = useState('card');
+
   // Visual Written Test Editor State for JSON / Bundles
   const [editableQuestionsList, setEditableQuestionsList] = useState([]);
   const [jsonEditMode, setJsonEditMode] = useState('visual'); // 'visual' | 'code'
@@ -1298,6 +1301,111 @@ export default function QuestionBank() {
     );
   };
 
+  // ─── COMPACT ROW RENDERER (Table / Excel view) ──────────────────────────────
+  const renderQuestionRow = (q, idx) => {
+    const hierarchyBadge = getQuestionHierarchyBadge(q);
+    const cfg = contentConfig[q.contentType] || contentConfig.text;
+    const imgCount = Array.isArray(q.imageUrls) && q.imageUrls.length > 0 ? q.imageUrls.length : (q.contentType === 'gorsel' ? 1 : 0);
+    const qCount = q.questionsList?.length || q.questionCount || (q.answerKey?.filter(k => k && k !== ' ').length) || (imgCount > 0 ? imgCount : null);
+    const thumbUrl = Array.isArray(q.imageUrls) && q.imageUrls[0] ? q.imageUrls[0] : (q.contentType === 'gorsel' ? q.contentPayload : null);
+
+    return (
+      <div key={q.id} style={{
+        display: 'grid',
+        gridTemplateColumns: '32px 44px 1fr auto auto auto auto auto',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: '0.6rem 1rem',
+        borderBottom: '1px solid #f1f5f9',
+        background: idx % 2 === 0 ? 'white' : '#fafbff',
+        transition: 'background 0.15s',
+      }}
+      className="qbank-row-item hover:bg-indigo-50/50"
+      >
+        {/* # */}
+        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textAlign: 'right' }}>{idx + 1}</span>
+
+        {/* Type icon badge */}
+        <div style={{ width: '36px', height: '36px', borderRadius: '0.6rem', background: cfg.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+          {thumbUrl
+            ? <img src={thumbUrl} alt="" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '0.6rem' }} onError={e => e.target.style.display='none'} />
+            : cfg.icon}
+        </div>
+
+        {/* Title + breadcrumb */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {q.title || q.name || cfg.label}
+          </div>
+          {hierarchyBadge && (
+            <div style={{ fontSize: '0.68rem', color: cfg.accent, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {hierarchyBadge}
+            </div>
+          )}
+        </div>
+
+        {/* Content type chip */}
+        <span style={{ background: cfg.iconBg, color: 'white', fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {cfg.icon} {cfg.label}
+        </span>
+
+        {/* Question type chip */}
+        <span style={{ background: q.type === 'coktan_secmeli' ? '#dcfce7' : '#fef3c7', color: q.type === 'coktan_secmeli' ? '#166534' : '#92400e', fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {q.type === 'coktan_secmeli' ? '🔘 ÇS' : '📝 AÇ'}
+        </span>
+
+        {/* Soru sayısı */}
+        {qCount
+          ? <span style={{ fontSize: '0.72rem', fontWeight: 900, color: cfg.accent, background: `${cfg.border}55`, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>📊 {qCount}</span>
+          : <span />
+        }
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexShrink: 0 }}>
+          <button onClick={() => setPreviewQuestion(q)} title="Önizle" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: cfg.iconBg, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Eye size={13} /> Önizle
+          </button>
+          <button onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })} title="Ödev Ata" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Calendar size={13} /> Ata
+          </button>
+          <button onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: '#f1f5f9', color: '#334155', border: '1.5px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <Edit2 size={13} />
+          </button>
+          <button onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper: wraps items in either card grid or table
+  const renderQList = (items, bgColor = '#fafafa') => {
+    if (viewMode === 'row') {
+      return (
+        <div style={{ background: bgColor, borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+          {/* Table header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '32px 44px 1fr auto auto auto auto', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', background: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', textAlign: 'right' }}>#</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tür</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Başlık / Konu</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İçerik</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Format</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soru</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İşlemler</span>
+          </div>
+          {items.map((q, idx) => renderQuestionRow(q, idx))}
+        </div>
+      );
+    }
+    return (
+      <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', background: bgColor }}>
+        {items.map(q => renderQuestionCard(q))}
+      </div>
+    );
+  };
+
+
   const renderSearchResults = () => (
     <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto 2.5rem auto' }}>
       <div style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', border: '1px solid #a5b4fc', padding: '1.25rem 1.75rem', borderRadius: '1.25rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 12px rgba(79,70,229,0.1)' }}>
@@ -1310,34 +1418,20 @@ export default function QuestionBank() {
               "{searchQuery}" Arama Sonuçları
             </h3>
             <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#3730a3', fontWeight: 700 }}>
-              Arama kriterine uygun {filteredQuestions.length} içerik/test satır satır listelendi.
+              {filteredQuestions.length} içerik/test bulundu.
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setSearchQuery('')}
-          style={{ background: 'white', border: '1.5px solid #818cf8', color: '#3730a3', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
-        >
+        <button onClick={() => setSearchQuery('')} style={{ background: 'white', border: '1.5px solid #818cf8', color: '#3730a3', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <X size={16} /> Aramayı Temizle
         </button>
       </div>
-
-      {/* CARD GRID - SEARCH RESULTS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.15rem' }}>
-        {filteredQuestions.map(q => renderQuestionCard(q))}
-
-        {filteredQuestions.length === 0 && (
-          <div className="card glass empty-state" style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1' }}>
-            <Search size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-            <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>
-              "{searchQuery}" aramasıyla eşleşen soru bulunamadı.
-            </h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>
-              Lütfen farklı bir anahtar kelime veya kelime parçası ile arama yapmayı deneyiniz.
-            </p>
-          </div>
-        )}
-      </div>
+      {filteredQuestions.length === 0 ? (
+        <div style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1' }}>
+          <Search size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+          <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>Sonuç bulunamadı.</h3>
+        </div>
+      ) : renderQList(filteredQuestions, 'transparent')}
     </div>
   );
 
@@ -1750,6 +1844,16 @@ export default function QuestionBank() {
                 <option value="pdf">PDF Paketleri</option>
                 <option value="html">HTML Paketleri</option>
               </select>
+
+              {/* View toggle */}
+              <div style={{ display: 'flex', gap: '0.3rem', background: '#f1f5f9', borderRadius: '0.65rem', padding: '0.25rem' }}>
+                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'white' : 'transparent', color: viewMode === 'card' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'card' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+                  <LayoutGrid size={15} /> Kart
+                </button>
+                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'white' : 'transparent', color: viewMode === 'row' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'row' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+                  <List size={15} /> Satır
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1783,10 +1887,8 @@ export default function QuestionBank() {
                     </span>
                   </div>
 
-                  {/* Question Cards - Card Grid */}
-                  <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', background: '#fafafa' }}>
-                    {group.items.map(q => renderQuestionCard(q))}
-                  </div>
+                  {/* Question Cards - Card / Row toggle */}
+                  {renderQList(group.items, '#fafafa')}
 
                 </div>
               ))}
@@ -1950,6 +2052,16 @@ export default function QuestionBank() {
                 <option value="pdf">PDF Paketleri</option>
                 <option value="html">HTML Paketleri</option>
               </select>
+
+              {/* View toggle */}
+              <div style={{ display: 'flex', gap: '0.3rem', background: '#f1f5f9', borderRadius: '0.65rem', padding: '0.25rem' }}>
+                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'white' : 'transparent', color: viewMode === 'card' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'card' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+                  <LayoutGrid size={15} /> Kart
+                </button>
+                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'white' : 'transparent', color: viewMode === 'row' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'row' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+                  <List size={15} /> Satır
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1983,10 +2095,8 @@ export default function QuestionBank() {
                     </span>
                   </div>
 
-                  {/* Question Cards - Card Grid */}
-                  <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', background: '#fafafa' }}>
-                    {group.items.map(q => renderQuestionCard(q))}
-                  </div>
+                  {/* Question Cards - Card / Row toggle */}
+                  {renderQList(group.items, '#fafafa')}
 
                 </div>
               ))}
