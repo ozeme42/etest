@@ -7,6 +7,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import DrawingOverlay from '../components/DrawingOverlay';
+import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import './QuizRunner.css';
 
 export default function QuizRunner() {

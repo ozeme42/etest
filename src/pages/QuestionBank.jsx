@@ -122,16 +122,7 @@ const gradeThemes = {
   }
 };
 
-const getEmbeddableUrl = (url) => {
-  if (!url) return url;
-  if (url.includes('drive.google.com/file/d/')) {
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-  }
-  return url;
-};
+import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 
 export default function QuestionBank() {
   const navigate = useNavigate();

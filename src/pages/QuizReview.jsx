@@ -4,6 +4,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { CheckCircle, XCircle, ArrowLeft, Clock3, Maximize, Minimize } from 'lucide-react';
 import DrawingOverlay from '../components/DrawingOverlay';
+import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import './QuizRunner.css';
 
 export default function QuizReview() {
@@ -33,17 +34,6 @@ export default function QuizReview() {
   }
 
   const isPending = submission.status === 'pending_evaluation';
-
-  const getEmbeddableUrl = (url) => {
-    if (!url) return url;
-    if (url.includes('drive.google.com/file/d/')) {
-      const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return `https://drive.google.com/file/d/${match[1]}/preview`;
-      }
-    }
-    return url;
-  };
 
   const renderContentPreview = (q) => {
     switch (q.contentType) {
