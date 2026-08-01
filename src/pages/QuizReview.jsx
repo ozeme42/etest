@@ -18,18 +18,54 @@ export default function QuizReview() {
   const { questions } = useQuestionBank();
   
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [enrichedQuestions, setEnrichedQuestions] = useState([]);
+
+  const submission = submissions.find(s => s.id === id);
+
+  const baseQuestions = useMemo(() => {
+    if (!submission || !submission.answers) return [];
+    const groupedAnswers = {};
+    submission.answers.forEach(ans => {
+      if (!groupedAnswers[ans.questionId]) groupedAnswers[ans.questionId] = [];
+      groupedAnswers[ans.questionId].push(ans);
+    });
+    return Object.keys(groupedAnswers).map(qId => questions.find(q => q.id === qId)).filter(Boolean);
+  }, [submission, questions]);
+
+  useEffect(() => {
+    async function loadFullPayloads() {
+      if (baseQuestions.length === 0) {
+        setEnrichedQuestions([]);
+        return;
+      }
+      const enriched = await Promise.all(baseQuestions.map(async (q) => {
+        let payload = q.contentPayload;
+        if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && payload.includes('[LOCALSTORAGE_CACHE]'))) {
+          const fullPayload = await idbGetPayload(q.id);
+          if (fullPayload) {
+            payload = fullPayload;
+          }
+        }
+        return { ...q, contentPayload: payload };
+      }));
+      setEnrichedQuestions(enriched);
+    }
+    loadFullPayloads();
+  }, [baseQuestions]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const handleBack = () => {
     if (location.state?.from) {
       navigate(location.state.from, { state: { subject: location.state.subject } });
     } else {
-      // Fallback to student dashboard instead of blindly going back in history
-      // which might reopen the finished test
       navigate('/student');
     }
   };
-
-  const submission = submissions.find(s => s.id === id);
 
   if (!submission) {
     return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Sonuç bulunamadı.</div>;
@@ -46,31 +82,11 @@ export default function QuizReview() {
     }
   };
 
-  // Group answers by question ID
   const groupedAnswers = {};
   submission.answers.forEach(ans => {
     if (!groupedAnswers[ans.questionId]) groupedAnswers[ans.questionId] = [];
     groupedAnswers[ans.questionId].push(ans);
   });
-
-  const baseQuestions = Object.keys(groupedAnswers).map(qId => questions.find(q => q.id === qId)).filter(Boolean);
-  const [enrichedQuestions, setEnrichedQuestions] = useState(baseQuestions);
-
-  useEffect(() => {
-    async function loadFullPayloads() {
-      const enriched = await Promise.all(baseQuestions.map(async (q) => {
-        if (!q.contentPayload || q.contentPayload === '[STORED_IN_INDEXEDDB]' || (typeof q.contentPayload === 'string' && q.contentPayload.includes('[LOCALSTORAGE_CACHE]'))) {
-          const fullPayload = await idbGetPayload(q.id);
-          if (fullPayload) {
-            return { ...q, contentPayload: fullPayload };
-          }
-        }
-        return q;
-      }));
-      setEnrichedQuestions(enriched);
-    }
-    loadFullPayloads();
-  }, [questions, submission]);
 
   const uniqueQuestions = enrichedQuestions;
 
