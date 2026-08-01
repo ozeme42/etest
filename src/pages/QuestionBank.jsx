@@ -2362,9 +2362,9 @@ export default function QuestionBank() {
                                 )}
 
                                 {/* Optic Bubbles A B C D E */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #f1f5f9' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Doğru Cevabı Seçin:</div>
-                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #f1f5f9', alignItems: 'center' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                                     {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
                                       const isSelected = selectedOpt === optIdx;
                                       return (
@@ -2386,7 +2386,8 @@ export default function QuestionBank() {
                                             transition: 'all 0.15s ease',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justify: 'center'
+                                            justifyContent: 'center',
+                                            textAlign: 'center'
                                           }}
                                           className="hover:scale-105 active:scale-95"
                                           title={`Görsel Soru ${idx + 1} için ${letter} şıkkını seç`}
