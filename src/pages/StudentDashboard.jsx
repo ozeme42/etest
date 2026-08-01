@@ -73,6 +73,36 @@ function Pill({ children, color = '#6366f1', bg, border }) {
 
 /* ─── Stat Card ─────────────────────────────────────────────────── */
 function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) {
+  if (isMobile) {
+    return (
+      <div
+        style={{
+          background: 'white',
+          border: `1.5px solid ${color}30`,
+          borderRadius: '0.9rem',
+          padding: '0.55rem 0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.55rem',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+          flexShrink: 0,
+          minWidth: '135px'
+        }}
+      >
+        <div style={{ width: 34, height: 34, borderRadius: '0.65rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${color}33` }}>
+          <Icon size={16} color={color} />
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</span>
+            {sub && <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700 }}>{sub}</span>}
+          </div>
+          <div style={{ fontSize: '0.63rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        </div>
+      </div>
+    );
+  }
+
   const [hov, setHov] = useState(false);
   return (
     <div
@@ -82,22 +112,22 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
         background: hov ? bg : 'white',
         border: `1.5px solid ${hov ? color + '44' : '#f1f5f9'}`,
         borderRadius: '1.25rem',
-        padding: isMobile ? '0.85rem' : '1.25rem',
+        padding: '1.25rem',
         display: 'flex',
-        gap: isMobile ? '0.65rem' : '0.9rem',
+        gap: '0.9rem',
         alignItems: 'center',
         boxShadow: hov ? `0 8px 28px ${glow || color + '30'}` : '0 2px 10px rgba(0,0,0,0.05)',
         transition: 'all 0.2s',
         transform: hov ? 'translateY(-2px)' : 'none'
       }}
     >
-      <div style={{ width: isMobile ? 38 : 48, height: isMobile ? 38 : 48, borderRadius: '0.9rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}33` }}>
-        <Icon size={isMobile ? 18 : 22} color={color} />
+      <div style={{ width: 48, height: 48, borderRadius: '0.9rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}33` }}>
+        <Icon size={22} color={color} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: isMobile ? '1.3rem' : '1.7rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        {sub && <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>{sub}</div>}
-        <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>{label}</div>
+        <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+        {sub && <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>{label}</div>
       </div>
     </div>
   );
@@ -445,12 +475,16 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* STAT CARDS - Sleek Touch 2-Column Grid on Mobile */}
+        {/* STAT CARDS - Compact Mobile Touch Ribbon */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: isMobile ? '0.65rem' : '0.85rem',
-          marginBottom: '1.5rem'
+          display: isMobile ? 'flex' : 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: isMobile ? '0.5rem' : '0.85rem',
+          overflowX: isMobile ? 'auto' : 'visible',
+          paddingBottom: isMobile ? '0.35rem' : 0,
+          marginBottom: '1.25rem',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch'
         }}>
           <StatCard icon={ClipboardList} label="Toplam Ödev"   value={tests.length}              sub="verilmiş"    color="#6366f1" bg="#eff6ff" isMobile={isMobile} />
           <StatCard icon={CheckCircle2} label="Tamamlanan"    value={tests.filter(t=>t.status==='Sonuçlandı').length} sub="sınav" color="#22c55e" bg="#f0fdf4" isMobile={isMobile} />
