@@ -2859,18 +2859,46 @@ export default function QuestionBank() {
                   </div>
                 )}
 
-                {/* 2. IMAGE QUESTION PREVIEW */}
-                {!q.questionsList && q.contentType === 'gorsel' && (
+                {/* 2. IMAGE QUESTION / BUNDLE PREVIEW */}
+                {(q.contentType === 'gorsel' || (q.imageUrls && q.imageUrls.length > 0)) && (
                   <div style={{ textAlign: 'center' }}>
                     {q.questionText && (
-                      <p style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b', marginBottom: '1rem' }}>{q.questionText}</p>
+                      <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1e293b', marginBottom: '1.25rem' }}>{q.questionText}</p>
                     )}
-                    <img 
-                      src={q.contentPayload} 
-                      alt="Soru Görseli" 
-                      style={{ maxWidth: '100%', maxHeight: '420px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }} 
-                      onError={(e) => { e.target.alt = "Görsel yüklenemedi. Lütfen URL'yi kontrol edin."; }}
-                    />
+
+                    {/* RENDER ALL IMAGES IN PREVIEW MODAL */}
+                    {(() => {
+                      const imgs = [];
+                      if (q.contentPayload && typeof q.contentPayload === 'string' && (q.contentPayload.startsWith('data:image') || q.contentPayload.startsWith('http') || q.contentType === 'gorsel')) {
+                        imgs.push(q.contentPayload);
+                      }
+                      if (Array.isArray(q.imageUrls)) {
+                        q.imageUrls.forEach(url => {
+                          if (url && !imgs.includes(url)) imgs.push(url);
+                        });
+                      }
+                      const imageList = imgs.length > 0 ? imgs : [q.contentPayload].filter(Boolean);
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                          {imageList.map((imgUrl, imgIdx) => (
+                            <div key={imgIdx} style={{ background: 'white', padding: '1rem', borderRadius: '1.25rem', border: '1px solid #cbd5e1', boxShadow: '0 4px 8px rgba(0,0,0,0.04)' }}>
+                              {imageList.length > 1 && (
+                                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '0.75rem', fontSize: '0.9rem', textAlign: 'left' }}>
+                                  🖼️ Soru / Görsel {imgIdx + 1} / {imageList.length}
+                                </div>
+                              )}
+                              <img 
+                                src={imgUrl} 
+                                alt={`Soru Görseli ${imgIdx + 1}`} 
+                                style={{ maxWidth: '100%', maxHeight: '600px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }} 
+                                onError={(e) => { e.target.alt = "Görsel yüklenemedi. Lütfen URL'yi kontrol edin."; }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     
                     {q.type === 'coktan_secmeli' && q.options && (
                       <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
