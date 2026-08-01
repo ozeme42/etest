@@ -180,6 +180,7 @@ export default function QuizRunner() {
           subIndex: idx,
           questionCount: subList.length,
           isSubOfBundle: true,
+          isBundle: false,
           type: qType,
           contentType: sq.contentType || targetObj.contentType || 'gorsel',
           contentPayload: sq.contentPayload || sq.imageUrl,
@@ -1186,8 +1187,8 @@ export default function QuizRunner() {
     );
   }
 
-  // --- BUNDLE VIEW (PDF / HTML Multi-question) ---
-  if (currentQuestion?.isBundle) {
+  // --- BUNDLE VIEW (Only for multi-page PDF or HTML documents) ---
+  if (currentQuestion?.isBundle && !currentQuestion?.isSubOfBundle && (currentQuestion?.contentType === 'pdf' || currentQuestion?.contentType === 'html')) {
     const bundleAns = studentAnswers[currentQuestion.id] || {};
     
     return (
