@@ -50,7 +50,12 @@ export default function QuizRunner() {
 
   // Core Quiz States
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(savedState?.currentQuestionIdx || 0);
+  const [subQuestionIdx, setSubQuestionIdx] = useState(0);
   const [studentAnswers, setStudentAnswers] = useState(savedState?.studentAnswers || {});
+
+  useEffect(() => {
+    setSubQuestionIdx(0);
+  }, [currentQuestionIdx]);
   const [timeLeft, setTimeLeft] = useState(savedState?.timeLeft ?? null);
   const [isFinished, setIsFinished] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -664,7 +669,7 @@ export default function QuizRunner() {
       );
     }
 
-    if (q.contentType === 'json') {
+    if (q.contentType === 'json' || q.questionsList) {
       let subQuestions = q.questionsList || [];
       if (!subQuestions.length && q.contentPayload) {
         try {
@@ -675,66 +680,131 @@ export default function QuizRunner() {
         }
       }
 
+      if (subQuestions.length === 0) return null;
+
+      const safeSubIdx = Math.min(subQuestionIdx, subQuestions.length - 1);
+      const qItem = subQuestions[safeSubIdx];
+      const isAcikUcluItem = q.type === 'acik_uclu' || test?.type === 'acik_uclu' || qItem.type === 'acik_uclu';
+      const hasRealTextOptions = !isAcikUcluItem && qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
+
       return (
-        <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {subQuestions.map((qItem, sIdx) => {
-            const isAcikUcluItem = q.type === 'acik_uclu' || test?.type === 'acik_uclu' || qItem.type === 'acik_uclu';
-            const hasRealTextOptions = !isAcikUcluItem && qItem.options && qItem.options.length > 0 && qItem.options.some((opt, idx) => opt && opt.trim() !== String.fromCharCode(65 + idx));
-            return (
-              <div key={sIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                {subQuestions.length > 1 && (
-                  <div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    Soru {sIdx + 1}
-                  </div>
-                )}
-                {qItem.contentPayload && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img src={qItem.contentPayload} alt={`Soru Görseli ${sIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
-                  </div>
-                )}
-                {qItem.questionText && (
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
-                    {qItem.questionText}
-                  </div>
-                )}
-                {hasRealTextOptions && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
-                    {qItem.options.map((optText, oIdx) => {
-                      const bundleAns = studentAnswers[q.id] || {};
-                      const isSelected = (typeof bundleAns === 'object' && bundleAns !== null) ? bundleAns[sIdx] === oIdx : false;
-                      return (
-                        <div 
-                          key={oIdx} 
-                          onClick={() => handleBundleOptionSelect(sIdx, oIdx)}
-                          style={{ 
-                            background: isSelected ? '#ecfdf5' : '#f1f5f9', 
-                            padding: '0.65rem 0.9rem', 
-                            borderRadius: '0.65rem', 
-                            fontSize: '0.88rem', 
-                            fontWeight: 700, 
-                            color: isSelected ? '#065f46' : '#334155', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.65rem', 
-                            border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                          className="hover:scale-[1.01] active:scale-95"
-                        >
-                          <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#10b981' : '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {String.fromCharCode(65 + oIdx)}
-                          </span>
-                          <span style={{ flex: 1 }}>{optText}</span>
-                          {isSelected && <span style={{ color: '#10b981', fontWeight: 900, fontSize: '0.85rem' }}>✓</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+        <div style={{ height: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          {/* Sub-questions Header / Pagination Bar if subQuestions > 1 */}
+          {subQuestions.length > 1 && (
+            <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.82rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                  📌 Soru {safeSubIdx + 1} / {subQuestions.length}
+                </span>
+                
+                <div style={{ display: 'flex', gap: '0.3rem', overflowX: 'auto', padding: '0.1rem' }}>
+                  {subQuestions.map((_, pIdx) => {
+                    const bundleAns = studentAnswers[q.id] || {};
+                    const isAns = (typeof bundleAns === 'object' && bundleAns !== null) && (bundleAns[pIdx] !== undefined && bundleAns[pIdx] !== null && bundleAns[pIdx] !== '');
+                    const isCurr = pIdx === safeSubIdx;
+                    return (
+                      <button
+                        key={pIdx}
+                        onClick={() => setSubQuestionIdx(pIdx)}
+                        style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          border: isCurr ? '2px solid #4f46e5' : (isAns ? '1.5px solid #10b981' : '1px solid #cbd5e1'),
+                          background: isCurr ? '#4f46e5' : (isAns ? '#dcfce7' : '#f1f5f9'),
+                          color: isCurr ? 'white' : (isAns ? '#166534' : '#475569'),
+                          fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                      >
+                        {pIdx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            );
-          })}
+
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  disabled={safeSubIdx === 0}
+                  onClick={() => setSubQuestionIdx(prev => Math.max(0, prev - 1))}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
+                    border: '1px solid #cbd5e1', background: safeSubIdx === 0 ? '#f1f5f9' : '#e0e7ff',
+                    color: safeSubIdx === 0 ? '#94a3b8' : '#3730a3',
+                    fontWeight: 800, fontSize: '0.8rem', cursor: safeSubIdx === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.3rem'
+                  }}
+                >
+                  <ChevronLeft size={16} /> Önceki
+                </button>
+
+                <button
+                  type="button"
+                  disabled={safeSubIdx === subQuestions.length - 1}
+                  onClick={() => setSubQuestionIdx(prev => Math.min(subQuestions.length - 1, prev + 1))}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
+                    border: '1px solid #cbd5e1', background: safeSubIdx === subQuestions.length - 1 ? '#f1f5f9' : '#4f46e5',
+                    color: safeSubIdx === subQuestions.length - 1 ? '#94a3b8' : 'white',
+                    fontWeight: 800, fontSize: '0.8rem', cursor: safeSubIdx === subQuestions.length - 1 ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.3rem'
+                  }}
+                >
+                  Sonraki <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Current Sub Question */}
+          <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            {qItem.contentPayload && (
+              <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                <img src={qItem.contentPayload} alt={`Soru Görseli ${safeSubIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #cbd5e1' }} />
+              </div>
+            )}
+            {qItem.questionText && (
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+                {qItem.questionText}
+              </div>
+            )}
+            {hasRealTextOptions && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem', marginTop: '0.75rem' }}>
+                {qItem.options.map((optText, oIdx) => {
+                  const bundleAns = studentAnswers[q.id] || {};
+                  const isSelected = (typeof bundleAns === 'object' && bundleAns !== null) ? bundleAns[safeSubIdx] === oIdx : false;
+                  return (
+                    <div 
+                      key={oIdx} 
+                      onClick={() => handleBundleOptionSelect(safeSubIdx, oIdx)}
+                      style={{ 
+                        background: isSelected ? '#ecfdf5' : '#f1f5f9', 
+                        padding: '0.65rem 0.9rem', 
+                        borderRadius: '0.65rem', 
+                        fontSize: '0.88rem', 
+                        fontWeight: 700, 
+                        color: isSelected ? '#065f46' : '#334155', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.65rem', 
+                        border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                      className="hover:scale-[1.01] active:scale-95"
+                    >
+                      <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isSelected ? '#10b981' : '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {String.fromCharCode(65 + oIdx)}
+                      </span>
+                      <span style={{ flex: 1 }}>{optText}</span>
+                      {isSelected && <span style={{ color: '#10b981', fontWeight: 900, fontSize: '0.85rem' }}>✓</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
       );
     }
@@ -745,24 +815,85 @@ export default function QuizRunner() {
           ? q.imageUrls
           : (q.contentPayload ? [q.contentPayload] : []);
         
+        if (urls.length === 0) return null;
+
+        const safeImgIdx = Math.min(subQuestionIdx, urls.length - 1);
+        const url = urls[safeImgIdx];
+
         return (
-          <div className="q-preview-gorsel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center', width: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc' }}>
-            {urls.map((url, imgIdx) => (
-              <div key={imgIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', width: '100%', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                {urls.length > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.25rem 0.75rem', borderRadius: '6px' }}>
-                      Görsel {imgIdx + 1}
-                    </span>
+          <div className="q-preview-gorsel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', overflowY: 'auto', padding: '1.25rem', background: '#f8fafc' }}>
+            {urls.length > 1 && (
+              <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #fcd34d', display: 'flex', alignItems: 'center', justify: 'space-between', gap: '0.5rem', flexWrap: 'wrap', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ background: '#d97706', color: 'white', fontWeight: 900, fontSize: '0.82rem', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                    🖼️ Görsel Soru {safeImgIdx + 1} / {urls.length}
+                  </span>
+                  
+                  <div style={{ display: 'flex', gap: '0.3rem', overflowX: 'auto', padding: '0.1rem' }}>
+                    {urls.map((_, pIdx) => {
+                      const bundleAns = studentAnswers[q.id] || {};
+                      const isAns = (typeof bundleAns === 'object' && bundleAns !== null) && (bundleAns[pIdx] !== undefined && bundleAns[pIdx] !== null && bundleAns[pIdx] !== '');
+                      const isCurr = pIdx === safeImgIdx;
+                      return (
+                        <button
+                          key={pIdx}
+                          onClick={() => setSubQuestionIdx(pIdx)}
+                          style={{
+                            width: '28px', height: '28px', borderRadius: '50%',
+                            border: isCurr ? '2px solid #d97706' : (isAns ? '1.5px solid #10b981' : '1px solid #cbd5e1'),
+                            background: isCurr ? '#d97706' : (isAns ? '#dcfce7' : '#f1f5f9'),
+                            color: isCurr ? 'white' : (isAns ? '#166534' : '#475569'),
+                            fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer'
+                          }}
+                        >
+                          {pIdx + 1}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
-                <img
-                  src={url}
-                  alt={`Soru Görseli ${imgIdx + 1}`}
-                  style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
-                />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button
+                    type="button"
+                    disabled={safeImgIdx === 0}
+                    onClick={() => setSubQuestionIdx(prev => Math.max(0, prev - 1))}
+                    style={{
+                      padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
+                      border: '1px solid #cbd5e1', background: safeImgIdx === 0 ? '#f1f5f9' : '#fef3c7',
+                      color: safeImgIdx === 0 ? '#94a3b8' : '#b45309',
+                      fontWeight: 800, fontSize: '0.8rem', cursor: safeImgIdx === 0 ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '0.3rem'
+                    }}
+                  >
+                    <ChevronLeft size={16} /> Önceki
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={safeImgIdx === urls.length - 1}
+                    onClick={() => setSubQuestionIdx(prev => Math.min(urls.length - 1, prev + 1))}
+                    style={{
+                      padding: '0.4rem 0.85rem', borderRadius: '0.65rem',
+                      border: '1px solid #cbd5e1', background: safeImgIdx === urls.length - 1 ? '#f1f5f9' : '#d97706',
+                      color: safeImgIdx === urls.length - 1 ? '#94a3b8' : 'white',
+                      fontWeight: 800, fontSize: '0.8rem', cursor: safeImgIdx === urls.length - 1 ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '0.3rem'
+                    }}
+                  >
+                    Sonraki <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
-            ))}
+            )}
+
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', width: '100%', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+              <img
+                src={url}
+                alt={`Soru Görseli ${safeImgIdx + 1}`}
+                style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+              />
+            </div>
           </div>
         );
       }
