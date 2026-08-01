@@ -15,11 +15,13 @@ export default function EvaluationManager() {
 
   const activeSubmission = submissions.find(s => s.id === activeSubmissionId);
 
-  // Show all open-ended / bundle answers for this submission
-  const allSubmissionAnswers = activeSubmission ? (activeSubmission.answers || []) : [];
+  // Show ONLY open-ended / written response answers for teacher evaluation (exclude auto-graded multiple choice questions)
+  const allSubmissionAnswers = activeSubmission 
+    ? (activeSubmission.answers || []).filter(ans => ans.type !== 'coktan_secmeli' && (ans.userAnswerText !== undefined || ans.type === 'acik_uclu' || ans.isCorrect === null)) 
+    : [];
   
   // Pending ones for count
-  const remainingPendingCount = allSubmissionAnswers.filter(ans => ans.isCorrect === null).length;
+  const remainingPendingCount = allSubmissionAnswers.filter(ans => ans.isCorrect === null || ans.isCorrect === undefined).length;
 
   const handleEvaluate = (ans, isCorrectResult) => {
     evaluateAnswer(activeSubmissionId, ans.questionId, ans.isBundle, ans.subIndex, isCorrectResult);
