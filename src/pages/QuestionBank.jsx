@@ -2778,11 +2778,17 @@ export default function QuestionBank() {
 
                     {/* Live Rendered PDF Frame */}
                     <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '1.25rem' }}>
-                      <iframe
-                        src={getEmbeddableUrl(q.contentPayload)}
-                        title="PDF Döküman"
-                        style={{ width: '100%', height: '500px', border: 'none' }}
-                      />
+                      {getEmbeddableUrl(q.contentPayload) ? (
+                        <iframe
+                          src={getEmbeddableUrl(q.contentPayload)}
+                          title="PDF Döküman"
+                          style={{ width: '100%', height: '500px', border: 'none' }}
+                        />
+                      ) : (
+                        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
+                          📄 PDF Dokümanı yükleniyor veya gösterilecek içerik bulunamadı.
+                        </div>
+                      )}
                     </div>
 
                     {/* Optical Answer Key Grid */}
