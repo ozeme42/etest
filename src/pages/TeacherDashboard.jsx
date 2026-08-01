@@ -113,7 +113,7 @@ export default function TeacherDashboard() {
   const { questions } = useQuestionBank();
   const { homeworks = [] } = useHomework();
   const { submissions = [] } = useEvaluation();
-  const { users = [], addStudentForTeacher } = useUser();
+  const { users = [], addStudentForTeacher, updateUser } = useUser();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -122,6 +122,20 @@ export default function TeacherDashboard() {
   const [newStudentEmail, setNewStudentEmail] = useState('');
   const [newStudentPassword, setNewStudentPassword] = useState('123456');
   const [newStudentGrade, setNewStudentGrade] = useState('g1');
+
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editStudentEmail, setEditStudentEmail] = useState('');
+  const [editStudentPassword, setEditStudentPassword] = useState('');
+  const [editStudentGrade, setEditStudentGrade] = useState('g1');
+
+  const openEditStudentModal = (student) => {
+    setEditingStudent(student);
+    setEditStudentName(student.name || '');
+    setEditStudentEmail(student.email || '');
+    setEditStudentPassword(student.password || '123456');
+    setEditStudentGrade(student.gradeId || 'g1');
+  };
 
   const [showModal, setShowModal]         = useState(false);
   const [editingTestId, setEditingTestId] = useState(null);
@@ -427,8 +441,8 @@ export default function TeacherDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
-                    {['Öğrenci', 'Sınıf', 'E-posta / Kullanıcı Adı', 'Giriş Şifresi', 'Çözülen Sınav', 'Koçluk Durumu'].map(h => (
-                      <th key={h} style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
+                    {['Öğrenci', 'Sınıf', 'E-posta / Kullanıcı Adı', 'Giriş Şifresi', 'Çözülen Sınav', 'Koçluk Durumu', 'İşlemler'].map(h => (
+                      <th key={h} style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: h === 'İşlemler' ? 'right' : 'left', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -474,6 +488,14 @@ export default function TeacherDashboard() {
                           ) : (
                             <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>—</span>
                           )}
+                        </td>
+                        <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
+                          <button
+                            onClick={() => openEditStudentModal(student)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.5rem', padding: '0.35rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                          >
+                            <Edit2 size={13} /> Düzenle
+                          </button>
                         </td>
                       </tr>
                     );
@@ -778,6 +800,92 @@ export default function TeacherDashboard() {
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddStudentModal(false)} style={{ padding: '0.65rem 1.1rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', background: 'white', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
                 <button type="submit" style={{ padding: '0.65rem 1.4rem', borderRadius: '0.65rem', border: 'none', background: '#10b981', color: 'white', fontWeight: 800, cursor: 'pointer' }}>💾 Kaydet & Ekle</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT STUDENT MODAL ── */}
+      {editingStudent && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '440px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Edit2 size={20} color="#3b82f6" /> Öğrenci Bilgilerini Düzenle
+              </h3>
+              <button onClick={() => setEditingStudent(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={16} color="#64748b" />
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!editingStudent || !editStudentName) return;
+
+              let cleanEmail = editStudentEmail.trim().toLowerCase();
+              if (!cleanEmail) cleanEmail = editingStudent.email;
+
+              await updateUser(editingStudent.id, {
+                name: editStudentName,
+                email: cleanEmail,
+                password: editStudentPassword || '123456',
+                gradeId: editStudentGrade
+              });
+
+              setEditingStudent(null);
+              alert("🎉 Öğrenci bilgileri ve şifresi başarıyla güncellendi!");
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Öğrenci Adı Soyadı *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: Ahmet Yılmaz"
+                    value={editStudentName}
+                    onChange={e => setEditStudentName(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>E-posta / Kullanıcı Adı</label>
+                  <input
+                    type="text"
+                    placeholder="Örn: ahmet veya ahmet@gmail.com"
+                    value={editStudentEmail}
+                    onChange={e => setEditStudentEmail(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Giriş Şifresi *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: 123456"
+                    value={editStudentPassword}
+                    onChange={e => setEditStudentPassword(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', fontWeight: 800, letterSpacing: '0.05em', color: '#b45309', background: '#fffef0' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Sınıf Seviyesi</label>
+                  <select
+                    value={editStudentGrade}
+                    onChange={e => setEditStudentGrade(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: 'white' }}
+                  >
+                    {data.grades.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setEditingStudent(null)} style={{ padding: '0.65rem 1.1rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', background: 'white', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+                <button type="submit" style={{ padding: '0.65rem 1.4rem', borderRadius: '0.65rem', border: 'none', background: '#3b82f6', color: 'white', fontWeight: 800, cursor: 'pointer' }}>💾 Güncelle & Kaydet</button>
               </div>
             </form>
           </div>
