@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, X, Edit2, Users, BookOpen, ClipboardCheck,
   Clock, ChevronRight, FileText, Activity, GraduationCap,
-  Search, Calendar, Layers, BarChart3, TrendingUp, Target, UserCheck, Sparkles, MessageSquare
+  Search, Calendar, Layers, BarChart3, TrendingUp, Target, UserCheck, Sparkles, MessageSquare, UserPlus
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -39,13 +39,13 @@ function StatCard({ icon: Icon, label, value, sub, color, bg }) {
     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${color}33`; }}
     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.04)'; }}
     >
-      <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={18} color={color} />
+      <div style={{ width: '42px', height: '42px', borderRadius: '0.85rem', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+        <Icon size={22} />
       </div>
       <div>
-        <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        {sub && <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, marginTop: '2px' }}>{sub}</div>}
-        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.2rem' }}>{label}</div>
+        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', marginTop: '0.2rem' }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.7rem', color: color, fontWeight: 700, marginTop: '0.1rem' }}>{sub}</div>}
       </div>
     </div>
   );
@@ -178,15 +178,27 @@ export default function TeacherDashboard() {
     resetForm();
   };
 
-  /* stats */
-  const students    = users.filter(u => u.role === 'student');
+  /* stats - scoped to teacher */
+  const students = useMemo(() => {
+    return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id || !u.teacherId));
+  }, [users, currentUser]);
+
+  const teacherStudentIds = useMemo(() => students.map(s => s.id), [students]);
+  const teacherHwIds = useMemo(() => (homeworks || []).filter(h => h.assignedBy === currentUser?.id).map(h => h.id), [homeworks, currentUser]);
+
+  const recentSubs = useMemo(() => {
+    const filtered = (submissions || []).filter(sub =>
+      currentUser?.role === 'admin' || teacherStudentIds.includes(sub.studentId) || teacherHwIds.includes(sub.testId)
+    );
+    return [...filtered].sort((a,b) => new Date(b.submittedAt||0) - new Date(a.submittedAt||0)).slice(0, 5);
+  }, [submissions, teacherStudentIds, teacherHwIds, currentUser]);
+
   const allSubjects = [...new Set(data.tests.map(t => t.subject).filter(Boolean))];
   const visibleTests = data.tests.filter(t => {
     const ms = !searchQ    || t.title.toLowerCase().includes(searchQ.toLowerCase());
     const mf = !filterSub  || t.subject === filterSub;
     return ms && mf;
   });
-  const recentSubs = [...submissions].sort((a,b) => new Date(b.submittedAt||0) - new Date(a.submittedAt||0)).slice(0, 5);
 
   const { toggleCoachedStudent, getCoachedStudentIds } = useCoaching();
   const [coachingModalStudent, setCoachingModalStudent] = useState(null);
@@ -217,14 +229,22 @@ export default function TeacherDashboard() {
             Sınıfınızı yönetin, testler oluşturun ve öğrenci gelişimini takip edin.
           </p>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowModal(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.4rem', borderRadius: '0.9rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', fontWeight: 800, fontSize: '0.88rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 18px rgba(99,102,241,0.35)', transition: 'transform 0.2s, box-shadow 0.2s' }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(99,102,241,0.45)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(99,102,241,0.35)'; }}
-        >
-          <Plus size={17} /> Yeni Test Oluştur
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowAddStudentModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.4rem', borderRadius: '0.9rem', background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', fontWeight: 800, fontSize: '0.88rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 18px rgba(16,185,129,0.35)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+          >
+            <UserPlus size={17} /> Öğrenci Ekle
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowModal(true); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.4rem', borderRadius: '0.9rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', fontWeight: 800, fontSize: '0.88rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 18px rgba(99,102,241,0.35)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(99,102,241,0.45)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(99,102,241,0.35)'; }}
+          >
+            <Plus size={17} /> Yeni Test Oluştur
+          </button>
+        </div>
       </div>
 
       {/* ── STAT CARDS ── */}
@@ -649,6 +669,77 @@ export default function TeacherDashboard() {
               <button type="submit" disabled={selQIds.length === 0} style={{ padding: '0.88rem', borderRadius: '0.85rem', background: selQIds.length === 0 ? '#e2e8f0' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: selQIds.length === 0 ? '#94a3b8' : 'white', fontWeight: 800, fontSize: '0.92rem', border: 'none', cursor: selQIds.length === 0 ? 'not-allowed' : 'pointer', boxShadow: selQIds.length > 0 ? '0 4px 16px rgba(99,102,241,0.35)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 {editingTestId ? <><Edit2 size={16} /> Testi Güncelle</> : <><Plus size={16} /> Testi Oluştur ({selQIds.length} Soru)</>}
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD STUDENT MODAL ── */}
+      {showAddStudentModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '440px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <UserPlus size={20} color="#10b981" /> Hesabıma Öğrenci Ekle
+              </h3>
+              <button onClick={() => setShowAddStudentModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={16} color="#64748b" />
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newStudentName) return;
+              await addStudentForTeacher({
+                name: newStudentName,
+                email: newStudentEmail || `ogrenci_${Date.now()}@etest.com`,
+                gradeId: newStudentGrade
+              }, currentUser.id);
+              setNewStudentName('');
+              setNewStudentEmail('');
+              setShowAddStudentModal(false);
+              alert("🎉 Öğrenci başarıyla hesabınıza eklendi!");
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Öğrenci Adı Soyadı *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: Ahmet Yılmaz"
+                    value={newStudentName}
+                    onChange={e => setNewStudentName(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>E-posta Adresi (Opsiyonel)</label>
+                  <input
+                    type="email"
+                    placeholder="Örn: ahmet@gmail.com"
+                    value={newStudentEmail}
+                    onChange={e => setNewStudentEmail(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.82rem', color: '#334155', marginBottom: '0.35rem' }}>Sınıf Seviyesi</label>
+                  <select
+                    value={newStudentGrade}
+                    onChange={e => setNewStudentGrade(e.target.value)}
+                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: 'white' }}
+                  >
+                    {data.grades.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowAddStudentModal(false)} style={{ padding: '0.65rem 1.1rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', background: 'white', fontWeight: 700, cursor: 'pointer' }}>İptal</button>
+                <button type="submit" style={{ padding: '0.65rem 1.4rem', borderRadius: '0.65rem', border: 'none', background: '#10b981', color: 'white', fontWeight: 800, cursor: 'pointer' }}>💾 Kaydet & Ekle</button>
+              </div>
             </form>
           </div>
         </div>

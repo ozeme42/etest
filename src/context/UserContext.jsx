@@ -53,12 +53,27 @@ export function UserProvider({ children }) {
     await dbDeleteUser(id);
   };
 
+  const addStudentForTeacher = async (studentData, teacherId) => {
+    const newStudent = {
+      id: studentData.id || `u_${Date.now()}`,
+      name: studentData.name,
+      email: studentData.email || `ogrenci_${Date.now()}@etest.com`,
+      role: 'student',
+      gradeId: studentData.gradeId || 'g1',
+      teacherId: teacherId,
+      isApproved: true,
+      ...studentData
+    };
+    return await addUser(newStudent);
+  };
+
   return (
     <UserContext.Provider value={{
       users,
       addUser,
       updateUser,
-      deleteUser
+      deleteUser,
+      addStudentForTeacher
     }}>
       {children}
     </UserContext.Provider>

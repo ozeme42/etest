@@ -123,11 +123,19 @@ const gradeThemes = {
 };
 
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
+import { useAuth } from '../context/AuthContext';
 
 export default function QuestionBank() {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { data: curData } = useCurriculum();
-  const { questions, addQuestion, updateQuestion, deleteQuestion } = useQuestionBank();
+  const { questions: allQuestions, addQuestion, updateQuestion, deleteQuestion } = useQuestionBank();
+
+  // Teacher sees only their created questions, Admin sees all
+  const questions = useMemo(() => {
+    if (currentUser?.role === 'admin') return allQuestions;
+    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id || !q.createdBy);
+  }, [allQuestions, currentUser]);
   
   // Portal Overview Active Tab: 'subjects' | 'grades'
   const [overviewTab, setOverviewTab] = useState('subjects');
@@ -904,6 +912,8 @@ export default function QuestionBank() {
       return;
     }
 
+    const teacherId = currentUser?.id || 'admin';
+
     if (editingQuestionId) {
       if (formData.contentType === 'pdf' || formData.contentType === 'html') {
         const parsedKey = [];
@@ -917,7 +927,8 @@ export default function QuestionBank() {
           ...formData,
           topicId: categoryId,
           isBundle: true,
-          answerKey: parsedKey
+          answerKey: parsedKey,
+          createdBy: formData.createdBy || teacherId
         });
       } else if (formData.contentType === 'gorsel') {
         const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? [formData.contentPayload] : []);
@@ -956,13 +967,15 @@ export default function QuestionBank() {
           imageUrls: validUrls,
           contentPayload: validUrls[0] || formData.contentPayload,
           questionsList: subQuestions,
-          answerKey: parsedKey
+          answerKey: parsedKey,
+          createdBy: formData.createdBy || teacherId
         });
       } else {
         updateQuestion(editingQuestionId, {
           ...formData,
           topicId: categoryId,
-          isBundle: false
+          isBundle: false,
+          createdBy: formData.createdBy || teacherId
         });
       }
     } else {
@@ -982,7 +995,8 @@ export default function QuestionBank() {
           ...formData,
           topicId: categoryId,
           isBundle: true,
-          answerKey: parsedKey
+          answerKey: parsedKey,
+          createdBy: teacherId
         });
       }
       else if (formData.contentType === 'gorsel') {
@@ -1022,14 +1036,16 @@ export default function QuestionBank() {
           imageUrls: validUrls,
           contentPayload: validUrls[0] || formData.contentPayload,
           questionsList: subQuestions,
-          answerKey: parsedKey
+          answerKey: parsedKey,
+          createdBy: teacherId
         });
       }
       else {
         addQuestion({
           ...formData,
           topicId: categoryId,
-          isBundle: false
+          isBundle: false,
+          createdBy: teacherId
         });
       }
     }

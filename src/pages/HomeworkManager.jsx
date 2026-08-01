@@ -34,14 +34,34 @@ const gradeThemes = {
   'Diğer': { bg: 'linear-gradient(135deg, #64748b 0%, #334155 100%)', badgeBg: '#f1f5f9', badgeText: '#334155', icon: School }
 };
 
+import { useAuth } from '../context/AuthContext';
+
 export default function HomeworkManager() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
   const { data: curData } = useCurriculum();
-  const { questions } = useQuestionBank();
-  const { homeworks, addHomework, updateHomework, deleteHomework } = useHomework();
+  const { questions: allQuestions } = useQuestionBank();
+  const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework } = useHomework();
   const { users } = useUser();
   const { submissions } = useEvaluation();
+
+  // Filter students: Teachers see only their assigned students, Admin sees all
+  const students = useMemo(() => {
+    return (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id || !u.teacherId));
+  }, [users, currentUser]);
+
+  // Filter homeworks: Teachers see only their assigned homeworks, Admin sees all
+  const homeworks = useMemo(() => {
+    if (currentUser?.role === 'admin') return allHomeworks;
+    return (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id || !hw.assignedBy);
+  }, [allHomeworks, currentUser]);
+
+  // Filter questions: Teachers see only their created questions, Admin sees all
+  const questions = useMemo(() => {
+    if (currentUser?.role === 'admin') return allQuestions;
+    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id || !q.createdBy);
+  }, [allQuestions, currentUser]);
 
   const [isDirectAssignment, setIsDirectAssignment] = useState(false);
 
@@ -97,8 +117,6 @@ export default function HomeworkManager() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
-
-  const students = users.filter(u => u.role === 'student');
 
   const filteredStudents = students.filter(s => {
     if (studentGradeFilter === 'all') return true;
@@ -327,7 +345,8 @@ export default function HomeworkManager() {
       targetIds: selectedTargets,
       questionIds: selectedQuestionIds,
       totalQuestions,
-      filters: { selGrade, selSubject, selUnit, selTopic }
+      filters: { selGrade, selSubject, selUnit, selTopic },
+      assignedBy: currentUser?.id || 'admin'
     };
 
     if (editingHwId) {

@@ -1,14 +1,28 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
+import { useUser } from '../context/UserContext';
+import { useHomework } from '../context/HomeworkContext';
+import { useAuth } from '../context/AuthContext';
 import { CheckCircle, XCircle, HelpCircle, Save, Clock3 } from 'lucide-react';
 import './Dashboard.css';
 
 export default function EvaluationManager() {
-  const { submissions, evaluateAnswer, finalizeSubmission } = useEvaluation();
+  const { currentUser } = useAuth();
+  const { users } = useUser();
+  const { homeworks } = useHomework();
+  const { submissions: allSubmissions, evaluateAnswer, finalizeSubmission } = useEvaluation();
   const { questions } = useQuestionBank();
   
   const [activeSubmissionId, setActiveSubmissionId] = useState(null);
+
+  // Filter submissions: Teachers see only their students' submissions, Admin sees all
+  const submissions = useMemo(() => {
+    if (currentUser?.role === 'admin') return allSubmissions || [];
+    const teacherStudentIds = (users || []).filter(u => u.role === 'student' && (u.teacherId === currentUser?.id || !u.teacherId)).map(u => u.id);
+    const teacherHwIds = (homeworks || []).filter(h => h.assignedBy === currentUser?.id).map(h => h.id);
+    return (allSubmissions || []).filter(sub => teacherStudentIds.includes(sub.studentId) || teacherHwIds.includes(sub.testId));
+  }, [allSubmissions, users, homeworks, currentUser]);
 
   const pendingSubmissions = submissions.filter(sub => sub.status === 'pending_evaluation');
   const completedSubmissions = submissions.filter(sub => sub.status === 'completed');
