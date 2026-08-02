@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useHomework } from '../context/HomeworkContext';
+import { useQuestionBank } from '../context/QuestionBankContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -72,7 +72,7 @@ const SAMPLE_JSON_TEMPLATE = {
 export default function PhysicalExamManager() {
   const { users } = useUser();
   const { currentUser } = useAuth();
-  const { homeworks, addHomework, deleteHomework } = useHomework();
+  const { questions, addQuestion, deleteQuestion } = useQuestionBank();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || 'u1');
@@ -116,10 +116,10 @@ export default function PhysicalExamManager() {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkInputText, setBulkInputText] = useState('');
 
-  // Fetch existing physical exam homeworks for this student
-  const studentMockExams = useMemo(() => {
-    return homeworks.filter(hw => hw.type === 'physicalExam' && String(hw.studentId) === String(selectedStudent?.id));
-  }, [homeworks, selectedStudent]);
+  // Fetch existing physical exams from Question Bank
+  const physicalExamsDatabase = useMemo(() => {
+    return questions.filter(q => q.contentType === 'physicalExam');
+  }, [questions]);
 
   // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
@@ -263,35 +263,32 @@ export default function PhysicalExamManager() {
     return { subjectStats, totalFilled, totalQuestions };
   }, [answerKey, subjects]);
 
-  // Save Physical Mock Exam as Homework
+  // Save Physical Mock Exam to Question Bank
   const handleSaveExam = async () => {
     if (!examTitle.trim()) return;
-    const newHomework = {
-      type: 'physicalExam',
-      studentId: selectedStudent?.id,
+    const newExamDefinition = {
       title: examTitle.trim(),
-      dueDate: examDate,
+      contentType: 'physicalExam',
+      subject: 'Genel Deneme Sınavları',
       examType,
       penaltyRatio,
       subjects, // We need to store subjects info for the runner
       totalQuestions: evaluationResults.totalQuestions,
-      filledAnswers: evaluationResults.totalFilled,
       answerKey
     };
-    await addHomework(newHomework);
+    await addQuestion(newExamDefinition);
     setShowAddForm(false);
-    alert('🎉 Fiziki deneme başarıyla öğrenciye ödev olarak atandı!');
+    alert('🎉 Fiziki deneme Soru Bankası havuzuna eklendi! Ödev Atama sayfasından öğrencilere atayabilirsiniz.');
   };
 
-  // Stats for the list view header (Optional, using filled answers or we can calculate avg if submitted)
+  // Stats for the list view header
   const avgNet = useMemo(() => {
-    // We could calculate avg from submissions if we want, but for now let's just return 0 or calculate from submissions
-    return 0;
-  }, [studentMockExams]);
+    return 0; // Not applicable for the definition library view
+  }, [physicalExamsDatabase]);
 
   const highestNet = useMemo(() => {
-    return 0;
-  }, [studentMockExams]);
+    return 0; // Not applicable for the definition library view
+  }, [physicalExamsDatabase]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 p-4 sm:p-6 pb-20">
@@ -361,7 +358,7 @@ export default function PhysicalExamManager() {
               </div>
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Girilen Deneme</span>
-                <span className="text-base font-black text-slate-900 dark:text-white">{studentMockExams.length} Deneme</span>
+                <span className="text-base font-black text-slate-900 dark:text-white">{physicalExamsDatabase.length} Deneme</span>
               </div>
             </div>
 
@@ -401,7 +398,7 @@ export default function PhysicalExamManager() {
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
               <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Layers className="w-5 h-5 text-indigo-500" />
-                {selectedStudent?.name} - Fiziki Deneme Sınav Geçmişi
+                Fiziki Deneme Havuzu (Soru Bankası)
               </h2>
               <button
                 onClick={() => setShowAddForm(true)}
@@ -411,7 +408,7 @@ export default function PhysicalExamManager() {
               </button>
             </div>
 
-            {studentMockExams.length === 0 ? (
+            {physicalExamsDatabase.length === 0 ? (
               <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
                 <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mx-auto">
                   <ClipboardCheck className="w-8 h-8" />
@@ -429,7 +426,7 @@ export default function PhysicalExamManager() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {studentMockExams.map(m => (
+                {physicalExamsDatabase.map(m => (
                   <div key={m.id} className="bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-all group relative">
                     <div className="flex items-start justify-between">
                       <div>
@@ -438,12 +435,12 @@ export default function PhysicalExamManager() {
                         </span>
                         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug mt-1 line-clamp-2">{m.title}</h3>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3 h-3" /> Son Teslim: {m.dueDate}
+                          <Calendar className="w-3 h-3" /> {m.totalQuestions} Soru
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 leading-none block">{m.submissions && m.submissions.length > 0 ? 'Çözüldü' : 'Bekliyor'}</span>
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 leading-none block">Havuzda</span>
                       </div>
                     </div>
 

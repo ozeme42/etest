@@ -278,7 +278,12 @@ export default function HomeworkManager() {
     }
 
     const selectedQs = questions.filter(q => selectedQuestionIds.includes(q.id));
-    const totalQCount = selectedQs.reduce((acc, q) => acc + (q.isBundle ? (q.questionCount || 1) : 1), 0);
+    const physicalExam = selectedQs.find(q => q.contentType === 'physicalExam');
+    const isPhysicalExam = !!physicalExam;
+    
+    const totalQCount = isPhysicalExam 
+      ? physicalExam.totalQuestions 
+      : selectedQs.reduce((acc, q) => acc + (q.isBundle ? (q.questionCount || 1) : 1), 0);
 
     let firstSubName = 'Genel Dersler';
     if (selectedQs.length > 0 && selectedQs[0].subject) {
@@ -294,7 +299,13 @@ export default function HomeworkManager() {
       targetType: targetMode,
       targetIds: selectedTargets,
       questionIds: selectedQuestionIds,
-      assignedBy: currentUser?.id
+      assignedBy: currentUser?.id,
+      // Physical Exam specific fields
+      type: isPhysicalExam ? 'physicalExam' : 'test',
+      answerKey: isPhysicalExam ? physicalExam.answerKey : undefined,
+      subjects: isPhysicalExam ? physicalExam.subjects : undefined,
+      penaltyRatio: isPhysicalExam ? physicalExam.penaltyRatio : undefined,
+      examType: isPhysicalExam ? physicalExam.examType : undefined
     };
 
     if (editingHwId) {
