@@ -6,7 +6,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
-  Timer, Flame, Trophy, ChevronRight,
+  Timer, Flame, Trophy, ChevronRight, ChevronDown,
   Clock, Trash2, GraduationCap, Check, Sparkles, TrendingUp, Save, RefreshCw,
   Brain, BookOpenCheck, BarChart3, Layers, CheckSquare, Square, Repeat, Zap, Award
 } from 'lucide-react';
@@ -107,8 +107,9 @@ export const parseWeeklyHabitList = (val, defaultItems = []) => {
   return defaultItems;
 };
 
-/* ─── Checkable Monthly Goal Checklist ─── */
+/* ─── Collapsible Monthly Goal Checklist ─── */
 function MonthlyChecklistSection({ title, icon: Icon, colorClass, badgeText, items, onToggleItem, onAddItem, onDeleteItem }) {
+  const [isOpen, setIsOpen] = useState(false); // Closed by default
   const [newText, setNewText] = useState('');
   const completedCount = items.filter(i => i.done).length;
   const totalCount = items.length;
@@ -124,8 +125,13 @@ function MonthlyChecklistSection({ title, icon: Icon, colorClass, badgeText, ite
 
   return (
     <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen(v => !v)}
+        className="w-full flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 text-left cursor-pointer hover:opacity-80 transition-opacity"
+      >
         <div className={cn("flex items-center gap-2 font-black text-xs uppercase tracking-wider", colorClass)}>
+          {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
           <Icon className="w-4 h-4" /> {title}
         </div>
         <div className="flex items-center gap-2">
@@ -136,50 +142,54 @@ function MonthlyChecklistSection({ title, icon: Icon, colorClass, badgeText, ite
             {badgeText}
           </span>
         </div>
-      </div>
+      </button>
 
-      {totalCount > 0 && <BarProgress value={pct} color={pct === 100 ? '#10b981' : '#6366f1'} />}
+      {isOpen && (
+        <>
+          {totalCount > 0 && <BarProgress value={pct} color={pct === 100 ? '#10b981' : '#6366f1'} />}
 
-      <div className="space-y-2 pt-1">
-        {items.map(item => (
-          <div
-            key={item.id}
-            onClick={() => onToggleItem(item.id)}
-            className={cn(
-              'flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer group',
-              item.done ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60' : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800'
-            )}
-          >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <button
-                type="button"
-                className={cn('w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all', item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800')}
+          <div className="space-y-2 pt-1">
+            {items.map(item => (
+              <div
+                key={item.id}
+                onClick={() => onToggleItem(item.id)}
+                className={cn(
+                  'flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer group',
+                  item.done ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60' : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800'
+                )}
               >
-                {item.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-              </button>
-              <span className={cn('text-xs font-bold transition-all line-clamp-2', item.done ? 'line-through text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-100')}>
-                {item.text}
-              </span>
-            </div>
-            <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="p-1 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <button
+                    type="button"
+                    className={cn('w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all', item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800')}
+                  >
+                    {item.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                  </button>
+                  <span className={cn('text-xs font-bold transition-all line-clamp-2', item.done ? 'line-through text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-100')}>
+                    {item.text}
+                  </span>
+                </div>
+                <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="p-1 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <form onSubmit={handleAdd} className="flex gap-2 pt-1">
-        <input
-          type="text"
-          placeholder="+ Yeni aylık hedef maddesi..."
-          value={newText}
-          onChange={e => setNewText(e.target.value)}
-          className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
-        />
-        <button type="submit" className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black hover:opacity-90 transition-all shrink-0 flex items-center gap-1">
-          <Plus className="w-3.5 h-3.5" /> Ekle
-        </button>
-      </form>
+          <form onSubmit={handleAdd} className="flex gap-2 pt-1">
+            <input
+              type="text"
+              placeholder="+ Yeni aylık hedef maddesi..."
+              value={newText}
+              onChange={e => setNewText(e.target.value)}
+              className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+            />
+            <button type="submit" className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black hover:opacity-90 transition-all shrink-0 flex items-center gap-1">
+              <Plus className="w-3.5 h-3.5" /> Ekle
+            </button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
@@ -188,7 +198,6 @@ function MonthlyChecklistSection({ title, icon: Icon, colorClass, badgeText, ite
 function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }) {
   const [newText, setNewText] = useState('');
 
-  // Calculate global daily streak (Count consecutive days completed)
   const totalDaysCompleted = useMemo(() => {
     let count = 0;
     WEEK_DAYS.forEach(day => {
@@ -208,8 +217,6 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
 
   return (
     <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-rose-200 dark:border-rose-900/50 p-4 space-y-3 shadow-sm">
-      
-      {/* Header with Flame & Streak Counter */}
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
         <div className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-wider">
           <Flame className="w-4 h-4 fill-rose-500 animate-bounce" /> 🔥 GÜNLÜK RUTİN & SERİ TAKİBİ
@@ -221,7 +228,6 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
         </div>
       </div>
 
-      {/* Daily Routine Items List with 7-Day Matrix */}
       <div className="space-y-3 pt-1">
         {items.length === 0 ? (
           <p className="text-xs text-slate-400 font-medium italic py-1">Henüz günlük rutin maddesi eklenmedi.</p>
@@ -247,7 +253,6 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
                   </div>
                 </div>
 
-                {/* 7-Day Toggle Buttons Matrix */}
                 <div className="grid grid-cols-7 gap-1">
                   {WEEK_DAYS.map(day => {
                     const done = item.days?.[day];
@@ -277,7 +282,6 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
         )}
       </div>
 
-      {/* Add New Routine Form */}
       <form onSubmit={handleAdd} className="flex gap-2 pt-1">
         <input
           type="text"
@@ -298,7 +302,6 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
 function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem }) {
   const [newText, setNewText] = useState('');
 
-  // Calculate global weekly streak (Count completed weeks)
   const totalWeeksCompleted = useMemo(() => {
     let count = 0;
     MONTH_WEEKS.forEach(w => {
@@ -318,8 +321,6 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
 
   return (
     <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-purple-200 dark:border-purple-900/50 p-4 space-y-3 shadow-sm">
-      
-      {/* Header with Lightning & Weekly Streak Counter */}
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
         <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-black text-xs uppercase tracking-wider">
           <Zap className="w-4 h-4 fill-purple-500" /> ⚡ HAFTALIK HEDEF & SERİ TAKİBİ
@@ -331,7 +332,6 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
         </div>
       </div>
 
-      {/* Weekly Habit Items List with 4-Week Matrix */}
       <div className="space-y-3 pt-1">
         {items.length === 0 ? (
           <p className="text-xs text-slate-400 font-medium italic py-1">Henüz haftalık hedef maddesi eklenmedi.</p>
@@ -357,7 +357,6 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
                   </div>
                 </div>
 
-                {/* 4-Week Toggle Buttons Matrix */}
                 <div className="grid grid-cols-4 gap-1.5">
                   {MONTH_WEEKS.map(w => {
                     const done = item.weeks?.[w];
@@ -385,7 +384,6 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
         )}
       </div>
 
-      {/* Add New Weekly Goal Form */}
       <form onSubmit={handleAdd} className="flex gap-2 pt-1">
         <input
           type="text"
@@ -508,6 +506,10 @@ export default function GoalsAndSchedulePage() {
   const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
 
   const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
+
+  // Collapsible Accordion States (Closed by default as requested)
+  const [isLongTermOpen, setIsLongTermOpen] = useState(false); // Closed by default
+  const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);   // Closed by default
 
   const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || 'LGS 2026');
   const [targetSchool, setTargetSchool] = useState(coachingProfile.targetSchool || '');
@@ -777,65 +779,74 @@ export default function GoalsAndSchedulePage() {
             </h2>
           </div>
 
-          {/* UZUN VADELİ HEDEFLER */}
+          {/* UZUN VADELİ HEDEFLER (COLLAPSIBLE ACCORDION - CLOSED BY DEFAULT) */}
           <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+            <button
+              type="button"
+              onClick={() => setIsLongTermOpen(v => !v)}
+              className="w-full flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 text-left cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider">
+                {isLongTermOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
                 <GraduationCap className="w-4 h-4" /> 🏛️ UZUN VADELİ HEDEFLER
               </div>
-              <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">Sınav & Okul</span>
-            </div>
+              <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">
+                Sınav & Okul (Kapalı)
+              </span>
+            </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sınav Türü</label>
-                <select
-                  value={examGoalType}
-                  onChange={e => setExamGoalType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                >
-                  <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
-                  <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
-                  <option value="Ara Sınıf Başarı">📊 Ara Sınıf Takip & Takdir Hedefi</option>
-                </select>
-              </div>
+            {isLongTermOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sınav Türü</label>
+                  <select
+                    value={examGoalType}
+                    onChange={e => setExamGoalType(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                  >
+                    <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
+                    <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
+                    <option value="Ara Sınıf Başarı">📊 Ara Sınıf Takip & Takdir Hedefi</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">İstenen Okul & Bölüm</label>
-                <input
-                  type="text"
-                  placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
-                  value={targetSchool}
-                  onChange={e => setTargetSchool(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                />
-              </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">İstenen Okul & Bölüm</label>
+                  <input
+                    type="text"
+                    placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
+                    value={targetSchool}
+                    onChange={e => setTargetSchool(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
 
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Puan Hedefi</label>
-                <input
-                  type="text"
-                  placeholder="Örn: 485 Puan"
-                  value={targetScore}
-                  onChange={e => setTargetScore(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                />
-              </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Puan Hedefi</label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 485 Puan"
+                    value={targetScore}
+                    onChange={e => setTargetScore(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
 
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Toplam Net Hedefi</label>
-                <input
-                  type="number"
-                  placeholder="Örn: 90 Net"
-                  value={targetNet}
-                  onChange={e => setTargetNet(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                />
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Toplam Net Hedefi</label>
+                  <input
+                    type="number"
+                    placeholder="Örn: 90 Net"
+                    value={targetNet}
+                    onChange={e => setTargetNet(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST) */}
+          {/* ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST - COLLAPSIBLE ACCORDION - CLOSED BY DEFAULT) */}
           <MonthlyChecklistSection
             title="📅 ORTA VADELİ HEDEFLER (AYLIK)"
             icon={Trophy}

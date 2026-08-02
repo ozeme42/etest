@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BarChart3, AlertTriangle, BookOpen, Calendar,
   MessageSquare, Plus, CheckCircle2, Award, Clock,
-  FileText, ArrowRight, Zap, Target, Send, ChevronRight, Check,
+  FileText, ArrowRight, Zap, Target, Send, ChevronRight, ChevronDown, Check,
   User, Sparkles, TrendingUp, Trash2, CalendarDays, Edit3, UserCheck,
   Printer, Folder, Bookmark, Phone, Heart, Brain, GraduationCap,
   Building, Mail, ShieldAlert, Compass, HelpCircle, Activity, Flame,
@@ -33,7 +33,6 @@ const DAYS = [
 
 const WEEK_SHORT_DAYS = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 const MONTH_WEEKS = ['Hafta 1', 'Hafta 2', 'Hafta 3', 'Hafta 4'];
-const SUBJECT_NAMES = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce'];
 
 /* Helper to parse goal list into checkable items */
 const parseCheckableGoalList = (val, defaultItems = []) => {
@@ -92,7 +91,6 @@ export default function StudentCoachingPage() {
   const { users } = useUser();
   const { currentUser } = useAuth();
   const { data: curriculumData } = useCurriculum();
-  const { submissions } = useEvaluation();
 
   const {
     getCoachingProfileForStudent,
@@ -100,24 +98,17 @@ export default function StudentCoachingPage() {
     coachingProfiles
   } = useCoaching();
 
-  const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
+  const { goals, addGoal } = useGoal();
 
   const [activeTab, setActiveTab] = useState('info'); 
 
   const student = users.find(u => String(u.id) === String(studentId));
-  const teacherId = currentUser?.id || 'teacher_1';
-
-  const studentGoals = useMemo(() => {
-    if (!student) return [];
-    return goals.filter(g => String(g.studentId) === String(student.id));
-  }, [goals, student]);
-
-  const [newGoalTitle, setNewGoalTitle] = useState('');
-  const [newGoalType, setNewGoalType] = useState('Soru');
-  const [newGoalPeriod, setNewGoalPeriod] = useState('Günlük');
-  const [newGoalTarget, setNewGoalTarget] = useState('100');
 
   const existingProfile = useMemo(() => getCoachingProfileForStudent(studentId) || {}, [studentId, coachingProfiles]);
+
+  // Collapsible Accordion States (Closed by default as requested)
+  const [isLongTermOpen, setIsLongTermOpen] = useState(false); // Closed by default
+  const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);   // Closed by default
 
   // Page 3: Hedef Belirleme & Checkable Lists
   const [examGoalType, setExamGoalType] = useState(existingProfile.examGoalType || 'LGS 2026');
@@ -196,7 +187,6 @@ export default function StudentCoachingPage() {
     saveAllWithLists(monthlyItems, weeklyHabitItems, dailyHabitItems);
   };
 
-  // Handlers for Monthly Items
   const handleToggleMonthlyItem = (id) => {
     const next = monthlyItems.map(i => i.id === id ? { ...i, done: !i.done } : i);
     setMonthlyItems(next);
@@ -217,7 +207,6 @@ export default function StudentCoachingPage() {
     saveAllWithLists(next, weeklyHabitItems, dailyHabitItems);
   };
 
-  // Handlers for Weekly Habit Matrix Items
   const handleToggleWeeklyMatrixDay = (id, weekKey) => {
     const next = weeklyHabitItems.map(item => {
       if (item.id === id) {
@@ -249,7 +238,6 @@ export default function StudentCoachingPage() {
     saveAllWithLists(monthlyItems, next, dailyHabitItems);
   };
 
-  // Handlers for Daily Habit Matrix Items
   const handleToggleDailyMatrixDay = (id, dayKey) => {
     const next = dailyHabitItems.map(item => {
       if (item.id === id) {
@@ -280,23 +268,6 @@ export default function StudentCoachingPage() {
     setDailyHabitItems(next);
     saveAllWithLists(monthlyItems, weeklyHabitItems, next);
   };
-
-  const handleAddStudentGoal = async (e) => {
-    e.preventDefault();
-    if (!newGoalTitle.trim() || !newGoalTarget) return;
-    await addGoal({
-      studentId: student.id,
-      title: newGoalTitle.trim(),
-      type: newGoalType,
-      period: newGoalPeriod,
-      target: Number(newGoalTarget) || 50,
-      current: 0
-    });
-    setNewGoalTitle('');
-    setNewGoalTarget('100');
-  };
-
-  const gradeName = curriculumData?.grades?.find(g => g.id === student.gradeId)?.name || 'Öğrenci';
 
   return (
     <div className="coaching-dossier-page" style={{ minHeight: '100vh', background: '#e2e8f0', padding: 'clamp(1rem,3vw,2rem)', fontFamily: 'inherit' }}>
@@ -367,97 +338,116 @@ export default function StudentCoachingPage() {
                   </span>
                 </div>
 
-                {/* UZUN VADELİ HEDEFLER */}
-                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-                  <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1.25rem', padding: '1.25rem' }}>
-                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 900, color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <GraduationCap size={20} color="#059669" /> 🏛️ Uzun Vadeli Sınav & Okul Hedefleri (Sınav, Okul, Puan & Net)
+                {/* UZUN VADELİ HEDEFLER (ACCORDION - CLOSED BY DEFAULT) */}
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1.25rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                  <div
+                    onClick={() => setIsLongTermOpen(v => !v)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                  >
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {isLongTermOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      <GraduationCap size={20} color="#059669" /> 🏛️ UZUN VADELİ HEDEFLER (Sınav, Okul, Puan & Net)
                     </h4>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>Hedef Sınav Türü</label>
-                        <select value={examGoalType} onChange={e => setExamGoalType(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
-                          <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
-                        <input
-                          type="text"
-                          placeholder="Örn: Kabataş Erkek Lisesi / İTÜ Müh."
-                          value={targetSchool}
-                          onChange={e => setTargetSchool(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>Puan Hedefi</label>
-                        <input
-                          type="text"
-                          placeholder="Örn: 485 Puan"
-                          value={targetScore}
-                          onChange={e => setTargetScore(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>Net Hedefi (Toplam Net)</label>
-                        <input
-                          type="number"
-                          placeholder="Örn: 90 Net"
-                          value={targetNet}
-                          onChange={e => setTargetNet(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </form>
-
-                {/* 📅 ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST) */}
-                <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '1.25rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Trophy size={20} color="#2563eb" /> 📅 ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR)
-                    </h4>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1d4ed8' }}>
-                      {monthlyItems.filter(i => i.done).length}/{monthlyItems.length} Tamamlandı
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                      {isLongTermOpen ? 'Açık' : 'Kapalı (Tıkla Aç)'}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1rem' }}>
-                    {monthlyItems.map(item => (
-                      <div key={item.id} onClick={() => handleToggleMonthlyItem(item.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.9rem', background: item.done ? '#dbeafe' : 'white', borderRadius: '0.75rem', border: item.done ? '1.5px solid #93c5fd' : '1px solid #cbd5e1', cursor: 'pointer' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: 6, border: item.done ? 'none' : '2px solid #94a3b8', background: item.done ? '#2563eb' : 'white', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem' }}>
-                            {item.done && <Check size={16} />}
-                          </div>
-                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: item.done ? '#1e3a8a' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
-                            {item.text}
-                          </span>
+                  {isLongTermOpen && (
+                    <form onSubmit={handleSaveProfile} style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #bbf7d0' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>Hedef Sınav Türü</label>
+                          <select value={examGoalType} onChange={e => setExamGoalType(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
+                            <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
+                            <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
+                          </select>
                         </div>
-                        <button type="button" className="no-print" onClick={(e) => { e.stopPropagation(); handleDeleteMonthlyItem(item.id); }} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer' }}><Trash2 size={16} /></button>
+
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
+                          <input
+                            type="text"
+                            placeholder="Örn: Kabataş Erkek Lisesi / İTÜ Müh."
+                            value={targetSchool}
+                            onChange={e => setTargetSchool(e.target.value)}
+                            style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>Puan Hedefi</label>
+                          <input
+                            type="text"
+                            placeholder="Örn: 485 Puan"
+                            value={targetScore}
+                            onChange={e => setTargetScore(e.target.value)}
+                            style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>Net Hedefi (Toplam Net)</label>
+                          <input
+                            type="number"
+                            placeholder="Örn: 90 Net"
+                            value={targetNet}
+                            onChange={e => setTargetNet(e.target.value)}
+                            style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                          />
+                        </div>
                       </div>
-                    ))}
+                    </form>
+                  )}
+                </div>
+
+                {/* 📅 ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST - ACCORDION - CLOSED BY DEFAULT) */}
+                <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '1.25rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                  <div
+                    onClick={() => setIsMonthlyOpen(v => !v)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                  >
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {isMonthlyOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      <Trophy size={20} color="#2563eb" /> 📅 ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR)
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1d4ed8', background: '#dbeafe', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                      {monthlyItems.filter(i => i.done).length}/{monthlyItems.length} Tamamlandı (%{monthlyItems.length > 0 ? Math.round((monthlyItems.filter(i => i.done).length / monthlyItems.length) * 100) : 0})
+                    </span>
                   </div>
 
-                  <form onSubmit={handleAddMonthlyItem} className="no-print" style={{ display: 'flex', gap: '0.6rem' }}>
-                    <input
-                      type="text"
-                      placeholder="+ Yeni aylık hedef maddesi ekle..."
-                      value={newMonthlyText}
-                      onChange={e => setNewMonthlyText(e.target.value)}
-                      style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #93c5fd', fontSize: '0.85rem', outline: 'none' }}
-                    />
-                    <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.65rem 1.25rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}>
-                      <Plus size={16} /> Ekle
-                    </button>
-                  </form>
+                  {isMonthlyOpen && (
+                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #bfdbfe' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1rem' }}>
+                        {monthlyItems.map(item => (
+                          <div key={item.id} onClick={() => handleToggleMonthlyItem(item.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.9rem', background: item.done ? '#dbeafe' : 'white', borderRadius: '0.75rem', border: item.done ? '1.5px solid #93c5fd' : '1px solid #cbd5e1', cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 22, height: 22, borderRadius: 6, border: item.done ? 'none' : '2px solid #94a3b8', background: item.done ? '#2563eb' : 'white', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem' }}>
+                                {item.done && <Check size={16} />}
+                              </div>
+                              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: item.done ? '#1e3a8a' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
+                                {item.text}
+                              </span>
+                            </div>
+                            <button type="button" className="no-print" onClick={(e) => { e.stopPropagation(); handleDeleteMonthlyItem(item.id); }} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <form onSubmit={handleAddMonthlyItem} className="no-print" style={{ display: 'flex', gap: '0.6rem' }}>
+                        <input
+                          type="text"
+                          placeholder="+ Yeni aylık hedef maddesi ekle..."
+                          value={newMonthlyText}
+                          onChange={e => setNewMonthlyText(e.target.value)}
+                          style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #93c5fd', fontSize: '0.85rem', outline: 'none' }}
+                        />
+                        <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.65rem 1.25rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}>
+                          <Plus size={16} /> Ekle
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </div>
 
                 {/* ⚡ HAFTALIK HEDEF & SERİ TAKİBİ (4-WEEK MATRIX) */}
