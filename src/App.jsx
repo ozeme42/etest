@@ -25,6 +25,7 @@ import StudentResultsPage from './pages/StudentResultsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
 import StudentCoachingPage from './pages/StudentCoachingPage';
 import PhysicalExamManager from './pages/PhysicalExamManager';
+import PhysicalExamRunner from './pages/PhysicalExamRunner';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
 import './App.css';
@@ -192,7 +193,7 @@ function Sidebar() {
 function AppContent() {
   const location = useLocation();
   const { currentUser } = useAuth();
-  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login'];
+  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/'];
   const shouldHideSidebar = !currentUser || hideSidebarRoutes.some(route => location.pathname.startsWith(route));
 
   return (
@@ -221,6 +222,7 @@ function AppContent() {
           <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
           <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
           <Route path="/physical-exam" element={<PhysicalExamManager />} />
+          <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

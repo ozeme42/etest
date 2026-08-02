@@ -183,14 +183,17 @@ function HomeworkCard({ task, selectedStudent }) {
 
       <button
         onClick={() => {
-          const path = task.sourceType === 'trackedBook'
-            ? `/book-quiz/${task.id}?studentId=${selectedStudent.id}`
-            : `/quiz/${task.id}?studentId=${selectedStudent.id}`;
+          let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
+          if (task.sourceType === 'trackedBook') {
+            path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
+          } else if (task.type === 'physicalExam') {
+            path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
+          }
           navigate(path);
         }}
         style={{ width: '100%', padding: '0.65rem', borderRadius: '0.75rem', background: conf.color, color: 'white', fontWeight: 800, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: `0 4px 12px ${conf.color}40`, transition: 'transform 0.15s' }}
       >
-        <PlayCircle size={16} /> Ödevi Çöz
+        <PlayCircle size={16} /> {task.type === 'physicalExam' ? 'Optik Formu Doldur' : 'Ödevi Çöz'}
       </button>
     </div>
   );

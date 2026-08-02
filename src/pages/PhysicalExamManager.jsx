@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useCoaching } from '../context/CoachingContext';
+import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -72,7 +72,7 @@ const SAMPLE_JSON_TEMPLATE = {
 export default function PhysicalExamManager() {
   const { users } = useUser();
   const { currentUser } = useAuth();
-  const { mockExams, addMockExam, deleteMockExam } = useCoaching();
+  const { homeworks, addHomework, deleteHomework } = useHomework();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || 'u1');
@@ -116,9 +116,10 @@ export default function PhysicalExamManager() {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkInputText, setBulkInputText] = useState('');
 
+  // Fetch existing physical exam homeworks for this student
   const studentMockExams = useMemo(() => {
-    return mockExams.filter(m => String(m.studentId) === String(selectedStudent?.id));
-  }, [mockExams, selectedStudent]);
+    return homeworks.filter(hw => hw.type === 'physicalExam' && String(hw.studentId) === String(selectedStudent?.id));
+  }, [homeworks, selectedStudent]);
 
   // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
@@ -262,35 +263,34 @@ export default function PhysicalExamManager() {
     return { subjectStats, totalFilled, totalQuestions };
   }, [answerKey, subjects]);
 
-  // Save Physical Mock Exam & Sync with Coaching Dossier Page 7
+  // Save Physical Mock Exam as Homework
   const handleSaveExam = async () => {
     if (!examTitle.trim()) return;
-    const newMockExam = {
+    const newHomework = {
+      type: 'physicalExam',
       studentId: selectedStudent?.id,
       title: examTitle.trim(),
-      date: examDate,
+      dueDate: examDate,
       examType,
       penaltyRatio,
+      subjects, // We need to store subjects info for the runner
       totalQuestions: evaluationResults.totalQuestions,
       filledAnswers: evaluationResults.totalFilled,
-      errorReason: 'Fiziki Deneme Cevap Anahtarı',
       answerKey
     };
-    await addMockExam(newMockExam);
+    await addHomework(newHomework);
     setShowAddForm(false);
-    alert('🎉 Fiziki deneme cevap anahtarı başarıyla kaydedildi!');
+    alert('🎉 Fiziki deneme başarıyla öğrenciye ödev olarak atandı!');
   };
 
-  // Stats for the list view header
+  // Stats for the list view header (Optional, using filled answers or we can calculate avg if submitted)
   const avgNet = useMemo(() => {
-    if (studentMockExams.length === 0) return 0;
-    const sum = studentMockExams.reduce((acc, m) => acc + (m.totalNet || 0), 0);
-    return Number((sum / studentMockExams.length).toFixed(2));
+    // We could calculate avg from submissions if we want, but for now let's just return 0 or calculate from submissions
+    return 0;
   }, [studentMockExams]);
 
   const highestNet = useMemo(() => {
-    if (studentMockExams.length === 0) return 0;
-    return Math.max(...studentMockExams.map(m => m.totalNet || 0));
+    return 0;
   }, [studentMockExams]);
 
   return (
@@ -438,13 +438,12 @@ export default function PhysicalExamManager() {
                         </span>
                         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug mt-1 line-clamp-2">{m.title}</h3>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3 h-3" /> {m.date}
+                          <Calendar className="w-3 h-3" /> Son Teslim: {m.dueDate}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 leading-none block">{m.totalNet}</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">Net</span>
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 leading-none block">{m.submissions && m.submissions.length > 0 ? 'Çözüldü' : 'Bekliyor'}</span>
                       </div>
                     </div>
 
