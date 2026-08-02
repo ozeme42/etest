@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
+import { useEvaluation } from '../context/EvaluationContext';
 import { 
   ArrowLeft, CheckCircle2, AlertCircle, BookOpen, Clock, 
-  Send, X, LayoutTemplate
+  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, Sparkles
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -18,6 +19,7 @@ export default function PhysicalExamRunner() {
   const navigate = useNavigate();
   const { homeworks, submitHomework } = useHomework();
   const { currentUser } = useAuth();
+  const { addSubmission } = useEvaluation();
   
   // Optional: Extract studentId from URL if teacher is viewing, otherwise use currentUser
   const queryParams = new URLSearchParams(window.location.search);
@@ -189,14 +191,33 @@ export default function PhysicalExamRunner() {
     const calculated = calculateResults();
     
     // Save to HomeworkContext
-    // we need to pass a payload to submitHomework
-    // Wait, the existing submitHomework takes (hwId, studentId, score, totalQuestions)
-    // We should probably just pass the net as score. But we can also pass extra data.
-    
     submitHomework(hwId, studentId, calculated.totalNet, homework.totalQuestions, {
       subjectStats: calculated,
       studentAnswers: answers
     });
+
+    // Also save to EvaluationContext for central results tracking
+    try {
+      addSubmission({
+        testId: hwId,
+        hwId: hwId,
+        testTitle: homework.title,
+        studentId: studentId,
+        score: calculated.totalNet,
+        type: 'physicalExam',
+        isHomework: true,
+        status: 'completed',
+        correctCount: calculated.totalCorrect,
+        wrongCount: calculated.totalWrong,
+        blankCount: calculated.totalBlank,
+        totalQuestions: homework.totalQuestions,
+        subjectStats: calculated.subjectStats,
+        studentAnswers: answers,
+        answers: []
+      });
+    } catch(e) {
+      console.error("Failed to save to evaluation context", e);
+    }
 
     localStorage.removeItem(draftKey);
     setResults(calculated);
@@ -255,28 +276,130 @@ export default function PhysicalExamRunner() {
       </div>
 
       {isSubmitted && results && (
-        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-lg space-y-6">
-          <div className="flex items-center justify-between border-b border-white/20 pb-4">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400" /> Sınav Sonuçların
-            </h2>
-            <div className="text-right">
-              <div className="text-3xl font-black text-emerald-400 leading-none">{results.totalNet}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-200 mt-1">Toplam Net</div>
+        <div className="space-y-6">
+          {/* TOP SCORECARD HERO */}
+          <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-6 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/20 pb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-white px-2.5 py-0.5 rounded-lg backdrop-blur-sm flex items-center gap-1">
+                    <Trophy className="w-3.5 h-3.5 text-amber-300" /> Sınav Sonuç Karnesi
+                  </span>
+                  <span className="text-xs font-bold text-indigo-100">
+                    {homework.examType || 'LGS / YKS'}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                  {homework.title}
+                </h2>
+              </div>
+
+              <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-3 text-center sm:text-right w-full sm:w-auto">
+                <div className="text-3xl sm:text-4xl font-black text-emerald-300 leading-none">
+                  {results.totalNet}
+                </div>
+                <div className="text-[11px] font-bold uppercase tracking-widest text-indigo-100 mt-1">
+                  Toplam Net
+                </div>
+              </div>
+            </div>
+
+            {/* QUICK STATS 4-GRID */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
+                <div className="text-2xl font-black text-emerald-300">{results.totalCorrect}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Toplam Doğru</div>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
+                <div className="text-2xl font-black text-rose-300">{results.totalWrong}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Toplam Yanlış</div>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
+                <div className="text-2xl font-black text-amber-300">{results.totalBlank}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Toplam Boş</div>
+              </div>
+              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
+                <div className="text-2xl font-black text-cyan-300">
+                  %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Başarı Oranı</div>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-white/10 rounded-2xl p-3 border border-white/10">
-              <div className="text-2xl font-black text-emerald-400">{results.totalCorrect}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">Doğru</div>
+
+          {/* DERS BAZLI AYRINTILI KARNE TABLOSU */}
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-black text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-indigo-500" /> Ders Bazlı Sonuç Önizlemesi & Net Tablosu
+              </h3>
+              <button
+                onClick={() => navigate('/student-results')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              >
+                <ListTree className="w-4 h-4" /> Tüm Sonuçlarıma Git
+              </button>
             </div>
-            <div className="bg-white/10 rounded-2xl p-3 border border-white/10">
-              <div className="text-2xl font-black text-rose-400">{results.totalWrong}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">Yanlış</div>
-            </div>
-            <div className="bg-white/10 rounded-2xl p-3 border border-white/10">
-              <div className="text-2xl font-black text-amber-400">{results.totalBlank}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">Boş</div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-black uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-3 px-4 rounded-l-xl">Ders Adı</th>
+                    <th className="py-3 px-3 text-center">Soru Sayısı</th>
+                    <th className="py-3 px-3 text-center text-emerald-600">Doğru</th>
+                    <th className="py-3 px-3 text-center text-rose-600">Yanlış</th>
+                    <th className="py-3 px-3 text-center text-amber-600">Boş</th>
+                    <th className="py-3 px-4 text-center text-indigo-600 font-black">Net</th>
+                    <th className="py-3 px-4 text-right rounded-r-xl">Başarı</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-bold text-slate-700 dark:text-slate-200">
+                  {results.subjectStats.map((sub, idx) => {
+                    const pct = sub.count > 0 ? Math.round((sub.correct / sub.count) * 100) : 0;
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
+                        <td className="py-3 px-4 font-black text-slate-900 dark:text-white flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                          {sub.name}
+                        </td>
+                        <td className="py-3 px-3 text-center">{sub.count}</td>
+                        <td className="py-3 px-3 text-center text-emerald-600 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/20">{sub.correct}</td>
+                        <td className="py-3 px-3 text-center text-rose-600 dark:text-rose-400 bg-rose-50/30 dark:bg-rose-950/20">{sub.wrong}</td>
+                        <td className="py-3 px-3 text-center text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-950/20">{sub.blank}</td>
+                        <td className="py-3 px-4 text-center font-black text-sm text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30">
+                          {sub.net} N
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10px] font-black",
+                            pct >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
+                            pct >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
+                            "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                          )}>
+                            %{pct}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-100/80 dark:bg-slate-800/80 font-black text-slate-900 dark:text-white text-xs border-t-2 border-slate-300 dark:border-slate-700">
+                    <td className="py-3.5 px-4 rounded-l-xl">TOPLAM / GENEL</td>
+                    <td className="py-3.5 px-3 text-center">{homework.totalQuestions}</td>
+                    <td className="py-3.5 px-3 text-center text-emerald-600">{results.totalCorrect}</td>
+                    <td className="py-3.5 px-3 text-center text-rose-600">{results.totalWrong}</td>
+                    <td className="py-3.5 px-3 text-center text-amber-600">{results.totalBlank}</td>
+                    <td className="py-3.5 px-4 text-center text-base text-indigo-600 dark:text-indigo-400 font-black">
+                      {results.totalNet} Net
+                    </td>
+                    <td className="py-3.5 px-4 text-right rounded-r-xl">
+                      %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         </div>

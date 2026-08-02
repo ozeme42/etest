@@ -54,26 +54,36 @@ export default function StudentResultsPage() {
     return submissions
       .filter(s => s.studentId === selectedStudent.id)
       .map(s => {
-        let correctCount = 0;
-        let wrongCount = 0;
-        let blankCount = 0;
-        (s.answers || []).forEach(ans => {
-          if (ans.isCorrect === true) correctCount++;
-          else if (ans.isCorrect === false) {
-            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
-            if (isB) blankCount++;
-            else wrongCount++;
-          }
-        });
+        let correctCount = s.correctCount !== undefined ? s.correctCount : 0;
+        let wrongCount = s.wrongCount !== undefined ? s.wrongCount : 0;
+        let blankCount = s.blankCount !== undefined ? s.blankCount : 0;
+
+        if (s.answers && s.answers.length > 0) {
+          correctCount = 0;
+          wrongCount = 0;
+          blankCount = 0;
+          s.answers.forEach(ans => {
+            if (ans.isCorrect === true) correctCount++;
+            else if (ans.isCorrect === false) {
+              const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+              if (isB) blankCount++;
+              else wrongCount++;
+            }
+          });
+        }
 
         let subjectKey = 'Diğer';
-        const tTitle = (s.testTitle || '').toLowerCase();
-        if (tTitle.includes('mat')) subjectKey = 'Matematik';
-        else if (tTitle.includes('fen')) subjectKey = 'Fen Bilimleri';
-        else if (tTitle.includes('türk') || tTitle.includes('turk')) subjectKey = 'Türkçe';
-        else if (tTitle.includes('sosyal')) subjectKey = 'Sosyal Bilgiler';
-        else if (tTitle.includes('ing')) subjectKey = 'İngilizce';
-        else if (tTitle.includes('deneme')) subjectKey = 'Genel Deneme Sınavları';
+        if (s.type === 'physicalExam') {
+          subjectKey = 'Genel Deneme Sınavları';
+        } else {
+          const tTitle = (s.testTitle || '').toLowerCase();
+          if (tTitle.includes('mat')) subjectKey = 'Matematik';
+          else if (tTitle.includes('fen')) subjectKey = 'Fen Bilimleri';
+          else if (tTitle.includes('türk') || tTitle.includes('turk')) subjectKey = 'Türkçe';
+          else if (tTitle.includes('sosyal')) subjectKey = 'Sosyal Bilgiler';
+          else if (tTitle.includes('ing')) subjectKey = 'İngilizce';
+          else if (tTitle.includes('deneme')) subjectKey = 'Genel Deneme Sınavları';
+        }
 
         return {
           ...s,
@@ -81,7 +91,7 @@ export default function StudentResultsPage() {
           correctCount,
           wrongCount,
           blankCount,
-          totalQuestions: s.answers?.length || 0
+          totalQuestions: s.totalQuestions || s.answers?.length || 0
         };
       })
       .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
@@ -691,7 +701,7 @@ export default function StudentResultsPage() {
                       {/* Type */}
                       <td style={{ padding: '0.9rem 1.15rem', whitespace: 'nowrap' }}>
                         <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
-                          {sub.isHomework ? '📝 Ödev' : sub.bookTestId ? '📕 Kitap' : '⚡ Bireysel'}
+                          {sub.type === 'physicalExam' ? '🏛️ Fiziki Deneme' : sub.isHomework ? '📝 Ödev' : sub.bookTestId ? '📕 Kitap' : '⚡ Bireysel'}
                         </span>
                       </td>
 
@@ -716,6 +726,10 @@ export default function StudentResultsPage() {
                           <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: '0.78rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                             <Clock3 size={13} /> Değerlendirmede
                           </span>
+                        ) : sub.type === 'physicalExam' ? (
+                          <span style={{ background: '#e0e7ff', color: '#4338ca', border: '1.5px solid #c7d2fe', fontSize: '0.88rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            {score} Net
+                          </span>
                         ) : (
                           <span style={{ background: '#ecfdf5', color: '#047857', border: '1.5px solid #a7f3d0', fontSize: '0.9rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '0.6rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                             %{score}
@@ -726,7 +740,13 @@ export default function StudentResultsPage() {
                       {/* Action */}
                       <td style={{ padding: '0.9rem 1.15rem', textAlign: 'right', whitespace: 'nowrap' }}>
                         <button
-                          onClick={() => navigate(`/review/${sub.id}`)}
+                          onClick={() => {
+                            if (sub.type === 'physicalExam') {
+                              navigate(`/physical-exam/${sub.hwId || sub.testId}?studentId=${selectedStudent.id}`);
+                            } else {
+                              navigate(`/review/${sub.id}`);
+                            }
+                          }}
                           style={{
                             background: '#4f46e5',
                             color: 'white',
@@ -742,7 +762,7 @@ export default function StudentResultsPage() {
                             boxShadow: '0 2px 6px rgba(79,70,229,0.25)'
                           }}
                         >
-                          <Eye size={14} /> Soruları İncele
+                          <Eye size={14} /> {sub.type === 'physicalExam' ? 'Karne & Optik Önizle' : 'Soruları İncele'}
                         </button>
                       </td>
 
@@ -826,6 +846,11 @@ export default function StudentResultsPage() {
                         <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.75rem', fontWeight: 900, padding: '0.3rem 0.65rem', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                           <Clock3 size={13} /> Değerlendirme Bekliyor
                         </span>
+                      ) : sub.type === 'physicalExam' ? (
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
+                          <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#4338ca' }}>{score} Net</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1' }}>Toplam Net</span>
+                        </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
                           <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#059669' }}>%{score}</span>
@@ -835,7 +860,13 @@ export default function StudentResultsPage() {
                     </div>
 
                     <button
-                      onClick={() => navigate(`/review/${sub.id}`)}
+                      onClick={() => {
+                        if (sub.type === 'physicalExam') {
+                          navigate(`/physical-exam/${sub.hwId || sub.testId}?studentId=${selectedStudent.id}`);
+                        } else {
+                          navigate(`/review/${sub.id}`);
+                        }
+                      }}
                       style={{
                         background: '#4f46e5',
                         color: 'white',
@@ -852,7 +883,7 @@ export default function StudentResultsPage() {
                         marginLeft: 'auto'
                       }}
                     >
-                      <Eye size={16} /> Soruları İncele
+                      <Eye size={16} /> {sub.type === 'physicalExam' ? 'Karne & Önizle' : 'Soruları İncele'}
                     </button>
                   </div>
 

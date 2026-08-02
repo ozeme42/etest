@@ -468,20 +468,19 @@ export default function PhysicalExamManager() {
                       </div>
                     </div>
 
-                    {/* NET BREAKDOWN BADGES */}
+                    {/* SUBJECT QUESTION COUNT BREAKDOWN */}
                     <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 text-center">
-                      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <span className="text-[9px] text-slate-400 block font-black">Türkçe</span>
-                        <span>{m.turkce || 0} Net</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <span className="text-[9px] text-slate-400 block font-black">Matematik</span>
-                        <span>{m.mat || 0} Net</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <span className="text-[9px] text-slate-400 block font-black">Fen</span>
-                        <span>{m.fen || 0} Net</span>
-                      </div>
+                      {(m.subjects || []).slice(0, 3).map((s, sIdx) => (
+                        <div key={sIdx} className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <span className="text-[9px] text-slate-400 block font-black truncate">{s.name}</span>
+                          <span className="text-indigo-600 dark:text-indigo-400">{s.count} Soru</span>
+                        </div>
+                      ))}
+                      {(!m.subjects || m.subjects.length === 0) && (
+                        <div className="col-span-3 bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50 text-[10px] text-slate-400">
+                          Standart Ders Dağılımı ({m.totalQuestions} Soru)
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
@@ -890,44 +889,107 @@ export default function PhysicalExamManager() {
         </div>
       )}
 
-      {/* DETAY İNCELEME MODAL */}
+      {/* DENEME ÖNİZLEME VE CEVAP ANAHTARI DETAY MODAL */}
       {viewingExamDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-2xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <span className="text-[10px] font-black uppercase text-indigo-500">{viewingExamDetails.examType || 'LGS'} Sınav Detayı</span>
-                <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight">{viewingExamDetails.title}</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">{viewingExamDetails.date}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                    {viewingExamDetails.examType || 'LGS'} Sınav Önizlemesi
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">{viewingExamDetails.date}</span>
+                </div>
+                <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{viewingExamDetails.title}</h3>
               </div>
               <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 p-2.5 rounded-xl">
-                <span className="text-[10px] font-black text-slate-400 block">DOĞRU / YANLIŞ</span>
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{viewingExamDetails.correctCount || 0}D / {viewingExamDetails.wrongCount || 0}Y</span>
+            {/* QUICK SPECS */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Toplam Soru</span>
+                <span className="text-base font-black text-slate-800 dark:text-slate-100">{viewingExamDetails.totalQuestions} Soru</span>
               </div>
-              <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 p-2.5 rounded-xl">
-                <span className="text-[10px] font-black text-slate-400 block">TOPLAM NET</span>
-                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">{viewingExamDetails.totalNet} Net</span>
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ceza Kuralı</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400">
+                  {viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}
+                </span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ders Sayısı</span>
+                <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                  {viewingExamDetails.subjects?.length || 0} Ders
+                </span>
               </div>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <div className="text-xs font-black text-slate-800 dark:text-slate-200">Ders Bazlı Net Dağılımı:</div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Türkçe:</span> <strong>{viewingExamDetails.turkce || 0} Net</strong></div>
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Matematik:</span> <strong>{viewingExamDetails.mat || 0} Net</strong></div>
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Fen Bilimleri:</span> <strong>{viewingExamDetails.fen || 0} Net</strong></div>
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Sosyal/İnkılap:</span> <strong>{viewingExamDetails.sosyal || 0} Net</strong></div>
+            {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                <Key className="w-4 h-4 text-amber-500" /> Dersler ve Kayıtlı Cevap Anahtarları:
+              </h4>
+
+              <div className="space-y-2.5">
+                {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
+                  const subAnswers = viewingExamDetails.answerKey?.[sub.name] || [];
+                  return (
+                    <div key={sIdx} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                          {sub.name}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          {sub.count} Soru
+                        </span>
+                      </div>
+
+                      {/* Optical Answer Strip */}
+                      <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+                        {Array.from({ length: sub.count }).map((_, qIdx) => {
+                          const ans = subAnswers[qIdx] || '-';
+                          return (
+                            <div key={qIdx} className="flex flex-col items-center justify-center w-7 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px]">
+                              <span className="text-[8px] text-slate-400 font-bold">{qIdx + 1}</span>
+                              <span className={cn(
+                                "font-black leading-none",
+                                ans !== '-' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-300"
+                              )}>
+                                {ans}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end">
-              <button onClick={() => setViewingExamDetails(null)} className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black">Kapat</button>
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const examToAssign = viewingExamDetails;
+                  setViewingExamDetails(null);
+                  setAssignModalExam(examToAssign);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
+              >
+                <Plus className="w-4 h-4" /> Bu Denemeyi Ödev Olarak Ata
+              </button>
+
+              <button 
+                onClick={() => setViewingExamDetails(null)} 
+                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
+              >
+                Kapat
+              </button>
             </div>
           </div>
         </div>
