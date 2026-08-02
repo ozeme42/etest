@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
 import { useEvaluation } from '../context/EvaluationContext';
+import { useUser } from '../context/UserContext';
 import { 
   ArrowLeft, CheckCircle2, AlertCircle, BookOpen, Clock, 
-  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, Sparkles
+  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, Sparkles, UserCheck
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -19,12 +20,16 @@ export default function PhysicalExamRunner() {
   const navigate = useNavigate();
   const { homeworks, submitHomework } = useHomework();
   const { currentUser } = useAuth();
-  const { addSubmission } = useEvaluation();
+  const { submissions: evalSubmissions, addSubmission } = useEvaluation();
+  const { users } = useUser();
   
   // Optional: Extract studentId from URL if teacher is viewing, otherwise use currentUser
   const queryParams = new URLSearchParams(window.location.search);
   const paramStudentId = queryParams.get('studentId');
   const studentId = paramStudentId || currentUser?.id;
+
+  const currentViewingStudent = users.find(u => u.id === studentId);
+  const isTeacherReviewing = currentUser?.role !== 'student' && paramStudentId && paramStudentId !== currentUser?.id;
 
   const homework = homeworks.find(h => h.id === hwId);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
@@ -38,111 +43,25 @@ export default function PhysicalExamRunner() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [timerStarted, setTimerStarted] = useState(false);
 
-  useEffect(() => {
-    if (homework && !isSubmitted && !timerStarted) {
-      const durationMinutes = (homework.timePerQuestion || 2) * (homework.totalQuestions || 90);
-      setTimeLeft(durationMinutes * 60);
-      setTimerStarted(true);
-    }
-  }, [homework, isSubmitted, timerStarted]);
-
-  useEffect(() => {
-    if (isSubmitted || timeLeft === null || timeLeft <= 0) return;
-    const intervalId = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-    return () => clearInterval(intervalId);
-  }, [timeLeft, isSubmitted]);
-
-  const formatTime = (seconds) => {
-    if (seconds === null) return '--:--';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   const draftKey = `draft_physical_exam_${hwId}_${studentId}`;
 
-  useEffect(() => {
-    if (homework && !isSubmitted) {
-      // Check if already submitted
-      const submission = (homework.submissions || []).find(s => s.studentId === studentId);
-      if (submission) {
-        setIsSubmitted(true);
-        setResults(submission.subjectStats);
-        setAnswers(submission.studentAnswers || {});
-      } else {
-        const draftStr = localStorage.getItem(draftKey);
-        if (draftStr) {
-          try {
-            setAnswers(JSON.parse(draftStr));
-            return;
-          } catch(e) {
-            console.error("Draft parse error", e);
-          }
-        }
-        // Initialize empty answers
-        const init = {};
-        homework.subjects?.forEach(sub => {
-          init[sub.name] = Array(sub.count).fill('');
-        });
-        setAnswers(init);
-      }
-    }
-  }, [homework, studentId, isSubmitted, draftKey]);
-
-  useEffect(() => {
-    if (!isSubmitted && Object.keys(answers).length > 0) {
-      localStorage.setItem(draftKey, JSON.stringify(answers));
-    }
-  }, [answers, isSubmitted, draftKey]);
-
-  if (!homework || homework.type !== 'physicalExam') {
-    return (
-      <div className="p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Fiziki deneme bulunamadı.</h2>
-        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Geri Dön</button>
-      </div>
-    );
-  }
-
-  const subjects = homework.subjects || [];
-  const activeSubject = subjects[activeSubjectIndex];
-
-  const handleOptionClick = (subjectName, qIndex, option) => {
-    if (isSubmitted) return; // cannot edit after submission
-    setAnswers(prev => {
-      const list = [...(prev[subjectName] || [])];
-      list[qIndex] = list[qIndex] === option ? '' : option; // toggle
-      return { ...prev, [subjectName]: list };
-    });
-  };
-
-  const handleClearOption = (subjectName, qIndex) => {
-    if (isSubmitted) return;
-    setAnswers(prev => {
-      const list = [...(prev[subjectName] || [])];
-      list[qIndex] = '';
-      return { ...prev, [subjectName]: list };
-    });
-  };
-
-  const calculateResults = () => {
-    const penaltyRatio = homework.penaltyRatio || 3;
+  // Calculate results based on a given answers map (or current state)
+  const calculateResults = useCallback((answersToCalc = answers) => {
+    if (!homework) return null;
+    const penaltyRatio = homework.penaltyRatio !== undefined ? homework.penaltyRatio : 3;
     let grandTotalCorrect = 0;
     let grandTotalWrong = 0;
     let grandTotalBlank = 0;
     const subjectStats = [];
 
-    subjects.forEach(sub => {
+    const subs = homework.subjects || [];
+    subs.forEach(sub => {
       let correct = 0;
       let wrong = 0;
       let blank = 0;
       
-      const subAns = answers[sub.name] || [];
-      const subKey = homework.answerKey[sub.name] || [];
+      const subAns = answersToCalc[sub.name] || [];
+      const subKey = homework.answerKey?.[sub.name] || [];
 
       for (let i = 0; i < sub.count; i++) {
         const a = subAns[i];
@@ -157,7 +76,7 @@ export default function PhysicalExamRunner() {
       }
 
       const rawNet = correct - (penaltyRatio > 0 ? wrong / penaltyRatio : 0);
-      const net = Math.max(0, Number(rawNet.toFixed(2))); // Optional: don't allow negative net per subject, or allow it
+      const net = Math.max(0, Number(rawNet.toFixed(2)));
 
       grandTotalCorrect += correct;
       grandTotalWrong += wrong;
@@ -183,17 +102,156 @@ export default function PhysicalExamRunner() {
       totalWrong: grandTotalWrong,
       totalBlank: grandTotalBlank
     };
+  }, [homework, answers]);
+
+  // Load existing submission or draft
+  useEffect(() => {
+    if (!homework) return;
+
+    // Check if already submitted in HomeworkContext or EvaluationContext
+    const hwSub = (homework.submissions || []).find(s => s.studentId === studentId);
+    const evalSub = (evalSubmissions || []).find(s => (s.hwId === hwId || s.testId === hwId) && s.studentId === studentId);
+    const submission = hwSub || evalSub;
+
+    if (submission) {
+      setIsSubmitted(true);
+      
+      // Try to recover student answers from all possible sources
+      let loadedAns = submission.studentAnswers || evalSub?.studentAnswers || hwSub?.studentAnswers;
+      if (!loadedAns || Object.keys(loadedAns).length === 0) {
+        const draftStr = localStorage.getItem(draftKey);
+        if (draftStr) {
+          try {
+            const parsed = JSON.parse(draftStr);
+            if (parsed && typeof parsed === 'object') loadedAns = parsed;
+          } catch(e) {}
+        }
+      }
+
+      // If no answers exist, initialize empty answers for all subjects
+      if (!loadedAns || Object.keys(loadedAns).length === 0) {
+        loadedAns = {};
+        homework.subjects?.forEach(sub => {
+          loadedAns[sub.name] = Array(sub.count).fill('');
+        });
+      }
+
+      setAnswers(loadedAns);
+
+      // Calculate fresh comprehensive results from answers
+      let calc = calculateResults(loadedAns);
+
+      // If submission had saved subjectStats, ensure they are structured
+      if (submission.subjectStats && submission.subjectStats.subjectStats) {
+        calc = submission.subjectStats;
+      } else if (submission.subjectStats && Array.isArray(submission.subjectStats)) {
+        calc = {
+          subjectStats: submission.subjectStats,
+          totalNet: submission.score || calc.totalNet,
+          totalCorrect: submission.correctCount || calc.totalCorrect,
+          totalWrong: submission.wrongCount || calc.totalWrong,
+          totalBlank: submission.blankCount || calc.totalBlank
+        };
+      } else if (submission.score !== undefined && calc.totalNet === 0 && submission.score > 0) {
+        calc.totalNet = submission.score;
+        calc.totalCorrect = submission.correctCount || Math.round(submission.score);
+        calc.totalWrong = submission.wrongCount || 0;
+        calc.totalBlank = Math.max(0, (homework.totalQuestions || 0) - calc.totalCorrect - calc.totalWrong);
+      }
+
+      setResults(calc);
+    } else {
+      const draftStr = localStorage.getItem(draftKey);
+      if (draftStr) {
+        try {
+          setAnswers(JSON.parse(draftStr));
+          return;
+        } catch(e) {
+          console.error("Draft parse error", e);
+        }
+      }
+      // Initialize empty answers
+      const init = {};
+      homework.subjects?.forEach(sub => {
+        init[sub.name] = Array(sub.count).fill('');
+      });
+      setAnswers(init);
+    }
+  }, [homework, studentId, draftKey, evalSubmissions, calculateResults]);
+
+  useEffect(() => {
+    if (homework && !isSubmitted && !timerStarted && !isTeacherReviewing) {
+      const durationMinutes = (homework.timePerQuestion || 2) * (homework.totalQuestions || 90);
+      setTimeLeft(durationMinutes * 60);
+      setTimerStarted(true);
+    }
+  }, [homework, isSubmitted, timerStarted, isTeacherReviewing]);
+
+  useEffect(() => {
+    if (isSubmitted || timeLeft === null || timeLeft <= 0 || isTeacherReviewing) return;
+    const intervalId = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [timeLeft, isSubmitted, isTeacherReviewing]);
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return '--:--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    if (!isSubmitted && Object.keys(answers).length > 0 && !isTeacherReviewing) {
+      localStorage.setItem(draftKey, JSON.stringify(answers));
+    }
+  }, [answers, isSubmitted, draftKey, isTeacherReviewing]);
+
+  if (!homework || homework.type !== 'physicalExam') {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Fiziki deneme bulunamadı.</h2>
+        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Geri Dön</button>
+      </div>
+    );
+  }
+
+  const subjects = homework.subjects || [];
+  const activeSubject = subjects[activeSubjectIndex];
+
+  const handleOptionClick = (subjectName, qIndex, option) => {
+    if (isSubmitted || isTeacherReviewing) return; // cannot edit after submission
+    setAnswers(prev => {
+      const list = [...(prev[subjectName] || [])];
+      list[qIndex] = list[qIndex] === option ? '' : option; // toggle
+      return { ...prev, [subjectName]: list };
+    });
+  };
+
+  const handleClearOption = (subjectName, qIndex) => {
+    if (isSubmitted || isTeacherReviewing) return;
+    setAnswers(prev => {
+      const list = [...(prev[subjectName] || [])];
+      list[qIndex] = '';
+      return { ...prev, [subjectName]: list };
+    });
   };
 
   const handleSubmit = () => {
     if (!window.confirm("Cevaplarını göndermek istediğine emin misin? Gönderdikten sonra değiştiremezsin.")) return;
     
-    const calculated = calculateResults();
+    const calculated = calculateResults(answers);
     
     // Save to HomeworkContext
     submitHomework(hwId, studentId, calculated.totalNet, homework.totalQuestions, {
       subjectStats: calculated,
-      studentAnswers: answers
+      studentAnswers: answers,
+      correctCount: calculated.totalCorrect,
+      wrongCount: calculated.totalWrong,
+      blankCount: calculated.totalBlank
     });
 
     // Also save to EvaluationContext for central results tracking
@@ -230,6 +288,36 @@ export default function PhysicalExamRunner() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24">
+      {/* TEACHER INSPECTION BANNER */}
+      {isTeacherReviewing && currentViewingStudent && (
+        <div className="bg-indigo-50 dark:bg-indigo-950/50 border-2 border-indigo-200 dark:border-indigo-800 p-4 rounded-3xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-sm shrink-0">
+              {currentViewingStudent.name?.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded-md">
+                  Öğretmen İnceleme Modu
+                </span>
+                <span className="text-xs font-bold text-slate-500">
+                  {isSubmitted ? '🟢 Sınav Tamamlandı' : '⏳ Henüz Göndermedi'}
+                </span>
+              </div>
+              <div className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
+                {currentViewingStudent.name} isimli öğrencinin optik formunu ve karnesini inceliyorsunuz
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate(-1)} 
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-black rounded-xl text-slate-700 dark:text-slate-200 transition-colors shrink-0"
+          >
+            ← Geri Dön
+          </button>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
         <div className="flex items-center gap-4 w-full sm:w-auto">

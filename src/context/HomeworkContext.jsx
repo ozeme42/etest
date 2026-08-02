@@ -52,17 +52,17 @@ export function HomeworkProvider({ children }) {
     await dbDeleteHomework(id);
   };
 
-  const submitHomework = (hwId, studentId, score, totalQuestions) => {
+  const submitHomework = (hwId, studentId, score, totalQuestions, extraData = {}) => {
     setHomeworks(prev => prev.map(hw => {
       if (hw.id === hwId) {
         const existing = (hw.submissions || []).find(s => s.studentId === studentId);
         let newSubmissions = [...(hw.submissions || [])];
         if (existing) {
           newSubmissions = newSubmissions.map(s => 
-            s.studentId === studentId ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions } : s
+            s.studentId === studentId ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData } : s
           );
         } else {
-          newSubmissions.push({ studentId, score, completedAt: new Date().toISOString(), totalQuestions });
+          newSubmissions.push({ studentId, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData });
         }
         const updated = { ...hw, submissions: newSubmissions };
         dbAddHomework(updated);
