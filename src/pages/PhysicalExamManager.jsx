@@ -218,20 +218,6 @@ export default function PhysicalExamManager() {
     });
   };
 
-  // Cycle Answer Key directly on question row badge
-  const handleCycleAnswerKey = (subjectName, qIdx) => {
-    const currentSub = subjects.find(s => s.name === subjectName);
-    if (!currentSub) return;
-    setAnswerKey(prev => {
-      const currentList = [...(prev[subjectName] || [])];
-      const opts = currentSub.options;
-      const current = currentList[qIdx] || opts[0];
-      const nextIndex = (opts.indexOf(current) + 1) % opts.length;
-      currentList[qIdx] = opts[nextIndex];
-      return { ...prev, [subjectName]: currentList };
-    });
-  };
-
   // Extract valid letters (A, B, C, D, E) from user text
   const parsedBulkInput = useMemo(() => {
     if (!bulkInputText) return [];
@@ -832,7 +818,7 @@ export default function PhysicalExamManager() {
                             {currentSub.name} Optik Kodlama Formu
                           </h3>
                           <p className="text-xs text-slate-400">
-                            Aşağıdaki sorular için <span className="font-bold text-amber-600 dark:text-amber-400">🔑 Doğru Cevap (Cevap Anahtarı)</span> rozetlerine basarak veya yukarıdan yapıştırarak belirleyin.
+                            Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın veya yukarıdan toplu yapıştırın
                           </p>
                         </div>
 
@@ -890,33 +876,22 @@ export default function PhysicalExamManager() {
                                 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
                               )}
                             >
-                              <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-2.5">
                                 <span className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
                                   {qIdx + 1}
                                 </span>
 
-                                {/* CLEAR & ALWAYS VISIBLE ANSWER KEY BADGE */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleCycleAnswerKey(currentSub.name, qIdx)}
-                                  className="text-[10px] font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-800/60 flex items-center gap-1 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
-                                  title="Cevap Anahtarını Değiştirmek İçin Tıklayın"
-                                >
-                                  <Key className="w-3 h-3 text-amber-600" /> Key: <span className="underline font-black">{correctKey}</span>
-                                </button>
-
                                 {isAnswered && (
                                   <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
-                                    {isCorrect ? '✅ Doğru' : `❌ Yanlış (Seçilen: ${selected})`}
+                                    {isCorrect ? '✅ Doğru' : `❌ Yanlış (Doğru: ${correctKey})`}
                                   </span>
                                 )}
                               </div>
 
-                              {/* BUBBLE BUTTONS WITH VISIBLE ANSWER KEY RING */}
+                              {/* BUBBLE BUTTONS */}
                               <div className="flex items-center gap-1.5">
                                 {currentSub.options.map(opt => {
                                   const activeOpt = selected === opt;
-                                  const isKeyOpt = correctKey === opt;
 
                                   return (
                                     <button
@@ -924,18 +899,15 @@ export default function PhysicalExamManager() {
                                       type="button"
                                       onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
                                       className={cn(
-                                        'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center relative',
+                                        'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
                                         activeOpt
                                           ? isCorrect
                                             ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
                                             : isWrong
                                             ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
                                             : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                                          : isKeyOpt
-                                          ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 text-amber-700 dark:text-amber-300 ring-2 ring-amber-400/50'
                                           : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
                                       )}
-                                      title={isKeyOpt ? 'Bu şık Cevap Anahtarıdır' : undefined}
                                     >
                                       {opt}
                                     </button>
@@ -1008,7 +980,7 @@ export default function PhysicalExamManager() {
         </div>
       )}
 
-      {/* TOPLU HIZLI KODLAMA MODAL (HEM ÖĞRENCİ CEVAPLARI HEM CEVAP ANAHTARI İÇİN EKSİK/PARÇALI DESTEKLİ) */}
+      {/* TOPLU HIZLI KODLAMA MODAL */}
       {showBulkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
