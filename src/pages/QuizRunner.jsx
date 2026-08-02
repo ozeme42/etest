@@ -569,13 +569,18 @@ export default function QuizRunner() {
     });
 
     const newSubId = await addSubmission({
-      testId: test.id,
-      testTitle: test.title,
+      testId: test?.id || id,
+      hwId: isHomework ? (test?.id || id) : undefined,
+      testTitle: test?.title || test?.name || (isHomework ? 'Ödev Sınavı' : 'Test'),
       studentId: student.id,
       studentName: student.name,
       isHomework: isHomework,
       status: finalStatus,
       score: totalScore,
+      correctCount: correctCount,
+      wrongCount: wrongCount,
+      blankCount: blankCount,
+      totalQuestions: correctCount + wrongCount + blankCount + pendingCount,
       answers: collected
     });
     

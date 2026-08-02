@@ -48,11 +48,70 @@ export default function StudentResultsPage() {
   const [chartTab, setChartTab] = useState('trend'); // 'trend', 'subjectBar', 'topicBreakdown'
   const [chartSubjectFilter, setChartSubjectFilter] = useState('all');
 
-  // Student completed submissions with counts
+  // Build a lookup map of all tests from CurriculumContext
+  const allCurTestsMap = useMemo(() => {
+    const map = new Map();
+    if (!curData) return map;
+
+    (curData.tests || []).forEach(t => {
+      if (t.id) map.set(t.id, { title: t.title || t.name, subject: t.subjectName || t.subject });
+    });
+
+    (curData.grades || []).forEach(g => {
+      (g.subjects || []).forEach(s => {
+        (s.units || []).forEach(u => {
+          (u.topics || []).forEach(top => {
+            (top.tests || []).forEach(t => {
+              if (t.id) map.set(t.id, { title: t.title || t.name, subject: s.name, topic: top.name });
+            });
+          });
+        });
+      });
+    });
+    return map;
+  }, [curData]);
+
+  // Student completed submissions with counts and properly resolved titles
   const studentSubmissions = useMemo(() => {
     if (!selectedStudent) return [];
-    return submissions
-      .filter(s => s.studentId === selectedStudent.id)
+
+    // 1. Gather all submissions from EvaluationContext
+    const baseSubs = (submissions || []).filter(s => s.studentId === selectedStudent.id);
+
+    // 2. Also incorporate completed homeworks from HomeworkContext if not already in EvaluationContext
+    const hwSubs = [];
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        if (sub.studentId === selectedStudent.id) {
+          const alreadyExists = baseSubs.some(s => 
+            (s.hwId === hw.id || s.testId === hw.id || s.id === hw.id)
+          );
+          if (!alreadyExists) {
+            hwSubs.push({
+              id: `hw_sub_${hw.id}_${selectedStudent.id}`,
+              hwId: hw.id,
+              testId: hw.id,
+              testTitle: hw.title,
+              studentId: selectedStudent.id,
+              score: sub.score,
+              submittedAt: sub.completedAt || sub.submittedAt || new Date().toISOString(),
+              isHomework: true,
+              type: hw.type || 'homework',
+              totalQuestions: hw.totalQuestions || sub.totalQuestions || 0,
+              correctCount: sub.correctCount,
+              wrongCount: sub.wrongCount,
+              blankCount: sub.blankCount,
+              subjectStats: sub.subjectStats,
+              studentAnswers: sub.studentAnswers
+            });
+          }
+        }
+      });
+    });
+
+    const allCombined = [...baseSubs, ...hwSubs];
+
+    return allCombined
       .map(s => {
         let correctCount = s.correctCount !== undefined ? s.correctCount : 0;
         let wrongCount = s.wrongCount !== undefined ? s.wrongCount : 0;
@@ -72,30 +131,66 @@ export default function StudentResultsPage() {
           });
         }
 
+        // Match homework
+        const matchedHw = (homeworks || []).find(h => 
+          h.id === s.hwId || 
+          h.id === s.testId || 
+          (s.id && h.id === s.id) ||
+          (Array.isArray(h.questionIds) && h.questionIds.includes(s.testId))
+        );
+
+        // Match curriculum test
+        const matchedTest = allCurTestsMap.get(s.testId) || allCurTestsMap.get(s.hwId);
+
+        // Resolve Real Title: NEVER show plain generic "Test Sınavı" if actual homework or test title exists!
+        let resolvedTitle = s.testTitle;
+        const isGeneric = !resolvedTitle || 
+          resolvedTitle.trim().toLowerCase() === 'test sınavı' || 
+          resolvedTitle.trim().toLowerCase() === 'test sinavi' || 
+          resolvedTitle.trim().toLowerCase() === 'test' ||
+          resolvedTitle.trim().toLowerCase() === 'test sinavi';
+
+        if (matchedHw?.title) {
+          resolvedTitle = matchedHw.title;
+        } else if (matchedTest?.title) {
+          resolvedTitle = matchedTest.title;
+        } else if (isGeneric) {
+          if (s.title) resolvedTitle = s.title;
+          else if (matchedHw?.subject) resolvedTitle = `${matchedHw.subject} Ödevi`;
+          else if (s.type === 'physicalExam') resolvedTitle = 'Fiziki Deneme Sınavı';
+          else resolvedTitle = 'Ödev Sınavı';
+        }
+
+        // Resolve Subject Key
         let subjectKey = 'Diğer';
-        if (s.type === 'physicalExam') {
+        if (s.type === 'physicalExam' || matchedHw?.type === 'physicalExam') {
           subjectKey = 'Genel Deneme Sınavları';
+        } else if (matchedHw?.subject && subjectThemes[matchedHw.subject]) {
+          subjectKey = matchedHw.subject;
+        } else if (matchedTest?.subject && subjectThemes[matchedTest.subject]) {
+          subjectKey = matchedTest.subject;
         } else {
-          const tTitle = (s.testTitle || '').toLowerCase();
+          const tTitle = (resolvedTitle || '').toLowerCase();
           if (tTitle.includes('mat')) subjectKey = 'Matematik';
           else if (tTitle.includes('fen')) subjectKey = 'Fen Bilimleri';
           else if (tTitle.includes('türk') || tTitle.includes('turk')) subjectKey = 'Türkçe';
-          else if (tTitle.includes('sosyal')) subjectKey = 'Sosyal Bilgiler';
-          else if (tTitle.includes('ing')) subjectKey = 'İngilizce';
+          else if (tTitle.includes('sosyal') || tTitle.includes('inkılap') || tTitle.includes('inkilap')) subjectKey = 'Sosyal Bilgiler';
+          else if (tTitle.includes('ing') || tTitle.includes('english')) subjectKey = 'İngilizce';
           else if (tTitle.includes('deneme')) subjectKey = 'Genel Deneme Sınavları';
         }
 
         return {
           ...s,
+          testTitle: resolvedTitle,
           subjectKey,
           correctCount,
           wrongCount,
           blankCount,
-          totalQuestions: s.totalQuestions || s.answers?.length || 0
+          totalQuestions: s.totalQuestions || (s.answers?.length) || (correctCount + wrongCount + blankCount) || (matchedHw?.totalQuestions) || 0
         };
       })
       .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [submissions, selectedStudent]);
+  }, [submissions, homeworks, allCurTestsMap, selectedStudent]);
 
   // Statistics calculation
   const stats = useMemo(() => {
@@ -136,7 +231,7 @@ export default function StudentResultsPage() {
       const dateStr = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : `Sınav ${idx + 1}`;
       return {
         name: dateStr,
-        title: s.testTitle || 'Test Sınavı',
+        title: s.testTitle || 'Ödev Sınavı',
         başarı: s.score || 0,
         doğru: s.correctCount,
         yanlış: s.wrongCount,
@@ -227,11 +322,11 @@ export default function StudentResultsPage() {
   // Filtered Submissions List for Table
   const filteredSubmissions = useMemo(() => {
     return studentSubmissions.filter(s => {
-      const titleMatch = (s.testTitle || 'Test Sınavı').toLowerCase().includes(searchQuery.toLowerCase());
+      const titleMatch = (s.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       let subjectMatch = true;
       if (subjectFilter !== 'all') {
-        const titleLower = (s.testTitle || '').toLowerCase();
+        const titleLower = ((s.testTitle || '') + ' ' + (s.subjectKey || '')).toLowerCase();
         subjectMatch = titleLower.includes(subjectFilter.toLowerCase());
       }
 
@@ -682,7 +777,7 @@ export default function StudentResultsPage() {
                       {/* Title */}
                       <td style={{ padding: '0.9rem 1.15rem' }}>
                         <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.95rem' }}>
-                          {sub.testTitle || 'Test Sınavı'}
+                          {sub.testTitle || 'Ödev / Sınav Değerlendirmesi'}
                         </div>
                       </td>
 
@@ -825,7 +920,7 @@ export default function StudentResultsPage() {
                     </div>
 
                     <h3 style={{ margin: '0.35rem 0', fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.35 }}>
-                      {sub.testTitle || 'Test Sınavı'}
+                      {sub.testTitle || 'Ödev / Sınav Değerlendirmesi'}
                     </h3>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginTop: '0.5rem' }}>
