@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
-  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2
+  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
+  Eye, ArrowLeft, Calendar, FileSpreadsheet
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -88,6 +89,10 @@ export default function PhysicalExamManager() {
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || 'u1');
   const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
 
+  // UX Toggle: Default to List View (showAddForm === false)
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [viewingExamDetails, setViewingExamDetails] = useState(null);
+
   const [examType, setExamType] = useState('LGS');
   const [examTitle, setExamTitle] = useState('Özdebir LGS Genel Deneme 1');
   const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
@@ -125,6 +130,10 @@ export default function PhysicalExamManager() {
   const [newSubName, setNewSubName] = useState('');
   const [newSubCount, setNewSubCount] = useState(15);
   const [newSubOptions, setNewSubOptions] = useState(4); // 4 or 5 options
+
+  const studentMockExams = useMemo(() => {
+    return mockExams.filter(m => String(m.studentId) === String(selectedStudent?.id));
+  }, [mockExams, selectedStudent]);
 
   // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
@@ -235,6 +244,7 @@ export default function PhysicalExamManager() {
         setAnswerKey(prev => ({ ...prev, ...parsed.answerKey }));
       }
       setShowJsonModal(false);
+      setShowAddForm(true); // Open optical form view after JSON import
       setJsonInputText('');
     } catch (err) {
       setJsonError('Geçersiz JSON formatı! Lütfen kontrol edin.');
@@ -271,7 +281,6 @@ export default function PhysicalExamManager() {
         }
       }
 
-      // Penalty ratio: if 0, wrong answers do NOT deduct correct answers
       const net = penaltyRatio > 0 ? Math.max(0, c - (w / penaltyRatio)) : c;
       grandTotalCorrect += c;
       grandTotalWrong += w;
@@ -328,10 +337,21 @@ export default function PhysicalExamManager() {
     };
 
     await addMockExam(newMockExam);
+    setShowAddForm(false); // Return to list view after save
     alert('🎉 Fiziki deneme ve optik form başarıyla kaydedildi! Koçluk Dosyası Deneme Takibine yansıtıldı.');
   };
 
-  const studentMockExams = mockExams.filter(m => String(m.studentId) === String(selectedStudent?.id));
+  // Stats for the list view header
+  const avgNet = useMemo(() => {
+    if (studentMockExams.length === 0) return 0;
+    const sum = studentMockExams.reduce((acc, m) => acc + (m.totalNet || 0), 0);
+    return Number((sum / studentMockExams.length).toFixed(2));
+  }, [studentMockExams]);
+
+  const highestNet = useMemo(() => {
+    if (studentMockExams.length === 0) return 0;
+    return Math.max(...studentMockExams.map(m => m.totalNet || 0));
+  }, [studentMockExams]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 p-4 sm:p-6 pb-20">
@@ -341,10 +361,10 @@ export default function PhysicalExamManager() {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
             <ClipboardCheck className="w-7 h-7 text-indigo-500" />
-            Fiziki Deneme & Dijital Optik Form Modülü
+            Fiziki Deneme & Dijital Optik Form Girişi
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Ders soru sayılarını özelleştirin, opsiyonel değerlendirme formatı seçin veya Toplu JSON ile aktarın.
+            {showAddForm ? 'Yeni fiziki deneme cevaplarınızı optik forma kodlayın' : 'Kayıtlı fiziki deneme sınavları ve karne geçmişi'}
           </p>
         </div>
 
@@ -362,336 +382,161 @@ export default function PhysicalExamManager() {
             </div>
           )}
 
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all"
-          >
-            <Settings2 className="w-4 h-4 text-indigo-500" /> Soru Sayıları & Ders Ekle
-          </button>
-
-          <button
-            onClick={() => setShowJsonModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black shadow-md hover:opacity-90 active:scale-95 transition-all"
-          >
-            <FileCode2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" /> Toplu JSON Aktar
-          </button>
-        </div>
-      </div>
-
-      {/* TOP CONFIG BAR */}
-      <div className="max-w-7xl mx-auto mb-6 bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
-        
-        {/* PRESET SELECTOR */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          {Object.keys(EXAM_PRESETS).map(key => (
+          {showAddForm ? (
             <button
-              key={key}
-              onClick={() => handleExamTypeChange(key)}
-              className={cn(
-                'py-2.5 px-4 rounded-2xl border text-xs font-black transition-all flex flex-col items-center justify-center gap-1',
-                examType === key
-                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
-                  : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'
-              )}
+              onClick={() => setShowAddForm(false)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-black hover:bg-slate-300 transition-all"
             >
-              <span>{key} Sınavı</span>
-              <span className="text-[10px] font-bold opacity-80">{subjects.reduce((a, s) => a + s.count, 0)} Soru</span>
+              <ArrowLeft className="w-4 h-4" /> Kayıtlı Denemelere Dön
             </button>
-          ))}
-        </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowJsonModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all"
+              >
+                <FileCode2 className="w-4 h-4 text-emerald-500" /> Toplu JSON Aktar
+              </button>
 
-        {/* INPUTS & OPTIONAL PENALTY RATIO SELECTOR */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Fiziki Deneme Adı / Yayın</label>
-            <input
-              type="text"
-              placeholder="Örn: Özdebir LGS Genel Deneme 1"
-              value={examTitle}
-              onChange={e => setExamTitle(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Deneme Tarihi</label>
-            <input
-              type="date"
-              value={examDate}
-              onChange={e => setExamDate(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Değerlendirme Formatı (Opsiyonel)</label>
-            <select
-              value={penaltyRatio}
-              onChange={e => setPenaltyRatio(Number(e.target.value))}
-              className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 outline-none"
-            >
-              <option value={3}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
-              <option value={4}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
-              <option value={0}>✨ Yanlışlar Doğruyu Götürmüyor (0 Yanlış)</option>
-              <option value={2}>⚡ 2 Yanlış 1 Doğruyu Götürür</option>
-              <option value={5}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
-            </select>
-          </div>
-        </div>
-
-      </div>
-
-      {/* STATS OVERVIEW CARDS */}
-      <div className="max-w-7xl mx-auto mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-[#1E293B] border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Doğru Sayısı</span>
-            <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{evaluationResults.grandTotalCorrect} Doğru</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#1E293B] border border-rose-200 dark:border-rose-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
-            <AlertCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Yanlış Sayısı</span>
-            <span className="text-base font-black text-rose-600 dark:text-rose-400">{evaluationResults.grandTotalWrong} Yanlış</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#1E293B] border border-amber-200 dark:border-amber-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-            <MinusCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Boş Sayısı</span>
-            <span className="text-base font-black text-amber-600 dark:text-amber-400">{evaluationResults.grandTotalBlank} Boş</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#1E293B] border border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
-            <Trophy className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Toplam Net</span>
-            <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">{evaluationResults.grandTotalNet} Net</span>
-          </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" /> + Yeni Deneme Girişi Yap
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* MAIN OPTICAL FORM SIMULATOR */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* LEFT: DIGI OPTICAL SHEET */}
-        <div className="lg:col-span-8 space-y-4">
+      {/* VIEW MODE 1: KAYITLI DENEMELER LİSTESİ (DEFAULT - OPENED FIRST) */}
+      {!showAddForm && (
+        <div className="max-w-7xl mx-auto space-y-6">
           
-          {/* SUBJECT TABS WITH QUESTION COUNT EDITORS */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            {subjects.map((sub, idx) => {
-              const active = activeSubjectIndex === idx;
-              const subStat = evaluationResults.subjectStats.find(s => s.name === sub.name);
-              return (
-                <button
-                  key={sub.name}
-                  onClick={() => setActiveSubjectIndex(idx)}
-                  className={cn(
-                    'px-4 py-2 rounded-2xl border text-xs font-black transition-all shrink-0 flex items-center gap-2',
-                    active
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 shadow-md'
-                      : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400'
-                  )}
-                >
-                  <span>{sub.name} ({sub.count} Soru)</span>
-                  <span className={cn('text-[10px] font-extrabold px-2 py-0.5 rounded-full', active ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-indigo-500')}>
-                    {subStat?.net || 0} Net
-                  </span>
-                </button>
-              );
-            })}
-
-            <button
-              onClick={() => setShowSettingsModal(true)}
-              className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-indigo-500 text-xs font-bold shrink-0 flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> Ders / Soru Düzenle
-            </button>
-          </div>
-
-          {/* OPTICAL BUBBLE GRID FOR ACTIVE SUBJECT */}
-          {(() => {
-            const currentSub = subjects[activeSubjectIndex];
-            if (!currentSub) return null;
-
-            const subAnswers = answers[currentSub.name] || Array(currentSub.count).fill('');
-            const subKey = answerKey[currentSub.name] || Array(currentSub.count).fill('');
-
-            return (
-              <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
-                
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                  <div>
-                    <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-indigo-500" />
-                      {currentSub.name} Optik Kodlama Formu
-                    </h3>
-                    <p className="text-xs text-slate-400">Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
-                      <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={currentSub.count}
-                        onChange={e => handleSubjectQuestionCountChange(currentSub.name, e.target.value)}
-                        className="w-12 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
-                      />
-                    </div>
-
-                    <span className="text-xs font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                      {subAnswers.filter(Boolean).length}/{currentSub.count} Dolduruldu
-                    </span>
-                  </div>
-                </div>
-
-                {/* BUBBLE ROWS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Array.from({ length: currentSub.count }).map((_, qIdx) => {
-                    const selected = subAnswers[qIdx];
-                    const correctKey = subKey[qIdx];
-                    const isAnswered = Boolean(selected);
-                    const isCorrect = isAnswered && selected === correctKey;
-                    const isWrong = isAnswered && selected !== correctKey;
-
-                    return (
-                      <div
-                        key={qIdx}
-                        className={cn(
-                          'flex items-center justify-between p-2.5 rounded-2xl border transition-all',
-                          isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
-                          isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
-                          'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
-                        )}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
-                            {qIdx + 1}
-                          </span>
-                          {isAnswered && (
-                            <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
-                              {isCorrect ? 'Doğru' : `Yanlış (Doğru: ${correctKey})`}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* BUBBLE BUTTONS */}
-                        <div className="flex items-center gap-1.5">
-                          {currentSub.options.map(opt => {
-                            const activeOpt = selected === opt;
-                            return (
-                              <button
-                                key={opt}
-                                type="button"
-                                onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
-                                className={cn(
-                                  'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
-                                  activeOpt
-                                    ? isCorrect
-                                      ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                                      : isWrong
-                                      ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
-                                      : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                                    : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
-                                )}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-
-                          {selected && (
-                            <button
-                              type="button"
-                              onClick={() => handleClearOption(currentSub.name, qIdx)}
-                              className="ml-1 p-1 text-slate-300 hover:text-rose-500 transition-colors"
-                              title="Boş Bırak"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                  <button
-                    onClick={handleSaveExam}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-lg shadow-emerald-500/25 hover:shadow-xl active:scale-95 transition-all"
-                  >
-                    <CheckCircle2 className="w-4 h-4" /> Deneme Sonucunu Kaydet & Senkronize Et
-                  </button>
-                </div>
-
+          {/* STATS OVERVIEW CARDS FOR RECORDED EXAMS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-5 h-5" />
               </div>
-            );
-          })()}
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Girilen Deneme</span>
+                <span className="text-base font-black text-slate-900 dark:text-white">{studentMockExams.length} Deneme</span>
+              </div>
+            </div>
 
-        </div>
+            <div className="bg-white dark:bg-[#1E293B] border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Net Ortalaması</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{avgNet} Net</span>
+              </div>
+            </div>
 
-        {/* RIGHT: BREAKDOWN & PAST EXAMS */}
-        <div className="lg:col-span-4 space-y-4">
-          
-          {/* SUBJECT BREAKDOWN CARD */}
-          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-              <BarChart2Icon className="w-4 h-4 text-indigo-500" /> Ders Bazlı İnceleme
-            </h3>
+            <div className="bg-white dark:bg-[#1E293B] border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Rekor Net</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400">{highestNet} Net</span>
+              </div>
+            </div>
 
-            <div className="space-y-2">
-              {evaluationResults.subjectStats.map(s => (
-                <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-xs">
-                  <div>
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{s.name}</p>
-                    <p className="text-[10px] text-slate-400">{s.correct}D · {s.wrong}Y · {s.blank}B ({s.count} Soru)</p>
-                  </div>
-                  <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 rounded-lg">
-                    {s.net} Net
-                  </span>
-                </div>
-              ))}
+            <div className="bg-white dark:bg-[#1E293B] border border-purple-200 dark:border-purple-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Koçluk Sync</span>
+                <span className="text-xs font-black text-purple-600 dark:text-purple-400">Sayfa 7 Aktif</span>
+              </div>
             </div>
           </div>
 
-          {/* PAST PHYSICAL EXAMS LIST */}
-          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-              <Layers className="w-4 h-4 text-emerald-500" /> Kayıtlı Fiziki Denemeler ({studentMockExams.length})
-            </h3>
+          {/* MAIN RECORDED EXAMS TABLE / CARDS GRID */}
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-500" />
+                {selectedStudent?.name} - Fiziki Deneme Sınav Geçmişi
+              </h2>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black shadow-md hover:bg-indigo-700 transition-all"
+              >
+                <Plus className="w-4 h-4" /> + Yeni Deneme Girişi Yap
+              </button>
+            </div>
 
             {studentMockExams.length === 0 ? (
-              <p className="text-xs text-slate-400 italic py-2 text-center">Henüz kaydedilmiş fiziki deneme bulunmuyor.</p>
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mx-auto">
+                  <ClipboardCheck className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Öğrencinizin Özdebir, Töder veya Kurumsal fiziki denemelerinin cevaplarını dijital optik forma kodlayarak ilk kaydı oluşturun.
+                </p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-black shadow-md hover:shadow-lg transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Yeni Fiziki Deneme Kodla
+                </button>
+              </div>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-1 hide-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {studentMockExams.map(m => (
-                  <div key={m.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 hover:border-indigo-300 transition-all">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{m.title}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{m.date} · {m.examType || 'LGS'}</p>
+                  <div key={m.id} className="bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-all group relative">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                          {m.examType || 'LGS'} Sınavı
+                        </span>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug mt-1 line-clamp-2">{m.title}</h3>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Calendar className="w-3 h-3" /> {m.date}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 leading-none block">{m.totalNet}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">Net</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-950 px-2 py-0.5 rounded-lg">
-                        {m.totalNet} Net
-                      </span>
-                      <button onClick={() => deleteMockExam(m.id)} className="p-1 text-slate-300 hover:text-rose-500 transition-colors">
+
+                    {/* NET BREAKDOWN BADGES */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 text-center">
+                      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <span className="text-[9px] text-slate-400 block font-black">Türkçe</span>
+                        <span>{m.turkce || 0} Net</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <span className="text-[9px] text-slate-400 block font-black">Matematik</span>
+                        <span>{m.mat || 0} Net</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <span className="text-[9px] text-slate-400 block font-black">Fen</span>
+                        <span>{m.fen || 0} Net</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        onClick={() => setViewingExamDetails(m)}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Detayları İncele
+                      </button>
+
+                      <button
+                        onClick={() => deleteMockExam(m.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                        title="Denemeyi Sil"
+                      >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -699,11 +544,361 @@ export default function PhysicalExamManager() {
                 ))}
               </div>
             )}
+
           </div>
 
         </div>
+      )}
 
-      </div>
+      {/* VIEW MODE 2: YENİ FİZİKİ DENEME VE OPTİK FORM GİRİŞİ (OPENED WHEN CLICKED) */}
+      {showAddForm && (
+        <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* TOP CONFIG BAR */}
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+            
+            {/* PRESET SELECTOR */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {Object.keys(EXAM_PRESETS).map(key => (
+                <button
+                  key={key}
+                  onClick={() => handleExamTypeChange(key)}
+                  className={cn(
+                    'py-2.5 px-4 rounded-2xl border text-xs font-black transition-all flex flex-col items-center justify-center gap-1',
+                    examType === key
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'
+                  )}
+                >
+                  <span>{key} Sınavı</span>
+                  <span className="text-[10px] font-bold opacity-80">{subjects.reduce((a, s) => a + s.count, 0)} Soru</span>
+                </button>
+              ))}
+            </div>
+
+            {/* INPUTS & OPTIONAL PENALTY RATIO SELECTOR */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Fiziki Deneme Adı / Yayın</label>
+                <input
+                  type="text"
+                  placeholder="Örn: Özdebir LGS Genel Deneme 1"
+                  value={examTitle}
+                  onChange={e => setExamTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Deneme Tarihi</label>
+                <input
+                  type="date"
+                  value={examDate}
+                  onChange={e => setExamDate(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Değerlendirme Formatı (Opsiyonel)</label>
+                <select
+                  value={penaltyRatio}
+                  onChange={e => setPenaltyRatio(Number(e.target.value))}
+                  className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 outline-none"
+                >
+                  <option value={3}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+                  <option value={4}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
+                  <option value={0}>✨ Yanlışlar Doğruyu Götürmüyor (0 Yanlış)</option>
+                  <option value={2}>⚡ 2 Yanlış 1 Doğruyu Götürür</option>
+                  <option value={5}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          {/* STATS OVERVIEW CARDS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white dark:bg-[#1E293B] border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Doğru Sayısı</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{evaluationResults.grandTotalCorrect} Doğru</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1E293B] border border-rose-200 dark:border-rose-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Yanlış Sayısı</span>
+                <span className="text-base font-black text-rose-600 dark:text-rose-400">{evaluationResults.grandTotalWrong} Yanlış</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1E293B] border border-amber-200 dark:border-amber-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <MinusCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Boş Sayısı</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400">{evaluationResults.grandTotalBlank} Boş</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1E293B] border border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Toplam Net</span>
+                <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">{evaluationResults.grandTotalNet} Net</span>
+              </div>
+            </div>
+          </div>
+
+          {/* MAIN OPTICAL FORM SIMULATOR */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* LEFT: DIGI OPTICAL SHEET */}
+            <div className="lg:col-span-8 space-y-4">
+              
+              {/* SUBJECT TABS WITH QUESTION COUNT EDITORS */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                {subjects.map((sub, idx) => {
+                  const active = activeSubjectIndex === idx;
+                  const subStat = evaluationResults.subjectStats.find(s => s.name === sub.name);
+                  return (
+                    <button
+                      key={sub.name}
+                      onClick={() => setActiveSubjectIndex(idx)}
+                      className={cn(
+                        'px-4 py-2 rounded-2xl border text-xs font-black transition-all shrink-0 flex items-center gap-2',
+                        active
+                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 shadow-md'
+                          : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+                      )}
+                    >
+                      <span>{sub.name} ({sub.count} Soru)</span>
+                      <span className={cn('text-[10px] font-extrabold px-2 py-0.5 rounded-full', active ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-indigo-500')}>
+                        {subStat?.net || 0} Net
+                      </span>
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-indigo-500 text-xs font-bold shrink-0 flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Ders / Soru Düzenle
+                </button>
+              </div>
+
+              {/* OPTICAL BUBBLE GRID FOR ACTIVE SUBJECT */}
+              {(() => {
+                const currentSub = subjects[activeSubjectIndex];
+                if (!currentSub) return null;
+
+                const subAnswers = answers[currentSub.name] || Array(currentSub.count).fill('');
+                const subKey = answerKey[currentSub.name] || Array(currentSub.count).fill('');
+
+                return (
+                  <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+                    
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                      <div>
+                        <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                          <BookOpen className="w-5 h-5 text-indigo-500" />
+                          {currentSub.name} Optik Kodlama Formu
+                        </h3>
+                        <p className="text-xs text-slate-400">Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
+                          <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={currentSub.count}
+                            onChange={e => handleSubjectQuestionCountChange(currentSub.name, e.target.value)}
+                            className="w-12 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
+                          />
+                        </div>
+
+                        <span className="text-xs font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                          {subAnswers.filter(Boolean).length}/{currentSub.count} Dolduruldu
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* BUBBLE ROWS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Array.from({ length: currentSub.count }).map((_, qIdx) => {
+                        const selected = subAnswers[qIdx];
+                        const correctKey = subKey[qIdx];
+                        const isAnswered = Boolean(selected);
+                        const isCorrect = isAnswered && selected === correctKey;
+                        const isWrong = isAnswered && selected !== correctKey;
+
+                        return (
+                          <div
+                            key={qIdx}
+                            className={cn(
+                              'flex items-center justify-between p-2.5 rounded-2xl border transition-all',
+                              isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
+                              isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
+                              'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
+                                {qIdx + 1}
+                              </span>
+                              {isAnswered && (
+                                <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
+                                  {isCorrect ? 'Doğru' : `Yanlış (Doğru: ${correctKey})`}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* BUBBLE BUTTONS */}
+                            <div className="flex items-center gap-1.5">
+                              {currentSub.options.map(opt => {
+                                const activeOpt = selected === opt;
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
+                                    className={cn(
+                                      'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
+                                      activeOpt
+                                        ? isCorrect
+                                          ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                                          : isWrong
+                                          ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
+                                          : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+
+                              {selected && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClearOption(currentSub.name, qIdx)}
+                                  className="ml-1 p-1 text-slate-300 hover:text-rose-500 transition-colors"
+                                  title="Boş Bırak"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                      <button
+                        onClick={() => setShowAddForm(false)}
+                        className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        İptal
+                      </button>
+                      <button
+                        onClick={handleSaveExam}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-lg shadow-emerald-500/25 hover:shadow-xl active:scale-95 transition-all"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Deneme Sonucunu Kaydet & Senkronize Et
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })()}
+
+            </div>
+
+            {/* RIGHT: BREAKDOWN */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-3">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <BarChart2Icon className="w-4 h-4 text-indigo-500" /> Ders Bazlı Anlık İnceleme
+                </h3>
+
+                <div className="space-y-2">
+                  {evaluationResults.subjectStats.map(s => (
+                    <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-xs">
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{s.name}</p>
+                        <p className="text-[10px] text-slate-400">{s.correct}D · {s.wrong}Y · {s.blank}B ({s.count} Soru)</p>
+                      </div>
+                      <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 rounded-lg">
+                        {s.net} Net
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* DETAY İNCELEME MODAL */}
+      {viewingExamDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-indigo-500">{viewingExamDetails.examType || 'LGS'} Sınav Detayı</span>
+                <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight">{viewingExamDetails.title}</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">{viewingExamDetails.date}</p>
+              </div>
+              <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 p-2.5 rounded-xl">
+                <span className="text-[10px] font-black text-slate-400 block">DOĞRU / YANLIŞ</span>
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{viewingExamDetails.correctCount || 0}D / {viewingExamDetails.wrongCount || 0}Y</span>
+              </div>
+              <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 p-2.5 rounded-xl">
+                <span className="text-[10px] font-black text-slate-400 block">TOPLAM NET</span>
+                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">{viewingExamDetails.totalNet} Net</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <div className="text-xs font-black text-slate-800 dark:text-slate-200">Ders Bazlı Net Dağılımı:</div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Türkçe:</span> <strong>{viewingExamDetails.turkce || 0} Net</strong></div>
+                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Matematik:</span> <strong>{viewingExamDetails.mat || 0} Net</strong></div>
+                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Fen Bilimleri:</span> <strong>{viewingExamDetails.fen || 0} Net</strong></div>
+                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border flex justify-between"><span>Sosyal/İnkılap:</span> <strong>{viewingExamDetails.sosyal || 0} Net</strong></div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button onClick={() => setViewingExamDetails(null)} className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black">Kapat</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DERS & SORU SAYISI DÜZENLEME MODAL */}
       {showSettingsModal && (
