@@ -91,9 +91,6 @@ function Sidebar() {
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
                 <GraduationCap size={20} /> Öğrenci Paneli
               </NavLink>
-              <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
-                <ClipboardCheck size={20} /> Fiziki Deneme Optik
-              </NavLink>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
                 <ListTree size={20} /> Sonuçlarım
               </NavLink>

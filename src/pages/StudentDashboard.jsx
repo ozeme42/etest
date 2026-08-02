@@ -548,7 +548,6 @@ export default function StudentDashboard() {
               </h2>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
                 <QuickCard icon={BarChart3}    label="Sonuçlarım"      sub="Karne & grafikler"      to="/student-results" gradient="linear-gradient(135deg,#6366f1,#8b5cf6)" shadow="rgba(99,102,241,0.35)" />
-                <QuickCard icon={ClipboardCheck} label="Fiziki Deneme Optik" sub="Optik kodlama & netler" to="/physical-exam" gradient="linear-gradient(135deg,#059669,#0d9488)" shadow="rgba(5,150,105,0.35)" />
                 <QuickCard icon={AlertCircle} label="Yanlışlarım"     sub="Hata havuzu"            to="/wrong-answers"   gradient="linear-gradient(135deg,#f43f5e,#db2777)" shadow="rgba(244,63,94,0.35)" />
                 <QuickCard icon={Target}      label="Hedeflerim"      sub="Hedef & program"        to="/goals"           gradient="linear-gradient(135deg,#f97316,#dc2626)" shadow="rgba(249,115,22,0.35)" />
                 <QuickCard icon={CalendarDays} label="Haftalık Plan"  sub="Çalışma saatleri"       to="/goals"           gradient="linear-gradient(135deg,#10b981,#0891b2)" shadow="rgba(16,185,129,0.35)" />
