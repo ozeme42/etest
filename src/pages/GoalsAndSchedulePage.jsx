@@ -8,10 +8,13 @@ import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
   Timer, Flame, Trophy, ChevronRight,
   Clock, Trash2, GraduationCap, Check, Sparkles, TrendingUp, Save, RefreshCw,
-  Brain, BookOpenCheck, BarChart3, Layers, CheckSquare, Square
+  Brain, BookOpenCheck, BarChart3, Layers, CheckSquare, Square, Repeat, Zap, Award
 } from 'lucide-react';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
+
+const WEEK_DAYS = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
+const MONTH_WEEKS = ['Hafta 1', 'Hafta 2', 'Hafta 3', 'Hafta 4'];
 
 const GOAL_TYPE_CONFIG = {
   Soru:   { color: '#f43f5e', bg: 'bg-rose-500',    light: 'bg-rose-50 dark:bg-rose-500/10',       text: 'text-rose-600 dark:text-rose-400',       border: 'border-rose-200 dark:border-rose-900/50',   icon: Target,        unit: 'soru'  },
@@ -53,7 +56,7 @@ function Ring({ value, size = 64, stroke = 6, color }) {
   );
 }
 
-/* ─── Helper to parse goal list strings or arrays into checkable objects ─── */
+/* ─── Helper to parse checklist items ─── */
 export const parseCheckableGoalList = (val, defaultItems = []) => {
   if (Array.isArray(val) && val.length > 0) return val;
   if (typeof val === 'string' && val.trim()) {
@@ -66,8 +69,46 @@ export const parseCheckableGoalList = (val, defaultItems = []) => {
   return defaultItems;
 };
 
-/* ─── Checkable Goal Checklist Section Component ─── */
-function CheckableGoalListSection({ title, icon: Icon, colorClass, badgeText, items, onToggleItem, onAddItem, onDeleteItem }) {
+/* ─── Helper for Daily Habits with 7-Day Matrix ─── */
+export const parseDailyHabitList = (val, defaultItems = []) => {
+  if (Array.isArray(val) && val.length > 0) {
+    return val.map(item => ({
+      id: item.id || `d_${Math.random()}`,
+      text: typeof item === 'string' ? item : item.text || '',
+      days: item.days || { Pzt: true, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false }
+    }));
+  }
+  if (typeof val === 'string' && val.trim()) {
+    return val.split('\n').filter(Boolean).map((line, i) => ({
+      id: `dh_${i}_${Date.now()}`,
+      text: line.replace(/^[•\-\*\d\.\s]+/, '').trim(),
+      days: { Pzt: i % 2 === 0, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false }
+    }));
+  }
+  return defaultItems;
+};
+
+/* ─── Helper for Weekly Habits with 4-Week Matrix ─── */
+export const parseWeeklyHabitList = (val, defaultItems = []) => {
+  if (Array.isArray(val) && val.length > 0) {
+    return val.map(item => ({
+      id: item.id || `w_${Math.random()}`,
+      text: typeof item === 'string' ? item : item.text || '',
+      weeks: item.weeks || { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': true, 'Hafta 4': false }
+    }));
+  }
+  if (typeof val === 'string' && val.trim()) {
+    return val.split('\n').filter(Boolean).map((line, i) => ({
+      id: `wh_${i}_${Date.now()}`,
+      text: line.replace(/^[•\-\*\d\.\s]+/, '').trim(),
+      weeks: { 'Hafta 1': true, 'Hafta 2': i % 2 === 0, 'Hafta 3': true, 'Hafta 4': false }
+    }));
+  }
+  return defaultItems;
+};
+
+/* ─── Checkable Monthly Goal Checklist ─── */
+function MonthlyChecklistSection({ title, icon: Icon, colorClass, badgeText, items, onToggleItem, onAddItem, onDeleteItem }) {
   const [newText, setNewText] = useState('');
   const completedCount = items.filter(i => i.done).length;
   const totalCount = items.length;
@@ -91,85 +132,269 @@ function CheckableGoalListSection({ title, icon: Icon, colorClass, badgeText, it
           <span className="text-[10px] font-black text-slate-400">
             {completedCount}/{totalCount} Tamamlandı (%{pct})
           </span>
-          <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
             {badgeText}
           </span>
         </div>
       </div>
 
-      {/* Progress bar */}
-      {totalCount > 0 && (
-        <div className="space-y-1">
-          <BarProgress value={pct} color={pct === 100 ? '#10b981' : '#6366f1'} />
-        </div>
-      )}
+      {totalCount > 0 && <BarProgress value={pct} color={pct === 100 ? '#10b981' : '#6366f1'} />}
 
-      {/* Interactive Checkbox Items List */}
       <div className="space-y-2 pt-1">
-        {items.length === 0 ? (
-          <p className="text-xs text-slate-400 font-medium italic py-1">Henüz özel hedef maddesi eklenmedi.</p>
-        ) : (
-          items.map(item => (
-            <div
-              key={item.id}
-              onClick={() => onToggleItem(item.id)}
-              className={cn(
-                'flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer group',
-                item.done
-                  ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60'
-                  : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800 hover:border-indigo-300'
-              )}
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <button
-                  type="button"
-                  className={cn(
-                    'w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all',
-                    item.done
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
-                  )}
-                >
-                  {item.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-                </button>
-                <span
-                  className={cn(
-                    'text-xs font-bold transition-all line-clamp-2',
-                    item.done
-                      ? 'line-through text-emerald-700 dark:text-emerald-300'
-                      : 'text-slate-800 dark:text-slate-100'
-                  )}
-                >
-                  {item.text}
-                </span>
-              </div>
-
+        {items.map(item => (
+          <div
+            key={item.id}
+            onClick={() => onToggleItem(item.id)}
+            className={cn(
+              'flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer group',
+              item.done ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60' : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800'
+            )}
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
-                className="p-1 rounded-lg text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2"
-                title="Sil"
+                className={cn('w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all', item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800')}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                {item.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
               </button>
+              <span className={cn('text-xs font-bold transition-all line-clamp-2', item.done ? 'line-through text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-100')}>
+                {item.text}
+              </span>
             </div>
-          ))
-        )}
+            <button type="button" onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="p-1 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-2">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
       </div>
 
-      {/* Inline Add Item Form */}
       <form onSubmit={handleAdd} className="flex gap-2 pt-1">
         <input
           type="text"
-          placeholder="+ Yeni hedef maddesi ekle (Örn: Haftada 400 soru)..."
+          placeholder="+ Yeni aylık hedef maddesi..."
           value={newText}
           onChange={e => setNewText(e.target.value)}
           className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
         />
-        <button
-          type="submit"
-          className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black hover:opacity-90 transition-all shrink-0 flex items-center gap-1"
-        >
+        <button type="submit" className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black hover:opacity-90 transition-all shrink-0 flex items-center gap-1">
+          <Plus className="w-3.5 h-3.5" /> Ekle
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* ─── 🔥 GÜNLÜK RUTİN ALIŞKANLIK & SERİ TAKİBİ COMPONENT ─── */
+function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }) {
+  const [newText, setNewText] = useState('');
+
+  // Calculate global daily streak (Count consecutive days completed)
+  const totalDaysCompleted = useMemo(() => {
+    let count = 0;
+    WEEK_DAYS.forEach(day => {
+      const allDone = items.length > 0 && items.every(i => i.days?.[day]);
+      if (allDone) count++;
+    });
+    return count;
+  }, [items]);
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    if (newText.trim()) {
+      onAddItem(newText.trim());
+      setNewText('');
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-rose-200 dark:border-rose-900/50 p-4 space-y-3 shadow-sm">
+      
+      {/* Header with Flame & Streak Counter */}
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+        <div className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-wider">
+          <Flame className="w-4 h-4 fill-rose-500 animate-bounce" /> 🔥 GÜNLÜK RUTİN & SERİ TAKİBİ
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 text-white font-black text-[11px] shadow-sm">
+            <Flame className="w-3 h-3 fill-white" /> {totalDaysCompleted} Günlük Seri!
+          </span>
+        </div>
+      </div>
+
+      {/* Daily Routine Items List with 7-Day Matrix */}
+      <div className="space-y-3 pt-1">
+        {items.length === 0 ? (
+          <p className="text-xs text-slate-400 font-medium italic py-1">Henüz günlük rutin maddesi eklenmedi.</p>
+        ) : (
+          items.map(item => {
+            const completedDaysCount = WEEK_DAYS.filter(d => item.days?.[d]).length;
+            const pct = Math.round((completedDaysCount / 7) * 100);
+
+            return (
+              <div key={item.id} className="bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 space-y-2 group hover:border-rose-300 transition-all">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    {item.text}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-black text-slate-400">
+                      {completedDaysCount}/7 Gün (%{pct})
+                    </span>
+                    <button type="button" onClick={() => onDeleteItem(item.id)} className="p-1 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 7-Day Toggle Buttons Matrix */}
+                <div className="grid grid-cols-7 gap-1">
+                  {WEEK_DAYS.map(day => {
+                    const done = item.days?.[day];
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => onToggleDay(item.id, day)}
+                        className={cn(
+                          'flex flex-col items-center justify-center py-1.5 rounded-lg border text-[10px] font-black transition-all active:scale-95',
+                          done
+                            ? 'bg-rose-500 border-rose-500 text-white shadow-xs'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-rose-300'
+                        )}
+                      >
+                        <span>{day}</span>
+                        <div className={cn('w-2.5 h-2.5 rounded-full mt-1 flex items-center justify-center', done ? 'bg-white' : 'bg-slate-200 dark:bg-slate-700')}>
+                          {done && <Check className="w-2 h-2 text-rose-500" strokeWidth={4} />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add New Routine Form */}
+      <form onSubmit={handleAdd} className="flex gap-2 pt-1">
+        <input
+          type="text"
+          placeholder="+ Yeni günlük rutin ekle (Örn: Günlük 20 Paragraf sorusu)..."
+          value={newText}
+          onChange={e => setNewText(e.target.value)}
+          className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-rose-500"
+        />
+        <button type="submit" className="px-3 py-1.5 rounded-xl bg-rose-500 text-white text-xs font-black hover:bg-rose-600 transition-all shrink-0 flex items-center gap-1">
+          <Plus className="w-3.5 h-3.5" /> Ekle
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* ─── ⚡ HAFTALIK HEDEF ALIŞKANLIK & SERİ TAKİBİ COMPONENT ─── */
+function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem }) {
+  const [newText, setNewText] = useState('');
+
+  // Calculate global weekly streak (Count completed weeks)
+  const totalWeeksCompleted = useMemo(() => {
+    let count = 0;
+    MONTH_WEEKS.forEach(w => {
+      const allDone = items.length > 0 && items.every(i => i.weeks?.[w]);
+      if (allDone) count++;
+    });
+    return count;
+  }, [items]);
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    if (newText.trim()) {
+      onAddItem(newText.trim());
+      setNewText('');
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-purple-200 dark:border-purple-900/50 p-4 space-y-3 shadow-sm">
+      
+      {/* Header with Lightning & Weekly Streak Counter */}
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+        <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-black text-xs uppercase tracking-wider">
+          <Zap className="w-4 h-4 fill-purple-500" /> ⚡ HAFTALIK HEDEF & SERİ TAKİBİ
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-[11px] shadow-sm">
+            <Trophy className="w-3 h-3 fill-white" /> {totalWeeksCompleted} Haftalık Seri!
+          </span>
+        </div>
+      </div>
+
+      {/* Weekly Habit Items List with 4-Week Matrix */}
+      <div className="space-y-3 pt-1">
+        {items.length === 0 ? (
+          <p className="text-xs text-slate-400 font-medium italic py-1">Henüz haftalık hedef maddesi eklenmedi.</p>
+        ) : (
+          items.map(item => {
+            const completedWeeksCount = MONTH_WEEKS.filter(w => item.weeks?.[w]).length;
+            const pct = Math.round((completedWeeksCount / 4) * 100);
+
+            return (
+              <div key={item.id} className="bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 space-y-2 group hover:border-purple-300 transition-all">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-purple-500" />
+                    {item.text}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-black text-slate-400">
+                      {completedWeeksCount}/4 Hafta (%{pct})
+                    </span>
+                    <button type="button" onClick={() => onDeleteItem(item.id)} className="p-1 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4-Week Toggle Buttons Matrix */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  {MONTH_WEEKS.map(w => {
+                    const done = item.weeks?.[w];
+                    return (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => onToggleWeek(item.id, w)}
+                        className={cn(
+                          'flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg border text-[10px] font-black transition-all active:scale-95',
+                          done
+                            ? 'bg-purple-600 border-purple-600 text-white shadow-xs'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-purple-300'
+                        )}
+                      >
+                        <span>{w}</span>
+                        {done && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add New Weekly Goal Form */}
+      <form onSubmit={handleAdd} className="flex gap-2 pt-1">
+        <input
+          type="text"
+          placeholder="+ Yeni haftalık hedef ekle (Örn: Haftada 400 soru + 2 deneme)..."
+          value={newText}
+          onChange={e => setNewText(e.target.value)}
+          className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-purple-500"
+        />
+        <button type="submit" className="px-3 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-black hover:bg-purple-700 transition-all shrink-0 flex items-center gap-1">
           <Plus className="w-3.5 h-3.5" /> Ekle
         </button>
       </form>
@@ -284,29 +509,27 @@ export default function GoalsAndSchedulePage() {
 
   const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
 
-  // Sync state for 3-Level Goal Architecture
   const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || 'LGS 2026');
   const [targetSchool, setTargetSchool] = useState(coachingProfile.targetSchool || '');
   const [targetScore, setTargetScore] = useState(coachingProfile.targetScore || '485');
   const [targetNet, setTargetNet] = useState(coachingProfile.targetNet || '90');
 
-  // Checkable Items Lists for Monthly, Weekly, Daily Goals
+  // Monthly Goal Items List
   const [monthlyItems, setMonthlyItems] = useState(() => parseCheckableGoalList(coachingProfile.monthlyGoals, [
     { id: 'm1', text: 'Matematik Çarpanlar ve EKOK problemleri tamamlanacak', done: false },
-    { id: 'm2', text: 'Türkçe Paragraf taktikleri ve 400 soru çözümü', done: true },
-    { id: 'm3', text: 'Fen Bilimleri Mevsimler ve İklim denemesi', done: false }
+    { id: 'm2', text: 'Türkçe Paragraf taktikleri ve 400 soru çözümü', done: true }
   ]));
 
-  const [weeklyItems, setWeeklyItems] = useState(() => parseCheckableGoalList(coachingProfile.weeklyGoals, [
-    { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', done: true },
-    { id: 'w2', text: 'Matematik yeni nesil problem kartları tekrarı', done: false },
-    { id: 'w3', text: 'İngilizce 50 kelime kartı hazırlama', done: false }
+  // Weekly Habit Goal Items List with 4-Week Matrix
+  const [weeklyHabitItems, setWeeklyHabitItems] = useState(() => parseWeeklyHabitList(coachingProfile.weeklyGoals, [
+    { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', weeks: { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': true, 'Hafta 4': false } },
+    { id: 'w2', text: 'Matematik yeni nesil problem kartları tekrarı', weeks: { 'Hafta 1': true, 'Hafta 2': false, 'Hafta 3': true, 'Hafta 4': false } }
   ]));
 
-  const [dailyItems, setDailyItems] = useState(() => parseCheckableGoalList(coachingProfile.dailyGoals, [
-    { id: 'd1', text: 'Günlük 20 Paragraf sorusu (zaman tutularak)', done: true },
-    { id: 'd2', text: 'Günlük 20 Matematik yeni nesil problem', done: false },
-    { id: 'd3', text: '30 Dakika kitap okuma & haftalık plan kontrolü', done: true }
+  // Daily Routine Habit Items List with 7-Day Matrix
+  const [dailyHabitItems, setDailyHabitItems] = useState(() => parseDailyHabitList(coachingProfile.dailyGoals, [
+    { id: 'd1', text: 'Günlük 20 Paragraf sorusu (zaman tutularak)', days: { Pzt: true, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false } },
+    { id: 'd2', text: 'Günlük 20 Matematik yeni nesil problem', days: { Pzt: true, Sal: true, Çrş: false, Prş: true, Cum: true, Cts: true, Paz: false } }
   ]));
 
   const [isSavedNotice, setIsSavedNotice] = useState(false);
@@ -326,13 +549,11 @@ export default function GoalsAndSchedulePage() {
         { id: 'm1', text: 'Matematik Çarpanlar ve EKOK problemleri tamamlanacak', done: false },
         { id: 'm2', text: 'Türkçe Paragraf taktikleri ve 400 soru çözümü', done: true }
       ]));
-      setWeeklyItems(parseCheckableGoalList(coachingProfile.weeklyGoals, [
-        { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', done: true },
-        { id: 'w2', text: 'Matematik yeni nesil problem kartları tekrarı', done: false }
+      setWeeklyHabitItems(parseWeeklyHabitList(coachingProfile.weeklyGoals, [
+        { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', weeks: { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': true, 'Hafta 4': false } }
       ]));
-      setDailyItems(parseCheckableGoalList(coachingProfile.dailyGoals, [
-        { id: 'd1', text: 'Günlük 20 Paragraf sorusu (zaman tutularak)', done: true },
-        { id: 'd2', text: 'Günlük 20 Matematik yeni nesil problem', done: false }
+      setDailyHabitItems(parseDailyHabitList(coachingProfile.dailyGoals, [
+        { id: 'd1', text: 'Günlük 20 Paragraf sorusu (zaman tutularak)', days: { Pzt: true, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false } }
       ]));
     }
   }, [coachingProfile]);
@@ -358,7 +579,6 @@ export default function GoalsAndSchedulePage() {
   const totalTopicsCompleted = useMemo(() => studentGoals.filter(g => g.type === 'Konu').reduce((acc, g) => acc + (g.current || 0), 0), [studentGoals]);
   const totalMinutesStudied = useMemo(() => studentGoals.filter(g => g.type === 'Dakika').reduce((acc, g) => acc + (g.current || 0), 0), [studentGoals]);
 
-  // Handlers for Checkable Goal Lists (Toggle / Add / Delete)
   const saveAllProfilesWithLists = async (mList, wList, dList) => {
     await saveCoachingProfile({
       ...coachingProfile,
@@ -375,57 +595,82 @@ export default function GoalsAndSchedulePage() {
     setTimeout(() => setIsSavedNotice(false), 2000);
   };
 
+  // Handlers for Monthly Items
   const handleToggleMonthlyItem = (id) => {
     const next = monthlyItems.map(i => i.id === id ? { ...i, done: !i.done } : i);
     setMonthlyItems(next);
-    saveAllProfilesWithLists(next, weeklyItems, dailyItems);
+    saveAllProfilesWithLists(next, weeklyHabitItems, dailyHabitItems);
   };
   const handleAddMonthlyItem = (text) => {
     const next = [...monthlyItems, { id: `m_${Date.now()}`, text, done: false }];
     setMonthlyItems(next);
-    saveAllProfilesWithLists(next, weeklyItems, dailyItems);
+    saveAllProfilesWithLists(next, weeklyHabitItems, dailyHabitItems);
   };
   const handleDeleteMonthlyItem = (id) => {
     const next = monthlyItems.filter(i => i.id !== id);
     setMonthlyItems(next);
-    saveAllProfilesWithLists(next, weeklyItems, dailyItems);
+    saveAllProfilesWithLists(next, weeklyHabitItems, dailyHabitItems);
   };
 
-  const handleToggleWeeklyItem = (id) => {
-    const next = weeklyItems.map(i => i.id === id ? { ...i, done: !i.done } : i);
-    setWeeklyItems(next);
-    saveAllProfilesWithLists(monthlyItems, next, dailyItems);
+  // Handlers for Weekly Habit Matrix Items
+  const handleToggleWeeklyMatrixDay = (id, weekKey) => {
+    const next = weeklyHabitItems.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          weeks: {
+            ...item.weeks,
+            [weekKey]: !item.weeks?.[weekKey]
+          }
+        };
+      }
+      return item;
+    });
+    setWeeklyHabitItems(next);
+    saveAllProfilesWithLists(monthlyItems, next, dailyHabitItems);
   };
-  const handleAddWeeklyItem = (text) => {
-    const next = [...weeklyItems, { id: `w_${Date.now()}`, text, done: false }];
-    setWeeklyItems(next);
-    saveAllProfilesWithLists(monthlyItems, next, dailyItems);
+  const handleAddWeeklyHabitItem = (text) => {
+    const next = [...weeklyHabitItems, { id: `w_${Date.now()}`, text, weeks: { 'Hafta 1': false, 'Hafta 2': false, 'Hafta 3': false, 'Hafta 4': false } }];
+    setWeeklyHabitItems(next);
+    saveAllProfilesWithLists(monthlyItems, next, dailyHabitItems);
   };
-  const handleDeleteWeeklyItem = (id) => {
-    const next = weeklyItems.filter(i => i.id !== id);
-    setWeeklyItems(next);
-    saveAllProfilesWithLists(monthlyItems, next, dailyItems);
+  const handleDeleteWeeklyHabitItem = (id) => {
+    const next = weeklyHabitItems.filter(i => i.id !== id);
+    setWeeklyHabitItems(next);
+    saveAllProfilesWithLists(monthlyItems, next, dailyHabitItems);
   };
 
-  const handleToggleDailyItem = (id) => {
-    const next = dailyItems.map(i => i.id === id ? { ...i, done: !i.done } : i);
-    setDailyItems(next);
-    saveAllProfilesWithLists(monthlyItems, weeklyItems, next);
+  // Handlers for Daily Habit Matrix Items
+  const handleToggleDailyMatrixDay = (id, dayKey) => {
+    const next = dailyHabitItems.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          days: {
+            ...item.days,
+            [dayKey]: !item.days?.[dayKey]
+          }
+        };
+      }
+      return item;
+    });
+    setDailyHabitItems(next);
+    saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, next);
   };
-  const handleAddDailyItem = (text) => {
-    const next = [...dailyItems, { id: `d_${Date.now()}`, text, done: false }];
-    setDailyItems(next);
-    saveAllProfilesWithLists(monthlyItems, weeklyItems, next);
+  const handleAddDailyHabitItem = (text) => {
+    const next = [...dailyHabitItems, { id: `d_${Date.now()}`, text, days: { Pzt: false, Sal: false, Çrş: false, Prş: false, Cum: false, Cts: false, Paz: false } }];
+    setDailyHabitItems(next);
+    saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, next);
   };
-  const handleDeleteDailyItem = (id) => {
-    const next = dailyItems.filter(i => i.id !== id);
-    setDailyItems(next);
-    saveAllProfilesWithLists(monthlyItems, weeklyItems, next);
+  const handleDeleteDailyHabitItem = (id) => {
+    const next = dailyHabitItems.filter(i => i.id !== id);
+    setDailyHabitItems(next);
+    saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, next);
   };
 
   const handleSaveAllCoachingGoals = (e) => {
     if (e) e.preventDefault();
-    saveAllProfilesWithLists(monthlyItems, weeklyItems, dailyItems);
+    saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, dailyHabitItems);
   };
 
   const handleSaveGoal = (e) => {
@@ -445,9 +690,9 @@ export default function GoalsAndSchedulePage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
             <Target className="w-7 h-7 text-rose-500" />
-            Öğrenci Özel Hedefler & Canlı Takip Paneli
+            Öğrenci Özel Hedefler & Canlı Alışkanlık / Seri Takip Paneli
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">Uzun, Orta ve Kısa vadeli kontrol edilebilir hedefler (Checklist)</p>
+          <p className="text-xs text-slate-400 mt-0.5">Günlük & Haftalık Seri Takibi (Flame Streak Tracker) ve 7-Günlük Alışkanlık Matrisi</p>
         </div>
 
         {/* Student Selector */}
@@ -469,9 +714,9 @@ export default function GoalsAndSchedulePage() {
       <div className="max-w-7xl mx-auto mb-6 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm">
         <RefreshCw className="w-7 h-7 text-emerald-500 shrink-0 animate-spin" style={{ animationDuration: '6s' }} />
         <div>
-          <h4 className="text-sm font-black text-emerald-600 dark:text-emerald-400">🔄 1-e-1 Birebir Koçluk Dosyası Senkronizasyonu Aktif</h4>
+          <h4 className="text-sm font-black text-emerald-600 dark:text-emerald-400">🔄 1-e-1 Birebir Alışkanlık & Seri Takip Senkronizasyonu</h4>
           <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-            Aşağıdaki tüm Uzun, Orta (Aylık) ve Kısa (Haftalık & Günlük) hedeflerin üzerini işaretleyerek (tik atarak) canlı takip edebilirsiniz.
+            Günlük (Pzt-Paz) ve Haftalık (1.Hafta-4.Hafta) seri takibi Öğrenci ve Koçluk panelleri arasında anlık senkronize çalışır.
           </p>
         </div>
       </div>
@@ -522,13 +767,13 @@ export default function GoalsAndSchedulePage() {
       {/* MAIN 2-COLUMN LAYOUT */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN: 🏛️ AKADEMİK & HİYERARŞİK HEDEF BELİRLEME (UZUN, ORTA, KISA VADELİ CHECKLIST) */}
+        {/* LEFT COLUMN: 🏛️ UZUN VADELİ + ORTA VADELİ + GÜNLÜK & HAFTALIK ALIŞKANLIK & SERİ TAKİBİ */}
         <div className="lg:col-span-6 space-y-5">
           
           <div className="flex items-center justify-between">
             <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-emerald-500" />
-              1. Hiyerarşik Hedef Yapısı & Kontrol Listesi
+              1. Akademik Yapı & Seri Takip Matrisi
             </h2>
           </div>
 
@@ -591,7 +836,7 @@ export default function GoalsAndSchedulePage() {
           </div>
 
           {/* ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST) */}
-          <CheckableGoalListSection
+          <MonthlyChecklistSection
             title="📅 ORTA VADELİ HEDEFLER (AYLIK)"
             icon={Trophy}
             colorClass="text-indigo-600 dark:text-indigo-400"
@@ -602,41 +847,33 @@ export default function GoalsAndSchedulePage() {
             onDeleteItem={handleDeleteMonthlyItem}
           />
 
-          {/* KISA VADELİ HEDEFLER (HAFTALIK HEDEFLER CHECKLIST) */}
-          <CheckableGoalListSection
-            title="⚡ KISA VADELİ HEDEFLER (HAFTALIK)"
-            icon={CalendarClock}
-            colorClass="text-purple-600 dark:text-purple-400"
-            badgeText="Haftalık Hedefler"
-            items={weeklyItems}
-            onToggleItem={handleToggleWeeklyItem}
-            onAddItem={handleAddWeeklyItem}
-            onDeleteItem={handleDeleteWeeklyItem}
+          {/* ⚡ HAFTALIK HEDEF ALIŞKANLIK & SERİ TAKİBİ (4-WEEK MATRIX) */}
+          <WeeklyHabitStreakSection
+            items={weeklyHabitItems}
+            onToggleWeek={handleToggleWeeklyMatrixDay}
+            onAddItem={handleAddWeeklyHabitItem}
+            onDeleteItem={handleDeleteWeeklyHabitItem}
           />
 
-          {/* KISA VADELİ HEDEFLER (GÜNLÜK RUTİN CHECKLIST) */}
-          <CheckableGoalListSection
-            title="🔥 GÜNLÜK ÇALIŞMA RUTİNİ"
-            icon={Flame}
-            colorClass="text-rose-500"
-            badgeText="Rutin & Çalışma"
-            items={dailyItems}
-            onToggleItem={handleToggleDailyItem}
-            onAddItem={handleAddDailyItem}
-            onDeleteItem={handleDeleteDailyItem}
+          {/* 🔥 GÜNLÜK RUTİN ALIŞKANLIK & SERİ TAKİBİ (7-DAY MATRIX) */}
+          <DailyHabitStreakSection
+            items={dailyHabitItems}
+            onToggleDay={handleToggleDailyMatrixDay}
+            onAddItem={handleAddDailyHabitItem}
+            onDeleteItem={handleDeleteDailyHabitItem}
           />
 
           <div className="flex items-center justify-between pt-1">
             {isSavedNotice ? (
               <span className="text-xs font-black text-emerald-600 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" /> Tüm Hedefler Kaydedildi ve Senkronize Edildi!
+                <CheckCircle2 className="w-4 h-4" /> Tüm Hedefler & Seri Takibi Kaydedildi!
               </span>
             ) : <span />}
             <button
               onClick={handleSaveAllCoachingGoals}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all ml-auto"
             >
-              <Save className="w-4 h-4" /> Tüm Hedefleri Kaydet & Senkronize Et
+              <Save className="w-4 h-4" /> Tüm Seri & Hedefleri Kaydet
             </button>
           </div>
 
