@@ -45,38 +45,27 @@ const EXAM_PRESETS = {
     ]
   },
   CUSTOM: {
-    title: '📊 Ara Sınıf / Özel Deneme Formatı (60 Soru · 3 Yanlış 1 Doğruyu Götürür)',
-    penaltyRatio: 3,
-    subjects: [
-      { name: 'Türkçe', count: 15, options: ['A', 'B', 'C', 'D'] },
-      { name: 'Matematik', count: 15, options: ['A', 'B', 'C', 'D'] },
-      { name: 'Fen Bilimleri', count: 15, options: ['A', 'B', 'C', 'D'] },
-      { name: 'Sosyal Bilgiler', count: 15, options: ['A', 'B', 'C', 'D'] },
-    ]
+    title: '📊 Özel / Boş Şablon (Hiçbir ders yok · Elle veya Toplu JSON ile ders ekleyin)',
+    penaltyRatio: 0,
+    subjects: [] // Empty by default for CUSTOM option as requested
   }
 };
 
 const SAMPLE_JSON_TEMPLATE = {
   examTitle: "Özdebir LGS 1. Genel Deneme Sınavı",
-  examType: "LGS",
+  examType: "CUSTOM",
   examDate: new Date().toISOString().split('T')[0],
   penaltyRatio: 3,
   studentId: "u1",
   answers: {
     "Türkçe": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
     "Matematik": ["A","B","C","D","A","B","","D","A","B","C","D","A","B","C","D","A","B","C","D"],
-    "Fen Bilimleri": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
-    "T.C. İnkılap Tarihi": ["A","B","C","D","A","B","C","D","A","B"],
-    "Din Kültürü": ["A","B","C","D","A","B","C","D","A","B"],
-    "İngilizce": ["A","B","C","D","A","B","C","D","A","B"]
+    "Fen Bilimleri": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"]
   },
   answerKey: {
     "Türkçe": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
     "Matematik": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
-    "Fen Bilimleri": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
-    "T.C. İnkılap Tarihi": ["A","B","C","D","A","B","C","D","A","B"],
-    "Din Kültürü": ["A","B","C","D","A","B","C","D","A","B"],
-    "İngilizce": ["A","B","C","D","A","B","C","D","A","B"]
+    "Fen Bilimleri": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"]
   }
 };
 
@@ -197,11 +186,11 @@ export default function PhysicalExamManager() {
 
     setNewSubName('');
     setNewSubCount(15);
+    setShowSettingsModal(false);
   };
 
   // Delete custom subject
   const handleDeleteSubject = (subjectName) => {
-    if (subjects.length <= 1) return;
     setSubjects(prev => prev.filter(s => s.name !== subjectName));
     setActiveSubjectIndex(0);
   };
@@ -232,17 +221,39 @@ export default function PhysicalExamManager() {
       const parsed = JSON.parse(jsonInputText.trim());
       if (parsed.examTitle) setExamTitle(parsed.examTitle);
       if (parsed.examType && EXAM_PRESETS[parsed.examType]) {
-        handleExamTypeChange(parsed.examType);
+        setExamType(parsed.examType);
+      } else {
+        setExamType('CUSTOM');
       }
+
       if (parsed.penaltyRatio !== undefined) setPenaltyRatio(Number(parsed.penaltyRatio) || 0);
       if (parsed.examDate) setExamDate(parsed.examDate);
 
+      // Reconstruct subjects dynamically from JSON keys if provided!
       if (parsed.answers && typeof parsed.answers === 'object') {
+        const jsonSubjectNames = Object.keys(parsed.answers);
+        if (jsonSubjectNames.length > 0) {
+          const newSubjects = jsonSubjectNames.map(name => {
+            const qArr = parsed.answers[name] || [];
+            const keyArr = (parsed.answerKey && parsed.answerKey[name]) || [];
+            const maxCount = Math.max(qArr.length, keyArr.length, 1);
+            const hasE = qArr.includes('E') || keyArr.includes('E');
+            return {
+              name,
+              count: maxCount,
+              options: hasE ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']
+            };
+          });
+          setSubjects(newSubjects);
+          setActiveSubjectIndex(0);
+        }
         setAnswers(prev => ({ ...prev, ...parsed.answers }));
       }
+
       if (parsed.answerKey && typeof parsed.answerKey === 'object') {
         setAnswerKey(prev => ({ ...prev, ...parsed.answerKey }));
       }
+
       setShowJsonModal(false);
       setShowAddForm(true); // Open optical form view after JSON import
       setJsonInputText('');
@@ -570,8 +581,10 @@ export default function PhysicalExamManager() {
                       : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'
                   )}
                 >
-                  <span>{key} Sınavı</span>
-                  <span className="text-[10px] font-bold opacity-80">{subjects.reduce((a, s) => a + s.count, 0)} Soru</span>
+                  <span>{key === 'CUSTOM' ? 'Özel / Boş Şablon' : `${key} Sınavı`}</span>
+                  <span className="text-[10px] font-bold opacity-80">
+                    {subjects.length > 0 ? `${subjects.reduce((a, s) => a + s.count, 0)} Soru` : 'Boş (Elle / JSON)'}
+                  </span>
                 </button>
               ))}
             </div>
@@ -660,199 +673,226 @@ export default function PhysicalExamManager() {
             </div>
           </div>
 
-          {/* MAIN OPTICAL FORM SIMULATOR */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* LEFT: DIGI OPTICAL SHEET */}
-            <div className="lg:col-span-8 space-y-4">
-              
-              {/* SUBJECT TABS WITH QUESTION COUNT EDITORS */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-                {subjects.map((sub, idx) => {
-                  const active = activeSubjectIndex === idx;
-                  const subStat = evaluationResults.subjectStats.find(s => s.name === sub.name);
-                  return (
-                    <button
-                      key={sub.name}
-                      onClick={() => setActiveSubjectIndex(idx)}
-                      className={cn(
-                        'px-4 py-2 rounded-2xl border text-xs font-black transition-all shrink-0 flex items-center gap-2',
-                        active
-                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 shadow-md'
-                          : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400'
-                      )}
-                    >
-                      <span>{sub.name} ({sub.count} Soru)</span>
-                      <span className={cn('text-[10px] font-extrabold px-2 py-0.5 rounded-full', active ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-indigo-500')}>
-                        {subStat?.net || 0} Net
-                      </span>
-                    </button>
-                  );
-                })}
-
+          {/* EMPTY STATE IF CUSTOM FORMAT HAS NO SUBJECTS YET */}
+          {subjects.length === 0 ? (
+            <div className="bg-white dark:bg-[#1E293B] border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mx-auto">
+                <Plus className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">Özel Şablon Seçildi - Henüz Ders Bulunmuyor</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Aşağıdaki buton ile derslerinizi elle tek tek ekleyin veya 'Toplu JSON Aktar' butonuyla verilerinizi yapıştırın.
+              </p>
+              <div className="flex items-center justify-center gap-2 pt-2">
                 <button
                   onClick={() => setShowSettingsModal(true)}
-                  className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-indigo-500 text-xs font-bold shrink-0 flex items-center gap-1"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1.5"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Ders / Soru Düzenle
+                  <Plus className="w-4 h-4" /> + Elle Ders Ekle
+                </button>
+                <button
+                  onClick={() => setShowJsonModal(true)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <FileCode2 className="w-4 h-4 text-emerald-400" /> Toplu JSON Aktar
                 </button>
               </div>
+            </div>
+          ) : (
+            /* MAIN OPTICAL FORM SIMULATOR FOR SUBJECTS */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* LEFT: DIGI OPTICAL SHEET */}
+              <div className="lg:col-span-8 space-y-4">
+                
+                {/* SUBJECT TABS WITH QUESTION COUNT EDITORS */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                  {subjects.map((sub, idx) => {
+                    const active = activeSubjectIndex === idx;
+                    const subStat = evaluationResults.subjectStats.find(s => s.name === sub.name);
+                    return (
+                      <button
+                        key={sub.name}
+                        onClick={() => setActiveSubjectIndex(idx)}
+                        className={cn(
+                          'px-4 py-2 rounded-2xl border text-xs font-black transition-all shrink-0 flex items-center gap-2',
+                          active
+                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 shadow-md'
+                            : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+                        )}
+                      >
+                        <span>{sub.name} ({sub.count} Soru)</span>
+                        <span className={cn('text-[10px] font-extrabold px-2 py-0.5 rounded-full', active ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-indigo-500')}>
+                          {subStat?.net || 0} Net
+                        </span>
+                      </button>
+                    );
+                  })}
 
-              {/* OPTICAL BUBBLE GRID FOR ACTIVE SUBJECT */}
-              {(() => {
-                const currentSub = subjects[activeSubjectIndex];
-                if (!currentSub) return null;
+                  <button
+                    onClick={() => setShowSettingsModal(true)}
+                    className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-indigo-500 text-xs font-bold shrink-0 flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Ders / Soru Düzenle
+                  </button>
+                </div>
 
-                const subAnswers = answers[currentSub.name] || Array(currentSub.count).fill('');
-                const subKey = answerKey[currentSub.name] || Array(currentSub.count).fill('');
+                {/* OPTICAL BUBBLE GRID FOR ACTIVE SUBJECT */}
+                {(() => {
+                  const currentSub = subjects[activeSubjectIndex];
+                  if (!currentSub) return null;
 
-                return (
-                  <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
-                    
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
-                      <div>
-                        <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                          <BookOpen className="w-5 h-5 text-indigo-500" />
-                          {currentSub.name} Optik Kodlama Formu
-                        </h3>
-                        <p className="text-xs text-slate-400">Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
-                      </div>
+                  const subAnswers = answers[currentSub.name] || Array(currentSub.count).fill('');
+                  const subKey = answerKey[currentSub.name] || Array(currentSub.count).fill('');
 
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
-                          <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={currentSub.count}
-                            onChange={e => handleSubjectQuestionCountChange(currentSub.name, e.target.value)}
-                            className="w-12 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
-                          />
+                  return (
+                    <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+                      
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+                        <div>
+                          <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-indigo-500" />
+                            {currentSub.name} Optik Kodlama Formu
+                          </h3>
+                          <p className="text-xs text-slate-400">Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
                         </div>
 
-                        <span className="text-xs font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                          {subAnswers.filter(Boolean).length}/{currentSub.count} Dolduruldu
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={currentSub.count}
+                              onChange={e => handleSubjectQuestionCountChange(currentSub.name, e.target.value)}
+                              className="w-12 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
+                            />
+                          </div>
+
+                          <span className="text-xs font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                            {subAnswers.filter(Boolean).length}/{currentSub.count} Dolduruldu
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* BUBBLE ROWS */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {Array.from({ length: currentSub.count }).map((_, qIdx) => {
+                          const selected = subAnswers[qIdx];
+                          const correctKey = subKey[qIdx];
+                          const isAnswered = Boolean(selected);
+                          const isCorrect = isAnswered && selected === correctKey;
+                          const isWrong = isAnswered && selected !== correctKey;
+
+                          return (
+                            <div
+                              key={qIdx}
+                              className={cn(
+                                'flex items-center justify-between p-2.5 rounded-2xl border transition-all',
+                                isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
+                                isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
+                                'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
+                                  {qIdx + 1}
+                                </span>
+                                {isAnswered && (
+                                  <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
+                                    {isCorrect ? 'Doğru' : `Yanlış (Doğru: ${correctKey})`}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* BUBBLE BUTTONS */}
+                              <div className="flex items-center gap-1.5">
+                                {currentSub.options.map(opt => {
+                                  const activeOpt = selected === opt;
+                                  return (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
+                                      className={cn(
+                                        'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
+                                        activeOpt
+                                          ? isCorrect
+                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                                            : isWrong
+                                            ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
+                                            : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                          : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
+                                      )}
+                                    >
+                                      {opt}
+                                    </button>
+                                  );
+                                })}
+
+                                {selected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearOption(currentSub.name, qIdx)}
+                                    className="ml-1 p-1 text-slate-300 hover:text-rose-500 transition-colors"
+                                    title="Boş Bırak"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                        <button
+                          onClick={() => setShowAddForm(false)}
+                          className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          İptal
+                        </button>
+                        <button
+                          onClick={handleSaveExam}
+                          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-lg shadow-emerald-500/25 hover:shadow-xl active:scale-95 transition-all"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Deneme Sonucunu Kaydet & Senkronize Et
+                        </button>
+                      </div>
+
+                    </div>
+                  );
+                })()}
+
+              </div>
+
+              {/* RIGHT: BREAKDOWN */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-3">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <BarChart2Icon className="w-4 h-4 text-indigo-500" /> Ders Bazlı Anlık İnceleme
+                  </h3>
+
+                  <div className="space-y-2">
+                    {evaluationResults.subjectStats.map(s => (
+                      <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-xs">
+                        <div>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{s.name}</p>
+                          <p className="text-[10px] text-slate-400">{s.correct}D · {s.wrong}Y · {s.blank}B ({s.count} Soru)</p>
+                        </div>
+                        <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 rounded-lg">
+                          {s.net} Net
                         </span>
                       </div>
-                    </div>
-
-                    {/* BUBBLE ROWS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {Array.from({ length: currentSub.count }).map((_, qIdx) => {
-                        const selected = subAnswers[qIdx];
-                        const correctKey = subKey[qIdx];
-                        const isAnswered = Boolean(selected);
-                        const isCorrect = isAnswered && selected === correctKey;
-                        const isWrong = isAnswered && selected !== correctKey;
-
-                        return (
-                          <div
-                            key={qIdx}
-                            className={cn(
-                              'flex items-center justify-between p-2.5 rounded-2xl border transition-all',
-                              isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
-                              isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
-                              'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
-                            )}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
-                                {qIdx + 1}
-                              </span>
-                              {isAnswered && (
-                                <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
-                                  {isCorrect ? 'Doğru' : `Yanlış (Doğru: ${correctKey})`}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* BUBBLE BUTTONS */}
-                            <div className="flex items-center gap-1.5">
-                              {currentSub.options.map(opt => {
-                                const activeOpt = selected === opt;
-                                return (
-                                  <button
-                                    key={opt}
-                                    type="button"
-                                    onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
-                                    className={cn(
-                                      'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
-                                      activeOpt
-                                        ? isCorrect
-                                          ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                                          : isWrong
-                                          ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
-                                          : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
-                                    )}
-                                  >
-                                    {opt}
-                                  </button>
-                                );
-                              })}
-
-                              {selected && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleClearOption(currentSub.name, qIdx)}
-                                  className="ml-1 p-1 text-slate-300 hover:text-rose-500 transition-colors"
-                                  title="Boş Bırak"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-                      <button
-                        onClick={() => setShowAddForm(false)}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      >
-                        İptal
-                      </button>
-                      <button
-                        onClick={handleSaveExam}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-lg shadow-emerald-500/25 hover:shadow-xl active:scale-95 transition-all"
-                      >
-                        <CheckCircle2 className="w-4 h-4" /> Deneme Sonucunu Kaydet & Senkronize Et
-                      </button>
-                    </div>
-
+                    ))}
                   </div>
-                );
-              })()}
-
-            </div>
-
-            {/* RIGHT: BREAKDOWN */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-3">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-                  <BarChart2Icon className="w-4 h-4 text-indigo-500" /> Ders Bazlı Anlık İnceleme
-                </h3>
-
-                <div className="space-y-2">
-                  {evaluationResults.subjectStats.map(s => (
-                    <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-xs">
-                      <div>
-                        <p className="font-bold text-slate-800 dark:text-slate-200">{s.name}</p>
-                        <p className="text-[10px] text-slate-400">{s.correct}D · {s.wrong}Y · {s.blank}B ({s.count} Soru)</p>
-                      </div>
-                      <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 rounded-lg">
-                        {s.net} Net
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
-            </div>
 
-          </div>
+            </div>
+          )}
 
         </div>
       )}
@@ -915,27 +955,29 @@ export default function PhysicalExamManager() {
 
             {/* SUBJECT LIST WITH EDITABLE COUNTS */}
             <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-              {subjects.map(s => (
-                <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{s.name}</span>
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-black text-slate-400">Soru Sayısı:</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={s.count}
-                      onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
-                      className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-black text-center"
-                    />
-                    {subjects.length > 1 && (
+              {subjects.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-2 text-center">Henüz tanımlı ders yok. Aşağıdan ekleyebilirsiniz.</p>
+              ) : (
+                subjects.map(s => (
+                  <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{s.name}</span>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] font-black text-slate-400">Soru Sayısı:</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={s.count}
+                        onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
+                        className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-black text-center"
+                      />
                       <button onClick={() => handleDeleteSubject(s.name)} className="p-1 text-slate-400 hover:text-rose-500">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
-                    )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* ADD NEW SUBJECT FORM */}
