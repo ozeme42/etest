@@ -294,7 +294,7 @@ export default function PhysicalExamRunner() {
                 <div 
                   key={qIdx}
                   className={cn(
-                    'flex items-center justify-between p-2.5 rounded-2xl border transition-all',
+                    'flex items-center justify-center sm:justify-between gap-4 sm:gap-2 p-3 sm:p-2.5 rounded-2xl border transition-all',
                     isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
                     isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
                     'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-700 hover:border-indigo-300'

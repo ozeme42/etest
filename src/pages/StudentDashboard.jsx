@@ -328,7 +328,7 @@ export default function StudentDashboard() {
   const pendingTasks = useMemo(() => {
     const tTasks = tests.filter(t => t.status === 'Atandı').map(t => {
       const dueDateObj = parseSafeDate(t.dueDate);
-      return { id: t.id, type: 'test', title: t.title, subject: getCategoryName(t), dueDateStr: new Date(t.dueDate).toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: t.sourceType };
+      return { id: t.id, type: t.type || 'test', title: t.title, subject: getCategoryName(t), dueDateStr: new Date(t.dueDate).toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: t.sourceType };
     });
     return [...tTasks].sort((a, b) => a.dueDateObj - b.dueDateObj);
   }, [tests, assignments]);
