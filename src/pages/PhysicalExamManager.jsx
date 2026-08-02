@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
-  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3
+  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -59,6 +59,7 @@ const SAMPLE_JSON_TEMPLATE = {
   examTitle: "Özdebir LGS 1. Genel Deneme Sınavı",
   examType: "LGS",
   examDate: new Date().toISOString().split('T')[0],
+  penaltyRatio: 3,
   studentId: "u1",
   answers: {
     "Türkçe": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
@@ -91,36 +92,46 @@ export default function PhysicalExamManager() {
   const [examTitle, setExamTitle] = useState('Özdebir LGS Genel Deneme 1');
   const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const preset = EXAM_PRESETS[examType] || EXAM_PRESETS.LGS;
+  // Optional Penalty Ratio (3, 4, 0, or custom)
+  const [penaltyRatio, setPenaltyRatio] = useState(3);
+
+  // Dynamic Subjects List State
+  const [subjects, setSubjects] = useState(EXAM_PRESETS.LGS.subjects);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
 
   // Student Answers State: { 'Türkçe': ['A', 'B', '', ...], 'Matematik': [...] }
   const [answers, setAnswers] = useState(() => {
     const init = {};
-    preset.subjects.forEach(sub => { init[sub.name] = Array(sub.count).fill(''); });
+    EXAM_PRESETS.LGS.subjects.forEach(sub => { init[sub.name] = Array(sub.count).fill(''); });
     return init;
   });
 
   // Answer Key State: { 'Türkçe': ['A', 'B', 'C', ...], ... }
   const [answerKey, setAnswerKey] = useState(() => {
     const init = {};
-    preset.subjects.forEach(sub => {
-      // Default sample answer key for quick demo
+    EXAM_PRESETS.LGS.subjects.forEach(sub => {
       init[sub.name] = Array(sub.count).fill('').map((_, i) => sub.options[i % sub.options.length]);
     });
     return init;
   });
 
-  // JSON Import Modal & Input State
+  // Modal States
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [jsonInputText, setJsonInputText] = useState('');
   const [jsonError, setJsonError] = useState('');
   const [copiedNotice, setCopiedNotice] = useState(false);
 
-  // Switch Exam Type & reset forms
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubCount, setNewSubCount] = useState(15);
+  const [newSubOptions, setNewSubOptions] = useState(4); // 4 or 5 options
+
+  // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
     setExamType(newType);
     const newPreset = EXAM_PRESETS[newType] || EXAM_PRESETS.LGS;
+    setPenaltyRatio(newPreset.penaltyRatio);
+    setSubjects(newPreset.subjects);
     setActiveSubjectIndex(0);
 
     const initAnswers = {};
@@ -131,6 +142,59 @@ export default function PhysicalExamManager() {
     });
     setAnswers(initAnswers);
     setAnswerKey(initKey);
+  };
+
+  // Update specific subject's question count dynamically
+  const handleSubjectQuestionCountChange = (subjectName, newCount) => {
+    const countNum = Math.max(1, Math.min(100, Number(newCount) || 1));
+    setSubjects(prev => prev.map(s => s.name === subjectName ? { ...s, count: countNum } : s));
+
+    setAnswers(prev => {
+      const currentList = prev[subjectName] || [];
+      let nextList = [...currentList];
+      if (countNum > currentList.length) {
+        nextList = [...currentList, ...Array(countNum - currentList.length).fill('')];
+      } else {
+        nextList = currentList.slice(0, countNum);
+      }
+      return { ...prev, [subjectName]: nextList };
+    });
+
+    setAnswerKey(prev => {
+      const sub = subjects.find(s => s.name === subjectName) || { options: ['A', 'B', 'C', 'D'] };
+      const currentList = prev[subjectName] || [];
+      let nextList = [...currentList];
+      if (countNum > currentList.length) {
+        const added = Array(countNum - currentList.length).fill('').map((_, i) => sub.options[(currentList.length + i) % sub.options.length]);
+        nextList = [...currentList, ...added];
+      } else {
+        nextList = currentList.slice(0, countNum);
+      }
+      return { ...prev, [subjectName]: nextList };
+    });
+  };
+
+  // Add custom new subject
+  const handleAddCustomSubject = (e) => {
+    e.preventDefault();
+    if (!newSubName.trim()) return;
+
+    const optArray = newSubOptions === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+    const newSubject = { name: newSubName.trim(), count: Number(newSubCount) || 10, options: optArray };
+
+    setSubjects(prev => [...prev, newSubject]);
+    setAnswers(prev => ({ ...prev, [newSubject.name]: Array(newSubject.count).fill('') }));
+    setAnswerKey(prev => ({ ...prev, [newSubject.name]: Array(newSubject.count).fill('').map((_, i) => optArray[i % optArray.length]) }));
+
+    setNewSubName('');
+    setNewSubCount(15);
+  };
+
+  // Delete custom subject
+  const handleDeleteSubject = (subjectName) => {
+    if (subjects.length <= 1) return;
+    setSubjects(prev => prev.filter(s => s.name !== subjectName));
+    setActiveSubjectIndex(0);
   };
 
   // Toggle bubble answer selection
@@ -151,15 +215,6 @@ export default function PhysicalExamManager() {
     });
   };
 
-  // Answer Key Option Click
-  const handleKeyOptionClick = (subjectName, qIdx, option) => {
-    setAnswerKey(prev => {
-      const currentList = [...(prev[subjectName] || [])];
-      currentList[qIdx] = option;
-      return { ...prev, [subjectName]: currentList };
-    });
-  };
-
   // Bulk JSON Import Parser
   const handleImportJson = (e) => {
     e.preventDefault();
@@ -170,6 +225,7 @@ export default function PhysicalExamManager() {
       if (parsed.examType && EXAM_PRESETS[parsed.examType]) {
         handleExamTypeChange(parsed.examType);
       }
+      if (parsed.penaltyRatio !== undefined) setPenaltyRatio(Number(parsed.penaltyRatio) || 0);
       if (parsed.examDate) setExamDate(parsed.examDate);
 
       if (parsed.answers && typeof parsed.answers === 'object') {
@@ -191,14 +247,14 @@ export default function PhysicalExamManager() {
     setTimeout(() => setCopiedNotice(false), 2000);
   };
 
-  // Calculation Results
+  // Calculation Results with Optional Penalty Ratio
   const evaluationResults = useMemo(() => {
     let grandTotalCorrect = 0;
     let grandTotalWrong = 0;
     let grandTotalBlank = 0;
     let grandTotalNet = 0;
 
-    const subjectStats = preset.subjects.map(sub => {
+    const subjectStats = subjects.map(sub => {
       const studentAns = answers[sub.name] || Array(sub.count).fill('');
       const correctAns = answerKey[sub.name] || Array(sub.count).fill('');
 
@@ -215,7 +271,8 @@ export default function PhysicalExamManager() {
         }
       }
 
-      const net = Math.max(0, c - w / preset.penaltyRatio);
+      // Penalty ratio: if 0, wrong answers do NOT deduct correct answers
+      const net = penaltyRatio > 0 ? Math.max(0, c - (w / penaltyRatio)) : c;
       grandTotalCorrect += c;
       grandTotalWrong += w;
       grandTotalBlank += b;
@@ -238,13 +295,12 @@ export default function PhysicalExamManager() {
       grandTotalNet: Number(grandTotalNet.toFixed(2)),
       subjectStats
     };
-  }, [answers, answerKey, preset]);
+  }, [answers, answerKey, subjects, penaltyRatio]);
 
   // Save Physical Mock Exam & Sync with Coaching Dossier Page 7
   const handleSaveExam = async () => {
     if (!examTitle.trim()) return;
 
-    // Get specific subject nets for LGS format sync
     const findNet = (subjName) => {
       const found = evaluationResults.subjectStats.find(s => s.name.toLowerCase().includes(subjName.toLowerCase()));
       return found ? found.net : 0;
@@ -255,6 +311,7 @@ export default function PhysicalExamManager() {
       title: examTitle.trim(),
       date: examDate,
       examType,
+      penaltyRatio,
       turkce: findNet('Türkçe'),
       mat: findNet('Matematik'),
       fen: findNet('Fen'),
@@ -287,7 +344,7 @@ export default function PhysicalExamManager() {
             Fiziki Deneme & Dijital Optik Form Modülü
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Özdebir, Töder vb. fiziki kitapçık deneme cevaplarını ekrandan kodlayın veya Toplu JSON ile aktarın.
+            Ders soru sayılarını özelleştirin, opsiyonel değerlendirme formatı seçin veya Toplu JSON ile aktarın.
           </p>
         </div>
 
@@ -304,6 +361,13 @@ export default function PhysicalExamManager() {
               ))}
             </div>
           )}
+
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all"
+          >
+            <Settings2 className="w-4 h-4 text-indigo-500" /> Soru Sayıları & Ders Ekle
+          </button>
 
           <button
             onClick={() => setShowJsonModal(true)}
@@ -331,12 +395,12 @@ export default function PhysicalExamManager() {
               )}
             >
               <span>{key} Sınavı</span>
-              <span className="text-[10px] font-bold opacity-80">{EXAM_PRESETS[key].subjects.reduce((a, s) => a + s.count, 0)} Soru</span>
+              <span className="text-[10px] font-bold opacity-80">{subjects.reduce((a, s) => a + s.count, 0)} Soru</span>
             </button>
           ))}
         </div>
 
-        {/* INPUTS */}
+        {/* INPUTS & OPTIONAL PENALTY RATIO SELECTOR */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Fiziki Deneme Adı / Yayın</label>
@@ -360,11 +424,18 @@ export default function PhysicalExamManager() {
           </div>
 
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Değerlendirme Formatı</label>
-            <div className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-2">
-              <Calculator className="w-4 h-4 shrink-0" />
-              {preset.penaltyRatio} Yanlış 1 Doğruyu Götürür
-            </div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Değerlendirme Formatı (Opsiyonel)</label>
+            <select
+              value={penaltyRatio}
+              onChange={e => setPenaltyRatio(Number(e.target.value))}
+              className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 outline-none"
+            >
+              <option value={3}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+              <option value={4}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
+              <option value={0}>✨ Yanlışlar Doğruyu Götürmüyor (0 Yanlış)</option>
+              <option value={2}>⚡ 2 Yanlış 1 Doğruyu Götürür</option>
+              <option value={5}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
+            </select>
           </div>
         </div>
 
@@ -416,12 +487,12 @@ export default function PhysicalExamManager() {
       {/* MAIN OPTICAL FORM SIMULATOR */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT: DIGI OPTICAL SHEET SHEET */}
+        {/* LEFT: DIGI OPTICAL SHEET */}
         <div className="lg:col-span-8 space-y-4">
           
-          {/* SUBJECT TABS */}
+          {/* SUBJECT TABS WITH QUESTION COUNT EDITORS */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            {preset.subjects.map((sub, idx) => {
+            {subjects.map((sub, idx) => {
               const active = activeSubjectIndex === idx;
               const subStat = evaluationResults.subjectStats.find(s => s.name === sub.name);
               return (
@@ -435,18 +506,25 @@ export default function PhysicalExamManager() {
                       : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-400'
                   )}
                 >
-                  <span>{sub.name}</span>
+                  <span>{sub.name} ({sub.count} Soru)</span>
                   <span className={cn('text-[10px] font-extrabold px-2 py-0.5 rounded-full', active ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-indigo-500')}>
                     {subStat?.net || 0} Net
                   </span>
                 </button>
               );
             })}
+
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="px-3 py-2 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:text-indigo-500 text-xs font-bold shrink-0 flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" /> Ders / Soru Düzenle
+            </button>
           </div>
 
           {/* OPTICAL BUBBLE GRID FOR ACTIVE SUBJECT */}
           {(() => {
-            const currentSub = preset.subjects[activeSubjectIndex];
+            const currentSub = subjects[activeSubjectIndex];
             if (!currentSub) return null;
 
             const subAnswers = answers[currentSub.name] || Array(currentSub.count).fill('');
@@ -455,17 +533,32 @@ export default function PhysicalExamManager() {
             return (
               <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
                 
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
                   <div>
                     <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                       <BookOpen className="w-5 h-5 text-indigo-500" />
                       {currentSub.name} Optik Kodlama Formu
                     </h3>
-                    <p className="text-xs text-slate-400">Toplam {currentSub.count} Soru · Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
+                    <p className="text-xs text-slate-400">Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
                   </div>
-                  <span className="text-xs font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                    {subAnswers.filter(Boolean).length}/{currentSub.count} Dolduruldu
-                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={currentSub.count}
+                        onChange={e => handleSubjectQuestionCountChange(currentSub.name, e.target.value)}
+                        className="w-12 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
+                      />
+                    </div>
+
+                    <span className="text-xs font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                      {subAnswers.filter(Boolean).length}/{currentSub.count} Dolduruldu
+                    </span>
+                  </div>
                 </div>
 
                 {/* BUBBLE ROWS */}
@@ -568,7 +661,7 @@ export default function PhysicalExamManager() {
                 <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-xs">
                   <div>
                     <p className="font-bold text-slate-800 dark:text-slate-200">{s.name}</p>
-                    <p className="text-[10px] text-slate-400">{s.correct}D · {s.wrong}Y · {s.blank}B</p>
+                    <p className="text-[10px] text-slate-400">{s.correct}D · {s.wrong}Y · {s.blank}B ({s.count} Soru)</p>
                   </div>
                   <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 rounded-lg">
                     {s.net} Net
@@ -611,6 +704,86 @@ export default function PhysicalExamManager() {
         </div>
 
       </div>
+
+      {/* DERS & SORU SAYISI DÜZENLEME MODAL */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+                <Settings2 className="w-5 h-5" /> Ders Soru Sayıları & Özel Ders Ekle
+              </div>
+              <button onClick={() => setShowSettingsModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* SUBJECT LIST WITH EDITABLE COUNTS */}
+            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+              {subjects.map(s => (
+                <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{s.name}</span>
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-black text-slate-400">Soru Sayısı:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={s.count}
+                      onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
+                      className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-black text-center"
+                    />
+                    {subjects.length > 1 && (
+                      <button onClick={() => handleDeleteSubject(s.name)} className="p-1 text-slate-400 hover:text-rose-500">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ADD NEW SUBJECT FORM */}
+            <form onSubmit={handleAddCustomSubject} className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="text-xs font-black text-slate-800 dark:text-slate-200">+ Yeni Özel Ders Tanımla</div>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Ders Adı (Örn: Geometri)"
+                  value={newSubName}
+                  onChange={e => setNewSubName(e.target.value)}
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Soru Sayısı"
+                  value={newSubCount}
+                  onChange={e => setNewSubCount(e.target.value)}
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  required
+                />
+                <select
+                  value={newSubOptions}
+                  onChange={e => setNewSubOptions(Number(e.target.value))}
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                >
+                  <option value={4}>4 Şıklı (A-D)</option>
+                  <option value={5}>5 Şıklı (A-E)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowSettingsModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Kapat</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition-all flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Dersi Ekle
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
       {/* JSON BULK IMPORT MODAL */}
       {showJsonModal && (
