@@ -3,7 +3,7 @@ import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
-  Eye, ArrowLeft, Calendar, FileSpreadsheet
+  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -47,7 +47,7 @@ const EXAM_PRESETS = {
   CUSTOM: {
     title: '📊 Özel / Boş Şablon (Hiçbir ders yok · Elle veya Toplu JSON ile ders ekleyin)',
     penaltyRatio: 0,
-    subjects: [] // Empty by default for CUSTOM option as requested
+    subjects: [] // Empty by default for CUSTOM option
   }
 };
 
@@ -119,6 +119,10 @@ export default function PhysicalExamManager() {
   const [newSubName, setNewSubName] = useState('');
   const [newSubCount, setNewSubCount] = useState(15);
   const [newSubOptions, setNewSubOptions] = useState(4); // 4 or 5 options
+
+  // Bulk Answer Key Modal State per Subject
+  const [showAnswerKeyModal, setShowAnswerKeyModal] = useState(false);
+  const [bulkAnswerKeyInput, setBulkAnswerKeyInput] = useState('');
 
   const studentMockExams = useMemo(() => {
     return mockExams.filter(m => String(m.studentId) === String(selectedStudent?.id));
@@ -211,6 +215,32 @@ export default function PhysicalExamManager() {
       currentList[qIdx] = '';
       return { ...prev, [subjectName]: currentList };
     });
+  };
+
+  // Bulk Answer Key Apply Helper
+  const parsedBulkAnswerKey = useMemo(() => {
+    if (!bulkAnswerKeyInput) return [];
+    const matches = bulkAnswerKeyInput.toUpperCase().match(/[A-E]/g) || [];
+    return matches;
+  }, [bulkAnswerKeyInput]);
+
+  const handleApplyBulkAnswerKey = (e) => {
+    e.preventDefault();
+    const currentSub = subjects[activeSubjectIndex];
+    if (!currentSub || parsedBulkAnswerKey.length === 0) return;
+
+    const newKey = Array(currentSub.count).fill('');
+    for (let i = 0; i < currentSub.count; i++) {
+      if (parsedBulkAnswerKey[i]) {
+        newKey[i] = parsedBulkAnswerKey[i];
+      } else {
+        newKey[i] = currentSub.options[i % currentSub.options.length];
+      }
+    }
+
+    setAnswerKey(prev => ({ ...prev, [currentSub.name]: newKey }));
+    setShowAnswerKeyModal(false);
+    setBulkAnswerKeyInput('');
   };
 
   // Bulk JSON Import Parser
@@ -705,7 +735,7 @@ export default function PhysicalExamManager() {
               {/* LEFT: DIGI OPTICAL SHEET */}
               <div className="lg:col-span-8 space-y-4">
                 
-                {/* SUBJECT TABS WITH QUESTION COUNT EDITORS */}
+                {/* SUBJECT TABS WITH QUESTION COUNT & BULK ANSWER KEY BUTTONS */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
                   {subjects.map((sub, idx) => {
                     const active = activeSubjectIndex === idx;
@@ -728,6 +758,13 @@ export default function PhysicalExamManager() {
                       </button>
                     );
                   })}
+
+                  <button
+                    onClick={() => setShowAnswerKeyModal(true)}
+                    className="px-3 py-2 rounded-2xl bg-amber-500 text-white text-xs font-black shrink-0 flex items-center gap-1.5 shadow-sm hover:bg-amber-600 transition-all"
+                  >
+                    <Key className="w-3.5 h-3.5" /> Toplu Cevap Anahtarı Gir
+                  </button>
 
                   <button
                     onClick={() => setShowSettingsModal(true)}
@@ -758,6 +795,14 @@ export default function PhysicalExamManager() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAnswerKeyModal(true)}
+                            className="px-3 py-1 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold border border-amber-300 dark:border-amber-800 flex items-center gap-1"
+                          >
+                            <Key className="w-3.5 h-3.5" /> Cevap Anahtarı
+                          </button>
+
                           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
                             <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
                             <input
@@ -894,6 +939,59 @@ export default function PhysicalExamManager() {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* TOPLU CEVAP ANAHTARI GİRİŞİ MODAL */}
+      {showAnswerKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-base">
+                <Key className="w-5 h-5" /> {subjects[activeSubjectIndex]?.name} - Toplu Cevap Anahtarı
+              </div>
+              <button onClick={() => setShowAnswerKeyModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Cevap anahtarını düz metin (Örn: <code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">ABCDABCDABCD</code>) veya virgüllü (<code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">A, B, C, D</code>) olarak yapıştırın:
+            </p>
+
+            <form onSubmit={handleApplyBulkAnswerKey} className="space-y-3">
+              <textarea
+                rows={4}
+                placeholder="Örn: A B C D A B C D A B C D A B C D A B C D"
+                value={bulkAnswerKeyInput}
+                onChange={e => setBulkAnswerKeyInput(e.target.value)}
+                className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 uppercase tracking-widest"
+              />
+
+              {parsedBulkAnswerKey.length > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                    Algılanan Cevaplar ({parsedBulkAnswerKey.length} Soru):
+                  </div>
+                  <div className="font-mono text-[11px] truncate tracking-widest text-amber-900 dark:text-amber-100 font-bold">
+                    {parsedBulkAnswerKey.slice(0, subjects[activeSubjectIndex]?.count || 20).join(' - ')}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowAnswerKeyModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button
+                  type="submit"
+                  disabled={parsedBulkAnswerKey.length === 0}
+                  className="px-5 py-2 rounded-xl bg-amber-500 disabled:opacity-50 text-white text-xs font-black hover:bg-amber-600 transition-all flex items-center gap-1.5 shadow-md"
+                >
+                  <Key className="w-3.5 h-3.5" /> Cevap Anahtarını Uygula
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
