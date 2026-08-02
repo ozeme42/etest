@@ -61,6 +61,8 @@ export default function PhysicalExamRunner() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const draftKey = `draft_physical_exam_${hwId}_${studentId}`;
+
   useEffect(() => {
     if (homework && !isSubmitted) {
       // Check if already submitted
@@ -70,6 +72,15 @@ export default function PhysicalExamRunner() {
         setResults(submission.subjectStats);
         setAnswers(submission.studentAnswers || {});
       } else {
+        const draftStr = localStorage.getItem(draftKey);
+        if (draftStr) {
+          try {
+            setAnswers(JSON.parse(draftStr));
+            return;
+          } catch(e) {
+            console.error("Draft parse error", e);
+          }
+        }
         // Initialize empty answers
         const init = {};
         homework.subjects?.forEach(sub => {
@@ -78,7 +89,13 @@ export default function PhysicalExamRunner() {
         setAnswers(init);
       }
     }
-  }, [homework, studentId, isSubmitted]);
+  }, [homework, studentId, isSubmitted, draftKey]);
+
+  useEffect(() => {
+    if (!isSubmitted && Object.keys(answers).length > 0) {
+      localStorage.setItem(draftKey, JSON.stringify(answers));
+    }
+  }, [answers, isSubmitted, draftKey]);
 
   if (!homework || homework.type !== 'physicalExam') {
     return (
@@ -181,6 +198,7 @@ export default function PhysicalExamRunner() {
       studentAnswers: answers
     });
 
+    localStorage.removeItem(draftKey);
     setResults(calculated);
     setIsSubmitted(true);
   };
