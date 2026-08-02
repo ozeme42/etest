@@ -187,7 +187,7 @@ export default function StudentCoachingPage() {
     getMeetingsForStudent
   } = useCoaching();
 
-  // Integrated GoalContext for Live 1-to-1 Sync with Student Dashboard
+  // Integrated GoalContext for Live 1-to-1 Sync with Student Dashboard & Goals Page
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
 
   // Active Dossier Tab State
@@ -324,7 +324,7 @@ export default function StudentCoachingPage() {
   const [quoteOfWeek, setQuoteOfWeek] = useState(existingProfile.quoteOfWeek || 'Başarı, her gün tekrarlanan küçük çabaların toplamıdır.');
   const [myAchievements, setMyAchievements] = useState(existingProfile.myAchievements || '• Matematik deneme netimi 16 üzerine çıkardım.\n• Bu hafta 500 soru hedefini aştım.');
   const [noteToSelf, setNoteToSelf] = useState(existingProfile.noteToSelf || 'Zorlandığım anlarda pes etmek yerine 5 dakika mola verip soruya yeniden odaklanacağım.');
-  const [rewardSystem, setRewardSystem] = useState(existingProfile.rewardSystem || 'Haftalık 500 soru ve 2 deneme hedefine ulaştığımda Pazar günü sevdiğim filmi izleyeceğim 🎬');
+  const [rewardSystem, setRewardSystem] = useState(existingProfile.rewardSystem || 'Haftalık 500 soru ve 2 deneme hedefinition ulaştığımda Pazar günü sevdiğim filmi izleyeceğim 🎬');
 
   // Page 14: Alışkanlık Takibi State
   const [habitTracker, setHabitTracker] = useState(existingProfile.habitTracker || DEFAULT_HABITS);
@@ -1156,7 +1156,7 @@ export default function StudentCoachingPage() {
                   <div>
                     <h4 style={{ margin: 0, color: '#15803d', fontSize: '0.95rem', fontWeight: 900 }}>🔄 Canlı Öğrenci Panel Senkronizasyonu Aktif!</h4>
                     <p style={{ margin: '0.2rem 0 0', color: '#166534', fontSize: '0.82rem' }}>
-                      Öğrenci kendi panelinden yeni bir hedef eklediğinde veya tamamlama derecesini artırdığında bu sayfada anında güncellenir. Burada koç tarafından eklenen tüm hedefler de doğrudan öğrencinin ekranına düşer.
+                      Öğrenci veya koç tarafından tanımlanan tüm Uzun, Orta (Aylık), Kısa (Haftalık/Günlük) ve Soru/Kitap/Konu/Süre hedefleri iki tarafta anında eşitlenir.
                     </p>
                   </div>
                 </div>
@@ -1213,7 +1213,6 @@ export default function StudentCoachingPage() {
                       </div>
                     </div>
 
-                    {/* LIVE CALCULATED TARGET vs CURRENT GAP DASHBOARD */}
                     <div style={{ background: 'white', border: '1.5px solid #a7f3d0', borderRadius: '1rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                       <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎯 Hedeflenen Net</div>
@@ -1239,24 +1238,25 @@ export default function StudentCoachingPage() {
                   </div>
                 </form>
 
-                {/* SECTION B: 🎯 CANLI ÖĞRENCİ HEDEF KARTLARI & İLERLEME TAKİBİ */}
+                {/* SECTION B: 🎯 CANLI ÖĞRENCİ HEDEF KARTLARI (SORU, KİTAP, KONU, SÜRE) */}
                 <div style={{ marginBottom: '2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Target size={20} color="#059669" /> 🎯 Öğrenci Sistem Hedefleri ({studentGoals.length} Hedef)
+                      <Target size={20} color="#059669" /> 🎯 Özel Hedefler & Görsel Takip Matrisi ({studentGoals.length} Hedef)
                     </h4>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>GoalContext 1-to-1 Canlı Eşleşme</span>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>Soru, Kitap, Konu & Süre Canlı Takibi</span>
                   </div>
 
                   {studentGoals.length === 0 ? (
                     <div style={{ padding: '2.5rem', textAlign: 'center', background: '#f8fafc', borderRadius: '1rem', border: '2px dashed #cbd5e1', color: '#94a3b8' }}>
-                      Öğrenciye ait henüz canlı hedef bulunmuyor. Aşağıdaki formdan yeni bir hedef ekleyebilirsiniz.
+                      Öğrenciye ait henüz özel hedef bulunmuyor. Aşağıdaki formdan yeni bir özel hedef tanımlayabilirsiniz.
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.1rem' }}>
                       {studentGoals.map(g => {
                         const pct = Math.min(100, Math.round(((g.current || 0) / (g.target || 1)) * 100));
                         const isDone = pct >= 100;
+                        const unitLabel = g.type === 'Soru' ? 'soru' : g.type === 'Sayfa' ? 'sayfa' : g.type === 'Konu' ? 'konu' : g.type === 'Dakika' ? 'dk' : g.type;
                         return (
                           <div
                             key={g.id}
@@ -1297,7 +1297,7 @@ export default function StudentCoachingPage() {
                             {/* PROGRESS BAR */}
                             <div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>
-                                <span>İlerleme: {g.current || 0} / {g.target} {g.type}</span>
+                                <span>İlerleme: {g.current || 0} / {g.target} {unitLabel}</span>
                                 <span style={{ color: isDone ? '#16a34a' : '#2563eb', fontWeight: 900 }}>%{pct}</span>
                               </div>
                               <div style={{ height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
@@ -1305,21 +1305,14 @@ export default function StudentCoachingPage() {
                               </div>
                             </div>
 
-                            {/* QUICK INCREMENT BUTTONS FOR TEACHER/STUDENT */}
+                            {/* QUICK INCREMENT BUTTONS FOR TEACHER */}
                             <div className="no-print" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
                               <button
                                 type="button"
-                                onClick={() => updateGoalProgress(g.id, 10)}
+                                onClick={() => updateGoalProgress(g.id, g.type === 'Soru' ? 10 : g.type === 'Sayfa' ? 5 : 1)}
                                 style={{ flex: 1, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.55rem', padding: '0.35rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
                               >
-                                +10 {g.type}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => updateGoalProgress(g.id, 25)}
-                                style={{ flex: 1, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.55rem', padding: '0.35rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
-                              >
-                                +25 {g.type}
+                                +{g.type === 'Soru' ? 10 : g.type === 'Sayfa' ? 5 : 1} {unitLabel}
                               </button>
                             </div>
                           </div>
@@ -1329,10 +1322,10 @@ export default function StudentCoachingPage() {
                   )}
                 </div>
 
-                {/* SECTION C: ➕ YENİ SİSTEM HEDEFİ EKLEME FORMU */}
+                {/* SECTION C: ➕ YENİ ÖZEL HEDEF EKLEME FORMU */}
                 <div className="no-print" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.1rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
                   <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Plus size={18} color="#059669" /> + Yeni Canlı Sistem Hedefi Ekle (Öğrenci Paneline Doğrudan Aktarılır)
+                    <Plus size={18} color="#059669" /> + Yeni Canlı Sistem Hedefi Tanımla (Soru / Kitap / Konu / Süre)
                   </h4>
 
                   <form onSubmit={handleAddStudentGoal} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
@@ -1340,7 +1333,7 @@ export default function StudentCoachingPage() {
                       <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Tanımı / Başlığı</label>
                       <input
                         type="text"
-                        placeholder="Örn: Günlük 30 Paragraf Sorusu Çöz"
+                        placeholder="Örn: Günlük 30 Paragraf Sorusu Çöz / 50 Sayfa Kitap Okuma"
                         value={newGoalTitle}
                         onChange={e => setNewGoalTitle(e.target.value)}
                         style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
@@ -1359,18 +1352,19 @@ export default function StudentCoachingPage() {
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Birimsiz Tür</label>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Türü</label>
                       <select value={newGoalType} onChange={e => setNewGoalType(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                        <option value="Soru">🎯 Soru</option>
-                        <option value="Sayfa">📖 Sayfa</option>
-                        <option value="Dakika">⏱️ Dakika</option>
+                        <option value="Soru">🎯 Soru Çözme</option>
+                        <option value="Sayfa">📖 Kitap Okuma</option>
+                        <option value="Konu">🧠 Konu Tamamlama</option>
+                        <option value="Dakika">⏱️ Çalışma Süresi (dk)</option>
                         <option value="Net">📈 Net</option>
                         <option value="Puan">🏆 Puan</option>
                       </select>
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Sayısal Değeri</label>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Miktar</label>
                       <input
                         type="number"
                         placeholder="Örn: 100"
