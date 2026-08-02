@@ -6,7 +6,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { 
   ArrowLeft, CheckCircle2, AlertCircle, BookOpen, Clock, 
-  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, Sparkles, UserCheck
+  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, Sparkles, UserCheck, RotateCcw, Edit3
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -152,11 +152,6 @@ export default function PhysicalExamRunner() {
           totalWrong: submission.wrongCount || calc.totalWrong,
           totalBlank: submission.blankCount || calc.totalBlank
         };
-      } else if (submission.score !== undefined && calc.totalNet === 0 && submission.score > 0) {
-        calc.totalNet = submission.score;
-        calc.totalCorrect = submission.correctCount || Math.round(submission.score);
-        calc.totalWrong = submission.wrongCount || 0;
-        calc.totalBlank = Math.max(0, (homework.totalQuestions || 0) - calc.totalCorrect - calc.totalWrong);
       }
 
       setResults(calc);
@@ -178,6 +173,11 @@ export default function PhysicalExamRunner() {
       setAnswers(init);
     }
   }, [homework, studentId, draftKey, evalSubmissions, calculateResults]);
+
+  const handleResetOrRetake = () => {
+    if (!window.confirm("Optik form işaretlemelerini düzenlemek veya yeniden doldurmak istiyor musunuz?")) return;
+    setIsSubmitted(false);
+  };
 
   useEffect(() => {
     if (homework && !isSubmitted && !timerStarted && !isTeacherReviewing) {
@@ -413,21 +413,57 @@ export default function PhysicalExamRunner() {
                 <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Başarı Oranı</div>
               </div>
             </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/15">
+              <div className="text-xs text-indigo-100 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                Optik formdaki işaretlemeler ve net hesabı otomatik eşleştirildi.
+              </div>
+              <button
+                onClick={handleResetOrRetake}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl font-bold text-xs text-white flex items-center gap-2 transition-all shadow-sm active:scale-95"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Optik Formu Yeniden Doldur / Güncelle
+              </button>
+            </div>
           </div>
 
           {/* DERS BAZLI AYRINTILI KARNE TABLOSU */}
           <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
               <h3 className="font-black text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-indigo-500" /> Ders Bazlı Sonuç Önizlemesi & Net Tablosu
               </h3>
-              <button
-                onClick={() => navigate('/student-results')}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-              >
-                <ListTree className="w-4 h-4" /> Tüm Sonuçlarıma Git
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleResetOrRetake}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Optiği Düzenle
+                </button>
+                <button
+                  onClick={() => navigate('/student-results')}
+                  className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:underline flex items-center gap-1"
+                >
+                  <ListTree className="w-4 h-4" /> Tüm Sonuçlarıma Git
+                </button>
+              </div>
             </div>
+
+            {results.totalBlank === homework.totalQuestions && (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-center justify-between gap-3 text-amber-800 dark:text-amber-300 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                  <span>Bu denemenin optik işaretlemeleri henüz doldurulmamış veya boş gönderilmiş. İşaretlemelerinizi girmek ve ders ders analiz görmek için butona tıklayın:</span>
+                </div>
+                <button
+                  onClick={handleResetOrRetake}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shrink-0 transition-colors"
+                >
+                  Optiği Doldur
+                </button>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
