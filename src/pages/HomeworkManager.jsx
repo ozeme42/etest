@@ -330,7 +330,7 @@ export default function HomeworkManager() {
     const totalAssigned = targetStudentIds.length;
 
     const completedStudents = targetStudentIds.filter(stId => {
-      const sub = submissions.find(s => 
+      const sub = (hw.submissions || []).find(s => s.studentId === stId) || submissions.find(s => 
         (s.testId === hw.id || s.hwId === hw.id || (hw.tests && (hw.tests.includes(s.testId) || hw.tests.includes(s.bookTestId)))) && 
         s.studentId === stId
       );
@@ -722,21 +722,43 @@ export default function HomeworkManager() {
                       s.studentId === stId
                     ) || (activeHomework.submissions || []).find(s => s.studentId === stId);
 
-                    const matchingSubInEval = submission || submissions.find(sub => sub.testId === activeHomework.id && sub.studentId === stId);
+                    const handleOpenReview = () => {
+                      setShowStatsModal(false);
+                      if (activeHomework.type === 'physicalExam') {
+                        navigate(`/physical-exam/${activeHomework.id}?studentId=${stId}`);
+                      } else if (matchingSubInEval && matchingSubInEval.id) {
+                        navigate(`/review/${matchingSubInEval.id}`);
+                      } else {
+                        navigate(`/quiz/${activeHomework.id}?studentId=${stId}`);
+                      }
+                    };
 
                     return (
-                      <div key={stId} className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs">
+                      <div 
+                        key={stId} 
+                        onClick={submission ? handleOpenReview : undefined}
+                        className={`flex items-center justify-between p-2.5 rounded-2xl border text-xs transition-all ${
+                          submission 
+                            ? 'bg-slate-50 hover:bg-indigo-50/50 dark:bg-slate-800/50 dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800 cursor-pointer shadow-sm' 
+                            : 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800/50'
+                        }`}
+                      >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-7 h-7 rounded-full bg-indigo-500 text-white font-black text-xs flex items-center justify-center shrink-0">
                             {student.name.charAt(0)}
                           </div>
-                          <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{student.name}</span>
+                          <div>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">{student.name}</span>
+                            {submission && (
+                              <span className="text-[9px] text-indigo-500 font-bold block">İncelemek için tıkla ↗</span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
                           {submission ? (
                             <span className="font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg text-[10px]">
-                              ✓ {submission.score} Puan
+                              ✓ {submission.score} {activeHomework.type === 'physicalExam' ? 'Net' : 'Puan'}
                             </span>
                           ) : (
                             <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg text-[10px]">
@@ -746,10 +768,9 @@ export default function HomeworkManager() {
 
                           {submission ? (
                             <button
-                              onClick={() => {
-                                setShowStatsModal(false);
-                                if (matchingSubInEval) navigate(`/review/${matchingSubInEval.id}`);
-                                else showToast("Öğrenci sınav kağıdı hazırlanıyor...");
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenReview();
                               }}
                               className="p-1 rounded-lg bg-indigo-50 text-indigo-600 font-bold hover:bg-indigo-600 hover:text-white transition-colors"
                               title="Kağıdı İncele"
@@ -758,7 +779,10 @@ export default function HomeworkManager() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => showToast(`${student.name} isimli öğrenciye ödev hatırlatması gönderildi! 📩`)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showToast(`${student.name} isimli öğrenciye ödev hatırlatması gönderildi! 📩`);
+                              }}
                               className="p-1 rounded-lg bg-amber-50 text-amber-600 font-bold hover:bg-amber-500 hover:text-white transition-colors"
                               title="Hatırlat"
                             >
