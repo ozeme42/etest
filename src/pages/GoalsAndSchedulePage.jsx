@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGoal } from '../context/GoalContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { useUser } from '../context/UserContext';
@@ -8,7 +8,8 @@ import { twMerge } from 'tailwind-merge';
 import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
   Timer, Flame, Trophy, ChevronRight,
-  Clock, Trash2, GraduationCap, Check, Sparkles, TrendingUp
+  Clock, Trash2, GraduationCap, Check, Sparkles, TrendingUp, Save, RefreshCw,
+  CalendarDays, ListTodo
 } from 'lucide-react';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
@@ -19,12 +20,15 @@ const GOAL_TYPE_CONFIG = {
   Soru:   { color: '#f43f5e', bg: 'bg-rose-500',    light: 'bg-rose-50 dark:bg-rose-500/10',       text: 'text-rose-600 dark:text-rose-400',       border: 'border-rose-200 dark:border-rose-900/50',   icon: Target,   unit: 'soru'  },
   Sayfa:  { color: '#3b82f6', bg: 'bg-blue-500',    light: 'bg-blue-50 dark:bg-blue-500/10',       text: 'text-blue-600 dark:text-blue-400',       border: 'border-blue-200 dark:border-blue-900/50',   icon: BookOpen, unit: 'sayfa' },
   Dakika: { color: '#10b981', bg: 'bg-emerald-500', light: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-900/50', icon: Timer, unit: 'dk' },
+  Net:    { color: '#8b5cf6', bg: 'bg-purple-500',  light: 'bg-purple-50 dark:bg-purple-500/10',   text: 'text-purple-600 dark:text-purple-400',   border: 'border-purple-200 dark:border-purple-900/50', icon: TrendingUp, unit: 'net' },
+  Puan:   { color: '#f59e0b', bg: 'bg-amber-500',   light: 'bg-amber-50 dark:bg-amber-500/10',     text: 'text-amber-600 dark:text-amber-400',     border: 'border-amber-200 dark:border-amber-900/50',   icon: Trophy,   unit: 'puan' },
 };
 
 const PERIOD_CONFIG = {
-  Günlük:  { icon: Flame,        badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-  Haftalık:{ icon: CalendarClock,badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  Aylık:   { icon: Trophy,       badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' },
+  'Günlük':     { icon: Flame,        badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+  'Haftalık':   { icon: CalendarClock,badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  'Aylık':      { icon: Trophy,       badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' },
+  'Uzun Vadeli':{ icon: GraduationCap,badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
 };
 
 /* ─── Mini progress bar ─── */
@@ -53,10 +57,10 @@ function Ring({ value, size = 64, stroke = 6, color }) {
 
 /* ─── Goal Card ─── */
 function GoalCard({ goal, onDelete, onAddProgress }) {
-  const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+  const pct = Math.min(100, Math.round(((goal.current || 0) / (goal.target || 1)) * 100));
   const done = pct >= 100;
   const t = GOAL_TYPE_CONFIG[goal.type] || GOAL_TYPE_CONFIG.Soru;
-  const p = PERIOD_CONFIG[goal.period] || PERIOD_CONFIG.Günlük;
+  const p = PERIOD_CONFIG[goal.period] || PERIOD_CONFIG['Günlük'];
   const PIcon = p.icon;
   const TIcon = t.icon;
   const [adding, setAdding] = useState('');
@@ -82,14 +86,12 @@ function GoalCard({ goal, onDelete, onAddProgress }) {
       </button>
 
       <div className="flex items-start gap-3">
-        {/* Ring */}
         <div className="relative shrink-0">
           <Ring value={pct} size={56} stroke={5} color={done ? '#10b981' : t.color} />
           <div className="absolute inset-0 flex items-center justify-center">
             <span className={cn('text-xs font-black', done ? 'text-emerald-500' : 'text-slate-800 dark:text-slate-100')}>{pct}%</span>
           </div>
         </div>
-        {/* Info */}
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex flex-wrap gap-1 mb-1.5">
             <span className={cn('inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full', p.badge)}>
@@ -103,16 +105,14 @@ function GoalCard({ goal, onDelete, onAddProgress }) {
         </div>
       </div>
 
-      {/* Bar & numbers */}
       <div className="space-y-1">
         <div className="flex justify-between text-[10px] font-black text-slate-400">
-          <span>{goal.current} / {goal.target} {t.unit}</span>
-          <span>{goal.target - goal.current > 0 ? `${goal.target - goal.current} ${t.unit} kaldı` : 'Tamamlandı'}</span>
+          <span>{goal.current || 0} / {goal.target} {t.unit}</span>
+          <span>{goal.target - (goal.current || 0) > 0 ? `${goal.target - (goal.current || 0)} ${t.unit} kaldı` : 'Tamamlandı'}</span>
         </div>
         <BarProgress value={pct} color={done ? '#10b981' : t.color} />
       </div>
 
-      {/* Quick Add Form */}
       {!done && (
         <form onSubmit={handleAdd} className="flex gap-2 pt-1">
           <input
@@ -185,13 +185,37 @@ export default function GoalsAndSchedulePage() {
   const { goals, addGoal, deleteGoal, updateGoalProgress } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { users } = useUser();
-  const { getCoachingProfileForStudent } = useCoaching();
+  const { getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles } = useCoaching();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || 'u1');
   const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
 
-  const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);
+  const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
+
+  // Sync state for 3-Level Goal Architecture
+  const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || 'LGS 2026');
+  const [targetSchool, setTargetSchool] = useState(coachingProfile.targetSchool || '');
+  const [targetScore, setTargetScore] = useState(coachingProfile.targetScore || '485');
+  const [targetNet, setTargetNet] = useState(coachingProfile.targetNet || '90');
+
+  const [monthlyGoals, setMonthlyGoals] = useState(coachingProfile.monthlyGoals || '');
+  const [weeklyGoals, setWeeklyGoals] = useState(coachingProfile.weeklyGoals || '');
+  const [dailyGoals, setDailyGoals] = useState(coachingProfile.dailyGoals || '');
+
+  const [isSavedNotice, setIsSavedNotice] = useState(false);
+
+  useEffect(() => {
+    if (coachingProfile) {
+      if (coachingProfile.examGoalType) setExamGoalType(coachingProfile.examGoalType);
+      if (coachingProfile.targetSchool) setTargetSchool(coachingProfile.targetSchool);
+      if (coachingProfile.targetScore) setTargetScore(coachingProfile.targetScore);
+      if (coachingProfile.targetNet) setTargetNet(coachingProfile.targetNet);
+      if (coachingProfile.monthlyGoals) setMonthlyGoals(coachingProfile.monthlyGoals);
+      if (coachingProfile.weeklyGoals) setWeeklyGoals(coachingProfile.weeklyGoals);
+      if (coachingProfile.dailyGoals) setDailyGoals(coachingProfile.dailyGoals);
+    }
+  }, [coachingProfile]);
 
   /* Mobile: tab state */
   const [activeTab, setActiveTab] = useState('goals');
@@ -214,6 +238,23 @@ export default function GoalsAndSchedulePage() {
   const doneDayCount   = daySchedules.filter(s => s.done).length;
   const dayPct         = daySchedules.length ? Math.round((doneDayCount / daySchedules.length) * 100) : 0;
 
+  const handleSaveAllCoachingGoals = async (e) => {
+    if (e) e.preventDefault();
+    await saveCoachingProfile({
+      ...coachingProfile,
+      studentId: selectedStudent.id,
+      examGoalType,
+      targetSchool,
+      targetScore,
+      targetNet: Number(targetNet) || 0,
+      monthlyGoals,
+      weeklyGoals,
+      dailyGoals
+    });
+    setIsSavedNotice(true);
+    setTimeout(() => setIsSavedNotice(false), 2000);
+  };
+
   const handleSaveGoal = (e) => {
     e.preventDefault();
     if (newGoal.title && newGoal.target > 0) {
@@ -233,91 +274,185 @@ export default function GoalsAndSchedulePage() {
   };
 
   const GoalsPanel = (
-    <div className="flex flex-col gap-4 h-full">
-      {/* header */}
+    <div className="flex flex-col gap-5 h-full overflow-y-auto pr-1 custom-scrollbar">
+      
+      {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-rose-500" />
-          <h2 className="text-lg font-black text-slate-900 dark:text-white">Kişisel & Koçluk Hedeflerim</h2>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white">Hedef Belirleme & Canlı Takip Paneli</h2>
         </div>
         <button onClick={() => setShowGoalModal(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white text-xs font-black shadow-sm shadow-rose-500/30 hover:shadow-md active:scale-95 transition-all">
-          <Plus className="w-3.5 h-3.5" /> Hedef Ekle
+          <Plus className="w-3.5 h-3.5" /> + Hedef Ekle
         </button>
       </div>
 
-      {/* 🏛️ KOÇLUK AKADEMİK HEDEF KARTI */}
-      {coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet > 0 || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals) && (
-        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl p-4 space-y-3 shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider">
-              <GraduationCap className="w-4 h-4" /> 🏛️ Koçluk Akademik & Stratejik Hedefler
-            </div>
-            {coachingProfile.examGoalType && (
-              <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">
-                {coachingProfile.examGoalType}
-              </span>
-            )}
+      {/* LIVE SYNC NOTICE */}
+      <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl p-3.5 flex items-center gap-3">
+        <RefreshCw className="w-6 h-6 text-emerald-500 shrink-0 animate-spin" style={{ animationDuration: '6s' }} />
+        <div>
+          <h4 className="text-xs font-black text-emerald-600 dark:text-emerald-400">🔄 1-e-1 Birebir Koçluk Dosyası Senkronizasyonu</h4>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+            Aşağıdaki Uzun, Orta ve Kısa vadeli hedefler öğrenci ve koç arasında anlık senkronize çalışır. Yapılan tüm değişiklikler iki tarafta da anında güncellenir.
+          </p>
+        </div>
+      </div>
+
+      {/* 🏛️ 1. UZUN VADELİ HEDEFLER (LGS/YKS, İSTENEN OKUL, PUAN & NET) */}
+      <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider">
+            <GraduationCap className="w-4 h-4" /> 🏛️ 1. UZUN VADELİ HEDEFLER
+          </div>
+          <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">Sınav & Okul</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sınav Türü</label>
+            <select
+              value={examGoalType}
+              onChange={e => setExamGoalType(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+            >
+              <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
+              <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
+              <option value="Ara Sınıf Başarı">📊 Ara Sınıf Takip & Takdir Hedefi</option>
+            </select>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {coachingProfile.targetSchool && (
-              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">Hedef Okul</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block mt-0.5">{coachingProfile.targetSchool}</span>
-              </div>
-            )}
-            {coachingProfile.targetScore && (
-              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">Puan Hedefi</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block mt-0.5">{coachingProfile.targetScore} Puan</span>
-              </div>
-            )}
-            {coachingProfile.targetNet > 0 && (
-              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
-                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">Net Hedefi</span>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">{coachingProfile.targetNet} Net</span>
-              </div>
-            )}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">İstenen Okul & Bölüm</label>
+            <input
+              type="text"
+              placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
+              value={targetSchool}
+              onChange={e => setTargetSchool(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+            />
           </div>
 
-          {(coachingProfile.monthlyGoals || coachingProfile.weeklyGoals) && (
-            <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 text-xs text-slate-700 dark:text-slate-300 space-y-1">
-              {coachingProfile.monthlyGoals && <p><strong>📅 Aylık Strateji:</strong> {coachingProfile.monthlyGoals}</p>}
-              {coachingProfile.weeklyGoals && <p><strong>⚡ Haftalık Hedef:</strong> {coachingProfile.weeklyGoals}</p>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Summary pill */}
-      {studentGoals.length > 0 && (
-        <div className="bg-slate-100 dark:bg-slate-800/60 rounded-xl px-3 py-2 flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
-          <span>{studentGoals.length} hedef tanımlı</span>
-          <span className="text-emerald-500 font-black">{completedGoals} tamamlandı</span>
-        </div>
-      )}
-
-      {/* cards */}
-      {studentGoals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center flex-1">
-          <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
-            <Target className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Puan Hedefi</label>
+            <input
+              type="text"
+              placeholder="Örn: 485 Puan"
+              value={targetScore}
+              onChange={e => setTargetScore(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+            />
           </div>
-          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Henüz hedef belirlemedin</p>
-          <p className="text-xs text-slate-400 mt-1 max-w-[200px]">Günlük, haftalık veya aylık hedefler ekleyerek ilerleni takip et!</p>
-          <button onClick={() => setShowGoalModal(true)}
-            className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white text-xs font-black shadow-md active:scale-95 transition-all">
-            <Plus className="w-4 h-4" /> İlk Hedefini Ekle
-          </button>
+
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Toplam Net Hedefi</label>
+            <input
+              type="number"
+              placeholder="Örn: 90 Net"
+              value={targetNet}
+              onChange={e => setTargetNet(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+            />
+          </div>
         </div>
-      ) : (
-        <div className="space-y-3 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-          {studentGoals.map(g => (
-            <GoalCard key={g.id} goal={g} onDelete={deleteGoal} onAddProgress={updateGoalProgress} />
-          ))}
+
+        {/* Uzun Vadeli Goal Cards */}
+        {studentGoals.filter(g => g.period === 'Uzun Vadeli').length > 0 && (
+          <div className="space-y-2 pt-2">
+            {studentGoals.filter(g => g.period === 'Uzun Vadeli').map(g => (
+              <GoalCard key={g.id} goal={g} onDelete={deleteGoal} onAddProgress={updateGoalProgress} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 📅 2. ORTA VADELİ HEDEFLER (AYLIK HEDEFLER) */}
+      <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">
+            <Trophy className="w-4 h-4" /> 📅 2. ORTA VADELİ HEDEFLER (AYLIK)
+          </div>
+          <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">Aylık Kazanımlar</span>
         </div>
-      )}
+
+        <div>
+          <textarea
+            rows="2"
+            placeholder="Aylık stratejik hedefleriniz (Örn: Matematik Çarpanlar ve EKOK problemleri tamamlanacak)..."
+            value={monthlyGoals}
+            onChange={e => setMonthlyGoals(e.target.value)}
+            className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none"
+          />
+        </div>
+
+        {/* Aylık Goal Cards */}
+        {studentGoals.filter(g => g.period === 'Aylık').length > 0 && (
+          <div className="space-y-2 pt-1">
+            {studentGoals.filter(g => g.period === 'Aylık').map(g => (
+              <GoalCard key={g.id} goal={g} onDelete={deleteGoal} onAddProgress={updateGoalProgress} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ⚡ 3. KISA VADELİ HEDEFLER (HAFTALIK & GÜNLÜK HEDEFLER) */}
+      <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+          <div className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-wider">
+            <Flame className="w-4 h-4" /> ⚡ 3. KISA VADELİ HEDEFLER (HAFTALIK & GÜNLÜK)
+          </div>
+          <span className="text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full">Rutin & Çalışma</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">⚡ Haftalık Hedefler</label>
+            <textarea
+              rows="2"
+              placeholder="Örn: Haftada 400 soru + 2 deneme..."
+              value={weeklyGoals}
+              onChange={e => setWeeklyGoals(e.target.value)}
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">🔥 Günlük Çalışma Rutini</label>
+            <textarea
+              rows="2"
+              placeholder="Örn: Günlük 20 Paragraf sorusu..."
+              value={dailyGoals}
+              onChange={e => setDailyGoals(e.target.value)}
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Kısa Vadeli (Haftalık & Günlük) Goal Cards */}
+        {studentGoals.filter(g => g.period === 'Haftalık' || g.period === 'Günlük' || !g.period).length > 0 && (
+          <div className="space-y-2 pt-1">
+            {studentGoals.filter(g => g.period === 'Haftalık' || g.period === 'Günlük' || !g.period).map(g => (
+              <GoalCard key={g.id} goal={g} onDelete={deleteGoal} onAddProgress={updateGoalProgress} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* SAVE BUTTON FOR ALL HIERARCHICAL GOALS */}
+      <div className="flex items-center justify-between pt-2">
+        {isSavedNotice ? (
+          <span className="text-xs font-black text-emerald-600 flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4" /> Tüm Hedefler Kaydedildi ve Senkronize Edildi!
+          </span>
+        ) : <span />}
+        <button
+          onClick={handleSaveAllCoachingGoals}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all ml-auto"
+        >
+          <Save className="w-4 h-4" /> Tüm Hedefleri Kaydet & Senkronize Et
+        </button>
+      </div>
+
     </div>
   );
 
@@ -411,7 +546,7 @@ export default function GoalsAndSchedulePage() {
       <div className="max-w-6xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white">Hedefler & Çalışma Programı</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Kişisel gelişimi ve günlük rutini tek yerden takip et</p>
+          <p className="text-xs text-slate-400 mt-0.5">Uzun, Orta ve Kısa vadeli hedefler ile günlük rutini tek yerden takip et</p>
         </div>
 
         {/* Student Selector */}
@@ -447,7 +582,6 @@ export default function GoalsAndSchedulePage() {
 
       {/* Main Grid Layout */}
       <div className="max-w-6xl mx-auto">
-        {/* Desktop: 2-column split. Mobile: show active tab */}
         <div className="hidden md:grid md:grid-cols-2 gap-6 items-stretch min-h-[550px]">
           {GoalsPanel}
           {SchedulePanel}
@@ -495,6 +629,8 @@ export default function GoalsAndSchedulePage() {
                     <option value="Soru">🎯 Soru</option>
                     <option value="Sayfa">📖 Sayfa</option>
                     <option value="Dakika">⏱️ Dakika</option>
+                    <option value="Net">📈 Net</option>
+                    <option value="Puan">🏆 Puan</option>
                   </select>
                 </div>
                 <div>
@@ -507,6 +643,7 @@ export default function GoalsAndSchedulePage() {
                     <option value="Günlük">⚡ Günlük</option>
                     <option value="Haftalık">📅 Haftalık</option>
                     <option value="Aylık">🏆 Aylık</option>
+                    <option value="Uzun Vadeli">🏛️ Uzun Vadeli</option>
                   </select>
                 </div>
               </div>
