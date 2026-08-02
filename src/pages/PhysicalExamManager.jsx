@@ -892,12 +892,14 @@ export default function PhysicalExamManager() {
                               <div className="flex items-center gap-1.5">
                                 {currentSub.options.map(opt => {
                                   const activeOpt = selected === opt;
+                                  const isKeyOpt = correctKey === opt;
 
                                   return (
                                     <button
                                       key={opt}
                                       type="button"
                                       onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
+                                      title={isKeyOpt ? `Cevap Anahtarı: ${opt}` : undefined}
                                       className={cn(
                                         'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
                                         activeOpt
@@ -906,6 +908,8 @@ export default function PhysicalExamManager() {
                                             : isWrong
                                             ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
                                             : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                          : isKeyOpt
+                                          ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 ring-2 ring-amber-300/60 dark:ring-amber-700/60'
                                           : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
                                       )}
                                     >
