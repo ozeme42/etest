@@ -294,7 +294,7 @@ export default function PhysicalExamRunner() {
                 <div 
                   key={qIdx}
                   className={cn(
-                    'flex items-center justify-center sm:justify-between gap-4 sm:gap-2 p-3 sm:p-2.5 rounded-2xl border transition-all',
+                    'flex items-center justify-between gap-3 p-3 sm:p-2.5 rounded-2xl border transition-all w-full',
                     isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
                     isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
                     'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-700 hover:border-indigo-300'
@@ -311,7 +311,7 @@ export default function PhysicalExamRunner() {
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex-1 flex items-center justify-between sm:justify-end sm:gap-1.5 pl-2 sm:pl-0">
                     {activeSubject.options.map(opt => {
                       const isSelected = selected === opt;
                       // When submitted, we can show what they selected and what was correct
