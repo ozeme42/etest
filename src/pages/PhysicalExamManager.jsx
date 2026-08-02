@@ -218,6 +218,20 @@ export default function PhysicalExamManager() {
     });
   };
 
+  // Cycle Answer Key directly on question row badge
+  const handleCycleAnswerKey = (subjectName, qIdx) => {
+    const currentSub = subjects.find(s => s.name === subjectName);
+    if (!currentSub) return;
+    setAnswerKey(prev => {
+      const currentList = [...(prev[subjectName] || [])];
+      const opts = currentSub.options;
+      const current = currentList[qIdx] || opts[0];
+      const nextIndex = (opts.indexOf(current) + 1) % opts.length;
+      currentList[qIdx] = opts[nextIndex];
+      return { ...prev, [subjectName]: currentList };
+    });
+  };
+
   // Extract valid letters (A, B, C, D, E) from user text
   const parsedBulkInput = useMemo(() => {
     if (!bulkInputText) return [];
@@ -817,7 +831,9 @@ export default function PhysicalExamManager() {
                             <BookOpen className="w-5 h-5 text-indigo-500" />
                             {currentSub.name} Optik Kodlama Formu
                           </h3>
-                          <p className="text-xs text-slate-400">Baloncuklara tıklayarak cevapları kodlayın veya yukarıdan toplu yapıştırın</p>
+                          <p className="text-xs text-slate-400">
+                            Aşağıdaki sorular için <span className="font-bold text-amber-600 dark:text-amber-400">🔑 Doğru Cevap (Cevap Anahtarı)</span> rozetlerine basarak veya yukarıdan yapıştırarak belirleyin.
+                          </p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -834,7 +850,7 @@ export default function PhysicalExamManager() {
                             onClick={() => openBulkModal('answerKey')}
                             className="px-2.5 py-1 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold border border-amber-300 dark:border-amber-800 flex items-center gap-1"
                           >
-                            <Key className="w-3.5 h-3.5" /> Cevap Anahtarı
+                            <Key className="w-3.5 h-3.5" /> Cevap Anahtarı Yapıştır
                           </button>
 
                           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1 rounded-xl">
@@ -859,7 +875,7 @@ export default function PhysicalExamManager() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {Array.from({ length: currentSub.count }).map((_, qIdx) => {
                           const selected = subAnswers[qIdx];
-                          const correctKey = subKey[qIdx];
+                          const correctKey = subKey[qIdx] || currentSub.options[qIdx % currentSub.options.length];
                           const isAnswered = Boolean(selected);
                           const isCorrect = isAnswered && selected === correctKey;
                           const isWrong = isAnswered && selected !== correctKey;
@@ -874,36 +890,52 @@ export default function PhysicalExamManager() {
                                 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
                               )}
                             >
-                              <div className="flex items-center gap-2.5">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs flex items-center justify-center shrink-0">
                                   {qIdx + 1}
                                 </span>
+
+                                {/* CLEAR & ALWAYS VISIBLE ANSWER KEY BADGE */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleCycleAnswerKey(currentSub.name, qIdx)}
+                                  className="text-[10px] font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-800/60 flex items-center gap-1 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
+                                  title="Cevap Anahtarını Değiştirmek İçin Tıklayın"
+                                >
+                                  <Key className="w-3 h-3 text-amber-600" /> Key: <span className="underline font-black">{correctKey}</span>
+                                </button>
+
                                 {isAnswered && (
                                   <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white')}>
-                                    {isCorrect ? 'Doğru' : `Yanlış (Doğru: ${correctKey})`}
+                                    {isCorrect ? '✅ Doğru' : `❌ Yanlış (Seçilen: ${selected})`}
                                   </span>
                                 )}
                               </div>
 
-                              {/* BUBBLE BUTTONS */}
+                              {/* BUBBLE BUTTONS WITH VISIBLE ANSWER KEY RING */}
                               <div className="flex items-center gap-1.5">
                                 {currentSub.options.map(opt => {
                                   const activeOpt = selected === opt;
+                                  const isKeyOpt = correctKey === opt;
+
                                   return (
                                     <button
                                       key={opt}
                                       type="button"
                                       onClick={() => handleOptionClick(currentSub.name, qIdx, opt)}
                                       className={cn(
-                                        'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center',
+                                        'w-8 h-8 rounded-full border text-xs font-black transition-all active:scale-95 flex items-center justify-center relative',
                                         activeOpt
                                           ? isCorrect
                                             ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
                                             : isWrong
                                             ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
                                             : 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                                          : isKeyOpt
+                                          ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 text-amber-700 dark:text-amber-300 ring-2 ring-amber-400/50'
                                           : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400'
                                       )}
+                                      title={isKeyOpt ? 'Bu şık Cevap Anahtarıdır' : undefined}
                                     >
                                       {opt}
                                     </button>
@@ -1016,7 +1048,7 @@ export default function PhysicalExamManager() {
             <form onSubmit={handleApplyBulkInput} className="space-y-3">
               <textarea
                 rows={4}
-                placeholder="Örn: A B C D A B C D (Kaç tane yazarsanız Soru 1'den itibaren o kadarı güncellenir)"
+                placeholder="Örn: A B C D A B C D A B C D A B C D A B C D"
                 value={bulkInputText}
                 onChange={e => setBulkInputText(e.target.value)}
                 className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500 uppercase tracking-widest"
