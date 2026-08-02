@@ -7,7 +7,8 @@ import {
   User, Sparkles, TrendingUp, Trash2, CalendarDays, Edit3, UserCheck,
   Printer, Folder, Bookmark, Phone, Heart, Brain, GraduationCap,
   Building, Mail, ShieldAlert, Compass, HelpCircle, Activity, Flame,
-  Sliders, PieChart, ListTodo, Save, Eye, Layers
+  Sliders, PieChart, ListTodo, Save, Eye, Layers, BookMarked, Monitor,
+  Dumbbell, Moon, CheckSquare, Square, Filter
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { useUser } from '../context/UserContext';
@@ -30,6 +31,75 @@ const DAYS = [
 ];
 
 const TIME_SLOTS = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'];
+
+const SUBJECT_NAMES = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce'];
+
+const DEFAULT_SUBJECT_ANALYSIS = {
+  'Türkçe': {
+    topics: 'Paragraf Taktikleri, Sözel Mantık, Cümlede Anlam, Yazım Kuralları',
+    weaknesses: 'Sözel mantık sorularında süre kaybı ve paragrafta çabuk sıkılma',
+    mockNet: '18.5',
+    errorType: 'Dikkat / Okuma Hatası',
+    reviewDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+    notes: 'Haftada en az 30 paragraf sorusu zaman tutarak çözülecek.'
+  },
+  'Matematik': {
+    topics: 'Çarpanlar ve Katlar, Üslü İfadeler, Kareköklü İfadeler, Veri Analizi',
+    weaknesses: 'EBOB-EKOK yeni nesil problem kalıpları',
+    mockNet: '15.5',
+    errorType: 'Bilgi & İşlem Hatası',
+    reviewDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    notes: 'Günde 20 adet yeni nesil soru ve yanlış analiz kartı hazırlanacak.'
+  },
+  'Fen Bilimleri': {
+    topics: 'Mevsimler ve İklim, DNA ve Genetik Kod, Basınç',
+    weaknesses: 'Çaprazlama ve kalıtım olasılık soruları',
+    mockNet: '19.0',
+    errorType: 'Bilgi Eksikliği',
+    reviewDate: new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
+    notes: 'Konu özet şeması ve biyoloji terim kartları gözden geçirilecek.'
+  },
+  'Sosyal Bilgiler': {
+    topics: 'Bir Kahraman Doğuyor, Milli Uyanış, Ya İstiklal Ya Ölüm',
+    weaknesses: 'İnkılap Tarihi kavram soruları (Misak-ı Milli, Amasya Genelgesi)',
+    mockNet: '9.5',
+    errorType: 'Zaman Yetiştirememe',
+    reviewDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    notes: 'Kavram haritası çıkarılacak.'
+  },
+  'İngilizce': {
+    topics: 'Friendship, Teen Life, In The Kitchen',
+    weaknesses: 'Kelime bilgisi ve synonym (eş anlamlı) eşleştirmeleri',
+    mockNet: '9.0',
+    errorType: 'Bilgi Eksikliği',
+    reviewDate: new Date(Date.now() + 86400000 * 6).toISOString().split('T')[0],
+    notes: 'Günlük 15 İngilizce kelime kartı hazırlanıp tekrar edilecek.'
+  }
+};
+
+const DEFAULT_WEEKLY_PROGRAM = [
+  { id: 'w1', day: 'Pazartesi', subject: 'Türkçe', time: '18:00 - 19:30', content: 'Paragraf Taktikleri (30 Soru) + Konu Tekrarı', completed: true },
+  { id: 'w2', day: 'Pazartesi', subject: 'Matematik', time: '20:00 - 21:30', content: 'Çarpanlar ve Katlar Yeni Nesil (40 Soru)', completed: false },
+  { id: 'w3', day: 'Salı', subject: 'Fen Bilimleri', time: '18:00 - 19:30', content: 'Mevsimler ve İklim Deneme Sınavı', completed: true },
+  { id: 'w4', day: 'Çarşamba', subject: 'Matematik', time: '19:00 - 20:30', content: 'EBOB-EKOK Özel Problem Çözümleri', completed: false },
+  { id: 'w5', day: 'Perşembe', subject: 'Sosyal Bilgiler', time: '18:00 - 19:00', content: 'Milli Uyanış Kavram Kartları Tekrarı', completed: true },
+  { id: 'w6', day: 'Cuma', subject: 'İngilizce', time: '19:00 - 20:00', content: 'Friendship Kelime Testi (20 Soru)', completed: false },
+  { id: 'w7', day: 'Cumartesi', subject: 'Genel Deneme', time: '10:00 - 13:00', content: 'Kapsamlı LGS/YKS Deneme Sınavı 1', completed: false },
+];
+
+const DEFAULT_DAILY_LOGS = [
+  {
+    id: 'dl1',
+    date: new Date().toISOString().split('T')[0],
+    durationMinutes: 210,
+    questionCount: 160,
+    reviewSummary: 'Matematik Çarpanlar & Fen Mevsimler Konu Tekrarı Yapıldı ✅',
+    videoSummary: 'YouTube Paragraf Çözüm Taktikleri (2 Video)',
+    bookReading: '40 Sayfa (Kitap Okundu)',
+    sportActivity: '30 dk Yürüyüş & Egzersiz',
+    sleepSchedule: '23:00 - 07:00 (8 Saat Verimli Uyku)'
+  }
+];
 
 export default function StudentCoachingPage() {
   const { studentId } = useParams();
@@ -55,10 +125,10 @@ export default function StudentCoachingPage() {
     getMeetingsForStudent
   } = useCoaching();
 
-  // Primary Dossier Tab State (Page 1: Info, Page 2: Intake, Page 3: Goals)
+  // Active Dossier Tab State
   const [activeTab, setActiveTab] = useState('info'); 
 
-  // Find target student
+  // Target Student
   const student = users.find(u => String(u.id) === String(studentId));
   const teacherId = currentUser?.id || 'teacher_1';
 
@@ -99,11 +169,33 @@ export default function StudentCoachingPage() {
   // Page 3: Hedef Belirleme
   const [examGoalType, setExamGoalType] = useState(existingProfile.examGoalType || 'LGS 2026');
   const [targetDepartment, setTargetDepartment] = useState(existingProfile.targetDepartment || '');
-  const [targetScore, setTargetScore] = useState(existingProfile.targetScore || '480');
+  const [targetScore, setTargetScore] = useState(existingProfile.targetScore || '485');
   const [targetNet, setTargetNet] = useState(existingProfile.targetNet || '90');
   const [monthlyGoals, setMonthlyGoals] = useState(existingProfile.monthlyGoals || '');
   const [weeklyGoals, setWeeklyGoals] = useState(existingProfile.weeklyGoals || '');
   const [dailyGoals, setDailyGoals] = useState(existingProfile.dailyGoals || '');
+
+  // Page 4: Ders Analizi State (Per subject data)
+  const [subjectAnalyses, setSubjectAnalyses] = useState(existingProfile.subjectAnalyses || DEFAULT_SUBJECT_ANALYSIS);
+  const [activeSubjectTab, setActiveSubjectTab] = useState('Türkçe');
+
+  // Page 5: Haftalık Program State
+  const [weeklyProgram, setWeeklyProgram] = useState(existingProfile.weeklyProgram || DEFAULT_WEEKLY_PROGRAM);
+  const [newProgDay, setNewProgDay] = useState('Pazartesi');
+  const [newProgSubject, setNewProgSubject] = useState('Matematik');
+  const [newProgTime, setNewProgTime] = useState('18:00 - 19:30');
+  const [newProgContent, setNewProgContent] = useState('');
+
+  // Page 6: Günlük Çalışma Takibi State
+  const [dailyLogs, setDailyLogs] = useState(existingProfile.dailyLogs || DEFAULT_DAILY_LOGS);
+  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [logDuration, setLogDuration] = useState('180');
+  const [logQuestions, setLogQuestions] = useState('120');
+  const [logReview, setLogReview] = useState('');
+  const [logVideo, setLogVideo] = useState('');
+  const [logBook, setLogBook] = useState('');
+  const [logSport, setLogSport] = useState('');
+  const [logSleep, setLogSleep] = useState('23:00 - 07:00 (8 Saat)');
 
   const [isProfileSaved, setIsProfileSaved] = useState(false);
 
@@ -144,16 +236,14 @@ export default function StudentCoachingPage() {
       if (existingProfile.monthlyGoals) setMonthlyGoals(existingProfile.monthlyGoals);
       if (existingProfile.weeklyGoals) setWeeklyGoals(existingProfile.weeklyGoals);
       if (existingProfile.dailyGoals) setDailyGoals(existingProfile.dailyGoals);
+
+      if (existingProfile.subjectAnalyses) setSubjectAnalyses(existingProfile.subjectAnalyses);
+      if (existingProfile.weeklyProgram) setWeeklyProgram(existingProfile.weeklyProgram);
+      if (existingProfile.dailyLogs) setDailyLogs(existingProfile.dailyLogs);
     }
   }, [existingProfile]);
 
   // --- OTHER FORM STATES ---
-  // Study assignment form
-  const [newSubject, setNewSubject] = useState('');
-  const [newTopic, setNewTopic] = useState('');
-  const [newDuration, setNewDuration] = useState('30');
-  const [newDueDate, setNewDueDate] = useState('');
-
   // Coaching Note & Goals
   const existingNote = getCoachingNoteForStudent(studentId) || {};
   const [coachingNoteText, setCoachingNoteText] = useState(existingNote.note || '');
@@ -256,6 +346,10 @@ export default function StudentCoachingPage() {
   const latestMockNet = studentMockExams.length > 0 ? studentMockExams[studentMockExams.length - 1].totalNet : 0;
   const netGap = Math.max(0, Number(targetNet) - latestMockNet);
 
+  // Totals for Daily Tracker Logs
+  const totalLogDuration = useMemo(() => dailyLogs.reduce((acc, l) => acc + (Number(l.durationMinutes) || 0), 0), [dailyLogs]);
+  const totalLogQuestions = useMemo(() => dailyLogs.reduce((acc, l) => acc + (Number(l.questionCount) || 0), 0), [dailyLogs]);
+
   // --- HANDLERS ---
   const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
@@ -296,10 +390,74 @@ export default function StudentCoachingPage() {
       targetNet: Number(targetNet) || 0,
       monthlyGoals,
       weeklyGoals,
-      dailyGoals
+      dailyGoals,
+
+      // Page 4, 5, 6
+      subjectAnalyses,
+      weeklyProgram,
+      dailyLogs
     });
     setIsProfileSaved(true);
     setTimeout(() => setIsProfileSaved(false), 2500);
+  };
+
+  // Helper for updating Subject Analysis field
+  const updateSubjectAnalysisField = (sub, field, value) => {
+    setSubjectAnalyses(prev => ({
+      ...prev,
+      [sub]: {
+        ...(prev[sub] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  // Helpers for Weekly Program
+  const handleToggleWeeklyItem = (id) => {
+    const next = weeklyProgram.map(w => w.id === id ? { ...w, completed: !w.completed } : w);
+    setWeeklyProgram(next);
+  };
+
+  const handleDeleteWeeklyItem = (id) => {
+    const next = weeklyProgram.filter(w => w.id !== id);
+    setWeeklyProgram(next);
+  };
+
+  const handleAddWeeklyItem = (e) => {
+    e.preventDefault();
+    if (!newProgContent.trim()) return;
+    const newItem = {
+      id: `w_${Date.now()}`,
+      day: newProgDay,
+      subject: newProgSubject,
+      time: newProgTime,
+      content: newProgContent.trim(),
+      completed: false
+    };
+    setWeeklyProgram(prev => [...prev, newItem]);
+    setNewProgContent('');
+  };
+
+  // Helpers for Daily Tracker Logs
+  const handleAddDailyLog = (e) => {
+    e.preventDefault();
+    const newLog = {
+      id: `dl_${Date.now()}`,
+      date: logDate,
+      durationMinutes: Number(logDuration) || 0,
+      questionCount: Number(logQuestions) || 0,
+      reviewSummary: logReview.trim() || 'Genel Konu Tekrarı Yapıldı',
+      videoSummary: logVideo.trim() || 'Ders Anlatım Videosu İzlendi',
+      bookReading: logBook.trim() || 'Kitap Okundu',
+      sportActivity: logSport.trim() || 'Egzersiz Yapıldı',
+      sleepSchedule: logSleep.trim() || 'Düzenli Uyku'
+    };
+    setDailyLogs(prev => [newLog, ...prev]);
+    setLogReview(''); setLogVideo(''); setLogBook(''); setLogSport('');
+  };
+
+  const handleDeleteDailyLog = (id) => {
+    setDailyLogs(prev => prev.filter(l => l.id !== id));
   };
 
   const handleAddMockExam = async (e) => {
@@ -400,6 +558,7 @@ export default function StudentCoachingPage() {
   };
 
   const gradeName = curriculumData?.grades?.find(g => g.id === student.gradeId)?.name || 'Öğrenci';
+  const currSubAnalysis = subjectAnalyses[activeSubjectTab] || {};
 
   return (
     <div className="coaching-dossier-page" style={{ minHeight: '100vh', background: '#e2e8f0', padding: 'clamp(1rem,3vw,2rem)', fontFamily: 'inherit' }}>
@@ -470,12 +629,14 @@ export default function StudentCoachingPage() {
             { id: 'info', label: '📄 1. Öğrenci Bilgi Formu', icon: UserCheck, color: '#2563eb' },
             { id: 'intake', label: '🧠 2. İlk Tanışma Analizi', icon: Brain, color: '#7c3aed' },
             { id: 'goals', label: '🎯 3. Hedef Belirleme', icon: Target, color: '#059669' },
-            { id: 'analytics', label: '📊 4. Akademik Performans', icon: BarChart3, color: '#d97706' },
-            { id: 'mock_exams', label: '📈 5. Deneme Net Takibi', icon: TrendingUp, badge: studentMockExams.length, color: '#0284c7' },
-            { id: 'weaknesses', label: '⚠️ 6. Eksik Haritası & Ödev', icon: AlertTriangle, badge: weakTopics.length, color: '#dc2626' },
-            { id: 'timetable', label: '📅 7. Çalışma Programı', icon: CalendarDays, color: '#4f46e5' },
-            { id: 'meetings', label: '📝 8. Görüşme Tutanakları', icon: Edit3, badge: studentMeetings.length, color: '#0891b2' },
-            { id: 'notes', label: '💬 9. Koçluk Notları', icon: MessageSquare, color: '#db2777' }
+            { id: 'subject_analysis', label: '📚 4. Ders Analizi', icon: BookOpen, color: '#d97706' },
+            { id: 'weekly_program', label: '📅 5. Haftalık Program', icon: CalendarDays, color: '#0284c7' },
+            { id: 'daily_tracker', label: '⏱️ 6. Günlük Çalışma Takibi', icon: Flame, color: '#dc2626' },
+            { id: 'analytics', label: '📊 7. Akademik Performans', icon: BarChart3, color: '#4f46e5' },
+            { id: 'mock_exams', label: '📈 8. Deneme Net Takibi', icon: TrendingUp, badge: studentMockExams.length, color: '#0891b2' },
+            { id: 'weaknesses', label: '⚠️ 9. Eksik Haritası & Ödev', icon: AlertTriangle, badge: weakTopics.length, color: '#e11d48' },
+            { id: 'meetings', label: '📝 10. Görüşme Tutanakları', icon: Edit3, badge: studentMeetings.length, color: '#9333ea' },
+            { id: 'notes', label: '💬 11. Koçluk Notları', icon: MessageSquare, color: '#db2777' }
           ].map(t => {
             const active = activeTab === t.id;
             return (
@@ -507,7 +668,7 @@ export default function StudentCoachingPage() {
                     <UserCheck size={24} color="#2563eb" /> 1. Öğrenci Bilgi Formu & Künye Kaydı
                   </h3>
                   <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
-                    Sayfa 1 / 3
+                    Sayfa 1 / 6
                   </span>
                 </div>
 
@@ -704,7 +865,7 @@ export default function StudentCoachingPage() {
                     <Brain size={24} color="#7c3aed" /> 2. İlk Tanışma Analizi, Çalışma Alışkanlıkları & SWOT
                   </h3>
                   <span style={{ background: '#f3e8ff', color: '#6b21a8', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
-                    Sayfa 2 / 3
+                    Sayfa 2 / 6
                   </span>
                 </div>
 
@@ -897,7 +1058,7 @@ export default function StudentCoachingPage() {
                     <Target size={24} color="#059669" /> 3. Hedef Belirleme (Uzun, Orta & Kısa Vadeli Hedefler)
                   </h3>
                   <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
-                    Sayfa 3 / 3
+                    Sayfa 3 / 6
                   </span>
                 </div>
 
@@ -1031,7 +1192,535 @@ export default function StudentCoachingPage() {
             </div>
           )}
 
-          {/* PAGE 4: AKADEMİK PERFORMANS */}
+          {/* PAGE 4: DERS ANALİZİ (HER DERS İÇİN AYRI DETAYLI TAKİP) */}
+          {(activeTab === 'subject_analysis' || window.matchMedia('print').matches) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <BookOpen size={24} color="#d97706" /> 4. Ders Analizi & Konu Bazlı Takip Ekranı
+                  </h3>
+                  <span style={{ background: '#fef3c7', color: '#b45309', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
+                    Sayfa 4 / 6
+                  </span>
+                </div>
+
+                {/* SUBJECT SELECTOR TABS */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                  {SUBJECT_NAMES.map(sub => {
+                    const active = activeSubjectTab === sub;
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => setActiveSubjectTab(sub)}
+                        style={{
+                          padding: '0.65rem 1.25rem',
+                          borderRadius: '0.75rem',
+                          border: active ? '2px solid #d97706' : '1.5px solid #cbd5e1',
+                          background: active ? '#fef3c7' : 'white',
+                          color: active ? '#92400e' : '#475569',
+                          fontWeight: active ? 900 : 700,
+                          fontSize: '0.88rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: active ? '0 2px 8px rgba(217,119,6,0.2)' : 'none',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <span>{sub === 'Türkçe' ? '📖' : sub === 'Matematik' ? '📐' : sub === 'Fen Bilimleri' ? '🧪' : sub === 'Sosyal Bilgiler' ? '🌍' : '🗣️'}</span>
+                        <span>{sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* CURRENT SUBJECT DEEP FORM */}
+                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '1.25rem', padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>{activeSubjectTab === 'Türkçe' ? '📖' : activeSubjectTab === 'Matematik' ? '📐' : activeSubjectTab === 'Fen Bilimleri' ? '🧪' : activeSubjectTab === 'Sosyal Bilgiler' ? '🌍' : '🗣️'}</span>
+                        <span>{activeSubjectTab} Derse Özel Detaylı Takip Formu</span>
+                      </h4>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                      {/* Konular */}
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 900, color: '#78350f', display: 'block', marginBottom: 4 }}>📌 Takip Edilen Konular</label>
+                        <textarea
+                          rows="3"
+                          placeholder="Örn: Paragraf, Sözel Mantık, Cümlede Anlam..."
+                          value={currSubAnalysis.topics || ''}
+                          onChange={e => updateSubjectAnalysisField(activeSubjectTab, 'topics', e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+
+                      {/* Eksikler */}
+                      <div>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 900, color: '#991b1b', display: 'block', marginBottom: 4 }}>⚠️ Eksikler / Zorlanılan Alanlar</label>
+                        <textarea
+                          rows="3"
+                          placeholder="Örn: Sözel mantık soru kalıpları, grafik yorumlama..."
+                          value={currSubAnalysis.weaknesses || ''}
+                          onChange={e => updateSubjectAnalysisField(activeSubjectTab, 'weaknesses', e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #fca5a5', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#fef2f2' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                      {/* Deneme Neti */}
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#78350f', display: 'block', marginBottom: 4 }}>📈 Son Deneme Net Ortalama</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: 18.5 Net"
+                          value={currSubAnalysis.mockNet || ''}
+                          onChange={e => updateSubjectAnalysisField(activeSubjectTab, 'mockNet', e.target.value)}
+                          style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+
+                      {/* Hata Türü */}
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#78350f', display: 'block', marginBottom: 4 }}>🎯 Baskın Hata Türü</label>
+                        <select
+                          value={currSubAnalysis.errorType || 'Dikkat / Okuma Hatası'}
+                          onChange={e => updateSubjectAnalysisField(activeSubjectTab, 'errorType', e.target.value)}
+                          style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        >
+                          <option value="Bilgi Eksikliği">🔴 Bilgi Eksikliği (Konu Kavranmamış)</option>
+                          <option value="Dikkat / Okuma Hatası">🟡 Dikkat / İşlem & Okuma Hatası</option>
+                          <option value="Zaman Yetiştirememe">⏳ Zaman Yetiştirememe (Süre Baskısı)</option>
+                          <option value="Soru Kökünü Yanlış Anlama">👁️ Soru Kökünü Yanlış Okuma</option>
+                        </select>
+                      </div>
+
+                      {/* Tekrar Tarihi */}
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#78350f', display: 'block', marginBottom: 4 }}>🗓️ Planlanan Tekrar Tarihi</label>
+                        <input
+                          type="date"
+                          value={currSubAnalysis.reviewDate || ''}
+                          onChange={e => updateSubjectAnalysisField(activeSubjectTab, 'reviewDate', e.target.value)}
+                          style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ders Özel Notları */}
+                    <div>
+                      <label style={{ fontSize: '0.78rem', fontWeight: 900, color: '#78350f', display: 'block', marginBottom: 4 }}>📝 Ders Özel Koç Tavsiyesi & Notu</label>
+                      <textarea
+                        rows="3"
+                        placeholder="Örn: Bu derste kronometre ile çalışılacak. Yanlış sorular soru defterine yapıştırılacak..."
+                        value={currSubAnalysis.notes || ''}
+                        onChange={e => updateSubjectAnalysisField(activeSubjectTab, 'notes', e.target.value)}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                    {isProfileSaved ? (
+                      <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <CheckCircle2 size={20} /> Tüm Ders Analizleri Başarıyla Kaydedildi!
+                      </span>
+                    ) : <span />}
+                    <button type="submit" style={{ background: 'linear-gradient(135deg,#d97706,#b45309)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(217,119,6,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Save size={18} /> Ders Analiz Verilerini Kaydet
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* PAGE 5: HAFTALIK PROGRAM (GÜN, DERS, SAAT, TAMAMLANDI) */}
+          {(activeTab === 'weekly_program' || window.matchMedia('print').matches) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <CalendarDays size={24} color="#0284c7" /> 5. Haftalık Çalışma Programı & Görev Takibi
+                  </h3>
+                  <span style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
+                    Sayfa 5 / 6
+                  </span>
+                </div>
+
+                {/* ADD NEW ITEM FORM */}
+                <div className="no-print" style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '1.1rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: 900, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Plus size={18} /> Program Çizelgesine Yeni Görev Ekle
+                  </h4>
+
+                  <form onSubmit={handleAddWeeklyItem} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0369a1', display: 'block', marginBottom: 4 }}>Gün</label>
+                      <select value={newProgDay} onChange={e => setNewProgDay(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #7dd3fc', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
+                        {DAYS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0369a1', display: 'block', marginBottom: 4 }}>Ders</label>
+                      <select value={newProgSubject} onChange={e => setNewProgSubject(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #7dd3fc', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
+                        <option value="Matematik">Matematik</option>
+                        <option value="Türkçe">Türkçe</option>
+                        <option value="Fen Bilimleri">Fen Bilimleri</option>
+                        <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
+                        <option value="İngilizce">İngilizce</option>
+                        <option value="Paragraf & Problem">Paragraf & Problem</option>
+                        <option value="Genel Deneme">Genel Deneme</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0369a1', display: 'block', marginBottom: 4 }}>Saat Aralığı</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: 18:00 - 19:30"
+                        value={newProgTime}
+                        onChange={e => setNewProgTime(e.target.value)}
+                        style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #7dd3fc', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                      />
+                    </div>
+
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0369a1', display: 'block', marginBottom: 4 }}>Çalışma İçeriği & Soru Hedefi</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: Çarpanlar ve Katlar 40 Yeni Nesil Soru + Konu Tekrarı"
+                        value={newProgContent}
+                        onChange={e => setNewProgContent(e.target.value)}
+                        style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #7dd3fc', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <button type="submit" style={{ width: '100%', background: '#0284c7', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <Plus size={16} /> Görevi Ekle
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* WEEKLY TABLE LIST */}
+                <div style={{ background: 'white', borderRadius: '1rem', border: '1.5px solid #e2e8f0', overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 140px 140px 1fr 120px 60px', padding: '0.85rem 1.25rem', background: '#f8fafc', borderBottom: '2px solid #cbd5e1', fontWeight: 900, fontSize: '0.78rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <span>Gün</span>
+                    <span>Ders</span>
+                    <span>Saat</span>
+                    <span>Çalışma İçeriği & Hedef</span>
+                    <span style={{ textAlign: 'center' }}>Tamamlandı</span>
+                    <span style={{ textAlign: 'center' }} className="no-print">Sil</span>
+                  </div>
+
+                  {weeklyProgram.length === 0 ? (
+                    <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>Program bulunmuyor. Yukarıdaki formdan görev ekleyebilirsiniz.</div>
+                  ) : (
+                    weeklyProgram.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '120px 140px 140px 1fr 120px 60px',
+                          padding: '0.9rem 1.25rem',
+                          alignItems: 'center',
+                          borderBottom: '1px solid #f1f5f9',
+                          background: item.completed ? '#f0fdf4' : (idx % 2 === 0 ? 'white' : '#fafafa'),
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0f172a' }}>{item.day}</span>
+                        <div>
+                          <span style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 800, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                            {item.subject}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>{item.time}</span>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 800, color: item.completed ? '#166534' : '#1e293b', textDecoration: item.completed ? 'line-through' : 'none' }}>
+                          {item.content}
+                        </span>
+
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleWeeklyItem(item.id)}
+                            style={{
+                              background: item.completed ? '#22c55e' : 'white',
+                              color: item.completed ? 'white' : '#94a3b8',
+                              border: item.completed ? 'none' : '2px solid #cbd5e1',
+                              borderRadius: '0.6rem',
+                              padding: '0.35rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            {item.completed ? <CheckCircle2 size={16} /> : <Square size={16} />}
+                            <span>{item.completed ? 'Evet' : 'Hayır'}</span>
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center' }} className="no-print">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteWeeklyItem(item.id)}
+                            style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '0.35rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
+                  {isProfileSaved ? (
+                    <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle2 size={20} /> Haftalık Program Kaydedildi!
+                    </span>
+                  ) : <span />}
+                  <button type="button" onClick={handleSaveProfile} style={{ background: 'linear-gradient(135deg,#0284c7,#0369a1)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2,132,199,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Save size={18} /> Haftalık Programı Kaydet
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PAGE 6: GÜNLÜK ÇALIŞMA TAKİBİ (LOG TABLE) */}
+          {(activeTab === 'daily_tracker' || window.matchMedia('print').matches) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Flame size={24} color="#dc2626" /> 6. Günlük Çalışma & Yaşam Rutini Takip Logları
+                  </h3>
+                  <span style={{ background: '#fee2e2', color: '#991b1b', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
+                    Sayfa 6 / 6
+                  </span>
+                </div>
+
+                {/* STATS TILES FOR DAILY TRACKER */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                  <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#991b1b', textTransform: 'uppercase' }}>⏱️ Toplam Çalışma Süresi</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#dc2626', marginTop: 4 }}>{totalLogDuration} Dakika</div>
+                    <div style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 700 }}>({(totalLogDuration / 60).toFixed(1)} Saat)</div>
+                  </div>
+
+                  <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#166534', textTransform: 'uppercase' }}>📊 Toplam Çözülen Soru</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#16a34a', marginTop: 4 }}>{totalLogQuestions} Soru</div>
+                    <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>Çözüm Kaydı</div>
+                  </div>
+
+                  <div style={{ background: '#fdf4ff', border: '1.5px solid #f5d0fe', borderRadius: '1rem', padding: '1.25rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#86198f', textTransform: 'uppercase' }}>📝 Günlük Log Kaydı</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#a21caf', marginTop: 4 }}>{dailyLogs.length} Gün</div>
+                    <div style={{ fontSize: '0.75rem', color: '#701a75', fontWeight: 700 }}>Kayıtlı Aktivite</div>
+                  </div>
+                </div>
+
+                {/* ADD DAILY LOG FORM */}
+                <div className="no-print" style={{ background: '#fff5f5', border: '1.5px solid #fca5a5', borderRadius: '1.1rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: 900, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Plus size={18} /> Yeni Günlük Çalışma & Yaşam Logu Ekle
+                  </h4>
+
+                  <form onSubmit={handleAddDailyLog} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Tarih</label>
+                        <input
+                          type="date"
+                          value={logDate}
+                          onChange={e => setLogDate(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Çalışma Süresi (Dakika)</label>
+                        <input
+                          type="number"
+                          placeholder="Örn: 180 dk"
+                          value={logDuration}
+                          onChange={e => setLogDuration(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Çözülen Soru Sayısı</label>
+                        <input
+                          type="number"
+                          placeholder="Örn: 140 Soru"
+                          value={logQuestions}
+                          onChange={e => setLogQuestions(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Uyku Saati & Düzeni</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: 23:00 - 07:00 (8 Saat)"
+                          value={logSleep}
+                          onChange={e => setLogSleep(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Yapılan Konu Tekrarı</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: Matematik Çarpanlar Formül Tekrarı ✅"
+                          value={logReview}
+                          onChange={e => setLogReview(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>İzlanan Ders / Video</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: YouTube Paragraf Çözüm Taktikleri 2 Video"
+                          value={logVideo}
+                          onChange={e => setLogVideo(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Kitap Okuma</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: 40 Sayfa Roman Okundu"
+                          value={logBook}
+                          onChange={e => setLogBook(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#991b1b', display: 'block', marginBottom: 4 }}>Spor / Egzersiz</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: 30 dk Tempolu Yürüyüş / Basketbol"
+                          value={logSport}
+                          onChange={e => setLogSport(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                        />
+                      </div>
+                    </div>
+
+                    <button type="submit" style={{ alignSelf: 'flex-end', background: '#dc2626', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.7rem 1.5rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Plus size={16} /> Günlük Logu Kaydet & Çizelgeye Ekle
+                    </button>
+                  </form>
+                </div>
+
+                {/* DAILY LOGS CARDS / TABLE */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {dailyLogs.length === 0 ? (
+                    <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>Günlük log bulunmuyor.</div>
+                  ) : (
+                    dailyLogs.map(l => (
+                      <div key={l.id} style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                          <span style={{ background: '#fee2e2', color: '#991b1b', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: 99 }}>
+                            🗓️ {l.date} Günlük Çalışma Logu
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#dc2626' }}>
+                              ⏱️ {l.durationMinutes} dk ({ (Number(l.durationMinutes)/60).toFixed(1) } sa) | 📊 {l.questionCount} Soru
+                            </span>
+                            <button className="no-print" onClick={() => handleDeleteDailyLog(l.id)} style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '0.35rem', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Activity details grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.82rem' }}>
+                          {l.reviewSummary && (
+                            <div style={{ background: 'white', padding: '0.6rem 0.8rem', borderRadius: '0.6rem', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontWeight: 800, color: '#059669', display: 'block', fontSize: '0.7rem' }}>🔄 Yapılan Tekrar</span>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{l.reviewSummary}</span>
+                            </div>
+                          )}
+
+                          {l.videoSummary && (
+                            <div style={{ background: 'white', padding: '0.6rem 0.8rem', borderRadius: '0.6rem', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontWeight: 800, color: '#2563eb', display: 'block', fontSize: '0.7rem' }}>🎥 İzlenen Ders / Video</span>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{l.videoSummary}</span>
+                            </div>
+                          )}
+
+                          {l.bookReading && (
+                            <div style={{ background: 'white', padding: '0.6rem 0.8rem', borderRadius: '0.6rem', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontWeight: 800, color: '#d97706', display: 'block', fontSize: '0.7rem' }}>📖 Kitap Okuma</span>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{l.bookReading}</span>
+                            </div>
+                          )}
+
+                          {l.sportActivity && (
+                            <div style={{ background: 'white', padding: '0.6rem 0.8rem', borderRadius: '0.6rem', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontWeight: 800, color: '#7c3aed', display: 'block', fontSize: '0.7rem' }}>🏃 Spor & Egzersiz</span>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{l.sportActivity}</span>
+                            </div>
+                          )}
+
+                          {l.sleepSchedule && (
+                            <div style={{ background: 'white', padding: '0.6rem 0.8rem', borderRadius: '0.6rem', border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontWeight: 800, color: '#475569', display: 'block', fontSize: '0.7rem' }}>🌙 Uyku Saati & Düzeni</span>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{l.sleepSchedule}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
+                  {isProfileSaved ? (
+                    <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CheckCircle2 size={20} /> Günlük Çalışma Logları Kaydedildi!
+                    </span>
+                  ) : <span />}
+                  <button type="button" onClick={handleSaveProfile} style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(220,38,38,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Save size={18} /> Günlük Logları Kaydet
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PAGE 7: AKADEMİK PERFORMANS */}
           {(activeTab === 'analytics' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
@@ -1100,7 +1789,7 @@ export default function StudentCoachingPage() {
             </div>
           )}
 
-          {/* PAGE 5: DENEME NET TAKİBİ */}
+          {/* PAGE 8: DENEME NET TAKİBİ */}
           {(activeTab === 'mock_exams' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <div className="no-print" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
@@ -1180,7 +1869,7 @@ export default function StudentCoachingPage() {
             </div>
           )}
 
-          {/* PAGE 6: EKSİK HARİTASI */}
+          {/* PAGE 9: EKSİK HARİTASI */}
           {(activeTab === 'weaknesses' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ background: '#fff7ed', border: '1.5px solid #ffedd5', borderRadius: '1.25rem', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -1227,87 +1916,7 @@ export default function StudentCoachingPage() {
             </div>
           )}
 
-          {/* PAGE 7: ÇALIŞMA PROGRAMI */}
-          {(activeTab === 'timetable' || window.matchMedia('print').matches) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-              <div className="no-print" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CalendarDays size={20} color="#4f46e5" /> Haftalık Çalışma Programına Yeni Saat Bloğu Ekle
-                </h3>
-                <form onSubmit={handleAddScheduleSlot} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <select value={slotDay} onChange={e => setSlotDay(e.target.value)} style={{ padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                    {DAYS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
-                  </select>
-
-                  <select value={slotTime} onChange={e => setSlotTime(e.target.value)} style={{ padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                    {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-
-                  <select value={slotSubject} onChange={e => setSlotSubject(e.target.value)} style={{ padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                    <option value="Matematik">Matematik</option>
-                    <option value="Fen Bilimleri">Fen Bilimleri</option>
-                    <option value="Türkçe">Türkçe</option>
-                    <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
-                    <option value="İngilizce">İngilizce</option>
-                    <option value="Genel Deneme">Genel Deneme</option>
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Çalışma Açıklaması (Örn: 50 Problem Soru Çözümü)"
-                    value={slotTitle}
-                    onChange={e => setSlotTitle(e.target.value)}
-                    style={{ flex: '1 1 220px', padding: '0.7rem 0.9rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
-                    required
-                  />
-
-                  <button type="submit" style={{ background: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.7rem 1.25rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Plus size={18} /> Programa Ekle
-                  </button>
-                </form>
-              </div>
-
-              <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', overflowX: 'auto' }}>
-                <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                  Haftalık Görsel Çalışma Çizelgesi Matrisi
-                </h3>
-
-                <div style={{ minWidth: '700px', display: 'grid', gridTemplateColumns: '80px repeat(7, 1fr)', gap: '0.5rem' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', padding: '0.5rem' }}>Saat</div>
-                  {DAYS.map(d => (
-                    <div key={d.id} style={{ fontWeight: 900, fontSize: '0.78rem', color: '#0f172a', background: '#f8fafc', padding: '0.5rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                      {d.label}
-                    </div>
-                  ))}
-
-                  {TIME_SLOTS.map(t => (
-                    <React.Fragment key={t}>
-                      <div style={{ fontWeight: 800, fontSize: '0.72rem', color: '#64748b', padding: '0.5rem 0', display: 'flex', alignItems: 'center' }}>
-                        {t}
-                      </div>
-                      {DAYS.map(d => {
-                        const slots = studentSchedules.filter(s => s.day === d.id && s.time === t);
-                        return (
-                          <div key={`${d.id}_${t}`} style={{ background: slots.length > 0 ? '#f0f4ff' : '#fafafa', border: '1px solid #f1f5f9', borderRadius: '0.5rem', padding: '0.4rem', minHeight: '60px' }}>
-                            {slots.map(slot => (
-                              <div key={slot.id} style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.4rem', padding: '0.35rem', fontSize: '0.68rem', fontWeight: 700, color: '#0f172a', marginBottom: 4, position: 'relative' }}>
-                                <div>{slot.title}</div>
-                                <button className="no-print" onClick={() => deleteSchedule(slot.id)} style={{ position: 'absolute', top: 2, right: 2, background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0 }}>
-                                  <Trash2 size={10} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* PAGE 8: GÖRÜŞME TUTANAKLARI */}
+          {/* PAGE 10: GÖRÜŞME TUTANAKLARI */}
           {(activeTab === 'meetings' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <div className="no-print" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
@@ -1373,7 +1982,7 @@ export default function StudentCoachingPage() {
             </div>
           )}
 
-          {/* PAGE 9: KOÇLUK NOTLARI */}
+          {/* PAGE 11: KOÇLUK NOTLARI */}
           {(activeTab === 'notes' || window.matchMedia('print').matches) && (
             <form onSubmit={handleSaveNotes} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
