@@ -32,6 +32,35 @@ export default function PhysicalExamRunner() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [results, setResults] = useState(null);
 
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [timerStarted, setTimerStarted] = useState(false);
+
+  useEffect(() => {
+    if (homework && !isSubmitted && !timerStarted) {
+      const durationMinutes = (homework.timePerQuestion || 2) * (homework.totalQuestions || 90);
+      setTimeLeft(durationMinutes * 60);
+      setTimerStarted(true);
+    }
+  }, [homework, isSubmitted, timerStarted]);
+
+  useEffect(() => {
+    if (isSubmitted || timeLeft === null || timeLeft <= 0) return;
+    const intervalId = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [timeLeft, isSubmitted]);
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return '--:--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     if (homework && !isSubmitted) {
       // Check if already submitted
@@ -163,8 +192,8 @@ export default function PhysicalExamRunner() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24">
       {/* HEADER */}
-      <div className="flex items-center justify-between bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
           <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
             <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
           </button>
@@ -182,14 +211,29 @@ export default function PhysicalExamRunner() {
             </h1>
           </div>
         </div>
-        {!isSubmitted && (
-          <button 
-            onClick={handleSubmit}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-          >
-            <Send className="w-4 h-4" /> Gönder ve Sonucu Gör
-          </button>
-        )}
+        
+        <div className="flex flex-col sm:flex-row items-center gap-3 mt-3 sm:mt-0 w-full sm:w-auto">
+          {!isSubmitted && (
+            <div className={cn(
+              "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm flex-1 sm:flex-none border",
+              timeLeft !== null && timeLeft < 300 
+                ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900" 
+                : "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            )}>
+              <Clock className={cn("w-4 h-4", timeLeft !== null && timeLeft < 300 && "animate-pulse")} />
+              {formatTime(timeLeft)}
+            </div>
+          )}
+
+          {!isSubmitted && (
+            <button 
+              onClick={handleSubmit}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" /> Gönder ve Sonucu Gör
+            </button>
+          )}
+        </div>
       </div>
 
       {isSubmitted && results && (
