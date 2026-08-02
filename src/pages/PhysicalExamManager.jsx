@@ -3,7 +3,7 @@ import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
-  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key
+  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -120,9 +120,10 @@ export default function PhysicalExamManager() {
   const [newSubCount, setNewSubCount] = useState(15);
   const [newSubOptions, setNewSubOptions] = useState(4); // 4 or 5 options
 
-  // Bulk Answer Key Modal State per Subject
-  const [showAnswerKeyModal, setShowAnswerKeyModal] = useState(false);
-  const [bulkAnswerKeyInput, setBulkAnswerKeyInput] = useState('');
+  // Bulk Input Modal State (Target: 'answers' or 'answerKey')
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkTargetMode, setBulkTargetMode] = useState('answers'); // 'answers' or 'answerKey'
+  const [bulkInputText, setBulkInputText] = useState('');
 
   const studentMockExams = useMemo(() => {
     return mockExams.filter(m => String(m.studentId) === String(selectedStudent?.id));
@@ -217,30 +218,49 @@ export default function PhysicalExamManager() {
     });
   };
 
-  // Bulk Answer Key Apply Helper
-  const parsedBulkAnswerKey = useMemo(() => {
-    if (!bulkAnswerKeyInput) return [];
-    const matches = bulkAnswerKeyInput.toUpperCase().match(/[A-E]/g) || [];
+  // Extract valid letters (A, B, C, D, E) from user text
+  const parsedBulkInput = useMemo(() => {
+    if (!bulkInputText) return [];
+    const matches = bulkInputText.toUpperCase().match(/[A-E]/g) || [];
     return matches;
-  }, [bulkAnswerKeyInput]);
+  }, [bulkInputText]);
 
-  const handleApplyBulkAnswerKey = (e) => {
+  // Apply Bulk Inputs (Supports Partial updates - as many answers as pasted!)
+  const handleApplyBulkInput = (e) => {
     e.preventDefault();
     const currentSub = subjects[activeSubjectIndex];
-    if (!currentSub || parsedBulkAnswerKey.length === 0) return;
+    if (!currentSub || parsedBulkInput.length === 0) return;
 
-    const newKey = Array(currentSub.count).fill('');
-    for (let i = 0; i < currentSub.count; i++) {
-      if (parsedBulkAnswerKey[i]) {
-        newKey[i] = parsedBulkAnswerKey[i];
-      } else {
-        newKey[i] = currentSub.options[i % currentSub.options.length];
-      }
+    if (bulkTargetMode === 'answers') {
+      setAnswers(prev => {
+        const existing = [...(prev[currentSub.name] || Array(currentSub.count).fill(''))];
+        parsedBulkInput.forEach((ans, idx) => {
+          if (idx < currentSub.count) {
+            existing[idx] = ans;
+          }
+        });
+        return { ...prev, [currentSub.name]: existing };
+      });
+    } else {
+      setAnswerKey(prev => {
+        const existing = [...(prev[currentSub.name] || Array(currentSub.count).fill(''))];
+        parsedBulkInput.forEach((ans, idx) => {
+          if (idx < currentSub.count) {
+            existing[idx] = ans;
+          }
+        });
+        return { ...prev, [currentSub.name]: existing };
+      });
     }
 
-    setAnswerKey(prev => ({ ...prev, [currentSub.name]: newKey }));
-    setShowAnswerKeyModal(false);
-    setBulkAnswerKeyInput('');
+    setShowBulkModal(false);
+    setBulkInputText('');
+  };
+
+  const openBulkModal = (mode) => {
+    setBulkTargetMode(mode);
+    setBulkInputText('');
+    setShowBulkModal(true);
   };
 
   // Bulk JSON Import Parser
@@ -259,7 +279,6 @@ export default function PhysicalExamManager() {
       if (parsed.penaltyRatio !== undefined) setPenaltyRatio(Number(parsed.penaltyRatio) || 0);
       if (parsed.examDate) setExamDate(parsed.examDate);
 
-      // Reconstruct subjects dynamically from JSON keys if provided!
       if (parsed.answers && typeof parsed.answers === 'object') {
         const jsonSubjectNames = Object.keys(parsed.answers);
         if (jsonSubjectNames.length > 0) {
@@ -285,7 +304,7 @@ export default function PhysicalExamManager() {
       }
 
       setShowJsonModal(false);
-      setShowAddForm(true); // Open optical form view after JSON import
+      setShowAddForm(true);
       setJsonInputText('');
     } catch (err) {
       setJsonError('Geçersiz JSON formatı! Lütfen kontrol edin.');
@@ -450,11 +469,11 @@ export default function PhysicalExamManager() {
         </div>
       </div>
 
-      {/* VIEW MODE 1: KAYITLI DENEMELER LİSTESİ (DEFAULT - OPENED FIRST) */}
+      {/* VIEW MODE 1: KAYITLI DENEMELER LİSTESİ */}
       {!showAddForm && (
         <div className="max-w-7xl mx-auto space-y-6">
           
-          {/* STATS OVERVIEW CARDS FOR RECORDED EXAMS */}
+          {/* STATS OVERVIEW CARDS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
@@ -591,7 +610,7 @@ export default function PhysicalExamManager() {
         </div>
       )}
 
-      {/* VIEW MODE 2: YENİ FİZİKİ DENEME VE OPTİK FORM GİRİŞİ (OPENED WHEN CLICKED) */}
+      {/* VIEW MODE 2: YENİ FİZİKİ DENEME VE OPTİK FORM GİRİŞİ */}
       {showAddForm && (
         <div className="max-w-7xl mx-auto space-y-6">
           
@@ -735,7 +754,7 @@ export default function PhysicalExamManager() {
               {/* LEFT: DIGI OPTICAL SHEET */}
               <div className="lg:col-span-8 space-y-4">
                 
-                {/* SUBJECT TABS WITH QUESTION COUNT & BULK ANSWER KEY BUTTONS */}
+                {/* SUBJECT TABS WITH QUESTION COUNT & BULK ENTRY BUTTONS */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
                   {subjects.map((sub, idx) => {
                     const active = activeSubjectIndex === idx;
@@ -760,10 +779,17 @@ export default function PhysicalExamManager() {
                   })}
 
                   <button
-                    onClick={() => setShowAnswerKeyModal(true)}
+                    onClick={() => openBulkModal('answers')}
+                    className="px-3 py-2 rounded-2xl bg-indigo-600 text-white text-xs font-black shrink-0 flex items-center gap-1.5 shadow-sm hover:bg-indigo-700 transition-all"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> Öğrenci Cevaplarını Yapıştır
+                  </button>
+
+                  <button
+                    onClick={() => openBulkModal('answerKey')}
                     className="px-3 py-2 rounded-2xl bg-amber-500 text-white text-xs font-black shrink-0 flex items-center gap-1.5 shadow-sm hover:bg-amber-600 transition-all"
                   >
-                    <Key className="w-3.5 h-3.5" /> Toplu Cevap Anahtarı Gir
+                    <Key className="w-3.5 h-3.5" /> Cevap Anahtarını Yapıştır
                   </button>
 
                   <button
@@ -791,27 +817,35 @@ export default function PhysicalExamManager() {
                             <BookOpen className="w-5 h-5 text-indigo-500" />
                             {currentSub.name} Optik Kodlama Formu
                           </h3>
-                          <p className="text-xs text-slate-400">Baloncuklara tıklayarak fiziki deneme cevaplarınızı kodlayın</p>
+                          <p className="text-xs text-slate-400">Baloncuklara tıklayarak cevapları kodlayın veya yukarıdan toplu yapıştırın</p>
                         </div>
 
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setShowAnswerKeyModal(true)}
-                            className="px-3 py-1 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold border border-amber-300 dark:border-amber-800 flex items-center gap-1"
+                            onClick={() => openBulkModal('answers')}
+                            className="px-2.5 py-1 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" /> Cevapları Yapıştır
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openBulkModal('answerKey')}
+                            className="px-2.5 py-1 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold border border-amber-300 dark:border-amber-800 flex items-center gap-1"
                           >
                             <Key className="w-3.5 h-3.5" /> Cevap Anahtarı
                           </button>
 
-                          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-xl">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Soru Sayısı:</span>
+                          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1 rounded-xl">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Soru:</span>
                             <input
                               type="number"
                               min="1"
                               max="100"
                               value={currentSub.count}
                               onChange={e => handleSubjectQuestionCountChange(currentSub.name, e.target.value)}
-                              className="w-12 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
+                              className="w-10 bg-transparent text-xs font-black text-indigo-600 dark:text-indigo-400 outline-none text-center"
                             />
                           </div>
 
@@ -942,52 +976,76 @@ export default function PhysicalExamManager() {
         </div>
       )}
 
-      {/* TOPLU CEVAP ANAHTARI GİRİŞİ MODAL */}
-      {showAnswerKeyModal && (
+      {/* TOPLU HIZLI KODLAMA MODAL (HEM ÖĞRENCİ CEVAPLARI HEM CEVAP ANAHTARI İÇİN EKSİK/PARÇALI DESTEKLİ) */}
+      {showBulkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-base">
-                <Key className="w-5 h-5" /> {subjects[activeSubjectIndex]?.name} - Toplu Cevap Anahtarı
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+                {bulkTargetMode === 'answers' ? <Edit3 className="w-5 h-5" /> : <Key className="w-5 h-5 text-amber-500" />}
+                {subjects[activeSubjectIndex]?.name} - Toplu Hızlı Yapıştır
               </div>
-              <button onClick={() => setShowAnswerKeyModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setShowBulkModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* TAB SELECTOR FOR BULK TARGET */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl text-xs font-black">
+              <button
+                type="button"
+                onClick={() => setBulkTargetMode('answers')}
+                className={cn('py-2 rounded-xl transition-all', bulkTargetMode === 'answers' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white')}
+              >
+                🎓 Öğrenci Cevapları
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkTargetMode('answerKey')}
+                className={cn('py-2 rounded-xl transition-all', bulkTargetMode === 'answerKey' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white')}
+              >
+                🔑 Cevap Anahtarı
+              </button>
+            </div>
+
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Cevap anahtarını düz metin (Örn: <code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">ABCDABCDABCD</code>) veya virgüllü (<code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">A, B, C, D</code>) olarak yapıştırın:
+              Cevapları yapıştırın (Örn: <code className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded">ABCDABCD</code> veya <code className="bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded">A, B, C, D</code>).
+              <br/><strong className="text-indigo-600 dark:text-indigo-400">✨ Kaç soru girerseniz tam olarak o kadarı uygulanır (Hepsini girme zorunluluğu yoktur).</strong>
             </p>
 
-            <form onSubmit={handleApplyBulkAnswerKey} className="space-y-3">
+            <form onSubmit={handleApplyBulkInput} className="space-y-3">
               <textarea
                 rows={4}
-                placeholder="Örn: A B C D A B C D A B C D A B C D A B C D"
-                value={bulkAnswerKeyInput}
-                onChange={e => setBulkAnswerKeyInput(e.target.value)}
-                className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 uppercase tracking-widest"
+                placeholder="Örn: A B C D A B C D (Kaç tane yazarsanız Soru 1'den itibaren o kadarı güncellenir)"
+                value={bulkInputText}
+                onChange={e => setBulkInputText(e.target.value)}
+                className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500 uppercase tracking-widest"
               />
 
-              {parsedBulkAnswerKey.length > 0 && (
-                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+              {parsedBulkInput.length > 0 && (
+                <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 text-xs text-indigo-800 dark:text-indigo-200 space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                    Algılanan Cevaplar ({parsedBulkAnswerKey.length} Soru):
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    {parsedBulkInput.length} Soru Cevabı Algılandı (Soru 1 ile {Math.min(parsedBulkInput.length, subjects[activeSubjectIndex]?.count || 20)} arası güncellenecektir):
                   </div>
-                  <div className="font-mono text-[11px] truncate tracking-widest text-amber-900 dark:text-amber-100 font-bold">
-                    {parsedBulkAnswerKey.slice(0, subjects[activeSubjectIndex]?.count || 20).join(' - ')}
+                  <div className="font-mono text-[11px] truncate tracking-widest text-indigo-950 dark:text-indigo-100 font-bold">
+                    {parsedBulkInput.slice(0, subjects[activeSubjectIndex]?.count || 20).join(' - ')}
                   </div>
                 </div>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAnswerKeyModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button type="button" onClick={() => setShowBulkModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
                 <button
                   type="submit"
-                  disabled={parsedBulkAnswerKey.length === 0}
-                  className="px-5 py-2 rounded-xl bg-amber-500 disabled:opacity-50 text-white text-xs font-black hover:bg-amber-600 transition-all flex items-center gap-1.5 shadow-md"
+                  disabled={parsedBulkInput.length === 0}
+                  className={cn(
+                    'px-5 py-2 rounded-xl text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50',
+                    bulkTargetMode === 'answers' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-500 hover:bg-amber-600'
+                  )}
                 >
-                  <Key className="w-3.5 h-3.5" /> Cevap Anahtarını Uygula
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {bulkTargetMode === 'answers' ? 'Öğrenci Cevaplarını Uygula' : 'Cevap Anahtarını Uygula'}
                 </button>
               </div>
             </form>
