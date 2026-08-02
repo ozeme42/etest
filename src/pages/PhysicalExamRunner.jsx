@@ -336,15 +336,17 @@ export default function PhysicalExamRunner() {
                         </button>
                       );
                     })}
-                    {!isSubmitted && selected && (
-                      <button
-                        type="button"
-                        onClick={() => handleClearOption(activeSubject.name, qIdx)}
-                        className="ml-1 p-1 text-slate-300 hover:text-rose-500 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleClearOption(activeSubject.name, qIdx)}
+                      disabled={isSubmitted || !selected}
+                      className={cn(
+                        "ml-1 p-1 transition-colors",
+                        !isSubmitted && selected ? "text-slate-300 hover:text-rose-500" : "opacity-0 pointer-events-none"
+                      )}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );
