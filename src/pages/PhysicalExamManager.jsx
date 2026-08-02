@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
-  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight
+  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -677,5 +677,5 @@ function MinusCircle(props) {
 }
 
 function BarChart2Icon(props) {
-  return <BarChart2 {...props} />;
+  return <BarChart3 {...props} />;
 }
