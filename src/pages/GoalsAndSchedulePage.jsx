@@ -2,12 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { useGoal } from '../context/GoalContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { useUser } from '../context/UserContext';
+import { useCoaching } from '../context/CoachingContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
   Timer, Flame, Trophy, ChevronRight,
-  Clock, Trash2, GraduationCap, Check, Sparkles,
+  Clock, Trash2, GraduationCap, Check, Sparkles, TrendingUp
 } from 'lucide-react';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
@@ -98,46 +99,56 @@ function GoalCard({ goal, onDelete, onAddProgress }) {
               <TIcon className="w-2.5 h-2.5" /> {goal.type}
             </span>
           </div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-snug mb-2 line-clamp-2">{goal.title}</h3>
-          <BarProgress value={pct} color={done ? '#10b981' : t.color} />
-          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-            <span>{goal.current} {t.unit}</span>
-            <span>/ {goal.target} {t.unit}</span>
-          </div>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug line-clamp-2">{goal.title}</h3>
         </div>
       </div>
 
+      {/* Bar & numbers */}
+      <div className="space-y-1">
+        <div className="flex justify-between text-[10px] font-black text-slate-400">
+          <span>{goal.current} / {goal.target} {t.unit}</span>
+          <span>{goal.target - goal.current > 0 ? `${goal.target - goal.current} ${t.unit} kaldı` : 'Tamamlandı'}</span>
+        </div>
+        <BarProgress value={pct} color={done ? '#10b981' : t.color} />
+      </div>
+
+      {/* Quick Add Form */}
       {!done && (
-        <form onSubmit={handleAdd} className="flex gap-2">
-          <input type="number" min="1" value={adding} onChange={e => setAdding(e.target.value)}
-            placeholder={`Ekle (${t.unit})`}
-            className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white" />
-          <button type="submit" className={cn('px-4 py-2 rounded-xl text-white text-xs font-black active:scale-95 shadow-sm', t.bg)}>+ Ekle</button>
+        <form onSubmit={handleAdd} className="flex gap-2 pt-1">
+          <input
+            type="number"
+            min="1"
+            placeholder={`+ Ekle (${t.unit})`}
+            value={adding}
+            onChange={e => setAdding(e.target.value)}
+            className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+          />
+          <button
+            type="submit"
+            className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black hover:opacity-90 transition-all shrink-0"
+          >
+            Ekle
+          </button>
         </form>
       )}
     </div>
   );
 }
 
-/* ─── Schedule Row ─── */
-const ROW_COLORS = ['bg-blue-500','bg-violet-500','bg-rose-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-pink-500','bg-indigo-500'];
-
-function ScheduleBlock({ schedule, onToggle, onDelete }) {
-  const color = ROW_COLORS[schedule.title.charCodeAt(0) % ROW_COLORS.length];
+/* ─── Schedule Item Card ─── */
+function ScheduleItem({ schedule, onToggleDone, onDelete }) {
   const isDone = schedule.done;
+  const category = schedule.subject || 'Diğer';
+  const color = category === 'Matematik' ? 'bg-blue-500' : category === 'Fen Bilimleri' ? 'bg-teal-500' : category === 'Türkçe' ? 'bg-orange-500' : 'bg-indigo-500';
 
   return (
-    <div
-      onClick={() => onToggle(schedule.id)}
-      className={cn(
-        'flex items-center gap-2.5 p-3 rounded-xl border transition-all group cursor-pointer active:scale-[0.98]',
-        isDone ? 'bg-slate-50/60 dark:bg-[#0F172A]/60 border-slate-100 dark:border-slate-800/40 opacity-65'
-               : 'bg-white dark:bg-[#0F172A] border-slate-100 dark:border-slate-800/60 hover:shadow-sm hover:border-emerald-300'
-      )}
-    >
-      {/* Checkbox */}
-      <div className={cn(
-        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
+    <div className={cn(
+      'flex items-center gap-3 p-3 rounded-xl border transition-all group',
+      isDone ? 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60'
+             : 'bg-white dark:bg-[#1E293B] border-slate-100 dark:border-slate-800 hover:shadow-sm'
+    )}>
+      <div onClick={() => onToggleDone(schedule.id)} className={cn(
+        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer',
         isDone ? 'bg-emerald-500 border-emerald-500 shadow-sm' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
       )}>
         {isDone && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
@@ -174,10 +185,13 @@ export default function GoalsAndSchedulePage() {
   const { goals, addGoal, deleteGoal, updateGoalProgress } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { users } = useUser();
+  const { getCoachingProfileForStudent } = useCoaching();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || 'u1');
   const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
+
+  const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);
 
   /* Mobile: tab state */
   const [activeTab, setActiveTab] = useState('goals');
@@ -192,8 +206,8 @@ export default function GoalsAndSchedulePage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [newSchedule, setNewSchedule]             = useState({ day: selectedDay, time: '09:00', title: '' });
 
-  const studentGoals     = goals.filter(g => g.studentId === selectedStudent?.id);
-  const studentSchedules = schedules.filter(s => s.studentId === selectedStudent?.id);
+  const studentGoals     = goals.filter(g => String(g.studentId) === String(selectedStudent?.id));
+  const studentSchedules = schedules.filter(s => String(s.studentId) === String(selectedStudent?.id));
   const daySchedules     = studentSchedules.filter(s => s.day === selectedDay).sort((a, b) => a.time.localeCompare(b.time));
 
   const completedGoals = studentGoals.filter(g => g.current >= g.target).length;
@@ -218,32 +232,69 @@ export default function GoalsAndSchedulePage() {
     }
   };
 
-  /* ── shared panels ── */
   const GoalsPanel = (
     <div className="flex flex-col gap-4 h-full">
       {/* header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-rose-500" />
-          <h2 className="text-lg font-black text-slate-900 dark:text-white">Hedeflerim</h2>
-          {studentGoals.length > 0 && (
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">{studentGoals.length}</span>
-          )}
+          <h2 className="text-lg font-black text-slate-900 dark:text-white">Kişisel & Koçluk Hedeflerim</h2>
         </div>
         <button onClick={() => setShowGoalModal(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white text-xs font-black shadow-sm shadow-rose-500/30 hover:shadow-md active:scale-95 transition-all">
-          <Plus className="w-3.5 h-3.5" /> Yeni Hedef
+          <Plus className="w-3.5 h-3.5" /> Hedef Ekle
         </button>
       </div>
 
-      {/* completed banner */}
-      {completedGoals > 0 && (
-        <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl text-white shrink-0">
-          <Trophy className="w-6 h-6 text-amber-300 shrink-0" />
-          <div>
-            <p className="font-black text-sm leading-none">{completedGoals} hedef tamamlandı 🎉</p>
-            <p className="text-emerald-100 text-[10px] mt-0.5">Harika gidiyorsun!</p>
+      {/* 🏛️ KOÇLUK AKADEMİK HEDEF KARTI */}
+      {coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet > 0 || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals) && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl p-4 space-y-3 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider">
+              <GraduationCap className="w-4 h-4" /> 🏛️ Koçluk Akademik & Stratejik Hedefler
+            </div>
+            {coachingProfile.examGoalType && (
+              <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                {coachingProfile.examGoalType}
+              </span>
+            )}
           </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {coachingProfile.targetSchool && (
+              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">Hedef Okul</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block mt-0.5">{coachingProfile.targetSchool}</span>
+              </div>
+            )}
+            {coachingProfile.targetScore && (
+              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">Puan Hedefi</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block mt-0.5">{coachingProfile.targetScore} Puan</span>
+              </div>
+            )}
+            {coachingProfile.targetNet > 0 && (
+              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">Net Hedefi</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">{coachingProfile.targetNet} Net</span>
+              </div>
+            )}
+          </div>
+
+          {(coachingProfile.monthlyGoals || coachingProfile.weeklyGoals) && (
+            <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/40 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+              {coachingProfile.monthlyGoals && <p><strong>📅 Aylık Strateji:</strong> {coachingProfile.monthlyGoals}</p>}
+              {coachingProfile.weeklyGoals && <p><strong>⚡ Haftalık Hedef:</strong> {coachingProfile.weeklyGoals}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Summary pill */}
+      {studentGoals.length > 0 && (
+        <div className="bg-slate-100 dark:bg-slate-800/60 rounded-xl px-3 py-2 flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
+          <span>{studentGoals.length} hedef tanımlı</span>
+          <span className="text-emerald-500 font-black">{completedGoals} tamamlandı</span>
         </div>
       )}
 
@@ -338,264 +389,204 @@ export default function GoalsAndSchedulePage() {
               <CalendarClock className="w-8 h-8 text-slate-200 dark:text-slate-700 mb-2" />
               <p className="text-xs font-medium text-slate-400">Bu gün için program eklenmemiş</p>
               <button onClick={() => { setNewSchedule({ day: selectedDay, time: '09:00', title: '' }); setShowScheduleModal(true); }}
-                className="mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline">
-                <Plus className="w-3 h-3" /> {selectedDay} için ekle
+                className="mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+                + Ders / Çalışma Ekle
               </button>
             </div>
           ) : (
             <div className="space-y-2">
-              {daySchedules.map(s => <ScheduleBlock key={s.id} schedule={s} onToggle={toggleScheduleDone} onDelete={deleteSchedule} />)}
+              {daySchedules.map(s => (
+                <ScheduleItem key={s.id} schedule={s} onToggleDone={toggleScheduleDone} onDelete={deleteSchedule} />
+              ))}
             </div>
           )}
         </div>
       </div>
-
-      {/* Week overview */}
-      {studentSchedules.length > 0 && (
-        <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-3 shrink-0">
-          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Hafta Özeti</h4>
-          <div className="space-y-1">
-            {DAYS.map(day => {
-              const items = studentSchedules.filter(s => s.day === day);
-              if (!items.length) return null;
-              const doneC = items.filter(s => s.done).length;
-              return (
-                <button key={day} onClick={() => setSelectedDay(day)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-left">
-                  <span className={cn('text-[9px] font-black w-8 shrink-0', selectedDay === day ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400')}>{day.slice(0,3)}</span>
-                  <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className={cn('h-full rounded-full', doneC === items.length ? 'bg-emerald-500' : 'bg-indigo-400')}
-                      style={{ width: `${Math.round((doneC/items.length)*100)}%` }} />
-                  </div>
-                  <span className="text-[9px] font-bold text-slate-400 shrink-0">{doneC}/{items.length}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 
-  /* ─────────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0F1E] flex flex-col">
-
-      {/* ── HEADER ── */}
-      <div className="relative bg-gradient-to-br from-violet-600 via-purple-700 to-indigo-800 px-6 pt-8 pb-16 overflow-hidden shrink-0">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-4 left-12 w-40 h-40 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-0 right-12 w-56 h-56 rounded-full bg-pink-400/20 blur-3xl" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 p-4 sm:p-6 pb-20">
+      {/* Header bar */}
+      <div className="max-w-6xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Hedefler & Çalışma Programı</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Kişisel gelişimi ve günlük rutini tek yerden takip et</p>
         </div>
-        <div className="relative z-10 max-w-7xl mx-auto">
-          {/* student pills */}
-          {students.length > 1 && (
-            <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 hide-scrollbar">
-              {students.map(s => (
-                <button key={s.id} onClick={() => setSelectedStudentId(s.id)}
-                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-all',
-                    selectedStudentId === s.id ? 'bg-white text-purple-700 shadow-lg' : 'bg-white/20 text-white/80 hover:bg-white/30')}>
-                  <GraduationCap className="w-4 h-4" /> {s.name}
-                </button>
-              ))}
-            </div>
-          )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-black text-white leading-none">Hedeflerim &amp; Programım</h1>
-                <p className="text-purple-200 text-sm mt-1">{selectedStudent?.name || 'Öğrenci'}</p>
-              </div>
-            </div>
-
-            {/* desktop stat pills */}
-            <div className="hidden md:flex items-center gap-3">
-              {[
-                { label: 'Aktif Hedef', value: studentGoals.length, icon: Target, color: 'text-rose-300' },
-                { label: 'Tamamlanan', value: completedGoals, icon: Trophy, color: 'text-amber-300' },
-                { label: 'Program Girişi', value: studentSchedules.length, icon: CalendarClock, color: 'text-emerald-300' },
-              ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="bg-white/10 backdrop-blur rounded-2xl px-4 py-3 text-center min-w-[90px]">
-                  <Icon className={cn('w-4 h-4 mx-auto mb-1', color)} />
-                  <p className="text-xl font-black text-white leading-none">{value}</p>
-                  <p className="text-[9px] text-purple-200 mt-1 font-bold uppercase tracking-wider">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* mobile stats */}
-          <div className="grid grid-cols-3 gap-2 mt-5 md:hidden">
-            {[
-              { label: 'Hedef', value: studentGoals.length, icon: Target, color: 'text-rose-300' },
-              { label: 'Bitti', value: completedGoals, icon: Trophy, color: 'text-amber-300' },
-              { label: 'Program', value: studentSchedules.length, icon: CalendarClock, color: 'text-emerald-300' },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="bg-white/10 backdrop-blur rounded-xl p-2.5 text-center">
-                <Icon className={cn('w-4 h-4 mx-auto mb-0.5', color)} />
-                <p className="text-lg font-black text-white leading-none">{value}</p>
-                <p className="text-[9px] text-purple-200 mt-0.5 font-bold uppercase">{label}</p>
-              </div>
+        {/* Student Selector */}
+        {students.length > 1 && (
+          <div className="flex items-center gap-2 bg-white dark:bg-[#1E293B] p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            {students.map(s => (
+              <button key={s.id} onClick={() => setSelectedStudentId(s.id)} className={cn(
+                'px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                s.id === selectedStudent?.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+              )}>
+                {s.name}
+              </button>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Mobile Tab Switcher */}
+      <div className="max-w-6xl mx-auto mb-4 md:hidden flex bg-white dark:bg-[#1E293B] p-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <button onClick={() => setActiveTab('goals')} className={cn(
+          'flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5',
+          activeTab === 'goals' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'
+        )}>
+          <Target className="w-3.5 h-3.5" /> Hedeflerim ({studentGoals.length})
+        </button>
+        <button onClick={() => setActiveTab('schedule')} className={cn(
+          'flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5',
+          activeTab === 'schedule' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'
+        )}>
+          <CalendarClock className="w-3.5 h-3.5" /> Haftalık Plan
+        </button>
+      </div>
+
+      {/* Main Grid Layout */}
+      <div className="max-w-6xl mx-auto">
+        {/* Desktop: 2-column split. Mobile: show active tab */}
+        <div className="hidden md:grid md:grid-cols-2 gap-6 items-stretch min-h-[550px]">
+          {GoalsPanel}
+          {SchedulePanel}
+        </div>
+        <div className="md:hidden">
+          {activeTab === 'goals' ? GoalsPanel : SchedulePanel}
         </div>
       </div>
 
-      {/* ── MOBILE TAB SWITCHER (hidden on lg) ── */}
-      <div className="lg:hidden sticky top-0 z-30 -mt-5 px-4 mb-4">
-        <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 p-1.5 flex gap-1.5">
-          <button onClick={() => setActiveTab('goals')}
-            className={cn('flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-black transition-all',
-              activeTab === 'goals' ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800')}>
-            <Target className="w-4 h-4" /> Hedefler
-          </button>
-          <button onClick={() => setActiveTab('schedule')}
-            className={cn('flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-black transition-all',
-              activeTab === 'schedule' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800')}>
-            <CalendarClock className="w-4 h-4" /> Haftalık
-          </button>
-        </div>
-      </div>
-
-      {/* ── DESKTOP: two-column, MOBILE: tabs ── */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 lg:px-6 pb-10">
-
-        {/* Desktop layout — side by side */}
-        <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6 lg:h-[calc(100vh-220px)]">
-          {/* Left: Goals */}
-          <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 flex flex-col overflow-hidden -mt-8 relative z-10">
-            {GoalsPanel}
-          </div>
-          {/* Right: Schedule */}
-          <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 flex flex-col overflow-hidden -mt-8 relative z-10">
-            {SchedulePanel}
-          </div>
-        </div>
-
-        {/* Mobile layout — tabs */}
-        <div className="lg:hidden mt-2">
-          {activeTab === 'goals' && GoalsPanel}
-          {activeTab === 'schedule' && SchedulePanel}
-        </div>
-      </div>
-
-      {/* ── GOAL MODAL ── */}
+      {/* MODAL: HEDEF EKLE */}
       {showGoalModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="h-1.5 bg-gradient-to-r from-rose-400 via-pink-500 to-purple-500" />
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                    <Target className="w-5 h-5 text-rose-500" />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Yeni Hedef</h3>
-                </div>
-                <button onClick={() => setShowGoalModal(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-rose-500" />
+                <h3 className="font-black text-slate-900 dark:text-white text-base">Yeni Hedef Ekle</h3>
               </div>
-              <form onSubmit={handleSaveGoal} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Hedef Adı</label>
-                  <input type="text" value={newGoal.title} onChange={e => setNewGoal({ ...newGoal, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400 dark:text-white"
-                    placeholder="Örn: Günlük Matematik Soruları" required />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Tür</label>
-                    <div className="space-y-2">
-                      {Object.entries(GOAL_TYPE_CONFIG).map(([key, cfg]) => (
-                        <label key={key} className={cn('flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all',
-                          newGoal.type === key ? `${cfg.light} ${cfg.border} ${cfg.text}` : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400')}>
-                          <input type="radio" name="type" value={key} checked={newGoal.type === key} onChange={e => setNewGoal({ ...newGoal, type: e.target.value })} className="hidden" />
-                          <cfg.icon className="w-4 h-4" /><span className="text-xs font-bold">{key}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Periyot</label>
-                      <div className="space-y-2">
-                        {Object.entries(PERIOD_CONFIG).map(([key, cfg]) => (
-                          <label key={key} className={cn('flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all',
-                            newGoal.period === key ? cfg.badge + ' border-current' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400')}>
-                            <input type="radio" name="period" value={key} checked={newGoal.period === key} onChange={e => setNewGoal({ ...newGoal, period: e.target.value })} className="hidden" />
-                            <cfg.icon className="w-4 h-4" /><span className="text-xs font-bold">{key}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Hedef Sayı</label>
-                      <input type="number" min="1" value={newGoal.target} onChange={e => setNewGoal({ ...newGoal, target: Number(e.target.value) })}
-                        className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-rose-400 dark:text-white" required />
-                    </div>
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black rounded-xl text-sm shadow-lg shadow-rose-500/30 active:scale-95 transition-all">
-                  HEDEFİ KAYDET
-                </button>
-              </form>
+              <button onClick={() => setShowGoalModal(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
             </div>
+
+            <form onSubmit={handleSaveGoal} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Hedef Tanımı</label>
+                <input
+                  type="text"
+                  placeholder="Örn: Paragraf Soru Çözümü"
+                  value={newGoal.title}
+                  onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-rose-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Tür</label>
+                  <select
+                    value={newGoal.type}
+                    onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none"
+                  >
+                    <option value="Soru">🎯 Soru</option>
+                    <option value="Sayfa">📖 Sayfa</option>
+                    <option value="Dakika">⏱️ Dakika</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Periyot</label>
+                  <select
+                    value={newGoal.period}
+                    onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none"
+                  >
+                    <option value="Günlük">⚡ Günlük</option>
+                    <option value="Haftalık">📅 Haftalık</option>
+                    <option value="Aylık">🏆 Aylık</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Hedef Miktar</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Örn: 50"
+                  value={newGoal.target}
+                  onChange={e => setNewGoal(p => ({ ...p, target: Number(e.target.value) }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-rose-500"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={() => setShowGoalModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all">Hedef Ekle</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* ── SCHEDULE MODAL ── */}
+      {/* MODAL: DERS EKLE */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="h-1.5 bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500" />
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <CalendarClock className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white">Programa Ders Ekle</h3>
-                </div>
-                <button onClick={() => setShowScheduleModal(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="w-5 h-5 text-emerald-500" />
+                <h3 className="font-black text-slate-900 dark:text-white text-base">Programa Ekle</h3>
               </div>
-              <form onSubmit={handleSaveSchedule} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Gün Seç</label>
-                  <div className="flex flex-wrap gap-2">
-                    {DAYS.map(d => (
-                      <button key={d} type="button" onClick={() => setNewSchedule({ ...newSchedule, day: d })}
-                        className={cn('px-3 py-1.5 rounded-xl text-xs font-bold transition-all border',
-                          newSchedule.day === d ? 'bg-emerald-500 text-white border-emerald-500 shadow-md'
-                                                 : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-400')}>
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Saat</label>
-                  <input type="time" value={newSchedule.time} onChange={e => setNewSchedule({ ...newSchedule, time: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:text-white" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Ders / Çalışma Adı</label>
-                  <input type="text" value={newSchedule.title} onChange={e => setNewSchedule({ ...newSchedule, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:text-white"
-                    placeholder="Örn: Matematik - Türev Konusu" required />
-                </div>
-                <button type="submit" className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black rounded-xl text-sm shadow-lg shadow-emerald-500/30 active:scale-95 transition-all">
-                  PROGRAMA EKLE
-                </button>
-              </form>
+              <button onClick={() => setShowScheduleModal(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
             </div>
+
+            <form onSubmit={handleSaveSchedule} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Gün</label>
+                <select
+                  value={newSchedule.day}
+                  onChange={e => setNewSchedule(p => ({ ...p, day: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none"
+                >
+                  {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Saat</label>
+                <input
+                  type="time"
+                  value={newSchedule.time}
+                  onChange={e => setNewSchedule(p => ({ ...p, time: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Ders / Etkinlik Adı</label>
+                <input
+                  type="text"
+                  placeholder="Örn: 18:00 Matematik Çözümü"
+                  value={newSchedule.title}
+                  onChange={e => setNewSchedule(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={() => setShowScheduleModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all">Programa Ekle</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

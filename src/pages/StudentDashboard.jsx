@@ -6,7 +6,7 @@ import {
   Calendar, CheckCircle2, X, Plus, ExternalLink, Zap,
   ChevronRight, Star, TrendingUp, BookMarked, CalendarDays,
   Ruler, TestTube2, BookCopy, Globe, MessageSquare,
-  FileText, ClipboardList, ArrowRight
+  FileText, ClipboardList, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { parse, isPast, isToday, differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -99,37 +99,21 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
         <div style={{ width: 24, height: 24, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 3, border: `1px solid ${color}33` }}>
           <Icon size={12} color={color} />
         </div>
-        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>{shortLabel}</div>
+        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: '#64748b', marginTop: 1, textTransform: 'uppercase' }}>{shortLabel}</div>
       </div>
     );
   }
 
-  const [hov, setHov] = useState(false);
   return (
-    <div
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        background: hov ? bg : 'white',
-        border: `1.5px solid ${hov ? color + '44' : '#f1f5f9'}`,
-        borderRadius: '1.25rem',
-        padding: '1.25rem',
-        display: 'flex',
-        gap: '0.9rem',
-        alignItems: 'center',
-        boxShadow: hov ? `0 8px 28px ${glow || color + '30'}` : '0 2px 10px rgba(0,0,0,0.05)',
-        transition: 'all 0.2s',
-        transform: hov ? 'translateY(-2px)' : 'none'
-      }}
-    >
-      <div style={{ width: 48, height: 48, borderRadius: '0.9rem', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}33` }}>
-        <Icon size={22} color={color} />
+    <div style={{ background: 'white', border: `1.5px solid ${color}25`, borderRadius: '1.1rem', padding: '1rem 1.1rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: bg, border: `1.5px solid ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={20} color={color} />
       </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+      <div>
+        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1, marginTop: 2 }}>{value}</div>
         {sub && <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>{sub}</div>}
-        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>{label}</div>
       </div>
     </div>
   );
@@ -137,116 +121,102 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
 
 /* ─── Homework Card ─────────────────────────────────────────────── */
 function HomeworkCard({ task, selectedStudent }) {
-  const conf = getSubConf(getThemeKey(task.subject));
+  const navigate = useNavigate();
+  const category = task.subject;
+  const conf = getSubConf(getThemeKey(category));
   const Icon = conf.icon;
   const dueDate = task.dueDateObj;
-  const overdue  = isPast(dueDate) && !isToday(dueDate);
+  const overdue = isPast(dueDate) && !isToday(dueDate);
   const dueToday = isToday(dueDate);
-  const diff     = differenceInDays(dueDate, new Date());
+  const daysDiff = differenceInDays(dueDate, new Date());
 
-  const urgency = overdue
-    ? { label: `${differenceInDays(new Date(), dueDate)}g gecikti`, bg: '#ef4444', pulse: true }
-    : dueToday
-    ? { label: 'Bugün son!', bg: '#f97316', pulse: true }
-    : diff <= 2
-    ? { label: `${diff + 1}g kaldı`, bg: '#f59e0b', pulse: false }
-    : { label: `${diff + 1}g kaldı`, bg: '#22c55e', pulse: false };
+  const urgencyPill = overdue ? (
+    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#ef4444', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+      <Flame size={10} /> {differenceInDays(new Date(), dueDate)}g Gecikti
+    </span>
+  ) : dueToday ? (
+    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#f59e0b', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+      ⚡ Bugün Son
+    </span>
+  ) : (
+    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#10b981', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99 }}>
+      {daysDiff + 1}g kaldı
+    </span>
+  );
 
   return (
-    <div style={{ background: 'white', border: `2px solid ${conf.border}`, borderRadius: '1.2rem', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column' }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 12px 32px ${conf.color}22`; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'; }}
-    >
-      {/* Colored top bar */}
-      <div style={{ height: 5, background: conf.badge }} />
-      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-              <Pill color={conf.badge} bg={conf.bg} border={conf.border}>{task.subject}</Pill>
-              <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.63rem', fontWeight: 800, background: urgency.bg, color: 'white', borderRadius: 99, padding: '0.18rem 0.6rem', animation: urgency.pulse ? 'pulse 1.5s infinite' : 'none' }}>
-                ⏱ {urgency.label}
-              </span>
-            </div>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{task.title}</h3>
+    <div style={{ background: 'white', border: `1.5px solid ${conf.border}`, borderRadius: '1.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ height: 4, background: conf.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: conf.color, flexShrink: 0 }} />
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: conf.badge, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{category}</span>
           </div>
-          <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: conf.bg, border: `1.5px solid ${conf.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon size={18} color={conf.color} />
-          </div>
+          <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {task.title}
+          </h3>
         </div>
-        {/* Meta */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '0.65rem', padding: '0.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Soru</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>{task.questionCount || '—'}</div>
-          </div>
-          <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '0.65rem', padding: '0.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Süre</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>{task.durationMinutes}dk</div>
-          </div>
-          <div style={{ flex: 2, background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '0.65rem', padding: '0.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Son Teslim</div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>{task.dueDateStr}</div>
-          </div>
+        <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: conf.bg, border: `1.5px solid ${conf.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon size={18} color={conf.color} />
         </div>
-        {/* CTA */}
-        <Link to={task.sourceType === 'trackedBook' ? `/book-quiz/${task.id}?studentId=${selectedStudent?.id}` : `/quiz/${task.id}?studentId=${selectedStudent?.id}`} style={{ textDecoration: 'none', marginTop: 'auto' }}>
-          <button style={{ width: '100%', padding: '0.7rem', borderRadius: '0.85rem', background: `linear-gradient(135deg,${conf.badge},${conf.color})`, color: 'white', fontWeight: 800, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: `0 4px 16px ${conf.color}35`, transition: 'opacity 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
-            <PlayCircle size={15} /> Ödevi Çöz
-          </button>
-        </Link>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+          <Calendar size={12} /> {task.dueDateStr}
+        </div>
+        {urgencyPill}
+      </div>
+
+      <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f1f5f9' }}>
+        <div style={{ textAlign: 'center', flex: 1 }}>
+          <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Soru</div>
+          <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{task.questionCount || '—'}</div>
+        </div>
+        <div style={{ width: 1, height: 20, background: '#e2e8f0' }} />
+        <div style={{ textAlign: 'center', flex: 1 }}>
+          <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Süre</div>
+          <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{task.durationMinutes}dk</div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => {
+          const path = task.sourceType === 'trackedBook'
+            ? `/book-quiz/${task.id}?studentId=${selectedStudent.id}`
+            : `/quiz/${task.id}?studentId=${selectedStudent.id}`;
+          navigate(path);
+        }}
+        style={{ width: '100%', padding: '0.65rem', borderRadius: '0.75rem', background: conf.color, color: 'white', fontWeight: 800, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: `0 4px 12px ${conf.color}40`, transition: 'transform 0.15s' }}
+      >
+        <PlayCircle size={16} /> Ödevi Çöz
+      </button>
     </div>
   );
 }
 
-/* ─── Goal Mini Card ────────────────────────────────────────────── */
+/* ─── Goal Mini ─────────────────────────────────────────────────── */
 function GoalMini({ goal, onDelete, onUpdateProgress, onNavigate }) {
-  const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+  const pct = Math.min(100, Math.round(((goal.current || 0) / (goal.target || 1)) * 100));
   const done = pct >= 100;
-  const strokes = { 'Soru': '#f43f5e', 'Sayfa': '#3b82f6', 'Dakika': '#10b981' };
-  const stroke = done ? '#10b981' : (strokes[goal.type] || '#6366f1');
-
   return (
-    <div style={{ background: done ? '#f0fdf4' : 'white', border: `1.5px solid ${done ? '#bbf7d0' : '#f1f5f9'}`, borderRadius: '1rem', padding: '0.9rem', display: 'flex', gap: '0.85rem', alignItems: 'center', position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.2s', cursor: 'pointer' }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.08)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
-    >
-      <button onClick={(e) => { e.stopPropagation(); onDelete(goal.id); }} style={{ position: 'absolute', top: 6, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 12, display: 'flex', padding: 2 }}
-        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-        onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
-      ><X size={13} /></button>
-      {/* Radial */}
-      <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
-        <ResponsiveContainer width={56} height={56}>
-          <RadialBarChart cx="50%" cy="50%" innerRadius="65%" outerRadius="100%" barSize={8} data={[{ value: pct, fill: stroke }]} startAngle={90} endAngle={-270}>
-            <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-            <RadialBar background={{ fill: '#f1f5f9' }} clockWise dataKey="value" cornerRadius={6} />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: done ? '#059669' : '#0f172a' }}>{pct}%</span>
+    <div style={{ background: done ? '#f0fdf4' : '#fafafa', border: `1.5px solid ${done ? '#86efac' : '#f1f5f9'}`, borderRadius: '0.85rem', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, background: '#eff6ff', color: '#2563eb', padding: '0.1rem 0.45rem', borderRadius: 99, textTransform: 'uppercase' }}>{goal.period}</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, background: '#fef3c7', color: '#b45309', padding: '0.1rem 0.45rem', borderRadius: 99 }}>{goal.type}</span>
         </div>
+        <button onClick={() => onDelete(goal.id)} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 2 }}><X size={14} /></button>
       </div>
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{goal.title}</div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Pill color="#64748b" bg="#f8fafc" border="#e2e8f0">{goal.period}</Pill>
-          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{goal.current}/{goal.target} {goal.type}</span>
+      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>{goal.title}</div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: 3 }}>
+          <span>{goal.current || 0} / {goal.target}</span>
+          <span style={{ color: done ? '#16a34a' : '#4f46e5', fontWeight: 900 }}>%{pct}</span>
         </div>
-        <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-          {[5, 10, 25].map(v => (
-            <button key={v} onClick={(e) => { e.stopPropagation(); onUpdateProgress(goal.id, v); }}
-              style={{ fontSize: '0.65rem', fontWeight: 800, padding: '0.2rem 0.45rem', borderRadius: 6, border: '1.5px solid #e2e8f0', background: '#f8fafc', color: '#475569', cursor: 'pointer', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = stroke; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = stroke; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-            >+{v}</button>
-          ))}
+        <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: done ? '#22c55e' : '#6366f1', borderRadius: 99, transition: 'width 0.6s' }} />
         </div>
       </div>
     </div>
@@ -295,7 +265,7 @@ export default function StudentDashboard() {
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
-  const { getCoachingNoteForStudent, getMeetingsForStudent } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent } = useCoaching();
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -309,6 +279,7 @@ export default function StudentDashboard() {
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const coachingNote = getCoachingNoteForStudent(selectedStudent?.id);
+  const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);
   const studentMeetings = getMeetingsForStudent(selectedStudent?.id);
   const upcomingMeeting = studentMeetings.find(m => m.nextMeetingDate);
 
@@ -374,7 +345,7 @@ export default function StudentDashboard() {
 
   const studentGoals = useMemo(() => {
     if (!selectedStudent) return [];
-    return goals.filter(g => g.studentId === selectedStudent.id);
+    return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
   }, [goals, selectedStudent]);
 
   const gradeLabel = data?.grades?.find(g => g.id === selectedStudent?.gradeId)?.name || '';
@@ -389,7 +360,6 @@ export default function StudentDashboard() {
 
       {/* ═══ HERO BANNER ═══ */}
       <div style={{ background: 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a21caf 100%)', padding: isMobile ? '1.25rem 1rem' : 'clamp(1.5rem,4vw,2.5rem) clamp(1rem,4vw,2rem)', position: 'relative', overflow: 'hidden' }}>
-        {/* decorative blobs */}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, background: 'rgba(255,255,255,0.08)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: -40, left: 80, width: 160, height: 160, background: 'rgba(255,255,255,0.05)', borderRadius: '50%', filter: 'blur(25px)', pointerEvents: 'none' }} />
 
@@ -406,7 +376,6 @@ export default function StudentDashboard() {
             {gradeLabel && <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem', marginTop: 3, fontWeight: 700 }}>{gradeLabel} · Öğrenci Paneli</p>}
           </div>
 
-          {/* Score bubble */}
           <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem', textAlign: 'center', flexShrink: 0, width: isMobile ? '100%' : 'auto', marginTop: isMobile ? 6 : 0 }}>
             <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.75)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Genel Başarı</div>
             <div style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.floor(stats.successRate)}</div>
@@ -414,7 +383,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Student switcher pills */}
         {studentMembers.length > 1 && (
           <div style={{ width: '100%', position: 'relative', zIndex: 1, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginTop: 12, scrollbarWidth: 'none' }}>
             {studentMembers.map((s, i) => {
@@ -435,6 +403,64 @@ export default function StudentDashboard() {
 
       {/* ═══ CONTENT ═══ */}
       <div style={{ width: '100%', padding: isMobile ? '0.85rem' : 'clamp(1rem,2.5vw,2rem)', boxSizing: 'border-box' }}>
+
+        {/* 🏛️ KOÇLUK AKADEMİK & STRATEJİK HEDEFLERİ CARD (All Coaching Dossier Goals) */}
+        {coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals) && (
+          <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '2px solid #86efac', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(22,163,74,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <GraduationCap size={22} color="#16a34a" />
+                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em' }}>🏛️ Koçluktan Gelen Akademik & Stratejik Hedefleriniz</span>
+              </div>
+              {coachingProfile.examGoalType && (
+                <span style={{ fontSize: '0.72rem', background: '#16a34a', color: 'white', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: 99 }}>
+                  {coachingProfile.examGoalType}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '0.85rem' }}>
+              {coachingProfile.targetSchool && (
+                <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎯 İstenen Okul & Bölüm</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetSchool}</div>
+                </div>
+              )}
+              {coachingProfile.targetScore && (
+                <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🏆 Puan Hedefi</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetScore} Puan</div>
+                </div>
+              )}
+              {coachingProfile.targetNet > 0 && (
+                <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📈 Net Hedefi</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#16a34a', marginTop: 2 }}>{coachingProfile.targetNet} Net</div>
+                </div>
+              )}
+            </div>
+
+            {(coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'white', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                {coachingProfile.monthlyGoals && (
+                  <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                    <span style={{ fontWeight: 900, color: '#15803d' }}>📅 Aylık Strateji:</span> {coachingProfile.monthlyGoals}
+                  </div>
+                )}
+                {coachingProfile.weeklyGoals && (
+                  <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                    <span style={{ fontWeight: 900, color: '#15803d' }}>⚡ Haftalık Hedef:</span> {coachingProfile.weeklyGoals}
+                  </div>
+                )}
+                {coachingProfile.dailyGoals && (
+                  <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                    <span style={{ fontWeight: 900, color: '#15803d' }}>🔥 Günlük Rutin:</span> {coachingProfile.dailyGoals}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 👨‍🏫 TEACHER COACHING GUIDANCE CARD */}
         {( (coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting ) && (
@@ -593,7 +619,7 @@ export default function StudentDashboard() {
             {/* Goals */}
             <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 5 }}><Target size={15} color="#f43f5e" /> Hedeflerim</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 5 }}><Target size={15} color="#f43f5e" /> Hedeflerim ({studentGoals.length})</span>
                 <button onClick={() => setShowGoalModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', background: '#eff6ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
                   <Plus size={12} /> Ekle
                 </button>
@@ -606,12 +632,12 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {studentGoals.slice(0, 4).map(g => (
+                  {studentGoals.slice(0, 5).map(g => (
                     <GoalMini key={g.id} goal={g} onDelete={deleteGoal} onUpdateProgress={updateGoalProgress} onNavigate={navigate} />
                   ))}
-                  {studentGoals.length > 4 && (
+                  {studentGoals.length > 5 && (
                     <button onClick={() => navigate('/goals')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0.6rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#6366f1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
-                      +{studentGoals.length - 4} daha <ArrowRight size={12} />
+                      +{studentGoals.length - 5} daha <ArrowRight size={12} />
                     </button>
                   )}
                 </div>
