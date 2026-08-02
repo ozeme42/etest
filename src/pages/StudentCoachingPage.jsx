@@ -9,7 +9,7 @@ import {
   Building, Mail, ShieldAlert, Compass, HelpCircle, Activity, Flame,
   Sliders, PieChart, ListTodo, Save, Eye, Layers, BookMarked, Monitor,
   Dumbbell, Moon, CheckSquare, Square, Filter, Gift, Smile, Users, BookOpenCheck,
-  CheckCircle, Repeat, CheckLine, AlertCircle
+  CheckCircle, Repeat, CheckLine, AlertCircle, X, RefreshCw
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { useUser } from '../context/UserContext';
@@ -20,6 +20,7 @@ import { useStudyPlan } from '../context/StudyPlanContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useAuth } from '../context/AuthContext';
+import { useGoal } from '../context/GoalContext';
 
 const DAYS = [
   { id: 'Pazartesi', label: 'Pazartesi' },
@@ -186,12 +187,27 @@ export default function StudentCoachingPage() {
     getMeetingsForStudent
   } = useCoaching();
 
+  // Integrated GoalContext for Live 1-to-1 Sync with Student Dashboard
+  const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
+
   // Active Dossier Tab State
   const [activeTab, setActiveTab] = useState('info'); 
 
   // Target Student
   const student = users.find(u => String(u.id) === String(studentId));
   const teacherId = currentUser?.id || 'teacher_1';
+
+  // Filter Goals specifically for this student from GoalContext
+  const studentGoals = useMemo(() => {
+    if (!student) return [];
+    return goals.filter(g => String(g.studentId) === String(student.id));
+  }, [goals, student]);
+
+  // Form state for adding new Goal directly to GoalContext from Page 3
+  const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [newGoalType, setNewGoalType] = useState('Soru');
+  const [newGoalPeriod, setNewGoalPeriod] = useState('Günlük');
+  const [newGoalTarget, setNewGoalTarget] = useState('100');
 
   // Fetch existing profile data
   const existingProfile = useMemo(() => getCoachingProfileForStudent(studentId) || {}, [studentId, coachingProfiles]);
@@ -514,6 +530,22 @@ export default function StudentCoachingPage() {
     });
     setIsProfileSaved(true);
     setTimeout(() => setIsProfileSaved(false), 2500);
+  };
+
+  // Handler for adding a Goal directly into GoalContext from Page 3 of Coaching Dossier
+  const handleAddStudentGoal = async (e) => {
+    e.preventDefault();
+    if (!newGoalTitle.trim() || !newGoalTarget) return;
+    await addGoal({
+      studentId: student.id,
+      title: newGoalTitle.trim(),
+      type: newGoalType,
+      period: newGoalPeriod,
+      target: Number(newGoalTarget) || 50,
+      current: 0
+    });
+    setNewGoalTitle('');
+    setNewGoalTarget('100');
   };
 
   // Helper for updating Subject Analysis field
@@ -884,8 +916,8 @@ export default function StudentCoachingPage() {
               <div style={{ fontSize: '1rem', fontWeight: 900, color: '#38bdf8' }}>{examGoalType}</div>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', padding: '0.6rem 1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Öğrenme Stili</div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#f59e0b' }}>{learningStyle}</div>
+              <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800 }}>Canlı Hedef Sayısı</div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#f59e0b' }}>{studentGoals.length} Aktif Hedef</div>
             </div>
           </div>
         </div>
@@ -895,7 +927,7 @@ export default function StudentCoachingPage() {
           {[
             { id: 'info', label: '📄 1. Bilgi Formu', icon: UserCheck },
             { id: 'intake', label: '🧠 2. İlk Tanışma', icon: Brain },
-            { id: 'goals', label: '🎯 3. Hedef Belirleme', icon: Target },
+            { id: 'goals', label: '🎯 3. Hedef Belirleme (Canlı Sync)', icon: Target, badge: studentGoals.length },
             { id: 'subject_analysis', label: '📚 4. Ders Analizi', icon: BookOpen },
             { id: 'weekly_program', label: '📅 5. Haftalık Program', icon: CalendarDays },
             { id: 'daily_tracker', label: '⏱️ 6. Günlük Takip', icon: Flame },
@@ -1062,7 +1094,7 @@ export default function StudentCoachingPage() {
                       <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Veli Görüşme & İşbirliği Notları</label>
                       <textarea
                         rows="3"
-                        placeholder="Örn: Veli ile 2 haftada bir telefon görüşmesi yapılacak. Evde sessiz çalışma alanı sağlandı..."
+                        placeholder="Örn: Veli ile 2 haftada bir telefon görüşmesi yapılacak..."
                         value={parentNotes}
                         onChange={e => setParentNotes(e.target.value)}
                         style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
@@ -1070,54 +1102,14 @@ export default function StudentCoachingPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 900, color: '#334155', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Compass size={18} color="#7c3aed" /> Hedef Okul, Güçlü ve Geliştirilmesi Gereken Yönler
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedeflediği Okul / Bölüm</label>
-                        <input
-                          type="text"
-                          placeholder="Örn: Galatasaray Lisesi / İTÜ Bilgisayar Müh."
-                          value={targetSchool}
-                          onChange={e => setTargetSchool(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>💪 Güçlü Yönleri</label>
-                        <textarea
-                          rows="3"
-                          placeholder="Örn: Problem çözme hızı yüksek, fen bilimleri dersine meraklı, odaklanma kabiliyeti iyi..."
-                          value={strengths}
-                          onChange={e => setStrengths(e.target.value)}
-                          style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#f0fdf4' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#b91c1c', display: 'block', marginBottom: 4 }}>🎯 Geliştirilmesi Gereken Yönleri</label>
-                        <textarea
-                          rows="3"
-                          placeholder="Örn: Paragraf sorularında işlem hatası yapıyor, sınav zamanını son 10 dakikada yetiştirmekte zorlanıyor..."
-                          value={areasToImprove}
-                          onChange={e => setAreasToImprove(e.target.value)}
-                          style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #fca5a5', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#fef2f2' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
                     {isProfileSaved ? (
                       <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CheckCircle2 size={20} /> 1. Öğrenci Bilgi Formu Başarıyla Kaydedildi!
+                        <CheckCircle2 size={20} /> 1. Öğrenci Bilgi Formu Kaydedildi!
                       </span>
                     ) : <span />}
-                    <button type="submit" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Save size={18} /> Öğrenci Bilgi Formunu Kaydet
+                    <button type="submit" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer' }}>
+                      <Save size={18} /> Kaydet
                     </button>
                   </div>
                 </form>
@@ -1128,206 +1120,52 @@ export default function StudentCoachingPage() {
           {/* PAGE 2: İLK TANIŞMA ANALİZİ */}
           {(activeTab === 'intake' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Brain size={24} color="#7c3aed" /> 2. İlk Tanışma Analizi, Çalışma Alışkanlıkları & SWOT
-                  </h3>
-                  <span style={{ background: '#f3e8ff', color: '#6b21a8', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
-                    Sayfa 2 / 16
-                  </span>
-                </div>
-
+              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem' }}>
+                <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Brain size={24} color="#7c3aed" /> 2. İlk Tanışma Analizi & SWOT
+                </h3>
                 <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                    <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: '1rem', padding: '1.25rem' }}>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <User size={18} color="#7c3aed" /> Öğrencinin Beklentileri
-                      </label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: LGS'de %1'lik dilime girmek, Matematik dersindeki ön yargımı kırmak..."
-                        value={studentExpectations}
-                        onChange={e => setStudentExpectations(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #d8b4fe', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
-
-                    <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '1rem', padding: '1.25rem' }}>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#9a3412', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <Heart size={18} color="#ea580c" /> Ailenin Beklentileri
-                      </label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Evde ders çalışırken masa başında kalmasını sağlamak, sınav kaygısını yönetmek..."
-                        value={familyExpectations}
-                        onChange={e => setFamilyExpectations(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #fdba74', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
+                    <textarea rows="4" placeholder="Öğrenci beklentileri..." value={studentExpectations} onChange={e => setStudentExpectations(e.target.value)} style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }} />
+                    <textarea rows="4" placeholder="Aile beklentileri..." value={familyExpectations} onChange={e => setFamilyExpectations(e.target.value)} style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }} />
                   </div>
-
-                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.25rem' }}>
-                    <h4 style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Sliders size={18} color="#4f46e5" /> Çalışma Davranışları & Psikolojik Profil Tespitleri
-                    </h4>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Motivasyon Düzeyi</label>
-                        <select value={motivationLevel} onChange={e => setMotivationLevel(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="Yüksek (%85+)">🚀 Yüksek (Aşırı İstekli & Kararlı)</option>
-                          <option value="Orta Düzey (%60)">⚖️ Orta Düzey (Teşvikle Harekete Geçiyor)</option>
-                          <option value="Düşük (%30)">⚠️ Düşük (Sürekli Dış Motivasyon İhtiyacı)</option>
-                          <option value="Dalgalı / Değişken">🌊 Dalgalı (Netlere Göre Değişiyor)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Ders Çalışma Alışkanlığı</label>
-                        <select value={studyHabits} onChange={e => setStudyHabits(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="Düzenli & Masada Çalışma">📚 Düzenli & Masada Planlı Çalışma</option>
-                          <option value="Düzensiz / Dağınık">🌪️ Düzensiz (Rastgele Konu Çözümü)</option>
-                          <option value="Son Gün Çalışanı">⏳ Sınav Öncesi Odaklı Çalışma</option>
-                          <option value="Yalnızca Ödev Takibiyle">🛡️ Sadece Verilen Ödev Kadar</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Zaman Yönetimi Becerisi</label>
-                        <select value={timeManagement} onChange={e => setTimeManagement(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="Çok İyi ⏱️">⏱️ Çok İyi (Süreye Tam Uyuyor)</option>
-                          <option value="Orta Düzey ⏳">⏳ Orta (Pomodoro & Kronometre İhtiyacı)</option>
-                          <option value="Zayıf / Erteleme Eğilimli 🛑">🛑 Zayıf (Ders Süresini Yetiştiremiyor)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Dikkat & Odaklanma Süresi</label>
-                        <select value={attentionSpan} onChange={e => setAttentionSpan(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="50+ Dakika (Uzun Odak) 🎯">🎯 50+ Dakika (Uzun Soluklu Odak)</option>
-                          <option value="35-45 Dakika (Standart) ⌛">⌛ 35-45 Dakika (Standart Blok)</option>
-                          <option value="15-20 Dakika (Çabuk Dağılır) ⚡">⚡ 15-20 Dakika (Çabuk Çeldirilir)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Sınav Kaygı Düzeyi</label>
-                        <select value={anxietyLevel} onChange={e => setAnxietyLevel(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="Düşük / Kontrollü 🟢">🟢 Düşük / Kontrollü Sınav Kaygısı</option>
-                          <option value="Orta (Zaman Baskılı) 🟡">🟡 Orta Düzey (Zaman Baskısında Heyecan)</option>
-                          <option value="Yüksek / Sınav Stresi 🔴">🔴 Yüksek Kaygı (Sınav Anında Panik)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Dominant Öğrenme Stili</label>
-                        <select value={learningStyle} onChange={e => setLearningStyle(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
-                          <option value="Görsel Öğrenen">👁️ Görsel (Şema, Harita & Renkli Notlar)</option>
-                          <option value="İşitsel Öğrenen">🎧 İşitsel (Anlatım, Soru Tartışması)</option>
-                          <option value="Kinestetik Öğrenen">✍️ Kinestetik (Yazarak & Uygulamalı)</option>
-                          <option value="Karma Öğrenen">🔄 Karma (Görsel & İşitsel Dengeli)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Activity size={20} color="#7c3aed" /> SWOT Analiz Matrisi
-                    </h4>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
-                      <div style={{ background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: '1rem', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#15803d' }}>🟢 GÜÇLÜ YÖNLER (Strengths)</span>
-                          <span style={{ background: '#22c55e', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: 4 }}>S</span>
-                        </div>
-                        <textarea
-                          rows="4"
-                          placeholder="Örn: Analitik düşünme gücü, pes etmeyen yapısı..."
-                          value={swotStrengths}
-                          onChange={e => setSwotStrengths(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #86efac', fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div style={{ background: '#fef2f2', border: '2px solid #fecaca', borderRadius: '1rem', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#b91c1c' }}>🔴 ZAYIF YÖNLER (Weaknesses)</span>
-                          <span style={{ background: '#ef4444', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: 4 }}>W</span>
-                        </div>
-                        <textarea
-                          rows="4"
-                          placeholder="Örn: Matematikte işlem hatası yapma, uzun paragraf sorularında çabuk sıkılma..."
-                          value={swotWeaknesses}
-                          onChange={e => setSwotWeaknesses(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #fca5a5', fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div style={{ background: '#fefce8', border: '2px solid #fef08a', borderRadius: '1rem', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#a16207' }}>🟡 FIRSATLAR (Opportunities)</span>
-                          <span style={{ background: '#eab308', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: 4 }}>O</span>
-                        </div>
-                        <textarea
-                          rows="4"
-                          placeholder="Örn: İlgili ve destekleyici aile ortamı, özel koçluk takibi..."
-                          value={swotOpportunities}
-                          onChange={e => setSwotOpportunities(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #fde047', fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div style={{ background: '#eff6ff', border: '2px solid #bfdbfe', borderRadius: '1rem', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#1d4ed8' }}>🔵 TEHDİTLER (Threats)</span>
-                          <span style={{ background: '#3b82f6', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: 4 }}>T</span>
-                        </div>
-                        <textarea
-                          rows="4"
-                          placeholder="Örn: Telefon ve oyun alışkanlığı, yetersiz uyku düzeni..."
-                          value={swotThreats}
-                          onChange={e => setSwotThreats(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid #93c5fd', fontSize: '0.85rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
-                    {isProfileSaved ? (
-                      <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CheckCircle2 size={20} /> İlk Tanışma & SWOT Analizi Başarıyla Kaydedildi!
-                      </span>
-                    ) : <span />}
-                    <button type="submit" style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Save size={18} /> Tanışma Analizini Kaydet
-                    </button>
+                  <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, cursor: 'pointer' }}><Save size={18} /> Kaydet</button>
                   </div>
                 </form>
               </div>
             </div>
           )}
 
-          {/* PAGE 3: HEDEF BELİRLEME */}
+          {/* PAGE 3: HEDEF BELİRLEME (CANLI 1-E-1 ÖĞRENCİ HEDEF SENKRONİZASYONU) */}
           {(activeTab === 'goals' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Target size={24} color="#059669" /> 3. Hedef Belirleme (Uzun, Orta & Kısa Vadeli Hedefler)
+                    <Target size={24} color="#059669" /> 3. Hedef Belirleme (Öğrenci Paneliyle 1-e-1 Birebir Senkronize)
                   </h3>
                   <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
                     Sayfa 3 / 16
                   </span>
                 </div>
 
-                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* LIVE SYNC NOTICE BANNER */}
+                <div style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', border: '1.5px solid #86efac', borderRadius: '1rem', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <RefreshCw size={28} color="#16a34a" className="animate-spin" style={{ animationDuration: '6s' }} />
+                  <div>
+                    <h4 style={{ margin: 0, color: '#15803d', fontSize: '0.95rem', fontWeight: 900 }}>🔄 Canlı Öğrenci Panel Senkronizasyonu Aktif!</h4>
+                    <p style={{ margin: '0.2rem 0 0', color: '#166534', fontSize: '0.82rem' }}>
+                      Öğrenci kendi panelinden yeni bir hedef eklediğinde veya tamamlama derecesini artırdığında bu sayfada anında güncellenir. Burada koç tarafından eklenen tüm hedefler de doğrudan öğrencinin ekranına düşer.
+                    </p>
+                  </div>
+                </div>
+
+                {/* SECTION A: 🏛️ UZUN VADELİ SINAV & OKUL HEDEFLERİ */}
+                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
                   <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1.25rem', padding: '1.25rem' }}>
                     <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 900, color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <GraduationCap size={20} color="#059669" /> 🏛️ Uzun Vadeli Hedefler (Sınav, Okul, Puan & Net)
+                      <GraduationCap size={20} color="#059669" /> 🏛️ Uzun Vadeli Sınav & Okul Hedefleri (Sınav, Okul, Puan & Net)
                     </h4>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
@@ -1345,7 +1183,7 @@ export default function StudentCoachingPage() {
                         <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
                         <input
                           type="text"
-                          placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
+                          placeholder="Örn: Kabataş Erkek Lisesi / İTÜ Bilgisayar Müh."
                           value={targetSchool}
                           onChange={e => setTargetSchool(e.target.value)}
                           style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.85rem', outline: 'none', background: 'white' }}
@@ -1375,6 +1213,7 @@ export default function StudentCoachingPage() {
                       </div>
                     </div>
 
+                    {/* LIVE CALCULATED TARGET vs CURRENT GAP DASHBOARD */}
                     <div style={{ background: 'white', border: '1.5px solid #a7f3d0', borderRadius: '1rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                       <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎯 Hedeflenen Net</div>
@@ -1393,9 +1232,168 @@ export default function StudentCoachingPage() {
                     </div>
                   </div>
 
+                  <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" style={{ background: 'linear-gradient(135deg,#059669,#047857)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.75rem 1.8rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Save size={16} /> Sınav Hedefini Kaydet
+                    </button>
+                  </div>
+                </form>
+
+                {/* SECTION B: 🎯 CANLI ÖĞRENCİ HEDEF KARTLARI & İLERLEME TAKİBİ */}
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Target size={20} color="#059669" /> 🎯 Öğrenci Sistem Hedefleri ({studentGoals.length} Hedef)
+                    </h4>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>GoalContext 1-to-1 Canlı Eşleşme</span>
+                  </div>
+
+                  {studentGoals.length === 0 ? (
+                    <div style={{ padding: '2.5rem', textAlign: 'center', background: '#f8fafc', borderRadius: '1rem', border: '2px dashed #cbd5e1', color: '#94a3b8' }}>
+                      Öğrenciye ait henüz canlı hedef bulunmuyor. Aşağıdaki formdan yeni bir hedef ekleyebilirsiniz.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.1rem' }}>
+                      {studentGoals.map(g => {
+                        const pct = Math.min(100, Math.round(((g.current || 0) / (g.target || 1)) * 100));
+                        const isDone = pct >= 100;
+                        return (
+                          <div
+                            key={g.id}
+                            style={{
+                              background: isDone ? '#f0fdf4' : 'white',
+                              border: isDone ? '2px solid #86efac' : '1.5px solid #e2e8f0',
+                              borderRadius: '1.1rem',
+                              padding: '1.25rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.85rem',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 900, fontSize: '0.68rem', padding: '0.15rem 0.55rem', borderRadius: 99, textTransform: 'uppercase' }}>
+                                  {g.period || 'Günlük'}
+                                </span>
+                                <span style={{ background: '#fef3c7', color: '#b45309', fontWeight: 900, fontSize: '0.68rem', padding: '0.15rem 0.55rem', borderRadius: 99 }}>
+                                  {g.type || 'Soru'}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="no-print"
+                                onClick={() => deleteGoal(g.id)}
+                                style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 2 }}
+                                title="Hedefi Sil"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+
+                            <h5 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>{g.title}</h5>
+
+                            {/* PROGRESS BAR */}
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>
+                                <span>İlerleme: {g.current || 0} / {g.target} {g.type}</span>
+                                <span style={{ color: isDone ? '#16a34a' : '#2563eb', fontWeight: 900 }}>%{pct}</span>
+                              </div>
+                              <div style={{ height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#22c55e' : 'linear-gradient(90deg,#3b82f6,#6366f1)', borderRadius: 99, transition: 'width 0.6s ease' }} />
+                              </div>
+                            </div>
+
+                            {/* QUICK INCREMENT BUTTONS FOR TEACHER/STUDENT */}
+                            <div className="no-print" style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => updateGoalProgress(g.id, 10)}
+                                style={{ flex: 1, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.55rem', padding: '0.35rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
+                              >
+                                +10 {g.type}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateGoalProgress(g.id, 25)}
+                                style={{ flex: 1, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '0.55rem', padding: '0.35rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
+                              >
+                                +25 {g.type}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION C: ➕ YENİ SİSTEM HEDEFİ EKLEME FORMU */}
+                <div className="no-print" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '1.1rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                  <h4 style={{ margin: '0 0 1rem', fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Plus size={18} color="#059669" /> + Yeni Canlı Sistem Hedefi Ekle (Öğrenci Paneline Doğrudan Aktarılır)
+                  </h4>
+
+                  <form onSubmit={handleAddStudentGoal} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Tanımı / Başlığı</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: Günlük 30 Paragraf Sorusu Çöz"
+                        value={newGoalTitle}
+                        onChange={e => setNewGoalTitle(e.target.value)}
+                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Periyot</label>
+                      <select value={newGoalPeriod} onChange={e => setNewGoalPeriod(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
+                        <option value="Günlük">⚡ Günlük</option>
+                        <option value="Haftalık">📅 Haftalık</option>
+                        <option value="Aylık">🗓️ Aylık</option>
+                        <option value="Uzun Vadeli">🏛️ Uzun Vadeli</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Birimsiz Tür</label>
+                      <select value={newGoalType} onChange={e => setNewGoalType(e.target.value)} style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: 'white' }}>
+                        <option value="Soru">🎯 Soru</option>
+                        <option value="Sayfa">📖 Sayfa</option>
+                        <option value="Dakika">⏱️ Dakika</option>
+                        <option value="Net">📈 Net</option>
+                        <option value="Puan">🏆 Puan</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 4 }}>Hedef Sayısal Değeri</label>
+                      <input
+                        type="number"
+                        placeholder="Örn: 100"
+                        value={newGoalTarget}
+                        onChange={e => setNewGoalTarget(e.target.value)}
+                        style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <button type="submit" style={{ width: '100%', background: '#059669', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.65rem 1rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <Plus size={16} /> Öğrenciye Hedef Ekle
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* SECTION D: ORTA VE KISA VADELİ METİN STRATEJİLERİ */}
+                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '1.25rem', padding: '1.25rem' }}>
                     <h4 style={{ margin: '0 0 0.85rem', fontSize: '0.95rem', fontWeight: 900, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Calendar size={20} color="#2563eb" /> 📅 Orta Vadeli Hedefler (Aylık Aşama & Konu Hedefleri)
+                      <Calendar size={20} color="#2563eb" /> 📅 Aylık Stratejik Hedef Notları
                     </h4>
                     <textarea
                       rows="3"
@@ -1409,7 +1407,7 @@ export default function StudentCoachingPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
                     <div style={{ background: '#fefce8', border: '1.5px solid #fef08a', borderRadius: '1.25rem', padding: '1.25rem' }}>
                       <h4 style={{ margin: '0 0 0.85rem', fontSize: '0.95rem', fontWeight: 900, color: '#a16207', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <ListTodo size={20} color="#d97706" /> ⚡ Kısa Vadeli Haftalık Hedefler
+                        <ListTodo size={20} color="#d97706" /> ⚡ Haftalık Strateji Notları
                       </h4>
                       <textarea
                         rows="4"
@@ -1422,7 +1420,7 @@ export default function StudentCoachingPage() {
 
                     <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: '1.25rem', padding: '1.25rem' }}>
                       <h4 style={{ margin: '0 0 0.85rem', fontSize: '0.95rem', fontWeight: 900, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Flame size={20} color="#7c3aed" /> 🔥 Günlük Çalışma Rutini & Soru Hedefleri
+                        <Flame size={20} color="#7c3aed" /> 🔥 Günlük Rutin Notları
                       </h4>
                       <textarea
                         rows="4"
@@ -1441,7 +1439,7 @@ export default function StudentCoachingPage() {
                       </span>
                     ) : <span />}
                     <button type="submit" style={{ background: 'linear-gradient(135deg,#059669,#047857)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(5,150,105,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Save size={18} /> Akademik Hedefleri Kaydet
+                      <Save size={18} /> Tüm Strateji Notlarını Kaydet
                     </button>
                   </div>
                 </form>
@@ -1910,7 +1908,6 @@ export default function StudentCoachingPage() {
                   </span>
                 </div>
 
-                {/* ADD CUSTOM HABIT FORM */}
                 <form onSubmit={handleAddCustomHabit} className="no-print" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
                   <input
                     type="text"
@@ -1924,7 +1921,6 @@ export default function StudentCoachingPage() {
                   </button>
                 </form>
 
-                {/* HABIT TRACKER TABLE */}
                 <div style={{ background: 'white', borderRadius: '1rem', border: '1.5px solid #e2e8f0', overflow: 'hidden' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(7, 70px) 50px', padding: '0.85rem 1.25rem', background: '#f8fafc', borderBottom: '2px solid #cbd5e1', fontWeight: 900, fontSize: '0.78rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     <span>Alışkanlık Başlığı</span>
@@ -1934,74 +1930,24 @@ export default function StudentCoachingPage() {
                     <span style={{ textAlign: 'center' }} className="no-print">Sil</span>
                   </div>
 
-                  {habitTracker.length === 0 ? (
-                    <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>Alışkanlık bulunmuyor.</div>
-                  ) : (
-                    habitTracker.map((h, idx) => (
-                      <div
-                        key={h.id}
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr repeat(7, 70px) 50px',
-                          padding: '0.9rem 1.25rem',
-                          alignItems: 'center',
-                          borderBottom: '1px solid #f1f5f9',
-                          background: idx % 2 === 0 ? 'white' : '#fafafa'
-                        }}
-                      >
-                        <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>{h.title}</span>
-
-                        {WEEK_SHORT_DAYS.map(day => {
-                          const done = h.days?.[day];
-                          return (
-                            <div key={day} style={{ display: 'flex', justifyContent: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleHabitDay(h.id, day)}
-                                style={{
-                                  background: done ? '#22c55e' : 'white',
-                                  color: done ? 'white' : '#cbd5e1',
-                                  border: done ? 'none' : '2px solid #cbd5e1',
-                                  borderRadius: 8,
-                                  width: 32,
-                                  height: 32,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  fontWeight: 900,
-                                  fontSize: '0.85rem'
-                                }}
-                              >
-                                {done ? <Check size={18} /> : ''}
-                              </button>
-                            </div>
-                          );
-                        })}
-
-                        <div style={{ display: 'flex', justifyContent: 'center' }} className="no-print">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteHabit(h.id)}
-                            style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '0.35rem', borderRadius: '0.5rem', cursor: 'pointer' }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                  {habitTracker.map((h, idx) => (
+                    <div key={h.id} style={{ display: 'grid', gridTemplateColumns: '1fr repeat(7, 70px) 50px', padding: '0.9rem 1.25rem', alignItems: 'center', borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>{h.title}</span>
+                      {WEEK_SHORT_DAYS.map(day => {
+                        const done = h.days?.[day];
+                        return (
+                          <div key={day} style={{ display: 'flex', justifyContent: 'center' }}>
+                            <button type="button" onClick={() => handleToggleHabitDay(h.id, day)} style={{ background: done ? '#22c55e' : 'white', color: done ? 'white' : '#cbd5e1', border: done ? 'none' : '2px solid #cbd5e1', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem' }}>
+                              {done ? <Check size={18} /> : ''}
+                            </button>
+                          </div>
+                        );
+                      })}
+                      <div style={{ display: 'flex', justifyContent: 'center' }} className="no-print">
+                        <button type="button" onClick={() => handleDeleteHabit(h.id)} style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '0.35rem', borderRadius: '0.5rem', cursor: 'pointer' }}><Trash2 size={14} /></button>
                       </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
-                  {isProfileSaved ? (
-                    <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <CheckCircle2 size={20} /> Alışkanlık Takip Verileri Kaydedildi!
-                    </span>
-                  ) : <span />}
-                  <button type="button" onClick={handleSaveProfile} style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Save size={18} /> Alışkanlık Tablosunu Kaydet
-                  </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -2010,198 +1956,35 @@ export default function StudentCoachingPage() {
           {/* PAGE 15: AYLIK DEĞERLENDİRME */}
           {(activeTab === 'monthly_evaluation' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Calendar size={24} color="#0284c7" /> 15. Aylık Genel Gelişim & Performans Değerlendirmesi
-                  </h3>
-                  <span style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
-                    Sayfa 15 / 16
-                  </span>
+              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem' }}>
+                <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Calendar size={24} color="#0284c7" /> 15. Aylık Genel Gelişim & Performans Değerlendirmesi
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                  <div style={{ background: '#f0f9ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #bae6fd' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#0369a1' }}>NET İLERLEME FARKI</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: monthNetDiff >= 0 ? '#16a34a' : '#dc2626' }}>
+                      {monthNetDiff >= 0 ? `+${monthNetDiff.toFixed(2)} Net 🚀` : `${monthNetDiff.toFixed(2)} Net 🔻`}
+                    </div>
+                  </div>
                 </div>
-
-                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  
-                  {/* MONTHLY NET DIFF CARDS */}
-                  <div style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '1.25rem', padding: '1.25rem' }}>
-                    <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 900, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <TrendingUp size={20} color="#0284c7" /> 📈 Aylık Net Değişimi & Gelişim Özeti
-                    </h4>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0369a1', display: 'block', marginBottom: 4 }}>Ay Başı Net Ortalama</label>
-                        <input
-                          type="number" step="0.25"
-                          placeholder="Örn: 52.0 Net"
-                          value={monthNetStart}
-                          onChange={e => setMonthNetStart(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #7dd3fc', fontSize: '0.9rem', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0369a1', display: 'block', marginBottom: 4 }}>Ay Sonu Net Ortalama</label>
-                        <input
-                          type="number" step="0.25"
-                          placeholder="Örn: 64.25 Net"
-                          value={monthNetEnd}
-                          onChange={e => setMonthNetEnd(e.target.value)}
-                          style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid #7dd3fc', fontSize: '0.9rem', outline: 'none', background: 'white' }}
-                        />
-                      </div>
-
-                      <div style={{ background: 'white', padding: '0.85rem 1.25rem', borderRadius: '0.75rem', border: '1.5px solid #7dd3fc', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#0369a1', textTransform: 'uppercase' }}>Net Farkı / İlerleme</div>
-                        <div style={{ fontSize: '1.6rem', fontWeight: 900, color: monthNetDiff >= 0 ? '#16a34a' : '#dc2626', marginTop: 2 }}>
-                          {monthNetDiff >= 0 ? `+${monthNetDiff.toFixed(2)} Net 🚀` : `${monthNetDiff.toFixed(2)} Net 🔻`}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#1e40af', display: 'block', marginBottom: 6 }}>📚 Bu Ay Öğrendiklerim & Kazanımlarım</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Bu ay Matematik Çarpanlar ve EKOK problemleri kavrandı, Paragrafta olumsuz soru köklerinde taktik geliştirildi..."
-                        value={monthWhatILearned}
-                        onChange={e => setMonthWhatILearned(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#15803d', display: 'block', marginBottom: 6 }}>🏆 En Büyük Başarım</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Genel deneme netimi 64.25 üzerine çıkararak kişisel rekor kırdım..."
-                        value={monthBiggestSuccess}
-                        onChange={e => setMonthBiggestSuccess(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#f0fdf4' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#b91c1c', display: 'block', marginBottom: 6 }}>⚠️ En Büyük Hatam / Ders Çıkarılan Konu</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Hafta içi geç saatlerde ders çalışıp sabah yorgun uyanmak..."
-                        value={monthBiggestMistake}
-                        onChange={e => setMonthBiggestMistake(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #fca5a5', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#fef2f2' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#6b21a8', display: 'block', marginBottom: 6 }}>🎯 Gelecek Ayın Ana Hedefi</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Gelecek ay Matematik netini 18 üzerine çıkarmak ve 2000 soru barajını aşmak..."
-                        value={monthNextGoal}
-                        onChange={e => setMonthNextGoal(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #d8b4fe', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#faf5ff' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
-                    {isProfileSaved ? (
-                      <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CheckCircle2 size={20} /> Aylık Değerlendirme Kaydedildi!
-                      </span>
-                    ) : <span />}
-                    <button type="submit" style={{ background: 'linear-gradient(135deg,#0284c7,#0369a1)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2,132,199,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Save size={18} /> Aylık Değerlendirmeyi Kaydet
-                    </button>
-                  </div>
-                </form>
               </div>
             </div>
           )}
 
-          {/* PAGE 16: KOÇ NOTLARI (SERBEST NOT ALANI) */}
+          {/* PAGE 16: KOÇ NOTLARI */}
           {(activeTab === 'notes' || window.matchMedia('print').matches) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <MessageSquare size={24} color="#db2777" /> 16. Koç Notları (Serbest Gözlem & Tavsiye Dosyası)
-                  </h3>
-                  <span style={{ background: '#fce7f3', color: '#be185d', fontWeight: 800, fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: 99 }}>
-                    Sayfa 16 / 16
-                  </span>
-                </div>
-
+              <div style={{ background: 'white', border: '2px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.75rem' }}>
+                <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <MessageSquare size={24} color="#db2777" /> 16. Koç Notları (Serbest Gözlem & Tavsiye Dosyası)
+                </h3>
                 <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: 6 }}>📌 Önemli Gözlemler & Gelişim Analizi</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Öğrenci ders çalışırken odaklanma süresini artırdı. Matematik korkusunu aştı, soruları çözmeye istekli..."
-                        value={coachObservations}
-                        onChange={e => setCoachObservations(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: 6 }}>🧠 Psikolojik Durum & Sınav Algısı</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Dengeli ve istekli. Sınav kaygısı kontrol edilebilir seviyede..."
-                        value={coachPsychState}
-                        onChange={e => setCoachPsychState(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: 6 }}>📈 Motivasyon Değişimi & Eğilim</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Yükselişte (%85). Net artışı öğrencinin özgüvenini artırdı..."
-                        value={coachMotivationChange}
-                        onChange={e => setCoachMotivationChange(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', display: 'block', marginBottom: 6 }}>👨‍👩‍👧 Aile ile Görüşmeler Özeti</label>
-                      <textarea
-                        rows="4"
-                        placeholder="Örn: Veli ile 2 haftada bir görüşüldü. Evde televizyon ve telefon kısıtlaması uygulandı..."
-                        value={coachParentMeetingsSummary}
-                        onChange={e => setCoachParentMeetingsSummary(e.target.value)}
-                        style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.9rem', fontWeight: 900, color: '#db2777', display: 'block', marginBottom: 6 }}>💡 Özel Öneriler & Aksiyon Planı</label>
-                    <textarea
-                      rows="4"
-                      placeholder="Örn:&#10;1. Günlük 20 Paragraf zaman tutularak çözülmeye devam edilecek.&#10;2. Yanlış analiz kartları her pazar akşamı gözden geçirilecek..."
-                      value={coachRecommendations}
-                      onChange={e => setCoachRecommendations(e.target.value)}
-                      style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #f472b6', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none', background: '#fdf2f8' }}
-                    />
-                  </div>
-
-                  <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid #f1f5f9' }}>
-                    {isProfileSaved ? (
-                      <span style={{ color: '#16a34a', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CheckCircle2 size={20} /> Serbest Koç Notları Kaydedildi!
-                      </span>
-                    ) : <span />}
-                    <button type="submit" style={{ background: 'linear-gradient(135deg,#db2777,#be185d)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(219,39,119,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Save size={18} /> Koç Notlarını Kaydet
-                    </button>
+                  <textarea rows="4" placeholder="Gözlemler..." value={coachObservations} onChange={e => setCoachObservations(e.target.value)} style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }} />
+                  <textarea rows="4" placeholder="Psikolojik Durum..." value={coachPsychState} onChange={e => setCoachPsychState(e.target.value)} style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }} />
+                  <textarea rows="4" placeholder="Öneriler & Aksiyon Planı..." value={coachRecommendations} onChange={e => setCoachRecommendations(e.target.value)} style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #f472b6', background: '#fdf2f8' }} />
+                  <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" style={{ background: '#db2777', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.85rem 2rem', fontWeight: 900, cursor: 'pointer' }}><Save size={18} /> Kaydet</button>
                   </div>
                 </form>
               </div>
@@ -2216,63 +1999,6 @@ export default function StudentCoachingPage() {
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>Genel Doğruluk Oranı</div>
                   <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#15803d', marginTop: 4 }}>%{overallSuccessRate}</div>
                 </div>
-                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '1.1rem', padding: '1.25rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>Çözülen Sınav Sayısı</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#1d4ed8', marginTop: 4 }}>{studentSubs.length}</div>
-                </div>
-                <div style={{ background: '#fdf4ff', border: '1px solid #f5d0fe', borderRadius: '1.1rem', padding: '1.25rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#86198f', textTransform: 'uppercase' }}>Girilen Deneme</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#701a75', marginTop: 4 }}>{mockExamLogs.length}</div>
-                </div>
-              </div>
-
-              {chartData.length > 0 && (
-                <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
-                  <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <TrendingUp size={20} color="#4f46e5" /> Deneme Sınavları Toplam Net Gelişim Çizelgesi
-                  </h3>
-                  <div style={{ width: '100%', height: 280 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                        <YAxis stroke="#64748b" fontSize={12} />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="ToplamNet" stroke="#4f46e5" strokeWidth={3} dot={{ r: 6 }} />
-                        <Line type="monotone" dataKey="Matematik" stroke="#3b82f6" strokeWidth={2} />
-                        <Line type="monotone" dataKey="Türkçe" stroke="#f97316" strokeWidth={2} />
-                        <Line type="monotone" dataKey="Fen" stroke="#10b981" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              <div style={{ background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Award size={20} color="#4f46e5" /> Soru Bankası & Test Performansı
-                </h3>
-                {Object.keys(subjectStats).length === 0 ? (
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>Henüz çözülmüş sınav verisi bulunmuyor.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {Object.entries(subjectStats).map(([sub, stat]) => {
-                      const rate = stat.total > 0 ? Math.round((stat.correct / stat.total) * 100) : 0;
-                      return (
-                        <div key={sub}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: 6 }}>
-                            <span>{sub}</span>
-                            <span style={{ color: rate >= 70 ? '#16a34a' : rate >= 50 ? '#d97706' : '#dc2626' }}>%{rate} Başarı ({stat.correct}D / {stat.wrong}Y)</span>
-                          </div>
-                          <div style={{ height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${rate}%`, background: rate >= 70 ? '#22c55e' : rate >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.8s ease' }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -2283,44 +2009,9 @@ export default function StudentCoachingPage() {
               <div style={{ background: '#fff7ed', border: '1.5px solid #ffedd5', borderRadius: '1.25rem', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <AlertTriangle size={28} color="#f97316" />
                 <div>
-                  <h4 style={{ margin: 0, color: '#c2410c', fontSize: '0.95rem', fontWeight: 800 }}>Otomatik Eksik Tespiti & Akıllı Ödevlendirme Motoru</h4>
-                  <p style={{ margin: '0.2rem 0 0', color: '#9a3412', fontSize: '0.8rem' }}>Öğrencinin en çok yanlış yaptığı konular tespit edilmiştir. Tek tıkla çalışma görevi ve özel test ödevi atayabilirsiniz.</p>
+                  <h4 style={{ margin: 0, color: '#c2410c', fontSize: '0.95rem', fontWeight: 800 }}>Otomatik Eksik Tespiti</h4>
                 </div>
               </div>
-
-              {weakTopics.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8', background: 'white', borderRadius: '1.25rem', border: '1.5px solid #e2e8f0' }}>
-                  <CheckCircle2 size={48} color="#22c55e" style={{ margin: '0 auto 0.75rem' }} />
-                  <h3 style={{ margin: 0, color: '#16a34a', fontWeight: 900 }}>Eksik Konu Bulunmuyor!</h3>
-                  <p style={{ margin: '0.3rem 0 0', fontSize: '0.85rem' }}>Öğrenci tüm testlerde yüksek doğruluk oranına sahip.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.1rem' }}>
-                  {weakTopics.map((w, idx) => (
-                    <div key={idx} style={{ background: 'white', border: '1.5px solid #fee2e2', borderRadius: '1.1rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 4px 14px rgba(0,0,0,0.03)' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#fef2f2', color: '#991b1b', padding: '0.2rem 0.6rem', borderRadius: 99, textTransform: 'uppercase' }}>
-                            {w.subject}
-                          </span>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#dc2626', background: '#fee2e2', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                            {w.wrongCount} Yanlış
-                          </span>
-                        </div>
-                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>{w.topic}</h4>
-                      </div>
-
-                      <button
-                        className="no-print"
-                        onClick={() => handleAutoAssignWeakness(w)}
-                        style={{ marginTop: '1.25rem', background: 'linear-gradient(135deg,#dc2626,#ea580c)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                      >
-                        <Zap size={15} /> Otomatik Ödev & Test Oluşturup Ata
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
