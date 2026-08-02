@@ -24,6 +24,7 @@ import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
 import StudentCoachingPage from './pages/StudentCoachingPage';
+import PhysicalExamManager from './pages/PhysicalExamManager';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
 import './App.css';
@@ -89,6 +90,9 @@ function Sidebar() {
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
                 <GraduationCap size={20} /> Öğrenci Paneli
               </NavLink>
+              <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
+                <ClipboardCheck size={20} /> Fiziki Deneme Optik
+              </NavLink>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
                 <ListTree size={20} /> Sonuçlarım
               </NavLink>
@@ -112,6 +116,9 @@ function Sidebar() {
           {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
             <>
               <div className="nav-section-title">Modüller</div>
+              <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
+                <ClipboardCheck size={20} /> Fiziki Deneme & Optik
+              </NavLink>
               <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
                 <BarChart2 size={20} /> İstatistik & Analiz
               </NavLink>
@@ -213,6 +220,7 @@ function AppContent() {
           <Route path="/student-results" element={<StudentResultsPage />} />
           <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
           <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
+          <Route path="/physical-exam" element={<PhysicalExamManager />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
