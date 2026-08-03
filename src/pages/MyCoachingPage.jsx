@@ -784,38 +784,38 @@ export default function MyCoachingPage() {
             <Tip>Tüm yıl boyunca çalışacağın dersleri ve konuları buraya gir. Haftalık program, konu takibi, hata defteri gibi tüm sekmeler bu listeyi kaynak olarak kullanır.</Tip>
 
             {/* Hazır Şablon Yükle */}
-            <Card emoji="⚡" title="Hazır Şablon ile Hızlı Başla">
-              {!showTemplates ? (
+            {!showTemplates ? (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                 <button onClick={() => setShowTemplates(true)}
-                  style={{ background: '#f8fafc', color: '#475569', border: '1.5px dashed #cbd5e1', borderRadius: '0.75rem', padding: '0.75rem 1rem', width: '100%', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <Plus size={16} /> Şablonları Göster / Yükle
+                  style={{ background: '#f8fafc', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: '0.6rem', padding: '0.4rem 0.8rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  ⚡ Hazır Şablon Yükle
                 </button>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
-                      <button key={tplKey} onClick={() => loadTemplate(tplKey)}
-                        style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <Plus size={14} /> {tplKey}
-                      </button>
-                    ))}
-                    {topicPool.length > 0 && (
-                      <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
-                        style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
-                        🗑️ Tümünü Temizle
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-                    💡 Şablon yükle ve üzerinde istediğin değişikliği yap. Birden fazla şablonu birleştirebilirsin.
-                  </div>
-                  <button onClick={() => setShowTemplates(false)}
-                    style={{ marginTop: 8, background: 'none', color: '#64748b', border: 'none', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
-                    Gizle
-                  </button>
-                </>
-              )}
-            </Card>
+              </div>
+            ) : (
+              <Card emoji="⚡" title="Hazır Şablon ile Hızlı Başla">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
+                    <button key={tplKey} onClick={() => loadTemplate(tplKey)}
+                      style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Plus size={14} /> {tplKey}
+                    </button>
+                  ))}
+                  {topicPool.length > 0 && (
+                    <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
+                      style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
+                      🗑️ Tümünü Temizle
+                    </button>
+                  )}
+                </div>
+                <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  💡 Şablon yükle ve üzerinde istediğin değişikliği yap. Birden fazla şablonu birleştirebilirsin.
+                </div>
+                <button onClick={() => setShowTemplates(false)}
+                  style={{ marginTop: 10, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
+                  Kapat
+                </button>
+              </Card>
+            )}
 
             {/* Yeni Ders Ekle */}
             <Card emoji="➕" title="Yeni Ders Ekle">
