@@ -243,7 +243,7 @@ export default function MyCoachingPage() {
   const [bulkTopicInput, setBulkTopicInput] = useState({});
   const [showBulkInput, setShowBulkInput] = useState({});
   const [showTemplates, setShowTemplates] = useState(false);
-  const [collapsedPoolSubjects, setCollapsedPoolSubjects] = useState({});
+  const [expandedPoolSubjects, setExpandedPoolSubjects] = useState({});
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
@@ -854,22 +854,41 @@ export default function MyCoachingPage() {
               </div>
             )}
 
+            {topicPool.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <button 
+                  onClick={() => {
+                    const allOpen = {};
+                    topicPool.forEach(s => { allOpen[s.id] = true; });
+                    setExpandedPoolSubjects(allOpen);
+                  }}
+                  style={{ background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}>
+                  ▼ Tümünü Aç
+                </button>
+                <button 
+                  onClick={() => setExpandedPoolSubjects({})}
+                  style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.3rem 0.65rem', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}>
+                  ▲ Tümünü Kapat
+                </button>
+              </div>
+            )}
+
             {topicPool.map(sub => {
-              const isCollapsed = collapsedPoolSubjects[sub.id] ?? (typeof window !== 'undefined' && window.innerWidth <= 768);
+              const isOpen = Boolean(expandedPoolSubjects[sub.id]);
               const doneCnt = sub.topics.filter(t => t.done).length;
               const total = sub.topics.length;
               return (
                 <div key={sub.id} style={{ background: 'white', border: `2px solid ${sub.color}30`, borderRadius: '1rem', marginBottom: '1rem', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
                   {/* Ders Başlık Barı */}
                   <div 
-                    onClick={() => setCollapsedPoolSubjects(p => ({ ...p, [sub.id]: !isCollapsed }))}
-                    style={{ background: `linear-gradient(135deg, ${sub.color}18, ${sub.color}08)`, borderBottom: isCollapsed ? 'none' : `2px solid ${sub.color}20`, padding: '0.85rem 1.1rem', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    onClick={() => setExpandedPoolSubjects(p => ({ ...p, [sub.id]: !p[sub.id] }))}
+                    style={{ background: `linear-gradient(135deg, ${sub.color}18, ${sub.color}08)`, borderBottom: isOpen ? `2px solid ${sub.color}20` : 'none', padding: '0.85rem 1.1rem', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
                     <div style={{ width: 14, height: 14, borderRadius: '50%', background: sub.color, flexShrink: 0 }} />
                     <span style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', flex: 1 }}>{sub.name}</span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: sub.color, background: `${sub.color}15`, padding: '0.2rem 0.6rem', borderRadius: 99 }}>
                       {doneCnt}/{total} konu {total > 0 ? `· ${Math.round(doneCnt/total*100)}%` : ''}
                     </span>
-                    <div style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', color: sub.color }}>
+                    <div style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', color: sub.color }}>
                       <ChevronDown size={18} strokeWidth={3} />
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); removePoolSubject(sub.id); }}
@@ -880,7 +899,7 @@ export default function MyCoachingPage() {
                     </button>
                   </div>
 
-                  {!isCollapsed && (
+                  {isOpen && (
                     <>
                       {/* İlerleme Çubuğu */}
                   {total > 0 && (
