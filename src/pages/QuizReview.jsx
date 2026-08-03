@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
-import { CheckCircle, XCircle, ArrowLeft, Clock3, Maximize, Minimize } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowLeft, Clock3, Maximize, Minimize, RotateCcw } from 'lucide-react';
 import DrawingOverlay from '../components/DrawingOverlay';
 import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { idbGetPayload } from '../services/indexedDbService';
@@ -184,6 +184,22 @@ export default function QuizReview() {
     } catch (e) {}
   };
 
+  const handleRetakeQuiz = () => {
+    if (!submission) return;
+    if (!window.confirm("Bu sınavı baştan tekrar çözmek istiyor musunuz? Yeni bir çözüm oturumu başlatılacaktır.")) return;
+
+    const targetTestId = submission.testId || submission.hwId || submission.id;
+    const stId = submission.studentId;
+
+    let retakeUrl = `/quiz/${targetTestId}?studentId=${stId}&retake=true`;
+    if (submission.type === 'physicalExam') {
+      retakeUrl = `/physical-exam/${targetTestId}?studentId=${stId}&retake=true`;
+    } else if (submission.bookTestId || submission.sourceType === 'trackedBook') {
+      retakeUrl = `/book-quiz/${targetTestId}?studentId=${stId}&retake=true`;
+    }
+    navigate(retakeUrl);
+  };
+
   return (
     <div className={`container quiz-container animate-fade-in ${isFullscreen ? 'fullscreen-mode' : ''}`} style={{ maxWidth: isFullscreen ? '100vw' : '1400px', width: isFullscreen ? '100vw' : (isMobile ? '100%' : '95%'), margin: isFullscreen ? '0' : (isMobile ? '0 auto' : '2rem auto'), padding: isMobile ? '0.75rem' : '1rem' }}>
       
@@ -193,29 +209,53 @@ export default function QuizReview() {
             <ArrowLeft size={18} /> Geri Dön
           </button>
 
-          <button
-            onClick={toggleTestReviewed}
-            style={{
-              width: isMobile ? '100%' : 'auto',
-              background: isReviewed ? '#dcfce7' : '#10b981',
-              color: isReviewed ? '#166534' : 'white',
-              border: isReviewed ? '2px solid #86efac' : 'none',
-              padding: '0.7rem 1.25rem',
-              borderRadius: '0.75rem',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.85rem' : '0.9rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justify: 'center',
-              gap: '0.5rem',
-              boxShadow: isReviewed ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
-              transition: 'all 0.2s'
-            }}
-          >
-            <CheckCircle size={20} color={isReviewed ? '#166534' : 'white'} />
-            <span>{isReviewed ? '✓ Yanlışlar ve Boşlar Kontrol Edildi' : '🟩 Yanlışları ve Boşları Kontrol Ettim'}</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleRetakeQuiz}
+              style={{
+                background: '#eef2ff',
+                color: '#4f46e5',
+                border: '1.5px solid #c7d2fe',
+                padding: '0.7rem 1.15rem',
+                borderRadius: '0.75rem',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.85rem' : '0.9rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s'
+              }}
+            >
+              <RotateCcw size={18} />
+              <span>Sınavı Tekrar Çöz</span>
+            </button>
+
+            <button
+              onClick={toggleTestReviewed}
+              style={{
+                width: isMobile ? '100%' : 'auto',
+                background: isReviewed ? '#dcfce7' : '#10b981',
+                color: isReviewed ? '#166534' : 'white',
+                border: isReviewed ? '2px solid #86efac' : 'none',
+                padding: '0.7rem 1.25rem',
+                borderRadius: '0.75rem',
+                fontWeight: 900,
+                fontSize: isMobile ? '0.85rem' : '0.9rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justify: 'center',
+                gap: '0.5rem',
+                boxShadow: isReviewed ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <CheckCircle size={20} color={isReviewed ? '#166534' : 'white'} />
+              <span>{isReviewed ? '✓ Yanlışlar ve Boşlar Kontrol Edildi' : '🟩 Yanlışları ve Boşları Kontrol Ettim'}</span>
+            </button>
+          </div>
         </div>
       )}
 

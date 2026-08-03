@@ -331,8 +331,7 @@ export default function HomeworkManager() {
 
     const completedStudents = targetStudentIds.filter(stId => {
       const sub = (hw.submissions || []).find(s => s.studentId === stId) || submissions.find(s => 
-        (s.testId === hw.id || s.hwId === hw.id || (hw.tests && (hw.tests.includes(s.testId) || hw.tests.includes(s.bookTestId)))) && 
-        s.studentId === stId
+        (s.hwId === hw.id || s.testId === hw.id) && s.studentId === stId
       );
       return !!sub;
     });
@@ -717,17 +716,15 @@ export default function HomeworkManager() {
                     const student = students.find(s => s.id === stId);
                     if (!student) return null;
                     
-                    const submission = submissions.find(s => 
-                      (s.testId === activeHomework.id || s.hwId === activeHomework.id || (activeHomework.tests && (activeHomework.tests.includes(s.testId) || activeHomework.tests.includes(s.bookTestId)))) && 
-                      s.studentId === stId
-                    ) || (activeHomework.submissions || []).find(s => s.studentId === stId);
+                    const submission = (activeHomework.submissions || []).find(s => s.studentId === stId) || 
+                      submissions.find(s => (s.hwId === activeHomework.id || s.testId === activeHomework.id) && s.studentId === stId);
 
                     const handleOpenReview = () => {
                       setShowStatsModal(false);
                       if (activeHomework.type === 'physicalExam') {
                         navigate(`/physical-exam/${activeHomework.id}?studentId=${stId}`);
-                      } else if (matchingSubInEval && matchingSubInEval.id) {
-                        navigate(`/review/${matchingSubInEval.id}`);
+                      } else if (submission && submission.id) {
+                        navigate(`/review/${submission.id}`);
                       } else {
                         navigate(`/quiz/${activeHomework.id}?studentId=${stId}`);
                       }

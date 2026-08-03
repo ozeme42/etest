@@ -139,11 +139,30 @@ export function CoachingProvider({ children }) {
     const newExam = {
       id: `me_${Date.now()}`,
       createdAt: new Date().toISOString(),
+      approvalStatus: examData.createdBy === 'student' ? 'pending' : 'approved',
       ...examData
     };
-    setMockExams(prev => [...prev, newExam]);
+    setMockExams(prev => [newExam, ...prev]);
     await dbSaveMockExam(newExam);
     return newExam;
+  };
+
+  const updateMockExam = async (id, updateData) => {
+    let updatedExam = null;
+    setMockExams(prev => prev.map(m => {
+      if (m.id === id) {
+        updatedExam = { ...m, ...updateData };
+        return updatedExam;
+      }
+      return m;
+    }));
+    if (updatedExam) {
+      await dbSaveMockExam(updatedExam);
+    }
+  };
+
+  const approveMockExam = async (id) => {
+    await updateMockExam(id, { approvalStatus: 'approved' });
   };
 
   const deleteMockExam = async (id) => {
@@ -182,6 +201,11 @@ export function CoachingProvider({ children }) {
     return coachingMeetings.filter(m => String(m.studentId) === String(studentId));
   };
 
+  const isStudentCoached = (studentId) => {
+    if (!studentId) return false;
+    return coachingLinks.some(l => String(l.studentId) === String(studentId));
+  };
+
   return (
     <CoachingContext.Provider value={{
       coachingLinks,
@@ -196,6 +220,7 @@ export function CoachingProvider({ children }) {
       deleteMockExam,
       addCoachingMeeting,
       getCoachedStudentIds,
+      isStudentCoached,
       getCoachingNoteForStudent,
       getCoachingProfileForStudent,
       getMockExamsForStudent,

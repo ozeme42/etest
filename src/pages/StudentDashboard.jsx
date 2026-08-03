@@ -6,7 +6,7 @@ import {
   Calendar, CheckCircle2, X, Plus, ExternalLink, Zap,
   ChevronRight, Star, TrendingUp, BookMarked, CalendarDays,
   Ruler, TestTube2, BookCopy, Globe, MessageSquare,
-  FileText, ClipboardList, ArrowRight, RefreshCw, ClipboardCheck
+  FileText, ClipboardList, ArrowRight, RefreshCw, ClipboardCheck, Eye, RotateCcw
 } from 'lucide-react';
 import { parse, isPast, isToday, differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -313,10 +313,15 @@ export default function StudentDashboard() {
       if (hw.targetType === 'student') return hw.targetIds?.includes(selectedStudent.id);
       return false;
     }).map(hw => {
-      const sub = submissions.find(s =>
-        (s.testId === hw.id || s.hwId === hw.id || (hw.tests && (hw.tests.includes(s.testId) || hw.tests.includes(s.bookTestId)))) && s.studentId === selectedStudent.id
-      ) || (hw.submissions || []).find(s => s.studentId === selectedStudent.id);
-      return { ...hw, status: sub ? 'Sonuçlandı' : 'Atandı', questionCount: hw.totalQuestions || 10, correctAnswers: sub ? (sub.score || 0) : 0 };
+      const sub = (hw.submissions || []).find(s => s.studentId === selectedStudent.id) ||
+        submissions.find(s => (s.hwId === hw.id || s.testId === hw.id) && s.studentId === selectedStudent.id);
+      return { 
+        ...hw, 
+        status: sub ? 'Sonuçlandı' : 'Atandı', 
+        questionCount: hw.totalQuestions || 10, 
+        correctAnswers: sub ? (sub.score || 0) : 0,
+        submissionId: sub?.id
+      };
     });
   }, [homeworks, selectedStudent, submissions]);
 
@@ -591,7 +596,7 @@ export default function StudentDashboard() {
                     const score = test.correctAnswers || 0;
                     const good = score >= 70;
                     return (
-                      <div key={test.id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none', transition: 'background 0.15s' }}
+                      <div key={test.id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.85rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none', transition: 'background 0.15s', flexWrap: isMobile ? 'wrap' : 'nowrap' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                         onMouseLeave={e => e.currentTarget.style.background = 'white'}
                       >
@@ -600,12 +605,49 @@ export default function StudentDashboard() {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{test.title}</div>
-                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{new Date(test.assignedDate).toLocaleDateString('tr-TR')}</div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
                         </div>
-                        <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                          <div style={{ fontWeight: 900, fontSize: '0.98rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
-                          <div style={{ width: 56, marginTop: 3 }}>
-                            <ProgressBar value={score} color={good ? '#22c55e' : '#ef4444'} bg={good ? '#f0fdf4' : '#fff1f2'} height={5} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 900, fontSize: '0.98rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
+                            <div style={{ width: 50, marginTop: 3 }}>
+                              <ProgressBar value={score} color={good ? '#22c55e' : '#ef4444'} bg={good ? '#f0fdf4' : '#fff1f2'} height={4} />
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button
+                              onClick={() => {
+                                if (test.type === 'physicalExam') {
+                                  navigate(`/physical-exam/${test.id}?studentId=${selectedStudent.id}`);
+                                } else if (test.submissionId) {
+                                  navigate(`/review/${test.submissionId}`);
+                                } else {
+                                  navigate(`/quiz/${test.id}?studentId=${selectedStudent.id}`);
+                                }
+                              }}
+                              title="İncele & Karne"
+                              style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: '#f1f5f9', color: '#475569', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 3 }}
+                            >
+                              <Eye size={12} /> İncele
+                            </button>
+
+                            {(currentUser?.role === 'teacher' || currentUser?.role === 'admin' || currentUser?.role === 'coordinator') && (
+                              <button
+                                onClick={() => {
+                                  const retakePath = test.type === 'physicalExam'
+                                    ? `/physical-exam/${test.id}?studentId=${selectedStudent.id}&retake=true`
+                                    : test.sourceType === 'trackedBook'
+                                    ? `/book-quiz/${test.id}?studentId=${selectedStudent.id}&retake=true`
+                                    : `/quiz/${test.id}?studentId=${selectedStudent.id}&retake=true`;
+                                  navigate(retakePath);
+                                }}
+                                title="Tekrar Çöz (Öğretmen Yetkisi)"
+                                style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 3 }}
+                              >
+                                <RotateCcw size={12} /> Tekrar Çöz
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

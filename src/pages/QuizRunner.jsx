@@ -44,9 +44,10 @@ export default function QuizRunner() {
   
   const queryParams = new URLSearchParams(location.search);
   const studentId = queryParams.get('studentId') || 'u1';
+  const isRetake = queryParams.get('retake') === 'true';
   const student = users.find(u => u.id === studentId) || { name: 'Öğrenci' };
 
-  const savedState = JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null');
+  const savedState = !isRetake ? JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null') : null;
 
   // Core Quiz States
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(savedState?.currentQuestionIdx || 0);
@@ -76,18 +77,19 @@ export default function QuizRunner() {
   const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
   const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
 
-  // Check if test is already completed by this student
+  // Check if test is already completed by this student (ignored if isRetake is true)
   const existingSubmission = useMemo(() => {
+    if (isRetake) return null;
     if (!id || !studentId) return null;
     return (submissions || []).find(s => (s.testId === id || s.id === id) && s.studentId === studentId);
-  }, [submissions, id, studentId]);
+  }, [submissions, id, studentId, isRetake]);
 
-  // If already finished or existing submission found, lock test solver and redirect to review
+  // If already finished or existing submission found and not explicitly retaking, lock test solver and redirect to review
   useEffect(() => {
-    if (existingSubmission && !showResultsModal && !isFinished) {
+    if (existingSubmission && !showResultsModal && !isFinished && !isRetake) {
       navigate(`/review/${existingSubmission.id}`, { replace: true });
     }
-  }, [existingSubmission, showResultsModal, isFinished, navigate]);
+  }, [existingSubmission, showResultsModal, isFinished, navigate, isRetake]);
 
   // Prevent browser back button from re-opening test solver once test is finished
   useEffect(() => {
@@ -339,14 +341,23 @@ export default function QuizRunner() {
 
   const handleOptionSelect = (idx) => {
     const q = currentQuestion;
+    if (!q) return;
     setStudentAnswers(prev => {
-      const updated = { ...prev, [q.id]: idx };
+      const isAlreadySelected = prev[q.id] === idx;
+      const updated = { ...prev };
+      if (isAlreadySelected) {
+        delete updated[q.id];
+      } else {
+        updated[q.id] = idx;
+      }
       if (q.parentTestId) {
-        const parentAns = prev[q.parentTestId] || {};
-        updated[q.parentTestId] = {
-          ...parentAns,
-          [q.subIndex]: idx
-        };
+        const parentAns = { ...(prev[q.parentTestId] || {}) };
+        if (isAlreadySelected) {
+          delete parentAns[q.subIndex];
+        } else {
+          parentAns[q.subIndex] = idx;
+        }
+        updated[q.parentTestId] = parentAns;
       }
       return updated;
     });
@@ -354,6 +365,7 @@ export default function QuizRunner() {
 
   const handleOpenAnswerChange = (val) => {
     const q = currentQuestion;
+    if (!q) return;
     setStudentAnswers(prev => {
       const updated = { ...prev, [q.id]: val };
       if (q.parentTestId) {
@@ -368,27 +380,29 @@ export default function QuizRunner() {
   };
 
   const handleBundleOptionSelect = (subIndex, optIdx) => {
+    if (!currentQuestion?.id) return;
     setStudentAnswers(prev => {
-      const currentBundleAnswers = prev[currentQuestion.id] || {};
+      const currentBundleAnswers = { ...(prev[currentQuestion.id] || {}) };
+      if (currentBundleAnswers[subIndex] === optIdx) {
+        delete currentBundleAnswers[subIndex];
+      } else {
+        currentBundleAnswers[subIndex] = optIdx;
+      }
       return {
         ...prev,
-        [currentQuestion.id]: {
-          ...currentBundleAnswers,
-          [subIndex]: optIdx
-        }
+        [currentQuestion.id]: currentBundleAnswers
       };
     });
   };
 
   const handleBundleTextChange = (subIndex, textVal) => {
+    if (!currentQuestion?.id) return;
     setStudentAnswers(prev => {
-      const currentBundleAnswers = prev[currentQuestion.id] || {};
+      const currentBundleAnswers = { ...(prev[currentQuestion.id] || {}) };
+      currentBundleAnswers[subIndex] = textVal;
       return {
         ...prev,
-        [currentQuestion.id]: {
-          ...currentBundleAnswers,
-          [subIndex]: textVal
-        }
+        [currentQuestion.id]: currentBundleAnswers
       };
     });
   };

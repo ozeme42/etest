@@ -6,7 +6,9 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { 
   ArrowLeft, CheckCircle2, AlertCircle, BookOpen, Clock, 
-  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, Sparkles, UserCheck, RotateCcw, Edit3
+  Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, 
+  Sparkles, Target, Zap, Check, HelpCircle, Info, Layers,
+  ChevronRight, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -26,13 +28,16 @@ export default function PhysicalExamRunner() {
   // Optional: Extract studentId from URL if teacher is viewing, otherwise use currentUser
   const queryParams = new URLSearchParams(window.location.search);
   const paramStudentId = queryParams.get('studentId');
+  const isRetake = queryParams.get('retake') === 'true';
   const studentId = paramStudentId || currentUser?.id;
 
   const currentViewingStudent = users.find(u => u.id === studentId);
   const isTeacherReviewing = currentUser?.role !== 'student' && paramStudentId && paramStudentId !== currentUser?.id;
+  const isTeacherOrAdmin = currentUser?.role === 'teacher' || currentUser?.role === 'admin' || currentUser?.role === 'coordinator' || isTeacherReviewing;
 
   const homework = homeworks.find(h => h.id === hwId);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
+  const [showMobileStats, setShowMobileStats] = useState(false);
   
   // Student answers state: { "Türkçe": ["A", "B", "", "C", ...], "Matematik": [...] }
   const [answers, setAnswers] = useState({});
@@ -46,8 +51,9 @@ export default function PhysicalExamRunner() {
   const draftKey = `draft_physical_exam_${hwId}_${studentId}`;
 
   // Calculate results based on a given answers map (or current state)
-  const calculateResults = useCallback((answersToCalc = answers) => {
+  const calculateResults = useCallback((answersToCalc) => {
     if (!homework) return null;
+    const targetAnswers = answersToCalc || answers;
     const penaltyRatio = homework.penaltyRatio !== undefined ? homework.penaltyRatio : 3;
     let grandTotalCorrect = 0;
     let grandTotalWrong = 0;
@@ -60,7 +66,7 @@ export default function PhysicalExamRunner() {
       let wrong = 0;
       let blank = 0;
       
-      const subAns = answersToCalc[sub.name] || [];
+      const subAns = targetAnswers[sub.name] || [];
       const subKey = homework.answerKey?.[sub.name] || [];
 
       for (let i = 0; i < sub.count; i++) {
@@ -102,11 +108,23 @@ export default function PhysicalExamRunner() {
       totalWrong: grandTotalWrong,
       totalBlank: grandTotalBlank
     };
-  }, [homework, answers]);
+  }, [homework]);
 
   // Load existing submission or draft
   useEffect(() => {
     if (!homework) return;
+
+    if (isRetake) {
+      localStorage.removeItem(draftKey);
+      const init = {};
+      homework.subjects?.forEach(sub => {
+        init[sub.name] = Array(sub.count).fill('');
+      });
+      setAnswers(init);
+      setIsSubmitted(false);
+      setResults(null);
+      return;
+    }
 
     // Check if already submitted in HomeworkContext or EvaluationContext
     const hwSub = (homework.submissions || []).find(s => s.studentId === studentId);
@@ -147,10 +165,10 @@ export default function PhysicalExamRunner() {
       } else if (submission.subjectStats && Array.isArray(submission.subjectStats)) {
         calc = {
           subjectStats: submission.subjectStats,
-          totalNet: submission.score || calc.totalNet,
-          totalCorrect: submission.correctCount || calc.totalCorrect,
-          totalWrong: submission.wrongCount || calc.totalWrong,
-          totalBlank: submission.blankCount || calc.totalBlank
+          totalNet: submission.score || calc?.totalNet || 0,
+          totalCorrect: submission.correctCount || calc?.totalCorrect || 0,
+          totalWrong: submission.wrongCount || calc?.totalWrong || 0,
+          totalBlank: submission.blankCount || calc?.totalBlank || 0
         };
       }
 
@@ -172,12 +190,7 @@ export default function PhysicalExamRunner() {
       });
       setAnswers(init);
     }
-  }, [homework, studentId, draftKey, evalSubmissions, calculateResults]);
-
-  const handleResetOrRetake = () => {
-    if (!window.confirm("Optik form işaretlemelerini düzenlemek veya yeniden doldurmak istiyor musunuz?")) return;
-    setIsSubmitted(false);
-  };
+  }, [hwId, studentId, isRetake]);
 
   useEffect(() => {
     if (homework && !isSubmitted && !timerStarted && !isTeacherReviewing) {
@@ -210,22 +223,32 @@ export default function PhysicalExamRunner() {
     }
   }, [answers, isSubmitted, draftKey, isTeacherReviewing]);
 
-  if (!homework || homework.type !== 'physicalExam') {
-    return (
-      <div className="p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Fiziki deneme bulunamadı.</h2>
-        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Geri Dön</button>
-      </div>
-    );
-  }
+  const subjects = homework?.subjects || [];
+  const activeSubject = subjects[activeSubjectIndex] || subjects[0];
 
-  const subjects = homework.subjects || [];
-  const activeSubject = subjects[activeSubjectIndex];
+  // Overall statistics for progress bar
+  const totalAnsweredCount = useMemo(() => {
+    let count = 0;
+    Object.values(answers).forEach(arr => {
+      if (Array.isArray(arr)) {
+        count += arr.filter(Boolean).length;
+      }
+    });
+    return count;
+  }, [answers]);
+
+  const totalQuestionsCount = homework?.totalQuestions || 0;
+  const progressPercent = totalQuestionsCount > 0 ? Math.round((totalAnsweredCount / totalQuestionsCount) * 100) : 0;
 
   const handleOptionClick = (subjectName, qIndex, option) => {
-    if (isSubmitted || isTeacherReviewing) return; // cannot edit after submission
+    if (isSubmitted || isTeacherReviewing) return; // cannot edit after submission or if reviewing as teacher
     setAnswers(prev => {
-      const list = [...(prev[subjectName] || [])];
+      const list = prev[subjectName] ? [...prev[subjectName]] : [];
+      const subObj = (homework.subjects || []).find(s => s.name === subjectName);
+      const targetLength = subObj?.count || (qIndex + 1);
+      while (list.length < targetLength) {
+        list.push('');
+      }
       list[qIndex] = list[qIndex] === option ? '' : option; // toggle
       return { ...prev, [subjectName]: list };
     });
@@ -234,14 +257,20 @@ export default function PhysicalExamRunner() {
   const handleClearOption = (subjectName, qIndex) => {
     if (isSubmitted || isTeacherReviewing) return;
     setAnswers(prev => {
-      const list = [...(prev[subjectName] || [])];
+      const list = prev[subjectName] ? [...prev[subjectName]] : [];
+      const subObj = (homework.subjects || []).find(s => s.name === subjectName);
+      const targetLength = subObj?.count || (qIndex + 1);
+      while (list.length < targetLength) {
+        list.push('');
+      }
       list[qIndex] = '';
       return { ...prev, [subjectName]: list };
     });
   };
 
   const handleSubmit = () => {
-    if (!window.confirm("Cevaplarını göndermek istediğine emin misin? Gönderdikten sonra değiştiremezsin.")) return;
+    if (isTeacherReviewing) return;
+    if (!window.confirm("Cevaplarınızı göndermek istediğinize emin misiniz? Gönderdikten sonra optik form kilitlenecektir.")) return;
     
     const calculated = calculateResults(answers);
     
@@ -282,387 +311,654 @@ export default function PhysicalExamRunner() {
     setIsSubmitted(true);
   };
 
-  // Safe checks
+  if (!homework || homework.type !== 'physicalExam') {
+    return (
+      <div className="max-w-xl mx-auto p-12 text-center space-y-5">
+        <div className="w-16 h-16 rounded-3xl bg-rose-100 dark:bg-rose-950/40 text-rose-600 mx-auto flex items-center justify-center">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">Fiziki Deneme Bulunamadı</h2>
+        <p className="text-sm text-slate-500">Aradığınız deneme mevcut değil veya silinmiş olabilir.</p>
+        <button 
+          onClick={() => navigate(-1)} 
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-2xl shadow-lg transition-all"
+        >
+          Geri Dön
+        </button>
+      </div>
+    );
+  }
+
+  // Fallback if activeSubject is missing
   if (!activeSubject) return null;
   const currentAnswers = answers[activeSubject.name] || [];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24">
+    <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-10 py-5 sm:py-8 space-y-6 lg:space-y-8 pb-32">
+      
       {/* TEACHER INSPECTION BANNER */}
       {isTeacherReviewing && currentViewingStudent && (
-        <div className="bg-indigo-50 dark:bg-indigo-950/50 border-2 border-indigo-200 dark:border-indigo-800 p-4 rounded-3xl flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-sm shrink-0">
+        <div className="bg-indigo-50/90 dark:bg-indigo-950/60 backdrop-blur-md border-2 border-indigo-200 dark:border-indigo-800 p-4 sm:p-5 rounded-3xl flex flex-wrap items-center justify-between gap-4 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-black flex items-center justify-center text-lg shadow-md shrink-0">
               {currentViewingStudent.name?.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded-md">
+                <span className="text-[11px] font-black uppercase tracking-wider bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-3 py-0.5 rounded-lg">
                   Öğretmen İnceleme Modu
                 </span>
-                <span className="text-xs font-bold text-slate-500">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                   {isSubmitted ? '🟢 Sınav Tamamlandı' : '⏳ Henüz Göndermedi'}
                 </span>
               </div>
-              <div className="text-sm font-black text-slate-800 dark:text-slate-100 mt-0.5">
+              <div className="text-base font-black text-slate-900 dark:text-slate-100 mt-1">
                 {currentViewingStudent.name} isimli öğrencinin optik formunu ve karnesini inceliyorsunuz
               </div>
             </div>
           </div>
           <button 
             onClick={() => navigate(-1)} 
-            className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-black rounded-xl text-slate-700 dark:text-slate-200 transition-colors shrink-0"
+            className="px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-black rounded-2xl text-slate-700 dark:text-slate-200 transition-colors shrink-0 cursor-pointer"
           >
             ← Geri Dön
           </button>
         </div>
       )}
 
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-        <div className="flex items-center gap-4 w-full sm:w-auto">
-          <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-widest bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
-                FİZİKİ DENEME
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md">
-                {homework.examType}
-              </span>
-            </div>
-            <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
-              {homework.title}
-            </h1>
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-3 mt-3 sm:mt-0 w-full sm:w-auto">
-          {!isSubmitted && (
-            <div className={cn(
-              "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm flex-1 sm:flex-none border",
-              timeLeft !== null && timeLeft < 300 
-                ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900" 
-                : "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            )}>
-              <Clock className={cn("w-4 h-4", timeLeft !== null && timeLeft < 300 && "animate-pulse")} />
-              {formatTime(timeLeft)}
-            </div>
-          )}
-
-          {!isSubmitted && (
+      {/* 1. ÜST BAŞLIK BAR (HEADER - KOMPAKT) */}
+      <div className="bg-white/90 dark:bg-[#1E293B]/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-sm transition-all">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          
+          {/* Left: Back + Title + Tags */}
+          <div className="flex items-center gap-3 w-full sm:w-auto min-w-0">
             <button 
-              onClick={handleSubmit}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              onClick={() => navigate(-1)} 
+              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+              title="Geri Dön"
             >
-              <Send className="w-4 h-4" /> Gönder ve Sonucu Gör
+              <ArrowLeft className="w-4 h-4" />
             </button>
-          )}
-        </div>
-      </div>
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-600 text-white px-2 py-0.5 rounded-md shadow-xs">
+                  FİZİKİ DENEME
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded-md">
+                  {homework.examType || 'LGS / YKS'}
+                </span>
+                <span className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md">
+                  {homework.totalQuestions} Soru
+                </span>
+              </div>
+              <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight truncate">
+                {homework.title}
+              </h1>
+            </div>
+          </div>
 
-      {isSubmitted && results && (
-        <div className="space-y-6">
-          {/* TOP SCORECARD HERO */}
-          <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-6 relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/20 pb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-white px-2.5 py-0.5 rounded-lg backdrop-blur-sm flex items-center gap-1">
-                    <Trophy className="w-3.5 h-3.5 text-amber-300" /> Sınav Sonuç Karnesi
-                  </span>
-                  <span className="text-xs font-bold text-indigo-100">
-                    {homework.examType || 'LGS / YKS'}
+          {/* Right: Timer + Live Progress / Status + Submit Action */}
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end shrink-0">
+            
+            {/* Live Progress or Timer */}
+            {!isSubmitted && !isTeacherReviewing ? (
+              <div className="flex items-center gap-2">
+                {/* Progress Pill */}
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs">
+                  <span className="text-slate-400 font-bold text-[10px] uppercase">İşaretlenen:</span>
+                  <span className="font-black text-indigo-600 dark:text-indigo-400">
+                    {totalAnsweredCount}/{totalQuestionsCount} (%{progressPercent})
                   </span>
                 </div>
-                <h2 className="text-2xl font-black text-white flex items-center gap-2">
+
+                {/* Compact Timer */}
+                <div className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs border shadow-xs transition-all",
+                  timeLeft !== null && timeLeft < 300 
+                    ? "bg-rose-50 border-rose-300 text-rose-600 dark:bg-rose-950/50 dark:border-rose-900" 
+                    : "bg-slate-50 border-slate-200 text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                )}>
+                  <Clock className={cn("w-3.5 h-3.5", timeLeft !== null && timeLeft < 300 && "animate-pulse text-rose-500")} />
+                  <span className="font-mono tracking-wider text-sm">{formatTime(timeLeft)}</span>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Action Buttons */}
+            {isTeacherReviewing && !isSubmitted ? (
+              <div className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 font-black text-xs flex items-center gap-1.5 border border-amber-200 dark:border-amber-800 shadow-xs">
+                <Clock className="w-3.5 h-3.5 text-amber-500" /> Öğrenci Henüz Göndermedi
+              </div>
+            ) : !isSubmitted ? (
+              <button 
+                onClick={handleSubmit}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" /> Gönder
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-black text-xs flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 shadow-xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Sınav Tamamlandı
+                </div>
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+        {/* Global Progress Bar when solving */}
+        {!isSubmitted && (
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
+              <span>Optik Doluluk Oranı</span>
+              <span className="font-black text-indigo-600 dark:text-indigo-400">{totalAnsweredCount} / {totalQuestionsCount} Soru (%{progressPercent})</span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 transition-all duration-300 rounded-full"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. ÜSTTE KARNE (KOMPAKT SCORECARD HERO) */}
+      {isSubmitted && results && (
+        <div className="bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            
+            {/* Left: Title & Info */}
+            <div className="flex items-center gap-3.5 w-full lg:w-auto">
+              <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+                <Trophy className="w-5 h-5 text-amber-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
+                    Sonuç Karnesi
+                  </span>
+                  <span className="text-xs text-indigo-200 font-bold">
+                    {homework.examType || 'LGS / YKS'} • {homework.totalQuestions} Soru
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black text-white truncate mt-0.5">
                   {homework.title}
                 </h2>
               </div>
+            </div>
 
-              <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-3 text-center sm:text-right w-full sm:w-auto">
-                <div className="text-3xl sm:text-4xl font-black text-emerald-300 leading-none">
+            {/* Middle: Compact Stats 4-Pills */}
+            <div className="grid grid-cols-4 gap-2 w-full lg:w-auto flex-1 max-w-md">
+              <div className="bg-white/10 rounded-xl px-2.5 py-1.5 text-center border border-white/10">
+                <div className="text-base sm:text-lg font-black text-emerald-300 leading-tight">{results.totalCorrect}</div>
+                <div className="text-[9px] font-bold uppercase text-indigo-100">Doğru</div>
+              </div>
+              <div className="bg-white/10 rounded-xl px-2.5 py-1.5 text-center border border-white/10">
+                <div className="text-base sm:text-lg font-black text-rose-300 leading-tight">{results.totalWrong}</div>
+                <div className="text-[9px] font-bold uppercase text-indigo-100">Yanlış</div>
+              </div>
+              <div className="bg-white/10 rounded-xl px-2.5 py-1.5 text-center border border-white/10">
+                <div className="text-base sm:text-lg font-black text-amber-300 leading-tight">{results.totalBlank}</div>
+                <div className="text-[9px] font-bold uppercase text-indigo-100">Boş</div>
+              </div>
+              <div className="bg-white/10 rounded-xl px-2.5 py-1.5 text-center border border-white/10">
+                <div className="text-base sm:text-lg font-black text-cyan-300 leading-tight">
+                  %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
+                </div>
+                <div className="text-[9px] font-bold uppercase text-indigo-100">Başarı</div>
+              </div>
+            </div>
+
+            {/* Right: Net Score Box */}
+            <div className="flex items-center gap-3 w-full lg:w-auto justify-center lg:justify-end">
+              <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-2.5 text-center shrink-0 shadow-inner">
+                <div className="text-2xl sm:text-3xl font-black text-emerald-300 leading-none">
                   {results.totalNet}
                 </div>
-                <div className="text-[11px] font-bold uppercase tracking-widest text-indigo-100 mt-1">
+                <div className="text-[9px] font-black uppercase tracking-wider text-indigo-100 mt-0.5">
                   Toplam Net
                 </div>
               </div>
             </div>
 
-            {/* QUICK STATS 4-GRID */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
-                <div className="text-2xl font-black text-emerald-300">{results.totalCorrect}</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Toplam Doğru</div>
-              </div>
-              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
-                <div className="text-2xl font-black text-rose-300">{results.totalWrong}</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Toplam Yanlış</div>
-              </div>
-              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
-                <div className="text-2xl font-black text-amber-300">{results.totalBlank}</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Toplam Boş</div>
-              </div>
-              <div className="bg-white/10 rounded-2xl p-3.5 border border-white/10">
-                <div className="text-2xl font-black text-cyan-300">
-                  %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">Başarı Oranı</div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/15">
-              <div className="text-xs text-indigo-100 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                Optik formdaki işaretlemeler ve net hesabı otomatik eşleştirildi.
-              </div>
-              <button
-                onClick={handleResetOrRetake}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl font-bold text-xs text-white flex items-center gap-2 transition-all shadow-sm active:scale-95"
-              >
-                <Edit3 className="w-3.5 h-3.5" /> Optik Formu Yeniden Doldur / Güncelle
-              </button>
-            </div>
-          </div>
-
-          {/* DERS BAZLI AYRINTILI KARNE TABLOSU */}
-          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
-              <h3 className="font-black text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-indigo-500" /> Ders Bazlı Sonuç Önizlemesi & Net Tablosu
-              </h3>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleResetOrRetake}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Optiği Düzenle
-                </button>
-                <button
-                  onClick={() => navigate('/student-results')}
-                  className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:underline flex items-center gap-1"
-                >
-                  <ListTree className="w-4 h-4" /> Tüm Sonuçlarıma Git
-                </button>
-              </div>
-            </div>
-
-            {results.totalBlank === homework.totalQuestions && (
-              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-center justify-between gap-3 text-amber-800 dark:text-amber-300 text-xs">
-                <div className="flex items-center gap-2.5">
-                  <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-                  <span>Bu denemenin optik işaretlemeleri henüz doldurulmamış veya boş gönderilmiş. İşaretlemelerinizi girmek ve ders ders analiz görmek için butona tıklayın:</span>
-                </div>
-                <button
-                  onClick={handleResetOrRetake}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shrink-0 transition-colors"
-                >
-                  Optiği Doldur
-                </button>
-              </div>
-            )}
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-black uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-3 px-4 rounded-l-xl">Ders Adı</th>
-                    <th className="py-3 px-3 text-center">Soru Sayısı</th>
-                    <th className="py-3 px-3 text-center text-emerald-600">Doğru</th>
-                    <th className="py-3 px-3 text-center text-rose-600">Yanlış</th>
-                    <th className="py-3 px-3 text-center text-amber-600">Boş</th>
-                    <th className="py-3 px-4 text-center text-indigo-600 font-black">Net</th>
-                    <th className="py-3 px-4 text-right rounded-r-xl">Başarı</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-bold text-slate-700 dark:text-slate-200">
-                  {results.subjectStats.map((sub, idx) => {
-                    const pct = sub.count > 0 ? Math.round((sub.correct / sub.count) * 100) : 0;
-                    return (
-                      <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
-                        <td className="py-3 px-4 font-black text-slate-900 dark:text-white flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                          {sub.name}
-                        </td>
-                        <td className="py-3 px-3 text-center">{sub.count}</td>
-                        <td className="py-3 px-3 text-center text-emerald-600 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/20">{sub.correct}</td>
-                        <td className="py-3 px-3 text-center text-rose-600 dark:text-rose-400 bg-rose-50/30 dark:bg-rose-950/20">{sub.wrong}</td>
-                        <td className="py-3 px-3 text-center text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-950/20">{sub.blank}</td>
-                        <td className="py-3 px-4 text-center font-black text-sm text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30">
-                          {sub.net} N
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <span className={cn(
-                            "px-2.5 py-1 rounded-lg text-[10px] font-black",
-                            pct >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
-                            pct >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
-                            "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-                          )}>
-                            %{pct}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-slate-100/80 dark:bg-slate-800/80 font-black text-slate-900 dark:text-white text-xs border-t-2 border-slate-300 dark:border-slate-700">
-                    <td className="py-3.5 px-4 rounded-l-xl">TOPLAM / GENEL</td>
-                    <td className="py-3.5 px-3 text-center">{homework.totalQuestions}</td>
-                    <td className="py-3.5 px-3 text-center text-emerald-600">{results.totalCorrect}</td>
-                    <td className="py-3.5 px-3 text-center text-rose-600">{results.totalWrong}</td>
-                    <td className="py-3.5 px-3 text-center text-amber-600">{results.totalBlank}</td>
-                    <td className="py-3.5 px-4 text-center text-base text-indigo-600 dark:text-indigo-400 font-black">
-                      {results.totalNet} Net
-                    </td>
-                    <td className="py-3.5 px-4 text-right rounded-r-xl">
-                      %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
           </div>
         </div>
       )}
 
-      {/* SUBJECTS & OPTICAL FORM */}
-      <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row">
+      {/* 3. ALT BÖLÜM: MASAÜSTÜNDE 2 SÜTUN (SOLDA DERS LİSTESİ - SAĞDA OPTİK), MOBİLDE KLASİK VE KOMPAKT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
         
-        {/* LEFT: SUBJECT TABS */}
-        <div className="w-full md:w-64 bg-slate-50 dark:bg-slate-900/50 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 p-4 space-y-2">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Dersler</h3>
-          <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-            {subjects.map((sub, idx) => {
-              const active = activeSubjectIndex === idx;
-              const subAns = answers[sub.name] || [];
-              const filled = subAns.filter(Boolean).length;
-              
-              let resultPill = null;
-              if (isSubmitted && results) {
-                const sStat = results.subjectStats.find(s => s.name === sub.name);
-                if (sStat) {
-                  resultPill = <span className="text-[10px] font-black bg-indigo-500 text-white px-2 py-0.5 rounded-full">{sStat.net} N</span>;
-                }
-              }
-
-              return (
-                <button
-                  key={sub.name}
-                  onClick={() => setActiveSubjectIndex(idx)}
-                  className={cn(
-                    'text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center justify-between gap-3 border',
-                    active 
-                      ? 'bg-white dark:bg-[#1E293B] border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                      : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  )}
-                >
-                  <span className="truncate">{sub.name}</span>
-                  {isSubmitted ? resultPill : (
-                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded-md', active ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-500')}>
-                      {filled}/{sub.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* RIGHT: BUBBLES */}
-        <div className="flex-1 p-5 md:p-8 bg-slate-50/30 dark:bg-transparent">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <LayoutTemplate className="w-5 h-5 text-indigo-500" /> {activeSubject.name}
-            </h3>
-            {isSubmitted && results && (
-              <div className="text-xs font-black px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                {results.subjectStats.find(s => s.name === activeSubject.name)?.correct}D {results.subjectStats.find(s => s.name === activeSubject.name)?.wrong}Y
+        {/* SOL KOLON: MASAÜSTÜNDE DERS BAZLI SONUÇ TABLOSU (TEK TABLO) */}
+        <div className="hidden lg:block lg:col-span-5 xl:col-span-5 space-y-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  {isSubmitted ? 'Ders Bazlı Sonuç Tablosu' : 'Sınav Dersleri'}
+                </h3>
+                <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                  {isSubmitted ? 'Optik formunu incelemek için derse tıklayın' : 'Doldurmak istediğiniz dersi seçin'}
+                </p>
               </div>
-            )}
-          </div>
+              <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-xl">
+                {subjects.length} Ders
+              </span>
+            </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {Array.from({ length: activeSubject.count }).map((_, qIdx) => {
-              const selected = currentAnswers[qIdx];
-              
-              let isCorrect = false;
-              let isWrong = false;
-              let correctKey = '';
-
-              if (isSubmitted) {
-                correctKey = homework.answerKey[activeSubject.name]?.[qIdx] || '';
-                isCorrect = selected && selected === correctKey;
-                isWrong = selected && selected !== correctKey;
-              }
-
-              return (
-                <div 
-                  key={qIdx}
-                  className={cn(
-                    'flex items-center justify-between gap-3 p-3 sm:p-2.5 rounded-2xl border transition-all w-full',
-                    isCorrect ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50' :
-                    isWrong ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50' :
-                    'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs flex items-center justify-center shrink-0">
-                      {qIdx + 1}
-                    </span>
-                    {isSubmitted && (
-                      <span className={cn('text-[10px] font-black uppercase px-2 py-0.5 rounded-md', isCorrect ? 'bg-emerald-500 text-white' : isWrong ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-500')}>
-                        {isCorrect ? 'Doğru' : isWrong ? `Yanlış (Cevap: ${correctKey})` : `Boş (Cevap: ${correctKey})`}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 flex items-center justify-between sm:justify-end sm:gap-1.5 pl-2 sm:pl-0">
-                    {activeSubject.options.map(opt => {
-                      const isSelected = selected === opt;
-                      // When submitted, we can show what they selected and what was correct
-                      const isThisOptCorrect = isSubmitted && correctKey === opt;
+            {/* TEK BİRLEŞİK DERS TABLOSU */}
+            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                      <th className="py-2.5 px-3">Ders</th>
+                      <th className="py-2.5 px-1.5 text-center">Soru</th>
+                      {isSubmitted ? (
+                        <>
+                          <th className="py-2.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400">D</th>
+                          <th className="py-2.5 px-1.5 text-center text-rose-600 dark:text-rose-400">Y</th>
+                          <th className="py-2.5 px-1.5 text-center text-amber-600 dark:text-amber-400">B</th>
+                          <th className="py-2.5 px-2 text-right text-indigo-600 dark:text-indigo-400 font-black">Net</th>
+                          <th className="py-2.5 px-2 text-center">Başarı</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="py-2.5 px-2 text-center">Dolu</th>
+                          <th className="py-2.5 px-2 text-right">Oran</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {subjects.map((sub, idx) => {
+                      const isActive = activeSubjectIndex === idx;
+                      const subAns = answers[sub.name] || [];
+                      const filled = subAns.filter(Boolean).length;
+                      const sStat = results?.subjectStats?.find(s => s.name === sub.name);
+                      const pct = sStat && sub.count > 0 ? Math.round((sStat.correct / sub.count) * 100) : (sub.count > 0 ? Math.round((filled / sub.count) * 100) : 0);
 
                       return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
-                          disabled={isSubmitted}
+                        <tr
+                          key={sub.name}
+                          onClick={() => setActiveSubjectIndex(idx)}
                           className={cn(
-                            'w-8 h-8 rounded-full border text-xs font-black transition-all flex items-center justify-center',
-                            !isSubmitted && isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm scale-110' :
-                            !isSubmitted && !isSelected ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-500' :
-                            isSubmitted && isThisOptCorrect ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm scale-110' :
-                            isSubmitted && isSelected && isWrong ? 'bg-rose-500 border-rose-500 text-white shadow-sm' :
-                            'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 opacity-50 cursor-not-allowed'
+                            "transition-colors cursor-pointer select-none",
+                            isActive 
+                              ? "bg-indigo-50/90 dark:bg-indigo-950/50 font-bold" 
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                           )}
                         >
-                          {opt}
-                        </button>
+                          <td className="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "w-2 h-2 rounded-full shrink-0 transition-transform",
+                                isActive ? "bg-indigo-600 scale-125" : "bg-slate-300 dark:bg-slate-600"
+                              )} />
+                              <span className={cn("truncate", isActive && "text-indigo-600 dark:text-indigo-400 font-black")}>
+                                {sub.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-1.5 text-center font-bold text-slate-600 dark:text-slate-400">
+                            {sub.count}
+                          </td>
+                          {isSubmitted ? (
+                            <>
+                              <td className="py-2.5 px-1.5 text-center font-black text-emerald-600 dark:text-emerald-400">
+                                {sStat?.correct ?? 0}
+                              </td>
+                              <td className="py-2.5 px-1.5 text-center font-black text-rose-600 dark:text-rose-400">
+                                {sStat?.wrong ?? 0}
+                              </td>
+                              <td className="py-2.5 px-1.5 text-center font-bold text-amber-600 dark:text-amber-400">
+                                {sStat?.blank ?? 0}
+                              </td>
+                              <td className="py-2.5 px-2 text-right font-black text-indigo-600 dark:text-indigo-400 text-sm">
+                                {sStat ? sStat.net : 0}
+                              </td>
+                              <td className="py-2.5 px-2 text-center">
+                                <span className={cn(
+                                  "text-[10px] font-black px-1.5 py-0.5 rounded-md",
+                                  pct >= 70 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
+                                  pct >= 50 ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
+                                  "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                                )}>
+                                  %{pct}
+                                </span>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-2.5 px-2 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                                {filled}
+                              </td>
+                              <td className="py-2.5 px-2 text-right font-black text-slate-600 dark:text-slate-300">
+                                %{pct}
+                              </td>
+                            </>
+                          )}
+                        </tr>
                       );
                     })}
-                    <button
-                      type="button"
-                      onClick={() => handleClearOption(activeSubject.name, qIdx)}
-                      disabled={isSubmitted || !selected}
-                      className={cn(
-                        "ml-1 p-1 transition-colors",
-                        !isSubmitted && selected ? "text-slate-300 hover:text-rose-500" : "opacity-0 pointer-events-none"
-                      )}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                  </tbody>
+                  {isSubmitted && results && (
+                    <tfoot>
+                      <tr className="bg-slate-100/90 dark:bg-slate-800/90 border-t-2 border-slate-200 dark:border-slate-700 font-black text-slate-900 dark:text-white">
+                        <td className="py-3 px-3 uppercase text-[10px] tracking-wider font-black">
+                          TOPLAM
+                        </td>
+                        <td className="py-3 px-1.5 text-center font-black">
+                          {homework.totalQuestions}
+                        </td>
+                        <td className="py-3 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-black">
+                          {results.totalCorrect}
+                        </td>
+                        <td className="py-3 px-1.5 text-center text-rose-600 dark:text-rose-400 font-black">
+                          {results.totalWrong}
+                        </td>
+                        <td className="py-3 px-1.5 text-center text-amber-600 dark:text-amber-400 font-black">
+                          {results.totalBlank}
+                        </td>
+                        <td className="py-3 px-2 text-right text-emerald-600 dark:text-emerald-400 text-sm font-black">
+                          {results.totalNet}
+                        </td>
+                        <td className="py-3 px-2 text-center font-black">
+                          <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] px-1.5 py-0.5 rounded-md font-black">
+                            %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
+                          </span>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div className="pt-1 flex flex-col gap-2">
+              <button
+                onClick={() => navigate('/student-results')}
+                className="w-full py-2.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ListTree className="w-4 h-4 text-indigo-500" /> Tüm Sınav Sonuçlarıma Git
+              </button>
+            </div>
+
           </div>
         </div>
+
+        {/* SAĞ KOLON: OPTİK FORM & MOBİL GÖRÜNÜM TABS */}
+        <div className="w-full lg:col-span-7 xl:col-span-7 space-y-4">
+          
+          {/* MOBİLDE DERS BAZLI SONUÇ TABLOSU AKORDİYONU */}
+          {isSubmitted && results && (
+            <div className="block lg:hidden bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs transition-all">
+              <button
+                type="button"
+                onClick={() => setShowMobileStats(!showMobileStats)}
+                className="w-full flex items-center justify-between text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Ders Bazlı Sonuç Tablosu ({subjects.length} Ders)</span>
+                </div>
+                <div className="flex items-center gap-1 text-slate-400">
+                  <span className="text-[10px] font-bold">{showMobileStats ? 'Kapat' : 'Genişlet'}</span>
+                  {showMobileStats ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </button>
+
+              {showMobileStats && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 overflow-hidden rounded-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                          <th className="py-2 px-2.5">Ders</th>
+                          <th className="py-2 px-1 text-center">Soru</th>
+                          <th className="py-2 px-1 text-center text-emerald-600">D</th>
+                          <th className="py-2 px-1 text-center text-rose-600">Y</th>
+                          <th className="py-2 px-1 text-center text-amber-600">B</th>
+                          <th className="py-2 px-1.5 text-right font-black text-indigo-600">Net</th>
+                          <th className="py-2 px-1 text-center">Başarı</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                        {subjects.map((sub, idx) => {
+                          const isActive = activeSubjectIndex === idx;
+                          const sStat = results?.subjectStats?.find(s => s.name === sub.name);
+                          const pct = sStat && sub.count > 0 ? Math.round((sStat.correct / sub.count) * 100) : 0;
+
+                          return (
+                            <tr
+                              key={sub.name}
+                              onClick={() => setActiveSubjectIndex(idx)}
+                              className={cn(
+                                "transition-colors cursor-pointer select-none",
+                                isActive ? "bg-indigo-50/90 dark:bg-indigo-950/50 font-bold" : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                              )}
+                            >
+                              <td className="py-2 px-2.5 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[100px]">
+                                {sub.name}
+                              </td>
+                              <td className="py-2 px-1 text-center text-slate-500 font-bold">{sub.count}</td>
+                              <td className="py-2 px-1 text-center font-black text-emerald-600">{sStat?.correct ?? 0}</td>
+                              <td className="py-2 px-1 text-center font-black text-rose-600">{sStat?.wrong ?? 0}</td>
+                              <td className="py-2 px-1 text-center font-bold text-amber-600">{sStat?.blank ?? 0}</td>
+                              <td className="py-2 px-1.5 text-right font-black text-indigo-600">{sStat ? sStat.net : 0}</td>
+                              <td className="py-2 px-1 text-center font-black text-[10px]">%{pct}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-slate-100/90 dark:bg-slate-800/90 border-t-2 border-slate-200 dark:border-slate-700 font-black text-slate-900 dark:text-white text-[11px]">
+                          <td className="py-2.5 px-2.5 uppercase font-black">TOPLAM</td>
+                          <td className="py-2.5 px-1 text-center">{homework.totalQuestions}</td>
+                          <td className="py-2.5 px-1 text-center text-emerald-600">{results.totalCorrect}</td>
+                          <td className="py-2.5 px-1 text-center text-rose-600">{results.totalWrong}</td>
+                          <td className="py-2.5 px-1 text-center text-amber-600">{results.totalBlank}</td>
+                          <td className="py-2.5 px-1.5 text-right text-emerald-600 font-black">{results.totalNet}</td>
+                          <td className="py-2.5 px-1 text-center font-black">
+                            %{homework.totalQuestions > 0 ? Math.round((results.totalCorrect / homework.totalQuestions) * 100) : 0}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* MOBİLDE YATAY KAYDIRILABİLİR DERS TABS (KLASİK & KOMPAKT) */}
+          <div className="block lg:hidden">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
+              {subjects.map((sub, idx) => {
+                const isActive = activeSubjectIndex === idx;
+                const subAns = answers[sub.name] || [];
+                const filled = subAns.filter(Boolean).length;
+                const sStat = results?.subjectStats?.find(s => s.name === sub.name);
+
+                return (
+                  <button
+                    key={sub.name}
+                    type="button"
+                    onClick={() => setActiveSubjectIndex(idx)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all shrink-0 cursor-pointer shadow-xs active:scale-95",
+                      isActive
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400"
+                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                    )}
+                  >
+                    <span>{sub.name}</span>
+                    {isSubmitted && sStat ? (
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                        isActive ? "bg-white/25 text-white" : "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400"
+                      )}>
+                        {sStat.net} Net
+                      </span>
+                    ) : (
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                        isActive ? "bg-white/25 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"
+                      )}>
+                        {filled}/{sub.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-7 lg:p-8 shadow-sm space-y-5">
+            
+            {/* Header of Active Subject */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-0.5 rounded-md">
+                    Optik Form
+                  </span>
+                  <span className="text-xs text-slate-400 font-bold">
+                    {activeSubject.count} Soru
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5 mt-1">
+                  <LayoutTemplate className="w-6 h-6 text-indigo-500" /> {activeSubject.name}
+                </h3>
+              </div>
+
+              {isSubmitted && results && (
+                <div className="flex items-center gap-2 text-xs font-black px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    {results.subjectStats.find(s => s.name === activeSubject.name)?.correct} Doğru
+                  </span>
+                  <span>•</span>
+                  <span className="text-rose-600 dark:text-rose-400">
+                    {results.subjectStats.find(s => s.name === activeSubject.name)?.wrong} Yanlış
+                  </span>
+                  <span>•</span>
+                  <span className="text-amber-600 dark:text-amber-400">
+                    {results.subjectStats.find(s => s.name === activeSubject.name)?.blank} Boş
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Questions Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3.5">
+              {Array.from({ length: activeSubject.count }).map((_, qIdx) => {
+                const selected = currentAnswers[qIdx];
+                
+                let isCorrect = false;
+                let isWrong = false;
+                let correctKey = '';
+
+                if (isSubmitted) {
+                  correctKey = homework.answerKey?.[activeSubject.name]?.[qIdx] || '';
+                  isCorrect = selected && selected === correctKey;
+                  isWrong = selected && selected !== correctKey;
+                }
+
+                const optionsList = (activeSubject.options && activeSubject.options.length > 0) 
+                  ? activeSubject.options 
+                  : (homework.examType === 'LGS' ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
+
+                return (
+                  <div 
+                    key={qIdx}
+                    className={cn(
+                      'flex items-center justify-between gap-2.5 p-3 sm:p-3.5 rounded-2xl border transition-all w-full shadow-sm hover:shadow-md',
+                      isCorrect ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/80 ring-1 ring-emerald-400/20' :
+                      isWrong ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 ring-1 ring-rose-400/20' :
+                      selected ? 'bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60' :
+                      'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-700/80 hover:border-indigo-300'
+                    )}
+                  >
+                    {/* Question Number & Status */}
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 shadow-sm transition-all",
+                        isCorrect ? "bg-emerald-500 text-white" :
+                        isWrong ? "bg-rose-500 text-white" :
+                        selected ? "bg-indigo-600 text-white" :
+                        "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      )}>
+                        {qIdx + 1}
+                      </span>
+                      {isSubmitted && (
+                        <span className={cn(
+                          'text-[10px] font-black uppercase px-2 py-0.5 rounded-lg whitespace-nowrap',
+                          isCorrect ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                          isWrong ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' : 
+                          'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                        )}>
+                          {isCorrect ? 'Doğru' : isWrong ? `Cevap: ${correctKey}` : `Boş (${correctKey})`}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Optical Option Circles */}
+                    <div className="flex items-center gap-1.5">
+                      {optionsList.map(opt => {
+                        const isSelected = selected === opt;
+                        const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleOptionClick(activeSubject.name, qIdx, opt)}
+                            disabled={isSubmitted}
+                            className={cn(
+                              'w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-full border-2 text-xs font-black transition-all flex items-center justify-center cursor-pointer select-none',
+                              !isSubmitted && isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/30 scale-110' :
+                              !isSubmitted && !isSelected ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-indigo-500 hover:text-indigo-600 hover:scale-105 active:scale-95' :
+                              isSubmitted && isThisOptCorrect ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/30 scale-110' :
+                              isSubmitted && isSelected && isWrong ? 'bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/30' :
+                              'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 opacity-40 cursor-not-allowed'
+                            )}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+
+                      {/* Clear Button */}
+                      {!isSubmitted && (
+                        <button
+                          type="button"
+                          onClick={() => handleClearOption(activeSubject.name, qIdx)}
+                          disabled={!selected}
+                          title="İşareti Kaldır"
+                          className={cn(
+                            "p-1 rounded-lg transition-colors cursor-pointer ml-0.5",
+                            selected ? "text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" : "opacity-0 pointer-events-none"
+                          )}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        </div>
+
       </div>
+
     </div>
   );
 }

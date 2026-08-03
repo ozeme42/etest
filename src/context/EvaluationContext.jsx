@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { dbGetSubmissions, dbSaveSubmission } from '../services/supabaseService';
+import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbClearStudentSubmissions } from '../services/supabaseService';
 
 const EvaluationContext = createContext();
 
@@ -88,12 +88,24 @@ export function EvaluationProvider({ children }) {
     });
   };
 
+  const deleteSubmission = async (id) => {
+    setSubmissions(prev => prev.filter(s => s.id !== id));
+    await dbDeleteSubmission(id);
+  };
+
+  const clearSubmissionsForStudent = async (studentId) => {
+    setSubmissions(prev => prev.filter(s => String(s.studentId) !== String(studentId)));
+    await dbClearStudentSubmissions(studentId);
+  };
+
   return (
     <EvaluationContext.Provider value={{
       submissions,
       addSubmission,
       evaluateAnswer,
-      finalizeSubmission
+      finalizeSubmission,
+      deleteSubmission,
+      clearSubmissionsForStudent
     }}>
       {children}
     </EvaluationContext.Provider>
