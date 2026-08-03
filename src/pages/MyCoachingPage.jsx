@@ -242,6 +242,7 @@ export default function MyCoachingPage() {
   const [newPoolTopics, setNewPoolTopics] = useState({});
   const [bulkTopicInput, setBulkTopicInput] = useState({});
   const [showBulkInput, setShowBulkInput] = useState({});
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
@@ -784,23 +785,36 @@ export default function MyCoachingPage() {
 
             {/* Hazır Şablon Yükle */}
             <Card emoji="⚡" title="Hazır Şablon ile Hızlı Başla">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
-                  <button key={tplKey} onClick={() => loadTemplate(tplKey)}
-                    style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <Plus size={14} /> {tplKey}
+              {!showTemplates ? (
+                <button onClick={() => setShowTemplates(true)}
+                  style={{ background: '#f8fafc', color: '#475569', border: '1.5px dashed #cbd5e1', borderRadius: '0.75rem', padding: '0.75rem 1rem', width: '100%', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Plus size={16} /> Şablonları Göster / Yükle
+                </button>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
+                      <button key={tplKey} onClick={() => loadTemplate(tplKey)}
+                        style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Plus size={14} /> {tplKey}
+                      </button>
+                    ))}
+                    {topicPool.length > 0 && (
+                      <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
+                        style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
+                        🗑️ Tümünü Temizle
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    💡 Şablon yükle ve üzerinde istediğin değişikliği yap. Birden fazla şablonu birleştirebilirsin.
+                  </div>
+                  <button onClick={() => setShowTemplates(false)}
+                    style={{ marginTop: 8, background: 'none', color: '#64748b', border: 'none', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
+                    Gizle
                   </button>
-                ))}
-                {topicPool.length > 0 && (
-                  <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
-                    style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
-                    🗑️ Tümünü Temizle
-                  </button>
-                )}
-              </div>
-              <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-                💡 Şablon yükle ve üzerinde istediğin değişikliği yap. Birden fazla şablonu birleştirebilirsin.
-              </div>
+                </>
+              )}
             </Card>
 
             {/* Yeni Ders Ekle */}
