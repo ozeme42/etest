@@ -451,16 +451,15 @@ export default function StudentWrongAnswersPage() {
   const globalBlankCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [testGroupedSubmissions]);
   const globalReviewedCount = useMemo(() => testGroupedSubmissions.filter(sub => sub.isReviewed).length, [testGroupedSubmissions]);
 
-  // Filtered Test Submissions
+  // Filtered Test Submissions (Returns all tests when selectedSubject is null or 'all')
   const filteredTestSubmissions = useMemo(() => {
-    if (!selectedSubject) return [];
-
     return testGroupedSubmissions.filter(sub => {
       const textMatch =
+        !searchQuery.trim() ||
         (sub.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (sub.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-      const subjectMatch = selectedSubject === 'all' || sub.subject === selectedSubject;
+      const subjectMatch = !selectedSubject || selectedSubject === 'all' || sub.subject === selectedSubject;
 
       let sourceMatch = true;
       if (sourceFilter === 'homework') sourceMatch = !!sub.isHomework;
@@ -605,241 +604,221 @@ export default function StudentWrongAnswersPage() {
         {activeMainTab === 'wrong_controls' && (
           <div>
             {/* LEVEL 1: COLORFUL SUBJECT CARDS PORTAL */}
-            {selectedSubject === null && (
-              <div>
-                <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FolderOpen size={22} color="#4f46e5" /> İncelemek İstediğiniz Ders Kartına Tıklayın:
-                  </div>
+            <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FolderOpen size={22} color="#4f46e5" /> Ders Kartlarına Tıklayarak Filtreleyin:
+              </div>
 
-                  <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1.5px solid #fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      ❌ Yanlış: {globalWrongCount}
+              <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1.5px solid #fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                  ❌ Yanlış: {globalWrongCount}
+                </span>
+                <span style={{ background: '#f8fafc', color: '#475569', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                  ⚪ Boş: {globalBlankCount}
+                </span>
+                <span style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #86efac', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                  ✅ Kontrol Edilen Sınav: {globalReviewedCount} / {testGroupedSubmissions.length}
+                </span>
+              </div>
+            </div>
+
+            {/* VIBRANT COLORFUL SUBJECT CARDS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+              
+              {/* SPECIAL "TÜM DERSLER" CARD */}
+              <div
+                onClick={() => setSelectedSubject(null)}
+                style={{
+                  background: selectedSubject === null || selectedSubject === 'all' ? subjectThemes['all_subjects'].bg : '#ffffff',
+                  color: selectedSubject === null || selectedSubject === 'all' ? 'white' : '#1e293b',
+                  borderRadius: '1.35rem',
+                  padding: '1.35rem',
+                  cursor: 'pointer',
+                  boxShadow: selectedSubject === null || selectedSubject === 'all' ? subjectThemes['all_subjects'].shadow : '0 2px 8px rgba(0,0,0,0.04)',
+                  border: selectedSubject === null || selectedSubject === 'all' ? '1px solid rgba(255,255,255,0.3)' : '1.5px solid #cbd5e1',
+                  transition: 'all 0.25s ease',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justify: 'space-between',
+                  minHeight: 150
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span style={{ background: selectedSubject === null || selectedSubject === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', color: selectedSubject === null || selectedSubject === 'all' ? 'white' : '#64748b', padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                      Tüm Portfolyo
                     </span>
-                    <span style={{ background: '#f8fafc', color: '#475569', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      ⚪ Boş: {globalBlankCount}
-                    </span>
-                    <span style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #86efac', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      ✅ Kontrol Edilen Sınav: {globalReviewedCount} / {testGroupedSubmissions.length}
-                    </span>
+                    <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 900 }}>Tüm Dersler</h3>
+                  </div>
+                  <div style={{ background: selectedSubject === null || selectedSubject === 'all' ? 'rgba(255,255,255,0.25)' : '#4f46e515', color: selectedSubject === null || selectedSubject === 'all' ? 'white' : '#4f46e5', borderRadius: '0.85rem', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <GraduationCap size={22} />
                   </div>
                 </div>
 
-                {/* VIBRANT COLORFUL SUBJECT CARDS GRID */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                  
-                  {/* SPECIAL "TÜM DERSLER" CARD */}
+                <div style={{ marginTop: '1rem', background: selectedSubject === null || selectedSubject === 'all' ? 'rgba(0,0,0,0.15)' : '#f8fafc', borderRadius: '0.85rem', padding: '0.5rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700 }}>TOPLAM SINAV</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 900 }}>{testGroupedSubmissions.length} Sınav</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                    {selectedSubject === null ? 'Tümü Seçili' : 'Seç'} <ChevronRight size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {/* INDIVIDUAL SUBJECT CARDS */}
+              {Object.entries(subjectCardStats).map(([subjName, stats]) => {
+                const theme = subjectThemes[subjName] || subjectThemes['Diğer'];
+                const IconComp = theme.icon;
+                const isSelected = selectedSubject === subjName;
+
+                return (
                   <div
-                    onClick={() => setSelectedSubject('all')}
+                    key={subjName}
+                    onClick={() => setSelectedSubject(isSelected ? null : subjName)}
                     style={{
-                      background: subjectThemes['all_subjects'].bg,
-                      borderRadius: '1.5rem',
-                      padding: '1.75rem',
-                      color: 'white',
+                      background: isSelected ? theme.bg : '#ffffff',
+                      color: isSelected ? 'white' : '#1e293b',
+                      borderRadius: '1.35rem',
+                      padding: '1.35rem',
                       cursor: 'pointer',
-                      boxShadow: subjectThemes['all_subjects'].shadow,
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      transition: 'all 0.3s ease',
+                      boxShadow: isSelected ? theme.shadow : '0 2px 8px rgba(0,0,0,0.04)',
+                      border: isSelected ? '1px solid rgba(255,255,255,0.25)' : '1.5px solid #cbd5e1',
+                      transition: 'all 0.25s ease',
                       position: 'relative',
                       overflow: 'hidden',
                       display: 'flex',
                       flexDirection: 'column',
                       justify: 'space-between',
-                      minHeight: 180
+                      minHeight: 150
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.3rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Tüm Portfolyo
+                        <span style={{ background: isSelected ? 'rgba(255,255,255,0.2)' : '#f1f5f9', color: isSelected ? 'white' : '#64748b', padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                          Ders Klasörü
                         </span>
-                        <h3 style={{ margin: '0.75rem 0 0 0', fontSize: '1.4rem', fontWeight: 900 }}>Tüm Dersler</h3>
+                        <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.2rem', fontWeight: 900 }}>{subjName}</h3>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '1rem', width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <GraduationCap size={26} />
+                      <div style={{ background: isSelected ? 'rgba(255,255,255,0.25)' : theme.color + '15', color: isSelected ? 'white' : theme.color, borderRadius: '0.85rem', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <IconComp size={22} />
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '1.5rem', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)', borderRadius: '1rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ marginTop: '1rem', background: isSelected ? 'rgba(0,0,0,0.15)' : '#f8fafc', borderRadius: '0.85rem', padding: '0.5rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>TOPLAM SINAV</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{testGroupedSubmissions.length} Sınav</div>
+                        <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700 }}>SINAV / KONTROL</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 900 }}>
+                          {stats.testCount} Sınav ({stats.wrongCount} Yanlış)
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', fontWeight: 800 }}>
-                        İncele <ChevronRight size={18} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                        {isSelected ? 'Seçili' : 'Filtrele'} <ChevronRight size={14} />
                       </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* INDIVIDUAL SUBJECT CARDS */}
-                  {Object.entries(subjectCardStats).map(([subjName, stats]) => {
-                    const theme = subjectThemes[subjName] || subjectThemes['Diğer'];
-                    const IconComp = theme.icon;
-
-                    return (
-                      <div
-                        key={subjName}
-                        onClick={() => setSelectedSubject(subjName)}
-                        style={{
-                          background: theme.bg,
-                          borderRadius: '1.5rem',
-                          padding: '1.75rem',
-                          color: 'white',
-                          cursor: 'pointer',
-                          boxShadow: theme.shadow,
-                          border: '1px solid rgba(255,255,255,0.25)',
-                          transition: 'all 0.3s ease',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justify: 'space-between',
-                          minHeight: 180
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.3rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                              Ders Klasörü
-                            </span>
-                            <h3 style={{ margin: '0.75rem 0 0 0', fontSize: '1.35rem', fontWeight: 900 }}>{subjName}</h3>
-                          </div>
-                          <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '1rem', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <IconComp size={24} />
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: '1.25rem', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)', borderRadius: '1rem', padding: '0.65rem 0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.85, fontWeight: 700 }}>SINAV / KONTROL</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 900 }}>
-                              {stats.testCount} Sınav ({stats.wrongCount} Yanlış)
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', fontWeight: 800 }}>
-                            Dersin İçine Gir <ChevronRight size={16} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+            {/* BREADCRUMB / ACTIVE FILTER INDICATOR */}
+            {selectedSubject && selectedSubject !== 'all' && (
+              <div style={{ background: '#eef2ff', padding: '0.85rem 1.25rem', borderRadius: '1rem', border: '1.5px solid #c7d2fe', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#3730a3', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FolderOpen size={18} color="#4f46e5" />
+                  <span>Şu an sadece <strong>{selectedSubject}</strong> dersine ait sınavlar listeleniyor ({filteredTestSubmissions.length} Sınav)</span>
                 </div>
+                <button
+                  onClick={() => setSelectedSubject(null)}
+                  style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.6rem', padding: '0.35rem 0.75rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', color: '#475569' }}
+                >
+                  ✕ Tüm Dersleri Göster
+                </button>
               </div>
             )}
 
-            {/* LEVEL 2: INSIDE THE SELECTED SUBJECT FOLDER */}
-            {selectedSubject !== null && (
-              <div>
-                {/* BREADCRUMB & SUBJECT FOLDER HEADER */}
-                <div style={{ background: 'white', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1.5px solid #c7d2fe', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <button
-                      onClick={() => setSelectedSubject(null)}
-                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '0.65rem', padding: '0.4rem 0.75rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                    >
-                      <ArrowLeft size={16} /> Tüm Ders Kartlarına Dön
-                    </button>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <FolderOpen color="#4f46e5" size={20} />
-                      <span>Yanlışlarım</span>
-                      <ChevronRight size={16} color="#94a3b8" />
-                      <span style={{ color: '#4f46e5' }}>{currentSubjectInfo.title} ({filteredTestSubmissions.length} Sınav)</span>
-                    </div>
-                  </div>
+            {/* SEARCH & FILTERS BAR INSIDE FOLDER */}
+            <div style={{ background: 'white', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+              
+              {/* Live Search Bar */}
+              <div style={{ flex: '1 1 280px', position: 'relative' }}>
+                <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Sınav adı veya ders ara..."
+                  style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 600, outline: 'none' }}
+                />
+              </div>
 
-                  {/* View Switcher inside folder */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f1f5f9', padding: '0.3rem', borderRadius: '0.85rem' }}>
-                    <button
-                      onClick={() => setViewMode('table')}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.65rem',
-                        border: 'none',
-                        background: viewMode === 'table' ? '#4f46e5' : 'transparent',
-                        color: viewMode === 'table' ? 'white' : '#64748b',
-                        fontWeight: 900,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem'
-                      }}
-                    >
-                      <Table size={16} /> 📊 Excel Tablo Görünümü
-                    </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                {/* REVIEWED TRACKING FILTER */}
+                <select
+                  value={reviewFilter}
+                  onChange={e => setReviewFilter(e.target.value)}
+                  style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                >
+                  <option value="all">Tüm İnceleme Durumları</option>
+                  <option value="unreviewed">⚠️ Kontrol Edilmeyen Sınavlar</option>
+                  <option value="reviewed">✅ Kontrol Edilen Sınavlar</option>
+                </select>
 
-                    <button
-                      onClick={() => setViewMode('cards')}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.65rem',
-                        border: 'none',
-                        background: viewMode === 'cards' ? '#4f46e5' : 'transparent',
-                        color: viewMode === 'cards' ? 'white' : '#64748b',
-                        fontWeight: 900,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem'
-                      }}
-                    >
-                      <List size={16} /> 📑 Kart Görünümü
-                    </button>
-                  </div>
+                {/* Answer Type Filter */}
+                <select
+                  value={ansTypeFilter}
+                  onChange={e => setAnsTypeFilter(e.target.value)}
+                  style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                >
+                  <option value="all">Tüm Yanlış ve Boşlar</option>
+                  <option value="wrong">❌ Sadece Yanlış Yapılanlar</option>
+                  <option value="blank">⚪ Sadece Boş Bırakılanlar</option>
+                </select>
+
+                {/* View Switcher */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '0.75rem' }}>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    style={{
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: '0.6rem',
+                      border: 'none',
+                      background: viewMode === 'table' ? '#4f46e5' : 'transparent',
+                      color: viewMode === 'table' ? 'white' : '#64748b',
+                      fontWeight: 900,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
+                    <Table size={15} /> Tablo
+                  </button>
+
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    style={{
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: '0.6rem',
+                      border: 'none',
+                      background: viewMode === 'cards' ? '#4f46e5' : 'transparent',
+                      color: viewMode === 'cards' ? 'white' : '#64748b',
+                      fontWeight: 900,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
+                    <List size={15} /> Kart
+                  </button>
                 </div>
-
-                {/* SEARCH & FILTERS BAR INSIDE FOLDER */}
-                <div style={{ background: 'white', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                  
-                  {/* Live Search Bar */}
-                  <div style={{ flex: '1 1 280px', position: 'relative' }}>
-                    <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      placeholder={`${currentSubjectInfo.title} içinde sınav adı ara...`}
-                      style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 600, outline: 'none' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-                    {/* REVIEWED TRACKING FILTER */}
-                    <select
-                      value={reviewFilter}
-                      onChange={e => setReviewFilter(e.target.value)}
-                      style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
-                    >
-                      <option value="all">Tüm İnceleme Durumları</option>
-                      <option value="unreviewed">⚠️ Kontrol Edilmeyen Sınavlar</option>
-                      <option value="reviewed">✅ Kontrol Edilen Sınavlar</option>
-                    </select>
-
-                    {/* Answer Type Filter */}
-                    <select
-                      value={ansTypeFilter}
-                      onChange={e => setAnsTypeFilter(e.target.value)}
-                      style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
-                    >
-                      <option value="all">Tüm Yanlış ve Boşlar</option>
-                      <option value="wrong">❌ Sadece Yanlış Yapılanlar</option>
-                      <option value="blank">⚪ Sadece Boş Bırakılanlar</option>
-                    </select>
-
-                    {/* Source Filter */}
-                    <select
-                      value={sourceFilter}
-                      onChange={e => setSourceFilter(e.target.value)}
-                      style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
-                    >
-                      <option value="all">Tüm Sınav Kaynakları</option>
-                      <option value="homework">📝 Ödev Sınavları</option>
-                      <option value="quiz">⚡ Test / Bireysel Sınavlar</option>
-                    </select>
-                  </div>
-                </div>
+              </div>
+            </div>
 
                 {/* INSIDE FOLDER MODE 1: EXCEL SINGLE-ROW TABLE VIEW */}
                 {viewMode === 'table' && (
@@ -1195,8 +1174,6 @@ export default function StudentWrongAnswersPage() {
                     })}
                   </div>
                 )}
-              </div>
-            )}
           </div>
         )}
 
