@@ -969,6 +969,7 @@ export default function MyCoachingPage() {
 
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
+    { id: 'hedefpanosu', label: '📊 Özel Hedef Takip Panosu' },
     { id: 'hedefler', label: '🎯 Hedeflerim' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
@@ -1773,8 +1774,13 @@ export default function MyCoachingPage() {
               <AddInput value={newDaily} onChange={setNewDaily} placeholder="Yeni günlük rutin..." color="#dc2626"
                 onAdd={() => { if (newDaily.trim()) { setGoals(p => ({ ...p, dailyGoals: [...(p.dailyGoals||[]), { id: uid(), text: newDaily.trim(), done: false }] })); setNewDaily(''); }}} />
             </Card>
+          </div>
+        )}
 
-            {/* Görsel Özel Hedef Takip Panosu */}
+        {/* ═══ ÖZEL HEDEF TAKİP PANOSU ═══ */}
+        {activeTab === 'hedefpanosu' && (
+          <div>
+            <Tip>Günlük soru çözme, kitap okuma, konu tamamlama veya süre hedeflerini görsel grafiklerle takip et!</Tip>
             <VisualGoalSection studentId={studentId} />
           </div>
         )}

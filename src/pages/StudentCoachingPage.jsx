@@ -526,6 +526,7 @@ export default function StudentCoachingPage() {
   const tabs = [
     { id: 'info', label: '👤 Bilgi Formu', num: 1 },
     { id: 'intake', label: '🧠 İlk Tanışma', num: 2 },
+    { id: 'visualgoals', label: '📊 Görsel Hedef Panosu', num: '3B' },
     { id: 'goals', label: '🎯 Hedefler', num: 3 },
     { id: 'subjects', label: '📚 Ders Analizi', num: 4 },
     { id: 'weekly', label: '📅 Haftalık Program', num: 5 },
@@ -790,11 +791,13 @@ export default function StudentCoachingPage() {
                   <button type="submit" style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.6rem 1rem', fontWeight: 800, cursor: 'pointer' }}><Plus size={15} /></button>
                 </form>
               </Accordion>
+            </SectionCard>
+          )}
 
-              {/* Görsel Özel Hedef Takip Panosu */}
-              <Accordion title="📊 Görsel Özel Hedef Takip Panosu" icon={<BarChart3 size={16} />} color="#0284c7" bg="#f0f9ff" border="#bae6fd">
-                <VisualGoalSection studentId={studentId} />
-              </Accordion>
+          {/* ════ BÖLÜM: GÖRSEL ÖZEL HEDEF PANOSU ════ */}
+          {activeTab === 'visualgoals' && (
+            <SectionCard title="Görsel Özel Hedef Takip Panosu" icon={<BarChart3 size={20} />} color="#0284c7">
+              <VisualGoalSection studentId={studentId} />
             </SectionCard>
           )}
 
