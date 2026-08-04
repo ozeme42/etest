@@ -30,6 +30,25 @@ const parseSafeDate = (d) => {
 };
 export const getCategoryName = (t) => t.subject || 'Diğer';
 
+const renderGoalList = (goalsData) => {
+  if (!goalsData) return null;
+  if (typeof goalsData === 'string') return goalsData;
+  if (Array.isArray(goalsData)) {
+    if (goalsData.length === 0) return null;
+    return goalsData.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        const text = item.text || item.title || item.name || '';
+        return text ? (item.done ? `✓ ${text}` : text) : null;
+      }
+      return String(item);
+    }).filter(Boolean).join(' • ');
+  }
+  if (typeof goalsData === 'object') {
+    return goalsData.text || goalsData.title || goalsData.name || null;
+  }
+  return String(goalsData);
+};
+
 /* ─── Subject Config ────────────────────────────────────────────── */
 const subjectConfig = {
   'Matematik':            { icon: Ruler,        color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', badge: '#2563eb' },
@@ -477,25 +496,31 @@ export default function StudentDashboard() {
                 )}
               </div>
 
-              {(coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'white', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
-                  {coachingProfile.monthlyGoals && (
-                    <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                      <span style={{ fontWeight: 900, color: '#15803d' }}>📅 Aylık Strateji:</span> {coachingProfile.monthlyGoals}
-                    </div>
-                  )}
-                  {coachingProfile.weeklyGoals && (
-                    <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                      <span style={{ fontWeight: 900, color: '#15803d' }}>⚡ Haftalık Hedef:</span> {coachingProfile.weeklyGoals}
-                    </div>
-                  )}
-                  {coachingProfile.dailyGoals && (
-                    <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                      <span style={{ fontWeight: 900, color: '#15803d' }}>🔥 Günlük Rutin:</span> {coachingProfile.dailyGoals}
-                    </div>
-                  )}
-                </div>
-              )}
+              {(() => {
+                const mGoalsStr = renderGoalList(coachingProfile.monthlyGoals);
+                const wGoalsStr = renderGoalList(coachingProfile.weeklyGoals);
+                const dGoalsStr = renderGoalList(coachingProfile.dailyGoals);
+                if (!mGoalsStr && !wGoalsStr && !dGoalsStr) return null;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'white', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                    {mGoalsStr && (
+                      <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                        <span style={{ fontWeight: 900, color: '#15803d' }}>📅 Aylık Strateji:</span> {mGoalsStr}
+                      </div>
+                    )}
+                    {wGoalsStr && (
+                      <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                        <span style={{ fontWeight: 900, color: '#15803d' }}>⚡ Haftalık Hedef:</span> {wGoalsStr}
+                      </div>
+                    )}
+                    {dGoalsStr && (
+                      <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                        <span style={{ fontWeight: 900, color: '#15803d' }}>🔥 Günlük Rutin:</span> {dGoalsStr}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })()}
