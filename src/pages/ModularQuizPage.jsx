@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
+import { useQuestionBank } from '../context/QuestionBankContext';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
 import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
@@ -17,8 +18,9 @@ export default function ModularQuizPage() {
   const navigate = useNavigate();
 
   const { homeworks, getQuestionsForTest } = useHomework();
-  const { addSubmission, submissions } = useEvaluation();
+  const { addSubmission } = useEvaluation();
   const { data: curriculumData } = useCurriculum();
+  const { questions: allBankQuestions } = useQuestionBank();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -31,13 +33,47 @@ export default function ModularQuizPage() {
       foundTest = curriculumData.tests.find(t => String(t.id) === String(testId));
     }
 
+    if (!foundTest && allBankQuestions) {
+      foundTest = allBankQuestions.find(q => String(q.id) === String(testId));
+    }
+
     if (foundTest) {
       setTest(foundTest);
-      const testQs = getQuestionsForTest ? getQuestionsForTest(foundTest.id) : (foundTest.questions || []);
-      setQuestions(testQs);
+      let testQs = getQuestionsForTest ? getQuestionsForTest(foundTest.id) : (foundTest.questions || []);
+
+      // Fallback: If testQs is empty, check if foundTest itself contains questionsList, imageUrls, or payload
+      if ((!testQs || testQs.length === 0) && foundTest) {
+        if (foundTest.questionsList && foundTest.questionsList.length > 0) {
+          testQs = foundTest.questionsList;
+        } else if (foundTest.imageUrls && foundTest.imageUrls.length > 0) {
+          testQs = foundTest.imageUrls.map((url, idx) => ({
+            id: `${foundTest.id}_q${idx + 1}`,
+            imageUrls: [url],
+            questionText: `Soru ${idx + 1}`
+          }));
+        } else if (foundTest.questionCount > 0) {
+          testQs = Array.from({ length: foundTest.questionCount }).map((_, idx) => ({
+            id: `${foundTest.id}_q${idx + 1}`,
+            contentPayload: foundTest.contentPayload,
+            imageUrl: foundTest.imageUrl,
+            imageUrls: foundTest.imageUrls,
+            questionText: `Soru ${idx + 1}`
+          }));
+        } else if (foundTest.contentPayload || foundTest.imageUrl) {
+          testQs = [{
+            id: `${foundTest.id}_q1`,
+            contentPayload: foundTest.contentPayload,
+            imageUrl: foundTest.imageUrl,
+            imageUrls: foundTest.imageUrls,
+            questionText: foundTest.title || 'Soru 1'
+          }];
+        }
+      }
+
+      setQuestions(testQs || []);
     }
     setLoading(false);
-  }, [testId, homeworks, curriculumData, getQuestionsForTest]);
+  }, [testId, homeworks, curriculumData, allBankQuestions, getQuestionsForTest]);
 
   if (loading) {
     return (
@@ -92,23 +128,35 @@ export default function ModularQuizPage() {
   };
 
   // Determine Source Format Mode
-  const sourceFormat = test.sourceFormat || test.formatType || (test.pdfPayload ? 'pdf' : test.htmlPayload ? 'html' : (test.imageUrls || test.contentPayload) ? 'image' : 'standard');
+  const isPdf = test.pdfPayload || test.sourceFormat === 'pdf' || test.formatType === 'pdf';
+  const isHtml = test.htmlPayload || test.sourceFormat === 'html' || test.formatType === 'html';
+  const isPhysical = test.sourceFormat === 'physical' || test.questionType === 'optik_form';
+  const isImageTest = 
+    test.sourceFormat === 'image' || 
+    test.formatType === 'image' || 
+    test.questionType === 'gorsel_klasik' || 
+    test.contentType === 'gorsel' || 
+    test.type === 'gorsel' || 
+    (test.title && test.title.toLowerCase().includes('görsel')) ||
+    (test.imageUrls && test.imageUrls.length > 0) ||
+    (questions.length > 0 && (questions[0].contentType === 'gorsel' || (questions[0].imageUrls && questions[0].imageUrls.length > 0) || (questions[0].contentPayload && !questions[0].options)));
 
-  if (sourceFormat === 'pdf' || test.pdfPayload) {
+  if (isPdf) {
     return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
   }
 
-  if (sourceFormat === 'html' || test.htmlPayload) {
+  if (isHtml) {
     return <HtmlQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
   }
 
-  if (sourceFormat === 'image' || test.questionType === 'gorsel_klasik') {
+  if (isImageTest) {
     return <ImageQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
   }
 
-  if (sourceFormat === 'physical' || test.questionType === 'optik_form') {
+  if (isPhysical) {
     return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
   }
 
   return <StandardQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
 }
+

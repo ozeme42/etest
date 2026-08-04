@@ -12,10 +12,12 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const activeQuestion = questions[currentIndex] || {};
-  const qCount = questions.length || test.questionCount || 10;
+  const qCount = questions.length || test.questionCount || (test.imageUrls ? test.imageUrls.length : null) || 1;
   const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded || activeQuestion.type === 'acik_uclu';
 
-  const imageUrls = activeQuestion.imageUrls || (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : (activeQuestion.contentPayload ? [activeQuestion.contentPayload] : []));
+  const imageUrls = (activeQuestion.imageUrls && activeQuestion.imageUrls.length > 0)
+    ? activeQuestion.imageUrls
+    : (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : (activeQuestion.contentPayload ? [activeQuestion.contentPayload] : (test.imageUrls ? test.imageUrls : (test.contentPayload ? [test.contentPayload] : []))));
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => ({
@@ -188,7 +190,8 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
                 ).map((opt, optIdx) => {
                   const isSelected = currentAnsObj.userAnswer === optIdx;
                   const optLabel = String.fromCharCode(65 + optIdx);
-                  const optText = typeof opt === 'string' ? opt : opt.text;
+                  const rawOptText = typeof opt === 'string' ? opt : (opt?.text || '');
+                  const optText = (rawOptText && rawOptText.trim() !== optLabel) ? rawOptText : `Şık ${optLabel}`;
 
                   return (
                     <button
@@ -214,7 +217,7 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
                       <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSelected ? '#4f46e5' : '#f1f5f9', color: isSelected ? 'white' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', flexShrink: 0 }}>
                         {optLabel}
                       </div>
-                      <span style={{ flexGrow: 1 }}>{optText || `Şık ${optLabel}`}</span>
+                      <span style={{ flexGrow: 1 }}>{optText}</span>
                     </button>
                   );
                 })}

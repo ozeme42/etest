@@ -12,10 +12,17 @@ export default function ImageQuizRunner({ test, questions, onSubmit }) {
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const activeQuestion = questions[currentIndex] || {};
-  const qCount = questions.length || test.questionCount || 10;
+  const qCount = questions.length || test.questionCount || (test.imageUrls ? test.imageUrls.length : null) || 1;
   const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded || activeQuestion.type === 'acik_uclu';
 
-  const imageUrls = activeQuestion.imageUrls || (activeQuestion.contentPayload ? [activeQuestion.contentPayload] : []);
+  const imageUrls = (activeQuestion.imageUrls && activeQuestion.imageUrls.length > 0)
+    ? activeQuestion.imageUrls
+    : (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : (activeQuestion.contentPayload ? [activeQuestion.contentPayload] : (
+        test.imageUrls
+          ? (Array.isArray(test.imageUrls) ? (test.imageUrls[currentIndex] ? [test.imageUrls[currentIndex]] : test.imageUrls) : [test.imageUrls])
+          : (test.contentPayload ? [test.contentPayload] : [])
+      )));
+
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => ({
