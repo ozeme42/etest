@@ -861,7 +861,7 @@ export default function MyCoachingPage() {
               🧠 <b>Konu & Program Merkezi</b>: Tüm konularını ve haftalık programını tek ekranda yönet! Konu durumunu (🔴 <i>Başlanmadı</i> / 🟡 <i>Devam Ediyor</i> / 🟢 <i>Bitti</i>) değiştir, <b>"📅 Güne Ata"</b> ile programa anında ekle.
             </Tip>
 
-            {/* Üst İstatistik & Özet Kartı */}
+            {/* Üst İstatistik & Genel İlerleme Çizgisi Kartı */}
             {(() => {
               let totalTopics = 0;
               let notStarted = 0;
@@ -878,28 +878,51 @@ export default function MyCoachingPage() {
                 });
               });
 
+              const totalPct = totalTopics > 0 ? Math.round((finished / totalTopics) * 100) : 0;
+              const inProgressPct = totalTopics > 0 ? Math.round((inProgress / totalTopics) * 100) : 0;
+
               return (
-                <div style={{ background: 'linear-gradient(135deg,#f8fafc,#edf2f7)', border: '2px solid #e2e8f0', borderRadius: '1.1rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div style={{ background: 'white', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
-                      📚 Toplam Konu: <span style={{ color: '#6366f1' }}>{totalTopics}</span>
+                <div style={{ background: 'linear-gradient(135deg,#f8fafc,#edf2f7)', border: '2px solid #e2e8f0', borderRadius: '1.1rem', padding: '1.1rem 1.3rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  
+                  {/* Başlık ve Yüzde Bilgisi */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '1.1rem' }}>📊</span>
+                      <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>Genel Konu İlerleme Durumu</span>
                     </div>
-                    <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#dc2626' }}>
-                      🔴 Başlanmadı: {notStarted}
-                    </div>
-                    <div style={{ background: '#fefce8', border: '1.5px solid #fef08a', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#ca8a04' }}>
-                      🟡 Devam Ediyor: {inProgress}
-                    </div>
-                    <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#16a34a' }}>
-                      🟢 Bitti: {finished}
+                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#059669', background: '#dcfce7', border: '1px solid #86efac', padding: '0.25rem 0.75rem', borderRadius: 99 }}>
+                      %{totalPct} Tamamlandı · ({finished}/{totalTopics} Konu)
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b' }}>Haftalık İlerleme:</span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                      {completedWeeklyItems}/{totalWeeklyItems} Ders
-                    </span>
+                  {/* İlerleme Çizgisi (Çoklu Renk Segmentli Çubuk) */}
+                  <div style={{ width: '100%', height: 12, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', display: 'flex', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+                    {/* Bitti (Yeşil) */}
+                    <div style={{ width: `${totalPct}%`, background: 'linear-gradient(90deg, #10b981, #059669)', transition: 'width 0.4s ease' }} title={`Bitti: %${totalPct}`} />
+                    {/* Devam Ediyor (Sarı) */}
+                    <div style={{ width: `${inProgressPct}%`, background: 'linear-gradient(90deg, #f59e0b, #d97706)', transition: 'width 0.4s ease' }} title={`Devam Ediyor: %${inProgressPct}`} />
+                  </div>
+
+                  {/* Alt Detay Rozetleri */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div style={{ background: 'white', border: '1.5px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
+                        📚 Toplam Konu: <span style={{ color: '#6366f1' }}>{totalTopics}</span>
+                      </div>
+                      <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#dc2626' }}>
+                        🔴 Başlanmadı: {notStarted}
+                      </div>
+                      <div style={{ background: '#fefce8', border: '1.5px solid #fef08a', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#ca8a04' }}>
+                        🟡 Devam Ediyor: {inProgress}
+                      </div>
+                      <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#16a34a' }}>
+                        🟢 Bitti: {finished}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, color: '#64748b' }}>
+                      📅 Program İlerlemesi: <span style={{ color: '#4f46e5', fontWeight: 900 }}>{completedWeeklyItems}/{totalWeeklyItems} Ders</span>
+                    </div>
                   </div>
                 </div>
               );
