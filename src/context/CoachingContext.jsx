@@ -58,7 +58,35 @@ export function CoachingProvider({ children }) {
       if (dbMeetings && dbMeetings.length > 0) setCoachingMeetings(dbMeetings);
 
       const dbProfiles = await dbGetCoachingProfiles();
-      if (dbProfiles && dbProfiles.length > 0) setCoachingProfiles(dbProfiles);
+      if (dbProfiles && dbProfiles.length > 0) {
+        setCoachingProfiles(prev => {
+          const merged = [...prev];
+          dbProfiles.forEach(dbP => {
+            const idx = merged.findIndex(p => String(p.studentId) === String(dbP.studentId));
+            if (idx >= 0) {
+              merged[idx] = {
+                ...merged[idx],
+                ...dbP,
+                weeklyProgram: (dbP.weeklyProgram && dbP.weeklyProgram.length > 0) ? dbP.weeklyProgram : (merged[idx].weeklyProgram || []),
+                topicPool: (dbP.topicPool && dbP.topicPool.length > 0) ? dbP.topicPool : (merged[idx].topicPool || []),
+                goals: dbP.goals || merged[idx].goals || {},
+                monthlyGoals: (dbP.monthlyGoals && dbP.monthlyGoals.length > 0) ? dbP.monthlyGoals : (merged[idx].monthlyGoals || []),
+                weeklyGoals: (dbP.weeklyGoals && dbP.weeklyGoals.length > 0) ? dbP.weeklyGoals : (merged[idx].weeklyGoals || []),
+                dailyGoals: (dbP.dailyGoals && dbP.dailyGoals.length > 0) ? dbP.dailyGoals : (merged[idx].dailyGoals || []),
+                topicList: (dbP.topicList && dbP.topicList.length > 0) ? dbP.topicList : (merged[idx].topicList || []),
+                dailyLogs: (dbP.dailyLogs && dbP.dailyLogs.length > 0) ? dbP.dailyLogs : (merged[idx].dailyLogs || []),
+                questionTrack: dbP.questionTrack || merged[idx].questionTrack || {},
+                errors: (dbP.errors && dbP.errors.length > 0) ? dbP.errors : (merged[idx].errors || []),
+                habits: (dbP.habits && dbP.habits.length > 0) ? dbP.habits : (merged[idx].habits || []),
+                motivation: dbP.motivation || merged[idx].motivation || {},
+              };
+            } else {
+              merged.push(dbP);
+            }
+          });
+          return merged;
+        });
+      }
     }
     syncCoachingFromSupabase();
   }, []);

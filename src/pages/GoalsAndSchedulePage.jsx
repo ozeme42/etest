@@ -511,10 +511,14 @@ export default function GoalsAndSchedulePage() {
   const [isLongTermOpen, setIsLongTermOpen] = useState(false); // Closed by default
   const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);   // Closed by default
 
-  const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || 'LGS 2026');
-  const [targetSchool, setTargetSchool] = useState(coachingProfile.targetSchool || '');
-  const [targetScore, setTargetScore] = useState(coachingProfile.targetScore || '485');
-  const [targetNet, setTargetNet] = useState(coachingProfile.targetNet || '90');
+  const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || coachingProfile.goals?.examGoalType || 'LGS 2026');
+  const [customExamName, setCustomExamName] = useState(coachingProfile.customExamName || coachingProfile.goals?.customExamName || '');
+  const [targetSchool, setTargetSchool] = useState(coachingProfile.targetSchool || coachingProfile.goals?.targetSchool || '');
+  const [targetScore, setTargetScore] = useState(coachingProfile.targetScore || coachingProfile.goals?.targetScore || '485');
+  const [targetNet, setTargetNet] = useState(coachingProfile.targetNet !== undefined ? String(coachingProfile.targetNet) : (coachingProfile.goals?.targetNet || '90'));
+  const [gradeClass, setGradeClass] = useState(coachingProfile.gradeClass || coachingProfile.goals?.gradeClass || '');
+  const [gradeTerm, setGradeTerm] = useState(coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm || '1');
+  const [gradeTarget, setGradeTarget] = useState(coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takçek');
 
   // Monthly Goal Items List
   const [monthlyItems, setMonthlyItems] = useState(() => parseCheckableGoalList(coachingProfile.monthlyGoals, [
@@ -542,21 +546,26 @@ export default function GoalsAndSchedulePage() {
 
   useEffect(() => {
     if (coachingProfile) {
-      if (coachingProfile.examGoalType) setExamGoalType(coachingProfile.examGoalType);
-      if (coachingProfile.targetSchool) setTargetSchool(coachingProfile.targetSchool);
-      if (coachingProfile.targetScore) setTargetScore(coachingProfile.targetScore);
-      if (coachingProfile.targetNet) setTargetNet(coachingProfile.targetNet);
+      const g = coachingProfile.goals || {};
+      const eType = coachingProfile.examGoalType || g.examGoalType || 'LGS 2026';
+      setExamGoalType(eType === 'Ara Sınıf Başarı' ? 'Ara Sınıf Takip & Takdir Hedefi' : eType);
+      setCustomExamName(coachingProfile.customExamName || g.customExamName || '');
+      setTargetSchool(coachingProfile.targetSchool || g.targetSchool || '');
+      setTargetScore(coachingProfile.targetScore || g.targetScore || '');
+      setTargetNet(coachingProfile.targetNet !== undefined ? String(coachingProfile.targetNet) : (g.targetNet || ''));
+      setGradeClass(coachingProfile.gradeClass || g.gradeClass || '');
+      setGradeTerm(coachingProfile.gradeTerm || g.gradeTerm || '1');
+      setGradeTarget(coachingProfile.gradeTarget || g.gradeTarget || 'Takçek');
 
-      setMonthlyItems(parseCheckableGoalList(coachingProfile.monthlyGoals, [
-        { id: 'm1', text: 'Matematik Çarpanlar ve EKOK problemleri tamamlanacak', done: false },
-        { id: 'm2', text: 'Türkçe Paragraf taktikleri ve 400 soru çözümü', done: true }
-      ]));
-      setWeeklyHabitItems(parseWeeklyHabitList(coachingProfile.weeklyGoals, [
-        { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', weeks: { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': true, 'Hafta 4': false } }
-      ]));
-      setDailyHabitItems(parseDailyHabitList(coachingProfile.dailyGoals, [
-        { id: 'd1', text: 'Günlük 20 Paragraf sorusu (zaman tutularak)', days: { Pzt: true, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false } }
-      ]));
+      if (coachingProfile.monthlyGoals) {
+        setMonthlyItems(parseCheckableGoalList(coachingProfile.monthlyGoals, []));
+      }
+      if (coachingProfile.weeklyGoals) {
+        setWeeklyHabitItems(parseWeeklyHabitList(coachingProfile.weeklyGoals, []));
+      }
+      if (coachingProfile.dailyGoals) {
+        setDailyHabitItems(parseDailyHabitList(coachingProfile.dailyGoals, []));
+      }
     }
   }, [coachingProfile]);
 
@@ -581,18 +590,52 @@ export default function GoalsAndSchedulePage() {
   const totalTopicsCompleted = useMemo(() => studentGoals.filter(g => g.type === 'Konu').reduce((acc, g) => acc + (g.current || 0), 0), [studentGoals]);
   const totalMinutesStudied = useMemo(() => studentGoals.filter(g => g.type === 'Dakika').reduce((acc, g) => acc + (g.current || 0), 0), [studentGoals]);
 
-  const saveAllProfilesWithLists = async (mList, wList, dList) => {
+  const saveAllProfilesWithLists = async (mList, wList, dList, overrides = {}) => {
+    const nextExam = overrides.examGoalType !== undefined ? overrides.examGoalType : examGoalType;
+    const nextCustomExam = overrides.customExamName !== undefined ? overrides.customExamName : customExamName;
+    const nextSchool = overrides.targetSchool !== undefined ? overrides.targetSchool : targetSchool;
+    const nextScore = overrides.targetScore !== undefined ? overrides.targetScore : targetScore;
+    const nextNet = overrides.targetNet !== undefined ? overrides.targetNet : targetNet;
+    const nextClass = overrides.gradeClass !== undefined ? overrides.gradeClass : gradeClass;
+    const nextTerm = overrides.gradeTerm !== undefined ? overrides.gradeTerm : gradeTerm;
+    const nextTarget = overrides.gradeTarget !== undefined ? overrides.gradeTarget : gradeTarget;
+
+    const m = mList !== undefined ? mList : monthlyItems;
+    const w = wList !== undefined ? wList : weeklyHabitItems;
+    const d = dList !== undefined ? dList : dailyHabitItems;
+
+    const updatedGoals = {
+      ...(coachingProfile.goals || {}),
+      examGoalType: nextExam,
+      customExamName: nextCustomExam,
+      targetSchool: nextSchool,
+      targetScore: nextScore,
+      targetNet: nextExam === 'Ara Sınıf Takip & Takdir Hedefi' ? 0 : (Number(nextNet) || 0),
+      gradeClass: nextClass,
+      gradeTerm: nextTerm,
+      gradeTarget: nextTarget,
+      monthlyGoals: m,
+      weeklyGoals: w,
+      dailyGoals: d,
+    };
+
     await saveCoachingProfile({
       ...coachingProfile,
       studentId: selectedStudent.id,
-      examGoalType,
-      targetSchool,
-      targetScore,
-      targetNet: Number(targetNet) || 0,
-      monthlyGoals: mList,
-      weeklyGoals: wList,
-      dailyGoals: dList
+      examGoalType: nextExam,
+      customExamName: nextCustomExam,
+      targetSchool: nextSchool,
+      targetScore: nextScore,
+      targetNet: nextExam === 'Ara Sınıf Takip & Takdir Hedefi' ? 0 : (Number(nextNet) || 0),
+      gradeClass: nextClass,
+      gradeTerm: nextTerm,
+      gradeTarget: nextTarget,
+      monthlyGoals: m,
+      weeklyGoals: w,
+      dailyGoals: d,
+      goals: updatedGoals
     });
+
     setIsSavedNotice(true);
     setTimeout(() => setIsSavedNotice(false), 2000);
   };
@@ -795,55 +838,172 @@ export default function GoalsAndSchedulePage() {
               </span>
             </button>
 
-            {isLongTermOpen && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sınav Türü</label>
-                  <select
-                    value={examGoalType}
-                    onChange={e => setExamGoalType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                  >
-                    <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
-                    <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
-                    <option value="Ara Sınıf Başarı">📊 Ara Sınıf Takip & Takdir Hedefi</option>
-                  </select>
-                </div>
+            {isLongTermOpen && (() => {
+              const isStandardExam = ['LGS 2026', 'YKS (TYT/AYT) 2026', 'KPSS', 'Ara Sınıf Takip & Takdir Hedefi'].includes(examGoalType);
+              const isGradeTracking = examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sınav / Hedef Türü</label>
+                    <select
+                      value={isStandardExam ? examGoalType : 'Özel Sınav'}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === 'Özel Sınav') {
+                          const customVal = customExamName || '';
+                          setExamGoalType('Özel Sınav');
+                          saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: 'Özel Sınav', customExamName: customVal });
+                        } else {
+                          setExamGoalType(val);
+                          saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: val });
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                    >
+                      <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
+                      <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
+                      <option value="KPSS">💼 KPSS (Kamu Personeli Seçme Sınavı)</option>
+                      <option value="Ara Sınıf Takip & Takdir Hedefi">📊 Ara Sınıf Takip & Takdir Hedefi</option>
+                      <option value="Özel Sınav">✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">İstenen Okul & Bölüm</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
-                    value={targetSchool}
-                    onChange={e => setTargetSchool(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                  />
-                </div>
+                  {(!isStandardExam || examGoalType === 'Özel Sınav') && (
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Özel Sınav Adı</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: DGS, ALES, BİLSEM..."
+                        value={customExamName || (examGoalType !== 'Özel Sınav' ? examGoalType : '')}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setCustomExamName(val);
+                          saveAllProfilesWithLists(undefined, undefined, undefined, { customExamName: val, examGoalType: val || 'Özel Sınav' });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                      />
+                    </div>
+                  )}
 
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Puan Hedefi</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: 485 Puan"
-                    value={targetScore}
-                    onChange={e => setTargetScore(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                  />
-                </div>
+                  {isGradeTracking ? (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sınıf / Seviye</label>
+                        <select
+                          value={gradeClass}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setGradeClass(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { gradeClass: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        >
+                          <option value="">— Seçin —</option>
+                          {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
 
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Toplam Net Hedefi</label>
-                  <input
-                    type="number"
-                    placeholder="Örn: 90 Net"
-                    value={targetNet}
-                    onChange={e => setTargetNet(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                  />
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Dönem</label>
+                        <select
+                          value={gradeTerm}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setGradeTerm(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTerm: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        >
+                          <option value="1">1. Dönem</option>
+                          <option value="2">2. Dönem</option>
+                          <option value="yıllık">Yıllık</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Hedef Belgem</label>
+                        <select
+                          value={gradeTarget}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setGradeTarget(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTarget: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/30 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        >
+                          <option value="Takçek">🟢 Takçek (Temel)</option>
+                          <option value="Teşekkür">🧡 Teşekkür (70–84)</option>
+                          <option value="Takdir">🏅 Takdir (85+)</option>
+                          <option value="Onur">⭐ Onur Belgesi (Tüm dersler Takdir)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Devamsızlık Hedefi (Maks Gün)</label>
+                        <input
+                          type="text"
+                          placeholder="Maks. devamsızlık gün sayısı"
+                          value={targetScore}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setTargetScore(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { targetScore: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">İstenen Okul & Bölüm</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
+                          value={targetSchool}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setTargetSchool(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { targetSchool: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Puan Hedefi</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: 485 Puan"
+                          value={targetScore}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setTargetScore(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { targetScore: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Toplam Net Hedefi</label>
+                        <input
+                          type="number"
+                          placeholder="Örn: 90 Net"
+                          value={targetNet}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setTargetNet(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { targetNet: val });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST - COLLAPSIBLE ACCORDION - CLOSED BY DEFAULT) */}

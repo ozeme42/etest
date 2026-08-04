@@ -1149,19 +1149,23 @@ export async function dbGetCoachingProfiles() {
   try {
     const { data, error } = await supabase.from('coaching_profiles').select('*');
     if (error) throw error;
-    return (data || []).map(p => ({
-      id: String(p.id),
-      studentId: String(p.student_id),
-      targetSchool: p.target_school || '',
-      targetNet: p.target_net || 0,
-      learningStyle: p.learning_style || 'Görsel',
-      parentName: p.parent_name || '',
-      parentPhone: p.parent_phone || '',
-      parentNotes: p.parent_notes || '',
-      strengths: p.strengths || '',
-      hobbies: p.hobbies || '',
-      createdAt: p.created_at
-    }));
+    return (data || []).map(p => {
+      const extraData = p.data || (p.extra_data ? (typeof p.extra_data === 'string' ? JSON.parse(p.extra_data) : p.extra_data) : {});
+      return {
+        id: String(p.id),
+        studentId: String(p.student_id),
+        targetSchool: p.target_school || '',
+        targetNet: p.target_net || 0,
+        learningStyle: p.learning_style || 'Görsel',
+        parentName: p.parent_name || '',
+        parentPhone: p.parent_phone || '',
+        parentNotes: p.parent_notes || '',
+        strengths: p.strengths || '',
+        hobbies: p.hobbies || '',
+        createdAt: p.created_at,
+        ...extraData
+      };
+    });
   } catch (err) {
     console.warn('[Supabase] dbGetCoachingProfiles info:', err.message);
     return null;
@@ -1171,7 +1175,7 @@ export async function dbGetCoachingProfiles() {
 export async function dbSaveCoachingProfile(profile) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const payload = {
+    const payloadWithData = {
       id: String(profile.id || `cp_${profile.studentId}`),
       student_id: String(profile.studentId),
       target_school: profile.targetSchool || '',
@@ -1181,10 +1185,17 @@ export async function dbSaveCoachingProfile(profile) {
       parent_phone: profile.parentPhone || '',
       parent_notes: profile.parentNotes || '',
       strengths: profile.strengths || '',
-      hobbies: profile.hobbies || ''
+      hobbies: profile.hobbies || '',
+      data: profile
     };
-    const { data, error } = await supabase.from('coaching_profiles').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error) throw error;
+    const { data, error } = await supabase.from('coaching_profiles').upsert([payloadWithData], { onConflict: 'id' }).select().single();
+    if (error) {
+      // Fallback if 'data' column is not on table schema
+      const basePayload = { ...payloadWithData };
+      delete basePayload.data;
+      const fallback = await supabase.from('coaching_profiles').upsert([basePayload], { onConflict: 'id' }).select().single();
+      return fallback.data;
+    }
     return data;
   } catch (err) {
     console.warn('[Supabase] dbSaveCoachingProfile info:', err.message);
