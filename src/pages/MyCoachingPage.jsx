@@ -249,7 +249,7 @@ export default function MyCoachingPage() {
   const [hubSearch, setHubSearch] = useState('');
   const [hubFilter, setHubFilter] = useState('all'); // all, baslanmadi, devamediyor, bitti, unassigned
   const [assigningTopicKey, setAssigningTopicKey] = useState(null);
-  const [assignDay, setAssignDay] = useState('Pazartesi');
+  const [assignDay, setAssignDay] = useState('Pzt');
   const [assignHours, setAssignHours] = useState('1 sa');
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
@@ -341,11 +341,19 @@ export default function MyCoachingPage() {
   const assignTopicToDay = (subjectName, topicName, dayName, hours = '1 sa') => {
     if (!subjectName || !topicName || !dayName) return;
     
+    const targetDay = (dayName === 'Pazartesi' ? 'Pzt' :
+                       dayName === 'Salı' ? 'Sal' :
+                       dayName === 'Çarşamba' ? 'Çrş' :
+                       dayName === 'Perşembe' ? 'Prş' :
+                       dayName === 'Cuma' ? 'Cum' :
+                       dayName === 'Cumartesi' ? 'Cts' :
+                       dayName === 'Pazar' ? 'Paz' : dayName);
+
     // Add to weeklyProgram
     setWeeklyProgram(prev => {
       const normalized = normalizeWeeklyProgram(prev);
       return normalized.map(d => {
-        if (d.day === dayName) {
+        if (d.day === targetDay) {
           const existing = (d.items || []).find(i => i.subject === subjectName && i.topic === topicName);
           if (existing) return d;
           return {
@@ -1102,7 +1110,7 @@ export default function MyCoachingPage() {
                                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                         {scheduledDays.map(d => (
                                           <span key={d} style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '0.4rem' }}>
-                                            📅 {d}
+                                            📅 {DAY_LONG[d] || d}
                                           </span>
                                         ))}
                                       </div>
