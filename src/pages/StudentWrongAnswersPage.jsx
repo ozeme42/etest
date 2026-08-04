@@ -1445,7 +1445,7 @@ export default function StudentWrongAnswersPage() {
               {/* Ders Pills */}
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.4rem', borderTop: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', marginRight: 4 }}>DERS:</span>
-                {['all', 'Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Diğer'].map(subj => {
+                {['all', 'Genel Deneme Sınavları', 'Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Diğer'].map(subj => {
                   const active = notebookSubjectFilter === subj;
                   return (
                     <button
@@ -1462,7 +1462,7 @@ export default function StudentWrongAnswersPage() {
                         cursor: 'pointer'
                       }}
                     >
-                      {subj === 'all' ? 'Tüm Dersler' : subj}
+                      {subj === 'all' ? 'Tüm Dersler' : (subj === 'Genel Deneme Sınavları' ? '🏆 Genel Denemeler' : subj)}
                     </button>
                   );
                 })}
@@ -1709,6 +1709,7 @@ export default function StudentWrongAnswersPage() {
                     onChange={e => setNewErrorForm(p => ({ ...p, subject: e.target.value }))}
                     style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}
                   >
+                    <option value="Genel Deneme Sınavları">🏆 Genel Deneme Sınavları (Tüm Dersler)</option>
                     <option value="Matematik">Matematik</option>
                     <option value="Fen Bilimleri">Fen Bilimleri</option>
                     <option value="Türkçe">Türkçe</option>
