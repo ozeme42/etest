@@ -194,21 +194,87 @@ export default function StudentWrongAnswersPage() {
     return currentProfile?.errors || [];
   }, [currentProfile]);
 
-  // Group submissions with wrong & blank question numbers
-  const testGroupedSubmissions = useMemo(() => {
-    const studentSubs = submissions.filter(s => {
-      if (!activeStudent?.id) return true;
-      return String(s.studentId) === String(activeStudent.id) || !s.studentId;
+  // Build a lookup map of all tests from CurriculumContext
+  const allCurTestsMap = useMemo(() => {
+    const map = new Map();
+    if (!curData) return map;
+
+    (curData.tests || []).forEach(t => {
+      if (t.id) map.set(t.id, { title: t.title || t.name, subject: t.subjectName || t.subject });
     });
 
-    const parsedSubs = studentSubs.map(sub => {
+    (curData.grades || []).forEach(g => {
+      (g.subjects || []).forEach(s => {
+        (s.units || []).forEach(u => {
+          (u.topics || []).forEach(top => {
+            (top.tests || []).forEach(t => {
+              if (t.id) map.set(t.id, { title: t.title || t.name, subject: s.name, topic: top.name });
+            });
+          });
+        });
+      });
+    });
+    return map;
+  }, [curData]);
+
+  // Combine submissions from EvaluationContext and HomeworkContext for activeStudent
+  const allSubmissions = useMemo(() => {
+    if (!activeStudent?.id) return [];
+
+    const studentIdStr = String(activeStudent.id);
+
+    // 1. Gather all base submissions from EvaluationContext
+    const baseSubs = (submissions || []).filter(s => {
+      if (!s.studentId && !s.user_id && !s.student_id) return true;
+      return String(s.studentId || s.student_id || s.user_id) === studentIdStr;
+    });
+
+    // 2. Also incorporate completed homeworks from HomeworkContext if not already in EvaluationContext
+    const hwSubs = [];
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        if (String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr) {
+          const alreadyExists = baseSubs.some(s => 
+            String(s.hwId || s.testId || s.id) === String(hw.id)
+          );
+          if (!alreadyExists) {
+            hwSubs.push({
+              id: `hw_sub_${hw.id}_${studentIdStr}`,
+              hwId: hw.id,
+              testId: hw.id,
+              testTitle: hw.title,
+              subject: hw.subject,
+              studentId: studentIdStr,
+              score: sub.score,
+              submittedAt: sub.completedAt || sub.submittedAt || sub.createdAt || new Date().toISOString(),
+              isHomework: true,
+              type: hw.type || 'homework',
+              totalQuestions: hw.totalQuestions || sub.totalQuestions || 0,
+              correctCount: sub.correctCount,
+              wrongCount: sub.wrongCount,
+              blankCount: sub.blankCount,
+              answers: sub.answers || sub.studentAnswers || []
+            });
+          }
+        }
+      });
+    });
+
+    return [...baseSubs, ...hwSubs];
+  }, [submissions, homeworks, activeStudent]);
+
+  // Group submissions with wrong & blank question numbers
+  const testGroupedSubmissions = useMemo(() => {
+    const parsedSubs = allSubmissions.map(sub => {
       const wrongQuestions = [];
       const blankQuestions = [];
       let correctCount = 0;
 
-      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
-        sub.answers.forEach((ans, idx) => {
-          const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : idx + 1;
+      const rawAnswers = sub.answers || sub.studentAnswers || [];
+
+      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+        rawAnswers.forEach((ans, idx) => {
+          const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : (ans.questionNo || idx + 1);
           if (ans.isCorrect === true) {
             correctCount++;
           } else if (ans.isCorrect === false) {
@@ -221,46 +287,74 @@ export default function StudentWrongAnswersPage() {
           }
         });
       } else {
-        const wCount = sub.wrongCount || sub.wrong_count || 0;
-        const eCount = sub.emptyCount || sub.empty_count || sub.blankCount || 0;
-        correctCount = sub.correctCount || sub.correct_count || 0;
+        const wCount = sub.wrongCount !== undefined ? sub.wrongCount : (sub.wrong_count || 0);
+        const eCount = sub.emptyCount !== undefined ? sub.emptyCount : (sub.empty_count || sub.blankCount || 0);
+        correctCount = sub.correctCount !== undefined ? sub.correctCount : (sub.correct_count || 0);
+
         for (let i = 1; i <= wCount; i++) wrongQuestions.push({ qNum: i });
         for (let j = 1; j <= eCount; j++) blankQuestions.push({ qNum: wCount + j });
       }
 
+      // Match homework and curriculum test for real title and subject
+      const matchedHw = (homeworks || []).find(h => 
+        String(h.id) === String(sub.hwId) || 
+        String(h.id) === String(sub.testId) || 
+        String(h.id) === String(sub.id)
+      );
+      const matchedTest = allCurTestsMap.get(sub.testId) || allCurTestsMap.get(sub.hwId);
+
+      let resolvedTitle = sub.testTitle || sub.title;
+      const isGeneric = !resolvedTitle || 
+        resolvedTitle.trim().toLowerCase() === 'test sınavı' || 
+        resolvedTitle.trim().toLowerCase() === 'test sinavi' || 
+        resolvedTitle.trim().toLowerCase() === 'test';
+
+      if (matchedHw?.title) {
+        resolvedTitle = matchedHw.title;
+      } else if (matchedTest?.title) {
+        resolvedTitle = matchedTest.title;
+      } else if (isGeneric) {
+        if (matchedHw?.subject) resolvedTitle = `${matchedHw.subject} Ödevi`;
+        else resolvedTitle = 'Sınav Testi';
+      }
+
       // Infer subject
-      let subject = sub.subject || 'Genel';
-      if (!sub.subject || sub.subject === 'Genel') {
-        const titleLower = (sub.testTitle || sub.title || '').toLowerCase();
+      let subject = sub.subject;
+      if (matchedHw?.subject && subjectThemes[matchedHw.subject]) {
+        subject = matchedHw.subject;
+      } else if (matchedTest?.subject && subjectThemes[matchedTest.subject]) {
+        subject = matchedTest.subject;
+      } else if (!subject || subject === 'Genel' || !subjectThemes[subject]) {
+        const titleLower = (resolvedTitle || '').toLowerCase();
         if (titleLower.includes('mat')) subject = 'Matematik';
         else if (titleLower.includes('fen')) subject = 'Fen Bilimleri';
         else if (titleLower.includes('türk') || titleLower.includes('turk')) subject = 'Türkçe';
-        else if (titleLower.includes('sosyal')) subject = 'Sosyal Bilgiler';
-        else if (titleLower.includes('ing')) subject = 'İngilizce';
+        else if (titleLower.includes('sosyal') || titleLower.includes('inkılap') || titleLower.includes('inkilap')) subject = 'Sosyal Bilgiler';
+        else if (titleLower.includes('ing') || titleLower.includes('english')) subject = 'İngilizce';
         else if (titleLower.includes('deneme')) subject = 'Genel Deneme Sınavları';
         else subject = 'Matematik';
       }
 
       const isReviewed = reviewedSubSet.has(sub.id);
-      const title = sub.testTitle || sub.title || 'Sınav Testi';
       const dateStr = sub.submittedAt || sub.createdAt || sub.created_at || new Date().toISOString();
+      const totQ = sub.totalQuestions || rawAnswers.length || (wrongQuestions.length + blankQuestions.length + correctCount) || 10;
 
       return {
         ...sub,
-        testTitle: title,
+        testTitle: resolvedTitle,
         subject,
         submittedAt: dateStr,
         wrongQuestions,
         blankQuestions,
-        correctCount: correctCount || (sub.totalQuestions ? Math.max(0, sub.totalQuestions - wrongQuestions.length - blankQuestions.length) : 7),
-        totalQuestions: sub.totalQuestions || sub.answers?.length || (wrongQuestions.length + blankQuestions.length + (correctCount || 7)),
+        correctCount: correctCount || Math.max(0, totQ - wrongQuestions.length - blankQuestions.length),
+        totalQuestions: totQ,
         isReviewed,
-        hasErrors: true
+        hasErrors: wrongQuestions.length > 0 || blankQuestions.length > 0
       };
     });
 
     return parsedSubs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [submissions, activeStudent, reviewedSubSet]);
+  }, [allSubmissions, homeworks, allCurTestsMap, reviewedSubSet]);
 
   // Combine testGroupedSubmissions and all assigned homeworks for dropdown selection
   const availableHomeworkOptions = useMemo(() => {
