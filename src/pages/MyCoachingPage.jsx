@@ -251,6 +251,7 @@ export default function MyCoachingPage() {
   const [assigningTopicKey, setAssigningTopicKey] = useState(null);
   const [assignDay, setAssignDay] = useState('Pzt');
   const [assignHours, setAssignHours] = useState('1 sa');
+  const [hideDoneInProgram, setHideDoneInProgram] = useState(true);
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
@@ -1223,13 +1224,20 @@ export default function MyCoachingPage() {
 
               {/* SAĞ PANEL: HAFTALIK CANLI PROGRAM (7 GÜN) */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                   <h3 style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
                     📅 Canlı Haftalık Program
                   </h3>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                    {completedWeeklyItems}/{totalWeeklyItems} bitti
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button 
+                      onClick={() => setHideDoneInProgram(p => !p)}
+                      style={{ background: hideDoneInProgram ? '#f8fafc' : '#f0fdf4', color: hideDoneInProgram ? '#64748b' : '#15803d', border: '1px solid #e2e8f0', borderRadius: '0.45rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                      {hideDoneInProgram ? '👁️ Bitenleri Göster' : '🙈 Bitenleri Gizle'}
+                    </button>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                      {completedWeeklyItems}/{totalWeeklyItems} bitti
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1237,10 +1245,11 @@ export default function MyCoachingPage() {
                     const dayData = weeklyProgram.find(w => w.day === dayName) || { day: dayName, items: [] };
                     const items = dayData.items || [];
                     const completedCount = items.filter(i => i.done).length;
+                    const visibleItems = hideDoneInProgram ? items.filter(i => !i.done) : items;
 
                     return (
                       <div key={dayName} style={{ background: 'white', borderRadius: '0.9rem', border: '1.5px solid #e2e8f0', padding: '0.75rem 0.9rem', boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: items.length > 0 ? 8 : 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: visibleItems.length > 0 ? 8 : 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ background: '#7c3aed', color: 'white', fontWeight: 900, fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem' }}>{dayName}</span>
                             <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#334155' }}>{DAY_LONG[dayName]}</span>
@@ -1254,9 +1263,13 @@ export default function MyCoachingPage() {
                           <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontStyle: 'italic', textAlign: 'center', padding: '0.3rem 0' }}>
                             Ders yok — soldaki konulardan "Güne Ata" ile ekleyebilirsin 👈
                           </div>
+                        ) : visibleItems.length === 0 ? (
+                          <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 800, textAlign: 'center', padding: '0.4rem 0', background: '#f0fdf4', borderRadius: '0.55rem', border: '1px solid #bbf7d0' }}>
+                            ✓ Bugünkü tüm dersler tamamlandı! 🎉
+                          </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                            {items.map(item => (
+                            {visibleItems.map(item => (
                               <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '0.4rem 0.6rem', background: item.done ? '#f0fdf4' : '#f8fafc', border: item.done ? '1px solid #bbf7d0' : '1px solid #e2e8f0', borderRadius: '0.55rem' }}>
                                 <button type="button" onClick={() => toggleWeeklyItem(dayName, item.id)}
                                   style={{ width: 18, height: 18, borderRadius: 4, background: item.done ? '#16a34a' : 'white', border: item.done ? 'none' : '1.5px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', shrink: 0 }}>
