@@ -5,7 +5,7 @@ import {
   ArrowLeft, GraduationCap, Ruler, TestTube2, BookCopy, Globe,
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, HelpCircle, Eye,
   Table, List, ChevronRight, FolderOpen, Check, Clock, Plus, Upload,
-  Image as ImageIcon, Trash2, Edit3, ZoomIn, X, Camera, BookMarked, FileText
+  Image as ImageIcon, Trash2, ZoomIn, X, Camera, BookMarked
 } from 'lucide-react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
@@ -92,8 +92,8 @@ export default function StudentWrongAnswersPage() {
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(studentMembers[0] || null);
 
-  // Ana Sekme: 'error_notebook' (Hata Defterim) | 'wrong_controls' (Sınav Kontrol Takibi)
-  const [activeMainTab, setActiveMainTab] = useState('error_notebook');
+  // Default main tab is 'wrong_controls' so the original Yanlışlarım page is 100% preserved as default!
+  const [activeMainTab, setActiveMainTab] = useState('wrong_controls');
 
   // selectedSubject: null (Level 1: Subject Cards Portal) | 'Matematik' / 'Fen' / 'all' (Level 2: Inside Subject Folder)
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -262,7 +262,23 @@ export default function StudentWrongAnswersPage() {
     return Array.from(map.values());
   }, [testGroupedSubmissions, homeworks, selectedStudent]);
 
-  // Handlers for Hata Defteri
+  // Open Add Image Modal pre-selecting a test
+  const handleOpenAddModalForTest = (sub, e) => {
+    if (e) e.stopPropagation();
+    setNewErrorForm({
+      homeworkId: sub.id,
+      testTitle: sub.testTitle || 'Ödev / Sınav',
+      subject: sub.subject || 'Matematik',
+      topic: '',
+      questionNo: '',
+      imageUrl: '',
+      reason: '⚡ İşlem Hatası',
+      note: '',
+      solutionNote: ''
+    });
+    setShowAddModal(true);
+  };
+
   const handleSelectHomeworkForModal = (hwId) => {
     if (hwId === 'custom' || !hwId) {
       setNewErrorForm(prev => ({
@@ -455,10 +471,14 @@ export default function StudentWrongAnswersPage() {
             </button>
             <div>
               <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <AlertCircle color="#ef4444" size={28} /> Yanlışlarım & Hata Defterim
+                <AlertCircle color="#ef4444" size={28} /> Yanlışlarım & Sınav Kontrol Takibi
               </h1>
               <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                Yanlış yaptığınız soruların görsellerini ödevlerinizle eşleştirerek kaydedin, sınav kontrollerinizi yapın.
+                {activeMainTab === 'wrong_controls'
+                  ? (selectedSubject === null
+                      ? 'Ders kartlarına tıklayarak içerisine girin, hangi sınavların yanlışlarını kontrol ettiğinizi görün.'
+                      : `${currentSubjectInfo.title} dersine ait tüm sınavları ve kontrol durumlarını inceliyorsunuz.`)
+                  : 'Yanlış yaptığınız veya çözemediğiniz soruların görsellerini yükleyin, ödevlerinizle eşleştirin.'}
               </p>
             </div>
           </div>
@@ -494,32 +514,8 @@ export default function StudentWrongAnswersPage() {
           </div>
         </div>
 
-        {/* TOP LEVEL NAVIGATION TAB SWITCHER */}
+        {/* TOP LEVEL NAVIGATION TAB SWITCHER (HER İKİ GÖRÜNÜM DE MEVCUT) */}
         <div style={{ display: 'flex', gap: '0.5rem', background: 'white', padding: '0.4rem', borderRadius: '1.1rem', border: '1px solid #e2e8f0', marginBottom: '1.75rem', width: 'fit-content', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-          <button
-            onClick={() => setActiveMainTab('error_notebook')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '0.85rem',
-              border: 'none',
-              background: activeMainTab === 'error_notebook' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'transparent',
-              color: activeMainTab === 'error_notebook' ? 'white' : '#64748b',
-              fontWeight: 900,
-              fontSize: '0.88rem',
-              cursor: 'pointer',
-              boxShadow: activeMainTab === 'error_notebook' ? '0 4px 14px rgba(225,29,72,0.3)' : 'none',
-              transition: 'all 0.2s'
-            }}
-          >
-            <BookMarked size={18} /> 📕 Hata Defterim (Soru Görsel Deposu)
-            <span style={{ background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : '#f1f5f9', color: activeMainTab === 'error_notebook' ? 'white' : '#475569', fontSize: '0.72rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-              {studentErrors.length} Görsel
-            </span>
-          </button>
-
           <button
             onClick={() => setActiveMainTab('wrong_controls')}
             style={{
@@ -543,10 +539,635 @@ export default function StudentWrongAnswersPage() {
               {testGroupedSubmissions.length} Sınav
             </span>
           </button>
+
+          <button
+            onClick={() => setActiveMainTab('error_notebook')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '0.85rem',
+              border: 'none',
+              background: activeMainTab === 'error_notebook' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'transparent',
+              color: activeMainTab === 'error_notebook' ? 'white' : '#64748b',
+              fontWeight: 900,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              boxShadow: activeMainTab === 'error_notebook' ? '0 4px 14px rgba(225,29,72,0.3)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            <BookMarked size={18} /> 📕 Görsel Hata Defterim
+            <span style={{ background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : '#f1f5f9', color: activeMainTab === 'error_notebook' ? 'white' : '#475569', fontSize: '0.72rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+              {studentErrors.length} Görsel
+            </span>
+          </button>
         </div>
 
         {/* ════════════════════════════════════════════
-           SEKME 1: HATA DEFTERİM (GÖRSEL SORU DEPOSU)
+           SEKME 1: ORİJİNAL SINAV & ÖDEV KONTROL TAKİBİ (VARSAYILAN)
+        ════════════════════════════════════════════ */}
+        {activeMainTab === 'wrong_controls' && (
+          <div>
+            {/* LEVEL 1: COLORFUL SUBJECT CARDS PORTAL */}
+            {selectedSubject === null && (
+              <div>
+                <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FolderOpen size={22} color="#4f46e5" /> İncelemek İstediğiniz Ders Kartına Tıklayın:
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1.5px solid #fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                      ❌ Yanlış: {globalWrongCount}
+                    </span>
+                    <span style={{ background: '#f8fafc', color: '#475569', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                      ⚪ Boş: {globalBlankCount}
+                    </span>
+                    <span style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #86efac', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                      ✅ Kontrol Edilen Sınav: {globalReviewedCount} / {testGroupedSubmissions.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* VIBRANT COLORFUL SUBJECT CARDS GRID */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                  
+                  {/* SPECIAL "TÜM DERSLER" CARD */}
+                  <div
+                    onClick={() => setSelectedSubject('all')}
+                    style={{
+                      background: subjectThemes['all_subjects'].bg,
+                      borderRadius: '1.5rem',
+                      padding: '1.75rem',
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: subjectThemes['all_subjects'].shadow,
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justify: 'space-between',
+                      minHeight: 180
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.3rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Tüm Portfolyo
+                        </span>
+                        <h3 style={{ margin: '0.75rem 0 0 0', fontSize: '1.4rem', fontWeight: 900 }}>Tüm Dersler</h3>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '1rem', width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <GraduationCap size={26} />
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '1.5rem', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)', borderRadius: '1rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>TOPLAM SINAV</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{testGroupedSubmissions.length} Sınav</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', fontWeight: 800 }}>
+                        İncele <ChevronRight size={18} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* INDIVIDUAL SUBJECT CARDS */}
+                  {Object.entries(subjectCardStats).map(([subjName, stats]) => {
+                    const theme = subjectThemes[subjName] || subjectThemes['Diğer'];
+                    const IconComp = theme.icon;
+
+                    return (
+                      <div
+                        key={subjName}
+                        onClick={() => setSelectedSubject(subjName)}
+                        style={{
+                          background: theme.bg,
+                          borderRadius: '1.5rem',
+                          padding: '1.75rem',
+                          color: 'white',
+                          cursor: 'pointer',
+                          boxShadow: theme.shadow,
+                          border: '1px solid rgba(255,255,255,0.25)',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justify: 'space-between',
+                          minHeight: 180
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.3rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              Ders Klasörü
+                            </span>
+                            <h3 style={{ margin: '0.75rem 0 0 0', fontSize: '1.35rem', fontWeight: 900 }}>{subjName}</h3>
+                          </div>
+                          <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '1rem', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IconComp size={24} />
+                          </div>
+                        </div>
+
+                        <div style={{ marginTop: '1.25rem', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)', borderRadius: '1rem', padding: '0.65rem 0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.85, fontWeight: 700 }}>SINAV / KONTROL</div>
+                            <div style={{ fontSize: '1rem', fontWeight: 900 }}>
+                              {stats.testCount} Sınav ({stats.wrongCount} Yanlış)
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', fontWeight: 800 }}>
+                            Dersin İçine Gir <ChevronRight size={16} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* LEVEL 2: INSIDE THE SELECTED SUBJECT FOLDER */}
+            {selectedSubject !== null && (
+              <div>
+                {/* BREADCRUMB & SUBJECT FOLDER HEADER */}
+                <div style={{ background: 'white', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1.5px solid #c7d2fe', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button
+                      onClick={() => setSelectedSubject(null)}
+                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '0.65rem', padding: '0.4rem 0.75rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      <ArrowLeft size={16} /> Tüm Ders Kartlarına Dön
+                    </button>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <FolderOpen color="#4f46e5" size={20} />
+                      <span>Yanlışlarım</span>
+                      <ChevronRight size={16} color="#94a3b8" />
+                      <span style={{ color: '#4f46e5' }}>{currentSubjectInfo.title} ({filteredTestSubmissions.length} Sınav)</span>
+                    </div>
+                  </div>
+
+                  {/* View Switcher inside folder */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f1f5f9', padding: '0.3rem', borderRadius: '0.85rem' }}>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.65rem',
+                        border: 'none',
+                        background: viewMode === 'table' ? '#4f46e5' : 'transparent',
+                        color: viewMode === 'table' ? 'white' : '#64748b',
+                        fontWeight: 900,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}
+                    >
+                      <Table size={16} /> 📊 Excel Tablo Görünümü
+                    </button>
+
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.65rem',
+                        border: 'none',
+                        background: viewMode === 'cards' ? '#4f46e5' : 'transparent',
+                        color: viewMode === 'cards' ? 'white' : '#64748b',
+                        fontWeight: 900,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}
+                    >
+                      <List size={16} /> 📑 Kart Görünümü
+                    </button>
+                  </div>
+                </div>
+
+                {/* SEARCH & FILTERS BAR INSIDE FOLDER */}
+                <div style={{ background: 'white', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                  
+                  {/* Live Search Bar */}
+                  <div style={{ flex: '1 1 280px', position: 'relative' }}>
+                    <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder={`${currentSubjectInfo.title} içinde sınav adı ara...`}
+                      style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 600, outline: 'none' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                    {/* REVIEWED TRACKING FILTER */}
+                    <select
+                      value={reviewFilter}
+                      onChange={e => setReviewFilter(e.target.value)}
+                      style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                    >
+                      <option value="all">Tüm İnceleme Durumları</option>
+                      <option value="unreviewed">⚠️ Kontrol Edilmeyen Sınavlar</option>
+                      <option value="reviewed">✅ Kontrol Edilen Sınavlar</option>
+                    </select>
+
+                    {/* Answer Type Filter */}
+                    <select
+                      value={ansTypeFilter}
+                      onChange={e => setAnsTypeFilter(e.target.value)}
+                      style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                    >
+                      <option value="all">Tüm Yanlış ve Boşlar</option>
+                      <option value="wrong">❌ Sadece Yanlış Yapılanlar</option>
+                      <option value="blank">⚪ Sadece Boş Bırakılanlar</option>
+                    </select>
+
+                    {/* Source Filter */}
+                    <select
+                      value={sourceFilter}
+                      onChange={e => setSourceFilter(e.target.value)}
+                      style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                    >
+                      <option value="all">Tüm Sınav Kaynakları</option>
+                      <option value="homework">📝 Ödev Sınavları</option>
+                      <option value="quiz">⚡ Test / Bireysel Sınavlar</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* INSIDE FOLDER MODE 1: EXCEL SINGLE-ROW TABLE VIEW */}
+                {viewMode === 'table' && (
+                  <div style={{ background: 'white', borderRadius: '1.25rem', border: '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
+                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontSize: '0.82rem', color: '#334155' }}>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>SINAV / ÖDEV BAŞLIĞI</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>DERS</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>TARİH</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>TÜR</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>❌ YANLIŞ SORULAR</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>⚪ BOŞ SORULAR</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>KONTROL DURUMU</th>
+                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900, textAlign: 'right' }}>İŞLEM</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTestSubmissions.map((sub, idx) => {
+                          const theme = subjectThemes[sub.subject] || subjectThemes['Diğer'];
+                          const SubjectIcon = theme.icon;
+
+                          return (
+                            <tr
+                              key={sub.id || idx}
+                              style={{
+                                borderBottom: '1px solid #f1f5f9',
+                                background: sub.isReviewed ? '#faf5ff' : 'white',
+                                transition: 'background 0.15s'
+                              }}
+                            >
+                              <td style={{ padding: '1rem 1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <SubjectIcon size={16} color={theme.color} />
+                                  <span>{sub.testTitle || 'Test Sınavı'}</span>
+                                </div>
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem' }}>
+                                <span style={{ background: theme.color + '15', color: theme.color, fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '0.5rem' }}>
+                                  {sub.subject}
+                                </span>
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem', color: '#64748b', fontSize: '0.82rem', fontWeight: 700 }}>
+                                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem' }}>
+                                <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '0.5rem' }}>
+                                  {sub.isHomework ? '📝 Ödev' : '⚡ Bireysel'}
+                                </span>
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem' }}>
+                                {sub.wrongQuestions.length > 0 ? (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                    {sub.wrongQuestions.map(qObj => (
+                                      <button
+                                        key={qObj.qNum}
+                                        onClick={(e) => handleOpenReview(sub.id, e)}
+                                        style={{
+                                          background: '#fef2f2',
+                                          color: '#b91c1c',
+                                          border: '1.5px solid #fca5a5',
+                                          padding: '0.2rem 0.55rem',
+                                          borderRadius: '0.5rem',
+                                          fontWeight: 900,
+                                          fontSize: '0.78rem',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        Soru {qObj.qNum}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.8rem' }}>✓ Yanlış Yok</span>
+                                )}
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem' }}>
+                                {sub.blankQuestions.length > 0 ? (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                    {sub.blankQuestions.map(qObj => (
+                                      <button
+                                        key={qObj.qNum}
+                                        onClick={(e) => handleOpenReview(sub.id, e)}
+                                        style={{
+                                          background: '#ffffff',
+                                          color: '#475569',
+                                          border: '1.5px solid #cbd5e1',
+                                          padding: '0.2rem 0.55rem',
+                                          borderRadius: '0.5rem',
+                                          fontWeight: 900,
+                                          fontSize: '0.78rem',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        Soru {qObj.qNum}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
+                                )}
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem' }}>
+                                <button
+                                  onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
+                                  style={{
+                                    background: sub.isReviewed ? '#dcfce7' : '#fffbe6',
+                                    color: sub.isReviewed ? '#166534' : '#92400e',
+                                    border: sub.isReviewed ? '1.5px solid #86efac' : '1.5px solid #fde68a',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 900,
+                                    padding: '0.35rem 0.75rem',
+                                    borderRadius: '0.65rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem'
+                                  }}
+                                >
+                                  {sub.isReviewed ? <CheckCircle2 size={14} color="#10b981" /> : <Clock size={14} color="#d97706" />}
+                                  <span>{sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}</span>
+                                </button>
+                              </td>
+
+                              <td style={{ padding: '1rem 1.15rem', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                                  <button
+                                    onClick={(e) => handleOpenAddModalForTest(sub, e)}
+                                    title="Soru Görseli Ekle"
+                                    style={{
+                                      background: '#fff1f2',
+                                      color: '#e11d48',
+                                      border: '1px solid #fecdd3',
+                                      padding: '0.5rem 0.75rem',
+                                      borderRadius: '0.65rem',
+                                      fontWeight: 800,
+                                      fontSize: '0.78rem',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem'
+                                    }}
+                                  >
+                                    <Camera size={14} /> + Görsel Ekle
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => handleOpenReview(sub.id, e)}
+                                    style={{
+                                      background: '#4f46e5',
+                                      color: 'white',
+                                      border: 'none',
+                                      padding: '0.5rem 0.95rem',
+                                      borderRadius: '0.65rem',
+                                      fontWeight: 900,
+                                      fontSize: '0.8rem',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.35rem',
+                                      boxShadow: '0 2px 6px rgba(79,70,229,0.2)'
+                                    }}
+                                  >
+                                    <Eye size={15} /> Sınavı Aç
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* INSIDE FOLDER MODE 2: TEST CARDS VIEW */}
+                {viewMode === 'cards' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '1.25rem' }}>
+                    {filteredTestSubmissions.map((sub, idx) => {
+                      const theme = subjectThemes[sub.subject] || subjectThemes['Diğer'];
+                      const SubjectIcon = theme.icon;
+
+                      return (
+                        <div
+                          key={sub.id || idx}
+                          style={{
+                            background: 'white',
+                            borderRadius: '1.25rem',
+                            padding: '1.35rem',
+                            border: '1.5px solid #e2e8f0',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.03)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justify: 'space-between',
+                            gap: '1.15rem',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.color }} />
+
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                              <span style={{ background: theme.bg, color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <SubjectIcon size={14} color="white" /> {sub.subject}
+                              </span>
+
+                              <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
+                                {sub.isHomework ? '📝 Ödev Sınavı' : '⚡ Bireysel Sınav'}
+                              </span>
+                            </div>
+
+                            <h3 style={{ margin: '0.35rem 0', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.35 }}>
+                              {sub.testTitle || 'Test Sınavı'}
+                            </h3>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginTop: '0.4rem' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <Calendar size={14} /> {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                              </span>
+                              <span>✓ {sub.correctCount} / {sub.totalQuestions} Doğru</span>
+                            </div>
+                          </div>
+
+                          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                            {sub.wrongQuestions.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b91c1c', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <XCircle size={14} color="#ef4444" /> Yanlış Yapılan Sorular:
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                  {sub.wrongQuestions.map(qObj => (
+                                    <button
+                                      key={qObj.qNum}
+                                      onClick={(e) => handleOpenReview(sub.id, e)}
+                                      style={{
+                                        background: '#fef2f2',
+                                        color: '#b91c1c',
+                                        border: '1.5px solid #fca5a5',
+                                        padding: '0.25rem 0.65rem',
+                                        borderRadius: '0.5rem',
+                                        fontWeight: 900,
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Soru {qObj.qNum}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {sub.blankQuestions.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#475569', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <HelpCircle size={14} color="#64748b" /> Boş Bırakılan Sorular:
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                  {sub.blankQuestions.map(qObj => (
+                                    <button
+                                      key={qObj.qNum}
+                                      onClick={(e) => handleOpenReview(sub.id, e)}
+                                      style={{
+                                        background: '#ffffff',
+                                        color: '#475569',
+                                        border: '1.5px solid #cbd5e1',
+                                        padding: '0.25rem 0.65rem',
+                                        borderRadius: '0.5rem',
+                                        fontWeight: 900,
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Soru {qObj.qNum}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                            <button
+                              onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
+                              style={{
+                                background: sub.isReviewed ? '#dcfce7' : '#fffbe6',
+                                color: sub.isReviewed ? '#166534' : '#92400e',
+                                border: sub.isReviewed ? '1.5px solid #86efac' : '1.5px solid #fde68a',
+                                fontSize: '0.78rem',
+                                fontWeight: 900,
+                                padding: '0.3rem 0.75rem',
+                                borderRadius: '0.65rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
+                              }}
+                            >
+                              {sub.isReviewed ? <CheckCircle2 size={14} color="#10b981" /> : <Clock size={14} color="#d97706" />}
+                              <span>{sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}</span>
+                            </button>
+
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <button
+                                onClick={(e) => handleOpenAddModalForTest(sub, e)}
+                                style={{
+                                  background: '#fff1f2',
+                                  color: '#e11d48',
+                                  border: '1px solid #fecdd3',
+                                  padding: '0.55rem 0.85rem',
+                                  borderRadius: '0.75rem',
+                                  fontWeight: 800,
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem'
+                                }}
+                              >
+                                <Camera size={14} /> + Görsel Ekle
+                              </button>
+
+                              <button
+                                onClick={(e) => handleOpenReview(sub.id, e)}
+                                style={{
+                                  background: '#4f46e5',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '0.55rem 1.15rem',
+                                  borderRadius: '0.75rem',
+                                  fontWeight: 900,
+                                  fontSize: '0.85rem',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  boxShadow: '0 4px 10px rgba(79,70,229,0.25)'
+                                }}
+                              >
+                                <Eye size={16} /> Sınavı Aç
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════
+           SEKME 2: GÖRSEL HATA DEFTERİM (SORA DEPOSU)
         ════════════════════════════════════════════ */}
         {activeMainTab === 'error_notebook' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -891,379 +1512,6 @@ export default function StudentWrongAnswersPage() {
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-           SEKME 2: SINAV & ÖDEV KONTROL TAKİBİ (EXİSTİNG)
-        ════════════════════════════════════════════ */}
-        {activeMainTab === 'wrong_controls' && (
-          <div>
-            {/* LEVEL 1: COLORFUL SUBJECT CARDS PORTAL */}
-            {selectedSubject === null && (
-              <div>
-                <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FolderOpen size={22} color="#4f46e5" /> İncelemek İstediğiniz Ders Kartına Tıklayın:
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1.5px solid #fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      ❌ Yanlış: {globalWrongCount}
-                    </span>
-                    <span style={{ background: '#f8fafc', color: '#475569', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      ⚪ Boş: {globalBlankCount}
-                    </span>
-                    <span style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #86efac', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      ✅ Kontrol Edilen Sınav: {globalReviewedCount} / {testGroupedSubmissions.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* VIBRANT COLORFUL SUBJECT CARDS GRID */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                  
-                  {/* SPECIAL "TÜM DERSLER" CARD */}
-                  <div
-                    onClick={() => setSelectedSubject('all')}
-                    style={{
-                      background: subjectThemes['all_subjects'].bg,
-                      borderRadius: '1.5rem',
-                      padding: '1.75rem',
-                      color: 'white',
-                      cursor: 'pointer',
-                      boxShadow: subjectThemes['all_subjects'].shadow,
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justify: 'space-between',
-                      minHeight: 180
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.3rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Tüm Portfolyo
-                        </span>
-                        <h3 style={{ margin: '0.75rem 0 0 0', fontSize: '1.4rem', fontWeight: 900 }}>Tüm Dersler</h3>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '1rem', width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <GraduationCap size={26} />
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: '1.5rem', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)', borderRadius: '1rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>TOPLAM SINAV</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{testGroupedSubmissions.length} Sınav</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', fontWeight: 800 }}>
-                        İncele <ChevronRight size={18} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* INDIVIDUAL SUBJECT CARDS */}
-                  {Object.entries(subjectCardStats).map(([subjName, stats]) => {
-                    const theme = subjectThemes[subjName] || subjectThemes['Diğer'];
-                    const IconComp = theme.icon;
-
-                    return (
-                      <div
-                        key={subjName}
-                        onClick={() => setSelectedSubject(subjName)}
-                        style={{
-                          background: theme.bg,
-                          borderRadius: '1.5rem',
-                          padding: '1.75rem',
-                          color: 'white',
-                          cursor: 'pointer',
-                          boxShadow: theme.shadow,
-                          border: '1px solid rgba(255,255,255,0.25)',
-                          transition: 'all 0.3s ease',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justify: 'space-between',
-                          minHeight: 180
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.3rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                              Ders Klasörü
-                            </span>
-                            <h3 style={{ margin: '0.75rem 0 0 0', fontSize: '1.35rem', fontWeight: 900 }}>{subjName}</h3>
-                          </div>
-                          <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '1rem', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <IconComp size={24} />
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: '1.25rem', background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)', borderRadius: '1rem', padding: '0.65rem 0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.85, fontWeight: 700 }}>SINAV / KONTROL</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 900 }}>
-                              {stats.testCount} Sınav ({stats.wrongCount} Yanlış)
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', fontWeight: 800 }}>
-                            Aç <ChevronRight size={16} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* LEVEL 2: INSIDE SUBJECT FOLDER LIST VIEW */}
-            {selectedSubject !== null && (
-              <div>
-                {/* TOOLBAR */}
-                <div style={{ background: 'white', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ background: '#ef4444', color: 'white', fontWeight: 900, padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontSize: '0.9rem' }}>
-                        {currentSubjectInfo.title}
-                      </span>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#64748b' }}>
-                        Toplam {filteredTestSubmissions.length} sınav kaydı listeleniyor
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>Görünüm:</span>
-                      <button
-                        onClick={() => setViewMode('table')}
-                        style={{
-                          background: viewMode === 'table' ? '#0f172a' : '#f1f5f9',
-                          color: viewMode === 'table' ? 'white' : '#64748b',
-                          border: 'none',
-                          padding: '0.45rem 0.75rem',
-                          borderRadius: '0.6rem',
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem'
-                        }}
-                      >
-                        <Table size={15} /> Tablo
-                      </button>
-                      <button
-                        onClick={() => setViewMode('cards')}
-                        style={{
-                          background: viewMode === 'cards' ? '#0f172a' : '#f1f5f9',
-                          color: viewMode === 'cards' ? 'white' : '#64748b',
-                          border: 'none',
-                          padding: '0.45rem 0.75rem',
-                          borderRadius: '0.6rem',
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem'
-                        }}
-                      >
-                        <List size={15} /> Kartlar
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* FILTERS */}
-                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-                      <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-                      <input
-                        type="text"
-                        placeholder="Sınav veya ödev adıyla ara..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem 0.85rem 0.5rem 2.2rem',
-                          borderRadius: '0.65rem',
-                          border: '1px solid #cbd5e1',
-                          fontSize: '0.82rem',
-                          outline: 'none',
-                          fontWeight: 600
-                        }}
-                      />
-                    </div>
-
-                    <select
-                      value={ansTypeFilter}
-                      onChange={e => setAnsTypeFilter(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}
-                    >
-                      <option value="all">Tüm Hatalar (Yanlış & Boş)</option>
-                      <option value="wrong">Sadece Yanlışı Olanlar</option>
-                      <option value="blank">Sadece Boşu Olanlar</option>
-                    </select>
-
-                    <select
-                      value={reviewFilter}
-                      onChange={e => setReviewFilter(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}
-                    >
-                      <option value="all">Tüm Kontrol Durumları</option>
-                      <option value="unreviewed">⚠️ Kontrol Edilmeyenler</option>
-                      <option value="reviewed">✓ Kontrol Edilenler</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* TEST LIST TABLE VIEW */}
-                {viewMode === 'table' ? (
-                  <div style={{ background: 'white', borderRadius: '1.25rem', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
-                        <thead>
-                          <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            <th style={{ padding: '0.85rem 1.25rem' }}>Sınav / Ödev Adı</th>
-                            <th style={{ padding: '0.85rem 1rem' }}>Ders</th>
-                            <th style={{ padding: '0.85rem 1rem' }}>Yanlış Sorular</th>
-                            <th style={{ padding: '0.85rem 1rem' }}>Boş Sorular</th>
-                            <th style={{ padding: '0.85rem 1rem' }}>Tarih</th>
-                            <th style={{ padding: '0.85rem 1rem' }}>Kontrol Durumu</th>
-                            <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>İşlem</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredTestSubmissions.map(sub => {
-                            return (
-                              <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
-                                <td style={{ padding: '1rem 1.25rem', fontWeight: 900, color: '#0f172a' }}>
-                                  {sub.testTitle || 'İsimsiz Sınav'}
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  <span style={{ background: '#f1f5f9', color: '#334155', padding: '0.2rem 0.6rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 800 }}>
-                                    {sub.subject}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  {sub.wrongQuestions.length > 0 ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                      {sub.wrongQuestions.map(q => (
-                                        <span key={q.qNum} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.1rem 0.45rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                                          Soru {q.qNum}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  ) : <span style={{ color: '#94a3b8' }}>—</span>}
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  {sub.blankQuestions.length > 0 ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                      {sub.blankQuestions.map(q => (
-                                        <span key={q.qNum} style={{ background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', padding: '0.1rem 0.45rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                                          Soru {q.qNum}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  ) : <span style={{ color: '#94a3b8' }}>—</span>}
-                                </td>
-                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.8rem', fontWeight: 700 }}>
-                                  {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : '—'}
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  <button
-                                    onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
-                                    style={{
-                                      border: 'none',
-                                      background: sub.isReviewed ? '#f0fdf4' : '#fffbeb',
-                                      color: sub.isReviewed ? '#16a34a' : '#d97706',
-                                      padding: '0.35rem 0.75rem',
-                                      borderRadius: '0.65rem',
-                                      fontSize: '0.78rem',
-                                      fontWeight: 900,
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 4
-                                    }}
-                                  >
-                                    {sub.isReviewed ? <CheckCircle2 size={14} /> : <Clock size={14} />}
-                                    {sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}
-                                  </button>
-                                </td>
-                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
-                                  <button
-                                    onClick={(e) => handleOpenReview(sub.id, e)}
-                                    style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '0.45rem 0.9rem', borderRadius: '0.65rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                  >
-                                    <Eye size={14} /> İncele
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : (
-                  /* CARDS VIEW */
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
-                    {filteredTestSubmissions.map(sub => {
-                      return (
-                        <div key={sub.id} style={{ background: 'white', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                          <div style={{ display: 'flex', justifyBetween: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                              <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: 6, textTransform: 'uppercase' }}>
-                                {sub.subject}
-                              </span>
-                              <h3 style={{ margin: '0.4rem 0 0 0', fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{sub.testTitle}</h3>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '0.75rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '0.85rem' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', marginBottom: 4 }}>YANLIŞLAR ({sub.wrongQuestions.length})</div>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                                {sub.wrongQuestions.map(q => <span key={q.qNum} style={{ background: '#fef2f2', color: '#dc2626', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.35rem', borderRadius: 4 }}>S{q.qNum}</span>)}
-                              </div>
-                            </div>
-                            <div style={{ width: 1, background: '#e2e8f0' }} />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', marginBottom: 4 }}>BOŞLAR ({sub.blankQuestions.length})</div>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                                {sub.blankQuestions.map(q => <span key={q.qNum} style={{ background: '#e2e8f0', color: '#475569', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.35rem', borderRadius: 4 }}>S{q.qNum}</span>)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem' }}>
-                            <button
-                              onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
-                              style={{ border: 'none', background: sub.isReviewed ? '#f0fdf4' : '#fffbeb', color: sub.isReviewed ? '#16a34a' : '#d97706', padding: '0.4rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                            >
-                              {sub.isReviewed ? <CheckCircle2 size={14} /> : <Clock size={14} />}
-                              {sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}
-                            </button>
-
-                            <button
-                              onClick={(e) => handleOpenReview(sub.id, e)}
-                              style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '0.45rem 0.9rem', borderRadius: '0.65rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                            >
-                              <Eye size={14} /> Sınavı Aç
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
       </div>
 
       {/* ════════════════════════════════════════════
@@ -1287,7 +1535,7 @@ export default function StudentWrongAnswersPage() {
 
             <form onSubmit={handleSaveNewError} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
-              {/* 1. ÖDEV / SINAV SEÇİMİ (CRITICAL REQUIREMENT) */}
+              {/* 1. ÖDEV / SINAV SEÇİMİ */}
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>
                   📌 Ait Olduğu Ödev / Sınav
