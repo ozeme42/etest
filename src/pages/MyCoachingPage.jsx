@@ -1391,14 +1391,25 @@ export default function MyCoachingPage() {
             </div>
 
             {/* Hedef kartı */}
-            {(goals.targetSchool || goals.targetScore || displayExamName) && (
+            {(goals.targetSchool || goals.targetScore || displayExamName || goals.gradeTarget) && (
               <div style={{ background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', border: '2px solid #ddd6fe', borderRadius: '1.1rem', padding: '1rem 1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Trophy size={28} color="#7c3aed" />
                 <div>
-                  <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#4c1d95' }}>Hedefim: {goals.targetSchool || '—'}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 700 }}>
-                    {displayExamName} · Puan Hedefi: {goals.targetScore || '—'} · Net: {goals.targetNet || '—'}
-                  </div>
+                  {isGradeTracking ? (
+                    <>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#4c1d95' }}>Hedef Belge: {goals.gradeTarget || 'Takdir Belgesi'}</div>
+                      <div style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 700 }}>
+                        Ara Sınıf Takip & Takdir Hedefi · {goals.gradeClass || 'Sınıf Belirtilmedi'} {goals.gradeTerm ? `(${goals.gradeTerm}. Dönem)` : ''}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#4c1d95' }}>Hedefim: {goals.targetSchool || '—'}</div>
+                      <div style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 700 }}>
+                        {displayExamName} · Puan Hedefi: {goals.targetScore || '—'} · Net: {goals.targetNet || '—'}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}

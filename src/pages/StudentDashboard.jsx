@@ -413,62 +413,92 @@ export default function StudentDashboard() {
       <div style={{ width: '100%', padding: isMobile ? '0.85rem' : 'clamp(1rem,2.5vw,2rem)', boxSizing: 'border-box' }}>
 
         {/* 🏛️ KOÇLUK AKADEMİK & STRATEJİK HEDEFLERİ CARD (All Coaching Dossier Goals) */}
-        {coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals) && (
-          <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '2px solid #86efac', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(22,163,74,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <GraduationCap size={22} color="#16a34a" />
-                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em' }}>🏛️ Koçluktan Gelen Akademik & Stratejik Hedefleriniz</span>
-              </div>
-              {coachingProfile.examGoalType && (
-                <span style={{ fontSize: '0.72rem', background: '#16a34a', color: 'white', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: 99 }}>
-                  {coachingProfile.examGoalType}
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '0.85rem' }}>
-              {coachingProfile.targetSchool && (
-                <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎯 İstenen Okul & Bölüm</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetSchool}</div>
+        {coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
+          const isGradeTracking = coachingProfile?.examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
+          return (
+            <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '2px solid #86efac', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(22,163,74,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <GraduationCap size={22} color="#16a34a" />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em' }}>🏛️ Koçluktan Gelen Akademik & Stratejik Hedefleriniz</span>
                 </div>
-              )}
-              {coachingProfile.targetScore && (
-                <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🏆 Puan Hedefi</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetScore} Puan</div>
-                </div>
-              )}
-              {coachingProfile.targetNet > 0 && (
-                <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📈 Net Hedefi</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#16a34a', marginTop: 2 }}>{coachingProfile.targetNet} Net</div>
-                </div>
-              )}
-            </div>
-
-            {(coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'white', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
-                {coachingProfile.monthlyGoals && (
-                  <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                    <span style={{ fontWeight: 900, color: '#15803d' }}>📅 Aylık Strateji:</span> {coachingProfile.monthlyGoals}
-                  </div>
-                )}
-                {coachingProfile.weeklyGoals && (
-                  <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                    <span style={{ fontWeight: 900, color: '#15803d' }}>⚡ Haftalık Hedef:</span> {coachingProfile.weeklyGoals}
-                  </div>
-                )}
-                {coachingProfile.dailyGoals && (
-                  <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                    <span style={{ fontWeight: 900, color: '#15803d' }}>🔥 Günlük Rutin:</span> {coachingProfile.dailyGoals}
-                  </div>
+                {coachingProfile.examGoalType && (
+                  <span style={{ fontSize: '0.72rem', background: '#16a34a', color: 'white', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: 99 }}>
+                    {coachingProfile.examGoalType}
+                  </span>
                 )}
               </div>
-            )}
-          </div>
-        )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '0.85rem' }}>
+                {isGradeTracking ? (
+                  <>
+                    <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🏅 Hedef Belge / Başarı</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#16a34a', marginTop: 2 }}>
+                        {coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takdir Belgesi'}
+                      </div>
+                    </div>
+                    {(coachingProfile.gradeClass || coachingProfile.goals?.gradeClass) && (
+                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎓 Sınıf / Dönem</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>
+                          {coachingProfile.gradeClass || coachingProfile.goals?.gradeClass} {coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm ? `(${coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm}. Dönem)` : ''}
+                        </div>
+                      </div>
+                    )}
+                    {(coachingProfile.targetScore || coachingProfile.goals?.targetScore) && (
+                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📅 Devamsızlık Hedefi</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>Maks {coachingProfile.targetScore || coachingProfile.goals?.targetScore} gün</div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {coachingProfile.targetSchool && (
+                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎯 İstenen Okul & Bölüm</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetSchool}</div>
+                      </div>
+                    )}
+                    {coachingProfile.targetScore && (
+                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🏆 Puan Hedefi</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetScore} Puan</div>
+                      </div>
+                    )}
+                    {coachingProfile.targetNet > 0 && (
+                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📈 Net Hedefi</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#16a34a', marginTop: 2 }}>{coachingProfile.targetNet} Net</div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {(coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'white', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                  {coachingProfile.monthlyGoals && (
+                    <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                      <span style={{ fontWeight: 900, color: '#15803d' }}>📅 Aylık Strateji:</span> {coachingProfile.monthlyGoals}
+                    </div>
+                  )}
+                  {coachingProfile.weeklyGoals && (
+                    <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                      <span style={{ fontWeight: 900, color: '#15803d' }}>⚡ Haftalık Hedef:</span> {coachingProfile.weeklyGoals}
+                    </div>
+                  )}
+                  {coachingProfile.dailyGoals && (
+                    <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
+                      <span style={{ fontWeight: 900, color: '#15803d' }}>🔥 Günlük Rutin:</span> {coachingProfile.dailyGoals}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* 👨‍🏫 TEACHER COACHING GUIDANCE CARD */}
         {( (coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting ) && (
