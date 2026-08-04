@@ -234,6 +234,36 @@ export function CoachingProvider({ children }) {
     return coachingLinks.some(l => String(l.studentId) === String(studentId));
   };
 
+  const addStudentError = async (studentId, errorData) => {
+    const profile = getCoachingProfileForStudent(studentId) || { studentId, errors: [] };
+    const newError = {
+      id: `err_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: new Date().toISOString(),
+      status: 'active',
+      ...errorData
+    };
+    const updatedErrors = [newError, ...(profile.errors || [])];
+    const updatedProfile = { ...profile, errors: updatedErrors };
+    await saveCoachingProfile(updatedProfile);
+    return newError;
+  };
+
+  const updateStudentError = async (studentId, errorId, updates) => {
+    const profile = getCoachingProfileForStudent(studentId);
+    if (!profile) return;
+    const updatedErrors = (profile.errors || []).map(e => e.id === errorId ? { ...e, ...updates } : e);
+    const updatedProfile = { ...profile, errors: updatedErrors };
+    await saveCoachingProfile(updatedProfile);
+  };
+
+  const deleteStudentError = async (studentId, errorId) => {
+    const profile = getCoachingProfileForStudent(studentId);
+    if (!profile) return;
+    const updatedErrors = (profile.errors || []).filter(e => e.id !== errorId);
+    const updatedProfile = { ...profile, errors: updatedErrors };
+    await saveCoachingProfile(updatedProfile);
+  };
+
   return (
     <CoachingContext.Provider value={{
       coachingLinks,
@@ -252,7 +282,10 @@ export function CoachingProvider({ children }) {
       getCoachingNoteForStudent,
       getCoachingProfileForStudent,
       getMockExamsForStudent,
-      getMeetingsForStudent
+      getMeetingsForStudent,
+      addStudentError,
+      updateStudentError,
+      deleteStudentError
     }}>
       {children}
     </CoachingContext.Provider>
