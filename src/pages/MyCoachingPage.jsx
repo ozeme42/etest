@@ -245,6 +245,13 @@ export default function MyCoachingPage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [expandedPoolSubjects, setExpandedPoolSubjects] = useState({});
 
+  /* ── Konu & Program Merkezi State ── */
+  const [hubSearch, setHubSearch] = useState('');
+  const [hubFilter, setHubFilter] = useState('all'); // all, baslanmadi, devamediyor, bitti, unassigned
+  const [assigningTopicKey, setAssigningTopicKey] = useState(null);
+  const [assignDay, setAssignDay] = useState('Pazartesi');
+  const [assignHours, setAssignHours] = useState('1 sa');
+
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
   const TOPIC_TEMPLATES = {
@@ -315,7 +322,66 @@ export default function MyCoachingPage() {
 
   const togglePoolTopic = (subId, topicId) => {
     setTopicPool(prev => prev.map(s => s.id === subId
-      ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, done: !t.done } : t) } : s));
+      ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, done: !t.done, status: !t.done ? 'Bitti' : 'Başlanmadı' } : t) } : s));
+  };
+
+  const setPoolTopicStatus = (subId, topicId, status) => {
+    setTopicPool(prev => prev.map(s => s.id === subId
+      ? {
+          ...s,
+          topics: s.topics.map(t => {
+            if (t.id !== topicId) return t;
+            const isDone = status === 'Bitti';
+            return { ...t, status, done: isDone };
+          })
+        }
+      : s));
+  };
+
+  const assignTopicToDay = (subjectName, topicName, dayName, hours = '1 sa') => {
+    if (!subjectName || !topicName || !dayName) return;
+    
+    // Add to weeklyProgram
+    setWeeklyProgram(prev => {
+      const normalized = normalizeWeeklyProgram(prev);
+      return normalized.map(d => {
+        if (d.day === dayName) {
+          const existing = (d.items || []).find(i => i.subject === subjectName && i.topic === topicName);
+          if (existing) return d;
+          return {
+            ...d,
+            items: [
+              ...(d.items || []),
+              {
+                id: uid(),
+                subject: subjectName,
+                topic: topicName,
+                hours: hours || '1 sa',
+                isRecurring: true,
+                done: false
+              }
+            ]
+          };
+        }
+        return d;
+      });
+    });
+
+    // Update topic status to Devam Ediyor if currently Başlanmadı or unset
+    setTopicPool(prev => prev.map(s => {
+      if (s.name !== subjectName) return s;
+      return {
+        ...s,
+        topics: s.topics.map(t => {
+          if (t.name === topicName && (!t.status || t.status === 'Başlanmadı')) {
+            return { ...t, status: 'Devam Ediyor' };
+          }
+          return t;
+        })
+      };
+    }));
+
+    setAssigningTopicKey(null);
   };
 
   const loadTemplate = (tplKey) => {
@@ -684,6 +750,7 @@ export default function MyCoachingPage() {
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
     { id: 'hedefler', label: '🎯 Hedeflerim' },
+    { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'konuhavuzu', label: '📚 Konu Havuzum' },
     { id: 'program', label: '📅 Programım' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
@@ -778,6 +845,418 @@ export default function MyCoachingPage() {
 
       {/* ── CONTENT AREA ── */}
       <div style={{ background: 'white', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid #e2e8f0', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+
+        {/* ═══ KONU & PROGRAM MERKEZİ (Tek Ekran Akıllı Görünüm) ═══ */}
+        {activeTab === 'konumerkezi' && (
+          <div>
+            <Tip>
+              🧠 <b>Konu & Program Merkezi</b>: Tüm konularını ve haftalık programını tek ekranda yönet! Konu durumunu (🔴 <i>Başlanmadı</i> / 🟡 <i>Devam Ediyor</i> / 🟢 <i>Bitti</i>) değiştir, <b>"📅 Güne Ata"</b> ile programa anında ekle.
+            </Tip>
+
+            {/* Üst İstatistik & Özet Kartı */}
+            {(() => {
+              let totalTopics = 0;
+              let notStarted = 0;
+              let inProgress = 0;
+              let finished = 0;
+
+              topicPool.forEach(s => {
+                s.topics.forEach(t => {
+                  totalTopics++;
+                  const st = t.status || (t.done ? 'Bitti' : 'Başlanmadı');
+                  if (st === 'Bitti') finished++;
+                  else if (st === 'Devam Ediyor') inProgress++;
+                  else notStarted++;
+                });
+              });
+
+              return (
+                <div style={{ background: 'linear-gradient(135deg,#f8fafc,#edf2f7)', border: '2px solid #e2e8f0', borderRadius: '1.1rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ background: 'white', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+                      📚 Toplam Konu: <span style={{ color: '#6366f1' }}>{totalTopics}</span>
+                    </div>
+                    <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#dc2626' }}>
+                      🔴 Başlanmadı: {notStarted}
+                    </div>
+                    <div style={{ background: '#fefce8', border: '1.5px solid #fef08a', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#ca8a04' }}>
+                      🟡 Devam Ediyor: {inProgress}
+                    </div>
+                    <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', padding: '0.4rem 0.8rem', borderRadius: '0.7rem', fontSize: '0.8rem', fontWeight: 800, color: '#16a34a' }}>
+                      🟢 Bitti: {finished}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b' }}>Haftalık İlerleme:</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                      {completedWeeklyItems}/{totalWeeklyItems} Ders
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Arama & Filtreleme & Şablon Butonları */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              {/* Filtre Butonları */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'all', label: '🌐 Tümü' },
+                  { id: 'baslanmadi', label: '🔴 Başlanmadı' },
+                  { id: 'devamediyor', label: '🟡 Devam Ediyor' },
+                  { id: 'bitti', label: '🟢 Bitti' },
+                  { id: 'unassigned', label: '⚪ Programlanmamış' }
+                ].map(f => (
+                  <button key={f.id} onClick={() => setHubFilter(f.id)}
+                    style={{
+                      background: hubFilter === f.id ? '#4f46e5' : '#f8fafc',
+                      color: hubFilter === f.id ? 'white' : '#475569',
+                      border: hubFilter === f.id ? 'none' : '1.5px solid #e2e8f0',
+                      borderRadius: '0.65rem', padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.15s'
+                    }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Arama Kutusu & Şablon Butonu */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  style={{ ...inp, width: 180, fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+                  value={hubSearch}
+                  onChange={e => setHubSearch(e.target.value)}
+                  placeholder="🔍 Konu / ders ara..." />
+
+                <button onClick={() => setShowTemplates(p => !p)}
+                  style={{ background: '#f8fafc', color: '#6366f1', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.4rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  ⚡ Şablon Yükle {showTemplates ? '▲' : '▼'}
+                </button>
+              </div>
+            </div>
+
+            {/* Hazır Şablon Kartı (Açılır/Kapanır) */}
+            {showTemplates && (
+              <Card emoji="⚡" title="Hazır Şablon ile Konu Havuzu Oluştur">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
+                    <button key={tplKey} onClick={() => loadTemplate(tplKey)}
+                      style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Plus size={14} /> {tplKey}
+                    </button>
+                  ))}
+                  {topicPool.length > 0 && (
+                    <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
+                      style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
+                      🗑️ Tümünü Temizle
+                    </button>
+                  )}
+                </div>
+                <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  💡 Şablon yükle ve üzerinde istediğin değişikliği yap. Birden fazla şablonu birleştirebilirsin.
+                </div>
+              </Card>
+            )}
+
+            {/* DÜZEN: ÇİFT PANEL (Sol: Konu Havuzu & Durumlar, Sağ: Canlı Haftalık Program) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+              
+              {/* SOL PANEL: DERSLER VE KONULAR */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <h3 style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📚 Dersler & Konu Durumları
+                  </h3>
+                  {topicPool.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => { const allOpen = {}; topicPool.forEach(s => { allOpen[s.id] = true; }); setExpandedPoolSubjects(allOpen); }}
+                        style={{ background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', borderRadius: '0.45rem', padding: '0.25rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                        ▼ Tümünü Aç
+                      </button>
+                      <button onClick={() => setExpandedPoolSubjects({})}
+                        style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '0.45rem', padding: '0.25rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                        ▲ Tümünü Kapat
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {topicPool.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', fontWeight: 700, background: '#f8fafc', borderRadius: '1rem', border: '2px dashed #cbd5e1' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 6 }}>📚</div>
+                    <div>Henüz ders eklenmedi.</div>
+                    <div style={{ fontSize: '0.8rem', marginTop: 4 }}>Şablon yükleyebilir veya ders ekleyebilirsin.</div>
+                  </div>
+                )}
+
+                {topicPool.map(sub => {
+                  const isOpen = Boolean(expandedPoolSubjects[sub.id]);
+
+                  // Filter topics inside subject
+                  const filteredTopics = sub.topics.filter(t => {
+                    const status = t.status || (t.done ? 'Bitti' : 'Başlanmadı');
+                    
+                    // Search match
+                    if (hubSearch.trim()) {
+                      const q = hubSearch.toLowerCase().trim();
+                      const matchSub = sub.name.toLowerCase().includes(q);
+                      const matchTop = t.name.toLowerCase().includes(q);
+                      if (!matchSub && !matchTop) return false;
+                    }
+
+                    // Filter match
+                    if (hubFilter === 'baslanmadi' && status !== 'Başlanmadı') return false;
+                    if (hubFilter === 'devamediyor' && status !== 'Devam Ediyor') return false;
+                    if (hubFilter === 'bitti' && status !== 'Bitti') return false;
+                    if (hubFilter === 'unassigned') {
+                      // Check if scheduled anywhere in weeklyProgram
+                      const isScheduled = weeklyProgram.some(d => (d.items || []).some(i => i.subject === sub.name && i.topic === t.name));
+                      if (isScheduled) return false;
+                    }
+                    return true;
+                  });
+
+                  if (hubSearch || hubFilter !== 'all') {
+                    if (filteredTopics.length === 0) return null;
+                  }
+
+                  const doneCnt = sub.topics.filter(t => (t.status || (t.done ? 'Bitti' : 'Başlanmadı')) === 'Bitti').length;
+                  const totalCnt = sub.topics.length;
+
+                  return (
+                    <div key={sub.id} style={{ background: 'white', border: `2px solid ${sub.color}30`, borderRadius: '1rem', marginBottom: '1rem', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
+                      
+                      {/* Ders Başlığı */}
+                      <div 
+                        onClick={() => setExpandedPoolSubjects(p => ({ ...p, [sub.id]: !p[sub.id] }))}
+                        style={{ background: `linear-gradient(135deg, ${sub.color}15, ${sub.color}05)`, borderBottom: (isOpen || hubSearch || hubFilter !== 'all') ? `2px solid ${sub.color}20` : 'none', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: sub.color, flexShrink: 0 }} />
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b', flex: 1 }}>{sub.name}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: sub.color, background: `${sub.color}15`, padding: '0.15rem 0.55rem', borderRadius: 99 }}>
+                          {doneCnt}/{totalCnt} bitti
+                        </span>
+                        <div style={{ transform: (isOpen || hubSearch || hubFilter !== 'all') ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', color: sub.color }}>
+                          <ChevronDown size={17} strokeWidth={3} />
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); removePoolSubject(sub.id); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 3, borderRadius: 6, display: 'flex', marginLeft: 2 }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {/* Konular Listesi */}
+                      {(isOpen || hubSearch || hubFilter !== 'all') && (
+                        <div style={{ padding: '0.75rem 1rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {filteredTopics.map(t => {
+                              const status = t.status || (t.done ? 'Bitti' : 'Başlanmadı');
+                              const topicKey = `${sub.id}-${t.id}`;
+                              const isAssigningThis = assigningTopicKey === topicKey;
+
+                              // Scheduled days list
+                              const scheduledDays = [];
+                              weeklyProgram.forEach(d => {
+                                (d.items || []).forEach(item => {
+                                  if (item.subject === sub.name && item.topic === t.name) {
+                                    scheduledDays.push(d.day);
+                                  }
+                                });
+                              });
+
+                              return (
+                                <div key={t.id} style={{
+                                  background: status === 'Bitti' ? '#f0fdf4' : status === 'Devam Ediyor' ? '#fffbeb' : '#fafafa',
+                                  border: status === 'Bitti' ? '1.5px solid #bbf7d0' : status === 'Devam Ediyor' ? '1.5px solid #fef08a' : '1px solid #e2e8f0',
+                                  borderRadius: '0.75rem', padding: '0.55rem 0.75rem', display: 'flex', flexDirection: 'column', gap: 6, transition: 'all 0.15s'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    {/* Durum Butonu (Tek tıkla değiştirme) */}
+                                    <button
+                                      onClick={() => {
+                                        const nextStatus = status === 'Başlanmadı' ? 'Devam Ediyor' : status === 'Devam Ediyor' ? 'Bitti' : 'Başlanmadı';
+                                        setPoolTopicStatus(sub.id, t.id, nextStatus);
+                                      }}
+                                      style={{
+                                        background: status === 'Bitti' ? '#dcfce7' : status === 'Devam Ediyor' ? '#fef9c3' : '#f1f5f9',
+                                        color: status === 'Bitti' ? '#15803d' : status === 'Devam Ediyor' ? '#a16207' : '#64748b',
+                                        border: status === 'Bitti' ? '1px solid #86efac' : status === 'Devam Ediyor' ? '1px solid #fde047' : '1px solid #cbd5e1',
+                                        borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', shrink: 0
+                                      }}
+                                      title="Tıklayarak durumu değiştir">
+                                      {status === 'Bitti' ? '🟢 Bitti' : status === 'Devam Ediyor' ? '🟡 Devam Ediyor' : '🔴 Başlanmadı'}
+                                    </button>
+
+                                    {/* Konu Adı */}
+                                    <span style={{
+                                      flex: 1, fontWeight: 700, fontSize: '0.84rem',
+                                      color: status === 'Bitti' ? '#6b7280' : '#1e293b',
+                                      textDecoration: status === 'Bitti' ? 'line-through' : 'none'
+                                    }}>
+                                      {t.name}
+                                    </span>
+
+                                    {/* Programlanmış Gün Badge'leri */}
+                                    {scheduledDays.length > 0 && (
+                                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                        {scheduledDays.map(d => (
+                                          <span key={d} style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '0.4rem' }}>
+                                            📅 {d}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* "📅 Güne Ata" Butonu */}
+                                    <button
+                                      onClick={() => setAssigningTopicKey(isAssigningThis ? null : topicKey)}
+                                      style={{
+                                        background: isAssigningThis ? '#4f46e5' : '#eef2ff',
+                                        color: isAssigningThis ? 'white' : '#4338ca',
+                                        border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3
+                                      }}>
+                                      <Plus size={12} /> Güne Ata
+                                    </button>
+
+                                    {/* Sil */}
+                                    <button onClick={() => removePoolTopic(sub.id, t.id)}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex' }}
+                                      onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                      onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+
+                                  {/* Hızlı Güne Atama Modalı / Popover */}
+                                  {isAssigningThis && (
+                                    <div style={{ marginTop: 4, background: '#f8fafc', border: '1.5px solid #c7d2fe', borderRadius: '0.6rem', padding: '0.6rem', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151' }}>Gün:</span>
+                                      <select style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 'auto' }} value={assignDay} onChange={e => setAssignDay(e.target.value)}>
+                                        {DAYS.map(d => <option key={d} value={d}>{d} ({DAY_LONG[d]})</option>)}
+                                      </select>
+
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151', marginLeft: 4 }}>Saat:</span>
+                                      <input style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 70 }} value={assignHours} onChange={e => setAssignHours(e.target.value)} placeholder="1 sa" />
+
+                                      <button onClick={() => assignTopicToDay(sub.name, t.name, assignDay, assignHours)}
+                                        style={{ background: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.45rem', padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', marginLeft: 'auto' }}>
+                                        ✓ Programa Ekle
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Konu Ekleme Girişleri */}
+                          <div style={{ marginTop: 10, pt: 8, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <input
+                              style={{ ...inp, flex: 1, fontSize: '0.8rem', padding: '0.35rem 0.6rem', borderColor: `${sub.color}40` }}
+                              value={newPoolTopics[sub.id] || ''}
+                              onChange={e => setNewPoolTopics(p => ({ ...p, [sub.id]: e.target.value }))}
+                              placeholder="➕ Yeni konu adı yaz..."
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && (newPoolTopics[sub.id] || '').trim()) {
+                                  addPoolTopic(sub.id);
+                                }
+                              }} />
+                            <button onClick={() => addPoolTopic(sub.id)}
+                              disabled={!(newPoolTopics[sub.id] || '').trim()}
+                              style={{ background: (newPoolTopics[sub.id] || '').trim() ? sub.color : '#e2e8f0', color: (newPoolTopics[sub.id] || '').trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.55rem', padding: '0.35rem 0.75rem', fontWeight: 800, fontSize: '0.78rem', cursor: (newPoolTopics[sub.id] || '').trim() ? 'pointer' : 'not-allowed' }}>
+                              Ekle
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Yeni Ders Ekle Kartı */}
+                <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '1rem', padding: '0.85rem 1.1rem', marginTop: 12 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569', marginBottom: 6 }}>➕ Yeni Ders Ekle</div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input style={{ ...inp, flex: 1, fontSize: '0.82rem', padding: '0.4rem 0.7rem' }}
+                      value={newPoolSubject.name}
+                      onChange={e => setNewPoolSubject(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Ders adı (Örn: Geometri)..." />
+                    <button onClick={addPoolSubject} disabled={!newPoolSubject.name.trim()}
+                      style={{ background: newPoolSubject.name.trim() ? '#059669' : '#e2e8f0', color: newPoolSubject.name.trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.6rem', padding: '0.4rem 0.9rem', fontWeight: 800, fontSize: '0.8rem', cursor: newPoolSubject.name.trim() ? 'pointer' : 'not-allowed' }}>
+                      Ekle
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* SAĞ PANEL: HAFTALIK CANLI PROGRAM (7 GÜN) */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <h3 style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📅 Canlı Haftalık Program
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                    {completedWeeklyItems}/{totalWeeklyItems} bitti
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {DAYS.map(dayName => {
+                    const dayData = weeklyProgram.find(w => w.day === dayName) || { day: dayName, items: [] };
+                    const items = dayData.items || [];
+                    const completedCount = items.filter(i => i.done).length;
+
+                    return (
+                      <div key={dayName} style={{ background: 'white', borderRadius: '0.9rem', border: '1.5px solid #e2e8f0', padding: '0.75rem 0.9rem', boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: items.length > 0 ? 8 : 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ background: '#7c3aed', color: 'white', fontWeight: 900, fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem' }}>{dayName}</span>
+                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#334155' }}>{DAY_LONG[dayName]}</span>
+                          </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: completedCount === items.length && items.length > 0 ? '#16a34a' : '#94a3b8' }}>
+                            {completedCount}/{items.length}
+                          </span>
+                        </div>
+
+                        {items.length === 0 ? (
+                          <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontStyle: 'italic', textAlign: 'center', padding: '0.3rem 0' }}>
+                            Ders yok — soldaki konulardan "Güne Ata" ile ekleyebilirsin 👈
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                            {items.map(item => (
+                              <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '0.4rem 0.6rem', background: item.done ? '#f0fdf4' : '#f8fafc', border: item.done ? '1px solid #bbf7d0' : '1px solid #e2e8f0', borderRadius: '0.55rem' }}>
+                                <button type="button" onClick={() => toggleWeeklyItem(dayName, item.id)}
+                                  style={{ width: 18, height: 18, borderRadius: 4, background: item.done ? '#16a34a' : 'white', border: item.done ? 'none' : '1.5px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', shrink: 0 }}>
+                                  {item.done && <Check size={12} color="white" strokeWidth={3} />}
+                                </button>
+
+                                <div style={{ flex: 1, minWidth: 0, fontSize: '0.78rem' }}>
+                                  <span style={{ fontWeight: 800, color: '#475569', marginRight: 4 }}>[{item.subject}]</span>
+                                  <span style={{ fontWeight: 700, color: item.done ? '#9ca3af' : '#1e293b', textDecoration: item.done ? 'line-through' : 'none' }}>{item.topic}</span>
+                                </div>
+
+                                {item.hours && <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', background: '#e0e7ff', padding: '0.1rem 0.4rem', borderRadius: 4 }}>{item.hours}</span>}
+
+                                <button onClick={() => removeWeeklyItem(dayName, item.id)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0', padding: 2, display: 'flex' }}
+                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                  onMouseLeave={e => e.currentTarget.style.color = '#e2e8f0'}>
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ═══ KONU HAVUZUM ═══ */}
         {activeTab === 'konuhavuzu' && (
