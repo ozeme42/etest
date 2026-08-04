@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
+import { useCurriculum } from '../context/CurriculumContext';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -164,6 +165,7 @@ export default function MyCoachingPage() {
   } = useCoaching();
   const { submissions, deleteSubmission } = useEvaluation();
   const { homeworks = [] } = useHomework() || {};
+  const { data: curriculumData = [] } = useCurriculum() || {};
 
   const studentId = currentUser?.id;
   const isCoached = useMemo(() => {
@@ -402,9 +404,49 @@ export default function MyCoachingPage() {
         const existing = next.find(s => s.name.toLowerCase() === tplSub.name.toLowerCase());
         if (existing) {
           const existingNames = new Set(existing.topics.map(t => t.name));
-          existing.topics = [...existing.topics, ...tplSub.topics.filter(n => !existingNames.has(n)).map(n => ({ id: uid(), name: n, done: false }))];
+          existing.topics = [...existing.topics, ...tplSub.topics.filter(n => !existingNames.has(n)).map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' }))];
         } else {
-          next.push({ id: uid(), name: tplSub.name, color: tplSub.color, topics: tplSub.topics.map(n => ({ id: uid(), name: n, done: false })) });
+          next.push({ id: uid(), name: tplSub.name, color: tplSub.color, topics: tplSub.topics.map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' })) });
+        }
+      });
+      return next;
+    });
+  };
+
+  const loadGradeCurriculum = (gradeId) => {
+    if (!curriculumData) return;
+    const gradeObj = (curriculumData.grades || []).find(g => g.id === gradeId);
+    if (!gradeObj) return;
+
+    const gradeSubjects = (curriculumData.subjects || []).filter(s => s.gradeId === gradeId);
+    if (gradeSubjects.length === 0) {
+      alert(`"${gradeObj.name}" sınıfı için henüz kayıtlı ders müfredatı bulunamadı.`);
+      return;
+    }
+
+    setTopicPool(prev => {
+      const next = [...prev];
+      gradeSubjects.forEach((sub, idx) => {
+        const unitsForSub = (curriculumData.units || []).filter(u => u.subjectId === sub.id);
+        const unitIds = new Set(unitsForSub.map(u => u.id));
+        
+        const topicsForSub = (curriculumData.topics || []).filter(t => t.subjectId === sub.id || unitIds.has(t.unitId));
+        const topicNames = topicsForSub.map(t => t.name).filter(Boolean);
+
+        const color = POOL_COLORS[idx % POOL_COLORS.length];
+        const existing = next.find(s => s.name.toLowerCase() === sub.name.toLowerCase());
+
+        if (existing) {
+          const existingNames = new Set(existing.topics.map(t => t.name));
+          const newTopics = topicNames.filter(n => !existingNames.has(n)).map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' }));
+          existing.topics = [...existing.topics, ...newTopics];
+        } else {
+          next.push({
+            id: uid(),
+            name: sub.name,
+            color,
+            topics: topicNames.map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' }))
+          });
         }
       });
       return next;
@@ -967,25 +1009,50 @@ export default function MyCoachingPage() {
               </div>
             </div>
 
-            {/* Hazır Şablon Kartı (Açılır/Kapanır) */}
+            {/* Hazır Şablon & Müfredat Yükleme Kartı (Açılır/Kapanır) */}
             {showTemplates && (
-              <Card emoji="⚡" title="Hazır Şablon ile Konu Havuzu Oluştur">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
-                    <button key={tplKey} onClick={() => loadTemplate(tplKey)}
-                      style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Plus size={14} /> {tplKey}
-                    </button>
-                  ))}
-                  {topicPool.length > 0 && (
-                    <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
-                      style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.7rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
-                      🗑️ Tümünü Temizle
-                    </button>
-                  )}
+              <Card emoji="⚡" title="Hazır Şablon & Kayıtlı Müfredatlardan Yükle">
+                {/* 1. Sistem Hazır Sınav Şablonları */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: 6 }}>🏆 Sınav Hazırlık Şablonları:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
+                      <button key={tplKey} onClick={() => loadTemplate(tplKey)}
+                        style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Plus size={14} /> {tplKey} Şablonu
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
-                  💡 Şablon yükle ve üzerinde istediğin değişikliği yap. Birden fazla şablonu birleştirebilirsin.
+
+                {/* 2. Kayıtlı Sınıf Müfredatları */}
+                {curriculumData?.grades && curriculumData.grades.length > 0 && (
+                  <div style={{ marginBottom: 12, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: 6 }}>🏫 Kayıtlı Sınıf Müfredatından Yükle (Sınıf Seç):</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {curriculumData.grades.map(grade => {
+                        const subCnt = (curriculumData.subjects || []).filter(s => s.gradeId === grade.id).length;
+                        return (
+                          <button key={grade.id} onClick={() => loadGradeCurriculum(grade.id)}
+                            style={{ background: 'linear-gradient(135deg,#059669,#10b981)', color: 'white', border: 'none', borderRadius: '0.7rem', padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <GraduationCap size={15} /> {grade.name} ({subCnt} Ders)
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {topicPool.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
+                    <button onClick={() => { if (window.confirm('Tüm ders ve konuları silmek istediğine emin misin?')) setTopicPool([]); }}
+                      style={{ background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fecaca', borderRadius: '0.65rem', padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}>
+                      🗑️ Tüm Havuzu Temizle
+                    </button>
+                  </div>
+                )}
+                <div style={{ marginTop: 8, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                  💡 Şablon veya sınıf müfredatı yüklediğinde dersleriniz konu havuzunuza aktarılır ve hemen programlanabilir hale gelir.
                 </div>
               </Card>
             )}
