@@ -805,7 +805,6 @@ export default function MyCoachingPage() {
     { id: 'hedefler', label: '🎯 Hedeflerim' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
-    { id: 'konular', label: '📋 Konularım' },
     { id: 'hatalar', label: '🔴 Hata Defterim' },
     { id: 'motivasyon', label: '⭐ Motivasyon' },
     { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
@@ -1654,77 +1653,7 @@ export default function MyCoachingPage() {
           </div>
         )}
 
-        {/* ═══ KONULARIM ═══ */}
-        {activeTab === 'konular' && (
-          <div>
-            <Tip>Çalıştığın konuları ekle ve durumunu güncelle. "Tamamlandı" olarak işaretlediğin konular yeşile döner.</Tip>
 
-            <Card emoji="➕" title="Konu Ekle">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr auto', gap: 8, alignItems: 'flex-end' }}>
-                <div><label style={lbl}>Ders</label>
-                  <select style={inp} value={newTopic.subject} onChange={e => setNewTopic(p => ({ ...p, subject: e.target.value, topic: '' }))}>
-                    {(poolSubjectNames.length > 0 ? poolSubjectNames : SUBJECTS).map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>Konu Adı</label>
-                  {getPoolTopicsForSubject(newTopic.subject).length > 0 ? (
-                    <select style={inp} value={newTopic.topic} onChange={e => setNewTopic(p => ({ ...p, topic: e.target.value }))}>
-                      <option value="">— Konu seç —</option>
-                      {getPoolTopicsForSubject(newTopic.subject)
-                        .filter(t => !topicList.find(x => x.subject === newTopic.subject && x.topic === t))
-                        .map(t => <option key={t}>{t}</option>)}
-                      <option value="__custom__">✏️ Özel yaz...</option>
-                    </select>
-                  ) : (
-                    <input style={inp} value={newTopic.topic} onChange={e => setNewTopic(p => ({ ...p, topic: e.target.value }))} placeholder="Konu adı..." />
-                  )}
-                  {newTopic.topic === '__custom__' && (
-                    <input style={{ ...inp, marginTop: 4 }} value={newTopic._customTopic || ''} onChange={e => setNewTopic(p => ({ ...p, _customTopic: e.target.value }))} placeholder="Konu adını yaz..." />
-                  )}
-                </div>
-                <div><label style={lbl}>Durum</label>
-                  <select style={inp} value={newTopic.status} onChange={e => setNewTopic(p => ({ ...p, status: e.target.value }))}>
-                    {TOPIC_STATUSES.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <button onClick={() => {
-                  const topicName = newTopic.topic === '__custom__' ? (newTopic._customTopic || '').trim() : newTopic.topic.trim();
-                  if (!topicName) return;
-                  setTopicList(p => [...p, { id: uid(), subject: newTopic.subject, topic: topicName, status: newTopic.status }]);
-                  setNewTopic(p => ({ ...p, topic: '', _customTopic: '' }));
-                }}
-                  style={{ background: '#059669', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.6rem 0.85rem', fontWeight: 800, cursor: 'pointer', marginBottom: 0 }}>
-                  <Plus size={16} />
-                </button>
-              </div>
-            </Card>
-
-            {/* Konular listesi */}
-            {SUBJECTS.map(subj => {
-              const items = topicList.filter(t => t.subject === subj);
-              if (!items.length) return null;
-              const done = items.filter(t => t.status === 'Tamamlandı').length;
-              return (
-                <Card key={subj} emoji="📚" title={`${subj} (${done}/${items.length} tamamlandı)`}>
-                  <Progress value={done} max={items.length} color="#059669" />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: '0.75rem' }}>
-                    {items.map(t => (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.5rem 0.75rem', background: t.status === 'Tamamlandı' ? '#f0fdf4' : '#f8fafc', borderRadius: '0.65rem', border: t.status === 'Tamamlandı' ? '1.5px solid #bbf7d0' : '1px solid #e2e8f0' }}>
-                        <span style={{ flex: 1, fontWeight: 700, fontSize: '0.84rem', color: '#374151' }}>{t.topic}</span>
-                        <select value={t.status} onChange={e => setTopicList(p => p.map(x => x.id === t.id ? { ...x, status: e.target.value } : x))}
-                          style={{ padding: '0.28rem 0.5rem', borderRadius: '0.5rem', border: `1.5px solid ${STATUS_COLOR[t.status]}40`, background: `${STATUS_COLOR[t.status]}15`, color: STATUS_COLOR[t.status], fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', outline: 'none' }}>
-                          {TOPIC_STATUSES.map(s => <option key={s}>{s}</option>)}
-                        </select>
-                        <button onClick={() => setTopicList(p => p.filter(x => x.id !== t.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0' }}><Trash2 size={13} /></button>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              );
-            })}
-            {topicList.length === 0 && <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem', fontWeight: 700 }}>Henüz konu eklenmedi. Yukarıdan ekle 👆</div>}
-          </div>
-        )}
 
         {/* ═══ HATA DEFTERİM ═══ */}
         {activeTab === 'hatalar' && (
