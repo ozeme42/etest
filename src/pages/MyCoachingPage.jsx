@@ -805,7 +805,6 @@ export default function MyCoachingPage() {
     { id: 'hedefler', label: '🎯 Hedeflerim' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
-    { id: 'hatalar', label: '🔴 Hata Defterim' },
     { id: 'motivasyon', label: '⭐ Motivasyon' },
     { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
     { id: 'denemeler', label: '📊 Deneme Sonuçlarım' },
@@ -1655,81 +1654,7 @@ export default function MyCoachingPage() {
 
 
 
-        {/* ═══ HATA DEFTERİM ═══ */}
-        {activeTab === 'hatalar' && (
-          <div>
-            <Tip>Yanlış yaptığın soruları kaydet. Sebebini yaz, ne zaman tekrar edeceğini belirle. Koçun bu hataları da görür.</Tip>
 
-            <Card emoji="➕" title="Yeni Hata Kaydı">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '0.75rem' }}>
-                <div><label style={lbl}>Ders</label>
-                  <select style={inp} value={newError.subject} onChange={e => setNewError(p => ({ ...p, subject: e.target.value, topic: '' }))}>
-                    {(poolSubjectNames.length > 0 ? poolSubjectNames : SUBJECTS).map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>Konu</label>
-                  {getPoolTopicsForSubject(newError.subject).length > 0 ? (
-                    <select style={inp} value={newError.topic} onChange={e => setNewError(p => ({ ...p, topic: e.target.value === '__custom__' ? '' : e.target.value }))}
-                      onFocus={e => { if (e.target.value === '__custom__') setNewError(p => ({ ...p, topic: '' })); }}>
-                      <option value="">— Konu seç —</option>
-                      {getPoolTopicsForSubject(newError.subject).map(t => <option key={t}>{t}</option>)}
-                      <option value="__custom__">✏️ Özel yaz...</option>
-                    </select>
-                  ) : (
-                    <input style={inp} value={newError.topic} onChange={e => setNewError(p => ({ ...p, topic: e.target.value }))} placeholder="Hangi konuda?" />
-                  )}
-                  {(newError.topic === '' && getPoolTopicsForSubject(newError.subject).length > 0) || !getPoolTopicsForSubject(newError.subject).includes(newError.topic) && newError.topic !== '' ? (
-                    newError.topic !== '' ? null :
-                    <input style={{ ...inp, marginTop: 4 }} value={newError.topic} onChange={e => setNewError(p => ({ ...p, topic: e.target.value }))} placeholder="Veya konu adını yaz..." />
-                  ) : null}
-                </div>
-                <div><label style={lbl}>Neden Yanlış?</label>
-                  <select style={inp} value={newError.reason} onChange={e => setNewError(p => ({ ...p, reason: e.target.value }))}>
-                    <option value="">Seçin...</option>
-                    <option>Dikkat Hatası</option>
-                    <option>Bilgi Eksikliği</option>
-                    <option>İşlem Hatası</option>
-                    <option>Süre Baskısı</option>
-                    <option>Soruyu Yanlış Anladım</option>
-                  </select>
-                </div>
-                <div><label style={lbl}>Tekrar Tarihi</label>
-                  <input style={inp} type="date" value={newError.retakeDate} onChange={e => setNewError(p => ({ ...p, retakeDate: e.target.value }))} />
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Doğrusu / Notum</label>
-                  <textarea style={{ ...ta, minHeight: 56 }} value={newError.correct} onChange={e => setNewError(p => ({ ...p, correct: e.target.value }))} placeholder="Doğru çözüm veya aklındakiler..." />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.6rem' }}>
-                <button onClick={() => {
-                  if (!newError.topic.trim()) return;
-                  setErrors(p => [{ id: uid(), ...newError }, ...p]);
-                  setNewError({ subject: SUBJECTS[0], topic: '', reason: '', correct: '', retakeDate: today() });
-                }} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.55rem 1.1rem', fontWeight: 800, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Plus size={14} /> Kaydet
-                </button>
-              </div>
-            </Card>
-
-            {errors.length === 0 && <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontWeight: 700 }}>Hata kaydı yok. Harika! 🎉</div>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {errors.map(err => (
-                <div key={err.id} style={{ background: '#fff5f5', border: '1.5px solid #fecaca', borderRadius: '0.85rem', padding: '0.9rem 1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                      <span style={{ background: '#dc2626', color: 'white', fontWeight: 800, fontSize: '0.7rem', padding: '0.18rem 0.55rem', borderRadius: 99 }}>{err.subject}</span>
-                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#374151' }}>{err.topic}</span>
-                      {err.reason && <span style={{ background: '#fef2f2', color: '#dc2626', fontWeight: 700, fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: 6, border: '1px solid #fecaca' }}>{err.reason}</span>}
-                    </div>
-                    <button onClick={() => setErrors(p => p.filter(x => x.id !== err.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0' }}><Trash2 size={14} /></button>
-                  </div>
-                  {err.correct && <div style={{ marginTop: 6, fontSize: '0.81rem', color: '#475569', background: 'white', borderRadius: '0.5rem', padding: '0.45rem 0.7rem', border: '1px solid #fecaca' }}>{err.correct}</div>}
-                  {err.retakeDate && <div style={{ marginTop: 4, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>🔁 Tekrar: {err.retakeDate}</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* ═══ MOTİVASYON ═══ */}
         {activeTab === 'motivasyon' && (
