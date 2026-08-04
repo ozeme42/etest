@@ -969,8 +969,8 @@ export default function MyCoachingPage() {
 
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
-    { id: 'hedefpanosu', label: '📊 Özel Hedef Takip Panosu' },
     { id: 'hedefler', label: '🎯 Hedeflerim' },
+    { id: 'hedefpanosu', label: '📊 Özel Hedef Takip Panosu' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
     { id: 'motivasyon', label: '⭐ Motivasyon' },

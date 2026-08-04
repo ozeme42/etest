@@ -526,8 +526,8 @@ export default function StudentCoachingPage() {
   const tabs = [
     { id: 'info', label: '👤 Bilgi Formu', num: 1 },
     { id: 'intake', label: '🧠 İlk Tanışma', num: 2 },
-    { id: 'visualgoals', label: '📊 Görsel Hedef Panosu', num: '3B' },
     { id: 'goals', label: '🎯 Hedefler', num: 3 },
+    { id: 'visualgoals', label: '📊 Görsel Hedef Panosu', num: '3B' },
     { id: 'subjects', label: '📚 Ders Analizi', num: 4 },
     { id: 'weekly', label: '📅 Haftalık Program', num: 5 },
     { id: 'daily', label: '⏱️ Günlük Takip', num: 6 },
