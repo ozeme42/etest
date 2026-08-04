@@ -335,6 +335,9 @@ export default function StudentWrongAnswersPage() {
         else subject = 'Matematik';
       }
 
+      // Infer topic
+      const topic = sub.topic || matchedHw?.topic || matchedHw?.topicName || matchedHw?.unit || matchedTest?.topic || '';
+
       const isReviewed = reviewedSubSet.has(sub.id);
       const dateStr = sub.submittedAt || sub.createdAt || sub.created_at || new Date().toISOString();
       const totQ = sub.totalQuestions || rawAnswers.length || (wrongQuestions.length + blankQuestions.length + correctCount) || 10;
@@ -343,6 +346,7 @@ export default function StudentWrongAnswersPage() {
         ...sub,
         testTitle: resolvedTitle,
         subject,
+        topic,
         submittedAt: dateStr,
         wrongQuestions,
         blankQuestions,
@@ -367,6 +371,7 @@ export default function StudentWrongAnswersPage() {
         id: sub.id,
         title: sub.testTitle || 'Sınav / Ödev',
         subject: sub.subject || 'Matematik',
+        topic: sub.topic || '',
         wrongCount: sub.wrongQuestions.length,
         blankCount: sub.blankQuestions.length,
         date: sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : ''
@@ -376,10 +381,12 @@ export default function StudentWrongAnswersPage() {
     homeworks.filter(hw => hw.studentId === selectedStudent.id || (hw.targetIds && hw.targetIds.includes(selectedStudent.id)))
       .forEach(hw => {
         if (!map.has(hw.id)) {
+          const matchedTest = allCurTestsMap.get(hw.id);
           map.set(hw.id, {
             id: hw.id,
             title: hw.title || 'Ödev',
             subject: hw.subject || 'Matematik',
+            topic: hw.topic || hw.topicName || hw.unit || matchedTest?.topic || '',
             wrongCount: 0,
             blankCount: 0,
             date: hw.dueDate ? new Date(hw.dueDate).toLocaleDateString('tr-TR') : ''
@@ -388,16 +395,28 @@ export default function StudentWrongAnswersPage() {
       });
 
     return Array.from(map.values());
-  }, [testGroupedSubmissions, homeworks, selectedStudent]);
+  }, [testGroupedSubmissions, homeworks, selectedStudent, allCurTestsMap]);
 
   // Open Add Image Modal pre-selecting a test
-  const handleOpenAddModalForTest = (sub, e) => {
-    if (e) e.stopPropagation();
+  const handleOpenAddModal = (defaultSub = null) => {
+    let initialHwId = defaultSub?.id || '';
+    let initialTitle = defaultSub?.testTitle || defaultSub?.title || '';
+    let initialSubject = defaultSub?.subject || '';
+    let initialTopic = defaultSub?.topic || '';
+
+    if (!defaultSub && availableHomeworkOptions.length > 0) {
+      const topOpt = availableHomeworkOptions[0];
+      initialHwId = topOpt.id;
+      initialTitle = topOpt.title;
+      initialSubject = topOpt.subject || 'Matematik';
+      initialTopic = topOpt.topic || '';
+    }
+
     setNewErrorForm({
-      homeworkId: sub.id,
-      testTitle: sub.testTitle || 'Ödev / Sınav',
-      subject: sub.subject || 'Matematik',
-      topic: '',
+      homeworkId: initialHwId,
+      testTitle: initialTitle,
+      subject: initialSubject || 'Matematik',
+      topic: initialTopic || '',
       questionNo: '',
       imageUrl: '',
       reason: '⚡ İşlem Hatası',
@@ -407,22 +426,29 @@ export default function StudentWrongAnswersPage() {
     setShowAddModal(true);
   };
 
+  const handleOpenAddModalForTest = (sub, e) => {
+    if (e) e.stopPropagation();
+    handleOpenAddModal(sub);
+  };
+
   const handleSelectHomeworkForModal = (hwId) => {
     if (hwId === 'custom' || !hwId) {
       setNewErrorForm(prev => ({
         ...prev,
-        homeworkId: 'custom',
+        homeworkId: hwId || 'custom',
         testTitle: prev.testTitle || '',
-        subject: prev.subject || 'Matematik'
+        subject: prev.subject || 'Matematik',
+        topic: prev.topic || ''
       }));
     } else {
-      const selected = availableHomeworkOptions.find(o => o.id === hwId);
+      const selected = availableHomeworkOptions.find(o => String(o.id) === String(hwId));
       if (selected) {
         setNewErrorForm(prev => ({
           ...prev,
           homeworkId: selected.id,
           testTitle: selected.title,
-          subject: selected.subject || prev.subject
+          subject: selected.subject || prev.subject || 'Matematik',
+          topic: selected.topic || ''
         }));
       }
     }
@@ -1320,7 +1346,7 @@ export default function StudentWrongAnswersPage() {
               </div>
 
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => handleOpenAddModal()}
                 style={{
                   background: 'linear-gradient(135deg, #e11d48, #be123c)',
                   color: 'white',
