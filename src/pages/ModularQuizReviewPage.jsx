@@ -10,6 +10,8 @@ import ImageQuizReview from '../components/quiz/review/ImageQuizReview';
 import StandardQuizReview from '../components/quiz/review/StandardQuizReview';
 import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
 
+import { resolveTestQuestions } from './ModularQuizPage';
+
 export default function ModularQuizReviewPage() {
   const { testId } = useParams();
   const [searchParams] = useSearchParams();
@@ -35,7 +37,7 @@ export default function ModularQuizReviewPage() {
 
     if (foundTest) {
       setTest(foundTest);
-      const testQs = getQuestionsForTest ? getQuestionsForTest(foundTest.id) : (foundTest.questions || []);
+      const testQs = resolveTestQuestions(foundTest);
       setQuestions(testQs);
     }
 

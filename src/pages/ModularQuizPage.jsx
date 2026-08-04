@@ -1,15 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useHomework } from '../context/HomeworkContext';
-import { useEvaluation } from '../context/EvaluationContext';
-import { useCurriculum } from '../context/CurriculumContext';
-import { useQuestionBank } from '../context/QuestionBankContext';
+export function resolveTestQuestions(foundTest, allBankQuestions = []) {
+  if (!foundTest) return [];
 
-import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
-import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
-import ImageQuizRunner from '../components/quiz/runner/ImageQuizRunner';
-import StandardQuizRunner from '../components/quiz/runner/StandardQuizRunner';
-import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
+  let rawQuestions = [];
+
+  // 1. If test has questionIds (e.g. assigned homework referencing QuestionBank question IDs)
+  if (foundTest.questionIds && Array.isArray(foundTest.questionIds) && foundTest.questionIds.length > 0) {
+    foundTest.questionIds.forEach(qId => {
+      const bankQ = allBankQuestions?.find(bq => String(bq.id) === String(qId));
+      if (bankQ) {
+        rawQuestions.push(bankQ);
+      } else if (typeof qId === 'object' && qId !== null) {
+        rawQuestions.push(qId);
+      }
+    });
+  }
+
+  // 2. If test has direct questions array
+  if (rawQuestions.length === 0 && foundTest.questions && Array.isArray(foundTest.questions) && foundTest.questions.length > 0) {
+    rawQuestions = foundTest.questions;
+  }
+
+  // 3. Fallback: use foundTest itself as the raw question object
+  if (rawQuestions.length === 0) {
+    rawQuestions = [foundTest];
+  }
+
+  let finalQuestions = [];
+
+  rawQuestions.forEach((q, qIndex) => {
+    // Sub-case A: Item has sub-questions list (questionsList)
+    if (q.questionsList && Array.isArray(q.questionsList) && q.questionsList.length > 0) {
+      q.questionsList.forEach((subQ, subIdx) => {
+        const subImage = subQ.imageUrl || subQ.contentPayload || (q.imageUrls?.[subIdx] || q.imageUrls?.[0]);
+        finalQuestions.push({
+          ...subQ,
+          id: subQ.id || `${q.id || 'q'}_sub_${subIdx}`,
+          questionText: subQ.questionText || subQ.title || `Soru ${finalQuestions.length + 1}`,
+          options: (subQ.options && subQ.options.length > 0) ? subQ.options : (q.options && q.options.length > 0 ? q.options : ['A', 'B', 'C', 'D', 'E']),
+          correctAnswer: subQ.correctAnswer !== undefined ? subQ.correctAnswer : (q.answerKey?.[subIdx] !== undefined ? q.answerKey[subIdx] : (q.correctAnswer || 0)),
+          contentPayload: subImage,
+          imageUrl: subImage,
+          imageUrls: subQ.imageUrls && subQ.imageUrls.length > 0 ? subQ.imageUrls : (subImage ? [subImage] : [])
+        });
+      });
+    }
+    // Sub-case B: Item has multiple imageUrls
+    else if (q.imageUrls && Array.isArray(q.imageUrls) && q.imageUrls.length > 0) {
+      const allUrls = q.imageUrls.flatMap(url => typeof url === 'string' && url.includes('\n\n') ? url.split('\n\n').filter(Boolean) : [url]);
+      allUrls.forEach((url, imgIdx) => {
+        finalQuestions.push({
+          id: `${q.id || 'q'}_img_${imgIdx}`,
+          questionText: `Soru ${finalQuestions.length + 1}`,
+          imageUrls: [url],
+          imageUrl: url,
+          contentPayload: url,
+          options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E'],
+          correctAnswer: q.answerKey?.[imgIdx] !== undefined ? q.answerKey[imgIdx] : (q.correctAnswer || 0)
+        });
+      });
+    }
+    // Sub-case C: Item has contentPayload with multiple concatenated image URLs/data strings (\n\n)
+    else if (q.contentPayload && typeof q.contentPayload === 'string' && q.contentPayload.includes('\n\n')) {
+      const splitUrls = q.contentPayload.split('\n\n').map(s => s.trim()).filter(Boolean);
+      if (splitUrls.length > 1) {
+        splitUrls.forEach((url, splitIdx) => {
+          finalQuestions.push({
+            id: `${q.id || 'q'}_split_${splitIdx}`,
+            questionText: `Soru ${finalQuestions.length + 1}`,
+            imageUrls: [url],
+            imageUrl: url,
+            contentPayload: url,
+            options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E'],
+            correctAnswer: q.answerKey?.[splitIdx] !== undefined ? q.answerKey[splitIdx] : (q.correctAnswer || 0)
+          });
+        });
+      } else {
+        finalQuestions.push({
+          ...q,
+          id: q.id || `q_${qIndex + 1}`,
+          questionText: q.questionText || q.title || `Soru ${finalQuestions.length + 1}`,
+          options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E']
+        });
+      }
+    }
+    // Sub-case D: Single question item
+    else {
+      finalQuestions.push({
+        ...q,
+        id: q.id || `q_${qIndex + 1}`,
+        questionText: q.questionText || q.title || `Soru ${finalQuestions.length + 1}`,
+        options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E']
+      });
+    }
+  });
+
+  return finalQuestions;
+}
 
 export default function ModularQuizPage() {
   const { testId } = useParams();
@@ -17,7 +103,7 @@ export default function ModularQuizPage() {
   const studentId = searchParams.get('studentId') || 'u1';
   const navigate = useNavigate();
 
-  const { homeworks, getQuestionsForTest } = useHomework();
+  const { homeworks } = useHomework();
   const { addSubmission } = useEvaluation();
   const { data: curriculumData } = useCurriculum();
   const { questions: allBankQuestions } = useQuestionBank();
@@ -39,41 +125,11 @@ export default function ModularQuizPage() {
 
     if (foundTest) {
       setTest(foundTest);
-      let testQs = getQuestionsForTest ? getQuestionsForTest(foundTest.id) : (foundTest.questions || []);
-
-      // Fallback: If testQs is empty, check if foundTest itself contains questionsList, imageUrls, or payload
-      if ((!testQs || testQs.length === 0) && foundTest) {
-        if (foundTest.questionsList && foundTest.questionsList.length > 0) {
-          testQs = foundTest.questionsList;
-        } else if (foundTest.imageUrls && foundTest.imageUrls.length > 0) {
-          testQs = foundTest.imageUrls.map((url, idx) => ({
-            id: `${foundTest.id}_q${idx + 1}`,
-            imageUrls: [url],
-            questionText: `Soru ${idx + 1}`
-          }));
-        } else if (foundTest.questionCount > 0) {
-          testQs = Array.from({ length: foundTest.questionCount }).map((_, idx) => ({
-            id: `${foundTest.id}_q${idx + 1}`,
-            contentPayload: foundTest.contentPayload,
-            imageUrl: foundTest.imageUrl,
-            imageUrls: foundTest.imageUrls,
-            questionText: `Soru ${idx + 1}`
-          }));
-        } else if (foundTest.contentPayload || foundTest.imageUrl) {
-          testQs = [{
-            id: `${foundTest.id}_q1`,
-            contentPayload: foundTest.contentPayload,
-            imageUrl: foundTest.imageUrl,
-            imageUrls: foundTest.imageUrls,
-            questionText: foundTest.title || 'Soru 1'
-          }];
-        }
-      }
-
-      setQuestions(testQs || []);
+      const resolved = resolveTestQuestions(foundTest, allBankQuestions);
+      setQuestions(resolved);
     }
     setLoading(false);
-  }, [testId, homeworks, curriculumData, allBankQuestions, getQuestionsForTest]);
+  }, [testId, homeworks, curriculumData, allBankQuestions]);
 
   if (loading) {
     return (
@@ -139,7 +195,7 @@ export default function ModularQuizPage() {
     test.type === 'gorsel' || 
     (test.title && test.title.toLowerCase().includes('görsel')) ||
     (test.imageUrls && test.imageUrls.length > 0) ||
-    (questions.length > 0 && (questions[0].contentType === 'gorsel' || (questions[0].imageUrls && questions[0].imageUrls.length > 0) || (questions[0].contentPayload && !questions[0].options)));
+    questions.some(q => q.contentType === 'gorsel' || (q.imageUrls && q.imageUrls.length > 0) || q.imageUrl || (q.contentPayload && (q.contentPayload.startsWith('data:image') || q.contentPayload.startsWith('http') || q.contentPayload.includes('\n\n'))));
 
   if (isPdf) {
     return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
