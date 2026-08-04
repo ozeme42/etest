@@ -253,6 +253,7 @@ export default function MyCoachingPage() {
   const [assigningTopicKey, setAssigningTopicKey] = useState(null);
   const [assignDay, setAssignDay] = useState('Pzt');
   const [assignHours, setAssignHours] = useState('1 sa');
+  const [assignType, setAssignType] = useState('Konu Çalışması');
   const [hideDoneInProgram, setHideDoneInProgram] = useState(true);
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
@@ -341,7 +342,7 @@ export default function MyCoachingPage() {
       : s));
   };
 
-  const assignTopicToDay = (subjectName, topicName, dayName, hours = '1 sa') => {
+  const assignTopicToDay = (subjectName, topicName, dayName, hours = '1 sa', activityType = 'Konu Çalışması') => {
     if (!subjectName || !topicName || !dayName) return;
     
     const targetDay = (dayName === 'Pazartesi' ? 'Pzt' :
@@ -357,7 +358,7 @@ export default function MyCoachingPage() {
       const normalized = normalizeWeeklyProgram(prev);
       return normalized.map(d => {
         if (d.day === targetDay) {
-          const existing = (d.items || []).find(i => i.subject === subjectName && i.topic === topicName);
+          const existing = (d.items || []).find(i => i.subject === subjectName && i.topic === topicName && i.type === activityType);
           if (existing) return d;
           return {
             ...d,
@@ -367,6 +368,7 @@ export default function MyCoachingPage() {
                 id: uid(),
                 subject: subjectName,
                 topic: topicName,
+                type: activityType || 'Konu Çalışması',
                 hours: hours || '1 sa',
                 isRecurring: true,
                 done: false
@@ -1229,16 +1231,25 @@ export default function MyCoachingPage() {
 
                                   {/* Hızlı Güne Atama Modalı / Popover */}
                                   {isAssigningThis && (
-                                    <div style={{ marginTop: 4, background: '#f8fafc', border: '1.5px solid #c7d2fe', borderRadius: '0.6rem', padding: '0.6rem', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div style={{ marginTop: 6, background: '#f8fafc', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.65rem', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                                       <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151' }}>Gün:</span>
                                       <select style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 'auto' }} value={assignDay} onChange={e => setAssignDay(e.target.value)}>
                                         {DAYS.map(d => <option key={d} value={d}>{d} ({DAY_LONG[d]})</option>)}
                                       </select>
 
-                                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151', marginLeft: 4 }}>Saat:</span>
-                                      <input style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 70 }} value={assignHours} onChange={e => setAssignHours(e.target.value)} placeholder="1 sa" />
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151', marginLeft: 2 }}>Tür:</span>
+                                      <select style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 'auto' }} value={assignType} onChange={e => setAssignType(e.target.value)}>
+                                        <option value="Konu Çalışması">📖 Konu Çalışması</option>
+                                        <option value="Tekrar">🔄 Tekrar</option>
+                                        <option value="Soru Çözümü">✏️ Soru Çözümü</option>
+                                        <option value="Deneme / Test">📝 Deneme / Test</option>
+                                        <option value="Etkinlik">💡 Etkinlik</option>
+                                      </select>
 
-                                      <button onClick={() => assignTopicToDay(sub.name, t.name, assignDay, assignHours)}
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151', marginLeft: 2 }}>Süre:</span>
+                                      <input style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 65 }} value={assignHours} onChange={e => setAssignHours(e.target.value)} placeholder="1 sa" />
+
+                                      <button onClick={() => assignTopicToDay(sub.name, t.name, assignDay, assignHours, assignType)}
                                         style={{ background: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.45rem', padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', marginLeft: 'auto' }}>
                                         ✓ Programa Ekle
                                       </button>
@@ -1346,6 +1357,11 @@ export default function MyCoachingPage() {
                                 <div style={{ flex: 1, minWidth: 0, fontSize: '0.78rem' }}>
                                   <span style={{ fontWeight: 800, color: '#475569', marginRight: 4 }}>[{item.subject}]</span>
                                   <span style={{ fontWeight: 700, color: item.done ? '#9ca3af' : '#1e293b', textDecoration: item.done ? 'line-through' : 'none' }}>{item.topic}</span>
+                                  {item.type && (
+                                    <span style={{ marginLeft: 4, fontSize: '0.66rem', fontWeight: 800, color: '#7c3aed', background: '#f3e8ff', border: '1px solid #e9d5ff', padding: '0.08rem 0.4rem', borderRadius: '0.35rem' }}>
+                                      {item.type === 'Konu Çalışması' ? '📖 Konu' : item.type === 'Tekrar' ? '🔄 Tekrar' : item.type === 'Soru Çözümü' ? '✏️ Soru' : item.type === 'Deneme / Test' ? '📝 Test' : item.type}
+                                    </span>
+                                  )}
                                 </div>
 
                                 {item.hours && <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', background: '#e0e7ff', padding: '0.1rem 0.4rem', borderRadius: 4 }}>{item.hours}</span>}
