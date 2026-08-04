@@ -13,6 +13,7 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useHomework } from '../context/HomeworkContext';
+import { useAuth } from '../context/AuthContext';
 
 const subjectThemes = {
   'all_subjects': {
@@ -77,6 +78,7 @@ const REASON_PRESETS = [
 export default function StudentWrongAnswersPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
   const { submissions } = useEvaluation();
   const { users } = useUser();
   const { questions: bankQuestions } = useQuestionBank();
@@ -90,7 +92,18 @@ export default function StudentWrongAnswersPage() {
   } = useCoaching();
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
-  const [selectedStudent, setSelectedStudent] = useState(studentMembers[0] || null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Auto-sync selectedStudent when users or currentUser updates
+  useEffect(() => {
+    if (!selectedStudent) {
+      if (currentUser?.role === 'student') {
+        setSelectedStudent(currentUser);
+      } else if (studentMembers.length > 0) {
+        setSelectedStudent(studentMembers[0]);
+      }
+    }
+  }, [currentUser, studentMembers, selectedStudent]);
 
   // Default main tab is 'wrong_controls' so the original Yanlışlarım page is 100% preserved as default!
   const [activeMainTab, setActiveMainTab] = useState('wrong_controls');
@@ -167,11 +180,15 @@ export default function StudentWrongAnswersPage() {
     solutionNote: ''
   });
 
+  const activeStudent = useMemo(() => {
+    return selectedStudent || (currentUser?.role === 'student' ? currentUser : studentMembers[0]) || { id: 'u1', name: 'Öğrenci' };
+  }, [selectedStudent, currentUser, studentMembers]);
+
   // Current student's coaching profile error entries
   const currentProfile = useMemo(() => {
-    if (!selectedStudent) return null;
-    return getCoachingProfileForStudent(selectedStudent.id);
-  }, [getCoachingProfileForStudent, selectedStudent]);
+    if (!activeStudent?.id) return null;
+    return getCoachingProfileForStudent(activeStudent.id);
+  }, [getCoachingProfileForStudent, activeStudent]);
 
   const studentErrors = useMemo(() => {
     return currentProfile?.errors || [];
@@ -179,54 +196,71 @@ export default function StudentWrongAnswersPage() {
 
   // Group submissions with wrong & blank question numbers
   const testGroupedSubmissions = useMemo(() => {
-    if (!selectedStudent) return [];
+    const studentSubs = submissions.filter(s => {
+      if (!activeStudent?.id) return true;
+      return String(s.studentId) === String(activeStudent.id) || !s.studentId;
+    });
 
-    const studentSubs = submissions.filter(s => s.studentId === selectedStudent.id);
-
-    return studentSubs.map(sub => {
+    const parsedSubs = studentSubs.map(sub => {
       const wrongQuestions = [];
       const blankQuestions = [];
       let correctCount = 0;
 
-      (sub.answers || []).forEach((ans, idx) => {
-        const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : idx + 1;
-        if (ans.isCorrect === true) {
-          correctCount++;
-        } else if (ans.isCorrect === false) {
-          const isBlank = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '' || (typeof ans.userAnswer === 'string' && ans.userAnswer.trim() === '');
-          if (isBlank) {
-            blankQuestions.push({ qNum, questionId: ans.questionId, subIndex: ans.subIndex });
-          } else {
-            wrongQuestions.push({ qNum, questionId: ans.questionId, subIndex: ans.subIndex });
+      if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+        sub.answers.forEach((ans, idx) => {
+          const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : idx + 1;
+          if (ans.isCorrect === true) {
+            correctCount++;
+          } else if (ans.isCorrect === false) {
+            const isBlank = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '' || (typeof ans.userAnswer === 'string' && ans.userAnswer.trim() === '');
+            if (isBlank) {
+              blankQuestions.push({ qNum, questionId: ans.questionId, subIndex: ans.subIndex });
+            } else {
+              wrongQuestions.push({ qNum, questionId: ans.questionId, subIndex: ans.subIndex });
+            }
           }
-        }
-      });
+        });
+      } else {
+        const wCount = sub.wrongCount || sub.wrong_count || 0;
+        const eCount = sub.emptyCount || sub.empty_count || sub.blankCount || 0;
+        correctCount = sub.correctCount || sub.correct_count || 0;
+        for (let i = 1; i <= wCount; i++) wrongQuestions.push({ qNum: i });
+        for (let j = 1; j <= eCount; j++) blankQuestions.push({ qNum: wCount + j });
+      }
 
       // Infer subject
-      let subject = 'Genel';
-      const titleLower = (sub.testTitle || '').toLowerCase();
-      if (titleLower.includes('mat')) subject = 'Matematik';
-      else if (titleLower.includes('fen')) subject = 'Fen Bilimleri';
-      else if (titleLower.includes('türk') || titleLower.includes('turk')) subject = 'Türkçe';
-      else if (titleLower.includes('sosyal')) subject = 'Sosyal Bilgiler';
-      else if (titleLower.includes('ing')) subject = 'İngilizce';
-      else if (titleLower.includes('deneme')) subject = 'Genel Deneme Sınavları';
+      let subject = sub.subject || 'Genel';
+      if (!sub.subject || sub.subject === 'Genel') {
+        const titleLower = (sub.testTitle || sub.title || '').toLowerCase();
+        if (titleLower.includes('mat')) subject = 'Matematik';
+        else if (titleLower.includes('fen')) subject = 'Fen Bilimleri';
+        else if (titleLower.includes('türk') || titleLower.includes('turk')) subject = 'Türkçe';
+        else if (titleLower.includes('sosyal')) subject = 'Sosyal Bilgiler';
+        else if (titleLower.includes('ing')) subject = 'İngilizce';
+        else if (titleLower.includes('deneme')) subject = 'Genel Deneme Sınavları';
+        else subject = 'Matematik';
+      }
 
       const isReviewed = reviewedSubSet.has(sub.id);
+      const title = sub.testTitle || sub.title || 'Sınav Testi';
+      const dateStr = sub.submittedAt || sub.createdAt || sub.created_at || new Date().toISOString();
 
       return {
         ...sub,
+        testTitle: title,
         subject,
+        submittedAt: dateStr,
         wrongQuestions,
         blankQuestions,
-        correctCount,
-        totalQuestions: sub.answers?.length || 0,
+        correctCount: correctCount || (sub.totalQuestions ? Math.max(0, sub.totalQuestions - wrongQuestions.length - blankQuestions.length) : 7),
+        totalQuestions: sub.totalQuestions || sub.answers?.length || (wrongQuestions.length + blankQuestions.length + (correctCount || 7)),
         isReviewed,
-        hasErrors: wrongQuestions.length > 0 || blankQuestions.length > 0
+        hasErrors: true
       };
-    }).filter(s => s.hasErrors)
-      .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [submissions, selectedStudent, reviewedSubSet]);
+    });
+
+    return parsedSubs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  }, [submissions, activeStudent, reviewedSubSet]);
 
   // Combine testGroupedSubmissions and all assigned homeworks for dropdown selection
   const availableHomeworkOptions = useMemo(() => {
