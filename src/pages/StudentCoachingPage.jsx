@@ -406,6 +406,37 @@ export default function StudentCoachingPage() {
   ]);
   const [newHabit, setNewHabit] = useState('');
 
+  /* ── Okul Yazılı Notları ── */
+  const [schoolGrades, setSchoolGrades] = useState([]);
+  const [newSchoolGrade, setNewSchoolGrade] = useState({
+    subject: SUBJECTS[0] || 'Matematik',
+    examName: '1. Dönem 1. Yazılı',
+    score: '',
+    date: today()
+  });
+
+  const addSchoolGrade = () => {
+    if (newSchoolGrade.score === '' || isNaN(newSchoolGrade.score)) return;
+    const item = {
+      id: uid(),
+      subject: newSchoolGrade.subject,
+      examName: newSchoolGrade.examName,
+      score: Math.min(100, Math.max(0, parseFloat(newSchoolGrade.score))),
+      date: newSchoolGrade.date || today()
+    };
+    setSchoolGrades(prev => [item, ...prev]);
+    setNewSchoolGrade({
+      subject: newSchoolGrade.subject,
+      examName: '1. Dönem 2. Yazılı',
+      score: '',
+      date: today()
+    });
+  };
+
+  const deleteSchoolGrade = (id) => {
+    setSchoolGrades(prev => prev.filter(g => g.id !== id));
+  };
+
   /* ── Konu Havuzu ── */
   const [topicPool, setTopicPool] = useState([]);
   const [newPoolSubject, setNewPoolSubject] = useState({ name: '', color: '#7c3aed' });
@@ -648,6 +679,7 @@ export default function StudentCoachingPage() {
     if (existingProfile.motivation) setMotivation(p => ({ ...p, ...existingProfile.motivation }));
     if (existingProfile.habits) setHabits(existingProfile.habits);
     if (existingProfile.topicPool) setTopicPool(existingProfile.topicPool);
+    if (existingProfile.schoolGrades) setSchoolGrades(existingProfile.schoolGrades);
   }, [existingProfile.studentId]);
 
   /* ─── Deneme sonuçları (otomatik + manuel kombine) ─── */
@@ -798,10 +830,12 @@ export default function StudentCoachingPage() {
     };
 
     // 1. EvaluationContext Online Sınavlar
-    const onlineEval = mySubmissions.map(s => {
-      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId));
-      return normalizeSub(s, parentHw, 'online');
-    });
+    const onlineEval = mySubmissions
+      .filter(s => !s.testId || (homeworks || []).some(h => String(h.id) === String(s.testId)))
+      .map(s => {
+        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId));
+        return normalizeSub(s, parentHw, 'online');
+      });
 
     // 2. HomeworkContext Optik / Ödev Sınavları
     const hwSubmissions = [];
@@ -864,11 +898,12 @@ export default function StudentCoachingPage() {
       monthlyGoals: goals.monthlyGoals,
       weeklyGoals:  goals.weeklyGoals,
       dailyGoals:   goals.dailyGoals,
-      goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool
+      schoolGrades: schoolGrades,
+      goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  }, [goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool]);
+  }, [goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades]);
 
   /* ─── Multi-Item Weekly Program Handlers ─── */
   const addWeeklyItem = (dayName) => {
@@ -976,9 +1011,14 @@ export default function StudentCoachingPage() {
   const totalWeeklyItems = weeklyProgram.reduce((s, d) => s + (d.items?.length || 0), 0);
   const completedWeeklyItems = weeklyProgram.reduce((s, d) => s + (d.items?.filter(i => i.done).length || 0), 0);
 
+  const schoolGradesAvg = schoolGrades.length > 0
+    ? (schoolGrades.reduce((sum, g) => sum + (parseFloat(g.score) || 0), 0) / schoolGrades.length).toFixed(1)
+    : null;
+
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
     { id: 'hedefler', label: '🎯 Hedeflerim' },
+    { id: 'yazilinotlari', label: '✍️ Yazılı Notlarım' },
     { id: 'hedefpanosu', label: '📊 Özel Hedef Takip Panosu' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
@@ -1771,17 +1811,8 @@ export default function StudentCoachingPage() {
               <AddInput value={newWeekly} onChange={setNewWeekly} placeholder="Yeni haftalık hedef..." color="#7c3aed"
                 onAdd={() => { if (newWeekly.trim()) { setGoals(p => ({ ...p, weeklyGoals: [...(p.weeklyGoals||[]), { id: uid(), text: newWeekly.trim(), done: false }] })); setNewWeekly(''); }}} />
             </Card>
-            {/* Günlük */}
-            <Card emoji="🌅" title={`Günlük Rutinlerim (${(goals.dailyGoals||[]).filter(g=>g.done).length}/${(goals.dailyGoals||[]).length} bugün)`}>
-              {(goals.dailyGoals || []).map(g => (
-                <CheckItem key={g.id} label={g.text} checked={g.done}
-                  onChange={() => setGoals(p => ({ ...p, dailyGoals: p.dailyGoals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
-                  onDelete={() => setGoals(p => ({ ...p, dailyGoals: p.dailyGoals.filter(x => x.id !== g.id) }))} />
-              ))}
-              {(goals.dailyGoals||[]).length > 0 && <Progress value={(goals.dailyGoals||[]).filter(g=>g.done).length} max={(goals.dailyGoals||[]).length} color="#dc2626" label="Bugünün tamamlanması" />}
-              <AddInput value={newDaily} onChange={setNewDaily} placeholder="Yeni günlük rutin..." color="#dc2626"
-                onAdd={() => { if (newDaily.trim()) { setGoals(p => ({ ...p, dailyGoals: [...(p.dailyGoals||[]), { id: uid(), text: newDaily.trim(), done: false }] })); setNewDaily(''); }}} />
-            </Card>
+
+
           </div>
         )}
 
@@ -2059,6 +2090,145 @@ export default function StudentCoachingPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ═══ OKUL YAZILI NOTLARIM ═══ */}
+        {activeTab === 'yazilinotlari' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <Tip>Okuldaki 1. ve 2. dönem yazılı sınav notlarını buraya ekleyerek akademik ortalamanı takip edebilirsin!</Tip>
+
+            {/* Özet İstatistik Kartları */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', borderRadius: '1rem', padding: '1.15rem', color: 'white', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.2)' }}>
+                <div style={{ fontSize: '0.78rem', opacity: 0.85, fontWeight: 700, marginBottom: 4 }}>YAZILI ORTALAMASI</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900 }}>{schoolGradesAvg !== null ? `${schoolGradesAvg} Puan` : '—'}</div>
+                <div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>{schoolGrades.length} Yazılı Kayıtlı</div>
+              </div>
+
+              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>EN YÜKSEK NOT</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981' }}>
+                  {schoolGrades.length > 0 ? `${Math.max(...schoolGrades.map(g => parseFloat(g.score) || 0))}` : '—'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>En başarılı yazılınız</div>
+              </div>
+
+              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>DERS ÇEŞİDİ</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f59e0b' }}>
+                  {new Set(schoolGrades.map(g => g.subject)).size} Ders
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>Not girilen ders sayısı</div>
+              </div>
+            </div>
+
+            {/* Yeni Not Ekle Kartı */}
+            <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>📝</span> Yeni Yazılı Sınav Notu Ekle
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); addSchoolGrade(); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Ders Seçin</label>
+                  <select
+                    value={newSchoolGrade.subject}
+                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, subject: e.target.value }))}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}
+                  >
+                    {[...(SUBJECTS || []), 'Din Kültürü', 'İnkılap Tarihi', 'Almanca', 'Müzik', 'Görsel Sanatlar', 'Beden Eğitimi', 'Diğer'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Sınav Adı / Dönem</label>
+                  <input
+                    type="text"
+                    value={newSchoolGrade.examName}
+                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, examName: e.target.value }))}
+                    placeholder="ör: 1. Dönem 1. Yazılı"
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Aldığı Not (0 - 100)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newSchoolGrade.score}
+                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, score: e.target.value }))}
+                    placeholder="ör: 85"
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Tarih</label>
+                  <input
+                    type="date"
+                    value={newSchoolGrade.date}
+                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, date: e.target.value }))}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  style={{ padding: '0.65rem 1.25rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)' }}
+                >
+                  <Plus size={16} /> Notu Ekle
+                </button>
+              </form>
+            </div>
+
+            {/* Eklenen Yazılı Notları Listesi */}
+            <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📋 Eklenen Yazılı Sınavlar ({schoolGrades.length})</span>
+              </div>
+
+              {schoolGrades.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', fontWeight: 600 }}>
+                  Henüz yazılı notu eklenmemiş. Yukarıdaki formu kullanarak ilk yazılı notunuzu girebilirsiniz.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.85rem' }}>
+                  {schoolGrades.map((g) => {
+                    const sc = parseFloat(g.score) || 0;
+                    const badgeBg = sc >= 85 ? '#dcfce7' : sc >= 70 ? '#fef3c7' : '#fee2e2';
+                    const badgeColor = sc >= 85 ? '#15803d' : sc >= 70 ? '#b45309' : '#b91c1c';
+
+                    return (
+                      <div key={g.id} style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1' }}>{g.subject}</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', margin: '2px 0' }}>{g.examName}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>{g.date}</div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ background: badgeBg, color: badgeColor, padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '1.1rem' }}>
+                            {g.score}
+                          </div>
+                          <button
+                            onClick={() => deleteSchoolGrade(g.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }}
+                            title="Sil"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
