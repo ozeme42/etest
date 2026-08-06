@@ -359,6 +359,7 @@ export default function MyCoachingPage() {
     ]
   });
   const [goalTabMode, setGoalTabMode] = useState('sayisal'); // 'sayisal' | 'gorev'
+  const [showAddCounterForm, setShowAddCounterForm] = useState(false);
   const [newCounterTitle, setNewCounterTitle] = useState('');
   const [newCounterPeriod, setNewCounterPeriod] = useState('Haftalık');
   const [newCounterTarget, setNewCounterTarget] = useState('');
@@ -2146,115 +2147,131 @@ export default function MyCoachingPage() {
               {/* 📊 SAYISAL HEDEF SAYICILARI MODU */}
               {goalTabMode === 'sayisal' && (
                 <div>
-                  {/* Yeni Sayısal Hedef Ekleme Formu */}
-                  <form onSubmit={handleCreateCounterGoal} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', marginBottom: '1.25rem', alignItems: 'end' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: 3 }}>Hedef Başlığı</label>
-                      <input
-                        type="text"
-                        placeholder="ör: Haftalık Soru Çözme"
-                        value={newCounterTitle}
-                        onChange={e => setNewCounterTitle(e.target.value)}
-                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: 3 }}>Periyot</label>
-                      <select
-                        value={newCounterPeriod}
-                        onChange={e => setNewCounterPeriod(e.target.value)}
-                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}
-                      >
-                        <option value="Günlük">☀️ Günlük</option>
-                        <option value="Haftalık">⚡ Haftalık</option>
-                        <option value="Aylık">📅 Aylık</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: 3 }}>Hedef Miktarı</label>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="ör: 350"
-                        value={newCounterTarget}
-                        onChange={e => setNewCounterTarget(e.target.value)}
-                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: 3 }}>Birim</label>
-                      <select
-                        value={newCounterUnit}
-                        onChange={e => setNewCounterUnit(e.target.value)}
-                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}
-                      >
-                        <option value="Soru">Soru</option>
-                        <option value="Sayfa">Sayfa (Kitap)</option>
-                        <option value="Saat">Saat (Süre)</option>
-                        <option value="Net">Net</option>
-                        <option value="Konu">Konu/Ünite</option>
-                        <option value="Adet">Adet</option>
-                      </select>
-                    </div>
-
+                  {/* Top Bar with Add Toggle */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>Sayısal Takip Çubukları ({(goals.counterGoals||[]).length})</span>
                     <button
-                      type="submit"
-                      style={{ padding: '0.6rem 1rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 38, whiteSpace: 'nowrap' }}
+                      onClick={() => setShowAddCounterForm(p => !p)}
+                      style={{
+                        padding: '0.35rem 0.75rem', borderRadius: '0.55rem', background: showAddCounterForm ? '#cbd5e1' : '#4f46e5',
+                        color: showAddCounterForm ? '#334155' : 'white', border: 'none', fontWeight: 800, fontSize: '0.78rem',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                      }}
                     >
-                      <Plus size={16} /> Sayaç Hedefi Ekle
+                      <Plus size={14} /> {showAddCounterForm ? 'Formu Kapat' : 'Yeni Sayaç Hedefi'}
                     </button>
-                  </form>
+                  </div>
 
-                  {/* Sayısal Hedef Kartları Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {/* Yeni Sayısal Hedef Ekleme Formu (Açılır/Kapanır) */}
+                  {showAddCounterForm && (
+                    <form onSubmit={e => { handleCreateCounterGoal(e); setShowAddCounterForm(false); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0', marginBottom: '1rem', alignItems: 'end' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: 2 }}>Hedef Adı</label>
+                        <input
+                          type="text"
+                          placeholder="ör: Haftalık Soru"
+                          value={newCounterTitle}
+                          onChange={e => setNewCounterTitle(e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: 2 }}>Periyot</label>
+                        <select
+                          value={newCounterPeriod}
+                          onChange={e => setNewCounterPeriod(e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}
+                        >
+                          <option value="Günlük">☀️ Günlük</option>
+                          <option value="Haftalık">⚡ Haftalık</option>
+                          <option value="Aylık">📅 Aylık</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: 2 }}>Hedef Miktarı</label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="ör: 350"
+                          value={newCounterTarget}
+                          onChange={e => setNewCounterTarget(e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: 2 }}>Birim</label>
+                        <select
+                          value={newCounterUnit}
+                          onChange={e => setNewCounterUnit(e.target.value)}
+                          style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}
+                        >
+                          <option value="Soru">Soru</option>
+                          <option value="Sayfa">Sayfa (Kitap)</option>
+                          <option value="Saat">Saat (Süre)</option>
+                          <option value="Net">Net</option>
+                          <option value="Konu">Konu/Ünite</option>
+                          <option value="Adet">Adet</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="submit"
+                        style={{ padding: '0.45rem 0.85rem', borderRadius: '0.4rem', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 32 }}
+                      >
+                        <Plus size={14} /> Kaydet
+                      </button>
+                    </form>
+                  )}
+
+                  {/* Sayısal Hedef Kartları Grid - Kompakt Satırlar */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                     {(goals.counterGoals || []).map(cg => {
                       const current = cg.current || 0;
                       const target = cg.target || 100;
                       const pct = Math.min(100, Math.round((current / target) * 100));
                       const isCompleted = current >= target;
-                      const periodColor = cg.period === 'Günlük' ? '#f59e0b' : cg.period === 'Haftalık' ? '#7c3aed' : '#2563eb';
+                      const periodColor = cg.period === 'Günlük' ? '#d97706' : cg.period === 'Haftalık' ? '#7c3aed' : '#2563eb';
                       const periodBg = cg.period === 'Günlük' ? '#fffbeb' : cg.period === 'Haftalık' ? '#f3e8ff' : '#eff6ff';
 
                       return (
                         <div key={cg.id} style={{
-                          background: 'white', borderRadius: '1rem', padding: '1.15rem',
-                          border: isCompleted ? '2px solid #10b981' : '1px solid #e2e8f0',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '0.85rem'
+                          background: 'white', borderRadius: '0.75rem', padding: '0.75rem 0.95rem',
+                          border: isCompleted ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '0.45rem'
                         }}>
-                          {/* Card Header */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                              <span style={{ fontSize: '0.72rem', background: periodBg, color: periodColor, padding: '0.15rem 0.5rem', borderRadius: 4, fontWeight: 900 }}>
+                          {/* Row 1: Badges + Title + Numbers + Delete */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <span style={{ fontSize: '0.68rem', background: periodBg, color: periodColor, padding: '0.12rem 0.4rem', borderRadius: 4, fontWeight: 900 }}>
                                 {cg.period === 'Günlük' ? '☀️ GÜNLÜK' : cg.period === 'Haftalık' ? '⚡ HAFTALIK' : '📅 AYLIK'}
                               </span>
-                              <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#1e293b', margin: '4px 0 0 0' }}>{cg.title}</h4>
+                              <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
                             </div>
-                            <button
-                              onClick={() => handleDeleteCounterGoal(cg.id)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}
-                              title="Hedefi Sil"
-                            >
-                              <Trash2 size={15} />
-                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: isCompleted ? '#059669' : '#0f172a' }}>
+                                {current} <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>/ {target} {cg.unit}</span>
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCompleted ? '#10b981' : periodColor, background: isCompleted ? '#dcfce7' : periodBg, padding: '0.12rem 0.4rem', borderRadius: 4 }}>
+                                %{pct}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteCounterGoal(cg.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}
+                                title="Hedefi Sil"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
 
-                          {/* Big Counter Value */}
-                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: isCompleted ? '#059669' : '#0f172a' }}>
-                              {current} <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 700 }}>/ {target} {cg.unit}</span>
-                            </div>
-                            <div style={{ fontSize: '1rem', fontWeight: 900, color: isCompleted ? '#10b981' : periodColor, background: isCompleted ? '#dcfce7' : periodBg, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
-                              %{pct}
-                            </div>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div style={{ width: '100%', height: 10, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                          {/* Row 2: Slim Progress Bar */}
+                          <div style={{ width: '100%', height: 6, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
                             <div style={{
                               width: `${pct}%`, height: '100%',
                               background: isCompleted ? 'linear-gradient(90deg, #10b981, #059669)' : `linear-gradient(90deg, ${periodColor}, #4f46e5)`,
@@ -2262,23 +2279,16 @@ export default function MyCoachingPage() {
                             }} />
                           </div>
 
-                          {isCompleted && (
-                            <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#15803d', background: '#dcfce7', padding: '0.35rem 0.65rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                              🎉 TEBRİKLER! HEDEFİNİ TAMAMLADIN!
-                            </div>
-                          )}
-
-                          {/* Quick Add Increments & Input */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #e2e8f0' }}>
-                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Hızlı Veri / Günlük Soru Ekle:</div>
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          {/* Row 3: Hızlı Veri Ekleme (Ultra Compact Inline Controls) */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem', paddingTop: '0.2rem' }}>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
                               {[10, 25, 50, 100].map(val => (
                                 <button
                                   key={val}
                                   onClick={() => handleAddCounterProgress(cg.id, val)}
                                   style={{
-                                    flex: 1, padding: '0.35rem 0', borderRadius: '0.4rem', border: '1px solid #cbd5e1',
-                                    background: '#f8fafc', color: '#334155', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                                    padding: '0.2rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #cbd5e1',
+                                    background: '#fafafa', color: '#334155', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
                                   }}
                                 >
                                   +{val}
@@ -2286,17 +2296,17 @@ export default function MyCoachingPage() {
                               ))}
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
                               <input
                                 type="number"
-                                placeholder={`Örn: 35 (${cg.unit})...`}
+                                placeholder={`Ekle (${cg.unit})...`}
                                 value={customAddInputs[cg.id] || ''}
                                 onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))}
-                                style={{ flex: 1, padding: '0.4rem 0.65rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}
+                                style={{ width: 85, padding: '0.22rem 0.5rem', borderRadius: '0.35rem', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, color: '#1e293b' }}
                               />
                               <button
                                 onClick={() => handleAddCounterProgress(cg.id, customAddInputs[cg.id])}
-                                style={{ padding: '0.4rem 0.85rem', borderRadius: '0.4rem', background: periodColor, color: 'white', border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                                style={{ padding: '0.22rem 0.65rem', borderRadius: '0.35rem', background: periodColor, color: 'white', border: 'none', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}
                               >
                                 ➕ Ekle
                               </button>
