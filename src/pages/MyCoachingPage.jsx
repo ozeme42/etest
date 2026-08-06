@@ -1154,9 +1154,8 @@ export default function MyCoachingPage() {
 
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
-    { id: 'hedefler', label: '🎯 Hedeflerim' },
+    { id: 'hedefler', label: '🎯 Hedeflerim & Takip Panosu' },
     { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
-    { id: 'hedefpanosu', label: '📊 Özel Hedef Takip Panosu' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
     { id: 'motivasyon', label: '⭐ Motivasyon' },
@@ -2042,6 +2041,11 @@ export default function MyCoachingPage() {
               );
             })()}
 
+            {/* Görsel Hedef Takip Panosu & Anlık Grafikler */}
+            <Card emoji="📊" title="Görsel Hedef Takip Panosu & Anlık Grafikler">
+              <VisualGoalSection studentId={studentId} />
+            </Card>
+
             {/* Haftalık Hedeflerim Kartı */}
             <Card emoji="⚡" title={`Haftalık Hedeflerim (${(goals.weeklyGoals||[]).filter(g=>g.done).length}/${(goals.weeklyGoals||[]).length})`}>
               {(goals.weeklyGoals || []).length === 0 && <div style={{ color: '#94a3b8', fontSize: '0.83rem', fontWeight: 700, textAlign: 'center', padding: '1rem' }}>Henüz haftalık hedef eklenmemiş. Aşağıdan ekle 👇</div>}
@@ -2067,14 +2071,6 @@ export default function MyCoachingPage() {
               <AddInput value={newMonthly} onChange={setNewMonthly} placeholder="Yeni aylık hedef ekle (ör: Mat 2 Ünite Bitir)..." color="#2563eb"
                 onAdd={() => { if (newMonthly.trim()) { setGoals(p => ({ ...p, monthlyGoals: [...(p.monthlyGoals||[]), { id: uid(), text: newMonthly.trim(), done: false }] })); setNewMonthly(''); }}} />
             </Card>
-          </div>
-        )}
-
-        {/* ═══ ÖZEL HEDEF TAKİP PANOSU ═══ */}
-        {activeTab === 'hedefpanosu' && (
-          <div>
-            <Tip>Günlük soru çözme, kitap okuma, konu tamamlama veya süre hedeflerini görsel grafiklerle takip et!</Tip>
-            <VisualGoalSection studentId={studentId} />
           </div>
         )}
 
