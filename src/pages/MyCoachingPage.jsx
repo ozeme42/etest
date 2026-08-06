@@ -1031,12 +1031,12 @@ export default function MyCoachingPage() {
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
     { id: 'hedefler', label: '🎯 Hedeflerim' },
-    { id: 'yazilinotlari', label: '✍️ Yazılı Notlarım' },
+    { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
     { id: 'hedefpanosu', label: '📊 Özel Hedef Takip Panosu' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
     { id: 'calisma', label: '⏱️ Çalışmalarım' },
     { id: 'motivasyon', label: '⭐ Motivasyon' },
-    { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
+    { id: 'yazilinotlari', label: '✍️ Yazılı Notlarım' },
     { id: 'denemeler', label: '📊 Deneme Sonuçlarım' },
     { id: 'testlerim', label: '📝 Testlerim' },
   ];
