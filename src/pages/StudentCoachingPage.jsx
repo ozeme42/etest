@@ -1020,7 +1020,6 @@ export default function StudentCoachingPage() {
   const isGradeTracking = goals.examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
   const displayExamName = isStandardExam ? goals.examGoalType : (goals.customExamName || goals.examGoalType || 'Özel Sınav');
 
-  /* ─── Render ─── */
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#f5f3ff 0%,#ede9fe 40%,#fdf2f8 100%)', padding: 'clamp(0.75rem,3vw,1.75rem)', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
 
@@ -1719,26 +1718,6 @@ export default function StudentCoachingPage() {
                   </>
                 )}
               </div>
-              <FieldGrid cols={2}>
-                <Field label="Bu Ay Öğrendiklerim" full>
-                  <textarea style={textareaStyle} value={monthly.learned} onChange={e => setMonthly(p => ({ ...p, learned: e.target.value }))} placeholder="Bu ay neler öğrendim?" />
-                </Field>
-                <Field label="🏆 En Büyük Başarım">
-                  <textarea style={{ ...textareaStyle, minHeight: 60 }} value={monthly.bestAchievement} onChange={e => setMonthly(p => ({ ...p, bestAchievement: e.target.value }))} placeholder="Bu ayın en büyük başarısı..." />
-                </Field>
-                <Field label="⚠️ En Büyük Hatam">
-                  <textarea style={{ ...textareaStyle, minHeight: 60 }} value={monthly.biggestMistake} onChange={e => setMonthly(p => ({ ...p, biggestMistake: e.target.value }))} placeholder="Neyi farklı yapabilirdim?" />
-                </Field>
-                <Field label="Gelecek Ay Hedefim" full>
-                  <textarea style={{ ...textareaStyle, minHeight: 60 }} value={monthly.nextGoal} onChange={e => setMonthly(p => ({ ...p, nextGoal: e.target.value }))} placeholder="Gelecek ay ne hedefliyorum?" />
-                </Field>
-                <Field label="Net Değişimi">
-                  <input style={inputStyle} value={monthly.netChange} onChange={e => setMonthly(p => ({ ...p, netChange: e.target.value }))} placeholder="Örn: +5 net (70 → 75)" />
-                </Field>
-                <Field label="Çalışma Saati Notu">
-                  <input style={inputStyle} value={monthly.studyHoursNote} onChange={e => setMonthly(p => ({ ...p, studyHoursNote: e.target.value }))} placeholder="Toplam kaç saat çalışıldı?" />
-                </Field>
-              </FieldGrid>
 
               {/* Ara Sınıf Hedef Özet Kartı */}
               {isGradeTracking && (goals.gradeClass || goals.gradeTarget) && (
@@ -1988,19 +1967,7 @@ export default function StudentCoachingPage() {
                         </button>
                       </div>
                     </div>
-                    <div style={{ background: 'white', borderRadius: '0.65rem', padding: '0.65rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                      <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#16a34a' }}>
-                        {studentSubmissions.length > 0 ? (studentSubmissions.reduce((s, x) => s + (x.score || 0), 0) / studentSubmissions.length).toFixed(1) : '—'}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>Ort. Net</div>
-                    </div>
-                    <div style={{ background: 'white', borderRadius: '0.65rem', padding: '0.65rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                      <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#dc2626' }}>
-                        {studentSubmissions.length > 0 ? Math.max(...studentSubmissions.map(x => x.score || 0)) : '—'}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>En Yüksek Net</div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
