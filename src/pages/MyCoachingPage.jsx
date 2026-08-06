@@ -1033,6 +1033,33 @@ export default function MyCoachingPage() {
     return { currentStreak, maxStreak, isStreakActive: currentStreak > 0 };
   };
 
+  const getCurrentWeekDates = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const distanceToMonday = (dayOfWeek + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distanceToMonday);
+
+    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Ekim', 'Kas', 'Ara'];
+
+    return DAYS.map((dayName, idx) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + idx);
+      const dateNum = d.getDate();
+      const monthStr = monthNames[d.getMonth()];
+      const isToday = d.toDateString() === now.toDateString();
+      return {
+        dayName,
+        dateNum,
+        monthStr,
+        fullDateStr: `${dateNum} ${monthStr}`,
+        isToday
+      };
+    });
+  };
+
+  const weekDates = getCurrentWeekDates();
+
   /* ─── Hesaplamalar ─── */
   const totalDailyQuestions = dailyLogs.reduce((s, l) => s + (parseFloat(l.questions) || 0), 0);
   const totalDailyHours = dailyLogs.reduce((s, l) => s + (parseFloat(l.studyHours) || 0), 0);
@@ -1992,9 +2019,21 @@ export default function MyCoachingPage() {
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', minWidth: 500 }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: '0.4rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Alışkanlık</th>
-                      <th style={{ textAlign: 'center', padding: '0.4rem 0.5rem', fontWeight: 800, fontSize: '0.75rem', color: '#ea580c', width: 95 }}>Seri / Zincir</th>
-                      {DAYS.map(d => <th key={d} style={{ textAlign: 'center', width: 42, fontWeight: 800, fontSize: '0.75rem', color: '#64748b' }}>{d}</th>)}
+                      <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Alışkanlık</th>
+                      <th style={{ textAlign: 'center', padding: '0.5rem', fontWeight: 800, fontSize: '0.75rem', color: '#ea580c', width: 95 }}>Seri / Zincir</th>
+                      {weekDates.map(w => (
+                        <th
+                          key={w.dayName}
+                          style={{
+                            textAlign: 'center', width: 55, padding: '0.35rem 0.2rem',
+                            background: w.isToday ? '#ffedd5' : 'transparent',
+                            borderRadius: w.isToday ? '0.5rem 0.5rem 0 0' : '0'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: w.isToday ? '#c2410c' : '#475569' }}>{w.dayName}</div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: w.isToday ? '#ea580c' : '#94a3b8' }}>{w.fullDateStr}</div>
+                        </th>
+                      ))}
                       <th style={{ width: 35 }}></th>
                     </tr>
                   </thead>
@@ -2025,9 +2064,10 @@ export default function MyCoachingPage() {
                           </td>
 
                           {/* Günlük Kutucuklar */}
-                          {DAYS.map((d, dIdx) => {
+                          {weekDates.map((w) => {
+                            const d = w.dayName;
                             const isChecked = h.days?.[d];
-                            const isToday = dIdx === (new Date().getDay() + 6) % 7;
+                            const isToday = w.isToday;
 
                             return (
                               <td key={d} style={{ textAlign: 'center', background: isToday ? '#fff7ed' : '#f8fafc', border: isToday ? '1px solid #fdba74' : '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none', padding: 4 }}>
@@ -2041,7 +2081,7 @@ export default function MyCoachingPage() {
                                     transition: 'all 0.15s',
                                     boxShadow: isChecked ? '0 2px 6px rgba(220, 38, 38, 0.3)' : 'none'
                                   }}
-                                  title={isToday ? `${d} (Bugün)` : d}
+                                  title={`${d} - ${w.fullDateStr}${isToday ? ' (Bugün)' : ''}`}
                                 >
                                   {isChecked && <Check size={14} color="white" strokeWidth={3} />}
                                 </button>
