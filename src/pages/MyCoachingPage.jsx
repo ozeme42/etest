@@ -407,12 +407,36 @@ export default function MyCoachingPage() {
 
   /* ── Okul Yazılı Notları ── */
   const [schoolGrades, setSchoolGrades] = useState([]);
+  const [gradeTemplateMode, setGradeTemplateMode] = useState('ortaokul'); // 'ortaokul' | 'lise' | 'manual'
   const [newSchoolGrade, setNewSchoolGrade] = useState({
     subject: SUBJECTS[0] || 'Matematik',
     examName: '1. Dönem 1. Yazılı',
     score: '',
     date: today()
   });
+
+  const SCHOOL_LEVEL_TEMPLATES = {
+    ortaokul: {
+      name: '🏫 Ortaokul Şablonu (5, 6, 7, 8. Sınıf)',
+      subjects: ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler / İnkılap Tarihi', 'İngilizce', 'Din Kültürü']
+    },
+    lise: {
+      name: '🏛️ Lise Şablonu (9, 10, 11, 12. Sınıf)',
+      subjects: ['Türk Dili ve Edebiyatı', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya', 'İngilizce', 'Felsefe', 'Din Kültürü']
+    }
+  };
+
+  const EXAM_TERMS = ['1. Dönem 1. Yazılı', '1. Dönem 2. Yazılı', '2. Dönem 1. Yazılı', '2. Dönem 2. Yazılı'];
+
+  const handleGradeInputChange = (subject, examName, value) => {
+    const valStr = String(value).trim();
+    setSchoolGrades(prev => {
+      const filtered = prev.filter(g => !(g.subject === subject && g.examName === examName));
+      if (valStr === '' || isNaN(valStr)) return filtered;
+      const score = Math.min(100, Math.max(0, parseFloat(valStr)));
+      return [...filtered, { id: uid(), subject, examName, score, date: today() }];
+    });
+  };
 
   const addSchoolGrade = () => {
     if (newSchoolGrade.score === '' || isNaN(newSchoolGrade.score)) return;
@@ -2095,7 +2119,7 @@ export default function MyCoachingPage() {
         {/* ═══ OKUL YAZILI NOTLARIM ═══ */}
         {activeTab === 'yazilinotlari' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <Tip>Okuldaki 1. ve 2. dönem yazılı sınav notlarını buraya ekleyerek akademik ortalamanı takip edebilirsin!</Tip>
+            <Tip>Okuldaki 1. ve 2. dönem yazılı notlarını girmek için Ortaokul veya Lise şablonunu seç. Notları kutucuklara yazman yeterlidir, otomatik kaydedilir!</Tip>
 
             {/* Özet İstatistik Kartları */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
@@ -2122,78 +2146,184 @@ export default function MyCoachingPage() {
               </div>
             </div>
 
-            {/* Yeni Not Ekle Kartı */}
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>📝</span> Yeni Yazılı Sınav Notu Ekle
-              </div>
+            {/* Şablon Seçim Modu Butonları */}
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', background: 'white', padding: '0.75rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+              <button
+                onClick={() => setGradeTemplateMode('ortaokul')}
+                style={{
+                  flex: 1, minWidth: 160, padding: '0.65rem 1rem', borderRadius: '0.65rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                  background: gradeTemplateMode === 'ortaokul' ? '#4f46e5' : '#f8fafc',
+                  color: gradeTemplateMode === 'ortaokul' ? 'white' : '#475569',
+                  border: gradeTemplateMode === 'ortaokul' ? 'none' : '1px solid #cbd5e1'
+                }}
+              >
+                🏫 Ortaokul Şablonu
+              </button>
 
-              <form onSubmit={(e) => { e.preventDefault(); addSchoolGrade(); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Ders Seçin</label>
-                  <select
-                    value={newSchoolGrade.subject}
-                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, subject: e.target.value }))}
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}
-                  >
-                    {[...(SUBJECTS || []), 'Din Kültürü', 'İnkılap Tarihi', 'Almanca', 'Müzik', 'Görsel Sanatlar', 'Beden Eğitimi', 'Diğer'].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
+              <button
+                onClick={() => setGradeTemplateMode('lise')}
+                style={{
+                  flex: 1, minWidth: 160, padding: '0.65rem 1rem', borderRadius: '0.65rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                  background: gradeTemplateMode === 'lise' ? '#7c3aed' : '#f8fafc',
+                  color: gradeTemplateMode === 'lise' ? 'white' : '#475569',
+                  border: gradeTemplateMode === 'lise' ? 'none' : '1px solid #cbd5e1'
+                }}
+              >
+                🏛️ Lise Şablonu
+              </button>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Sınav Adı / Dönem</label>
-                  <input
-                    type="text"
-                    value={newSchoolGrade.examName}
-                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, examName: e.target.value }))}
-                    placeholder="ör: 1. Dönem 1. Yazılı"
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Aldığı Not (0 - 100)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newSchoolGrade.score}
-                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, score: e.target.value }))}
-                    placeholder="ör: 85"
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Tarih</label>
-                  <input
-                    type="date"
-                    value={newSchoolGrade.date}
-                    onChange={(e) => setNewSchoolGrade(p => ({ ...p, date: e.target.value }))}
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  style={{ padding: '0.65rem 1.25rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)' }}
-                >
-                  <Plus size={16} /> Notu Ekle
-                </button>
-              </form>
+              <button
+                onClick={() => setGradeTemplateMode('manual')}
+                style={{
+                  flex: 1, minWidth: 160, padding: '0.65rem 1rem', borderRadius: '0.65rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer',
+                  background: gradeTemplateMode === 'manual' ? '#059669' : '#f8fafc',
+                  color: gradeTemplateMode === 'manual' ? 'white' : '#475569',
+                  border: gradeTemplateMode === 'manual' ? 'none' : '1px solid #cbd5e1'
+                }}
+              >
+                ✏️ Manuel Tekli Ekle
+              </button>
             </div>
+
+            {/* Şablon Tablo Görünümü (Ortaokul / Lise) */}
+            {(gradeTemplateMode === 'ortaokul' || gradeTemplateMode === 'lise') && (
+              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', overflowX: 'auto' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{SCHOOL_LEVEL_TEMPLATES[gradeTemplateMode].name}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Kutucuklara doğrudan puanınızı girin</span>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: '#475569', fontWeight: 800 }}>Ders</th>
+                      {EXAM_TERMS.map(term => (
+                        <th key={term} style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: '#475569', fontWeight: 800, width: 110 }}>
+                          {term}
+                        </th>
+                      ))}
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: '#475569', fontWeight: 800, width: 90 }}>Ders Ort.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SCHOOL_LEVEL_TEMPLATES[gradeTemplateMode].subjects.map(subject => {
+                      const subGrades = schoolGrades.filter(g => g.subject === subject);
+                      const subScores = subGrades.map(g => parseFloat(g.score)).filter(s => !isNaN(s));
+                      const subAvg = subScores.length > 0 ? (subScores.reduce((a, b) => a + b, 0) / subScores.length).toFixed(1) : '—';
+
+                      return (
+                        <tr key={subject} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>
+                            {subject}
+                          </td>
+
+                          {EXAM_TERMS.map(term => {
+                            const match = schoolGrades.find(g => g.subject === subject && g.examName === term);
+                            const currentVal = match ? match.score : '';
+
+                            return (
+                              <td key={term} style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  placeholder="—"
+                                  value={currentVal}
+                                  onChange={(e) => handleGradeInputChange(subject, term, e.target.value)}
+                                  style={{
+                                    width: 75, padding: '0.45rem', textAlign: 'center', borderRadius: '0.4rem',
+                                    border: currentVal !== '' ? '1.5px solid #6366f1' : '1px solid #cbd5e1',
+                                    background: currentVal !== '' ? '#eef2ff' : 'white',
+                                    fontWeight: 800, fontSize: '0.9rem', color: currentVal !== '' ? '#3730a3' : '#334155'
+                                  }}
+                                />
+                              </td>
+                            );
+                          })}
+
+                          <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 900, fontSize: '0.9rem', color: subAvg !== '—' ? '#10b981' : '#94a3b8' }}>
+                            {subAvg}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Manuel Tekli Ekle Modu */}
+            {gradeTemplateMode === 'manual' && (
+              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>📝</span> Özel / Seçmeli Yazılı Notu Ekle
+                </div>
+
+                <form onSubmit={(e) => { e.preventDefault(); addSchoolGrade(); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Ders</label>
+                    <input
+                      type="text"
+                      value={newSchoolGrade.subject}
+                      onChange={(e) => setNewSchoolGrade(p => ({ ...p, subject: e.target.value }))}
+                      placeholder="ör: Almanca"
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Sınav Adı / Dönem</label>
+                    <input
+                      type="text"
+                      value={newSchoolGrade.examName}
+                      onChange={(e) => setNewSchoolGrade(p => ({ ...p, examName: e.target.value }))}
+                      placeholder="ör: 1. Dönem 1. Yazılı"
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Aldığı Not (0 - 100)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={newSchoolGrade.score}
+                      onChange={(e) => setNewSchoolGrade(p => ({ ...p, score: e.target.value }))}
+                      placeholder="ör: 85"
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Tarih</label>
+                    <input
+                      type="date"
+                      value={newSchoolGrade.date}
+                      onChange={(e) => setNewSchoolGrade(p => ({ ...p, date: e.target.value }))}
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    style={{ padding: '0.65rem 1.25rem', borderRadius: '0.5rem', background: '#059669', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)' }}
+                  >
+                    <Plus size={16} /> Notu Ekle
+                  </button>
+                </form>
+              </div>
+            )}
 
             {/* Eklenen Yazılı Notları Listesi */}
             <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>📋 Eklenen Yazılı Sınavlar ({schoolGrades.length})</span>
+                <span>📋 Kayıtlı Yazılı Sınavlar ({schoolGrades.length})</span>
               </div>
 
               {schoolGrades.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', fontWeight: 600 }}>
-                  Henüz yazılı notu eklenmemiş. Yukarıdaki formu kullanarak ilk yazılı notunuzu girebilirsiniz.
+                  Henüz yazılı notu girilmemiş. Yukarıdaki Ortaokul veya Lise şablonundan notlarınızı doğrudan yazabilirsiniz.
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.85rem' }}>
