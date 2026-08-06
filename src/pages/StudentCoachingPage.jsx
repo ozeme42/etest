@@ -2191,11 +2191,6 @@ export default function StudentCoachingPage() {
                 </div>
               )}
             </Card>
-
-            {/* Görsel Hedef Takip Grafikleri */}
-            <Card emoji="📊" title="Görsel Hedef Takip Grafikleri & Sayıcılar">
-              <VisualGoalSection studentId={studentId} />
-            </Card>
           </div>
         )}
 
