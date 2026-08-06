@@ -2875,7 +2875,45 @@ export default function MyCoachingPage() {
             {/* Yeni Pratik Çalışma Kayıt Kartı */}
             <Card emoji="⚡" title="Pratik Çalışma Girişi (Tek Tıkla Ekleyin)">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                
+
+                {/* Hızlı Çalışma Türü Seçimi */}
+                <div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>🎯 Çalışma Türü Seçimi:</div>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {[
+                      { label: '📖 Konu Çalışması', type: 'Konu Çalışması' },
+                      { label: '📚 Kitap Okuma', type: 'Kitap Okuma' },
+                      { label: '✏️ Soru Çözümü', type: 'Soru Çözümü' },
+                      { label: '🔄 Tekrar / Ezber', type: 'Tekrar' },
+                      { label: '📝 Deneme / Test', type: 'Deneme' },
+                      { label: '💡 Etkinlik / Ödev', type: 'Ödev' },
+                    ].map(act => {
+                      const isSelected = (newLog.activityType || 'Soru Çözümü') === act.type;
+                      return (
+                        <button
+                          type="button"
+                          key={act.type}
+                          onClick={() => {
+                            setNewLog(p => ({
+                              ...p,
+                              activityType: act.type,
+                              revision: p.revision ? (p.revision.includes(act.label) ? p.revision : `${act.label} · ${p.revision}`) : act.label
+                            }));
+                          }}
+                          style={{
+                            padding: '0.32rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.76rem', fontWeight: 800,
+                            border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                            background: isSelected ? '#f3e8ff' : '#ffffff',
+                            color: isSelected ? '#6d28d9' : '#475569', cursor: 'pointer', transition: 'all 0.15s'
+                          }}
+                        >
+                          {isSelected ? '✓ ' : ''}{act.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Hızlı Süre Rozetleri */}
                 <div>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>⏱️ Hızlı Süre Seçimi:</div>
@@ -2952,12 +2990,12 @@ export default function MyCoachingPage() {
                     <input style={inp} type="number" step="0.25" value={newLog.studyHours} onChange={e => setNewLog(p => ({ ...p, studyHours: e.target.value }))} placeholder="Örn: 1.5" />
                   </div>
                   <div>
-                    <label style={lbl}>Çözülen Soru Sayısı</label>
-                    <input style={inp} type="number" value={newLog.questions} onChange={e => setNewLog(p => ({ ...p, questions: e.target.value }))} placeholder="Örn: 100" />
+                    <label style={lbl}>Soru Sayısı (Opsiyonel)</label>
+                    <input style={inp} type="number" value={newLog.questions} onChange={e => setNewLog(p => ({ ...p, questions: e.target.value }))} placeholder="Soru yoksa boş bırak" />
                   </div>
                   <div>
-                    <label style={lbl}>Ders & Konu Notu</label>
-                    <input style={inp} value={newLog.revision} onChange={e => setNewLog(p => ({ ...p, revision: e.target.value }))} placeholder="Örn: Matematik Üslü Sayılar..." />
+                    <label style={lbl}>Ders & Konu / Detay Notu</label>
+                    <input style={inp} value={newLog.revision} onChange={e => setNewLog(p => ({ ...p, revision: e.target.value }))} placeholder="Örn: Konu tekrarı / Kitap okuma..." />
                   </div>
                   <div>
                     <label style={lbl}>Uyku Yatma Saati</label>
@@ -2989,7 +3027,7 @@ export default function MyCoachingPage() {
                       }
 
                       // Reset form
-                      setNewLog({ date: today(), studyHours: '', questions: '', revision: '', sport: false, sleepTime: '' });
+                      setNewLog({ date: today(), studyHours: '', questions: '', revision: '', sport: false, sleepTime: '', activityType: 'Soru Çözümü' });
                     }}
                     style={{
                       background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: 'white', border: 'none',
@@ -3022,7 +3060,7 @@ export default function MyCoachingPage() {
                             ⏱️ {log.studyHours} Saat
                           </span>
                         )}
-                        {log.questions && (
+                        {parseFloat(log.questions) > 0 && (
                           <span style={{ fontWeight: 900, color: '#2563eb', background: '#eff6ff', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #bfdbfe' }}>
                             ✏️ {log.questions} Soru
                           </span>
