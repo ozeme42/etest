@@ -4,8 +4,12 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useUser } from '../context/UserContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, XCircle, HelpCircle, Save, Clock3, Eye, FileText, Sparkles, ChevronRight, ArrowLeft } from 'lucide-react';
-import './Dashboard.css';
+import {
+  CheckCircle, XCircle, Clock3, Eye, Save, ArrowLeft,
+  ClipboardList, Users, BookOpen, Star, ChevronRight,
+  AlertCircle, Search, Filter, Layers
+} from 'lucide-react';
+import QuizRunner from './QuizRunner';
 
 export default function EvaluationManager() {
   const { currentUser } = useAuth();
@@ -13,326 +17,442 @@ export default function EvaluationManager() {
   const { homeworks } = useHomework();
   const { submissions: allSubmissions, evaluateAnswer, finalizeSubmission } = useEvaluation();
   const { questions } = useQuestionBank();
-  
+
   const [activeSubmissionId, setActiveSubmissionId] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
+  const [search, setSearch] = useState('');
 
-  // Filter submissions: Teachers see ONLY their added students' submissions, Admin sees all
-  const submissions = useMemo(() => {
-    if (currentUser?.role === 'admin') return allSubmissions || [];
-    const teacherStudentIds = (users || []).filter(u => u.role === 'student' && u.teacherId === currentUser?.id).map(u => u.id);
-    const teacherHwIds = (homeworks || []).filter(h => h.assignedBy === currentUser?.id).map(h => h.id);
-    return (allSubmissions || []).filter(sub => teacherStudentIds.includes(sub.studentId) || teacherHwIds.includes(sub.testId));
-  }, [allSubmissions, users, homeworks, currentUser]);
+  const submissions = useMemo(() => allSubmissions || [], [allSubmissions]);
 
-  const pendingSubmissions = submissions.filter(sub => sub.status === 'pending_evaluation');
-  const completedSubmissions = submissions.filter(sub => sub.status === 'completed');
+  const pendingSubmissions = useMemo(() =>
+    submissions.filter(sub =>
+      sub.status === 'pending_evaluation' ||
+      sub.status === 'submitted' ||
+      (Array.isArray(sub.answers) && sub.answers.some(ans => ans.type === 'acik_uclu' || ans.isCorrect === null || ans.isCorrect === undefined))
+    ), [submissions]);
+
+  const completedSubmissions = useMemo(() => {
+    const pendingIds = new Set(pendingSubmissions.map(p => p.id));
+    return submissions.filter(sub => !pendingIds.has(sub.id));
+  }, [submissions, pendingSubmissions]);
 
   const activeSubmission = submissions.find(s => s.id === activeSubmissionId);
-
-  // Show ONLY open-ended / written response answers for teacher evaluation
-  const allSubmissionAnswers = activeSubmission 
-    ? (activeSubmission.answers || []).filter(ans => ans.type !== 'coktan_secmeli' && (ans.userAnswerText !== undefined || ans.type === 'acik_uclu' || ans.isCorrect === null)) 
-    : [];
-  
-  const remainingPendingCount = allSubmissionAnswers.filter(ans => ans.isCorrect === null || ans.isCorrect === undefined).length;
-
-  const handleEvaluate = (ans, isCorrectResult) => {
-    evaluateAnswer(activeSubmissionId, ans.questionId, ans.isBundle, ans.subIndex, isCorrectResult);
-  };
 
   const handleFinalize = () => {
     finalizeSubmission(activeSubmissionId);
     setActiveSubmissionId(null);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B1120] dark:via-[#0d1528] dark:to-[#0B1120] font-sans text-slate-800 dark:text-slate-200">
-      
-      {/* ── STICKY GLASS HEADER ── */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#0d1528]/80 backdrop-blur-2xl border-b border-slate-200/60 dark:border-slate-800/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
-              <Clock3 className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block">E-Test LMS</span>
-              <h1 className="text-base font-black text-slate-900 dark:text-white leading-none mt-0.5">
-                Değerlendirme Merkezi ⚖️
-              </h1>
-            </div>
-          </div>
+  const displayList = (activeTab === 'pending' ? pendingSubmissions : completedSubmissions)
+    .filter(sub =>
+      !search ||
+      sub.studentName?.toLowerCase().includes(search.toLowerCase()) ||
+      sub.testTitle?.toLowerCase().includes(search.toLowerCase())
+    );
 
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300 font-bold text-xs">
-              {pendingSubmissions.length} Bekleyen Kağıt
+  // Stats
+  const totalPending = pendingSubmissions.length;
+  const totalCompleted = completedSubmissions.length;
+  const avgScore = completedSubmissions.length > 0
+    ? Math.round(completedSubmissions.reduce((acc, s) => acc + (s.score || 0), 0) / completedSubmissions.length)
+    : 0;
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #0f172a 100%)',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      color: '#f8fafc',
+      position: 'relative',
+    }}>
+
+      {/* Background decorative blobs */}
+      <div style={{
+        position: 'fixed', top: '-10%', right: '-5%', width: 500, height: 500,
+        borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-10%', left: '-5%', width: 600, height: 600,
+        borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0
+      }} />
+
+      {/* ── TOP HEADER ── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: 'rgba(15,23,42,0.85)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(99,102,241,0.2)',
+        padding: '0 2rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        height: 64, flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: '14px',
+            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(99,102,241,0.5)'
+          }}>
+            <ClipboardList size={22} color="white" />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#818cf8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              E-Test LMS
+            </div>
+            <h1 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f8fafc', margin: 0, lineHeight: 1.2 }}>
+              Değerlendirme Merkezi
+            </h1>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {totalPending > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)',
+              borderRadius: '50px', padding: '0.35rem 1rem',
+            }}>
+              <AlertCircle size={14} color="#f87171" />
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fca5a5' }}>
+                {totalPending} Bekleyen
+              </span>
+            </div>
+          )}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: '50px', padding: '0.35rem 1rem',
+          }}>
+            <CheckCircle size={14} color="#34d399" />
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#6ee7b7' }}>
+              {totalCompleted} Tamamlandı
             </span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16">
+      {/* ── MAIN CONTENT ── */}
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem', position: 'relative', zIndex: 1 }}>
 
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          
-          {/* ── LEFT SIDE: SUBMISSIONS LIST ── */}
-          <div className={`w-full lg:w-5/12 space-y-6 ${activeSubmissionId ? 'hidden lg:block' : 'block'}`}>
-            
-            {/* Pending Evaluation Section */}
-            <section className="bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-4 sm:p-5 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <Clock3 className="w-4 h-4 text-rose-500" /> Bekleyen Değerlendirmeler
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-black text-xs">
-                  {pendingSubmissions.length}
-                </span>
+        {/* ── STATS ROW ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+          {[
+            { icon: <Clock3 size={22} />, label: 'Bekleyen Kağıt', value: totalPending, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)' },
+            { icon: <CheckCircle size={22} />, label: 'Sonuçlandırılan', value: totalCompleted, color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' },
+            { icon: <Star size={22} />, label: 'Ortalama Puan', value: `${avgScore}`, color: '#6366f1', bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.3)' },
+          ].map((stat, idx) => (
+            <div key={idx} style={{
+              background: stat.bg, border: `1px solid ${stat.border}`,
+              borderRadius: '1.25rem', padding: '1.25rem 1.5rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              backdropFilter: 'blur(10px)',
+            }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: '12px',
+                background: stat.bg, border: `1px solid ${stat.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: stat.color, flexShrink: 0,
+              }}>
+                {stat.icon}
               </div>
-
-              {pendingSubmissions.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-xs font-semibold">
-                  🎉 Harika! Bekleyen kağıt bulunmuyor.
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {stat.label}
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {pendingSubmissions.map(sub => {
-                    const isActive = activeSubmissionId === sub.id;
-                    return (
-                      <div
-                        key={sub.id}
-                        onClick={() => setActiveSubmissionId(sub.id)}
-                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isActive
-                            ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 shadow-md ring-1 ring-indigo-500"
-                            : "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-9 h-9 rounded-full bg-indigo-500 text-white font-black text-xs flex items-center justify-center shrink-0">
-                            {sub.studentName?.charAt(0) || 'Ö'}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">{sub.studentName}</p>
-                            <p className="text-[11px] text-slate-400 truncate mt-0.5">{sub.testTitle}</p>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded-xl shrink-0">
-                          Bekliyor ➔
-                        </span>
-                      </div>
-                    );
-                  })}
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: stat.color, lineHeight: 1.1 }}>
+                  {stat.value}
                 </div>
-              )}
-            </section>
-
-            {/* Completed Submissions Section */}
-            <section className="bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-4 sm:p-5 space-y-3 shadow-sm opacity-90">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-500" /> Sonuçlandırılan Sınavlar
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-black text-xs">
-                  {completedSubmissions.length}
-                </span>
               </div>
-
-              {completedSubmissions.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs font-semibold">
-                  Henüz sonuçlandırılan test yok.
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {completedSubmissions.map(sub => (
-                    <div
-                      key={sub.id}
-                      onClick={() => setActiveSubmissionId(sub.id)}
-                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between gap-3 text-xs cursor-pointer hover:bg-slate-100"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-slate-800 dark:text-slate-100 truncate">{sub.studentName}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{sub.testTitle}</p>
-                      </div>
-                      <span className="font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-xl shrink-0">
-                        {sub.score} Puan
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-          </div>
-
-          {/* ── RIGHT SIDE: EVALUATION GRADING PANEL ── */}
-          <div className={`w-full lg:w-7/12 sticky top-20 ${!activeSubmissionId ? 'hidden lg:block' : 'block'}`}>
-            {activeSubmission ? (
-              <div className="bg-white dark:bg-slate-800/80 rounded-3xl border-2 border-indigo-500 p-5 sm:p-6 space-y-5 shadow-xl">
-                
-                {/* Panel Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-                  <div>
-                    <button
-                      onClick={() => setActiveSubmissionId(null)}
-                      className="lg:hidden mb-2 text-xs font-bold text-indigo-600 flex items-center gap-1"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" /> Kağıt Listesine Dön
-                    </button>
-                    <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-tight">
-                      {activeSubmission.studentName}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">{activeSubmission.testTitle} Kağıdı</p>
-                  </div>
-
-                  <span className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50 font-black text-xs shrink-0">
-                    Kalan Soru: {remainingPendingCount} / {allSubmissionAnswers.length}
-                  </span>
-                </div>
-
-                {/* Answers Grading List */}
-                {allSubmissionAnswers.length > 0 ? (
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                    {allSubmissionAnswers.map((ans, idx) => {
-                      const q = questions.find(q => q.id === ans.questionId);
-                      if (!q) return null;
-
-                      let displayQuestionText = q.questionText || 'Açık Uçlu Soru';
-                      let subItemPayload = null;
-
-                      if ((q.contentType === 'json' || q.questionsList) && ans.subIndex !== undefined) {
-                        let subQuestions = q.questionsList || [];
-                        if (!subQuestions.length && q.contentPayload) {
-                          try {
-                            const parsed = JSON.parse(q.contentPayload);
-                            if (Array.isArray(parsed)) subQuestions = parsed;
-                          } catch (e) {
-                            subQuestions = [];
-                          }
-                        }
-                        if (subQuestions[ans.subIndex]) {
-                          displayQuestionText = subQuestions[ans.subIndex].questionText || `Soru ${ans.subIndex + 1}`;
-                          subItemPayload = subQuestions[ans.subIndex].contentPayload;
-                        }
-                      }
-
-                      const isEvaluated = ans.isCorrect !== null;
-                      const isCorrectVal = ans.isCorrect === true;
-
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                            isEvaluated
-                              ? isCorrectVal
-                                ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500"
-                                : "bg-rose-50/50 dark:bg-rose-950/20 border-rose-500"
-                              : "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-xs text-indigo-600 dark:text-indigo-400">
-                              Soru {ans.subIndex !== undefined ? ans.subIndex + 1 : idx + 1}:
-                            </span>
-                            {isEvaluated && (
-                              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full text-white flex items-center gap-1 ${isCorrectVal ? 'bg-emerald-500' : 'bg-rose-500'}`}>
-                                {isCorrectVal ? <><CheckCircle className="w-3 h-3" /> Doğru (+10)</> : <><XCircle className="w-3 h-3" /> Yanlış (0)</>}
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug">
-                            {displayQuestionText}
-                          </p>
-
-                          {/* Image for Visual Question */}
-                          {(subItemPayload || q.contentPayload) && (q.contentType === 'gorsel' || subItemPayload) && (
-                            <div className="my-2 text-center">
-                              <img
-                                src={subItemPayload || q.contentPayload}
-                                alt="Soru Görseli"
-                                className="max-h-60 mx-auto rounded-xl border border-slate-200 dark:border-slate-700 object-contain"
-                              />
-                            </div>
-                          )}
-
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-bold text-slate-400 block">Öğrencinin Cevabı:</span>
-                            <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 min-h-[50px] whitespace-pre-wrap">
-                              {ans.userAnswerText || <span className="italic text-slate-400">(Boş Bırakılmış)</span>}
-                            </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => handleEvaluate(ans, true)}
-                              className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                                isCorrectVal
-                                  ? "bg-emerald-600 text-white shadow-md"
-                                  : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white"
-                              }`}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              <span>{isCorrectVal ? 'Doğru Verildi' : 'Doğru (+10)'}</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleEvaluate(ans, false)}
-                              className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all ${
-                                isEvaluated && !isCorrectVal
-                                  ? "bg-rose-600 text-white shadow-md"
-                                  : "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-600 hover:text-white"
-                              }`}
-                            >
-                              <XCircle className="w-4 h-4" />
-                              <span>{(isEvaluated && !isCorrectVal) ? 'Yanlış Verildi' : 'Yanlış (0)'}</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    <button
-                      onClick={handleFinalize}
-                      className={`w-full py-3 rounded-2xl text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all ${
-                        remainingPendingCount === 0 ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/30' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30'
-                      }`}
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>Sonucu Kaydet ve Öğrenciye Bildir</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center py-10 space-y-3">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
-                      <CheckCircle className="w-8 h-8" />
-                    </div>
-                    <h4 className="font-black text-base text-slate-900 dark:text-white">Tüm Sorular Değerlendirildi!</h4>
-                    <p className="text-xs text-slate-400">Öğrencinin kağıdını sonuçlandırmak için onaylayın.</p>
-                    <button
-                      onClick={handleFinalize}
-                      className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2"
-                    >
-                      <Save className="w-4 h-4" /> Sonucu Kaydet ve Yayınla
-                    </button>
-                  </div>
-                )}
-
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-slate-800/60 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700/60 p-12 text-center text-slate-400">
-                <HelpCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <p className="text-xs font-semibold">İncelemek için sol taraftan bir sınav kağıdı seçin.</p>
-              </div>
-            )}
-          </div>
-
+            </div>
+          ))}
         </div>
 
+        {/* ── TAB BAR ── */}
+        <div style={{
+          background: 'rgba(30,41,59,0.7)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(99,102,241,0.2)', borderRadius: '1.25rem',
+          padding: '0.375rem', display: 'flex', gap: '0.25rem', marginBottom: '1.5rem',
+        }}>
+          {[
+            { key: 'pending', label: `⏳ Bekleyenler`, count: totalPending, activeColor: '#f59e0b' },
+            { key: 'completed', label: `✅ Tamamlananlar`, count: totalCompleted, activeColor: '#10b981' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                flex: 1, padding: '0.65rem 1rem', borderRadius: '0.875rem',
+                border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.88rem',
+                transition: 'all 0.2s',
+                background: activeTab === tab.key
+                  ? 'rgba(99,102,241,0.25)'
+                  : 'transparent',
+                color: activeTab === tab.key ? '#c7d2fe' : '#64748b',
+                boxShadow: activeTab === tab.key ? '0 0 0 1px rgba(99,102,241,0.4)' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              }}
+            >
+              {tab.label}
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 900, padding: '0.1rem 0.5rem',
+                borderRadius: '50px',
+                background: activeTab === tab.key ? 'rgba(99,102,241,0.4)' : 'rgba(100,116,139,0.2)',
+                color: activeTab === tab.key ? '#a5b4fc' : '#64748b',
+              }}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── SEARCH BAR ── */}
+        <div style={{
+          position: 'relative', marginBottom: '1.25rem',
+        }}>
+          <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#475569', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="Öğrenci adı veya test ismine göre ara..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem',
+              background: 'rgba(30,41,59,0.7)', backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.875rem',
+              color: '#f1f5f9', fontSize: '0.9rem', outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+            }}
+          />
+        </div>
+
+        {/* ── SUBMISSIONS LIST ── */}
+        {displayList.length === 0 ? (
+          <div style={{
+            background: 'rgba(30,41,59,0.5)', border: '1px dashed rgba(99,102,241,0.2)',
+            borderRadius: '1.25rem', padding: '4rem 2rem', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>
+              {activeTab === 'pending' ? '🎉' : '📋'}
+            </div>
+            <p style={{ color: '#94a3b8', fontWeight: 700, fontSize: '1rem', margin: 0 }}>
+              {activeTab === 'pending'
+                ? 'Harika! Değerlendirme bekleyen kağıt bulunmuyor.'
+                : 'Henüz sonuçlandırılan sınav yok.'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {displayList.map(sub => {
+              const isPending = pendingSubmissions.some(p => p.id === sub.id);
+              const initial = sub.studentName?.charAt(0)?.toUpperCase() || 'Ö';
+              // generate a deterministic hue from studentName
+              const hue = (sub.studentName || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
+
+              return (
+                <div
+                  key={sub.id}
+                  onClick={() => setActiveSubmissionId(sub.id)}
+                  style={{
+                    background: 'rgba(30,41,59,0.75)',
+                    border: '1px solid rgba(99,102,241,0.2)',
+                    borderRadius: '1.25rem', padding: '1rem 1.25rem',
+                    display: 'flex', alignItems: 'center', gap: '1rem',
+                    cursor: 'pointer', transition: 'all 0.2s',
+                    backdropFilter: 'blur(10px)',
+                    position: 'relative', overflow: 'hidden',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
+                    e.currentTarget.style.background = 'rgba(99,102,241,0.12)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)';
+                    e.currentTarget.style.background = 'rgba(30,41,59,0.75)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {/* Left accent bar */}
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
+                    borderRadius: '1.25rem 0 0 1.25rem',
+                    background: isPending
+                      ? 'linear-gradient(180deg, #f59e0b, #d97706)'
+                      : 'linear-gradient(180deg, #10b981, #059669)',
+                  }} />
+
+                  {/* Avatar */}
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '14px',
+                    background: `linear-gradient(135deg, hsl(${hue},70%,45%), hsl(${(hue + 40) % 360},70%,55%))`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: '1.1rem', color: 'white',
+                    flexShrink: 0, boxShadow: `0 4px 12px hsla(${hue},60%,40%,0.4)`,
+                  }}>
+                    {initial}
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f1f5f9', marginBottom: '0.2rem' }}>
+                      {sub.studentName || 'Öğrenci'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <BookOpen size={12} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {sub.testTitle || 
+                         questions?.find(q => q.id === sub.testId || q.id === sub.questionId)?.title || 
+                         questions?.find(q => q.id === sub.testId || q.id === sub.questionId)?.questionText || 
+                         homeworks?.find(h => h.id === sub.testId)?.title || 
+                         'Değerlendirme Dosyası'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right side */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                    {!isPending && sub.score !== undefined && (
+                      <div style={{
+                        background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)',
+                        borderRadius: '0.6rem', padding: '0.3rem 0.75rem',
+                        fontWeight: 900, fontSize: '0.85rem', color: '#34d399',
+                      }}>
+                        {sub.score} puan
+                      </div>
+                    )}
+                    {isPending && (
+                      <div style={{
+                        background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+                        borderRadius: '0.6rem', padding: '0.3rem 0.75rem',
+                        fontWeight: 800, fontSize: '0.78rem', color: '#fbbf24',
+                        display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      }}>
+                        <Clock3 size={12} /> Bekliyor
+                      </div>
+                    )}
+                    <a
+                      href={`/review/${sub.id}`}
+                      onClick={e => e.stopPropagation()}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.3rem',
+                        background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+                        borderRadius: '0.6rem', padding: '0.3rem 0.75rem',
+                        fontWeight: 800, fontSize: '0.78rem', color: '#a5b4fc',
+                        textDecoration: 'none', transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; }}
+                    >
+                      <Eye size={12} /> Sayfa
+                    </a>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '10px',
+                      background: 'rgba(99,102,241,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8',
+                    }}>
+                      <ChevronRight size={16} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </main>
 
+      {/* ── FULL SCREEN EVALUATION MODAL ── */}
+      {activeSubmission && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999999,
+          background: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          {/* Modal Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 1.5rem', height: 60, flexShrink: 0,
+            background: 'rgba(15,23,42,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(99,102,241,0.25)',
+          }}>
+            {/* Left: back + name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => setActiveSubmissionId(null)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  background: 'rgba(30,41,59,0.8)', border: '1px solid rgba(99,102,241,0.3)',
+                  borderRadius: '0.6rem', padding: '0.45rem 0.9rem',
+                  color: '#c7d2fe', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.25)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(30,41,59,0.8)'; }}
+              >
+                <ArrowLeft size={15} /> Listeye Dön
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 900, fontSize: '0.9rem', color: 'white',
+                }}>
+                  {activeSubmission.studentName?.charAt(0)?.toUpperCase() || 'Ö'}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#f1f5f9', lineHeight: 1.2 }}>
+                    {activeSubmission.studentName}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                    {activeSubmission.testTitle}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: badge + save button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+                borderRadius: '50px', padding: '0.3rem 0.8rem',
+                fontSize: '0.72rem', fontWeight: 800, color: '#818cf8',
+              }}>
+                <Layers size={12} /> 📌 Değerlendirme Modu
+              </div>
+              <button
+                type="button"
+                onClick={handleFinalize}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.45rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none', borderRadius: '0.75rem',
+                  padding: '0.55rem 1.25rem',
+                  color: 'white', fontWeight: 900, fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.45)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(16,185,129,0.55)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(16,185,129,0.45)'; }}
+              >
+                <Save size={15} /> Değerlendirmeyi Kaydet &amp; Bildir
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen QuizRunner */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <QuizRunner reviewSubmission={activeSubmission} isReviewMode={true} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

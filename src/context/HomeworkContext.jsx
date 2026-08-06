@@ -52,6 +52,14 @@ export function HomeworkProvider({ children }) {
     await dbDeleteHomework(id);
   };
 
+  const deleteAllHomeworks = async () => {
+    const currentHomeworks = [...homeworks];
+    setHomeworks([]);
+    for (const hw of currentHomeworks) {
+      await dbDeleteHomework(hw.id);
+    }
+  };
+
   const submitHomework = (hwId, studentId, score, totalQuestions) => {
     setHomeworks(prev => prev.map(hw => {
       if (hw.id === hwId) {
@@ -78,6 +86,7 @@ export function HomeworkProvider({ children }) {
       addHomework,
       updateHomework,
       deleteHomework,
+      deleteAllHomeworks,
       submitHomework
     }}>
       {children}

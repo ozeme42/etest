@@ -24,18 +24,25 @@ import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
 import StudentCoachingPage from './pages/StudentCoachingPage';
+import MyCoachingPage from './pages/MyCoachingPage';
+import PhysicalExamManager from './pages/PhysicalExamManager';
+import PhysicalExamRunner from './pages/PhysicalExamRunner';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
+import { useCoaching } from './context/CoachingContext';
 import './App.css';
 
 function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
+  const { isStudentCoached } = useCoaching();
   const location = useLocation();
   const navigate = useNavigate();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
+
+  const hasCoach = currentUser?.role === 'student' ? isStudentCoached(currentUser?.id) : true;
 
   return (
     <>
@@ -98,6 +105,11 @@ function Sidebar() {
               <NavLink to="/goals" className="nav-link" onClick={closeSidebar}>
                 <Target size={20} /> Hedefler & Program
               </NavLink>
+              {currentUser?.role === 'student' && isStudentCoached(currentUser?.id) && (
+                <NavLink to="/my-coaching" className="nav-link" onClick={closeSidebar}>
+                  <span style={{ fontSize: '1.1rem' }}>📂</span> Koçluk Dosyam
+                </NavLink>
+              )}
             </>
           )}
 
@@ -112,6 +124,9 @@ function Sidebar() {
           {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
             <>
               <div className="nav-section-title">Modüller</div>
+              <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
+                <ClipboardCheck size={20} /> Fiziki Deneme & Optik
+              </NavLink>
               <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
                 <BarChart2 size={20} /> İstatistik & Analiz
               </NavLink>
@@ -185,7 +200,7 @@ function Sidebar() {
 function AppContent() {
   const location = useLocation();
   const { currentUser } = useAuth();
-  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login'];
+  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/'];
   const shouldHideSidebar = !currentUser || hideSidebarRoutes.some(route => location.pathname.startsWith(route));
 
   return (
@@ -213,6 +228,9 @@ function AppContent() {
           <Route path="/student-results" element={<StudentResultsPage />} />
           <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
           <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
+          <Route path="/my-coaching" element={<MyCoachingPage />} />
+          <Route path="/physical-exam" element={<PhysicalExamManager />} />
+          <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

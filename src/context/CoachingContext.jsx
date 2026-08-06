@@ -58,7 +58,35 @@ export function CoachingProvider({ children }) {
       if (dbMeetings && dbMeetings.length > 0) setCoachingMeetings(dbMeetings);
 
       const dbProfiles = await dbGetCoachingProfiles();
-      if (dbProfiles && dbProfiles.length > 0) setCoachingProfiles(dbProfiles);
+      if (dbProfiles && dbProfiles.length > 0) {
+        setCoachingProfiles(prev => {
+          const merged = [...prev];
+          dbProfiles.forEach(dbP => {
+            const idx = merged.findIndex(p => String(p.studentId) === String(dbP.studentId));
+            if (idx >= 0) {
+              merged[idx] = {
+                ...merged[idx],
+                ...dbP,
+                weeklyProgram: (dbP.weeklyProgram && dbP.weeklyProgram.length > 0) ? dbP.weeklyProgram : (merged[idx].weeklyProgram || []),
+                topicPool: (dbP.topicPool && dbP.topicPool.length > 0) ? dbP.topicPool : (merged[idx].topicPool || []),
+                goals: dbP.goals || merged[idx].goals || {},
+                monthlyGoals: (dbP.monthlyGoals && dbP.monthlyGoals.length > 0) ? dbP.monthlyGoals : (merged[idx].monthlyGoals || []),
+                weeklyGoals: (dbP.weeklyGoals && dbP.weeklyGoals.length > 0) ? dbP.weeklyGoals : (merged[idx].weeklyGoals || []),
+                dailyGoals: (dbP.dailyGoals && dbP.dailyGoals.length > 0) ? dbP.dailyGoals : (merged[idx].dailyGoals || []),
+                topicList: (dbP.topicList && dbP.topicList.length > 0) ? dbP.topicList : (merged[idx].topicList || []),
+                dailyLogs: (dbP.dailyLogs && dbP.dailyLogs.length > 0) ? dbP.dailyLogs : (merged[idx].dailyLogs || []),
+                questionTrack: dbP.questionTrack || merged[idx].questionTrack || {},
+                errors: (dbP.errors && dbP.errors.length > 0) ? dbP.errors : (merged[idx].errors || []),
+                habits: (dbP.habits && dbP.habits.length > 0) ? dbP.habits : (merged[idx].habits || []),
+                motivation: dbP.motivation || merged[idx].motivation || {},
+              };
+            } else {
+              merged.push(dbP);
+            }
+          });
+          return merged;
+        });
+      }
     }
     syncCoachingFromSupabase();
   }, []);
@@ -139,11 +167,30 @@ export function CoachingProvider({ children }) {
     const newExam = {
       id: `me_${Date.now()}`,
       createdAt: new Date().toISOString(),
+      approvalStatus: examData.createdBy === 'student' ? 'pending' : 'approved',
       ...examData
     };
-    setMockExams(prev => [...prev, newExam]);
+    setMockExams(prev => [newExam, ...prev]);
     await dbSaveMockExam(newExam);
     return newExam;
+  };
+
+  const updateMockExam = async (id, updateData) => {
+    let updatedExam = null;
+    setMockExams(prev => prev.map(m => {
+      if (m.id === id) {
+        updatedExam = { ...m, ...updateData };
+        return updatedExam;
+      }
+      return m;
+    }));
+    if (updatedExam) {
+      await dbSaveMockExam(updatedExam);
+    }
+  };
+
+  const approveMockExam = async (id) => {
+    await updateMockExam(id, { approvalStatus: 'approved' });
   };
 
   const deleteMockExam = async (id) => {
@@ -182,6 +229,41 @@ export function CoachingProvider({ children }) {
     return coachingMeetings.filter(m => String(m.studentId) === String(studentId));
   };
 
+  const isStudentCoached = (studentId) => {
+    if (!studentId) return false;
+    return coachingLinks.some(l => String(l.studentId) === String(studentId));
+  };
+
+  const addStudentError = async (studentId, errorData) => {
+    const profile = getCoachingProfileForStudent(studentId) || { studentId, errors: [] };
+    const newError = {
+      id: `err_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: new Date().toISOString(),
+      status: 'active',
+      ...errorData
+    };
+    const updatedErrors = [newError, ...(profile.errors || [])];
+    const updatedProfile = { ...profile, errors: updatedErrors };
+    await saveCoachingProfile(updatedProfile);
+    return newError;
+  };
+
+  const updateStudentError = async (studentId, errorId, updates) => {
+    const profile = getCoachingProfileForStudent(studentId);
+    if (!profile) return;
+    const updatedErrors = (profile.errors || []).map(e => e.id === errorId ? { ...e, ...updates } : e);
+    const updatedProfile = { ...profile, errors: updatedErrors };
+    await saveCoachingProfile(updatedProfile);
+  };
+
+  const deleteStudentError = async (studentId, errorId) => {
+    const profile = getCoachingProfileForStudent(studentId);
+    if (!profile) return;
+    const updatedErrors = (profile.errors || []).filter(e => e.id !== errorId);
+    const updatedProfile = { ...profile, errors: updatedErrors };
+    await saveCoachingProfile(updatedProfile);
+  };
+
   return (
     <CoachingContext.Provider value={{
       coachingLinks,
@@ -196,10 +278,14 @@ export function CoachingProvider({ children }) {
       deleteMockExam,
       addCoachingMeeting,
       getCoachedStudentIds,
+      isStudentCoached,
       getCoachingNoteForStudent,
       getCoachingProfileForStudent,
       getMockExamsForStudent,
-      getMeetingsForStudent
+      getMeetingsForStudent,
+      addStudentError,
+      updateStudentError,
+      deleteStudentError
     }}>
       {children}
     </CoachingContext.Provider>

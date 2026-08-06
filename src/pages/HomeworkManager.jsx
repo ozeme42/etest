@@ -41,7 +41,7 @@ export default function HomeworkManager() {
   const { currentUser } = useAuth();
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework } = useHomework();
+  const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, deleteAllHomeworks } = useHomework();
   const { users } = useUser();
   const { submissions } = useEvaluation();
 
@@ -390,13 +390,33 @@ export default function HomeworkManager() {
               </div>
             </div>
             
-            <button
-              onClick={openCreatePage}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-black text-xs text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Yeni Ödev Atayın</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Tüm ödevleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
+                      if (typeof deleteAllHomeworks === 'function') {
+                        deleteAllHomeworks();
+                      } else {
+                        alert("deleteAllHomeworks fonksiyonu bulunamadı.");
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-black text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 shadow-sm transition-all"
+                  title="Tüm Ödevleri Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tümünü Sil</span>
+                </button>
+              )}
+              <button
+                onClick={openCreatePage}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-black text-xs text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Yeni Ödev Atayın</span>
+              </button>
+            </div>
           </div>
         </header>
 

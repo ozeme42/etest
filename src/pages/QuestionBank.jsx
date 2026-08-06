@@ -241,6 +241,7 @@ export default function QuestionBank() {
         ...prev,
         contentType: 'gorsel',
         contentPayload: base64List.join('\n\n'),
+        questionCount: results.length,
         title: prev.title || `Görsel Soru Seti (${results.length} Soru)`
       }));
 
@@ -738,19 +739,27 @@ export default function QuestionBank() {
     } else if (q.contentType === 'gorsel') {
       const urls = Array.isArray(q.imageUrls) && q.imageUrls.length > 0 
         ? q.imageUrls 
-        : (q.contentPayload ? [q.contentPayload] : []);
+        : (q.contentPayload ? q.contentPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
 
       setImageUrls(urls);
       
+      const qCount = q.questionCount || (urls.length > 0 ? urls.length : 1);
+
       const ansMap = {};
       if (Array.isArray(q.answerKey)) {
         q.answerKey.forEach((k, idx) => {
           if (k && k !== ' ') {
-            ansMap[idx] = k.charCodeAt(0) - 65;
+            ansMap[idx] = typeof k === 'number' ? k : (k.charCodeAt(0) - 65);
           }
         });
       } else if (q.imageAnswers) {
         Object.assign(ansMap, q.imageAnswers);
+      } else if (q.questionsList && Array.isArray(q.questionsList)) {
+        q.questionsList.forEach((subQ, idx) => {
+          if (subQ.correctAnswer !== undefined) {
+            ansMap[idx] = subQ.correctAnswer;
+          }
+        });
       } else {
         ansMap[0] = q.correctAnswer || 0;
       }
@@ -758,7 +767,8 @@ export default function QuestionBank() {
 
       setFormData(prev => ({
         ...prev,
-        contentPayload: urls.join('\n')
+        questionCount: qCount,
+        contentPayload: urls.join('\n\n')
       }));
     }
     
@@ -854,10 +864,10 @@ export default function QuestionBank() {
 
   const handleImagePayloadChange = (e) => {
     const val = e.target.value;
-    setFormData({...formData, contentPayload: val});
-    
-    const urls = val.split('\n').map(u => u.trim()).filter(u => u !== '');
+    const urls = val.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean);
     setImageUrls(urls);
+    const count = urls.length > 0 ? urls.length : 1;
+    setFormData(prev => ({ ...prev, contentPayload: val, questionCount: count }));
   };
 
   const handleImageBulkAnswerKeyChange = (val) => {
@@ -956,11 +966,8 @@ export default function QuestionBank() {
           createdBy: formData.createdBy || teacherId
         });
       } else if (formData.contentType === 'gorsel') {
-        const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? [formData.contentPayload] : []);
-        const filledAnswersCount = Object.keys(imageAnswers).length;
-        const totalQs = (formData.questionCount && parseInt(formData.questionCount) > 0)
-          ? parseInt(formData.questionCount)
-          : (filledAnswersCount > 0 ? filledAnswersCount : validUrls.length);
+        const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? formData.contentPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
+        const totalQs = validUrls.length > 0 ? validUrls.length : (parseInt(formData.questionCount, 10) || 1);
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -974,15 +981,20 @@ export default function QuestionBank() {
         const isAcikUclu = formData.type === 'acik_uclu';
         const isSingleQuestion = totalQs <= 1;
 
-        const subQuestions = isSingleQuestion ? [] : validUrls.slice(0, totalQs).map((url, idx) => ({
-          id: `subq_${idx}_${Date.now()}`,
-          title: `Görsel Soru ${idx + 1}`,
-          contentType: 'gorsel',
-          contentPayload: url,
-          type: formData.type || 'coktan_secmeli',
-          options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
-          correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
-        }));
+        const subQuestions = isSingleQuestion ? [] : Array.from({ length: totalQs }).map((_, idx) => {
+          const u = validUrls[idx] || validUrls[0] || formData.contentPayload || '';
+          return {
+            id: `subq_${idx}_${Date.now()}`,
+            title: `Görsel Soru ${idx + 1}`,
+            contentType: 'gorsel',
+            contentPayload: u,
+            type: formData.type || 'coktan_secmeli',
+            options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
+            correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
+          };
+        });
+
+        const finalPayload = validUrls.length > 0 ? validUrls.join('\n\n') : formData.contentPayload;
 
         updateQuestion(editingQuestionId, {
           ...formData,
@@ -990,9 +1002,10 @@ export default function QuestionBank() {
           isBundle: !isSingleQuestion,
           questionCount: totalQs,
           imageUrls: validUrls,
-          contentPayload: validUrls[0] || formData.contentPayload,
+          contentPayload: finalPayload,
           questionsList: subQuestions,
           answerKey: parsedKey,
+          imageAnswers: imageAnswers,
           createdBy: formData.createdBy || teacherId
         });
       } else {
@@ -1025,11 +1038,8 @@ export default function QuestionBank() {
         });
       }
       else if (formData.contentType === 'gorsel') {
-        const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? [formData.contentPayload] : []);
-        const filledAnswersCount = Object.keys(imageAnswers).length;
-        const totalQs = (formData.questionCount && parseInt(formData.questionCount) > 0)
-          ? parseInt(formData.questionCount)
-          : (filledAnswersCount > 0 ? filledAnswersCount : validUrls.length);
+        const validUrls = imageUrls.length > 0 ? imageUrls : (formData.contentPayload ? formData.contentPayload.split(/\n\n|\n|\|/).map(u => u.trim()).filter(Boolean) : []);
+        const totalQs = validUrls.length > 0 ? validUrls.length : (parseInt(formData.questionCount, 10) || 1);
 
         const parsedKey = [];
         for (let i = 0; i < totalQs; i++) {
@@ -1043,15 +1053,20 @@ export default function QuestionBank() {
         const isAcikUclu = formData.type === 'acik_uclu';
         const isSingleQuestion = totalQs <= 1;
 
-        const subQuestions = isSingleQuestion ? [] : validUrls.slice(0, totalQs).map((url, idx) => ({
-          id: `subq_${idx}_${Date.now()}`,
-          title: `Görsel Soru ${idx + 1}`,
-          contentType: 'gorsel',
-          contentPayload: url,
-          type: formData.type || 'coktan_secmeli',
-          options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
-          correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
-        }));
+        const subQuestions = isSingleQuestion ? [] : Array.from({ length: totalQs }).map((_, idx) => {
+          const u = validUrls[idx] || validUrls[0] || formData.contentPayload || '';
+          return {
+            id: `subq_${idx}_${Date.now()}`,
+            title: `Görsel Soru ${idx + 1}`,
+            contentType: 'gorsel',
+            contentPayload: u,
+            type: formData.type || 'coktan_secmeli',
+            options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
+            correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
+          };
+        });
+
+        const finalPayload = validUrls.length > 0 ? validUrls.join('\n\n') : formData.contentPayload;
 
         addQuestion({
           ...formData,
@@ -1059,9 +1074,10 @@ export default function QuestionBank() {
           isBundle: !isSingleQuestion,
           questionCount: totalQs,
           imageUrls: validUrls,
-          contentPayload: validUrls[0] || formData.contentPayload,
+          contentPayload: finalPayload,
           questionsList: subQuestions,
           answerKey: parsedKey,
+          imageAnswers: imageAnswers,
           createdBy: teacherId
         });
       }
@@ -3087,16 +3103,20 @@ export default function QuestionBank() {
 
                     {/* RENDER ALL IMAGES WITH THEIR OPTIONS DIRECTLY UNDERNEATH */}
                     {(() => {
-                      const imgs = [];
-                      if (q.contentPayload && typeof q.contentPayload === 'string' && (q.contentPayload.startsWith('data:image') || q.contentPayload.startsWith('http') || q.contentType === 'gorsel')) {
-                        imgs.push(q.contentPayload);
-                      }
-                      if (Array.isArray(q.imageUrls)) {
-                        q.imageUrls.forEach(url => {
-                          if (url && !imgs.includes(url)) imgs.push(url);
+                      const rawList = [];
+                      if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) {
+                        q.imageUrls.forEach(u => {
+                          if (u && typeof u === 'string') {
+                            const parts = u.split(/\n\n|\n|\|/).map(p => p.trim()).filter(Boolean);
+                            parts.forEach(p => { if (!rawList.includes(p)) rawList.push(p); });
+                          }
                         });
                       }
-                      const imageList = imgs.length > 0 ? imgs : [q.contentPayload].filter(Boolean);
+                      if (rawList.length === 0 && q.contentPayload && typeof q.contentPayload === 'string') {
+                        const parts = q.contentPayload.split(/\n\n|\n|\|/).map(p => p.trim()).filter(Boolean);
+                        parts.forEach(p => { if (!rawList.includes(p)) rawList.push(p); });
+                      }
+                      const imageList = rawList.length > 0 ? rawList : (q.contentPayload ? [q.contentPayload] : []);
 
                       const getCorrectIdxForImg = (imgIdx) => {
                         if (Array.isArray(q.answerKey) && q.answerKey[imgIdx] && q.answerKey[imgIdx] !== ' ') {
