@@ -1817,12 +1817,61 @@ export default function StudentCoachingPage() {
 
         {/* ═══ HEDEFLERİM ═══ */}
         {activeTab === 'hedefler' && (
-          <div>
-            <Tip>Hedeflerini belirle ve her gün üzerlerine tıklayarak tamamladıklarını işaretle. Bu sayfa koçunla senkronize çalışır.</Tip>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <Tip>Hedeflerini belirle ve tamamladıkça üzerine tıklayarak işaretle. Bu sayfa koçunla senkronize çalışır!</Tip>
 
-            {/* Uzun vadeli */}
-            <Card emoji="🏛️" title="Uzun Vadeli Hedefim">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '0.85rem' }}>
+            {/* Özet İstatistik Kartları */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              {/* Uzun Vadeli Hedef Kartı */}
+              <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', borderRadius: '1rem', padding: '1.15rem', color: 'white', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.25)' }}>
+                <div style={{ fontSize: '0.78rem', opacity: 0.85, fontWeight: 700, marginBottom: 4 }}>HEDEF SINAV / OKUL</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {goals.targetSchool || goals.examGoalType || 'Hedef Belirlenmedi'}
+                </div>
+                <div style={{ fontSize: '0.78rem', opacity: 0.85, marginTop: 4, display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  {goals.targetScore && <span>🏆 {goals.targetScore} Puan</span>}
+                  {goals.targetNet && <span>🎯 {goals.targetNet} Net</span>}
+                </div>
+              </div>
+
+              {/* Haftalık Hedef İlerlemesi */}
+              {(() => {
+                const wDone = (goals.weeklyGoals || []).filter(g => g.done).length;
+                const wTotal = (goals.weeklyGoals || []).length;
+                const wPct = wTotal > 0 ? Math.round((wDone / wTotal) * 100) : 0;
+                return (
+                  <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>HAFTALIK HEDEFLER</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 900, color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{wDone} / {wTotal}</span>
+                      <span style={{ fontSize: '1rem', background: '#f3e8ff', color: '#7c3aed', padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>%{wPct}</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>Bu haftaki başarım</div>
+                  </div>
+                );
+              })()}
+
+              {/* Aylık Hedef İlerlemesi */}
+              {(() => {
+                const mDone = (goals.monthlyGoals || []).filter(g => g.done).length;
+                const mTotal = (goals.monthlyGoals || []).length;
+                const mPct = mTotal > 0 ? Math.round((mDone / mTotal) * 100) : 0;
+                return (
+                  <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>AYLIK HEDEFLER</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 900, color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{mDone} / {mTotal}</span>
+                      <span style={{ fontSize: '1rem', background: '#dbeafe', color: '#1d4ed8', padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>%{mPct}</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>Bu ayki genel başarım</div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Uzun Vadeli Hedef Vitrini */}
+            <Card emoji="🏛️" title="Uzun Vadeli Hedeflerim & Sınav Planım">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
                 <div>
                   <label style={lbl}>Hedef Sınav</label>
                   <select style={inp} value={isStandardExam ? goals.examGoalType : 'Özel Sınav'} onChange={e => {
@@ -1854,7 +1903,6 @@ export default function StudentCoachingPage() {
                   </div>
                 )}
 
-                {/* Ara Sınıf Takip Alanları */}
                 {isGradeTracking ? (
                   <>
                     <div>
@@ -1890,7 +1938,7 @@ export default function StudentCoachingPage() {
                   <>
                     <div>
                       <label style={lbl}>Hedef Okul / Bölüm</label>
-                      <input style={inp} value={goals.targetSchool} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Kabataş Lisesi" />
+                      <input style={inp} value={goals.targetSchool} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Kabataş Erkek Lisesi" />
                     </div>
                     <div>
                       <label style={lbl}>Puan Hedefim</label>
@@ -1925,31 +1973,31 @@ export default function StudentCoachingPage() {
               )}
             </Card>
 
-            {/* Aylık */}
-            <Card emoji="📅" title={`Aylık Hedeflerim (${(goals.monthlyGoals||[]).filter(g=>g.done).length}/${(goals.monthlyGoals||[]).length} tamamlandı)`}>
-              {(goals.monthlyGoals || []).length === 0 && <div style={{ color: '#94a3b8', fontSize: '0.83rem', fontWeight: 700, textAlign: 'center', padding: '1rem' }}>Henüz aylık hedef yok. Aşağıdan ekle 👇</div>}
-              {(goals.monthlyGoals || []).map(g => (
-                <CheckItem key={g.id} label={g.text} checked={g.done}
-                  onChange={() => setGoals(p => ({ ...p, monthlyGoals: p.monthlyGoals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
-                  onDelete={() => setGoals(p => ({ ...p, monthlyGoals: p.monthlyGoals.filter(x => x.id !== g.id) }))} />
-              ))}
-              {(goals.monthlyGoals||[]).length > 0 && <Progress value={(goals.monthlyGoals||[]).filter(g=>g.done).length} max={(goals.monthlyGoals||[]).length} color="#2563eb" label="Bu ayın ilerlemesi" />}
-              <AddInput value={newMonthly} onChange={setNewMonthly} placeholder="Yeni aylık hedef ekle..." color="#2563eb"
-                onAdd={() => { if (newMonthly.trim()) { setGoals(p => ({ ...p, monthlyGoals: [...(p.monthlyGoals||[]), { id: uid(), text: newMonthly.trim(), done: false }] })); setNewMonthly(''); }}} />
-            </Card>
-
-            {/* Haftalık */}
+            {/* Haftalık Hedeflerim Kartı */}
             <Card emoji="⚡" title={`Haftalık Hedeflerim (${(goals.weeklyGoals||[]).filter(g=>g.done).length}/${(goals.weeklyGoals||[]).length})`}>
+              {(goals.weeklyGoals || []).length === 0 && <div style={{ color: '#94a3b8', fontSize: '0.83rem', fontWeight: 700, textAlign: 'center', padding: '1rem' }}>Henüz haftalık hedef eklenmemiş. Aşağıdan ekle 👇</div>}
               {(goals.weeklyGoals || []).map(g => (
                 <CheckItem key={g.id} label={g.text} checked={g.done}
                   onChange={() => setGoals(p => ({ ...p, weeklyGoals: p.weeklyGoals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
                   onDelete={() => setGoals(p => ({ ...p, weeklyGoals: p.weeklyGoals.filter(x => x.id !== g.id) }))} />
               ))}
-              <AddInput value={newWeekly} onChange={setNewWeekly} placeholder="Yeni haftalık hedef..." color="#7c3aed"
+              {(goals.weeklyGoals||[]).length > 0 && <Progress value={(goals.weeklyGoals||[]).filter(g=>g.done).length} max={(goals.weeklyGoals||[]).length} color="#7c3aed" label="Haftalık Hedef İlerlemesi" />}
+              <AddInput value={newWeekly} onChange={setNewWeekly} placeholder="Yeni haftalık hedef ekle (ör: 500 Soru Çöz)..." color="#7c3aed"
                 onAdd={() => { if (newWeekly.trim()) { setGoals(p => ({ ...p, weeklyGoals: [...(p.weeklyGoals||[]), { id: uid(), text: newWeekly.trim(), done: false }] })); setNewWeekly(''); }}} />
             </Card>
 
-
+            {/* Aylık Hedeflerim Kartı */}
+            <Card emoji="📅" title={`Aylık Hedeflerim (${(goals.monthlyGoals||[]).filter(g=>g.done).length}/${(goals.monthlyGoals||[]).length})`}>
+              {(goals.monthlyGoals || []).length === 0 && <div style={{ color: '#94a3b8', fontSize: '0.83rem', fontWeight: 700, textAlign: 'center', padding: '1rem' }}>Henüz aylık hedef eklenmemiş. Aşağıdan ekle 👇</div>}
+              {(goals.monthlyGoals || []).map(g => (
+                <CheckItem key={g.id} label={g.text} checked={g.done}
+                  onChange={() => setGoals(p => ({ ...p, monthlyGoals: p.monthlyGoals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
+                  onDelete={() => setGoals(p => ({ ...p, monthlyGoals: p.monthlyGoals.filter(x => x.id !== g.id) }))} />
+              ))}
+              {(goals.monthlyGoals||[]).length > 0 && <Progress value={(goals.monthlyGoals||[]).filter(g=>g.done).length} max={(goals.monthlyGoals||[]).length} color="#2563eb" label="Aylık Hedef İlerlemesi" />}
+              <AddInput value={newMonthly} onChange={setNewMonthly} placeholder="Yeni aylık hedef ekle (ör: Mat 2 Ünite Bitir)..." color="#2563eb"
+                onAdd={() => { if (newMonthly.trim()) { setGoals(p => ({ ...p, monthlyGoals: [...(p.monthlyGoals||[]), { id: uid(), text: newMonthly.trim(), done: false }] })); setNewMonthly(''); }}} />
+            </Card>
           </div>
         )}
 
