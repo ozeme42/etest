@@ -6,7 +6,7 @@ import {
   TrendingUp, Zap, CheckCircle2, Award, Clock,
   AlertTriangle, Smile, Gift, Activity, BarChart3,
   GraduationCap, User, Layers, ClipboardList, MessageSquare,
-  FileText, ArrowLeft, Sparkles, Trophy, Heart, Eye, AlertCircle, X
+  FileText, ArrowLeft, Sparkles, Trophy, Heart, Eye, AlertCircle, X, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
@@ -465,6 +465,13 @@ export default function MyCoachingPage() {
     }));
   };
 
+  const handleResetSingleCounterGoal = (goalId) => {
+    setGoals(prev => ({
+      ...prev,
+      counterGoals: (prev.counterGoals || []).map(g => g.id === goalId ? { ...g, current: 0 } : g)
+    }));
+  };
+
   const handleAddUnifiedGoal = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!newGoalText.trim()) return;
@@ -823,6 +830,63 @@ export default function MyCoachingPage() {
     if (existingProfile.schoolGrades) setSchoolGrades(existingProfile.schoolGrades);
     if (existingProfile.customSubjects) setCustomSubjects(existingProfile.customSubjects);
   }, [existingProfile.studentId]);
+
+  /* ─── Hedef Otomatik Sıfırlama Takibi (Günlük, Haftalık, Aylık) ─── */
+  useEffect(() => {
+    const todayStr = today(); // 'YYYY-MM-DD'
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const monthKey = `${year}-${month}`; // '2026-08'
+
+    const startOfYear = new Date(year, 0, 1);
+    const pastDaysOfYear = (now - startOfYear) / 86400000;
+    const weekNum = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+    const weekKey = `${year}-W${weekNum}`;
+
+    setGoals(prev => {
+      let changed = false;
+      const lastDaily = prev.lastDailyResetDate;
+      const lastWeekly = prev.lastWeeklyResetKey;
+      const lastMonthly = prev.lastMonthlyResetKey;
+
+      const updatedCounters = (prev.counterGoals || []).map(g => {
+        let newCurrent = g.current || 0;
+
+        // Her gece 00:00 sonrası yeni günde Günlük hedefler 0'lanır
+        if (g.period === 'Günlük' && lastDaily && lastDaily !== todayStr) {
+          newCurrent = 0;
+          changed = true;
+        }
+
+        // Her Pazartesi / yeni haftada Haftalık hedefler 0'lanır
+        if (g.period === 'Haftalık' && lastWeekly && lastWeekly !== weekKey) {
+          newCurrent = 0;
+          changed = true;
+        }
+
+        // Her ayın 1'inde Aylık hedefler 0'lanır
+        if (g.period === 'Aylık' && lastMonthly && lastMonthly !== monthKey) {
+          newCurrent = 0;
+          changed = true;
+        }
+
+        return { ...g, current: newCurrent };
+      });
+
+      if (!lastDaily || !lastWeekly || !lastMonthly || changed) {
+        return {
+          ...prev,
+          lastDailyResetDate: todayStr,
+          lastWeeklyResetKey: weekKey,
+          lastMonthlyResetKey: monthKey,
+          counterGoals: updatedCounters
+        };
+      }
+
+      return prev;
+    });
+  }, []);
 
   /* ─── Deneme sonuçları (otomatik + manuel kombine) ─── */
   const mySubmissions = useMemo(() => submissions.filter(s => String(s.studentId) === String(studentId)), [submissions, studentId]);
@@ -2377,6 +2441,13 @@ export default function MyCoachingPage() {
                                       <span style={{ fontSize: '0.73rem', fontWeight: 900, color: isCompleted ? '#10b981' : periodColor, background: isCompleted ? '#dcfce7' : periodBg, padding: '0.1rem 0.4rem', borderRadius: 4 }}>
                                         %{pct}
                                       </span>
+                                      <button
+                                        onClick={() => handleResetSingleCounterGoal(cg.id)}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2 }}
+                                        title="Hedefi 0'la / Sıfırla"
+                                      >
+                                        <RotateCcw size={13} />
+                                      </button>
                                       <button
                                         onClick={() => handleDeleteCounterGoal(cg.id)}
                                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}
