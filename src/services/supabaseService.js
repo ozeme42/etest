@@ -1,5 +1,22 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
+function toUUID(id) {
+  if (!id) return '00000000-0000-4000-8000-000000000000';
+  const str = String(id);
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(str)) return str;
+
+  let hex = '';
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16);
+  }
+  while (hex.length < 32) {
+    hex += '0';
+  }
+  hex = hex.substring(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
+}
+
 /**
  * High-performance Supabase database integration service.
  * Automatically falls back gracefully to localStorage or local memory if env variables are not present.
@@ -379,25 +396,33 @@ export async function dbSaveSubmission(sub) {
   }
 }
 
+export async function dbDeleteSubmission(id) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('submissions').delete().eq('id', String(id));
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteSubmission error:', err.message);
+    return false;
+  }
+}
+
+export async function dbClearStudentSubmissions(studentId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase.from('submissions').delete().eq('student_id', String(studentId));
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbClearStudentSubmissions error:', err.message);
+    return false;
+  }
+}
+
 // ==========================================
 // 4. SORU BANKASI (QUESTIONS)
 // ==========================================
-function toUUID(id) {
-  if (!id) return '00000000-0000-4000-8000-000000000000';
-  const str = String(id);
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(str)) return str;
-
-  let hex = '';
-  for (let i = 0; i < str.length; i++) {
-    hex += str.charCodeAt(i).toString(16);
-  }
-  while (hex.length < 32) {
-    hex += '0';
-  }
-  hex = hex.substring(0, 32);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
-}
 
 export async function dbGetQuestions() {
   if (!isSupabaseConfigured()) return null;
@@ -1124,19 +1149,23 @@ export async function dbGetCoachingProfiles() {
   try {
     const { data, error } = await supabase.from('coaching_profiles').select('*');
     if (error) throw error;
-    return (data || []).map(p => ({
-      id: String(p.id),
-      studentId: String(p.student_id),
-      targetSchool: p.target_school || '',
-      targetNet: p.target_net || 0,
-      learningStyle: p.learning_style || 'Görsel',
-      parentName: p.parent_name || '',
-      parentPhone: p.parent_phone || '',
-      parentNotes: p.parent_notes || '',
-      strengths: p.strengths || '',
-      hobbies: p.hobbies || '',
-      createdAt: p.created_at
-    }));
+    return (data || []).map(p => {
+      const extraData = p.data || (p.extra_data ? (typeof p.extra_data === 'string' ? JSON.parse(p.extra_data) : p.extra_data) : {});
+      return {
+        id: String(p.id),
+        studentId: String(p.student_id),
+        targetSchool: p.target_school || '',
+        targetNet: p.target_net || 0,
+        learningStyle: p.learning_style || 'Görsel',
+        parentName: p.parent_name || '',
+        parentPhone: p.parent_phone || '',
+        parentNotes: p.parent_notes || '',
+        strengths: p.strengths || '',
+        hobbies: p.hobbies || '',
+        createdAt: p.created_at,
+        ...extraData
+      };
+    });
   } catch (err) {
     console.warn('[Supabase] dbGetCoachingProfiles info:', err.message);
     return null;
@@ -1146,7 +1175,7 @@ export async function dbGetCoachingProfiles() {
 export async function dbSaveCoachingProfile(profile) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const payload = {
+    const payloadWithData = {
       id: String(profile.id || `cp_${profile.studentId}`),
       student_id: String(profile.studentId),
       target_school: profile.targetSchool || '',
@@ -1156,10 +1185,17 @@ export async function dbSaveCoachingProfile(profile) {
       parent_phone: profile.parentPhone || '',
       parent_notes: profile.parentNotes || '',
       strengths: profile.strengths || '',
-      hobbies: profile.hobbies || ''
+      hobbies: profile.hobbies || '',
+      data: profile
     };
-    const { data, error } = await supabase.from('coaching_profiles').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error) throw error;
+    const { data, error } = await supabase.from('coaching_profiles').upsert([payloadWithData], { onConflict: 'id' }).select().single();
+    if (error) {
+      // Fallback if 'data' column is not on table schema
+      const basePayload = { ...payloadWithData };
+      delete basePayload.data;
+      const fallback = await supabase.from('coaching_profiles').upsert([basePayload], { onConflict: 'id' }).select().single();
+      return fallback.data;
+    }
     return data;
   } catch (err) {
     console.warn('[Supabase] dbSaveCoachingProfile info:', err.message);

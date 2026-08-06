@@ -67,10 +67,10 @@ export function HomeworkProvider({ children }) {
         let newSubmissions = [...(hw.submissions || [])];
         if (existing) {
           newSubmissions = newSubmissions.map(s => 
-            s.studentId === studentId ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions } : s
+            s.studentId === studentId ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData } : s
           );
         } else {
-          newSubmissions.push({ studentId, score, completedAt: new Date().toISOString(), totalQuestions });
+          newSubmissions.push({ studentId, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData });
         }
         const updated = { ...hw, submissions: newSubmissions };
         dbAddHomework(updated);

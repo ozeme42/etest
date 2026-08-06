@@ -1164,6 +1164,17 @@ export default function QuestionBank() {
     text:   { label: 'Tek Soru',        icon: '📝', bgFrom: '#fefce8', bgTo: '#fef9c3', border: '#fde047', accent: '#ca8a04', badge: 'bg-yellow-100 text-yellow-800', iconBg: 'linear-gradient(135deg,#facc15,#ca8a04)' },
   };
 
+const getAnswerKeyCount = (answerKey) => {
+  if (!answerKey) return 0;
+  if (Array.isArray(answerKey)) {
+    return answerKey.filter(k => k && k !== ' ').length;
+  }
+  if (typeof answerKey === 'string') {
+    return answerKey.replace(/\s+/g, '').length;
+  }
+  return 0;
+};
+
   const renderQuestionCard = (q) => {
     const hierarchyBadge = getQuestionHierarchyBadge(q);
     const cfg = contentConfig[q.contentType] || contentConfig.text;
@@ -1176,7 +1187,7 @@ export default function QuestionBank() {
     // question count label
     const qCount = q.questionsList?.length
       || q.questionCount
-      || (q.answerKey?.filter(k => k && k !== ' ').length)
+      || getAnswerKeyCount(q.answerKey)
       || (imgCount > 0 ? imgCount : null);
 
     // first image thumbnail
@@ -1272,7 +1283,7 @@ export default function QuestionBank() {
                 <span>{imgCount} Görsel</span>
               </div>
             )}
-            {q.answerKey && q.answerKey.filter(k => k && k !== ' ').length > 0 && (
+            {getAnswerKeyCount(q.answerKey) > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>🗝️</span>
                 <span>Cevap Anahtarlı</span>
@@ -1322,7 +1333,7 @@ export default function QuestionBank() {
     const hierarchyBadge = getQuestionHierarchyBadge(q);
     const cfg = contentConfig[q.contentType] || contentConfig.text;
     const imgCount = Array.isArray(q.imageUrls) && q.imageUrls.length > 0 ? q.imageUrls.length : (q.contentType === 'gorsel' ? 1 : 0);
-    const qCount = q.questionsList?.length || q.questionCount || (q.answerKey?.filter(k => k && k !== ' ').length) || (imgCount > 0 ? imgCount : null);
+    const qCount = q.questionsList?.length || q.questionCount || getAnswerKeyCount(q.answerKey) || (imgCount > 0 ? imgCount : null);
     const thumbUrl = Array.isArray(q.imageUrls) && q.imageUrls[0] ? q.imageUrls[0] : (q.contentType === 'gorsel' ? q.contentPayload : null);
 
     return (

@@ -49,7 +49,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
     reader.readAsDataURL(file);
   };
 
-  const savedState = JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null');
+  const savedState = !isRetake ? JSON.parse(localStorage.getItem(`quiz_state_${id}`) || 'null') : null;
 
   // Core Quiz States
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(savedState?.currentQuestionIdx || 0);
@@ -95,18 +95,19 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
   const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
 
-  // Check if test is already completed by this student
+  // Check if test is already completed by this student (ignored if isRetake is true)
   const existingSubmission = useMemo(() => {
+    if (isRetake) return null;
     if (!id || !studentId) return null;
     return (submissions || []).find(s => (s.testId === id || s.id === id) && s.studentId === studentId);
-  }, [submissions, id, studentId]);
+  }, [submissions, id, studentId, isRetake]);
 
-  // If already finished or existing submission found, lock test solver and redirect to review
+  // If already finished or existing submission found and not explicitly retaking, lock test solver and redirect to review
   useEffect(() => {
-    if (existingSubmission && !showResultsModal && !isFinished) {
+    if (existingSubmission && !showResultsModal && !isFinished && !isRetake) {
       navigate(`/review/${existingSubmission.id}`, { replace: true });
     }
-  }, [existingSubmission, showResultsModal, isFinished, navigate]);
+  }, [existingSubmission, showResultsModal, isFinished, navigate, isRetake]);
 
   // Prevent browser back button from re-opening test solver once test is finished
   useEffect(() => {
@@ -388,14 +389,23 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
 
   const handleOptionSelect = (idx) => {
     const q = currentQuestion;
+    if (!q) return;
     setStudentAnswers(prev => {
-      const updated = { ...prev, [q.id]: idx };
+      const isAlreadySelected = prev[q.id] === idx;
+      const updated = { ...prev };
+      if (isAlreadySelected) {
+        delete updated[q.id];
+      } else {
+        updated[q.id] = idx;
+      }
       if (q.parentTestId) {
-        const parentAns = prev[q.parentTestId] || {};
-        updated[q.parentTestId] = {
-          ...parentAns,
-          [q.subIndex]: idx
-        };
+        const parentAns = { ...(prev[q.parentTestId] || {}) };
+        if (isAlreadySelected) {
+          delete parentAns[q.subIndex];
+        } else {
+          parentAns[q.subIndex] = idx;
+        }
+        updated[q.parentTestId] = parentAns;
       }
       return updated;
     });
@@ -403,6 +413,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
 
   const handleOpenAnswerChange = (val) => {
     const q = currentQuestion;
+    if (!q) return;
     setStudentAnswers(prev => {
       const updated = { ...prev, [q.id]: val };
       if (q.parentTestId) {
@@ -417,27 +428,29 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   };
 
   const handleBundleOptionSelect = (subIndex, optIdx) => {
+    if (!currentQuestion?.id) return;
     setStudentAnswers(prev => {
-      const currentBundleAnswers = prev[currentQuestion.id] || {};
+      const currentBundleAnswers = { ...(prev[currentQuestion.id] || {}) };
+      if (currentBundleAnswers[subIndex] === optIdx) {
+        delete currentBundleAnswers[subIndex];
+      } else {
+        currentBundleAnswers[subIndex] = optIdx;
+      }
       return {
         ...prev,
-        [currentQuestion.id]: {
-          ...currentBundleAnswers,
-          [subIndex]: optIdx
-        }
+        [currentQuestion.id]: currentBundleAnswers
       };
     });
   };
 
   const handleBundleTextChange = (subIndex, textVal) => {
+    if (!currentQuestion?.id) return;
     setStudentAnswers(prev => {
-      const currentBundleAnswers = prev[currentQuestion.id] || {};
+      const currentBundleAnswers = { ...(prev[currentQuestion.id] || {}) };
+      currentBundleAnswers[subIndex] = textVal;
       return {
         ...prev,
-        [currentQuestion.id]: {
-          ...currentBundleAnswers,
-          [subIndex]: textVal
-        }
+        [currentQuestion.id]: currentBundleAnswers
       };
     });
   };
@@ -618,13 +631,18 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
     });
 
     const newSubId = await addSubmission({
-      testId: test.id,
-      testTitle: test.title,
+      testId: test?.id || id,
+      hwId: isHomework ? (test?.id || id) : undefined,
+      testTitle: test?.title || test?.name || (isHomework ? 'Ödev Sınavı' : 'Test'),
       studentId: student.id,
       studentName: student.name,
       isHomework: isHomework,
       status: finalStatus,
       score: totalScore,
+      correctCount: correctCount,
+      wrongCount: wrongCount,
+      blankCount: blankCount,
+      totalQuestions: correctCount + wrongCount + blankCount + pendingCount,
       answers: collected
     });
     

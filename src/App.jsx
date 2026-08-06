@@ -15,6 +15,8 @@ import QuestionBank from './pages/QuestionBank';
 import QuizRunner from './pages/QuizRunner';
 import BookQuizRunner from './pages/BookQuizRunner';
 import QuizReview from './pages/QuizReview';
+import ModularQuizPage from './pages/ModularQuizPage';
+import ModularQuizReviewPage from './pages/ModularQuizReviewPage';
 import BookManager from './pages/BookManager';
 import BookContentManager from './pages/BookContentManager';
 import StudyPlanManager from './pages/StudyPlanManager';
@@ -216,9 +218,10 @@ function AppContent() {
           <Route path="/homeworks" element={<HomeworkManager />} />
           <Route path="/evaluations" element={<EvaluationManager />} />
           <Route path="/questions" element={<QuestionBank />} />
-          <Route path="/quiz/:testId" element={<QuizRunner />} />
-          <Route path="/book-quiz/:testId" element={<BookQuizRunner />} />
-          <Route path="/review/:submissionId" element={<QuizReview />} />
+          <Route path="/quiz/:testId" element={<ModularQuizPage />} />
+          <Route path="/book-quiz/:testId" element={<ModularQuizPage />} />
+          <Route path="/quiz-review/:testId" element={<ModularQuizReviewPage />} />
+          <Route path="/review/:submissionId" element={<ModularQuizReviewPage />} />
           <Route path="/books" element={<BookManager />} />
           <Route path="/books/:id" element={<BookContentManager />} />
           <Route path="/study-plans" element={<StudyPlanManager />} />
