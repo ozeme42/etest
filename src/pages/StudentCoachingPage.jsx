@@ -406,6 +406,7 @@ export default function StudentCoachingPage() {
   ]);
   const [newHabit, setNewHabit] = useState('');
   const [selectedMonthlyHabit, setSelectedMonthlyHabit] = useState(null);
+  const [isEditingLongTermGoal, setIsEditingLongTermGoal] = useState(false);
 
   /* ── Okul Yazılı Notları ── */
   const [schoolGrades, setSchoolGrades] = useState([]);
@@ -1870,108 +1871,177 @@ export default function StudentCoachingPage() {
             </div>
 
             {/* Uzun Vadeli Hedef Vitrini */}
-            <Card emoji="🏛️" title="Uzun Vadeli Hedeflerim & Sınav Planım">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
-                <div>
-                  <label style={lbl}>Hedef Sınav</label>
-                  <select style={inp} value={isStandardExam ? goals.examGoalType : 'Özel Sınav'} onChange={e => {
-                    const val = e.target.value;
-                    if (val === 'Özel Sınav') {
-                      setGoals(p => ({ ...p, examGoalType: 'Özel Sınav', customExamName: p.customExamName || '' }));
-                    } else {
-                      setGoals(p => ({ ...p, examGoalType: val }));
-                    }
-                  }}>
-                    <option value="LGS 2026">LGS (Liselere Geçiş)</option>
-                    <option value="YKS (TYT/AYT) 2026">YKS (TYT / AYT)</option>
-                    <option value="KPSS">KPSS</option>
-                    <option value="Ara Sınıf Takip & Takdir Hedefi">📊 Ara Sınıf Takip & Takdir Hedefi</option>
-                    <option value="Özel Sınav">✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
-                  </select>
-                </div>
+            {(() => {
+              const hasSetLongTermGoal = isGradeTracking
+                ? Boolean(goals.gradeClass || goals.gradeTarget)
+                : Boolean(goals.targetSchool || goals.targetScore || goals.targetNet || goals.examGoalType);
 
-                {(!isStandardExam || goals.examGoalType === 'Özel Sınav') && (
-                  <div>
-                    <label style={lbl}>Özel Sınav Adı</label>
-                    <input style={{ ...inp, borderColor: '#7c3aed', background: '#faf5ff' }}
-                      value={goals.customExamName || (goals.examGoalType !== 'Özel Sınav' ? goals.examGoalType : '')}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setGoals(p => ({ ...p, customExamName: val, examGoalType: val || 'Özel Sınav' }));
-                      }}
-                      placeholder="Örn: DGS, BİLSEM, ALES, YÖSDİL, TUS..." />
-                  </div>
-                )}
+              const showLongTermForm = !hasSetLongTermGoal || isEditingLongTermGoal;
 
-                {isGradeTracking ? (
-                  <>
-                    <div>
-                      <label style={lbl}>Sınıf / Seviye</label>
-                      <select style={inp} value={goals.gradeClass} onChange={e => setGoals(p => ({ ...p, gradeClass: e.target.value }))}>
-                        <option value="">— Seçin —</option>
-                        {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={lbl}>Dönem</label>
-                      <select style={inp} value={goals.gradeTerm} onChange={e => setGoals(p => ({ ...p, gradeTerm: e.target.value }))}>
-                        <option value="1">1. Dönem</option>
-                        <option value="2">2. Dönem</option>
-                        <option value="yıllık">Yıllık</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={lbl}>Hedef Belgem</label>
-                      <select style={{ ...inp, fontWeight: 800 }} value={goals.gradeTarget} onChange={e => setGoals(p => ({ ...p, gradeTarget: e.target.value }))}>
-                        <option value="Takçek">🟢 Takçek (Temel)</option>
-                        <option value="Teşekkür">🧡 Teşekkür (70–84)</option>
-                        <option value="Takdir">🏅 Takdir (85+)</option>
-                        <option value="Onur">⭐ Onur Belgesi (Tüm dersler Takdir)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={lbl}>Devamsızlık Hedefi</label>
-                      <input style={inp} value={goals.targetScore} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Maks. devamsızlık (gün)" />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <label style={lbl}>Hedef Okul / Bölüm</label>
-                      <input style={inp} value={goals.targetSchool} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Kabataş Erkek Lisesi" />
-                    </div>
-                    <div>
-                      <label style={lbl}>Puan Hedefim</label>
-                      <input style={inp} value={goals.targetScore} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Örn: 485" />
-                    </div>
-                    <div>
-                      <label style={lbl}>Net Hedefim</label>
-                      <input style={inp} value={goals.targetNet} onChange={e => setGoals(p => ({ ...p, targetNet: e.target.value }))} placeholder="Örn: 90" />
-                    </div>
-                  </>
-                )}
-              </div>
+              return (
+                <Card emoji="🏛️" title="Uzun Vadeli Hedeflerim & Sınav Planım">
+                  {!showLongTermForm ? (
+                    /* Hedef Belirlendiğinde Görünen Şık Özet Vitrini */
+                    <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: '0.85rem', padding: '1.15rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                            {isGradeTracking ? (goals.gradeTarget === 'Onur' ? '⭐' : goals.gradeTarget === 'Takdir' ? '🏅' : '🧡') : '🏛️'}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              {goals.examGoalType || 'Hedef Planı'}
+                            </div>
+                            <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                              {isGradeTracking
+                                ? `${goals.gradeClass || 'Sınıf Belirtilmedi'} · ${goals.gradeTerm === 'yıllık' ? 'Yıllık' : `${goals.gradeTerm}. Dönem`} · Hedef: ${goals.gradeTarget || '—'}`
+                                : (goals.targetSchool || 'Hedef Okul / Bölüm Belirtilmedi')
+                              }
+                            </div>
+                          </div>
+                        </div>
 
-              {/* Ara Sınıf Hedef Özet Kartı */}
-              {isGradeTracking && (goals.gradeClass || goals.gradeTarget) && (
-                <div style={{ marginTop: '1rem', background: 'linear-gradient(135deg,#fef3c7,#fde68a20)', border: '2px solid #fde68a', borderRadius: '0.85rem', padding: '0.85rem 1.1rem', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '1.5rem' }}>
-                    {goals.gradeTarget === 'Onur' ? '⭐' : goals.gradeTarget === 'Takdir' ? '🏅' : goals.gradeTarget === 'Teşekkür' ? '🧡' : '🟢'}
-                  </span>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#92400e' }}>
-                      {goals.gradeClass || '?. Sınıf'} · {goals.gradeTerm === 'yıllık' ? 'Yıllık' : `${goals.gradeTerm}. Dönem`} · Hedef: {goals.gradeTarget}
+                        <button
+                          onClick={() => setIsEditingLongTermGoal(true)}
+                          style={{
+                            padding: '0.45rem 0.95rem', borderRadius: '0.65rem', background: 'white',
+                            border: '1px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.8rem',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          ✏️ Hedefleri Düzenle
+                        </button>
+                      </div>
+
+                      {!isGradeTracking && (
+                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.65rem', borderTop: '1px dashed #cbd5e1' }}>
+                          {goals.targetScore && (
+                            <div style={{ background: '#dcfce7', border: '1px solid #86efac', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', color: '#15803d' }}>
+                              🏆 Hedef Puan: {goals.targetScore}
+                            </div>
+                          )}
+                          {goals.targetNet && (
+                            <div style={{ background: '#e0e7ff', border: '1px solid #a5b4fc', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', color: '#4338ca' }}>
+                              🎯 Hedef Net: {goals.targetNet}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {isGradeTracking && goals.gradeTarget && (
+                        <div style={{ fontSize: '0.78rem', color: '#92400e', fontWeight: 700, background: '#fef3c7', padding: '0.55rem 0.85rem', borderRadius: '0.5rem', border: '1px solid #fde68a' }}>
+                          {goals.gradeTarget === 'Takdir' ? 'Tüm derslerden 85 ve üzeri ortalama hedefleniyor 💪' :
+                           goals.gradeTarget === 'Teşekkür' ? 'Tüm derslerden 70 ve üzeri ortalama hedefleniyor 💪' :
+                           goals.gradeTarget === 'Onur' ? 'Tüm derslerden Takdir belgesi hedefleniyor 🌟' :
+                           'Devamsızlık ve ödev takibi hedefleniyor 📚'}
+                          {goals.targetScore && ` · Maksimum devamsızlık: ${goals.targetScore} gün`}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '0.77rem', color: '#b45309', fontWeight: 700 }}>
-                      {goals.gradeTarget === 'Takdir' ? 'Tüm derslerden 85 ve üzeri alman gerekiyor 💪' :
-                       goals.gradeTarget === 'Teşekkür' ? 'Tüm derslerden 70 ve üzeri alman gerekiyor 💪' :
-                       goals.gradeTarget === 'Onur' ? 'Tüm derslerden Takdir belgesi alman gerekiyor 🌟' :
-                       'Devamsızlık ve ödevlere dikkat! 📚'}
+                  ) : (
+                    /* Hedef Düzenleme Formu */
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                        <div>
+                          <label style={lbl}>Hedef Sınav</label>
+                          <select style={inp} value={isStandardExam ? goals.examGoalType : 'Özel Sınav'} onChange={e => {
+                            const val = e.target.value;
+                            if (val === 'Özel Sınav') {
+                              setGoals(p => ({ ...p, examGoalType: 'Özel Sınav', customExamName: p.customExamName || '' }));
+                            } else {
+                              setGoals(p => ({ ...p, examGoalType: val }));
+                            }
+                          }}>
+                            <option value="LGS 2026">LGS (Liselere Geçiş)</option>
+                            <option value="YKS (TYT/AYT) 2026">YKS (TYT / AYT)</option>
+                            <option value="KPSS">KPSS</option>
+                            <option value="Ara Sınıf Takip & Takdir Hedefi">📊 Ara Sınıf Takip & Takdir Hedefi</option>
+                            <option value="Özel Sınav">✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
+                          </select>
+                        </div>
+
+                        {(!isStandardExam || goals.examGoalType === 'Özel Sınav') && (
+                          <div>
+                            <label style={lbl}>Özel Sınav Adı</label>
+                            <input style={{ ...inp, borderColor: '#7c3aed', background: '#faf5ff' }}
+                              value={goals.customExamName || (goals.examGoalType !== 'Özel Sınav' ? goals.examGoalType : '')}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setGoals(p => ({ ...p, customExamName: val, examGoalType: val || 'Özel Sınav' }));
+                              }}
+                              placeholder="Örn: DGS, BİLSEM, ALES, YÖSDİL, TUS..." />
+                          </div>
+                        )}
+
+                        {isGradeTracking ? (
+                          <>
+                            <div>
+                              <label style={lbl}>Sınıf / Seviye</label>
+                              <select style={inp} value={goals.gradeClass} onChange={e => setGoals(p => ({ ...p, gradeClass: e.target.value }))}>
+                                <option value="">— Seçin —</option>
+                                {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c}>{c}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={lbl}>Dönem</label>
+                              <select style={inp} value={goals.gradeTerm} onChange={e => setGoals(p => ({ ...p, gradeTerm: e.target.value }))}>
+                                <option value="1">1. Dönem</option>
+                                <option value="2">2. Dönem</option>
+                                <option value="yıllık">Yıllık</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={lbl}>Hedef Belgem</label>
+                              <select style={{ ...inp, fontWeight: 800 }} value={goals.gradeTarget} onChange={e => setGoals(p => ({ ...p, gradeTarget: e.target.value }))}>
+                                <option value="Takçek">🟢 Takçek (Temel)</option>
+                                <option value="Teşekkür">🧡 Teşekkür (70–84)</option>
+                                <option value="Takdir">🏅 Takdir (85+)</option>
+                                <option value="Onur">⭐ Onur Belgesi (Tüm dersler Takdir)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={lbl}>Devamsızlık Hedefi</label>
+                              <input style={inp} value={goals.targetScore} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Maks. devamsızlık (gün)" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <label style={lbl}>Hedef Okul / Bölüm</label>
+                              <input style={inp} value={goals.targetSchool} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Kabataş Erkek Lisesi" />
+                            </div>
+                            <div>
+                              <label style={lbl}>Puan Hedefim</label>
+                              <input style={inp} value={goals.targetScore} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Örn: 485" />
+                            </div>
+                            <div>
+                              <label style={lbl}>Net Hedefim</label>
+                              <input style={inp} value={goals.targetNet} onChange={e => setGoals(p => ({ ...p, targetNet: e.target.value }))} placeholder="Örn: 90" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {hasSetLongTermGoal && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingLongTermGoal(false)}
+                          style={{
+                            marginTop: '1rem', width: '100%', padding: '0.6rem', borderRadius: '0.65rem',
+                            background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                            boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)'
+                          }}
+                        >
+                          <CheckCircle2 size={16} /> Hedefleri Kaydet & Vitrine Al
+                        </button>
+                      )}
                     </div>
-                  </div>
-                </div>
-              )}
-            </Card>
+                  )}
+                </Card>
+              );
+            })()}
 
             {/* Haftalık Hedeflerim Kartı */}
             <Card emoji="⚡" title={`Haftalık Hedeflerim (${(goals.weeklyGoals||[]).filter(g=>g.done).length}/${(goals.weeklyGoals||[]).length})`}>
