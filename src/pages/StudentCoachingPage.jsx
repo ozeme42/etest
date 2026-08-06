@@ -961,7 +961,12 @@ export default function StudentCoachingPage() {
   const totalDailyHours = dailyLogs.reduce((s, l) => s + (parseFloat(l.studyHours) || 0), 0);
   const completedMonthly = (goals.monthlyGoals || []).filter(g => g.done).length;
   const completedDaily = (goals.dailyGoals || []).filter(g => g.done).length;
-  const completedTopics = topicList.filter(t => t.status === 'Tamamlandı').length;
+  const totalPoolTopics = topicPool.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
+  const completedPoolTopics = topicPool.reduce((sum, s) => {
+    return sum + (s.topics || []).filter(t => (t.status || (t.done ? 'Bitti' : 'Başlanmadı')) === 'Bitti' || t.status === 'Tamamlandı').length;
+  }, 0);
+  const completedTopics = totalPoolTopics > 0 ? completedPoolTopics : topicList.filter(t => t.status === 'Tamamlandı' || t.status === 'Bitti').length;
+  const totalTopics = totalPoolTopics > 0 ? totalPoolTopics : topicList.length;
   const habitScore = habits.reduce((s, h) => s + Object.values(h.days).filter(Boolean).length, 0);
   const maxHabitScore = habits.length * 7;
 
@@ -1589,7 +1594,7 @@ export default function StudentCoachingPage() {
                 { label: 'Aylık Hedefler', value: completedMonthly, max: (goals.monthlyGoals || []).length, color: '#2563eb', icon: '📅' },
                 { label: 'Haftalık Program', value: completedWeeklyItems, max: totalWeeklyItems, color: '#059669', icon: '⚡' },
                 { label: 'Günlük Rutinler', value: completedDaily, max: (goals.dailyGoals || []).length, color: '#dc2626', icon: '🔥' },
-                { label: 'Konular Tamamlandı', value: completedTopics, max: topicList.length, color: '#7c3aed', icon: '✅' },
+                { label: 'Konular Tamamlandı', value: completedTopics, max: totalTopics, color: '#7c3aed', icon: '✅' },
               ].map(item => (
                 <div key={item.label} style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '0.85rem', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '1.2rem', marginBottom: 4 }}>{item.icon}</div>
