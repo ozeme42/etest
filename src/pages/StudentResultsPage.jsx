@@ -76,7 +76,14 @@ export default function StudentResultsPage() {
     if (!selectedStudent) return [];
 
     // 1. Gather all submissions from EvaluationContext
-    const baseSubs = (submissions || []).filter(s => s.studentId === selectedStudent.id);
+    const baseSubs = (submissions || [])
+      .filter(s => s.studentId === selectedStudent.id)
+      .filter(s => {
+        const targetId = s.hwId || s.testId;
+        if (!targetId) return true;
+        return (homeworks || []).some(h => String(h.id) === String(targetId)) ||
+               s.isTrial || s.isExam || s.sourceType === 'manual';
+      });
 
     // 2. Also incorporate completed homeworks from HomeworkContext if not already in EvaluationContext
     const hwSubs = [];

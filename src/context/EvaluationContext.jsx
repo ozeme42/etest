@@ -101,14 +101,8 @@ export function EvaluationProvider({ children }) {
   useEffect(() => {
     async function syncFromSupabase() {
       const dbSubs = await dbGetSubmissions();
-      if (dbSubs && dbSubs.length > 0) {
-        setSubmissions(prev => {
-          // Merge remote DB submissions with local ones
-          const map = new Map();
-          prev.forEach(s => map.set(s.id, s));
-          dbSubs.forEach(s => map.set(s.id, { ...map.get(s.id), ...s }));
-          return Array.from(map.values());
-        });
+      if (Array.isArray(dbSubs)) {
+        setSubmissions(dbSubs);
       }
     }
     syncFromSupabase();
