@@ -961,7 +961,15 @@ export default function MyCoachingPage() {
   const totalDailyQuestions = dailyLogs.reduce((s, l) => s + (parseFloat(l.questions) || 0), 0);
   const totalDailyHours = dailyLogs.reduce((s, l) => s + (parseFloat(l.studyHours) || 0), 0);
   const completedMonthly = (goals.monthlyGoals || []).filter(g => g.done).length;
-  const completedDaily = (goals.dailyGoals || []).filter(g => g.done).length;
+  const todayIndex = (new Date().getDay() + 6) % 7;
+  const todayDayKey = DAYS[todayIndex];
+  const completedHabitsToday = (habits || []).filter(h => h.days && h.days[todayDayKey]).length;
+  const totalHabitsCount = (habits || []).length;
+  const totalDailyGoalsCount = (goals.dailyGoals || []).length;
+  const completedDailyGoalsCount = (goals.dailyGoals || []).filter(g => g.done).length;
+
+  const totalDaily = totalDailyGoalsCount + totalHabitsCount;
+  const completedDaily = completedDailyGoalsCount + completedHabitsToday;
   const totalPoolTopics = topicPool.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
   const completedPoolTopics = topicPool.reduce((sum, s) => {
     return sum + (s.topics || []).filter(t => (t.status || (t.done ? 'Bitti' : 'Başlanmadı')) === 'Bitti' || t.status === 'Tamamlandı').length;
@@ -1594,7 +1602,7 @@ export default function MyCoachingPage() {
               {[
                 { label: 'Aylık Hedefler', value: completedMonthly, max: (goals.monthlyGoals || []).length, color: '#2563eb', icon: '📅' },
                 { label: 'Haftalık Program', value: completedWeeklyItems, max: totalWeeklyItems, color: '#059669', icon: '⚡' },
-                { label: 'Günlük Rutinler', value: completedDaily, max: (goals.dailyGoals || []).length, color: '#dc2626', icon: '🔥' },
+                { label: 'Günlük Rutinler', value: completedDaily, max: totalDaily, color: '#dc2626', icon: '🔥' },
                 { label: 'Konular Tamamlandı', value: completedTopics, max: totalTopics, color: '#7c3aed', icon: '✅' },
               ].map(item => (
                 <div key={item.label} style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '0.85rem', border: '1px solid #e2e8f0' }}>
