@@ -24,6 +24,16 @@ const SUBJECTS = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', '
 const TOPIC_STATUSES = ['Başlanmadı', 'Başlandı', 'Öğrenildi', 'Tekrar Yapıldı', 'Tamamlandı'];
 const STATUS_COLOR = { 'Başlanmadı': '#94a3b8', 'Başlandı': '#f59e0b', 'Öğrenildi': '#3b82f6', 'Tekrar Yapıldı': '#f97316', 'Tamamlandı': '#10b981' };
 
+const MOTIVATION_QUOTES = [
+  { quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", author: "Robert Collier", category: "Disiplin" },
+  { quote: "Gelecek, bugün ne yaptığına bağlıdır. Yarın değil, tam da şimdi!", author: "Mahatma Gandhi", category: "Eylem" },
+  { quote: "Zirveye tırmanmak yorucudur ama oradaki manzara her şeye değer.", author: "Anonim", category: "Zafer" },
+  { quote: "Disiplin, ne istediğin ile en çok ne istediğin arasındaki seçimdir.", author: "Abraham Lincoln", category: "Odak" },
+  { quote: "Zafer, 'vazgeçmeyenlerindir'. Yapabileceğinin en iyisini yap!", author: "Mustafa Kemal Atatürk", category: "İnanç" },
+  { quote: "Zorluklar, başarının değerini artıran süslerdir.", author: "Molière", category: "Mücadele" },
+  { quote: "Büyük işler, bir anda değil, küçük şeylerin bir araya getirilmesiyle yapılır.", author: "Vincent van Gogh", category: "Süreklilik" }
+];
+
 export function getCurrentWeekKey() {
   const d = new Date();
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -394,6 +404,7 @@ export default function StudentCoachingPage() {
     healthNotes: '',
     coachNotes: ''
   });
+  const [quoteIdx, setQuoteIdx] = useState(0);
 
   const handleGroupProgressSubmit = (unitKey, amountVal) => {
     const amount = parseFloat(amountVal) || 0;
@@ -3111,18 +3122,7 @@ export default function StudentCoachingPage() {
 
             {/* 1. Günün İlham Verici Sözü (Rotating Quotes Banner) */}
             {(() => {
-              const MOTIVATION_QUOTES = [
-                { quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", author: "Robert Collier", category: "Disiplin" },
-                { quote: "Gelecek, bugün ne yaptığına bağlıdır. Yarın değil, tam da şimdi!", author: "Mahatma Gandhi", category: "Eylem" },
-                { quote: "Zirveye tırmanmak yorucudur ama oradaki manzara her şeye değer.", author: "Anonim", category: "Zafer" },
-                { quote: "Disiplin, ne istediğin ile en çok ne istediğin arasındaki seçimdir.", author: "Abraham Lincoln", category: "Odak" },
-                { quote: "Zafer, 'vazgeçmeyenlerindir'. Yapabileceğinin en iyisini yap!", author: "Mustafa Kemal Atatürk", category: "İnanç" },
-                { quote: "Zorluklar, başarının değerini artıran süslerdir.", author: "Molière", category: "Mücadele" },
-                { quote: "Büyük işler, bir anda değil, küçük şeylerin bir araya getirilmesiyle yapılır.", author: "Vincent van Gogh", category: "Süreklilik" }
-              ];
-
-              const [quoteIdx, setQuoteIdx] = useState(() => Math.floor(Math.random() * MOTIVATION_QUOTES.length));
-              const currentQ = MOTIVATION_QUOTES[quoteIdx];
+              const currentQ = MOTIVATION_QUOTES[quoteIdx % MOTIVATION_QUOTES.length];
 
               return (
                 <div style={{
