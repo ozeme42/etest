@@ -2841,50 +2841,219 @@ export default function StudentCoachingPage() {
 
         {/* ═══ ÇALIŞMALARIM ═══ */}
         {activeTab === 'calisma' && (
-          <div>
-            <Tip>Her gün ne kadar çalıştığını kaydet. Koçun bu bilgileri görür.</Tip>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <Tip>
+              ⏱️ <b>Pratik Çalışma Panosu</b>: Çalışmanı 2 tıkla kaydet! Hızlı süre ve ders rozetlerini kullan. Soru ve süre verilerin otomatik olarak sayaç hedeflerine de eklenir.
+            </Tip>
 
-            {/* Yeni kayıt */}
-            <Card emoji="➕" title="Bugünkü Çalışmamı Kaydet">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '0.75rem' }}>
-                <div><label style={lbl}>Tarih</label><input style={inp} type="date" value={newLog.date} onChange={e => setNewLog(p => ({ ...p, date: e.target.value }))} /></div>
-                <div><label style={lbl}>Çalışma Süresi (saat)</label><input style={inp} type="number" step="0.5" value={newLog.studyHours} onChange={e => setNewLog(p => ({ ...p, studyHours: e.target.value }))} placeholder="3.5" /></div>
-                <div><label style={lbl}>Çözülen Soru</label><input style={inp} type="number" value={newLog.questions} onChange={e => setNewLog(p => ({ ...p, questions: e.target.value }))} placeholder="120" /></div>
-                <div><label style={lbl}>Tekrar / Konu</label><input style={inp} value={newLog.revision} onChange={e => setNewLog(p => ({ ...p, revision: e.target.value }))} placeholder="Ders/konu" /></div>
-                <div><label style={lbl}>Uyku Saati</label><input style={inp} value={newLog.sleepTime} onChange={e => setNewLog(p => ({ ...p, sleepTime: e.target.value }))} placeholder="23:00" /></div>
+            {/* Üst İstatistik Özet Kartları */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)' }}>
+                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Toplam Çalışma</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{totalDailyHours.toFixed(1)} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Saat</span></div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Kayıtlı tüm oturumlar</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: '0.75rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', color: '#374151' }}>
-                  <input type="checkbox" checked={newLog.sport} onChange={e => setNewLog(p => ({ ...p, sport: e.target.checked }))} /> 🏃 Spor Yaptım
-                </label>
-                <button onClick={() => {
-                  if (!newLog.date) return;
-                  setDailyLogs(p => [{ id: uid(), ...newLog }, ...p]);
-                  setNewLog({ date: today(), studyHours: '', questions: '', revision: '', sport: false, sleepTime: '' });
-                }} style={{ marginLeft: 'auto', background: '#7c3aed', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.55rem 1.1rem', fontWeight: 800, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Plus size={14} /> Kaydet
-                </button>
+
+              <div style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}>
+                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Toplam Soru</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{Math.round(totalDailyQuestions)} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Soru</span></div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Çözülen sorular</div>
+              </div>
+
+              <div style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)' }}>
+                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Çalışma Günleri</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{dailyLogs.length} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Gün</span></div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Düzenli takip sayısı</div>
+              </div>
+
+              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '0.9rem', padding: '1rem', color: 'white', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)' }}>
+                <div style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 800, textTransform: 'uppercase' }}>Spor & Sağlık</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, marginTop: 2 }}>{dailyLogs.filter(l => l.sport).length} <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Gün</span></div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: 2 }}>Aktif yaşam takibi</div>
+              </div>
+            </div>
+
+            {/* Yeni Pratik Çalışma Kayıt Kartı */}
+            <Card emoji="⚡" title="Pratik Çalışma Girişi (Tek Tıkla Ekleyin)">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                
+                {/* Hızlı Süre Rozetleri */}
+                <div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>⏱️ Hızlı Süre Seçimi:</div>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {[
+                      { label: '15 dk', val: '0.25' },
+                      { label: '30 dk', val: '0.5' },
+                      { label: '45 dk (Pomodoro)', val: '0.75' },
+                      { label: '1 Saat', val: '1' },
+                      { label: '1.5 Saat', val: '1.5' },
+                      { label: '2 Saat', val: '2' },
+                      { label: '3 Saat', val: '3' },
+                    ].map(preset => {
+                      const isSelected = String(newLog.studyHours) === preset.val;
+                      return (
+                        <button
+                          type="button"
+                          key={preset.label}
+                          onClick={() => setNewLog(p => ({ ...p, studyHours: preset.val }))}
+                          style={{
+                            padding: '0.32rem 0.7rem', borderRadius: '0.45rem', fontSize: '0.78rem', fontWeight: 800,
+                            border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                            background: isSelected ? '#f3e8ff' : '#f8fafc',
+                            color: isSelected ? '#6d28d9' : '#334155', cursor: 'pointer', transition: 'all 0.15s'
+                          }}
+                        >
+                          {isSelected ? '✓ ' : ''}{preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Hızlı Ders Seçim Rozetleri */}
+                <div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>📚 Hızlı Ders Seçimi:</div>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {SUBJECTS.map(subName => {
+                      const isSelected = (newLog.revision || '').includes(subName);
+                      return (
+                        <button
+                          type="button"
+                          key={subName}
+                          onClick={() => {
+                            setNewLog(p => {
+                              const curr = p.revision ? p.revision.trim() : '';
+                              if (curr.includes(subName)) return p;
+                              const updated = curr ? `${curr}, ${subName}` : subName;
+                              return { ...p, revision: updated };
+                            });
+                          }}
+                          style={{
+                            padding: '0.32rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.76rem', fontWeight: 800,
+                            border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                            background: isSelected ? '#eff6ff' : '#ffffff',
+                            color: isSelected ? '#1d4ed8' : '#475569', cursor: 'pointer', transition: 'all 0.15s'
+                          }}
+                        >
+                          {isSelected ? '✓ ' : '+ '}{subName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Detay Kutuları Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed #e2e8f0' }}>
+                  <div>
+                    <label style={lbl}>Tarih</label>
+                    <input style={inp} type="date" value={newLog.date} onChange={e => setNewLog(p => ({ ...p, date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Çalışma Süresi (saat)</label>
+                    <input style={inp} type="number" step="0.25" value={newLog.studyHours} onChange={e => setNewLog(p => ({ ...p, studyHours: e.target.value }))} placeholder="Örn: 1.5" />
+                  </div>
+                  <div>
+                    <label style={lbl}>Çözülen Soru Sayısı</label>
+                    <input style={inp} type="number" value={newLog.questions} onChange={e => setNewLog(p => ({ ...p, questions: e.target.value }))} placeholder="Örn: 100" />
+                  </div>
+                  <div>
+                    <label style={lbl}>Ders & Konu Notu</label>
+                    <input style={inp} value={newLog.revision} onChange={e => setNewLog(p => ({ ...p, revision: e.target.value }))} placeholder="Örn: Matematik Üslü Sayılar..." />
+                  </div>
+                  <div>
+                    <label style={lbl}>Uyku Yatma Saati</label>
+                    <input style={inp} value={newLog.sleepTime} onChange={e => setNewLog(p => ({ ...p, sleepTime: e.target.value }))} placeholder="Örn: 23:30" />
+                  </div>
+                </div>
+
+                {/* Alt Aksiyon Çubuğu */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.4rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: '0.55rem' }}>
+                    <input type="checkbox" checked={newLog.sport} onChange={e => setNewLog(p => ({ ...p, sport: e.target.checked }))} /> 🏃 Bugün Spor / Egzersiz Yaptım
+                  </label>
+
+                  <button
+                    onClick={() => {
+                      if (!newLog.date) return;
+                      const addedHours = parseFloat(newLog.studyHours) || 0;
+                      const addedQuestions = parseFloat(newLog.questions) || 0;
+
+                      // 1) Add to daily logs
+                      setDailyLogs(p => [{ id: uid(), ...newLog }, ...p]);
+
+                      // 2) Auto-increment matching Counter Goals!
+                      if (addedQuestions > 0) {
+                        handleGroupProgressSubmit('Soru', addedQuestions);
+                      }
+                      if (addedHours > 0) {
+                        handleGroupProgressSubmit('Saat', addedHours);
+                      }
+
+                      // Reset form
+                      setNewLog({ date: today(), studyHours: '', questions: '', revision: '', sport: false, sleepTime: '' });
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: 'white', border: 'none',
+                      borderRadius: '0.65rem', padding: '0.6rem 1.4rem', fontWeight: 900, fontSize: '0.85rem',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                    }}
+                  >
+                    <Plus size={16} /> Çalışmayı Kaydet & Senkronize Et
+                  </button>
+                </div>
               </div>
             </Card>
 
-            {/* Geçmiş */}
+            {/* Çalışma Geçmişi */}
             {dailyLogs.length > 0 && (
-              <Card emoji="📋" title="Çalışma Geçmişim">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Card emoji="📋" title="Çalışma Geçmişim & Günlük Takip">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                   {dailyLogs.map(log => (
-                    <div key={log.id} style={{ display: 'grid', gridTemplateColumns: '85px 55px 65px 1fr 35px', alignItems: 'center', gap: 6, padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.65rem', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontWeight: 700, color: '#64748b' }}>{log.date}</span>
-                      <span style={{ fontWeight: 900, color: '#7c3aed' }}>{log.studyHours}s</span>
-                      <span style={{ fontWeight: 800, color: '#4f46e5' }}>{log.questions} soru</span>
-                      <span style={{ color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.revision} {log.sport ? '🏃' : ''}</span>
-                      <button onClick={() => setDailyLogs(p => p.filter(x => x.id !== log.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0' }}><Trash2 size={12} /></button>
+                    <div key={log.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem',
+                      padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '0.75rem', fontSize: '0.82rem',
+                      border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 800, color: '#64748b', background: '#e2e8f0', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem' }}>
+                          📅 {log.date}
+                        </span>
+                        {log.studyHours && (
+                          <span style={{ fontWeight: 900, color: '#7c3aed', background: '#f3e8ff', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #e9d5ff' }}>
+                            ⏱️ {log.studyHours} Saat
+                          </span>
+                        )}
+                        {log.questions && (
+                          <span style={{ fontWeight: 900, color: '#2563eb', background: '#eff6ff', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #bfdbfe' }}>
+                            ✏️ {log.questions} Soru
+                          </span>
+                        )}
+                        {log.sport && (
+                          <span style={{ fontWeight: 800, color: '#15803d', background: '#f0fdf4', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #bbf7d0', fontSize: '0.73rem' }}>
+                            🏃 Spor Yapıldı
+                          </span>
+                        )}
+                        {log.sleepTime && (
+                          <span style={{ fontWeight: 800, color: '#d97706', background: '#fffbeb', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.73rem' }}>
+                            🌙 Yatış: {log.sleepTime}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <span style={{ color: '#334155', fontWeight: 700, fontSize: '0.8rem' }}>
+                          {log.revision || 'Detay girilmedi'}
+                        </span>
+                        <button
+                          onClick={() => setDailyLogs(p => p.filter(x => x.id !== log.id))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}
+                          title="Kaydı Sil"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))}
-                </div>
-                <div style={{ marginTop: '0.75rem', display: 'flex', gap: 16, padding: '0.75rem', background: '#f0f4ff', borderRadius: '0.75rem', border: '1px solid #c7d2fe' }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 900, color: '#4f46e5', fontSize: '1.1rem' }}>{totalDailyHours.toFixed(1)}s</div><div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>Toplam Çalışma</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 900, color: '#7c3aed', fontSize: '1.1rem' }}>{Math.round(totalDailyQuestions)}</div><div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>Toplam Soru</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 900, color: '#059669', fontSize: '1.1rem' }}>{dailyLogs.filter(l => l.sport).length}</div><div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>Spor Günü</div></div>
                 </div>
               </Card>
             )}
