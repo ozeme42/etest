@@ -404,6 +404,7 @@ export default function MyCoachingPage() {
     { id: uid(), label: 'Telefon < 2 Saat', days: DAYS.reduce((a, d) => ({ ...a, [d]: false }), {}) },
   ]);
   const [newHabit, setNewHabit] = useState('');
+  const [selectedMonthlyHabit, setSelectedMonthlyHabit] = useState(null);
 
   /* ── Okul Yazılı Notları ── */
   const [schoolGrades, setSchoolGrades] = useState([]);
@@ -1048,17 +1049,83 @@ export default function MyCoachingPage() {
       const dateNum = d.getDate();
       const monthStr = monthNames[d.getMonth()];
       const isToday = d.toDateString() === now.toDateString();
+      const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+      const dayNumStr = String(dateNum).padStart(2, '0');
+      const isoDate = `${d.getFullYear()}-${monthNum}-${dayNumStr}`;
       return {
         dayName,
         dateNum,
         monthStr,
         fullDateStr: `${dateNum} ${monthStr}`,
+        isoDate,
         isToday
       };
     });
   };
 
   const weekDates = getCurrentWeekDates();
+
+  const toggleHabitDay = (habitId, dayName, isoDate) => {
+    setHabits(prev => prev.map(h => {
+      if (h.id !== habitId) return h;
+      const isCurrentlyChecked = Boolean(h.days?.[dayName]);
+      const newChecked = !isCurrentlyChecked;
+
+      const newDays = { ...(h.days || {}), [dayName]: newChecked };
+      const newHistory = { ...(h.history || {}), [isoDate]: newChecked };
+
+      return { ...h, days: newDays, history: newHistory };
+    }));
+  };
+
+  const toggleHabitHistoryDate = (habitId, dateStr) => {
+    setHabits(prev => prev.map(h => {
+      if (h.id !== habitId) return h;
+      const newChecked = !h.history?.[dateStr];
+      const newHistory = { ...(h.history || {}), [dateStr]: newChecked };
+
+      const matchedWeek = weekDates.find(w => w.isoDate === dateStr);
+      const newDays = matchedWeek ? { ...(h.days || {}), [matchedWeek.dayName]: newChecked } : (h.days || {});
+
+      return { ...h, days: newDays, history: newHistory };
+    }));
+  };
+
+  const getDaysInCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const numDays = new Date(year, month + 1, 0).getDate();
+    const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const dayNames = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+
+    const days = [];
+    for (let d = 1; d <= numDays; d++) {
+      const dateObj = new Date(year, month, d);
+      const dayOfWeek = dayNames[dateObj.getDay()];
+      const monthNum = String(month + 1).padStart(2, '0');
+      const dayNumStr = String(d).padStart(2, '0');
+      const dateStr = `${year}-${monthNum}-${dayNumStr}`;
+      const isToday = dateObj.toDateString() === now.toDateString();
+      days.push({
+        dayNum: d,
+        dayOfWeek,
+        dateStr,
+        isToday,
+        dateObj
+      });
+    }
+
+    const firstDayObj = new Date(year, month, 1);
+    const firstDayOffset = (firstDayObj.getDay() + 6) % 7;
+
+    return {
+      year,
+      monthName: monthNames[month],
+      days,
+      firstDayOffset
+    };
+  };
 
   /* ─── Hesaplamalar ─── */
   const totalDailyQuestions = dailyLogs.reduce((s, l) => s + (parseFloat(l.questions) || 0), 0);
@@ -2045,22 +2112,34 @@ export default function MyCoachingPage() {
                       return (
                         <tr key={h.id}>
                           <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', background: '#f8fafc', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid #e2e8f0', borderRight: 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <span>{h.label}</span>
-                              {count === 7 && <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 900 }}>⚡ 7/7 ŞAMPİYON</span>}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+                              <button
+                                onClick={() => setSelectedMonthlyHabit(h)}
+                                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                title="Aylık takvim ve detayını gör"
+                              >
+                                <span>{h.label}</span>
+                                <span style={{ fontSize: '0.7rem', color: '#6366f1', background: '#eef2ff', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>📅 Aylık</span>
+                              </button>
+                              {count === 7 && <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 900 }}>⚡ 7/7</span>}
                             </div>
                           </td>
 
                           {/* Seri Badgesi */}
                           <td style={{ textAlign: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
-                            <div style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.55rem', borderRadius: '1rem',
-                              background: streakInfo.currentStreak >= 3 ? '#ffedd5' : '#f1f5f9',
-                              color: streakInfo.currentStreak >= 3 ? '#c2410c' : '#64748b',
-                              fontWeight: 900, fontSize: '0.75rem', border: streakInfo.currentStreak >= 3 ? '1px solid #fed7aa' : '1px solid #e2e8f0'
-                            }}>
+                            <button
+                              onClick={() => setSelectedMonthlyHabit(h)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.55rem', borderRadius: '1rem',
+                                background: streakInfo.currentStreak >= 3 ? '#ffedd5' : '#f1f5f9',
+                                color: streakInfo.currentStreak >= 3 ? '#c2410c' : '#64748b',
+                                fontWeight: 900, fontSize: '0.75rem', border: streakInfo.currentStreak >= 3 ? '1px solid #fed7aa' : '1px solid #e2e8f0',
+                                cursor: 'pointer'
+                              }}
+                              title="Aylık takvimi incele"
+                            >
                               🔥 {streakInfo.currentStreak} Gün
-                            </div>
+                            </button>
                           </td>
 
                           {/* Günlük Kutucuklar */}
@@ -2072,7 +2151,7 @@ export default function MyCoachingPage() {
                             return (
                               <td key={d} style={{ textAlign: 'center', background: isToday ? '#fff7ed' : '#f8fafc', border: isToday ? '1px solid #fdba74' : '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none', padding: 4 }}>
                                 <button
-                                  onClick={() => setHabits(p => p.map(x => x.id === h.id ? { ...x, days: { ...x.days, [d]: !x.days[d] } } : x))}
+                                  onClick={() => toggleHabitDay(h.id, d, w.isoDate)}
                                   style={{
                                     width: 32, height: 32, borderRadius: '50%',
                                     background: isChecked ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'white',
@@ -2603,6 +2682,127 @@ export default function MyCoachingPage() {
                 </div>
               </div>
             )}
+
+      {/* ═══ AYLIK ALIŞKANLIK DETAY MODALI ═══ */}
+      {selectedMonthlyHabit && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+        }}>
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: 540,
+            padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase' }}>📅 Aylık Takvim & Geçmiş</div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e293b', margin: '2px 0 0 0' }}>
+                  {selectedMonthlyHabit.label}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedMonthlyHabit(null)}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Monthly Stats Summary Cards */}
+            {(() => {
+              const monthInfo = getDaysInCurrentMonth();
+              const activeHabit = habits.find(h => h.id === selectedMonthlyHabit.id) || selectedMonthlyHabit;
+              const historyObj = activeHabit.history || {};
+
+              const checkedInMonth = monthInfo.days.filter(d => historyObj[d.dateStr]).length;
+              const totalDaysInMonth = monthInfo.days.length;
+              const percentage = Math.round((checkedInMonth / totalDaysInMonth) * 100);
+              const streakInfo = calculateHabitStreak(activeHabit);
+
+              return (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>BU AY</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669', marginTop: 2 }}>{checkedInMonth} / {totalDaysInMonth}</div>
+                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Tamamlanan gün</div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>BAŞARI ORANI</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb', marginTop: 2 }}>%{percentage}</div>
+                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Aylık başarım</div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>AKTİF SERİ</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626', marginTop: 2 }}>🔥 {streakInfo.currentStreak} Gün</div>
+                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Kesintisiz zincir</div>
+                    </div>
+                  </div>
+
+                  {/* Monthly Calendar Grid */}
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#334155', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>📅 {monthInfo.monthName} {monthInfo.year} Takvimi</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Güne tıklayarak durumu değiştirebilirsin</span>
+                    </div>
+
+                    {/* Grid Header Days */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', marginBottom: 4 }}>
+                      {['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'].map(d => (
+                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', padding: '0.2rem' }}>{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Grid Day Boxes */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                      {/* Empty Offset cells */}
+                      {Array.from({ length: monthInfo.firstDayOffset }).map((_, idx) => (
+                        <div key={`offset_${idx}`} style={{ height: 42, background: 'transparent' }} />
+                      ))}
+
+                      {/* Days */}
+                      {monthInfo.days.map(d => {
+                        const isChecked = Boolean(historyObj[d.dateStr]);
+
+                        return (
+                          <button
+                            key={d.dateStr}
+                            onClick={() => toggleHabitHistoryDate(activeHabit.id, d.dateStr)}
+                            style={{
+                              height: 42, borderRadius: '0.5rem', border: d.isToday ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                              background: isChecked ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#f8fafc',
+                              color: isChecked ? 'white' : '#334155', cursor: 'pointer',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s', position: 'relative'
+                            }}
+                            title={`${d.dayNum} ${monthInfo.monthName} (${d.dayOfWeek})`}
+                          >
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900 }}>{d.dayNum}</span>
+                            {isChecked && <Check size={12} strokeWidth={3} style={{ marginTop: 1 }} />}
+                            {d.isToday && !isChecked && <span style={{ fontSize: '0.55rem', color: '#ef4444', fontWeight: 900 }}>BUGÜN</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+
+            <button
+              onClick={() => setSelectedMonthlyHabit(null)}
+              style={{ width: '100%', padding: '0.65rem', borderRadius: '0.65rem', background: '#334155', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              Tamam / Kapat
+            </button>
+          </div>
+        </div>
+      )}
 
       </div>
 
