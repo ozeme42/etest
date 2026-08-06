@@ -354,8 +354,8 @@ export default function StudentCoachingPage() {
     gradeClass: '', gradeTerm: '1', gradeTarget: 'Takçek',
     monthlyGoals: [], weeklyGoals: [], dailyGoals: [], customGoals: [],
     counterGoals: [
-      { id: '1', title: 'Haftalık Soru Çözme', period: 'Haftalık', target: 350, current: 0, unit: 'Soru' },
-      { id: '2', title: 'Günlük Soru Çözme', period: 'Günlük', target: 50, current: 0, unit: 'Soru' },
+      { id: '1', title: 'Günlük Soru Çözme', period: 'Günlük', target: 50, current: 0, unit: 'Soru' },
+      { id: '2', title: 'Haftalık Soru Çözme', period: 'Haftalık', target: 350, current: 0, unit: 'Soru' },
       { id: '3', title: 'Aylık Kitap Okuma', period: 'Aylık', target: 200, current: 0, unit: 'Sayfa' }
     ]
   });
@@ -374,14 +374,39 @@ export default function StudentCoachingPage() {
   const handleAddCounterProgress = (goalId, amountVal) => {
     const amount = parseFloat(amountVal) || 0;
     if (amount <= 0) return;
-    setGoals(prev => ({
-      ...prev,
-      counterGoals: (prev.counterGoals || []).map(g => {
-        if (g.id !== goalId) return g;
-        const newCurrent = Math.max(0, (g.current || 0) + amount);
-        return { ...g, current: newCurrent };
-      })
-    }));
+
+    setGoals(prev => {
+      const list = prev.counterGoals || [];
+      const targetGoal = list.find(g => g.id === goalId);
+      if (!targetGoal) return prev;
+
+      const targetUnit = (targetGoal.unit || 'Soru').toLowerCase().trim();
+      const targetPeriod = targetGoal.period;
+
+      const updatedList = list.map(g => {
+        const gUnit = (g.unit || 'Soru').toLowerCase().trim();
+
+        // 1) Target goal itself
+        if (g.id === goalId) {
+          return { ...g, current: Math.max(0, (g.current || 0) + amount) };
+        }
+
+        // 2) Günlüğe eklenen miktar Haftalık ve Aylık eşleşen birimdeki hedeflere de otomatik eklenir
+        if (targetPeriod === 'Günlük' && (g.period === 'Haftalık' || g.period === 'Aylık') && gUnit === targetUnit) {
+          return { ...g, current: Math.max(0, (g.current || 0) + amount) };
+        }
+
+        // 3) Haftalığa eklenen miktar Aylık eşleşen hedeflere de otomatik eklenir
+        if (targetPeriod === 'Haftalık' && g.period === 'Aylık' && gUnit === targetUnit) {
+          return { ...g, current: Math.max(0, (g.current || 0) + amount) };
+        }
+
+        return g;
+      });
+
+      return { ...prev, counterGoals: updatedList };
+    });
+
     setCustomAddInputs(p => ({ ...p, [goalId]: '' }));
   };
 
@@ -2229,15 +2254,18 @@ export default function StudentCoachingPage() {
                     </form>
                   )}
 
-                  {/* Sayısal Hedef Kartları Grid - Kompakt Satırlar */}
+                  {/* Sayısal Hedef Kartları Grid - Kompakt Satırlar (Günlük -> Haftalık -> Aylık Sıralı) */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {(goals.counterGoals || []).map(cg => {
-                      const current = cg.current || 0;
-                      const target = cg.target || 100;
-                      const pct = Math.min(100, Math.round((current / target) * 100));
-                      const isCompleted = current >= target;
-                      const periodColor = cg.period === 'Günlük' ? '#d97706' : cg.period === 'Haftalık' ? '#7c3aed' : '#2563eb';
-                      const periodBg = cg.period === 'Günlük' ? '#fffbeb' : cg.period === 'Haftalık' ? '#f3e8ff' : '#eff6ff';
+                    {(() => {
+                      const PERIOD_MAP = { 'Günlük': 1, 'Haftalık': 2, 'Aylık': 3 };
+                      const sortedGoals = [...(goals.counterGoals || [])].sort((a, b) => (PERIOD_MAP[a.period] || 99) - (PERIOD_MAP[b.period] || 99));
+                      return sortedGoals.map(cg => {
+                        const current = cg.current || 0;
+                        const target = cg.target || 100;
+                        const pct = Math.min(100, Math.round((current / target) * 100));
+                        const isCompleted = current >= target;
+                        const periodColor = cg.period === 'Günlük' ? '#d97706' : cg.period === 'Haftalık' ? '#7c3aed' : '#2563eb';
+                        const periodBg = cg.period === 'Günlük' ? '#fffbeb' : cg.period === 'Haftalık' ? '#f3e8ff' : '#eff6ff';
 
                       return (
                         <div key={cg.id} style={{
@@ -2298,7 +2326,8 @@ export default function StudentCoachingPage() {
                           </div>
                         </div>
                       );
-                    })}
+                    });
+                  })()}
                   </div>
                 </div>
               )}
