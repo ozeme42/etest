@@ -730,7 +730,8 @@ export async function dbAddHomework(hw) {
 export async function dbDeleteHomework(hwId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { error } = await supabase.from('homeworks').delete().eq('id', String(hwId));
+    await supabase.from('submissions').delete().eq('test_id', String(hwId));
+      const { error } = await supabase.from('homeworks').delete().eq('id', String(hwId));
     if (error) throw error;
     return true;
   } catch (err) {
@@ -1202,3 +1203,4 @@ export async function dbSaveCoachingProfile(profile) {
     return null;
   }
 }
+

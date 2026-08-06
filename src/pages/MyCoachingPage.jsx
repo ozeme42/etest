@@ -797,10 +797,12 @@ export default function MyCoachingPage() {
     };
 
     // 1. EvaluationContext Online Sınavlar
-    const onlineEval = mySubmissions.map(s => {
-      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId));
-      return normalizeSub(s, parentHw, 'online');
-    });
+    const onlineEval = mySubmissions
+      .filter(s => !s.testId || (homeworks || []).some(h => String(h.id) === String(s.testId)))
+      .map(s => {
+        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId));
+        return normalizeSub(s, parentHw, 'online');
+      });
 
     // 2. HomeworkContext Optik / Ödev Sınavları
     const hwSubmissions = [];
