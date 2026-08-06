@@ -370,6 +370,29 @@ export default function MyCoachingPage() {
   const [newGoalCategory, setNewGoalCategory] = useState('');
   const [newGoalText, setNewGoalText] = useState('');
   const [groupAddInputs, setGroupAddInputs] = useState({});
+  const [personalInfo, setPersonalInfo] = useState({
+    fullName: '',
+    birthDate: '',
+    gender: '',
+    gradeClass: '',
+    schoolName: '',
+    fieldBranch: 'Sayısal',
+    studentPhone: '',
+    parentName: '',
+    parentRelation: 'Anne',
+    parentPhone: '',
+    parentJob: '',
+    cityAddress: '',
+    learningStyle: 'Görsel',
+    strongSubjects: '',
+    weakSubjects: '',
+    sleepHours: '8',
+    bestStudyTime: 'Sabah',
+    hobbies: '',
+    studyChallenges: [],
+    healthNotes: '',
+    coachNotes: ''
+  });
 
   const handleGroupProgressSubmit = (unitKey, amountVal) => {
     const amount = parseFloat(amountVal) || 0;
@@ -829,6 +852,15 @@ export default function MyCoachingPage() {
     if (existingProfile.topicPool) setTopicPool(existingProfile.topicPool);
     if (existingProfile.schoolGrades) setSchoolGrades(existingProfile.schoolGrades);
     if (existingProfile.customSubjects) setCustomSubjects(existingProfile.customSubjects);
+    if (existingProfile.personalInfo) {
+      setPersonalInfo(p => ({ ...p, ...existingProfile.personalInfo }));
+    } else if (currentUser) {
+      setPersonalInfo(p => ({
+        ...p,
+        fullName: p.fullName || currentUser.name || '',
+        studentPhone: p.studentPhone || currentUser.phone || ''
+      }));
+    }
   }, [existingProfile.studentId]);
 
   /* ─── Hedef Otomatik Sıfırlama Takibi (Günlük, Haftalık, Aylık) ─── */
@@ -1106,11 +1138,12 @@ export default function MyCoachingPage() {
       dailyGoals:   goals.dailyGoals,
       schoolGrades: schoolGrades,
       customSubjects: customSubjects,
+      personalInfo,
       goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades, customSubjects
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  }, [goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades, customSubjects]);
+  }, [goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades, customSubjects, personalInfo]);
 
   /* ─── Multi-Item Weekly Program Handlers ─── */
   const addWeeklyItem = (dayName) => {
@@ -1346,6 +1379,7 @@ export default function MyCoachingPage() {
 
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
+    { id: 'kisiselbilgiler', label: '👤 Kişisel Bilgiler' },
     { id: 'hedefler', label: '🎯 Hedeflerim & Takip Panosu' },
     { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
     { id: 'konumerkezi', label: '🧠 Konu & Program Merkezi' },
@@ -2154,6 +2188,216 @@ export default function MyCoachingPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ═══ KİŞİSEL BİLGİLER & ÖĞRENCİ PROFİLİ ═══ */}
+        {activeTab === 'kisiselbilgiler' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <Tip>
+              👤 <b>Kişisel Bilgiler & Öğrenci Profili</b>: Öğrencinin öğrenme stili, veli iletişim bilgileri, hedef ve koç değerlendirmeleri tek bir yerde düzenlenir ve kaydedilir.
+            </Tip>
+
+            {/* 1. Temel Öğrenci & Okul Bilgileri */}
+            <Card emoji="👤" title="Temel Öğrenci & Okul Bilgileri">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label style={lbl}>Ad Soyad</label>
+                  <input style={inp} value={personalInfo.fullName || ''} onChange={e => setPersonalInfo(p => ({ ...p, fullName: e.target.value }))} placeholder="Öğrencinin Adı Soyadı" />
+                </div>
+                <div>
+                  <label style={lbl}>Doğum Tarihi</label>
+                  <input type="date" style={inp} value={personalInfo.birthDate || ''} onChange={e => setPersonalInfo(p => ({ ...p, birthDate: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={lbl}>Cinsiyet</label>
+                  <select style={inp} value={personalInfo.gender || ''} onChange={e => setPersonalInfo(p => ({ ...p, gender: e.target.value }))}>
+                    <option value="">— Seçin —</option>
+                    <option value="Erkek">Erkek</option>
+                    <option value="Kız">Kız</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Sınıf / Seviye</label>
+                  <select style={inp} value={personalInfo.gradeClass || goals.gradeClass || ''} onChange={e => {
+                    const val = e.target.value;
+                    setPersonalInfo(p => ({ ...p, gradeClass: val }));
+                    setGoals(g => ({ ...g, gradeClass: val }));
+                  }}>
+                    <option value="">— Seçin —</option>
+                    {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf','Mezun'].map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Okul Adı</label>
+                  <input style={inp} value={personalInfo.schoolName || ''} onChange={e => setPersonalInfo(p => ({ ...p, schoolName: e.target.value }))} placeholder="Devam ettiği okul..." />
+                </div>
+                <div>
+                  <label style={lbl}>Alan / Branş</label>
+                  <select style={inp} value={personalInfo.fieldBranch || 'Sayısal'} onChange={e => setPersonalInfo(p => ({ ...p, fieldBranch: e.target.value }))}>
+                    <option value="Ortaokul / LGS">Ortaokul / LGS</option>
+                    <option value="Sayısal">Sayısal (MF)</option>
+                    <option value="Eşit Ağırlık">Eşit Ağırlık (TM)</option>
+                    <option value="Sözel">Sözel (TS)</option>
+                    <option value="Dil">Yabancı Dil (YDT)</option>
+                    <option value="Genel">Genel Takip</option>
+                  </select>
+                </div>
+              </div>
+            </Card>
+
+            {/* 2. İletişim & Veli Bilgileri */}
+            <Card emoji="📞" title="İletişim & Veli Bilgileri">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label style={lbl}>Öğrenci Telefonu</label>
+                  <input style={inp} value={personalInfo.studentPhone || ''} onChange={e => setPersonalInfo(p => ({ ...p, studentPhone: e.target.value }))} placeholder="05xx xxx xx xx" />
+                </div>
+                <div>
+                  <label style={lbl}>Veli Adı Soyadı</label>
+                  <input style={inp} value={personalInfo.parentName || ''} onChange={e => setPersonalInfo(p => ({ ...p, parentName: e.target.value }))} placeholder="Velinin Adı Soyadı" />
+                </div>
+                <div>
+                  <label style={lbl}>Yakınlık Derecesi</label>
+                  <select style={inp} value={personalInfo.parentRelation || 'Anne'} onChange={e => setPersonalInfo(p => ({ ...p, parentRelation: e.target.value }))}>
+                    <option value="Anne">Anne</option>
+                    <option value="Baba">Baba</option>
+                    <option value="Vasi / Yakını">Vasi / Yakını</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Veli Telefonu</label>
+                  <input style={inp} value={personalInfo.parentPhone || ''} onChange={e => setPersonalInfo(p => ({ ...p, parentPhone: e.target.value }))} placeholder="05xx xxx xx xx" />
+                </div>
+                <div>
+                  <label style={lbl}>Veli Mesleği</label>
+                  <input style={inp} value={personalInfo.parentJob || ''} onChange={e => setPersonalInfo(p => ({ ...p, parentJob: e.target.value }))} placeholder="Velinin mesleği..." />
+                </div>
+                <div>
+                  <label style={lbl}>Şehir / Adres</label>
+                  <input style={inp} value={personalInfo.cityAddress || ''} onChange={e => setPersonalInfo(p => ({ ...p, cityAddress: e.target.value }))} placeholder="İl, İlçe / İkamet adresi..." />
+                </div>
+              </div>
+            </Card>
+
+            {/* 3. Öğrenme Stili & Çalışma Profil Analizi */}
+            <Card emoji="🧠" title="Öğrenme Stili & Çalışma Profili">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
+                <div>
+                  <label style={lbl}>Baskın Öğrenme Stili</label>
+                  <select style={{ ...inp, fontWeight: 800 }} value={personalInfo.learningStyle || 'Görsel'} onChange={e => setPersonalInfo(p => ({ ...p, learningStyle: e.target.value }))}>
+                    <option value="Görsel">👁️ Görsel (Grafik, Renk, Harita, Okuma)</option>
+                    <option value="İşitsel">🎧 İşitsel (Dinleme, Anlatma, Tartışma)</option>
+                    <option value="Kinestetik">🤸 Kinestetik (Yaparak-Yaşayarak, Dokunsal)</option>
+                    <option value="Karma">🌀 Karma (Çoklu Öğrenme)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Günlük Ortalama Uyku Süresi</label>
+                  <select style={inp} value={personalInfo.sleepHours || '8'} onChange={e => setPersonalInfo(p => ({ ...p, sleepHours: e.target.value }))}>
+                    <option value="6">6 Saat veya daha az</option>
+                    <option value="7">7 Saat</option>
+                    <option value="8">8 Saat (İdeal)</option>
+                    <option value="9">9 Saat</option>
+                    <option value="10">10 Saat veya daha fazla</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>En Verimli Çalışma Zamanı</label>
+                  <select style={inp} value={personalInfo.bestStudyTime || 'Sabah'} onChange={e => setPersonalInfo(p => ({ ...p, bestStudyTime: e.target.value }))}>
+                    <option value="Sabah">🌅 Erken Sabah (06:00 - 10:00)</option>
+                    <option value="Öğle">☀️ Gün Ortası (10:00 - 15:00)</option>
+                    <option value="Akşam">🌆 Okul Sonrası / Akşam (16:00 - 21:00)</option>
+                    <option value="Gece">🌙 Gece Çalışması (21:00 sonrası)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Sevdiği / Başarılı Dersler</label>
+                  <input style={inp} value={personalInfo.strongSubjects || ''} onChange={e => setPersonalInfo(p => ({ ...p, strongSubjects: e.target.value }))} placeholder="Örn: Matematik, Fen..." />
+                </div>
+                <div>
+                  <label style={lbl}>Zorlandığı / Destek İsteyen Dersler</label>
+                  <input style={inp} value={personalInfo.weakSubjects || ''} onChange={e => setPersonalInfo(p => ({ ...p, weakSubjects: e.target.value }))} placeholder="Örn: Paragraf, Fizik..." />
+                </div>
+                <div>
+                  <label style={lbl}>Hobiler & İlgi Alanları</label>
+                  <input style={inp} value={personalInfo.hobbies || ''} onChange={e => setPersonalInfo(p => ({ ...p, hobbies: e.target.value }))} placeholder="Örn: Basketbol, Satranç, Bağlama..." />
+                </div>
+              </div>
+
+              {/* Ders Çalışırken Yaşadığı Zorluklar Checkbox Grid */}
+              <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed #e2e8f0' }}>
+                <label style={{ ...lbl, marginBottom: '0.5rem' }}>Ders Çalışırken Karşılaşılan Başlıca Zorluklar (Çoklu Seçim):</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {[
+                    'Dikkat Dağınıklığı / Odaklanma',
+                    'Zaman Yönetimi / Planlama',
+                    'Sınav Kaygısı / Stres',
+                    'Motivasyon Eksikliği / Erteleme',
+                    'Hızlı Soru Çözememe',
+                    'Ezber Yapma Zorluğu',
+                    'Telefon / Ekran Bağımlılığı'
+                  ].map(challenge => {
+                    const selectedList = personalInfo.studyChallenges || [];
+                    const isSelected = selectedList.includes(challenge);
+                    return (
+                      <button
+                        type="button"
+                        key={challenge}
+                        onClick={() => {
+                          const next = isSelected
+                            ? selectedList.filter(x => x !== challenge)
+                            : [...selectedList, challenge];
+                          setPersonalInfo(p => ({ ...p, studyChallenges: next }));
+                        }}
+                        style={{
+                          padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 800,
+                          border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                          background: isSelected ? '#f3e8ff' : '#f8fafc',
+                          color: isSelected ? '#6d28d9' : '#475569', cursor: 'pointer', transition: 'all 0.15s'
+                        }}
+                      >
+                        {isSelected ? '✓ ' : '+ '}{challenge}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+
+            {/* 4. Koç Değerlendirme & Özel Notlar */}
+            <Card emoji="📝" title="Koç Öğretmen Değerlendirme & Özel Notlar">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div>
+                  <label style={lbl}>Sağlık Durumu / Alerji / Özel Durumlar</label>
+                  <input style={inp} value={personalInfo.healthNotes || ''} onChange={e => setPersonalInfo(p => ({ ...p, healthNotes: e.target.value }))} placeholder="Alerji, göz bozukluğu, düzenli ilaç kullanımı vb." />
+                </div>
+                <div>
+                  <label style={lbl}>Koç Öğretmenin Özel Değerlendirme & Gözlem Notu</label>
+                  <textarea
+                    rows={3}
+                    style={{ ...inp, height: 'auto', resize: 'vertical' }}
+                    value={personalInfo.coachNotes || ''}
+                    onChange={e => setPersonalInfo(p => ({ ...p, coachNotes: e.target.value }))}
+                    placeholder="Koç öğretmenin öğrencinin genel gelişim süreci, karakter özellikleri ve rehberlik takibi hakkındaki özel notları..."
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* Kaydet Butonu */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                onClick={handleSave}
+                style={{
+                  padding: '0.65rem 1.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                  color: 'white', border: 'none', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <Save size={18} /> Kişisel Bilgileri Kaydet
+              </button>
+            </div>
           </div>
         )}
 
