@@ -963,13 +963,8 @@ export default function MyCoachingPage() {
   const completedMonthly = (goals.monthlyGoals || []).filter(g => g.done).length;
   const todayIndex = (new Date().getDay() + 6) % 7;
   const todayDayKey = DAYS[todayIndex];
-  const completedHabitsToday = (habits || []).filter(h => h.days && h.days[todayDayKey]).length;
-  const totalHabitsCount = (habits || []).length;
-  const totalDailyGoalsCount = (goals.dailyGoals || []).length;
-  const completedDailyGoalsCount = (goals.dailyGoals || []).filter(g => g.done).length;
-
-  const totalDaily = totalDailyGoalsCount + totalHabitsCount;
-  const completedDaily = completedDailyGoalsCount + completedHabitsToday;
+  const completedDaily = (habits || []).filter(h => h.days && h.days[todayDayKey]).length;
+  const totalDaily = (habits || []).length;
   const totalPoolTopics = topicPool.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
   const completedPoolTopics = topicPool.reduce((sum, s) => {
     return sum + (s.topics || []).filter(t => (t.status || (t.done ? 'Bitti' : 'Başlanmadı')) === 'Bitti' || t.status === 'Tamamlandı').length;
@@ -1778,17 +1773,7 @@ export default function MyCoachingPage() {
                 onAdd={() => { if (newWeekly.trim()) { setGoals(p => ({ ...p, weeklyGoals: [...(p.weeklyGoals||[]), { id: uid(), text: newWeekly.trim(), done: false }] })); setNewWeekly(''); }}} />
             </Card>
 
-            {/* Günlük */}
-            <Card emoji="🌅" title={`Günlük Rutinlerim (${(goals.dailyGoals||[]).filter(g=>g.done).length}/${(goals.dailyGoals||[]).length} bugün)`}>
-              {(goals.dailyGoals || []).map(g => (
-                <CheckItem key={g.id} label={g.text} checked={g.done}
-                  onChange={() => setGoals(p => ({ ...p, dailyGoals: p.dailyGoals.map(x => x.id === g.id ? { ...x, done: !x.done } : x) }))}
-                  onDelete={() => setGoals(p => ({ ...p, dailyGoals: p.dailyGoals.filter(x => x.id !== g.id) }))} />
-              ))}
-              {(goals.dailyGoals||[]).length > 0 && <Progress value={(goals.dailyGoals||[]).filter(g=>g.done).length} max={(goals.dailyGoals||[]).length} color="#dc2626" label="Bugünün tamamlanması" />}
-              <AddInput value={newDaily} onChange={setNewDaily} placeholder="Yeni günlük rutin..." color="#dc2626"
-                onAdd={() => { if (newDaily.trim()) { setGoals(p => ({ ...p, dailyGoals: [...(p.dailyGoals||[]), { id: uid(), text: newDaily.trim(), done: false }] })); setNewDaily(''); }}} />
-            </Card>
+
           </div>
         )}
 

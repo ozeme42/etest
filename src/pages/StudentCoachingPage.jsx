@@ -962,13 +962,8 @@ export default function StudentCoachingPage() {
   const completedMonthly = (goals.monthlyGoals || []).filter(g => g.done).length;
   const todayIndex = (new Date().getDay() + 6) % 7;
   const todayDayKey = DAYS[todayIndex];
-  const completedHabitsToday = (habits || []).filter(h => h.days && h.days[todayDayKey]).length;
-  const totalHabitsCount = (habits || []).length;
-  const totalDailyGoalsCount = (goals.dailyGoals || []).length;
-  const completedDailyGoalsCount = (goals.dailyGoals || []).filter(g => g.done).length;
-
-  const totalDaily = totalDailyGoalsCount + totalHabitsCount;
-  const completedDaily = completedDailyGoalsCount + completedHabitsToday;
+  const completedDaily = (habits || []).filter(h => h.days && h.days[todayDayKey]).length;
+  const totalDaily = (habits || []).length;
   const totalPoolTopics = topicPool.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
   const completedPoolTopics = topicPool.reduce((sum, s) => {
     return sum + (s.topics || []).filter(t => (t.status || (t.done ? 'Bitti' : 'Başlanmadı')) === 'Bitti' || t.status === 'Tamamlandı').length;
@@ -1776,7 +1771,6 @@ export default function StudentCoachingPage() {
               <AddInput value={newWeekly} onChange={setNewWeekly} placeholder="Yeni haftalık hedef..." color="#7c3aed"
                 onAdd={() => { if (newWeekly.trim()) { setGoals(p => ({ ...p, weeklyGoals: [...(p.weeklyGoals||[]), { id: uid(), text: newWeekly.trim(), done: false }] })); setNewWeekly(''); }}} />
             </Card>
-
             {/* Günlük */}
             <Card emoji="🌅" title={`Günlük Rutinlerim (${(goals.dailyGoals||[]).filter(g=>g.done).length}/${(goals.dailyGoals||[]).length} bugün)`}>
               {(goals.dailyGoals || []).map(g => (
