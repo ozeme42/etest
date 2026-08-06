@@ -2279,38 +2279,21 @@ export default function MyCoachingPage() {
                             }} />
                           </div>
 
-                          {/* Row 3: Hızlı Veri Ekleme (Ultra Compact Inline Controls) */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem', paddingTop: '0.2rem' }}>
-                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                              {[10, 25, 50, 100].map(val => (
-                                <button
-                                  key={val}
-                                  onClick={() => handleAddCounterProgress(cg.id, val)}
-                                  style={{
-                                    padding: '0.2rem 0.45rem', borderRadius: '0.35rem', border: '1px solid #cbd5e1',
-                                    background: '#fafafa', color: '#334155', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
-                                  }}
-                                >
-                                  +{val}
-                                </button>
-                              ))}
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                              <input
-                                type="number"
-                                placeholder={`Ekle (${cg.unit})...`}
-                                value={customAddInputs[cg.id] || ''}
-                                onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))}
-                                style={{ width: 85, padding: '0.22rem 0.5rem', borderRadius: '0.35rem', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, color: '#1e293b' }}
-                              />
-                              <button
-                                onClick={() => handleAddCounterProgress(cg.id, customAddInputs[cg.id])}
-                                style={{ padding: '0.22rem 0.65rem', borderRadius: '0.35rem', background: periodColor, color: 'white', border: 'none', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}
-                              >
-                                ➕ Ekle
-                              </button>
-                            </div>
+                          {/* Row 3: Hızlı Veri Ekleme */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', paddingTop: '0.2rem' }}>
+                            <input
+                              type="number"
+                              placeholder={`Günlük Ekle (${cg.unit})...`}
+                              value={customAddInputs[cg.id] || ''}
+                              onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))}
+                              style={{ width: 130, padding: '0.3rem 0.6rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}
+                            />
+                            <button
+                              onClick={() => handleAddCounterProgress(cg.id, customAddInputs[cg.id])}
+                              style={{ padding: '0.3rem 0.85rem', borderRadius: '0.4rem', background: periodColor, color: 'white', border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}
+                            >
+                              ➕ Ekle
+                            </button>
                           </div>
                         </div>
                       );
