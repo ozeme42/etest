@@ -185,57 +185,73 @@ export default function ModularQuizReviewPage() {
     }
 
     if (foundTest) {
-      let testQs = resolveTestQuestions(foundTest, allBankQuestions);
-      
-      const isTrackedBook = Boolean(
-        foundTest.sourceType === 'trackedBook' ||
-        foundTest.bookId ||
-        foundTest.sourceFormat === 'physical' ||
-        (foundSubmission && (foundSubmission.bookId || foundSubmission.sourceType === 'trackedBook'))
+      const isMultiSec = Boolean(
+        (foundTest.sections && Array.isArray(foundTest.sections) && foundTest.sections.length > 0) ||
+        (foundTest.tests && Array.isArray(foundTest.tests) && foundTest.tests.length > 0) ||
+        (foundTest.testIds && Array.isArray(foundTest.testIds) && foundTest.testIds.length > 0) ||
+        (foundTest.questionIds && Array.isArray(foundTest.questionIds) && foundTest.questionIds.length > 0) ||
+        (foundTest.selectedQuestions && Array.isArray(foundTest.selectedQuestions) && foundTest.selectedQuestions.length > 0) ||
+        (foundTest.items && Array.isArray(foundTest.items) && foundTest.items.length > 0) ||
+        foundTest.isBulk ||
+        foundTest.isMulti
       );
 
-      if (isTrackedBook || (!testQs || testQs.length === 0)) {
-        if (foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
-          testQs = foundSubmission.answers.map((ans, idx) => {
-            let correctOpt = ans.correctAnswer;
-            if (correctOpt === null || correctOpt === undefined) {
-              const letter = ans.correctAnswerLetter;
-              if (letter && typeof letter === 'string') {
-                correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
+      if (isMultiSec) {
+        setTest(foundTest);
+        setQuestions([]);
+      } else {
+        let testQs = resolveTestQuestions(foundTest, allBankQuestions);
+        
+        const isTrackedBook = Boolean(
+          foundTest.sourceType === 'trackedBook' ||
+          foundTest.bookId ||
+          foundTest.sourceFormat === 'physical' ||
+          (foundSubmission && (foundSubmission.bookId || foundSubmission.sourceType === 'trackedBook'))
+        );
+
+        if (isTrackedBook || (!testQs || testQs.length === 0)) {
+          if (foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
+            testQs = foundSubmission.answers.map((ans, idx) => {
+              let correctOpt = ans.correctAnswer;
+              if (correctOpt === null || correctOpt === undefined) {
+                const letter = ans.correctAnswerLetter;
+                if (letter && typeof letter === 'string') {
+                  correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
+                }
               }
-            }
-            return {
-              id: ans.questionId || `q_${idx + 1}`,
-              questionNo: ans.questionNo || (idx + 1),
-              testName: ans.testName || foundTest.title || 'Test',
-              questionText: ans.questionText || `Soru ${idx + 1}`,
-              options: ans.options || ['A', 'B', 'C', 'D', 'E'],
-              correctAnswer: correctOpt !== undefined ? correctOpt : null,
-              correctAnswerLetter: ans.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null),
-              userAnswer: ans.userAnswer
-            };
-          });
+              return {
+                id: ans.questionId || `q_${idx + 1}`,
+                questionNo: ans.questionNo || (idx + 1),
+                testName: ans.testName || foundTest.title || 'Test',
+                questionText: ans.questionText || `Soru ${idx + 1}`,
+                options: ans.options || ['A', 'B', 'C', 'D', 'E'],
+                correctAnswer: correctOpt !== undefined ? correctOpt : null,
+                correctAnswerLetter: ans.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null),
+                userAnswer: ans.userAnswer
+              };
+            });
+          }
         }
+
+        const firstQ = testQs[0] || {};
+        const extractPayload = (obj) => {
+          if (!obj) return null;
+          return obj.contentPayload || obj.htmlPayload || obj.pdfPayload || obj.url || obj.content || null;
+        };
+        const resolvedPayload = extractPayload(foundTest) || extractPayload(firstQ);
+        const enrichedTest = {
+          ...foundTest,
+          contentType: foundTest.contentType || firstQ.contentType || firstQ.type,
+          contentPayload: resolvedPayload || foundTest.contentPayload || firstQ.contentPayload,
+          pdfPayload: foundTest.pdfPayload || firstQ.pdfPayload || (firstQ.contentType === 'pdf' ? resolvedPayload : null),
+          htmlPayload: foundTest.htmlPayload || firstQ.htmlPayload || (firstQ.contentType === 'html' ? resolvedPayload : null),
+          questionType: foundTest.questionType || firstQ.questionType || firstQ.type,
+          isOpenEnded: foundTest.isOpenEnded || firstQ.isOpenEnded || firstQ.type === 'acik_uclu' || firstQ.contentType === 'acik_uclu'
+        };
+
+        setTest(enrichedTest);
+        setQuestions(testQs);
       }
-
-      const firstQ = testQs[0] || {};
-      const extractPayload = (obj) => {
-        if (!obj) return null;
-        return obj.contentPayload || obj.htmlPayload || obj.pdfPayload || obj.url || obj.content || null;
-      };
-      const resolvedPayload = extractPayload(foundTest) || extractPayload(firstQ);
-      const enrichedTest = {
-        ...foundTest,
-        contentType: foundTest.contentType || firstQ.contentType || firstQ.type,
-        contentPayload: resolvedPayload || foundTest.contentPayload || firstQ.contentPayload,
-        pdfPayload: foundTest.pdfPayload || firstQ.pdfPayload || (firstQ.contentType === 'pdf' ? resolvedPayload : null),
-        htmlPayload: foundTest.htmlPayload || firstQ.htmlPayload || (firstQ.contentType === 'html' ? resolvedPayload : null),
-        questionType: foundTest.questionType || firstQ.questionType || firstQ.type,
-        isOpenEnded: foundTest.isOpenEnded || firstQ.isOpenEnded || firstQ.type === 'acik_uclu' || firstQ.contentType === 'acik_uclu'
-      };
-
-      setTest(enrichedTest);
-      setQuestions(testQs);
     }
 
     if (foundSubmission) {
