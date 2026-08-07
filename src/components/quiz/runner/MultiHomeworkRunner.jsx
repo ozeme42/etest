@@ -586,7 +586,27 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         });
         return initialMap;
       } else if (rawAns && typeof rawAns === 'object') {
-        return rawAns;
+        const secId = sections[0]?.id || 'sec_1';
+        if (rawAns[secId] && (rawAns[secId].answers || rawAns[secId].openEndedText)) {
+          return rawAns;
+        } else {
+          initialMap[secId] = { answers: {}, openEndedText: {} };
+          Object.keys(rawAns).forEach(k => {
+            const qNo = Number(k);
+            if (!isNaN(qNo)) {
+              const val = rawAns[k];
+              if (typeof val === 'object' && val !== null) {
+                if (val.userAnswerText) initialMap[secId].openEndedText[qNo] = val.userAnswerText;
+                initialMap[secId].answers[qNo] = { userAnswer: val.userAnswer !== undefined ? val.userAnswer : val.userAns, isCorrect: val.isCorrect };
+              } else if (typeof val === 'string') {
+                initialMap[secId].openEndedText[qNo] = val;
+              } else {
+                initialMap[secId].answers[qNo] = { userAnswer: val };
+              }
+            }
+          });
+          return initialMap;
+        }
       }
     }
 

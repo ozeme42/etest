@@ -296,25 +296,13 @@ export default function ModularQuizReviewPage() {
     }
   };
 
-  if (isMultiSection) {
-    return <MultiHomeworkRunner test={test} questions={questions} isReviewMode={true} userAnswers={submission} onSubmit={handleCloseReview} />;
-  }
-
-  if (isPhysical) {
-    return <PhysicalQuizReview submission={submission} test={test} questions={questions} />;
-  }
-
-  if (isHtml) {
-    return <HtmlQuizReview submission={submission} test={test} questions={questions} />;
-  }
-
-  if (isPdf) {
-    return <PdfQuizReview submission={submission} test={test} questions={questions} />;
-  }
-
-  if (isImageTest) {
-    return <ImageQuizReview submission={submission} test={test} questions={questions} />;
-  }
-
-  return <StandardQuizReview submission={submission} test={test} questions={questions} />;
+  return (
+    <MultiHomeworkRunner
+      test={test}
+      questions={questions}
+      isReviewMode={true}
+      userAnswers={submission}
+      onSubmit={handleCloseReview}
+    />
+  );
 }
