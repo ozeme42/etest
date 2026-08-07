@@ -35,6 +35,19 @@ function isPdfSection(bankQ) {
   );
 }
 
+// Helper to check HTML section
+function isHtmlSection(bankQ) {
+  if (!bankQ) return false;
+  return Boolean(
+    bankQ.contentType === 'html' ||
+    bankQ.sourceFormat === 'html' ||
+    bankQ.formatType === 'html' ||
+    bankQ.type === 'html' ||
+    bankQ.htmlPayload ||
+    (typeof bankQ.contentPayload === 'string' && (bankQ.contentPayload.includes('<!DOCTYPE') || bankQ.contentPayload.includes('<html') || bankQ.contentPayload.startsWith('data:text/html')))
+  );
+}
+
 // ─── RIGHT OPTIK PANEL ────────────────────────────────────────────────────────
 function RightOptikPanel({ qCount, answers, openEndedText, isOpenEnded, onOptionSelect, onTextChange }) {
   return (
@@ -386,7 +399,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
 
   const activeBankQ = activeSec.bankQ || {};
   const isPdf = isPdfSection(activeBankQ) || isPdfSection(test);
+  const isHtml = isHtmlSection(activeBankQ) || isHtmlSection(test);
+
   const activePdfPayload = extractPayload(activeBankQ) || extractPayload(test) || idbPayload;
+  const [htmlIframeSrc, setHtmlIframeSrc] = useState(null);
 
   useEffect(() => {
     if (!isPdf) return;
@@ -401,6 +417,30 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
     }
     load();
   }, [activeBankQ, test, isPdf]);
+
+  useEffect(() => {
+    if (!isHtml) return;
+    const payload = activeBankQ.contentPayload || activeBankQ.htmlPayload || test.contentPayload || test.htmlPayload;
+    if (payload && payload !== '[STORED_IN_INDEXEDDB]' && payload !== '[LOCALSTORAGE_CACHE]') {
+      if (payload.startsWith('http')) { setHtmlIframeSrc(payload); return; }
+      if (payload.startsWith('data:text/html') || payload.startsWith('<!DOCTYPE') || payload.startsWith('<html') || payload.includes('<html')) {
+        const blob = new Blob([payload.startsWith('data:') ? atob(payload.split(',')[1] || '') : payload], { type: 'text/html' });
+        setHtmlIframeSrc(URL.createObjectURL(blob));
+        return;
+      }
+    }
+
+    async function loadHtmlFromIdb() {
+      const id = activeBankQ.id || test.id;
+      const val = await idbGetPayload(id);
+      if (val && val !== '[STORED_IN_INDEXEDDB]') {
+        if (val.startsWith('http')) { setHtmlIframeSrc(val); return; }
+        const blob = new Blob([val.startsWith('data:') ? atob(val.split(',')[1] || '') : val], { type: 'text/html' });
+        setHtmlIframeSrc(URL.createObjectURL(blob));
+      }
+    }
+    loadHtmlFromIdb();
+  }, [activeBankQ, test, isHtml]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
@@ -501,6 +541,28 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
               <PdfViewerWithControls payload={activePdfPayload} title={activeSec.title} height="100%" />
+            </div>
+            <RightOptikPanel
+              qCount={activeSec.qCount}
+              answers={activeSecState.answers || {}}
+              openEndedText={activeSecState.openEndedText || {}}
+              isOpenEnded={secOE}
+              onOptionSelect={(qNo, optIdx) => {
+                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+              }}
+              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+            />
+          </div>
+        ) : isHtml ? (
+          /* HTML VIEWER + OPTIK PANEL ONLY */
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
+              {htmlIframeSrc ? (
+                <iframe src={htmlIframeSrc} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} title={activeSec.title} sandbox="allow-scripts allow-same-origin" />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontWeight: 700 }}>HTML İçerik Yükleniyor...</div>
+              )}
             </div>
             <RightOptikPanel
               qCount={activeSec.qCount}
