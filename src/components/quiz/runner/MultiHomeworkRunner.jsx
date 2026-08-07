@@ -262,10 +262,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
           mcBoş++;
           totalMCBoş++;
         } else {
-          const correctAns = qObj.correctAnswer;
-          const isCorrect = (correctAns !== null && correctAns !== undefined)
-            ? userAns === correctAns
-            : (typeof userAnsObj === 'object' && userAnsObj.isCorrect === true);
+          const isCorrect = checkIsAnswerCorrect(userAns, qObj, bankQ, i);
 
           if (isCorrect) {
             mcDoğru++;
@@ -601,8 +598,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
   };
 
   const handleSelectOption = (secId, qNo, optIdx, qObj) => {
-    const correctAns = qObj.correctAnswer;
-    const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
+    const sec = sections.find(s => s.id === secId) || activeSec;
+    const bankQ = sec.bankQ || test;
+    const isCorrect = checkIsAnswerCorrect(optIdx, qObj, bankQ, qNo);
 
     setSectionAnswers(prev => {
       const currentSecState = prev[secId] || { answers: {}, openEndedText: {} };
@@ -612,7 +610,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
           ...currentSecState,
           answers: {
             ...currentSecState.answers,
-            [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj.id }
+            [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj?.id }
           }
         }
       };
@@ -650,6 +648,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
     sections.forEach(sec => {
       const sa = sectionAnswers[sec.id] || {};
       const secQs = sec.resolvedQuestions || [];
+      const bankQ = sec.bankQ || test;
 
       for (let idx = 0; idx < sec.qCount; idx++) {
         const qNo = idx + 1;
@@ -657,6 +656,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
         const ansObj = sa.answers?.[qNo] || {};
         const userAns = typeof ansObj === 'object' ? ansObj.userAnswer : ansObj;
         const textAns = sa.openEndedText?.[qNo] || null;
+        const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
 
         formattedAnswers.push({
           questionId: qObj.id || `${sec.id}_${qNo}`,
@@ -665,7 +665,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
           sectionTitle: sec.title,
           userAnswer: userAns !== undefined ? userAns : null,
           userAnswerText: textAns,
-          isCorrect: ansObj.isCorrect !== undefined ? ansObj.isCorrect : null,
+          isCorrect,
           correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : null
         });
       }
