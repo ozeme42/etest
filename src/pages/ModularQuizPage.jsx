@@ -15,6 +15,7 @@ import StandardQuizRunner from '../components/quiz/runner/StandardQuizRunner';
 import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
 import BulkHomeworkRunner from '../components/quiz/runner/BulkHomeworkRunner';
 import CompositeQuizRunner from '../components/quiz/runner/CompositeQuizRunner';
+import MultiHomeworkRunner from '../components/quiz/runner/MultiHomeworkRunner';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 
@@ -404,7 +405,7 @@ export default function ModularQuizPage() {
     if (isPhysical) {
       return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
     }
-    return <CompositeQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
   }
 
   if (isPhysical) {
