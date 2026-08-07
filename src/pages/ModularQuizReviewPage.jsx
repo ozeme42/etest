@@ -185,50 +185,103 @@ export default function ModularQuizReviewPage() {
     }
 
     if (foundTest) {
-      let testQs = resolveTestQuestions(foundTest, allBankQuestions);
+      const isTrackedBook = Boolean(
+        foundTest.sourceType === 'trackedBook' ||
+        foundTest.bookId ||
+        foundTest.sourceFormat === 'physical' ||
+        (foundSubmission && (foundSubmission.bookId || foundSubmission.sourceType === 'trackedBook'))
+      );
 
-      if ((!testQs || testQs.length === 0) && foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
-        const sectionsArr = foundTest.sections || foundTest.tests || foundTest.items || [];
-        let sectionIndex = 0;
-        let qCountInSection = 0;
-        
-        testQs = foundSubmission.answers.map((ans, idx) => {
-          let currentSec = sectionsArr[sectionIndex] || {};
-          let expectedCount = currentSec.questionCount || currentSec.qCount || (currentSec.bankQ?.questionCount) || 1;
-          
-          let correctOpt = ans.correctAnswer;
-          if (correctOpt === null || correctOpt === undefined) {
-            const letter = ans.correctAnswerLetter;
-            if (letter && typeof letter === 'string') {
-              correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
-            }
-          }
-          
-          const qObj = {
+      if (isTrackedBook) {
+        let testQs = resolveTestQuestions(foundTest, allBankQuestions);
+        if ((!testQs || testQs.length === 0) && foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
+          testQs = foundSubmission.answers.map((ans, idx) => ({
             id: ans.questionId || `q_${idx + 1}`,
             questionNo: ans.questionNo || (idx + 1),
-            sectionId: ans.sectionId || currentSec.id || `sec_${sectionIndex + 1}`,
-            sectionTitle: ans.sectionTitle || currentSec.title || `${sectionIndex + 1}. Bölüm`,
             testName: ans.testName || foundTest.title || 'Test',
             questionText: ans.questionText || `Soru ${idx + 1}`,
             options: ans.options || ['A', 'B', 'C', 'D', 'E'],
-            correctAnswer: correctOpt !== undefined ? correctOpt : null,
-            correctAnswerLetter: ans.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null),
+            correctAnswer: ans.correctAnswer !== undefined ? ans.correctAnswer : null,
+            correctAnswerLetter: ans.correctAnswerLetter || null,
             userAnswer: ans.userAnswer
-          };
+          }));
+        }
+        setTest(foundTest);
+        setQuestions(testQs || []);
+      } else {
+        // Exact section resolution from ModularQuizPage.jsx
+        let sections = [];
+        const questionIdList = foundTest.sections || foundTest.questionIds || foundTest.selectedQuestions || foundTest.tests || foundTest.items;
 
-          qCountInSection++;
-          if (qCountInSection >= expectedCount && sectionIndex < sectionsArr.length - 1) {
-            sectionIndex++;
-            qCountInSection = 0;
-          }
+        if (Array.isArray(questionIdList) && questionIdList.length > 1) {
+          sections = questionIdList.map((item, idx) => {
+            const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
+            const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId)) || (typeof item === 'object' ? item : null);
+            const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : [];
+            const title = bankQ?.title || bankQ?.name || (typeof item === 'object' ? (item.title || item.name) : null) || `${idx + 1}. Bölüm`;
+            const qCount = bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
+
+            return {
+              id: itemId || `sec_${idx}`,
+              questionId: itemId,
+              title,
+              bankQ: bankQ || { id: itemId, title },
+              questionCount: qCount,
+              questions: resolvedQuestions
+            };
+          });
+        }
+
+        if (sections.length > 0) {
+          foundTest = { ...foundTest, sections };
+        }
+
+        let testQs = resolveTestQuestions(foundTest, allBankQuestions);
+
+        // Fallback for missing questions in submission
+        if ((!testQs || testQs.length === 0) && foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
+          const sectionsArr = foundTest.sections || foundTest.tests || foundTest.items || [];
+          let sectionIndex = 0;
+          let qCountInSection = 0;
           
-          return qObj;
-        });
-      }
+          testQs = foundSubmission.answers.map((ans, idx) => {
+            let currentSec = sectionsArr[sectionIndex] || {};
+            let expectedCount = currentSec.questionCount || currentSec.qCount || (currentSec.bankQ?.questionCount) || 1;
+            
+            let correctOpt = ans.correctAnswer;
+            if (correctOpt === null || correctOpt === undefined) {
+              const letter = ans.correctAnswerLetter;
+              if (letter && typeof letter === 'string') {
+                correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
+              }
+            }
+            
+            const qObj = {
+              id: ans.questionId || `q_${idx + 1}`,
+              questionNo: ans.questionNo || (idx + 1),
+              sectionId: ans.sectionId || currentSec.id || `sec_${sectionIndex + 1}`,
+              sectionTitle: ans.sectionTitle || currentSec.title || `${sectionIndex + 1}. Bölüm`,
+              testName: ans.testName || foundTest.title || 'Test',
+              questionText: ans.questionText || `Soru ${idx + 1}`,
+              options: ans.options || ['A', 'B', 'C', 'D', 'E'],
+              correctAnswer: correctOpt !== undefined ? correctOpt : null,
+              correctAnswerLetter: ans.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null),
+              userAnswer: ans.userAnswer
+            };
 
-      setTest(foundTest);
-      setQuestions(testQs || []);
+            qCountInSection++;
+            if (qCountInSection >= expectedCount && sectionIndex < sectionsArr.length - 1) {
+              sectionIndex++;
+              qCountInSection = 0;
+            }
+            
+            return qObj;
+          });
+        }
+
+        setTest(foundTest);
+        setQuestions(testQs || []);
+      }
     }
 
     if (foundSubmission) {
