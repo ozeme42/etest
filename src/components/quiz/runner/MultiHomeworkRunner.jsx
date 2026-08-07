@@ -848,22 +848,35 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
   const secOE = checkIsOE(activeSec.bankQ);
 
-  const [idbPayload, setIdbPayload] = useState(null);
-  const loadedRef = React.useRef(null);
+  const activeBankQ = activeSec.bankQ || {};
+  
+  // Section type MUST be determined strictly for the ACTIVE SECTION (not parent container)
+  const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec);
+  const isHtml = !isPdf && (isHtmlSection(activeBankQ) || isHtmlSection(activeSec));
+  const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec));
 
-  const extractPayload = (obj) => {
+  const [idbPayload, setIdbPayload] = useState(null);
+  const [htmlIframeSrc, setHtmlIframeSrc] = useState(null);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
+  // Reset section-specific payloads when active section changes
+  useEffect(() => {
+    setIdbPayload(null);
+    setHtmlIframeSrc(null);
+  }, [activeSec.id]);
+
+  const extractPayload = useCallback((obj) => {
     if (!obj) return null;
     const candidates = [
       obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.htmlPayload, obj.url, obj.content,
-      obj.bankQ?.contentPayload, obj.bankQ?.pdfPayload, obj.bankQ?.pdfUrl, obj.bankQ?.htmlPayload,
-      test?.contentPayload, test?.pdfPayload, test?.pdfUrl, test?.htmlPayload
+      obj.bankQ?.contentPayload, obj.bankQ?.pdfPayload, obj.bankQ?.pdfUrl, obj.bankQ?.htmlPayload
     ];
     const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
     if (direct) return direct;
 
     const qId = obj.questionId || obj.id || obj.bankQ?.id;
-    if (qId && allBankQuestions) {
-      const found = allBankQuestions.find(q => String(q.id) === String(qId));
+    if (qId) {
+      const found = findInAllSources(qId);
       if (found) {
         const foundCand = [found.contentPayload, found.pdfPayload, found.pdfUrl, found.htmlPayload, found.url, found.content];
         const foundDirect = foundCand.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
@@ -871,34 +884,33 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     }
     return null;
-  };
+  }, [findInAllSources]);
 
-  const activeBankQ = activeSec.bankQ || {};
-  const isPdf = isPdfSection(activeBankQ) || isPdfSection(test);
-  const isHtml = isHtmlSection(activeBankQ) || isHtmlSection(test);
-  const isImage = isImageSection(activeBankQ) || isImageSection(test);
-
-  const [lightboxSrc, setLightboxSrc] = useState(null);
-  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(test) || idbPayload;
-  const [htmlIframeSrc, setHtmlIframeSrc] = useState(null);
+  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || idbPayload;
 
   useEffect(() => {
     if (!isPdf) return;
-    const targetObj = activeBankQ.id ? activeBankQ : test;
-    if (extractPayload(targetObj) || loadedRef.current === targetObj.id) return;
+    const targetObj = activeBankQ.id ? activeBankQ : activeSec;
+    if (extractPayload(targetObj)) return;
+
+    let isMounted = true;
     async function load() {
-      const val = await idbGetPayload(targetObj.id);
-      if (val && val !== '[STORED_IN_INDEXEDDB]') {
-        loadedRef.current = targetObj.id;
-        setIdbPayload(val);
+      const idsToTry = [targetObj.id, activeBankQ.questionId, activeSec.id, activeSec.questionId].filter(Boolean);
+      for (const idToTry of idsToTry) {
+        const val = await idbGetPayload(idToTry);
+        if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
+          setIdbPayload(val);
+          break;
+        }
       }
     }
     load();
-  }, [activeBankQ, test, isPdf]);
+    return () => { isMounted = false; };
+  }, [activeSec.id, activeBankQ, isPdf, extractPayload]);
 
   useEffect(() => {
     if (!isHtml) return;
-    const payload = activeBankQ.contentPayload || activeBankQ.htmlPayload || test.contentPayload || test.htmlPayload;
+    const payload = extractPayload(activeBankQ) || extractPayload(activeSec);
     if (payload && payload !== '[STORED_IN_INDEXEDDB]' && payload !== '[LOCALSTORAGE_CACHE]') {
       if (payload.startsWith('http')) { setHtmlIframeSrc(payload); return; }
       if (payload.startsWith('data:text/html') || payload.startsWith('<!DOCTYPE') || payload.startsWith('<html') || payload.includes('<html')) {
@@ -908,17 +920,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     }
 
+    let isMounted = true;
     async function loadHtmlFromIdb() {
-      const id = activeBankQ.id || test.id;
-      const val = await idbGetPayload(id);
-      if (val && val !== '[STORED_IN_INDEXEDDB]') {
-        if (val.startsWith('http')) { setHtmlIframeSrc(val); return; }
-        const blob = new Blob([val.startsWith('data:') ? atob(val.split(',')[1] || '') : val], { type: 'text/html' });
-        setHtmlIframeSrc(URL.createObjectURL(blob));
+      const idsToTry = [activeBankQ.id, activeBankQ.questionId, activeSec.id, activeSec.questionId].filter(Boolean);
+      for (const idToTry of idsToTry) {
+        const val = await idbGetPayload(idToTry);
+        if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
+          if (val.startsWith('http')) { setHtmlIframeSrc(val); break; }
+          const blob = new Blob([val.startsWith('data:') ? atob(val.split(',')[1] || '') : val], { type: 'text/html' });
+          setHtmlIframeSrc(URL.createObjectURL(blob));
+          break;
+        }
       }
     }
     loadHtmlFromIdb();
-  }, [activeBankQ, test, isHtml]);
+    return () => { isMounted = false; };
+  }, [activeSec.id, activeBankQ, isHtml, extractPayload]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
