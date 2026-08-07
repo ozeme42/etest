@@ -536,6 +536,7 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
   const { questions: allBankQuestions } = useQuestionBank();
 
   const sections = useMemo(() => {
+    // 1. If test has sections array (e.g. composite test / bulk assignment with multiple tests/packages)
     if (test.sections && Array.isArray(test.sections) && test.sections.length > 0) {
       return test.sections.map((sec, idx) => {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(sec.questionId || sec.id)) || sec;
@@ -559,7 +560,8 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
         }
 
         return {
-          ...sec,
+          id: sec.id || sec.questionId || `sec_${idx}`,
+          title: sec.title || bankQ?.title || bankQ?.name || `Bölüm ${idx + 1}`,
           _idx: idx,
           bankQ: bankQ || sec,
           resolvedQuestions,
@@ -568,33 +570,58 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
       });
     }
 
-    if (questions && questions.length > 0) {
-      const groups = {};
-      questions.forEach((q, idx) => {
-        const secTitle = q.testName || q.sectionTitle || q.title || `Bölüm ${idx + 1}`;
-        const secId = q.id || `sec_${idx}`;
-        if (!groups[secId]) {
-          groups[secId] = {
-            id: secId,
-            title: secTitle,
-            bankQ: q,
-            resolvedQuestions: [q],
-            _totalCount: q.questionCount || 1
-          };
-        }
+    // 2. If test has tests array (e.g. bulk assignment of multiple tests)
+    if (test.tests && Array.isArray(test.tests) && test.tests.length > 0) {
+      return test.tests.map((subTest, idx) => {
+        const bankQ = allBankQuestions?.find(q => String(q.id) === String(subTest.id || subTest.questionId)) || subTest;
+        const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (subTest.questions || []);
+        const qCount = bankQ?.questionCount || subTest.questionCount || resolvedQuestions.length || 1;
+
+        return {
+          id: subTest.id || `test_${idx}`,
+          title: subTest.title || subTest.name || bankQ?.title || `Bölüm ${idx + 1}`,
+          _idx: idx,
+          bankQ: bankQ || subTest,
+          resolvedQuestions,
+          _totalCount: qCount,
+        };
       });
-      const res = Object.values(groups);
-      if (res.length > 0) return res;
     }
 
+    // 3. If questions list passed, group by testName or sectionTitle (DO NOT split into 1 section per question!)
+    if (questions && questions.length > 0) {
+      const groups = {};
+      questions.forEach((q) => {
+        const groupKey = q.testId || q.testName || q.sectionTitle || test.id || 'sec_main';
+        const groupTitle = q.testName || q.sectionTitle || test.title || test.name || 'Genel Test';
+
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            id: groupKey,
+            title: groupTitle,
+            bankQ: test,
+            resolvedQuestions: [],
+            _totalCount: 0
+          };
+        }
+        groups[groupKey].resolvedQuestions.push(q);
+        groups[groupKey]._totalCount += 1;
+      });
+
+      const result = Object.values(groups);
+      if (result.length > 0) return result;
+    }
+
+    // 4. Default fallback: 1 section
+    const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
     return [{
       id: test.id || 'sec_1',
       title: test.title || test.name || 'Bölüm 1',
       bankQ: test,
-      resolvedQuestions: questions || [],
-      _totalCount: questions.length || test.questionCount || 1
+      resolvedQuestions: resolvedQuestions.length > 0 ? resolvedQuestions : (questions || []),
+      _totalCount: test.questionCount || resolvedQuestions.length || questions.length || 1
     }];
-  }, [test.sections, test.id, test.title, test.name, test.questionCount, questions, allBankQuestions]);
+  }, [test, questions, allBankQuestions]);
 
   const totalSeconds = useMemo(() => {
     const perQuestionMins = Number(test.timePerQuestion || test.time_per_question) || 2;
