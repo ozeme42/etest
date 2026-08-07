@@ -539,13 +539,31 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
     if (test.sections && Array.isArray(test.sections) && test.sections.length > 0) {
       return test.sections.map((sec, idx) => {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(sec.questionId || sec.id)) || sec;
-        const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
+        let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
+        
+        const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
+
+        if (resolvedQuestions.length < qCount) {
+          const filled = [...resolvedQuestions];
+          for (let i = filled.length; i < qCount; i++) {
+            const subQ = bankQ?.questionsList?.[i] || {};
+            filled.push({
+              ...subQ,
+              id: subQ.id || `${bankQ?.id || sec.id || 'q'}_sub_${i + 1}`,
+              questionText: subQ.questionText || subQ.text || subQ.title || `Soru ${i + 1}`,
+              options: (subQ.options && subQ.options.length > 0) ? subQ.options : ['A', 'B', 'C', 'D', 'E'],
+              correctAnswer: subQ.correctAnswer !== undefined ? subQ.correctAnswer : 0
+            });
+          }
+          resolvedQuestions = filled;
+        }
+
         return {
           ...sec,
           _idx: idx,
           bankQ: bankQ || sec,
           resolvedQuestions,
-          _totalCount: bankQ?.questionCount || resolvedQuestions.length || 1,
+          _totalCount: qCount,
         };
       });
     }
