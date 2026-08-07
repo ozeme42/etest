@@ -14,6 +14,7 @@ import ImageQuizRunner from '../components/quiz/runner/ImageQuizRunner';
 import StandardQuizRunner from '../components/quiz/runner/StandardQuizRunner';
 import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
 import BulkHomeworkRunner from '../components/quiz/runner/BulkHomeworkRunner';
+import CompositeQuizRunner from '../components/quiz/runner/CompositeQuizRunner';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 
@@ -400,7 +401,10 @@ export default function ModularQuizPage() {
   );
 
   if (isMultiSection) {
-    return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    if (isPhysical) {
+      return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    }
+    return <CompositeQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
   }
 
   if (isPhysical) {
