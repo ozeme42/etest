@@ -583,6 +583,63 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const activeSec = sections[activeSecIdx] || sections[0];
 
   const [sectionAnswers, setSectionAnswers] = useState(() => {
+    if (isReviewMode && userAnswers) {
+      const rawAns = userAnswers.answers || userAnswers.formattedAnswers || userAnswers.answersMap || userAnswers.userAnswers || userAnswers;
+      const initialMap = {};
+      sections.forEach(s => { initialMap[s.id] = { answers: {}, openEndedText: {} }; });
+
+      if (Array.isArray(rawAns)) {
+        rawAns.forEach((item, idx) => {
+          let targetSec = sections.find(s => String(s.id) === String(item.sectionId)) ||
+                          sections.find(s => s.title === item.sectionTitle);
+
+          if (!targetSec) {
+            let accumulated = 0;
+            for (const s of sections) {
+              if (idx < accumulated + s.qCount) {
+                targetSec = s;
+                break;
+              }
+              accumulated += s.qCount;
+            }
+            if (!targetSec) targetSec = sections[0];
+          }
+
+          if (targetSec) {
+            const secId = targetSec.id;
+            if (!initialMap[secId]) initialMap[secId] = { answers: {}, openEndedText: {} };
+
+            let qNo = item.questionNoInSection || item.qNo || item.questionNo;
+            if (!qNo || isNaN(qNo)) {
+              let accumulated = 0;
+              for (const s of sections) {
+                if (s.id === secId) break;
+                accumulated += s.qCount;
+              }
+              qNo = (idx - accumulated) + 1;
+              if (qNo < 1 || qNo > targetSec.qCount) qNo = (idx % targetSec.qCount) + 1;
+            }
+
+            if (item.userAnswerText || item.textAns || item.openEndedText) {
+              initialMap[secId].openEndedText[qNo] = item.userAnswerText || item.textAns || item.openEndedText;
+            }
+
+            const userAns = item.userAnswer !== undefined ? item.userAnswer : item.userAns;
+            if (userAns !== undefined && userAns !== null) {
+              initialMap[secId].answers[qNo] = {
+                userAnswer: userAns,
+                isCorrect: item.isCorrect,
+                questionId: item.questionId
+              };
+            }
+          }
+        });
+        return initialMap;
+      } else if (rawAns && typeof rawAns === 'object') {
+        return rawAns;
+      }
+    }
+
     try {
       const saved = localStorage.getItem(`${draftKey}_ans`);
       if (saved) return JSON.parse(saved);
@@ -611,12 +668,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   });
 
   useEffect(() => {
+    if (isReviewMode) return;
     try {
       localStorage.setItem(`${draftKey}_ans`, JSON.stringify(sectionAnswers));
     } catch {}
-  }, [sectionAnswers, draftKey]);
+  }, [sectionAnswers, draftKey, isReviewMode]);
 
   useEffect(() => {
+    if (isReviewMode) return;
     if (timeLeft <= 0) { handleSubmit(); return; }
     try { localStorage.setItem(`${draftKey}_time`, String(timeLeft)); } catch {}
 
@@ -627,7 +686,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [draftKey]);
+  }, [draftKey, isReviewMode]);
 
   const formatTime = (s) => {
     if (!s || isNaN(s)) return '--:--';
@@ -676,6 +735,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const [submissionAnswers, setSubmissionAnswers] = useState(null);
 
   const handleSubmit = () => {
+    if (isReviewMode) {
+      if (onSubmit) onSubmit(submissionAnswers || []);
+      return;
+    }
+
     try {
       localStorage.removeItem(`${draftKey}_ans`);
       localStorage.removeItem(`${draftKey}_time`);
@@ -715,7 +779,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   };
 
   const handleConfirmCloseResult = () => {
-    if (submissionAnswers) {
+    if (submissionAnswers && onSubmit) {
       onSubmit(submissionAnswers);
     }
   };
@@ -784,17 +848,24 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       {/* ── HEADER BAR ── */}
       <header style={{ padding: '0.75rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', flexShrink: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ padding: '0.35rem 0.65rem', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Layers size={14} /> TOPLU ÖDEV RUNNER
+          <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Layers size={14} /> {isReviewMode ? '🔍 ÖDEV İNCELEME MODU' : 'TOPLU ÖDEV RUNNER'}
           </span>
           <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name}</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#7f1d1d' : '#0f172a', border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`, color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
-            <span>{formatTime(timeLeft)}</span>
-          </div>
+          {isReviewMode ? (
+            <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#312e81', border: '1.5px solid #6366f1', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <CheckCircle2 size={16} color="#818cf8" />
+              <span>🏁 İnceleme Raporu</span>
+            </div>
+          ) : (
+            <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#7f1d1d' : '#0f172a', border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`, color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
+              <span>{formatTime(timeLeft)}</span>
+            </div>
+          )}
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
@@ -803,12 +874,21 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             <Pencil size={16} /> {isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı"}
           </button>
 
-          <button
-            onClick={handleSubmit}
-            style={{ padding: '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-          >
-            <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
-          </button>
+          {isReviewMode ? (
+            <button
+              onClick={() => onSubmit && onSubmit()}
+              style={{ padding: '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+            >
+              <CheckCircle2 size={18} /> İncelemeyi Kapat
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              style={{ padding: '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+            >
+              <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
+            </button>
+          )}
         </div>
       </header>
 
