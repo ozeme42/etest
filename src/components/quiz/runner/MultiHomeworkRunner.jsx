@@ -528,7 +528,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             String(q.sectionId) === String(qId) ||
             q.sectionTitle === sec.title
           );
-          resolvedQuestions = (secQs && secQs.length > 0) ? secQs : questions;
+          if (secQs && secQs.length > 0) {
+            resolvedQuestions = secQs;
+          }
         }
 
         const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
@@ -868,23 +870,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const extractPayload = useCallback((obj) => {
     if (!obj) return null;
     const candidates = [
-      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.htmlPayload, obj.url, obj.content,
-      obj.bankQ?.contentPayload, obj.bankQ?.pdfPayload, obj.bankQ?.pdfUrl, obj.bankQ?.htmlPayload
+      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.htmlPayload, obj.url, obj.content
     ];
     const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
     if (direct) return direct;
 
-    const qId = obj.questionId || obj.id || obj.bankQ?.id;
-    if (qId) {
+    const qId = obj.questionId || obj.id;
+    if (qId && String(qId) !== String(test?.id)) {
       const found = findInAllSources(qId);
-      if (found) {
+      if (found && String(found.id) !== String(test?.id)) {
         const foundCand = [found.contentPayload, found.pdfPayload, found.pdfUrl, found.htmlPayload, found.url, found.content];
         const foundDirect = foundCand.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
         if (foundDirect) return foundDirect;
       }
     }
     return null;
-  }, [findInAllSources]);
+  }, [findInAllSources, test?.id]);
 
   const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || idbPayload;
 
