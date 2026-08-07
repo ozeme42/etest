@@ -288,8 +288,16 @@ export default function ModularQuizReviewPage() {
     test.isMulti
   );
 
+  const handleCloseReview = () => {
+    if (searchParams.get('from') === 'teacher' || searchParams.get('teacher')) {
+      navigate('/evaluation', { replace: true });
+    } else {
+      navigate('/student', { replace: true });
+    }
+  };
+
   if (isMultiSection) {
-    return <MultiHomeworkRunner test={test} questions={questions} isReviewMode={true} userAnswers={submission} onSubmit={() => navigate(-1)} />;
+    return <MultiHomeworkRunner test={test} questions={questions} isReviewMode={true} userAnswers={submission} onSubmit={handleCloseReview} />;
   }
 
   if (isPhysical) {
