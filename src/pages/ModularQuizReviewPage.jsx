@@ -285,6 +285,32 @@ export default function ModularQuizReviewPage() {
     }
 
     if (foundSubmission) {
+      if (foundSubmission.answers && Array.isArray(foundSubmission.answers) && foundTest) {
+        const sectionsArr = foundTest.sections || foundTest.tests || foundTest.items || [];
+        if (sectionsArr.length > 0) {
+          let sectionIndex = 0;
+          let qCountInSection = 0;
+          foundSubmission.answers = foundSubmission.answers.map((ans) => {
+            if (ans.sectionId) return ans; // Zaten sectionId varsa atla
+            
+            let currentSec = sectionsArr[sectionIndex] || {};
+            let expectedCount = currentSec.questionCount || currentSec.qCount || (currentSec.bankQ?.questionCount) || 1;
+            
+            const enriched = {
+              ...ans,
+              sectionId: currentSec.id || `sec_${sectionIndex + 1}`,
+              sectionTitle: currentSec.title || `${sectionIndex + 1}. Bölüm`
+            };
+
+            qCountInSection++;
+            if (qCountInSection >= expectedCount && sectionIndex < sectionsArr.length - 1) {
+              sectionIndex++;
+              qCountInSection = 0;
+            }
+            return enriched;
+          });
+        }
+      }
       setSubmission(foundSubmission);
     }
 
