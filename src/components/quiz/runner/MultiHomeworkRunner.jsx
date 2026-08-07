@@ -103,18 +103,27 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
       return test.sections.map((sec, idx) => {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(sec.questionId || sec.id)) || sec;
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
+
+        if (bankQ?.questionsList && Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) {
+          resolvedQuestions = bankQ.questionsList.map((q, qIdx) => ({
+            ...q,
+            id: q.id || `${bankQ.id}_q${qIdx + 1}`,
+            questionText: q.questionText || q.text || q.title || `Soru ${qIdx + 1}`,
+            options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E'],
+            correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0
+          }));
+        }
+
         const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
 
         if (resolvedQuestions.length < qCount) {
           const filled = [...resolvedQuestions];
           for (let i = filled.length; i < qCount; i++) {
-            const subQ = bankQ?.questionsList?.[i] || {};
             filled.push({
-              ...subQ,
-              id: subQ.id || `${bankQ?.id || sec.id || 'q'}_sub_${i + 1}`,
-              questionText: subQ.questionText || subQ.text || subQ.title || `Soru ${i + 1}`,
-              options: (subQ.options && subQ.options.length > 0) ? subQ.options : ['A', 'B', 'C', 'D', 'E'],
-              correctAnswer: subQ.correctAnswer !== undefined ? subQ.correctAnswer : 0
+              id: `${bankQ?.id || sec.id || 'q'}_sub_${i + 1}`,
+              questionText: `Soru ${i + 1}`,
+              options: ['A', 'B', 'C', 'D', 'E'],
+              correctAnswer: 0
             });
           }
           resolvedQuestions = filled;
@@ -125,7 +134,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
           title: sec.title || bankQ?.title || bankQ?.name || `${idx + 1}. Bölüm`,
           bankQ: bankQ || sec,
           resolvedQuestions,
-          qCount
+          qCount: resolvedQuestions.length
         };
       });
     }
@@ -135,49 +144,90 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
       return test.tests.map((subTest, idx) => {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(subTest.id || subTest.questionId)) || subTest;
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (subTest.questions || []);
+        
+        if (bankQ?.questionsList && Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) {
+          resolvedQuestions = bankQ.questionsList;
+        }
+
         const qCount = bankQ?.questionCount || subTest.questionCount || resolvedQuestions.length || 1;
+
+        if (resolvedQuestions.length < qCount) {
+          const filled = [...resolvedQuestions];
+          for (let i = filled.length; i < qCount; i++) {
+            filled.push({
+              id: `${bankQ?.id || subTest.id || 'q'}_sub_${i + 1}`,
+              questionText: `Soru ${i + 1}`,
+              options: ['A', 'B', 'C', 'D', 'E'],
+              correctAnswer: 0
+            });
+          }
+          resolvedQuestions = filled;
+        }
 
         return {
           id: subTest.id || `test_${idx}`,
           title: subTest.title || subTest.name || bankQ?.title || `${idx + 1}. Bölüm`,
           bankQ: bankQ || subTest,
           resolvedQuestions,
-          qCount
+          qCount: resolvedQuestions.length
         };
       });
     }
 
-    // Group questions by testName if passed as flat array
-    if (questions && questions.length > 0) {
-      const groups = {};
-      questions.forEach((q) => {
-        const groupKey = q.testId || q.testName || q.sectionTitle || test.id || 'sec_main';
-        const groupTitle = q.testName || q.sectionTitle || test.title || test.name || 'Bölüm 1';
+    // If test has selectedQuestions array
+    if (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 0) {
+      return test.selectedQuestions.map((sq, idx) => {
+        const bankQ = allBankQuestions?.find(q => String(q.id) === String(sq.id || sq.questionId)) || sq;
+        let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sq.questions || []);
 
-        if (!groups[groupKey]) {
-          groups[groupKey] = {
-            id: groupKey,
-            title: groupTitle,
-            bankQ: test,
-            resolvedQuestions: [],
-            qCount: 0
-          };
+        if (bankQ?.questionsList && Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) {
+          resolvedQuestions = bankQ.questionsList;
         }
-        groups[groupKey].resolvedQuestions.push(q);
-        groups[groupKey].qCount += 1;
-      });
 
-      const res = Object.values(groups);
-      if (res.length > 0) return res;
+        return {
+          id: sq.id || `sq_${idx}`,
+          title: sq.title || sq.name || bankQ?.title || `${idx + 1}. Bölüm`,
+          bankQ: bankQ || sq,
+          resolvedQuestions,
+          qCount: resolvedQuestions.length || bankQ?.questionCount || 1
+        };
+      });
+    }
+
+    // Fallback: Group questions ONLY by sectionId or sectionTitle if explicitly present
+    if (questions && questions.length > 0) {
+      const hasExplicitSections = questions.some(q => q.sectionId || q.sectionTitle);
+      if (hasExplicitSections) {
+        const groups = {};
+        questions.forEach((q) => {
+          const groupKey = q.sectionId || q.sectionTitle || 'sec_main';
+          const groupTitle = q.sectionTitle || '1. Bölüm';
+
+          if (!groups[groupKey]) {
+            groups[groupKey] = {
+              id: groupKey,
+              title: groupTitle,
+              bankQ: test,
+              resolvedQuestions: [],
+              qCount: 0
+            };
+          }
+          groups[groupKey].resolvedQuestions.push(q);
+          groups[groupKey].qCount += 1;
+        });
+        const res = Object.values(groups);
+        if (res.length > 0) return res;
+      }
     }
 
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
+    const finalQs = resolvedQuestions.length > 0 ? resolvedQuestions : (questions || []);
     return [{
       id: test.id || 'sec_1',
-      title: test.title || test.name || 'Bölüm 1',
+      title: test.title || test.name || '1. Bölüm',
       bankQ: test,
-      resolvedQuestions: resolvedQuestions.length > 0 ? resolvedQuestions : (questions || []),
-      qCount: test.questionCount || resolvedQuestions.length || questions.length || 1
+      resolvedQuestions: finalQs,
+      qCount: finalQs.length || 1
     }];
   }, [test, questions, allBankQuestions]);
 
