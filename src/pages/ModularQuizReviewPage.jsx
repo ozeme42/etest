@@ -11,6 +11,7 @@ import HtmlQuizReview from '../components/quiz/review/HtmlQuizReview';
 import ImageQuizReview from '../components/quiz/review/ImageQuizReview';
 import StandardQuizReview from '../components/quiz/review/StandardQuizReview';
 import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
+import MultiHomeworkRunner from '../components/quiz/runner/MultiHomeworkRunner';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 
@@ -276,6 +277,20 @@ export default function ModularQuizReviewPage() {
     test.contentType === 'gorsel' || 
     test.type === 'gorsel'
   );
+
+  const isMultiSection = Boolean(
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
+    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1) ||
+    (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 1) ||
+    (test.items && Array.isArray(test.items) && test.items.length > 1) ||
+    test.isBulk ||
+    test.isMulti
+  );
+
+  if (isMultiSection) {
+    return <MultiHomeworkRunner test={test} questions={questions} isReviewMode={true} userAnswers={submission} onSubmit={() => navigate(-1)} />;
+  }
 
   if (isPhysical) {
     return <PhysicalQuizReview submission={submission} test={test} questions={questions} />;

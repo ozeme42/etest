@@ -77,19 +77,21 @@ function RightOptikPanel({
   openEndedText,
   isOpenEnded,
   resolvedQuestions,
+  bankQ,
   onOptionSelect,
   onTextChange,
   onNextSection,
   onSubmit,
   activeSecIdx,
-  totalSections
+  totalSections,
+  isReviewMode = false
 }) {
   const isLastSec = activeSecIdx === totalSections - 1;
 
   return (
     <div style={{ width: '300px', background: '#1e293b', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ padding: '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>📋 Optik Kodlama & Yanıtlar</span>
+        <span>{isReviewMode ? '🔍 İnceleme & Cevaplar' : '📋 Optik Kodlama & Yanıtlar'}</span>
         <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Toplam {qCount} Soru</span>
       </div>
 
@@ -103,22 +105,39 @@ function RightOptikPanel({
           const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
           const textVal = openEndedText[qNo] || '';
 
+          const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
+
           return (
             <div key={qNo} style={{ background: '#0f172a', padding: '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.78rem', color: '#f8fafc' }}>
                 <span>Soru {qNo} {isQOE ? '(✍️ Yazılı)' : ''}</span>
-                {userAns !== undefined || textVal ? (
-                  <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 900 }}>✓ {isQOE ? 'Yazıldı' : 'Kodlandı'}</span>
+                {isReviewMode ? (
+                  isQOE ? (
+                    <span style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 900 }}>⏳ Değerlendirmede</span>
+                  ) : userAns !== undefined && userAns !== null ? (
+                    isCorrect ? (
+                      <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
+                    )
+                  ) : (
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>— BOŞ</span>
+                  )
                 ) : (
-                  <span style={{ fontSize: '0.68rem', color: '#64748b' }}>— Boş</span>
+                  userAns !== undefined || textVal ? (
+                    <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 900 }}>✓ {isQOE ? 'Yazıldı' : 'Kodlandı'}</span>
+                  ) : (
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>— Boş</span>
+                  )
                 )}
               </div>
 
               {isQOE ? (
                 <textarea
                   value={textVal}
-                  onChange={(e) => onTextChange(qNo, e.target.value)}
-                  placeholder={`Soru ${qNo} açık uçlu / yazılı yanıt...`}
+                  onChange={(e) => !isReviewMode && onTextChange(qNo, e.target.value)}
+                  readOnly={isReviewMode}
+                  placeholder={isReviewMode ? "Öğrenci bu soruya yanıt yazmadı" : `Soru ${qNo} açık uçlu / yazılı yanıt...`}
                   rows={3}
                   style={{
                     width: '100%',
@@ -138,20 +157,40 @@ function RightOptikPanel({
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
                   {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
                     const isSelected = userAns === optIdx;
+                    const correctAns = qObj.correctAnswer;
+                    const isCorrectOpt = correctAns !== undefined && correctAns === optIdx;
+
+                    let bg = '#1e293b';
+                    let border = '1px solid #334155';
+                    let color = '#cbd5e1';
+
+                    if (isReviewMode) {
+                      if (isSelected && isCorrectOpt) {
+                        bg = '#059669'; border = 'none'; color = 'white';
+                      } else if (isSelected && !isCorrectOpt) {
+                        bg = '#dc2626'; border = 'none'; color = 'white';
+                      } else if (isCorrectOpt) {
+                        bg = 'rgba(16,185,129,0.2)'; border = '1.5px solid #10b981'; color = '#34d399';
+                      }
+                    } else if (isSelected) {
+                      bg = '#059669'; border = 'none'; color = 'white';
+                    }
+
                     return (
                       <button
                         key={opt}
-                        onClick={() => onOptionSelect(qNo, optIdx)}
+                        onClick={() => !isReviewMode && onOptionSelect(qNo, optIdx)}
+                        disabled={isReviewMode}
                         style={{
                           flex: 1,
                           height: '30px',
                           borderRadius: '0.4rem',
-                          border: isSelected ? 'none' : '1px solid #334155',
-                          background: isSelected ? '#059669' : '#1e293b',
-                          color: isSelected ? 'white' : '#cbd5e1',
+                          border,
+                          background: bg,
+                          color,
                           fontWeight: 900,
                           fontSize: '0.8rem',
-                          cursor: 'pointer',
+                          cursor: isReviewMode ? 'default' : 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                       >
@@ -199,7 +238,7 @@ function RightOptikPanel({
               width: '100%',
               padding: '0.65rem 1rem',
               borderRadius: '0.65rem',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: isReviewMode ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
@@ -212,7 +251,7 @@ function RightOptikPanel({
               boxShadow: '0 3px 12px rgba(16,185,129,0.3)'
             }}
           >
-            <CheckCircle2 size={16} /> Sınavı Bitir ve Gönder
+            <CheckCircle2 size={16} /> {isReviewMode ? 'İncelemeyi Kapat' : 'Sınavı Bitir ve Gönder'}
           </button>
         )}
       </div>
@@ -401,7 +440,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
 }
 
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
-export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
+export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null }) {
   const { questions: allBankQuestions } = useQuestionBank();
   const draftKey = useMemo(() => `draft_multi_hw_${test.id || 'test'}`, [test.id]);
 
@@ -845,6 +884,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
               resolvedQuestions={activeSec.resolvedQuestions}
+              bankQ={activeSec.bankQ || test}
+              isReviewMode={isReviewMode}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -872,6 +913,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
               resolvedQuestions={activeSec.resolvedQuestions}
+              bankQ={activeSec.bankQ || test}
+              isReviewMode={isReviewMode}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -1030,6 +1073,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
               resolvedQuestions={activeSec.resolvedQuestions}
+              bankQ={activeSec.bankQ || test}
+              isReviewMode={isReviewMode}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -1201,6 +1246,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
               resolvedQuestions={activeSec.resolvedQuestions}
+              bankQ={activeSec.bankQ || test}
+              isReviewMode={isReviewMode}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
