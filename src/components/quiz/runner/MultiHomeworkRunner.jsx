@@ -94,7 +94,20 @@ function isImageSection(bankQ) {
 }
 
 // ─── RIGHT OPTIK PANEL ────────────────────────────────────────────────────────
-function RightOptikPanel({ qCount, answers, openEndedText, isOpenEnded, onOptionSelect, onTextChange }) {
+function RightOptikPanel({
+  qCount,
+  answers,
+  openEndedText,
+  isOpenEnded,
+  onOptionSelect,
+  onTextChange,
+  onNextSection,
+  onSubmit,
+  activeSecIdx,
+  totalSections
+}) {
+  const isLastSec = activeSecIdx === totalSections - 1;
+
   return (
     <div style={{ width: '300px', background: '#1e293b', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ padding: '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -158,6 +171,57 @@ function RightOptikPanel({ qCount, answers, openEndedText, isOpenEnded, onOption
             </div>
           );
         })}
+      </div>
+
+      {/* FOOTER BUTTONS AT THE BOTTOM OF OPTIK PANEL */}
+      <div style={{ padding: '0.75rem', background: '#0f172a', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
+        {totalSections > 1 && !isLastSec && (
+          <button
+            onClick={onNextSection}
+            style={{
+              width: '100%',
+              padding: '0.65rem 1rem',
+              borderRadius: '0.65rem',
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 3px 12px rgba(99,102,241,0.3)'
+            }}
+          >
+            Sonraki Bölüme Geç <ChevronRight size={16} />
+          </button>
+        )}
+
+        {(totalSections === 1 || isLastSec) && (
+          <button
+            onClick={onSubmit}
+            style={{
+              width: '100%',
+              padding: '0.65rem 1rem',
+              borderRadius: '0.65rem',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 3px 12px rgba(16,185,129,0.3)'
+            }}
+          >
+            <CheckCircle2 size={16} /> Sınavı Bitir ve Gönder
+          </button>
+        )}
       </div>
     </div>
   );
@@ -599,6 +663,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
               }}
               onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+              onSubmit={handleSubmit}
+              activeSecIdx={activeSecIdx}
+              totalSections={sections.length}
             />
           </div>
         ) : isHtml ? (
@@ -621,6 +689,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
               }}
               onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+              onSubmit={handleSubmit}
+              activeSecIdx={activeSecIdx}
+              totalSections={sections.length}
             />
           </div>
         ) : isImage ? (
@@ -774,6 +846,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
               }}
               onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+              onSubmit={handleSubmit}
+              activeSecIdx={activeSecIdx}
+              totalSections={sections.length}
             />
           </div>
         ) : (
@@ -940,6 +1016,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
               }}
               onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+              onSubmit={handleSubmit}
+              activeSecIdx={activeSecIdx}
+              totalSections={sections.length}
             />
           </div>
         )}
