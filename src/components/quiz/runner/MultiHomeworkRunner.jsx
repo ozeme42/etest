@@ -446,7 +446,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   // 1. Build sections cleanly
   const sections = useMemo(() => {
-    const rawSections = test.sections || test.tests || test.selectedQuestions || test.items || [];
+    let rawSections = test.sections || test.tests || test.selectedQuestions || test.items || null;
+
+    if (!rawSections || (Array.isArray(rawSections) && rawSections.length === 0)) {
+      const ids = test.testIds || test.questionIds || test.selectedQuestionIds;
+      if (Array.isArray(ids) && ids.length > 0) {
+        rawSections = ids.map((item, idx) => (typeof item === 'object' ? item : { id: item, questionId: item, title: `${idx + 1}. Bölüm` }));
+      }
+    }
 
     if (Array.isArray(rawSections) && rawSections.length > 0) {
       return rawSections.map((sec, idx) => {
@@ -465,6 +472,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         }
         if ((!resolvedQuestions || resolvedQuestions.length === 0) && sec.questions) {
           resolvedQuestions = sec.questions;
+        }
+
+        // Check userAnswers/submission for answers for this section to build questions if empty
+        if ((!resolvedQuestions || resolvedQuestions.length === 0) && isReviewMode && userAnswers) {
+          const rawAns = userAnswers.answers || userAnswers.formattedAnswers || userAnswers;
+          if (Array.isArray(rawAns)) {
+            const secAns = rawAns.filter(a => String(a.sectionId) === String(sec.id) || a.sectionTitle === sec.title);
+            if (secAns.length > 0) {
+              resolvedQuestions = secAns.map(a => ({
+                id: a.questionId || `${sec.id}_${a.questionNo}`,
+                questionText: a.questionText || `Soru ${a.questionNo || 1}`,
+                options: a.options || ['A', 'B', 'C', 'D', 'E'],
+                correctAnswer: a.correctAnswer !== undefined ? a.correctAnswer : 0
+              }));
+            }
+          }
         }
 
         const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
@@ -518,6 +541,30 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     }
 
+    // Fallback: Check if userAnswers has sections array or answers grouped by section
+    if (isReviewMode && userAnswers) {
+      const rawAns = userAnswers.answers || userAnswers.formattedAnswers || userAnswers;
+      if (Array.isArray(rawAns) && rawAns.length > 0) {
+        const groups = {};
+        rawAns.forEach(a => {
+          const sTitle = a.sectionTitle || '1. Bölüm';
+          const sId = a.sectionId || 'sec_1';
+          if (!groups[sId]) {
+            groups[sId] = { id: sId, title: sTitle, bankQ: test, resolvedQuestions: [], qCount: 0 };
+          }
+          groups[sId].resolvedQuestions.push({
+            id: a.questionId || `${sId}_${a.questionNo}`,
+            questionText: a.questionText || `Soru ${a.questionNo || 1}`,
+            options: a.options || ['A', 'B', 'C', 'D', 'E'],
+            correctAnswer: a.correctAnswer !== undefined ? a.correctAnswer : 0
+          });
+          groups[sId].qCount += 1;
+        });
+        const res = Object.values(groups);
+        if (res.length > 0) return res;
+      }
+    }
+
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
     const finalQs = (resolvedQuestions && resolvedQuestions.length > 0) ? resolvedQuestions : (questions || []);
     return [{
@@ -527,7 +574,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       resolvedQuestions: finalQs,
       qCount: finalQs.length || 1
     }];
-  }, [test, questions, allBankQuestions]);
+  }, [test, questions, allBankQuestions, isReviewMode, userAnswers]);
 
   const [activeSecIdx, setActiveSecIdx] = useState(0);
   const activeSec = sections[activeSecIdx] || sections[0];
