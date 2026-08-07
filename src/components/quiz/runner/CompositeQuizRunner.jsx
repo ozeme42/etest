@@ -335,7 +335,7 @@ function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerCha
                 const isSelected = (typeof answers[currentIdx + 1] === 'object' ? answers[currentIdx + 1]?.userAnswer : answers[currentIdx + 1]) === optIdx;
                 const optLetter = String.fromCharCode(65 + optIdx);
                 const rawOptText = typeof opt === 'string' ? opt : (opt?.text || opt?.label || '');
-                const optDisplay = (rawOptText && rawOptText.trim() !== optLetter) ? rawOptText : `Seçenek ${optLetter}`;
+                const hasCustomText = Boolean(rawOptText && rawOptText.trim() !== optLetter && !/^Seçenek\s+[A-E]$/i.test(rawOptText.trim()));
 
                 return (
                   <button key={optIdx} onClick={() => handleSelect(null, optIdx)} style={{
@@ -345,8 +345,10 @@ function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerCha
                     color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
                     display: 'flex', alignItems: 'center'
                   }}>
-                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#64748b', marginRight: '0.65rem', minWidth: '24px' }}>{optLetter})</span>
-                    <span>{optDisplay}</span>
+                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#334155', fontSize: hasCustomText ? '0.9rem' : '1rem', marginRight: hasCustomText ? '0.65rem' : '0' }}>
+                      {optLetter}{hasCustomText ? ')' : ''}
+                    </span>
+                    {hasCustomText && <span>{rawOptText}</span>}
                   </button>
                 );
               })}
