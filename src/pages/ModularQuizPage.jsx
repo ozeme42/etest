@@ -157,6 +157,38 @@ export default function ModularQuizPage() {
         });
         setQuestions(allResolvedQs);
       } else {
+        // Digital / Question Bank homework resolution
+        let sections = [];
+        const questionIdList = foundTest.sections || foundTest.questionIds || foundTest.selectedQuestions || foundTest.tests || foundTest.items;
+
+        if (Array.isArray(questionIdList) && questionIdList.length > 1) {
+          sections = questionIdList.map((item, idx) => {
+            const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
+            const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId)) || (typeof item === 'object' ? item : null);
+            const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : [];
+            const title = bankQ?.title || bankQ?.name || (typeof item === 'object' ? (item.title || item.name) : null) || `${idx + 1}. Bölüm`;
+            const qCount = bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
+
+            return {
+              id: itemId || `sec_${idx}`,
+              questionId: itemId,
+              title,
+              bankQ: bankQ || { id: itemId, title },
+              questionCount: qCount,
+              questions: resolvedQuestions
+            };
+          });
+        }
+
+        if (sections.length > 0) {
+          setTest({
+            ...foundTest,
+            sections
+          });
+        } else {
+          setTest(foundTest);
+        }
+
         const resolved = resolveTestQuestions(foundTest, allBankQuestions);
         setQuestions(resolved);
       }
@@ -398,7 +430,12 @@ export default function ModularQuizPage() {
 
   const isMultiSection = Boolean(
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 1)
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
+    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1) ||
+    (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 1) ||
+    (test.items && Array.isArray(test.items) && test.items.length > 1) ||
+    test.isBulk ||
+    test.isMulti
   );
 
   if (isMultiSection) {
