@@ -5,12 +5,13 @@ import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet } from 'lucide-react';
 
 function getSectionIcon(contentType, type) {
   if (contentType === 'pdf') return '📕';
   if (contentType === 'html') return '🌐';
   if (contentType === 'gorsel' || contentType === 'image') return '🖼️';
+  if (contentType === 'json') return '📋';
   if (type === 'acik_uclu' || type === 'yazili') return '✍️';
   return '📝';
 }
@@ -20,7 +21,13 @@ function detectTestType(testObj, questionsList = []) {
   if (testObj.pdfPayload || testObj.contentType === 'pdf' || testObj.sourceFormat === 'pdf' || testObj.type === 'pdf') return 'pdf';
   if (testObj.htmlPayload || testObj.contentType === 'html' || testObj.sourceFormat === 'html' || testObj.type === 'html') return 'html';
   if (testObj.sourceFormat === 'image' || testObj.contentType === 'gorsel' || testObj.type === 'gorsel' || (testObj.imageUrls && testObj.imageUrls.length > 0)) return 'image';
-  if (testObj.sourceFormat === 'physical' || testObj.sourceType === 'trackedBook' || testObj.bookId) return 'physical';
+
+  // If JSON package or optik package without detailed question text inside questions
+  const hasRealQuestionTexts = questionsList.some(q => q.questionText && q.questionText !== 'Soru' && !/^Soru\s+\d+$/i.test(q.questionText.trim()) && q.questionText.length > 10);
+  if ((testObj.contentType === 'json' || testObj.sourceFormat === 'physical' || testObj.sourceType === 'trackedBook' || testObj.bookId || testObj.isOptik) && !hasRealQuestionTexts) {
+    return 'optic';
+  }
+
   return 'standard';
 }
 
@@ -87,6 +94,111 @@ function InlineOptikPanel({ qCount, answers, openEndedText, isOpenEndedMode, onO
                           color: isSelected ? 'white' : '#cbd5e1',
                           fontWeight: 900,
                           fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── OPTIC FORM SECTION RENDERER (FOR JSON OPTIK PACKAGES) ────────────────────
+function OpticSection({ bankQ, sectionAnswers, onAnswerChange }) {
+  const qCount = bankQ.questionCount || (bankQ.questionsList?.length) || 20;
+  const isOpenEndedMode = checkIsOE(bankQ);
+
+  const answers = sectionAnswers.answers || {};
+  const openEndedText = sectionAnswers.openEndedText || {};
+
+  const handleSelect = (qNo, optIdx) => {
+    onAnswerChange({
+      ...sectionAnswers,
+      answers: { ...answers, [qNo]: optIdx }
+    });
+  };
+
+  const handleText = (qNo, val) => {
+    onAnswerChange({
+      ...sectionAnswers,
+      openEndedText: { ...openEndedText, [qNo]: val }
+    });
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0f172a', overflow: 'auto', padding: '1.5rem', gap: '1.25rem' }}>
+      
+      {/* Banner */}
+      <div style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', borderRadius: '1rem', padding: '1.25rem 1.5rem', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 6px 20px rgba(124,58,237,0.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileSpreadsheet size={24} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem' }}>{bankQ.title || 'Optik Form Kodlama'}</h3>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+              {qCount} soruluk optik formu aşağıdaki kabarcıkları işaretleyerek tamamlayınız.
+            </p>
+          </div>
+        </div>
+        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.35rem 0.8rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 800 }}>
+          Toplam {qCount} Soru
+        </div>
+      </div>
+
+      {/* Optik Grid */}
+      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1rem', padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.85rem' }}>
+        {Array.from({ length: qCount }).map((_, idx) => {
+          const qNo = idx + 1;
+          const userAnsObj = answers[qNo];
+          const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+          const textVal = openEndedText[qNo] || '';
+
+          return (
+            <div key={qNo} style={{ background: '#0f172a', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.82rem', color: '#f8fafc' }}>
+                <span>Soru {qNo}</span>
+                {userAns !== undefined || textVal ? (
+                  <span style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>— Boş</span>
+                )}
+              </div>
+
+              {isOpenEndedMode ? (
+                <textarea
+                  value={textVal}
+                  onChange={(e) => handleText(qNo, e.target.value)}
+                  placeholder={`Soru ${qNo} açık uçlu yanıt...`}
+                  rows={2}
+                  style={{ width: '100%', padding: '0.4rem', borderRadius: '0.4rem', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                />
+              ) : (
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                    const isSelected = userAns === optIdx;
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => handleSelect(qNo, optIdx)}
+                        style={{
+                          flex: 1,
+                          height: '32px',
+                          borderRadius: '0.4rem',
+                          border: isSelected ? 'none' : '1px solid #334155',
+                          background: isSelected ? '#059669' : '#1e293b',
+                          color: isSelected ? 'white' : '#cbd5e1',
+                          fontWeight: 900,
+                          fontSize: '0.82rem',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
@@ -572,8 +684,11 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
         </div>
       </div>
 
-      {/* ── Section Content (PDF, HTML, Image, Standard) ── */}
+      {/* ── Section Content (Optic Grid, PDF, HTML, Image, Standard) ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+        {sectionType === 'optic' && (
+          <OpticSection bankQ={bankQ} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} />
+        )}
         {sectionType === 'pdf' && (
           <PdfSection bankQ={bankQ} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} sectionOE={sectionOE} />
         )}
@@ -583,7 +698,7 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
         {sectionType === 'image' && (
           <ImageSection bankQ={bankQ} resolvedQuestions={currentSection.resolvedQuestions} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} />
         )}
-        {(sectionType === 'standard' || sectionType === 'physical') && (
+        {sectionType === 'standard' && (
           <StandardSection bankQ={bankQ} resolvedQuestions={currentSection.resolvedQuestions} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} />
         )}
       </div>
