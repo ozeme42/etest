@@ -21,17 +21,9 @@ function checkIsOE(obj) {
   );
 }
 
-// Helper to check PDF section
+// Helper to check PDF section (always true if PDF payload/contentType exists, whether MC or Open-Ended)
 function isPdfSection(bankQ) {
   if (!bankQ) return false;
-  if (
-    bankQ.contentType === 'yazili' ||
-    bankQ.contentType === 'acik_uclu' ||
-    bankQ.type === 'yazili' ||
-    bankQ.type === 'acik_uclu'
-  ) {
-    return false;
-  }
   return Boolean(
     bankQ.contentType === 'pdf' ||
     bankQ.sourceFormat === 'pdf' ||
@@ -43,38 +35,23 @@ function isPdfSection(bankQ) {
   );
 }
 
-// Helper to check HTML section
+// Helper to check HTML section (always true if HTML document/payload exists, whether MC or Open-Ended)
 function isHtmlSection(bankQ) {
   if (!bankQ) return false;
   
-  // Written / open-ended questions or questions with question list are NOT HTML iframe documents!
-  if (
-    bankQ.contentType === 'yazili' ||
-    bankQ.contentType === 'acik_uclu' ||
-    bankQ.type === 'yazili' ||
-    bankQ.type === 'acik_uclu' ||
-    bankQ.questionType === 'yazili' ||
-    bankQ.questionType === 'acik_uclu' ||
-    bankQ.formatType === 'yazili' ||
-    bankQ.formatType === 'acik_uclu'
-  ) {
-    return false;
-  }
-
-  // Must explicitly have html type or html payload
-  const hasHtmlType = Boolean(
+  const hasHtmlContent = Boolean(
     bankQ.contentType === 'html' ||
     bankQ.sourceFormat === 'html' ||
     bankQ.formatType === 'html' ||
-    bankQ.type === 'html' ||
-    bankQ.htmlPayload
+    bankQ.htmlPayload ||
+    (typeof bankQ.contentPayload === 'string' && (bankQ.contentPayload.includes('<!DOCTYPE') || bankQ.contentPayload.includes('<html') || bankQ.contentPayload.startsWith('data:text/html')))
   );
 
-  if (!hasHtmlType) return false;
+  if (!hasHtmlContent) return false;
 
-  // If it has individual questions list, it is a question set to render as cards, not an iframe!
-  if (Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) return false;
-  if (Array.isArray(bankQ.questions) && bankQ.questions.length > 0) return false;
+  // If it has a question bank question cards array and is NOT explicitly HTML contentType, render as cards
+  if (Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0 && bankQ.contentType !== 'html' && bankQ.formatType !== 'html') return false;
+  if (Array.isArray(bankQ.questions) && bankQ.questions.length > 0 && bankQ.contentType !== 'html' && bankQ.formatType !== 'html') return false;
 
   return true;
 }
