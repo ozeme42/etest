@@ -39,19 +39,13 @@ function checkIsOE(obj, questionsList = []) {
     obj.type === 'acik_uclu' ||
     obj.type === 'yazili' ||
     obj.contentType === 'yazili' ||
-    obj.isOpenEnded ||
-    (obj.title && (obj.title.toLowerCase().includes('yazılı') || obj.title.toLowerCase().includes('açık uçlu') || obj.title.toLowerCase().includes('klasik') || obj.title.toLowerCase().includes('yazili'))) ||
-    (obj.name && (obj.name.toLowerCase().includes('yazılı') || obj.name.toLowerCase().includes('açık uçlu') || obj.name.toLowerCase().includes('klasik') || obj.name.toLowerCase().includes('yazili')))
+    obj.isOpenEnded === true
   ) {
     return true;
   }
   if (Array.isArray(questionsList) && questionsList.length > 0) {
-    return questionsList.some(q => 
-      q.type === 'acik_uclu' || 
-      q.type === 'yazili' || 
-      q.isOpenEnded || 
-      (!q.options || (Array.isArray(q.options) && q.options.length === 0))
-    );
+    const isAllWritten = questionsList.every(q => q.type === 'acik_uclu' || q.type === 'yazili' || q.questionType === 'acik_uclu' || q.questionType === 'yazili' || q.isOpenEnded === true);
+    if (isAllWritten) return true;
   }
   return false;
 }
@@ -174,7 +168,7 @@ function OpticSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerC
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
           const qObj = resolvedQuestions[idx] || {};
-          const qIsOE = isOpenEndedMode || checkIsOE(qObj) || (!qObj.options || (Array.isArray(qObj.options) && qObj.options.length === 0));
+          const qIsOE = isOpenEndedMode || checkIsOE(qObj);
 
           const userAnsObj = answers[qNo];
           const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
@@ -183,9 +177,9 @@ function OpticSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerC
           return (
             <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
-                <span>{qObj.questionText ? `Soru ${qNo}: ${qObj.questionText}` : `Soru ${qNo}`}</span>
+                <span>{qObj.questionText && qObj.questionText !== 'Soru' && !/^Soru\s+\d+$/i.test(qObj.questionText.trim()) ? `Soru ${qNo}: ${qObj.questionText}` : `Soru ${qNo}`}</span>
                 {userAns !== undefined || textVal ? (
-                  <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Yanıtlandı</span>
+                  <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
                 ) : (
                   <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
                 )}
