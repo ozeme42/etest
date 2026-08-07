@@ -457,25 +457,32 @@ function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerCha
           </div>
 
           {!sectionOE ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {options.map((opt, optIdx) => {
                 const isSelected = (typeof answers[currentIdx + 1] === 'object' ? answers[currentIdx + 1]?.userAnswer : answers[currentIdx + 1]) === optIdx;
                 const optLetter = String.fromCharCode(65 + optIdx);
-                const rawOptText = typeof opt === 'string' ? opt : (opt?.text || opt?.label || '');
-                const hasCustomText = Boolean(rawOptText && rawOptText.trim() !== optLetter && !/^Seçenek\s+[A-E]$/i.test(rawOptText.trim()));
+                let optText = '';
+                if (typeof opt === 'string') {
+                  optText = opt;
+                } else if (opt && typeof opt === 'object') {
+                  optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
+                }
+                const showText = Boolean(optText && optText.trim() !== optLetter);
 
                 return (
                   <button key={optIdx} onClick={() => handleSelect(null, optIdx)} style={{
-                    padding: '0.85rem 1.1rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
-                    border: isSelected ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
+                    padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
+                    border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
                     background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
                     color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
                     display: 'flex', alignItems: 'center'
                   }}>
-                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#334155', fontSize: hasCustomText ? '0.9rem' : '1rem', marginRight: hasCustomText ? '0.65rem' : '0' }}>
-                      {optLetter}{hasCustomText ? ')' : ''}
+                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                      {optLetter})
                     </span>
-                    {hasCustomText && <span>{rawOptText}</span>}
+                    <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
+                      {showText ? optText : `Seçenek ${optLetter}`}
+                    </span>
                   </button>
                 );
               })}
