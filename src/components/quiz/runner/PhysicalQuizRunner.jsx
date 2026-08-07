@@ -1,36 +1,162 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock } from 'lucide-react';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
-  const [answers, setAnswers] = useState({});
-  const [openEndedText, setOpenEndedText] = useState({});
+  const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
+
+  const [answers, setAnswers] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${draftKey}_ans`);
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const normalized = {};
+      Object.entries(parsed).forEach(([k, v]) => {
+        normalized[k] = v;
+        normalized[Number(k)] = v;
+        normalized[String(k)] = v;
+      });
+      return normalized;
+    } catch { return {}; }
+  });
+
+  const [openEndedText, setOpenEndedText] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${draftKey}_txt`);
+      if (!saved) return {};
+      const parsed = JSON.parse(saved);
+      const normalized = {};
+      Object.entries(parsed).forEach(([k, v]) => {
+        normalized[k] = v;
+        normalized[Number(k)] = v;
+        normalized[String(k)] = v;
+      });
+      return normalized;
+    } catch { return {}; }
+  });
+
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
   const qCount = questions.length || test.questionCount || test.totalQuestions || 20;
   const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded;
 
+  const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
+  const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${draftKey}_time`);
+      if (saved !== null) {
+        const val = parseInt(saved, 10);
+        if (!isNaN(val) && val >= 0 && val <= totalSeconds) return val;
+      }
+    } catch {}
+    return totalSeconds;
+  });
+
+  useEffect(() => {
+    if (timeLeft > totalSeconds) {
+      setTimeLeft(totalSeconds);
+    }
+  }, [totalSeconds]);
+
+  // Save draft answers instantly
+  useEffect(() => {
+    try {
+      if (Object.keys(answers).length > 0) {
+        localStorage.setItem(`${draftKey}_ans`, JSON.stringify(answers));
+      }
+    } catch {}
+  }, [answers, draftKey]);
+
+  useEffect(() => {
+    try {
+      if (Object.keys(openEndedText).length > 0) {
+        localStorage.setItem(`${draftKey}_txt`, JSON.stringify(openEndedText));
+      }
+    } catch {}
+  }, [openEndedText, draftKey]);
+
+  // Save timer instantly
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    try {
+      localStorage.setItem(`${draftKey}_time`, String(timeLeft));
+    } catch {}
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [draftKey]);
+
+  const formatTime = (seconds) => {
+    if (seconds === null || seconds === undefined || isNaN(seconds)) return '--:--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const p = n => String(n).padStart(2, '0');
+    return h > 0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+  };
+
   const handleOptionSelect = (qNo, optIdx) => {
-    setAnswers(prev => ({ ...prev, [qNo]: optIdx }));
+    setAnswers(prev => ({
+      ...prev,
+      [qNo]: optIdx,
+      [String(qNo)]: optIdx
+    }));
   };
 
   const handleTextChange = (qNo, val) => {
-    setOpenEndedText(prev => ({ ...prev, [qNo]: val }));
+    setOpenEndedText(prev => ({
+      ...prev,
+      [qNo]: val,
+      [String(qNo)]: val
+    }));
   };
 
   const handleSubmit = () => {
+    try {
+      localStorage.removeItem(`${draftKey}_ans`);
+      localStorage.removeItem(`${draftKey}_txt`);
+      localStorage.removeItem(`${draftKey}_time`);
+    } catch {}
+
     const formattedAnswers = Array.from({ length: qCount }).map((_, idx) => {
       const qNo = idx + 1;
       const qObj = questions[idx] || {};
-      const userAns = answers[qNo];
-      const textAns = openEndedText[qNo];
+      
+      const userAns = answers[qNo] !== undefined ? answers[qNo] : (answers[String(qNo)] !== undefined ? answers[String(qNo)] : null);
+      const textAns = openEndedText[qNo] || openEndedText[String(qNo)] || null;
+
+      let correctOpt = qObj.correctAnswer;
+      if (correctOpt === null || correctOpt === undefined) {
+        const letter = qObj.correctAnswerLetter;
+        if (letter && typeof letter === 'string') {
+          correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
+        }
+      }
+
+      let isCorrect = null;
+      if (userAns !== null && userAns !== undefined) {
+        if (correctOpt !== null && correctOpt !== undefined) {
+          isCorrect = Number(userAns) === Number(correctOpt);
+        }
+      }
 
       return {
         questionId: qObj.id || `q_${qNo}`,
         questionNo: qNo,
-        userAnswer: userAns !== undefined ? userAns : null,
-        userAnswerText: textAns || null,
-        isCorrect: qObj.correctAnswer !== undefined && userAns !== undefined ? userAns === qObj.correctAnswer : null
+        userAnswer: userAns,
+        userAnswerText: textAns,
+        isCorrect
       };
     });
 
@@ -38,24 +164,43 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
-      <header style={{ padding: '0.85rem 1.5rem', background: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', sticky: 'top', zIndex: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ padding: '0.35rem 0.65rem', background: '#059669', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white' }}>
             FİZİKİ / OPTİK FORM
           </span>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#1e293b' }}>{test.title}</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name || 'Fiziki Test'}</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            padding: '0.4rem 0.85rem',
+            borderRadius: '0.65rem',
+            background: timeLeft < 300 ? '#7f1d1d' : '#0f172a',
+            border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`,
+            color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff',
+            fontWeight: 900,
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}>
+            <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
+            <span>{formatTime(timeLeft)}</span>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+              (Toplam {qCount * perQuestionMins} dk)
+            </span>
+          </div>
+
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              color: isDrawingOpen ? 'white' : '#1e293b',
+              background: isDrawingOpen ? '#eab308' : '#0f172a',
+              border: '1px solid #334155',
+              color: isDrawingOpen ? 'white' : '#e2e8f0',
               fontWeight: 800,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -81,7 +226,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+              boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
             }}
           >
             <CheckCircle2 size={18} /> Optik Formu Kaydet
@@ -90,7 +235,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
       </header>
 
       <div style={{ maxWidth: '900px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
-        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <FileSpreadsheet size={28} />
           </div>
@@ -103,20 +248,21 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
         </div>
 
         {/* Optik Grid Form */}
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
           {Array.from({ length: qCount }).map((_, idx) => {
             const qNo = idx + 1;
-            const selectedOpt = answers[qNo];
-            const textVal = openEndedText[qNo] || '';
+            const qObj = questions[idx] || {};
+            const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
+            const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
             return (
-              <div key={qNo} style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>
-                  <span>Soru {qNo}</span>
+              <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
+                  <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
                   {selectedOpt !== undefined || textVal ? (
-                    <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 900 }}>✓ Kodlandı</span>
+                    <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
                   ) : (
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
                   )}
                 </div>
 
@@ -130,7 +276,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '0.5rem',
-                      border: '1px solid #cbd5e1',
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      color: '#f8fafc',
                       fontSize: '0.82rem',
                       fontFamily: 'inherit'
                     }}
@@ -147,9 +295,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
                             flex: 1,
                             height: '34px',
                             borderRadius: '0.5rem',
-                            border: isSelected ? 'none' : '1px solid #cbd5e1',
-                            background: isSelected ? '#059669' : '#ffffff',
-                            color: isSelected ? 'white' : '#334155',
+                            border: isSelected ? 'none' : '1px solid #334155',
+                            background: isSelected ? '#059669' : '#1e293b',
+                            color: isSelected ? 'white' : '#cbd5e1',
                             fontWeight: 900,
                             fontSize: '0.85rem',
                             cursor: 'pointer',

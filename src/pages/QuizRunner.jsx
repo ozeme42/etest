@@ -27,6 +27,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   const queryParams = new URLSearchParams(location.search);
   const studentId = queryParams.get('studentId') || 'u1';
   const student = users.find(u => u.id === studentId) || { name: 'Öğrenci' };
+  const isRetake = Boolean(location.state?.isRetake || queryParams.get('retake') === 'true');
 
   const targetSubmission = reviewSubmission || (submissions || []).find(s => String(s.id) === String(propsSubId || params.submissionId || params.id));
   const isReadOnlyMode = isReviewMode || Boolean(targetSubmission);
@@ -222,18 +223,20 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       if (loadedTestIdRef.current === currentKey) return;
 
       const enriched = await Promise.all(rawTestQuestions.map(async (q) => {
-        let payload = q.contentPayload;
-        if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && (payload.length < 500 || payload.includes('[LOCALSTORAGE_CACHE]')))) {
+        let payload = q.contentPayload || q.htmlPayload || q.pdfPayload || q.url || q.content;
+        if (!payload || payload === '[STORED_IN_INDEXEDDB]' || (typeof payload === 'string' && (payload.includes('[STORED_IN_INDEXEDDB]') || payload.includes('[LOCALSTORAGE_CACHE]')))) {
           const fullPayload = (await idbGetPayload(q.id)) ||
                               (await idbGetPayload(q.id?.replace(/^q_/, ''))) ||
                               (await idbGetPayload(id)) ||
+                              (await idbGetPayload(id?.replace(/^hw_/, ''))) ||
+                              (await idbGetPayload(id?.replace(/^hw_/, 'q_'))) ||
                               (await idbGetPayload(test?.id)) ||
                               (await idbGetPayload(testQuestionIds[0]));
-          if (fullPayload) {
+          if (fullPayload && fullPayload !== '[STORED_IN_INDEXEDDB]') {
             payload = fullPayload;
           }
         }
-        return { ...q, contentPayload: payload };
+        return { ...q, contentPayload: payload || q.contentPayload };
       }));
 
       if (isSubscribed) {
@@ -600,6 +603,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
             subIndex: subIdx,
             type: 'acik_uclu',
             userAnswerText: userText,
+            questionText: q.questionText || q.text || q.title || `Soru ${globalQIndex + 1}`,
             isCorrect: null, // Pending evaluation
             earnedPoints: 0
           });
@@ -611,6 +615,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
             subIndex: subIdx,
             type: 'acik_uclu',
             userAnswerText: null,
+            questionText: q.questionText || q.text || q.title || `Soru ${globalQIndex + 1}`,
             isCorrect: false, // Left blank, implicitly 0 points
             earnedPoints: 0
           });
@@ -636,6 +641,23 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       testTitle: test?.title || test?.name || (isHomework ? 'Ödev Sınavı' : 'Test'),
       studentId: student.id,
       studentName: student.name,
+      questions: (questions || []).map(q => ({
+        id: q.id,
+        questionText: q.questionText || q.text || q.title || '',
+        imageUrl: q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : q.imageUrls) || q.contentPayload || null,
+        imageUrls: q.imageUrls || (q.imageUrl ? [q.imageUrl] : []),
+        contentPayload: q.contentPayload || null,
+        contentType: q.contentType || q.type || test?.contentType || test?.type || null,
+        options: q.options || []
+      })),
+      contentPayload: test?.contentPayload || questions?.[0]?.contentPayload || null,
+      pdfPayload: test?.pdfPayload || questions?.[0]?.pdfPayload || null,
+      htmlPayload: test?.htmlPayload || questions?.[0]?.htmlPayload || null,
+      imageUrl: test?.imageUrl || questions?.[0]?.imageUrl || null,
+      imageUrls: test?.imageUrls || questions?.[0]?.imageUrls || [],
+      contentType: test?.contentType || test?.type || questions?.[0]?.contentType || questions?.[0]?.type || null,
+      sourceFormat: test?.sourceFormat || test?.formatType || null,
+      isOpenEnded: finalStatus === 'pending_evaluation',
       isHomework: isHomework,
       status: finalStatus,
       score: totalScore,
@@ -941,9 +963,10 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
         );
       }
       case 'html': {
+        const htmlPayload = q.contentPayload || q.htmlPayload || q.htmlUrl || q.url || q.content || test?.contentPayload || test?.htmlPayload;
         return (
           <HtmlViewerWithControls
-            payload={q.contentPayload}
+            payload={htmlPayload}
             title={test?.title || "HTML Soru Dokümanı"}
             height="100%"
           />

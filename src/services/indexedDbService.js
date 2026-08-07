@@ -66,3 +66,35 @@ export async function idbDeletePayload(id) {
     return false;
   }
 }
+
+export async function idbGetAllEntries() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      const keysReq = store.getAllKeys();
+
+      let items = [];
+      let keys = [];
+
+      req.onsuccess = () => {
+        items = req.result || [];
+        if (keys.length > 0) {
+          resolve(keys.map((k, idx) => ({ id: k, payload: items[idx] })));
+        }
+      };
+      keysReq.onsuccess = () => {
+        keys = keysReq.result || [];
+        if (items.length > 0) {
+          resolve(keys.map((k, idx) => ({ id: k, payload: items[idx] })));
+        }
+      };
+      req.onerror = (e) => reject(e.target.error);
+    });
+  } catch (err) {
+    console.warn('[IndexedDB] idbGetAllEntries error:', err);
+    return [];
+  }
+}

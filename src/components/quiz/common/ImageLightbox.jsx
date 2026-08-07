@@ -1,8 +1,38 @@
 import React, { useState } from 'react';
 import { Maximize2, X, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
+export function isValidImageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (
+    trimmed.startsWith('[STORED_IN_') ||
+    trimmed.startsWith('[LOCALSTORAGE_') ||
+    trimmed.startsWith('<!DOCTYPE') ||
+    trimmed.startsWith('<html') ||
+    trimmed.startsWith('data:text/html') ||
+    trimmed.startsWith('data:application/pdf') ||
+    trimmed.startsWith('%PDF-')
+  ) {
+    return false;
+  }
+  if (
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('./')
+  ) {
+    return true;
+  }
+  if (/\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(trimmed)) {
+    return true;
+  }
+  return false;
+}
+
 export function StandardImageFrame({ src, alt, title, onOpenFullscreen }) {
-  if (!src) return null;
+  if (!src || !isValidImageUrl(src)) return null;
 
   return (
     <div

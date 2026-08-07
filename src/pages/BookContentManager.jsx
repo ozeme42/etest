@@ -4,38 +4,71 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
+import { useCurriculum } from '../context/CurriculumContext';
 import { 
   ArrowLeft, BookMarked, Layers, FileText, CheckCircle, 
   ChevronDown, ChevronRight, Plus, Edit, Trash2, 
-  ListX, Send, XCircle, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare
+  ListX, Send, XCircle, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
+  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen
 } from 'lucide-react';
+
+function parseAnswerKeyString(str, questionCount = 20) {
+  if (!str || typeof str !== 'string') return {};
+  const cleaned = str.replace(/[^A-Ea-e]/g, '').toUpperCase();
+  const answerKey = {};
+  const maxQ = questionCount || cleaned.length || 20;
+  for (let i = 0; i < Math.min(cleaned.length, maxQ); i++) {
+    answerKey[String(i + 1)] = cleaned[i];
+  }
+  return answerKey;
+}
 
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest, deleteTrackedBookSubject, deleteTrackedBookTopic } = useTrackedBooks();
+  const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
   const { submissions } = useEvaluation();
-  const { addHomework } = useHomework();
+  const { homeworks: allHomeworks, addHomework, deleteHomework } = useHomework();
   const { users } = useUser();
+  const { data: curData } = useCurriculum() || {};
   
   const book = books.find(b => b.id === id);
   const tests = useMemo(() => bookTests.filter(t => t.bookId === id), [bookTests, id]);
-  const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
+  const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
-  const [activeTab, setActiveTab] = useState("contents"); // "contents" | "mistakes"
+  // Extract classes from curriculum & students
+  const availableClasses = useMemo(() => {
+    const list = [];
+    if (curData?.grades && Array.isArray(curData.grades)) {
+      curData.grades.forEach(g => list.push({ id: g.id || g.name, name: g.name }));
+    }
+    students.forEach(s => {
+      const clsName = s.grade || s.gradeId || s.className;
+      if (clsName && !list.some(c => c.name === clsName || c.id === clsName)) {
+        list.push({ id: clsName, name: clsName });
+      }
+    });
+    if (list.length === 0) {
+      list.push({ id: '8. Sınıf', name: '8. Sınıf' }, { id: '7. Sınıf', name: '7. Sınıf' }, { id: '6. Sınıf', name: '6. Sınıf' });
+    }
+    return list;
+  }, [curData, students]);
+
+  const [activeTab, setActiveTab] = useState("contents"); // "contents" | "homeworks" | "mistakes"
   
-  // Accordion States
-  const [expandedSubjects, setExpandedSubjects] = useState({});
-  const [expandedTopics, setExpandedTopics] = useState({});
+  // Accordion States (Expanded by default)
+  const [collapsedSubjects, setCollapsedSubjects] = useState({});
+  const [collapsedTopics, setCollapsedTopics] = useState({});
   const [selectedTests, setSelectedTests] = useState([]);
+  const [expandedHomeworkDetails, setExpandedHomeworkDetails] = useState({});
 
   // Modal States
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   const [isTopicDialogOpen, setIsTopicDialogOpen] = useState(false);
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isBulkTestDialogOpen, setIsBulkTestDialogOpen] = useState(false);
+  const [isBulkWizardOpen, setIsBulkWizardOpen] = useState(false);
+  const [bulkWizardTab, setBulkWizardTab] = useState("text"); // "text" | "series" | "json"
 
   // Form States
   const [currentSubject, setCurrentSubject] = useState(null);
@@ -44,11 +77,26 @@ export default function BookContentManager() {
   
   const [newSubjectName, setNewSubjectName] = useState("");
   const [newTopicName, setNewTopicName] = useState("");
-  const [jsonInput, setJsonInput] = useState("");
   const [testFormData, setTestFormData] = useState({ name: "", questionCount: 20, answerKey: {} });
-  const [bulkTestFormData, setBulkTestFormData] = useState({ testCount: 10, questionCount: 20, prefix: "Test" });
   
-  const [assignFormData, setAssignFormData] = useState({ studentIds: [], dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+  // Bulk Wizard Form States
+  const [bulkTextInput, setBulkTextInput] = useState("");
+  const [jsonInput, setJsonInput] = useState("");
+  const [bulkSeriesData, setBulkSeriesData] = useState({
+    subjectName: "",
+    topicName: "",
+    isDirectSubject: false,
+    prefix: "Test",
+    testCount: 10,
+    questionCount: 20,
+    rawAnswerKey: ""
+  });
+
+  // Assign Homework Modal Form States
+  const [assignTargetMode, setAssignTargetMode] = useState("class"); // "class" | "student"
+  const [assignSelectedTargetIds, setAssignSelectedTargetIds] = useState([]);
+  const [assignCustomTitle, setAssignCustomTitle] = useState("");
+  const [assignDueDateDays, setAssignDueDateDays] = useState(7);
 
   // Mistake Filter States
   const [mistakeFilterSubject, setMistakeFilterSubject] = useState("all");
@@ -58,27 +106,138 @@ export default function BookContentManager() {
     alert(`${type === 'success' ? '✅' : '❌'} ${msg}`);
   };
 
+  // --- BOOK ASSIGNED HOMEWORKS ---
+  const bookHomeworks = useMemo(() => {
+    return (allHomeworks || []).filter(hw => {
+      if (hw.bookId === id || hw.sourceType === 'trackedBook') return true;
+      if (hw.tests && Array.isArray(hw.tests)) {
+        return hw.tests.some(tId => tests.some(t => t.id === tId));
+      }
+      return false;
+    });
+  }, [allHomeworks, id, tests]);
+
+  // Homework Analytics
+  const homeworkAnalytics = useMemo(() => {
+    let totalAssigned = bookHomeworks.length;
+    let totalTargetStudents = 0;
+    let completedCount = 0;
+
+    bookHomeworks.forEach(hw => {
+      let hwStudents = [];
+      if (hw.targetType === 'grade' || hw.targetType === 'class') {
+        hwStudents = students.filter(s => (hw.targetIds || []).some(tid => s.gradeId === tid || s.grade === tid || s.className === tid));
+      } else {
+        hwStudents = students.filter(s => (hw.targetIds || []).some(tid => s.id === tid));
+      }
+      totalTargetStudents += hwStudents.length;
+
+      const hwTests = hw.tests || [];
+      hwStudents.forEach(st => {
+        const solved = submissions.filter(s => s.studentId === st.id && hwTests.includes(s.testId) && s.status === 'completed');
+        if (solved.length >= hwTests.length && hwTests.length > 0) completedCount++;
+      });
+    });
+
+    const completionRate = totalTargetStudents > 0 ? Math.round((completedCount / totalTargetStudents) * 100) : 0;
+    return { totalAssigned, totalTargetStudents, completedCount, completionRate };
+  }, [bookHomeworks, students, submissions]);
+
+  // --- PARSE TEXT LINES FOR BULK WIZARD ---
+  const parsedBulkStructure = useMemo(() => {
+    if (!bulkTextInput.trim()) return { subjectsMap: {}, totalTests: 0, totalTopics: 0, totalSubjects: 0 };
+
+    const lines = bulkTextInput.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const subjectsMap = {};
+    let totalTestsCount = 0;
+
+    lines.forEach(line => {
+      let lineText = line;
+      let rawAns = "";
+
+      if (lineText.includes(':')) {
+        const parts = lineText.split(':');
+        lineText = parts[0].trim();
+        rawAns = parts[1].trim();
+      } else if (lineText.includes('[')) {
+        const match = lineText.match(/^(.+?)\s*\[([A-Ea-e]+)\]$/);
+        if (match) {
+          lineText = match[1].trim();
+          rawAns = match[2].trim();
+        }
+      }
+
+      if (lineText.includes('>')) {
+        const parts = lineText.split('>').map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 3) {
+          const sName = parts[0];
+          const tName = parts[1];
+          const testName = parts.slice(2).join(' - ');
+
+          if (!subjectsMap[sName]) subjectsMap[sName] = { topics: {}, directTests: [] };
+          if (!subjectsMap[sName].topics[tName]) subjectsMap[sName].topics[tName] = [];
+          subjectsMap[sName].topics[tName].push({ name: testName, rawAns });
+          totalTestsCount++;
+        } else if (parts.length === 2) {
+          const sName = parts[0];
+          const testName = parts[1];
+
+          if (!subjectsMap[sName]) subjectsMap[sName] = { topics: {}, directTests: [] };
+          subjectsMap[sName].directTests.push({ name: testName, rawAns });
+          totalTestsCount++;
+        }
+      } else {
+        const countMatch = lineText.match(/^(.+?)\s*\((\d+)\s*(?:test|Test)?\)$/i);
+        if (countMatch) {
+          const title = countMatch[1].trim();
+          const count = parseInt(countMatch[2], 10) || 1;
+          const defaultSubj = "Genel";
+          if (!subjectsMap[defaultSubj]) subjectsMap[defaultSubj] = { topics: {}, directTests: [] };
+          if (!subjectsMap[defaultSubj].topics[title]) subjectsMap[defaultSubj].topics[title] = [];
+          for (let i = 1; i <= count; i++) {
+            subjectsMap[defaultSubj].topics[title].push({ name: `Test ${i}`, rawAns });
+            totalTestsCount++;
+          }
+        } else {
+          const defaultSubj = "Genel";
+          if (!subjectsMap[defaultSubj]) subjectsMap[defaultSubj] = { topics: {}, directTests: [] };
+          subjectsMap[defaultSubj].directTests.push({ name: lineText, rawAns });
+          totalTestsCount++;
+        }
+      }
+    });
+
+    const totalSubjects = Object.keys(subjectsMap).length;
+    let totalTopics = 0;
+    Object.values(subjectsMap).forEach(s => {
+      totalTopics += Object.keys(s.topics).length;
+    });
+
+    return { subjectsMap, totalTests: totalTestsCount, totalTopics, totalSubjects };
+  }, [bulkTextInput]);
+
   // --- MISTAKE ANALYSIS LOGIC ---
   const mistakeList = useMemo(() => {
     const mistakesBySubject = {};
-    // Sadece bu kitaba ait testlerin sonuçlanmış (completed) olanlarını bul
     const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId) && s.status === 'completed');
 
     for (const sub of solvedSubmissions) {
       const testDef = tests.find(t => t.id === sub.testId);
       if (!testDef) continue;
       
-      const subject = book?.subjects?.find(s => s.id === testDef.subjectId);
-      const topic = subject?.topics?.find(t => t.id === testDef.topicId);
-      if (!subject || !topic) continue;
+      const subject = book?.subjects?.find(s => String(s.id) === String(testDef.subjectId));
+      const topic = subject?.topics?.find(t => String(t.id) === String(testDef.topicId));
+
+      const subjName = subject?.name || 'Genel';
+      const topName = topic?.name || 'Direkt Testler';
 
       sub.answers.forEach(ans => {
         if (!ans.isCorrect) {
           const isBlank = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
-          if (!mistakesBySubject[subject.name]) mistakesBySubject[subject.name] = {};
-          if (!mistakesBySubject[subject.name][topic.name]) mistakesBySubject[subject.name][topic.name] = [];
+          if (!mistakesBySubject[subjName]) mistakesBySubject[subjName] = {};
+          if (!mistakesBySubject[subjName][topName]) mistakesBySubject[subjName][topName] = [];
           
-          mistakesBySubject[subject.name][topic.name].push({ 
+          mistakesBySubject[subjName][topName].push({ 
             submission: sub, 
             testDef, 
             questionNumber: ans.questionId,
@@ -138,17 +297,17 @@ export default function BookContentManager() {
     return { filteredMistakes: grouped, subjectOptions: subjects, topicOptions: topics };
   }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic]);
 
-
   // --- HANDLERS ---
-  const toggleSubject = (subjId) => setExpandedSubjects(p => ({ ...p, [subjId]: !p[subjId] }));
-  const toggleTopic = (topicId) => setExpandedTopics(p => ({ ...p, [topicId]: !p[topicId] }));
+  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: !p[subjId] }));
+  const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: !p[topicId] }));
   const toggleTestSelection = (testId) => setSelectedTests(p => p.includes(testId) ? p.filter(id => id !== testId) : [...p, testId]);
+  const toggleHwDetails = (hwId) => setExpandedHomeworkDetails(p => ({ ...p, [hwId]: !p[hwId] }));
 
   const handleSubjectSave = async () => {
     if (!book || !newSubjectName.trim()) return;
     const subjects = book.subjects || [];
     if (currentSubject) {
-      const updatedSubjects = subjects.map(s => s.id === currentSubject.id ? { ...s, name: newSubjectName } : s);
+      const updatedSubjects = subjects.map(s => String(s.id) === String(currentSubject.id) ? { ...s, name: newSubjectName } : s);
       updateTrackedBook(book.id, { subjects: updatedSubjects });
     } else {
       const newSubject = { id: `subj_${Date.now()}`, name: newSubjectName, topics: [] };
@@ -161,19 +320,18 @@ export default function BookContentManager() {
 
   const handleDeleteSubject = (subjId) => {
     if (window.confirm("Bu dersi ve içindeki tüm konuları/testleri silmek istediğinize emin misiniz?")) {
-      const updatedSubjects = book.subjects.filter(s => s.id !== subjId);
+      const updatedSubjects = (book.subjects || []).filter(s => String(s.id) !== String(subjId));
       updateTrackedBook(book.id, { subjects: updatedSubjects });
-      // TODO: Cascade delete tests as well if needed
     }
   };
 
   const handleTopicSave = async () => {
     if (!book || !currentSubject || !newTopicName.trim()) return;
-    const subjects = book.subjects.map(subject => {
-        if(subject.id === currentSubject.id) {
+    const subjects = (book.subjects || []).map(subject => {
+        if(String(subject.id) === String(currentSubject.id)) {
             const topics = subject.topics || [];
             if (currentTopic) {
-                return {...subject, topics: topics.map(t => t.id === currentTopic.id ? { ...t, name: newTopicName } : t)};
+                return {...subject, topics: topics.map(t => String(t.id) === String(currentTopic.id) ? { ...t, name: newTopicName } : t)};
             } else {
                  const newTopic = { id: `topic_${Date.now()}`, name: newTopicName };
                  return {...subject, topics: [...topics, newTopic]};
@@ -189,9 +347,9 @@ export default function BookContentManager() {
 
   const handleDeleteTopic = (subjId, topicId) => {
     if (window.confirm("Bu konuyu silmek istediğinize emin misiniz?")) {
-      const subjects = book.subjects.map(subject => {
-        if (subject.id === subjId) {
-          return { ...subject, topics: subject.topics.filter(t => t.id !== topicId) };
+      const subjects = (book.subjects || []).map(subject => {
+        if (String(subject.id) === String(subjId)) {
+          return { ...subject, topics: (subject.topics || []).filter(t => String(t.id) !== String(topicId)) };
         }
         return subject;
       });
@@ -200,13 +358,13 @@ export default function BookContentManager() {
   };
 
   const handleTestSave = async () => {
-    if (!book || !currentSubject || !currentTopic || !testFormData.name.trim()) return;
+    if (!book || !currentSubject || !testFormData.name.trim()) return;
     
     const testPayload = {
       subjectId: String(currentSubject.id),
-      topicId: String(currentTopic.id),
+      topicId: currentTopic ? String(currentTopic.id) : null,
       name: testFormData.name,
-      questionCount: testFormData.questionCount,
+      questionCount: testFormData.questionCount || 20,
     };
     
     if (book.bookType !== 'open_ended') testPayload.answerKey = testFormData.answerKey;
@@ -217,59 +375,241 @@ export default function BookContentManager() {
     setIsTestDialogOpen(false);
   };
 
-  const handleBulkTestSave = () => {
-    if (!book || !currentSubject || !currentTopic) return;
-    const { testCount, questionCount, prefix } = bulkTestFormData;
-    
-    for (let i = 1; i <= testCount; i++) {
-      addTrackedBookTest(book.id, {
-        subjectId: String(currentSubject.id),
-        topicId: String(currentTopic.id),
-        name: `${prefix} ${i}`,
-        questionCount: questionCount,
-        answerKey: {}
-      });
-    }
-    
-    showToast(`${testCount} adet test eklendi.`);
-    setIsBulkTestDialogOpen(false);
-  };
-
-  const handleAssignDialogStudentSelection = (studentId, checked) => {
-    setAssignFormData(prev => ({
-      ...prev, 
-      studentIds: checked ? [...prev.studentIds, studentId] : prev.studentIds.filter(id => id !== studentId)
-    }));
-  };
-
-  const handleAssignSelectedTests = () => {
-    if (selectedTests.length === 0 || assignFormData.studentIds.length === 0) {
-      showToast("Lütfen en az bir test ve bir öğrenci seçin.", "error");
+  // --- BULK WIZARD EXECUTION ---
+  const handleExecuteBulkText = () => {
+    const { subjectsMap, totalTests } = parsedBulkStructure;
+    if (totalTests === 0) {
+      showToast("Lütfen geçerli içerik satırları giriniz.", "error");
       return;
     }
 
-    selectedTests.forEach(testId => {
-      const testDef = tests.find(t => t.id === testId);
-      if (!testDef) return;
+    const updatedSubjects = JSON.parse(JSON.stringify(book.subjects || []));
 
-      const subjectObj = book.subjects?.find(s => s.id === testDef.subjectId);
-      const topicObj = subjectObj?.topics?.find(t => t.id === testDef.topicId);
+    Object.entries(subjectsMap).forEach(([sName, sData]) => {
+      let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === sName.toLocaleLowerCase('tr-TR'));
+      if (!subject) {
+        subject = { id: `subj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: sName, topics: [] };
+        updatedSubjects.push(subject);
+      }
+      if (!subject.topics) subject.topics = [];
 
-      addHomework({
-        title: `${book.title} - ${testDef.name}`,
-        description: `${subjectObj?.name || ''} - ${topicObj?.name || ''} fiziksel kitaptan çözülecek.`,
-        targetType: 'student',
-        targetIds: assignFormData.studentIds,
-        dueDate: assignFormData.dueDate.toISOString(),
-        tests: [testId], // Linking physical test ID
-        sourceType: 'trackedBook'
+      sData.directTests.forEach((tObj) => {
+        const testName = typeof tObj === 'string' ? tObj : tObj.name;
+        const rawAns = typeof tObj === 'object' ? tObj.rawAns : "";
+        addTrackedBookTest(book.id, {
+          subjectId: String(subject.id),
+          topicId: null,
+          name: testName,
+          questionCount: 20,
+          answerKey: parseAnswerKeyString(rawAns, 20)
+        });
+      });
+
+      Object.entries(sData.topics).forEach(([tName, testObjs]) => {
+        let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === tName.toLocaleLowerCase('tr-TR'));
+        if (!topic) {
+          topic = { id: `topic_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: tName };
+          subject.topics.push(topic);
+        }
+
+        testObjs.forEach((tObj) => {
+          const testName = typeof tObj === 'string' ? tObj : tObj.name;
+          const rawAns = typeof tObj === 'object' ? tObj.rawAns : "";
+          addTrackedBookTest(book.id, {
+            subjectId: String(subject.id),
+            topicId: String(topic.id),
+            name: testName,
+            questionCount: 20,
+            answerKey: parseAnswerKeyString(rawAns, 20)
+          });
+        });
       });
     });
 
-    showToast(`${selectedTests.length} test ödev olarak atandı!`);
+    updateTrackedBook(book.id, { subjects: updatedSubjects });
+    showToast(`${totalTests} test ve içerik yapısı başarıyla eklendi!`);
+    setIsBulkWizardOpen(false);
+    setBulkTextInput("");
+  };
+
+  const handleExecuteBulkSeries = () => {
+    const { subjectName, topicName, isDirectSubject, prefix, testCount, questionCount, rawAnswerKey } = bulkSeriesData;
+    if (!subjectName.trim() || testCount <= 0) {
+      showToast("Lütfen ders adı ve geçerli test sayısı giriniz.", "error");
+      return;
+    }
+
+    const answerKeyObj = parseAnswerKeyString(rawAnswerKey, questionCount);
+
+    const updatedSubjects = JSON.parse(JSON.stringify(book.subjects || []));
+    let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjectName.trim().toLocaleLowerCase('tr-TR'));
+
+    if (!subject) {
+      subject = { id: `subj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: subjectName.trim(), topics: [] };
+      updatedSubjects.push(subject);
+    }
+    if (!subject.topics) subject.topics = [];
+
+    let topicId = null;
+    if (!isDirectSubject && topicName.trim()) {
+      let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicName.trim().toLocaleLowerCase('tr-TR'));
+      if (!topic) {
+        topic = { id: `topic_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: topicName.trim() };
+        subject.topics.push(topic);
+      }
+      topicId = String(topic.id);
+    }
+
+    updateTrackedBook(book.id, { subjects: updatedSubjects });
+
+    for (let i = 1; i <= testCount; i++) {
+      addTrackedBookTest(book.id, {
+        subjectId: String(subject.id),
+        topicId: topicId,
+        name: `${prefix || 'Test'} ${i}`,
+        questionCount: questionCount || 20,
+        answerKey: answerKeyObj
+      });
+    }
+
+    showToast(`${testCount} adet test cevap anahtarı ile başarıyla eklendi!`);
+    setIsBulkWizardOpen(false);
+  };
+
+  const handleExecuteJsonImport = () => {
+    if (!jsonInput.trim()) return;
+    try {
+      const parsedData = JSON.parse(jsonInput);
+      const subjectsList = parsedData.subjects || (Array.isArray(parsedData) ? parsedData : null);
+      if (!subjectsList || !Array.isArray(subjectsList)) throw new Error("Geçersiz JSON formatı");
+
+      const updatedSubjects = JSON.parse(JSON.stringify(book.subjects || []));
+
+      for (const subjData of subjectsList) {
+        if (!subjData.name) continue;
+        let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
+        if (!subject) {
+          subject = { id: `subj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: subjData.name, topics: [] };
+          updatedSubjects.push(subject);
+        }
+
+        if (subjData.tests && Array.isArray(subjData.tests)) {
+          subjData.tests.forEach(testData => {
+            let ansObj = {};
+            if (testData.answerKey) {
+              if (Array.isArray(testData.answerKey)) {
+                testData.answerKey.forEach((ans, idx) => { if (ans) ansObj[String(idx + 1)] = String(ans); });
+              } else if (typeof testData.answerKey === 'object') {
+                ansObj = testData.answerKey;
+              } else if (typeof testData.answerKey === 'string') {
+                ansObj = parseAnswerKeyString(testData.answerKey, testData.questionCount || 20);
+              }
+            }
+            addTrackedBookTest(book.id, {
+              subjectId: String(subject.id),
+              topicId: null,
+              name: testData.name || "Test",
+              questionCount: testData.questionCount || 20,
+              answerKey: ansObj
+            });
+          });
+        }
+
+        if (subjData.topics && Array.isArray(subjData.topics)) {
+          if (!subject.topics) subject.topics = [];
+          for (const topicData of subjData.topics) {
+            let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
+            if (!topic) {
+              topic = { id: `topic_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: topicData.name };
+              subject.topics.push(topic);
+            }
+            if (topicData.tests && Array.isArray(topicData.tests)) {
+              topicData.tests.forEach(testData => {
+                let ansObj = {};
+                if (testData.answerKey) {
+                  if (Array.isArray(testData.answerKey)) {
+                    testData.answerKey.forEach((ans, idx) => { if (ans) ansObj[String(idx + 1)] = String(ans); });
+                  } else if (typeof testData.answerKey === 'object') {
+                    ansObj = testData.answerKey;
+                  } else if (typeof testData.answerKey === 'string') {
+                    ansObj = parseAnswerKeyString(testData.answerKey, testData.questionCount || 20);
+                  }
+                }
+                addTrackedBookTest(book.id, {
+                  subjectId: String(subject.id),
+                  topicId: String(topic.id),
+                  name: testData.name || "Test",
+                  questionCount: testData.questionCount || 20,
+                  answerKey: ansObj
+                });
+              });
+            }
+          }
+        }
+      }
+
+      updateTrackedBook(book.id, { subjects: updatedSubjects });
+      showToast("JSON Verisi Başarıyla İçerik Yapısına Dönüştürüldü!");
+      setIsBulkWizardOpen(false);
+      setJsonInput("");
+    } catch (e) {
+      showToast("Geçersiz JSON formatı! Lütfen veriyi kontrol edin.", "error");
+    }
+  };
+
+  // --- OPEN ASSIGN DIALOG PREPARATION ---
+  const handleOpenAssignModal = () => {
+    if (selectedTests.length === 0) return;
+    const selectedTestObjs = tests.filter(t => selectedTests.includes(t.id));
+    const testNames = selectedTestObjs.map(t => t.name).join(", ");
+    setAssignCustomTitle(`${book.title} - ${testNames}`);
+    setAssignTargetMode("class");
+    setAssignSelectedTargetIds([]);
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleToggleTargetId = (targetId) => {
+    setAssignSelectedTargetIds(prev => 
+      prev.includes(targetId) ? prev.filter(id => id !== targetId) : [...prev, targetId]
+    );
+  };
+
+  const handleAssignSelectedTestsSubmit = () => {
+    if (selectedTests.length === 0 || assignSelectedTargetIds.length === 0) {
+      showToast("Lütfen en az bir hedef kitle (Sınıf veya Öğrenci) seçiniz.", "error");
+      return;
+    }
+
+    const selectedTestObjs = tests.filter(t => selectedTests.includes(t.id));
+    const totalQCount = selectedTestObjs.reduce((acc, t) => acc + (t.questionCount || 20), 0);
+
+    const dueDueDate = new Date();
+    dueDueDate.setDate(dueDueDate.getDate() + (assignDueDateDays || 7));
+
+    addHomework({
+      title: assignCustomTitle || `${book.title} - ${selectedTests.length} Test`,
+      description: `${book.title} fiziki kitaptan ${selectedTestObjs.map(t => t.name).join(', ')} testleri çözülecektir.`,
+      targetType: assignTargetMode, // 'class' or 'student'
+      targetIds: assignSelectedTargetIds,
+      dueDate: dueDueDate.toISOString(),
+      tests: selectedTests,
+      sourceType: 'trackedBook',
+      bookId: book.id,
+      totalQuestions: totalQCount,
+      subject: selectedTestObjs[0]?.subjectName || book.publisher || 'Kitap Takibi'
+    });
+
+    showToast(`${selectedTests.length} test ${assignTargetMode === 'class' ? 'sınıfa' : 'öğrenciye'} başarıyla ödev olarak atandı!`);
     setIsAssignDialogOpen(false);
     setSelectedTests([]);
-    setAssignFormData({ studentIds: [], dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+    setAssignSelectedTargetIds([]);
+  };
+
+  const handleDeleteHomeworkItem = (hwId) => {
+    if (window.confirm("Bu ödevi ve ilgili kayıtları silmek istediğinize emin misiniz?")) {
+      if (typeof deleteHomework === 'function') deleteHomework(hwId);
+      showToast("Ödev silindi.");
+    }
   };
 
   const handleDownloadMistakes = () => {
@@ -286,18 +626,18 @@ export default function BookContentManager() {
        return a.testDef.name.localeCompare(b.testDef.name);
     });
 
-    let currentSubject = "";
-    let currentTopic = "";
+    let currentSubjectName = "";
+    let currentTopicName = "";
 
     sorted.forEach(m => {
-       if (m.subjectName !== currentSubject) {
+       if (m.subjectName !== currentSubjectName) {
            content += `\nDERS: ${m.subjectName}\n--------------------\n`;
-           currentSubject = m.subjectName;
-           currentTopic = "";
+           currentSubjectName = m.subjectName;
+           currentTopicName = "";
        }
-       if (m.topicName !== currentTopic) {
+       if (m.topicName !== currentTopicName) {
            content += `  Konu: ${m.topicName}\n`;
-           currentTopic = m.topicName;
+           currentTopicName = m.topicName;
        }
        const questionsStr = m.questionData.map(q => q.num + (q.isBlank ? " (Boş)" : "")).join(", ");
        content += `    - Test: ${m.testDef.name} | Öğrenci: ${m.submission.studentName} | Hatalı Sorular: ${questionsStr}\n`;
@@ -331,12 +671,12 @@ export default function BookContentManager() {
           </div>
           <div>
             <h1 style={{ fontSize: '1.8rem', margin: 0, color: 'var(--color-primary)' }}>{book.title}</h1>
-            <p className="text-muted" style={{ margin: 0 }}>İçerik Yönetimi - {book.publisher}</p>
+            <p className="text-muted" style={{ margin: 0 }}>İçerik & Ödev Takip Yönetimi - {book.publisher}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-secondary" onClick={() => setIsImportModalOpen(true)}>
-            <FileJson size={18} /> JSON Aktar
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => setIsBulkWizardOpen(true)} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800 }}>
+            <Zap size={18} /> Toplu Ekle & Yapılandır
           </button>
           <button className="btn btn-primary" onClick={() => { setCurrentSubject(null); setNewSubjectName(""); setIsSubjectDialogOpen(true); }}>
             <Plus size={18} /> Ders Ekle
@@ -345,146 +685,423 @@ export default function BookContentManager() {
       </div>
 
       {/* TABS */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid rgba(0,0,0,0.05)', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid rgba(0,0,0,0.05)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
         <button 
           onClick={() => setActiveTab("contents")}
           style={{ 
-            background: 'transparent', border: 'none', padding: '0.5rem 1rem', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer',
+            background: 'transparent', border: 'none', padding: '0.5rem 1rem', fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
             color: activeTab === "contents" ? 'var(--color-primary)' : 'var(--color-text-muted)',
             borderBottom: activeTab === "contents" ? '3px solid var(--color-primary)' : '3px solid transparent'
           }}
         >
-          İçindekiler
+          <BookOpen size={18} /> İçindekiler Yapısı
         </button>
+
+        <button 
+          onClick={() => setActiveTab("homeworks")}
+          style={{ 
+            background: 'transparent', border: 'none', padding: '0.5rem 1rem', fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+            color: activeTab === "homeworks" ? 'var(--color-primary)' : 'var(--color-text-muted)',
+            borderBottom: activeTab === "homeworks" ? '3px solid var(--color-primary)' : '3px solid transparent'
+          }}
+        >
+          <CheckSquare size={18} /> Atanan Ödevler & İlerleme
+          {bookHomeworks.length > 0 && (
+            <span style={{ background: '#6366f1', color: 'white', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontSize: '0.78rem', fontWeight: 900 }}>
+              {bookHomeworks.length}
+            </span>
+          )}
+        </button>
+
         <button 
           onClick={() => setActiveTab("mistakes")}
           style={{ 
-            background: 'transparent', border: 'none', padding: '0.5rem 1rem', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+            background: 'transparent', border: 'none', padding: '0.5rem 1rem', fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
             color: activeTab === "mistakes" ? 'var(--color-primary)' : 'var(--color-text-muted)',
             borderBottom: activeTab === "mistakes" ? '3px solid var(--color-primary)' : '3px solid transparent'
           }}
         >
-          Yanlış Analizi 
-          {Object.keys(mistakeList).length > 0 && <span style={{ background: 'var(--color-error)', color: 'white', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.8rem' }}>{Object.values(mistakeList).flatMap(Object.values).flat().length}</span>}
+          <ListX size={18} /> Yanlış Analizi 
+          {Object.keys(mistakeList).length > 0 && (
+            <span style={{ background: 'var(--color-error)', color: 'white', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontSize: '0.78rem', fontWeight: 900 }}>
+              {Object.values(mistakeList).flatMap(Object.values).flat().length}
+            </span>
+          )}
         </button>
       </div>
 
-      {/* CONTENTS TAB */}
+      {/* ── TAB 1: CONTENTS TAB ── */}
       {activeTab === "contents" && (
         <div className="card glass" style={{ padding: '2rem' }}>
           {book.subjects && book.subjects.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {book.subjects.map(subject => (
-                <div key={subject.id} style={{ border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-md)', overflow: 'hidden' }}>
-                  
-                  {/* Subject Header */}
-                  <div style={{ background: 'rgba(124, 58, 237, 0.05)', display: 'flex', alignItems: 'center', borderBottom: expandedSubjects[subject.id] ? '1px solid rgba(0,0,0,0.1)' : 'none' }}>
-                    <div 
-                      onClick={() => toggleSubject(subject.id)}
-                      style={{ padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', flexGrow: 1, cursor: 'pointer' }}
-                    >
-                      {expandedSubjects[subject.id] ? <ChevronDown size={20} style={{ marginRight: '0.5rem', color: 'var(--color-primary)' }} /> : <ChevronRight size={20} style={{ marginRight: '0.5rem', color: 'var(--color-primary)' }} />}
-                      <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Layers size={18} /> {subject.name}
-                      </h3>
-                      <span className="text-muted" style={{ marginLeft: 'auto', fontSize: '0.9rem' }}>
-                        {subject.topics?.length || 0} Konu
-                      </span>
-                    </div>
-                    <div style={{ padding: '0 1rem', display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => { setCurrentSubject(subject); setNewSubjectName(subject.name); setIsSubjectDialogOpen(true); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }}><Edit size={16} /></button>
-                      <button onClick={() => handleDeleteSubject(subject.id)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
-                    </div>
-                  </div>
+              {book.subjects.map(subject => {
+                const directTests = tests.filter(t => String(t.subjectId) === String(subject.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id)));
+                const topicsList = subject.topics || [];
+                const isExpanded = !collapsedSubjects[subject.id];
 
-                  {/* Topics List */}
-                  {expandedSubjects[subject.id] && subject.topics && (
-                    <div style={{ padding: '1rem' }}>
-                      {subject.topics.map(topic => {
-                        const topicTests = tests.filter(t => t.topicId === topic.id);
-                        return (
-                          <div key={topic.id} style={{ borderLeft: '2px solid var(--color-primary-light)', margin: '0.5rem 1.5rem 1.5rem 1.5rem', paddingLeft: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                              <div 
-                                onClick={() => toggleTopic(topic.id)}
-                                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexGrow: 1 }}
-                              >
-                                {expandedTopics[topic.id] ? <ChevronDown size={16} style={{ marginRight: '0.5rem' }} /> : <ChevronRight size={16} style={{ marginRight: '0.5rem' }} />}
-                                <h4 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <FileText size={16} style={{ color: 'var(--color-secondary)' }} /> {topic.name}
-                                </h4>
-                                <span style={{ marginLeft: '1rem', fontSize: '0.8rem', background: 'rgba(0,0,0,0.05)', padding: '0.1rem 0.5rem', borderRadius: '1rem' }}>{topicTests.length} Test</span>
-                              </div>
-                              <button onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setNewTopicName(topic.name); setIsTopicDialogOpen(true); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }}><Edit size={14} /></button>
-                              <button onClick={() => handleDeleteTopic(subject.id, topic.id)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }}><Trash2 size={14} /></button>
+                return (
+                  <div key={subject.id} style={{ border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-md)', overflow: 'hidden' }}>
+                    
+                    {/* Subject Header */}
+                    <div style={{ background: 'rgba(124, 58, 237, 0.05)', display: 'flex', alignItems: 'center', borderBottom: isExpanded ? '1px solid rgba(0,0,0,0.1)' : 'none' }}>
+                      <div 
+                        onClick={() => toggleSubject(subject.id)}
+                        style={{ padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', flexGrow: 1, cursor: 'pointer' }}
+                      >
+                        {isExpanded ? <ChevronDown size={20} style={{ marginRight: '0.5rem', color: 'var(--color-primary)' }} /> : <ChevronRight size={20} style={{ marginRight: '0.5rem', color: 'var(--color-primary)' }} />}
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Layers size={18} /> {subject.name}
+                        </h3>
+                        <span className="text-muted" style={{ marginLeft: 'auto', fontSize: '0.9rem' }}>
+                          {topicsList.length > 0 ? `${topicsList.length} Konu` : ''} 
+                          {directTests.length > 0 ? `${topicsList.length > 0 ? ' • ' : ''}${directTests.length} Direkt Test` : ''}
+                          {topicsList.length === 0 && directTests.length === 0 ? 'İçerik Yok' : ''}
+                        </span>
+                      </div>
+                      <div style={{ padding: '0 1rem', display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => { setCurrentSubject(subject); setNewSubjectName(subject.name); setIsSubjectDialogOpen(true); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }}><Edit size={16} /></button>
+                        <button onClick={() => handleDeleteSubject(subject.id)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+
+                    {/* Expanded Subject Content */}
+                    {isExpanded && (
+                      <div style={{ padding: '1rem' }}>
+
+                        {/* Direct Tests (when Ders > Test structure) */}
+                        {directTests.length > 0 && (
+                          <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'rgba(99, 102, 241, 0.03)', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: '#4f46e5', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <FileText size={16} /> Direkt Testler ({directTests.length})
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem' }}>
+                              {directTests.map(test => (
+                                <div key={test.id} className="card" style={{ padding: '0.75rem 1rem', background: 'white', border: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <input 
+                                      type="checkbox" 
+                                      checked={selectedTests.includes(test.id)} 
+                                      onChange={() => toggleTestSelection(test.id)}
+                                      style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+                                    />
+                                    <div>
+                                      <h5 style={{ margin: 0, fontSize: '0.95rem' }}>{test.name}</h5>
+                                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                        {test.questionCount} Soru
+                                        {test.answerKey && Object.keys(test.answerKey).length > 0 && (
+                                          <span style={{ marginLeft: '0.5rem', color: '#059669', fontWeight: 700 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).length})</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {} }); setIsTestDialogOpen(true); }}>
+                                      <Edit size={14} />
+                                    </button>
+                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
+                          </div>
+                        )}
 
-                            {/* Tests List */}
-                            {expandedTopics[topic.id] && (
-                              <div style={{ marginTop: '1rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
-                                  {topicTests.length > 0 ? (
-                                    topicTests.map(test => (
-                                      <div key={test.id} className="card" style={{ padding: '0.75rem 1rem', background: 'var(--color-bg)', border: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                          <input 
-                                            type="checkbox" 
-                                            checked={selectedTests.includes(test.id)} 
-                                            onChange={() => toggleTestSelection(test.id)}
-                                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', accentColor: 'var(--color-primary)' }}
-                                          />
-                                          <div>
-                                            <h5 style={{ margin: 0, fontSize: '0.95rem' }}>{test.name}</h5>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{test.questionCount} Soru</div>
+                        {/* Topics List (when Ders > Konu > Test structure) */}
+                        {topicsList.map(topic => {
+                          const topicTests = tests.filter(t => String(t.topicId) === String(topic.id));
+                          const isTopicExpanded = !collapsedTopics[topic.id];
+
+                          return (
+                            <div key={topic.id} style={{ borderLeft: '3px solid var(--color-primary-light)', margin: '0.5rem 0.5rem 1.25rem 0.5rem', paddingLeft: '1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <div 
+                                  onClick={() => toggleTopic(topic.id)}
+                                  style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexGrow: 1 }}
+                                >
+                                  {isTopicExpanded ? <ChevronDown size={16} style={{ marginRight: '0.5rem' }} /> : <ChevronRight size={16} style={{ marginRight: '0.5rem' }} />}
+                                  <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <FileText size={16} style={{ color: 'var(--color-secondary)' }} /> {topic.name}
+                                  </h4>
+                                  <span style={{ marginLeft: '1rem', fontSize: '0.8rem', background: 'rgba(0,0,0,0.05)', padding: '0.1rem 0.5rem', borderRadius: '1rem' }}>{topicTests.length} Test</span>
+                                </div>
+                                <button onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setNewTopicName(topic.name); setIsTopicDialogOpen(true); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }}><Edit size={14} /></button>
+                                <button onClick={() => handleDeleteTopic(subject.id, topic.id)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }}><Trash2 size={14} /></button>
+                              </div>
+
+                              {/* Tests under Topic */}
+                              {isTopicExpanded && (
+                                <div style={{ marginTop: '0.75rem' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    {topicTests.length > 0 ? (
+                                      topicTests.map(test => (
+                                        <div key={test.id} className="card" style={{ padding: '0.75rem 1rem', background: 'var(--color-bg)', border: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <input 
+                                              type="checkbox" 
+                                              checked={selectedTests.includes(test.id)} 
+                                              onChange={() => toggleTestSelection(test.id)}
+                                              style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', accentColor: 'var(--color-primary)' }}
+                                            />
+                                            <div>
+                                              <h5 style={{ margin: 0, fontSize: '0.95rem' }}>{test.name}</h5>
+                                              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                                                {test.questionCount} Soru
+                                                {test.answerKey && Object.keys(test.answerKey).length > 0 && (
+                                                  <span style={{ marginLeft: '0.5rem', color: '#059669', fontWeight: 700 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).length})</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {} }); setIsTestDialogOpen(true); }}>
+                                              <Edit size={14} />
+                                            </button>
+                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
+                                              <Trash2 size={14} />
+                                            </button>
                                           </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                          <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {} }); setIsTestDialogOpen(true); }}>
-                                            <Edit size={14} />
-                                          </button>
-                                          <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-muted" style={{ fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>Bu konuda test bulunmuyor.</p>
-                                  )}
+                                      ))
+                                    ) : (
+                                      <p className="text-muted" style={{ fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>Bu konuda henüz test bulunmuyor.</p>
+                                    )}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {} }); setIsTestDialogOpen(true); }}>
+                                      <Plus size={14} /> Test Ekle
+                                    </button>
+                                  </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                  <button className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.3rem 0.75rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {} }); setIsTestDialogOpen(true); }}>
-                                    <Plus size={14} /> Test Ekle
-                                  </button>
-                                  <button className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.3rem 0.75rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setIsBulkTestDialogOpen(true); }}>
-                                    <CheckSquare size={14} /> Toplu Test Ekle
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      <button className="btn btn-outline" style={{ marginTop: '0.5rem', color: 'var(--color-primary)', border: '1px dashed var(--color-primary)' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setNewTopicName(""); setIsTopicDialogOpen(true); }}>
-                        <Plus size={16} /> Yeni Konu Ekle
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Subject Level Actions */}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                          <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: 'var(--color-primary)', border: '1px dashed var(--color-primary)' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setNewTopicName(""); setIsTopicDialogOpen(true); }}>
+                            <Plus size={15} /> Konu Ekle
+                          </button>
+                          <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: '#059669', border: '1px dashed #059669' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {} }); setIsTestDialogOpen(true); }}>
+                            <Plus size={15} /> Direkt Test Ekle (Konusuz)
+                          </button>
+                          <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: '#4f46e5', border: '1px dashed #4f46e5' }} onClick={() => { setBulkSeriesData(p => ({ ...p, subjectName: subject.name })); setIsBulkWizardOpen(true); setBulkWizardTab("series"); }}>
+                            <Zap size={15} /> Seri Test Ekle
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '3rem', background: 'rgba(0,0,0,0.02)', borderRadius: 'var(--border-radius-md)' }}>
-              <p className="text-muted">Bu kitaba henüz içerik (ders/konu) eklenmemiş.</p>
-              <button className="btn btn-outline" onClick={() => { setCurrentSubject(null); setNewSubjectName(""); setIsSubjectDialogOpen(true); }} style={{ marginTop: '1rem' }}>
-                İlk Dersi Ekle
-              </button>
+              <p className="text-muted" style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>Bu kitaba henüz ders veya test eklenmemiş.</p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={() => { setCurrentSubject(null); setNewSubjectName(""); setIsSubjectDialogOpen(true); }}>
+                  <Plus size={16} /> İlk Dersi Ekle
+                </button>
+                <button className="btn btn-secondary" onClick={() => setIsBulkWizardOpen(true)} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none' }}>
+                  <Zap size={16} /> Toplu İçerik Sihirbazı
+                </button>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* MISTAKES TAB */}
+      {/* ── TAB 2: ATANAN ÖDEVLER & İLERLEME TAB ── */}
+      {activeTab === "homeworks" && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* STAT CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="card glass" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckSquare size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Atanan Ödevler</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)' }}>{homeworkAnalytics.totalAssigned} Adet</div>
+              </div>
+            </div>
+
+            <div className="card glass" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Hedef Öğrenciler</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#059669' }}>{homeworkAnalytics.totalTargetStudents} Öğrenci</div>
+              </div>
+            </div>
+
+            <div className="card glass" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#38bdf8,#0284c7)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <BarChart2 size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Kitap Tamamlama Oranı</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0284c7' }}>%{homeworkAnalytics.completionRate}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* HOMEWORKS LIST */}
+          <div className="card glass" style={{ padding: '1.75rem' }}>
+            <h3 style={{ margin: '0 0 1.25rem 0', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+              <CheckSquare size={22} /> Bu Kitaptan Atanan Ödevler & Öğrenci İlerlemeleri
+            </h3>
+
+            {bookHomeworks.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {bookHomeworks.map(hw => {
+                  let targetStudents = [];
+                  if (hw.targetType === 'grade' || hw.targetType === 'class') {
+                    targetStudents = students.filter(s => (hw.targetIds || []).some(tid => s.gradeId === tid || s.grade === tid || s.className === tid));
+                  } else {
+                    targetStudents = students.filter(s => (hw.targetIds || []).some(tid => s.id === tid));
+                  }
+
+                  const hwTests = hw.tests || [];
+                  const totalTestsInHw = hwTests.length || 1;
+
+                  let completedStudentsCount = 0;
+                  const studentProgressDetails = targetStudents.map(st => {
+                    const solvedSubmissions = submissions.filter(s => s.studentId === st.id && hwTests.includes(s.testId) && s.status === 'completed');
+                    const solvedCount = solvedSubmissions.length;
+                    const isDone = solvedCount >= totalTestsInHw;
+                    if (isDone) completedStudentsCount++;
+                    
+                    const pct = Math.min(100, Math.round((solvedCount / totalTestsInHw) * 100));
+                    return { student: st, solvedCount, totalTestsInHw, isDone, pct, solvedSubmissions };
+                  });
+
+                  const overallHwPct = targetStudents.length > 0 ? Math.round((completedStudentsCount / targetStudents.length) * 100) : 0;
+                  const isExpanded = expandedHomeworkDetails[hw.id];
+                  const isExpired = new Date(hw.dueDate) < new Date();
+
+                  return (
+                    <div key={hw.id} style={{ border: '1px solid rgba(0,0,0,0.1)', borderRadius: '0.75rem', overflow: 'hidden', background: 'white' }}>
+                      
+                      {/* HOMEWORK HEADER */}
+                      <div style={{ padding: '1rem 1.25rem', background: 'rgba(99,102,241,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                          <div style={{ background: '#e0e7ff', color: '#4338ca', padding: '0.6rem', borderRadius: '0.6rem', display: 'flex' }}>
+                            <BookOpen size={20} />
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <h4 style={{ margin: 0, fontSize: '1.05rem', color: '#1e293b', fontWeight: 800 }}>{hw.title}</h4>
+                              <span style={{ fontSize: '0.73rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 800, background: isExpired ? '#fef2f2' : '#ecfdf5', color: isExpired ? '#ef4444' : '#10b981', border: `1px solid ${isExpired ? '#fca5a5' : '#a7f3d0'}` }}>
+                                {isExpired ? 'Süresi Bitti' : 'Aktif'}
+                              </span>
+                              <span style={{ fontSize: '0.73rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 800, background: '#f1f5f9', color: '#475569' }}>
+                                {hw.targetType === 'class' || hw.targetType === 'grade' ? `🏫 Sınıf (${targetStudents.length} Öğrenci)` : `👤 ${targetStudents.length} Özel Öğrenci`}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                              <span>📝 {totalTestsInHw} Test ({hw.totalQuestions || '?'} Soru)</span>
+                              <span>📅 Son Tarih: {new Date(hw.dueDate).toLocaleDateString('tr-TR')}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* PROGRESS BAR & ACTIONS */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                          <div style={{ minWidth: '150px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.25rem' }}>
+                              <span style={{ color: '#475569' }}>Tamamlanma</span>
+                              <span style={{ color: overallHwPct === 100 ? '#059669' : '#4f46e5' }}>%{overallHwPct} ({completedStudentsCount}/{targetStudents.length})</span>
+                            </div>
+                            <div style={{ background: '#e2e8f0', borderRadius: 99, height: 7, overflow: 'hidden' }}>
+                              <div style={{ width: `${overallHwPct}%`, background: overallHwPct === 100 ? '#10b981' : '#4f46e5', height: '100%', borderRadius: 99 }} />
+                            </div>
+                          </div>
+
+                          <button 
+                            onClick={() => toggleHwDetails(hw.id)}
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            Detaylı İlerleme
+                          </button>
+
+                          <button 
+                            onClick={() => handleDeleteHomeworkItem(hw.id)}
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem', color: '#ef4444', border: 'none' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* EXPANDED STUDENT DETAILS */}
+                      {isExpanded && (
+                        <div style={{ padding: '1rem', borderTop: '1px solid #f1f5f9', background: '#fafafa' }}>
+                          <h5 style={{ margin: '0 0 0.75rem 0', fontSize: '0.88rem', color: '#475569', fontWeight: 800 }}>
+                            Öğrenci Bazlı İlerleme Tablosu ({targetStudents.length} Öğrenci)
+                          </h5>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                            {studentProgressDetails.map(item => (
+                              <div key={item.student.id} style={{ background: 'white', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                                    {item.student.name}
+                                  </div>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: '0.3rem', background: item.isDone ? '#ecfdf5' : '#fff7ed', color: item.isDone ? '#047857' : '#c2410c' }}>
+                                    {item.isDone ? '✅ Tamamladı' : `⏳ %${item.pct}`}
+                                  </span>
+                                </div>
+
+                                <div style={{ background: '#f1f5f9', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                                  <div style={{ width: `${item.pct}%`, background: item.isDone ? '#10b981' : '#38bdf8', height: '100%' }} />
+                                </div>
+
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
+                                  <span>Çözülen: {item.solvedCount} / {item.totalTestsInHw} Test</span>
+                                  {item.solvedSubmissions.length > 0 && (
+                                    <span style={{ color: '#059669', fontWeight: 800 }}>
+                                      {item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length}% Puan
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+
+                            {targetStudents.length === 0 && (
+                              <p className="text-muted" style={{ fontSize: '0.85rem', margin: 0 }}>Bu ödev için atanmış öğrenci bulunamadı.</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3.5rem', background: 'rgba(0,0,0,0.02)', borderRadius: 'var(--border-radius-md)' }}>
+                <CheckSquare size={48} style={{ opacity: 0.25, margin: '0 auto 1rem auto' }} />
+                <h4 style={{ margin: 0, color: 'var(--color-primary)' }}>Henüz Ödev Atanmamış</h4>
+                <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                  İçindekiler sekmesinden testleri seçip <strong>"Ata"</strong> butonuna basarak sınıfa veya öğrencilere ödev atayabilirsiniz.
+                </p>
+                <button className="btn btn-primary" onClick={() => setActiveTab("contents")}>
+                  İçindekiler Sekmesine Git
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 3: MISTAKES TAB ── */}
       {activeTab === "mistakes" && (
         <div className="card glass" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -519,7 +1136,7 @@ export default function BookContentManager() {
                   <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Ders</th>
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Konu</th>
-                    <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Test Adı</th>
+                    <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Test</th>
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Hatalı Sorular</th>
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Öğrenci</th>
                   </tr>
@@ -559,7 +1176,7 @@ export default function BookContentManager() {
         <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', zIndex: 100, background: 'var(--color-primary)', color: 'white', padding: '1rem 2rem', borderRadius: '3rem', display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: 'var(--shadow-lg)' }}>
           <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{selectedTests.length} Test Seçildi</span>
           <div style={{ width: '1px', height: '1.5rem', background: 'rgba(255,255,255,0.3)' }} />
-          <button onClick={() => setIsAssignDialogOpen(true)} style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 600, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <button onClick={handleOpenAssignModal} style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
             Ata <Send size={18} />
           </button>
           <button onClick={() => setSelectedTests([])} style={{ background: 'rgba(0,0,0,0.2)', border: 'none', color: 'white', borderRadius: '50%', padding: '0.3rem', cursor: 'pointer', display: 'flex' }}>
@@ -568,8 +1185,219 @@ export default function BookContentManager() {
         </div>
       )}
 
-      {/* MODALS */}
-      
+      {/* --- MODALS --- */}
+
+      {/* ⚡ UNIFIED BULK IMPORT WIZARD */}
+      {isBulkWizardOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                <Zap size={22} style={{ color: '#6366f1' }} /> Toplu İçerik & Test Sihirbazı
+              </h3>
+              <button onClick={() => setIsBulkWizardOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            {/* Wizard Tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', background: 'rgba(0,0,0,0.03)', padding: '0.35rem', borderRadius: '0.75rem' }}>
+              <button
+                onClick={() => setBulkWizardTab("text")}
+                style={{
+                  flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                  background: bulkWizardTab === "text" ? 'white' : 'transparent',
+                  color: bulkWizardTab === "text" ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: bulkWizardTab === "text" ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
+                }}
+              >
+                📝 Hızlı Liste Yapıştır
+              </button>
+              <button
+                onClick={() => setBulkWizardTab("series")}
+                style={{
+                  flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                  background: bulkWizardTab === "series" ? 'white' : 'transparent',
+                  color: bulkWizardTab === "series" ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: bulkWizardTab === "series" ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
+                }}
+              >
+                ⚡ Seri Test Oluştur
+              </button>
+              <button
+                onClick={() => setBulkWizardTab("json")}
+                style={{
+                  flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                  background: bulkWizardTab === "json" ? 'white' : 'transparent',
+                  color: bulkWizardTab === "json" ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: bulkWizardTab === "json" ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
+                }}
+              >
+                📄 JSON Aktar
+              </button>
+            </div>
+
+            {/* TAB 1: TEXT LIST IMPORT */}
+            {bulkWizardTab === "text" && (
+              <div>
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', marginTop: 0 }}>
+                  Aşağıdaki alana metin listesini yapıştırabilirsiniz. Sistem yapıyı ve cevap anahtarlarını otomatik algılar:
+                </p>
+                <div style={{ background: 'rgba(99,102,241,0.05)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(99,102,241,0.15)', fontSize: '0.8rem', color: '#4338ca', marginBottom: '1rem' }}>
+                  <strong>Örnek Satırlar:</strong><br />
+                  • <code>Matematik &gt; Çarpanlar ve Katlar &gt; Test 1 : ABCDEABCDE</code><br />
+                  • <code>Türkçe &gt; Test 1 [ABCDEABCDE]</code><br />
+                  • <code>Paragraf (5 Test)</code>
+                </div>
+
+                <textarea
+                  value={bulkTextInput}
+                  onChange={(e) => setBulkTextInput(e.target.value)}
+                  placeholder={`Matematik > Üslü Sayılar > Test 1 : ABCDEABCDEAB\nMatematik > Üslü Sayılar > Test 2 [ABCDEABCDEAB]\nTürkçe > Test 1 : BACDEBACDE`}
+                  rows={8}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                />
+
+                {/* Live Preview */}
+                {parsedBulkStructure.totalTests > 0 && (
+                  <div style={{ marginTop: '1rem', padding: '0.85rem', background: 'rgba(16,185,129,0.08)', borderRadius: '0.75rem', border: '1px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <strong style={{ color: '#047857', fontSize: '0.9rem' }}>Önizleme Algılandı:</strong>
+                      <div style={{ fontSize: '0.82rem', color: '#065f46', marginTop: '0.2rem' }}>
+                        📘 {parsedBulkStructure.totalSubjects} Ders | 📑 {parsedBulkStructure.totalTopics} Konu | 📝 {parsedBulkStructure.totalTests} Test
+                      </div>
+                    </div>
+                    <button onClick={handleExecuteBulkText} className="btn btn-primary" style={{ padding: '0.5rem 1.25rem', fontWeight: 900, background: '#10b981', border: 'none' }}>
+                      Toplu Oluştur
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: BULK SERIES GENERATOR */}
+            {bulkWizardTab === "series" && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Hedef Ders Adı</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={bulkSeriesData.subjectName}
+                    onChange={(e) => setBulkSeriesData(p => ({ ...p, subjectName: e.target.value }))}
+                    placeholder="Örn: Matematik, Fizik..."
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    id="isDirectSubj"
+                    checked={bulkSeriesData.isDirectSubject}
+                    onChange={(e) => setBulkSeriesData(p => ({ ...p, isDirectSubject: e.target.checked }))}
+                  />
+                  <label htmlFor="isDirectSubj" style={{ fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}>
+                    Konusuz - Testleri doğrudan derse ekle
+                  </label>
+                </div>
+
+                {!bulkSeriesData.isDirectSubject && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Hedef Konu Adı (İsteğe Bağlı)</label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={bulkSeriesData.topicName}
+                      onChange={(e) => setBulkSeriesData(p => ({ ...p, topicName: e.target.value }))}
+                      placeholder="Örn: Çarpanlar ve Katlar"
+                      style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.82rem' }}>Test Ön Eki</label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={bulkSeriesData.prefix}
+                      onChange={(e) => setBulkSeriesData(p => ({ ...p, prefix: e.target.value }))}
+                      placeholder="Test"
+                      style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.82rem' }}>Test Sayısı</label>
+                    <input
+                      type="number"
+                      className="input-field"
+                      value={bulkSeriesData.testCount}
+                      onChange={(e) => setBulkSeriesData(p => ({ ...p, testCount: parseInt(e.target.value) || 1 }))}
+                      style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.82rem' }}>Soru Sayısı/Test</label>
+                    <input
+                      type="number"
+                      className="input-field"
+                      value={bulkSeriesData.questionCount}
+                      onChange={(e) => setBulkSeriesData(p => ({ ...p, questionCount: parseInt(e.target.value) || 1 }))}
+                      style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(5, 150, 105, 0.05)', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid rgba(5, 150, 105, 0.2)' }}>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.85rem', color: '#047857' }}>
+                    🔑 Toplu Cevap Anahtarı (İsteğe Bağlı - Örn: ABCDEABCDE...)
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={bulkSeriesData.rawAnswerKey || ''}
+                    onChange={(e) => setBulkSeriesData(p => ({ ...p, rawAnswerKey: e.target.value.toUpperCase() }))}
+                    placeholder="Örn: ABCDEABCDEABCDEABCDE"
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1.5px solid #a7f3d0', fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', letterSpacing: '0.08em' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button onClick={handleExecuteBulkSeries} className="btn btn-primary" style={{ padding: '0.6rem 1.5rem', fontWeight: 900 }}>
+                    {bulkSeriesData.testCount} Testi Otomatik Oluştur
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: JSON IMPORT */}
+            {bulkWizardTab === "json" && (
+              <div>
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', marginTop: 0 }}>
+                  Ders, konu ve testlerinizi içeren JSON formatındaki yapıyı buraya yapıştırabilirsiniz.
+                </p>
+                <textarea
+                  value={jsonInput}
+                  onChange={(e) => setJsonInput(e.target.value)}
+                  placeholder={`{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        { "name": "Üslü İfadeler", "tests": [{ "name": "Test 1", "questionCount": 12, "answerKey": ["A","B","C","D","E"] }] }\n      ]\n    }\n  ]\n}`}
+                  rows={8}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <button onClick={handleExecuteJsonImport} className="btn btn-primary" style={{ padding: '0.6rem 1.5rem', fontWeight: 900 }}>
+                    JSON İçe Aktar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Subject Modal */}
       {isSubjectDialogOpen && (
         <div className="modal-overlay">
@@ -678,51 +1506,150 @@ export default function BookContentManager() {
         </div>
       )}
 
-      {/* Bulk Test Modal */}
-      {isBulkTestDialogOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
-            <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>Toplu Test Ekle</h3>
-            <div className="form-group" style={{ margin: '1.5rem 0 1rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Oluşturulacak Test Sayısı</label>
-              <input type="number" className="input-field" value={bulkTestFormData.testCount} onChange={e => setBulkTestFormData(p => ({...p, testCount: parseInt(e.target.value)||1}))} style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }} autoFocus />
-            </div>
-            <div className="form-group" style={{ margin: '0 0 1rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Her Testteki Soru Sayısı</label>
-              <input type="number" className="input-field" value={bulkTestFormData.questionCount} onChange={e => setBulkTestFormData(p => ({...p, questionCount: parseInt(e.target.value)||1}))} style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }} />
-            </div>
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Önek (Test 1, Test 2 vb.)</label>
-              <input type="text" className="input-field" value={bulkTestFormData.prefix} onChange={e => setBulkTestFormData(p => ({...p, prefix: e.target.value}))} style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsBulkTestDialogOpen(false)}>İptal</button>
-              <button className="btn btn-primary" onClick={handleBulkTestSave}>Oluştur</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Assign Homework Modal */}
+      {/* 🏫 ADVANCED ASSIGN HOMEWORK MODAL (CLASS & STUDENT SELECTION) */}
       {isAssignDialogOpen && (
         <div className="modal-overlay">
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
-            <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>Ödev Ata ({selectedTests.length} Test)</h3>
-            <div className="form-group" style={{ margin: '1.5rem 0 1rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Öğrenci(ler)</label>
-              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-sm)', padding: '0.5rem', background: 'rgba(0,0,0,0.02)' }}>
-                {students.map(s => (
-                  <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '0.25rem' }}>
-                    <input type="checkbox" checked={assignFormData.studentIds.includes(s.id)} onChange={e => handleAssignDialogStudentSelection(s.id, e.target.checked)} style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-primary)' }} />
-                    {s.name}
-                  </label>
-                ))}
-                {students.length === 0 && <p className="text-muted" style={{ padding: '1rem', textAlign: 'center', margin: 0 }}>Sistemde öğrenci bulunmuyor.</p>}
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '540px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ marginTop: 0, marginBottom: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
+                <Send size={20} /> Ödev Ata ({selectedTests.length} Test Seçildi)
+              </h3>
+              <button onClick={() => setIsAssignDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            {/* Custom Homework Title Input */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Ödev Başlığı</label>
+              <input
+                type="text"
+                className="input-field"
+                value={assignCustomTitle}
+                onChange={(e) => setAssignCustomTitle(e.target.value)}
+                placeholder="Örn: LGS Matematik 1. Dönem Ödevi"
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
+              />
+            </div>
+
+            {/* Target Type Selector (Class vs Student) */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>Hedef Kitle Seçimi</label>
+              <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.35rem', borderRadius: '0.65rem' }}>
+                <button
+                  type="button"
+                  onClick={() => { setAssignTargetMode("class"); setAssignSelectedTargetIds([]); }}
+                  style={{
+                    flex: 1, padding: '0.55rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                    background: assignTargetMode === "class" ? 'var(--color-primary)' : 'transparent',
+                    color: assignTargetMode === "class" ? 'white' : '#64748b',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                  }}
+                >
+                  <GraduationCap size={16} /> 🏫 Sınıfa Özel (Tüm Sınıf)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAssignTargetMode("student"); setAssignSelectedTargetIds([]); }}
+                  style={{
+                    flex: 1, padding: '0.55rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                    background: assignTargetMode === "student" ? 'var(--color-primary)' : 'transparent',
+                    color: assignTargetMode === "student" ? 'white' : '#64748b',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                  }}
+                >
+                  <Users size={16} /> 👤 Öğrenciye Özel
+                </button>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem' }}>
+
+            {/* Target Options Checklist */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>
+                {assignTargetMode === "class" ? 'Hedef Sınıf(ları) Seçin:' : 'Hedef Öğrenci(leri) Seçin:'}
+              </label>
+
+              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1.5px solid #e2e8f0', borderRadius: '0.65rem', padding: '0.65rem', background: '#fafafa', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                
+                {/* CLASS LIST */}
+                {assignTargetMode === "class" && availableClasses.map(cls => {
+                  const isChecked = assignSelectedTargetIds.includes(cls.id);
+                  const classStudentsCount = students.filter(s => s.gradeId === cls.id || s.grade === cls.id || s.className === cls.id).length;
+
+                  return (
+                    <label key={cls.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: isChecked ? '#e0e7ff' : 'white', borderRadius: '0.5rem', border: `1px solid ${isChecked ? '#6366f1' : '#e2e8f0'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked} 
+                          onChange={() => handleToggleTargetId(cls.id)} 
+                          style={{ width: '1.15rem', height: '1.15rem', accentColor: 'var(--color-primary)', cursor: 'pointer' }} 
+                        />
+                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: isChecked ? '#3730a3' : '#1e293b' }}>
+                          🏫 {cls.name}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b', background: 'rgba(0,0,0,0.05)', padding: '0.15rem 0.5rem', borderRadius: '1rem', fontWeight: 700 }}>
+                        {classStudentsCount} Öğrenci
+                      </span>
+                    </label>
+                  );
+                })}
+
+                {/* STUDENT LIST */}
+                {assignTargetMode === "student" && students.map(st => {
+                  const isChecked = assignSelectedTargetIds.includes(st.id);
+                  return (
+                    <label key={st.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: isChecked ? '#e0e7ff' : 'white', borderRadius: '0.5rem', border: `1px solid ${isChecked ? '#6366f1' : '#e2e8f0'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked} 
+                          onChange={() => handleToggleTargetId(st.id)} 
+                          style={{ width: '1.15rem', height: '1.15rem', accentColor: 'var(--color-primary)', cursor: 'pointer' }} 
+                        />
+                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: isChecked ? '#3730a3' : '#1e293b' }}>
+                          👤 {st.name}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        {st.grade || st.className || 'Öğrenci'}
+                      </span>
+                    </label>
+                  );
+                })}
+
+                {assignTargetMode === "class" && availableClasses.length === 0 && (
+                  <p className="text-muted" style={{ padding: '1rem', textAlign: 'center', margin: 0, fontSize: '0.85rem' }}>Tanımlı sınıf bulunamadı.</p>
+                )}
+                {assignTargetMode === "student" && students.length === 0 && (
+                  <p className="text-muted" style={{ padding: '1rem', textAlign: 'center', margin: 0, fontSize: '0.85rem' }}>Tanımlı öğrenci bulunamadı.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Due Date Days Selector */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Ödev Süresi (Gün)</label>
+              <select
+                className="input-field"
+                value={assignDueDateDays}
+                onChange={(e) => setAssignDueDateDays(parseInt(e.target.value) || 7)}
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
+              >
+                <option value={3}>3 Gün</option>
+                <option value={5}>5 Gün</option>
+                <option value={7}>1 Hafta (7 Gün)</option>
+                <option value={14}>2 Hafta (14 Gün)</option>
+                <option value={30}>1 Ay (30 Gün)</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button className="btn btn-outline" onClick={() => setIsAssignDialogOpen(false)}>İptal</button>
-              <button className="btn btn-primary" onClick={handleAssignSelectedTests}>Ödevleri Ata</button>
+              <button className="btn btn-primary" onClick={handleAssignSelectedTestsSubmit} style={{ padding: '0.6rem 1.5rem', fontWeight: 900 }}>
+                Ödevi {assignTargetMode === 'class' ? 'Sınıfa' : 'Öğrenciye'} Ata
+              </button>
             </div>
           </div>
         </div>

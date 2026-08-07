@@ -6,23 +6,24 @@ export default function QuestionGridNav({
   currentIndex,
   onSelectIndex,
   answers = {},
-  isReviewMode = false
+  isReviewMode = false,
+  darkMode = true
 }) {
   return (
     <div
       style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        background: darkMode ? '#1e293b' : '#ffffff',
+        border: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`,
         borderRadius: '1.25rem',
         padding: '1rem',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+        boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.03)',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.85rem'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
-        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: darkMode ? '#cbd5e1' : '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Soru Numaratörü ({currentIndex + 1} / {totalQuestions})
         </span>
 
@@ -33,9 +34,9 @@ export default function QuestionGridNav({
             style={{
               padding: '0.4rem 0.75rem',
               borderRadius: '0.75rem',
-              border: '1px solid #cbd5e1',
-              background: currentIndex === 0 ? '#f1f5f9' : '#ffffff',
-              color: currentIndex === 0 ? '#94a3b8' : '#1e293b',
+              border: `1px solid ${darkMode ? '#334155' : '#cbd5e1'}`,
+              background: currentIndex === 0 ? (darkMode ? '#0f172a' : '#f1f5f9') : (darkMode ? '#334155' : '#ffffff'),
+              color: currentIndex === 0 ? (darkMode ? '#475569' : '#94a3b8') : (darkMode ? '#f8fafc' : '#1e293b'),
               fontWeight: 800,
               fontSize: '0.78rem',
               cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
@@ -54,8 +55,8 @@ export default function QuestionGridNav({
               padding: '0.4rem 0.75rem',
               borderRadius: '0.75rem',
               border: 'none',
-              background: currentIndex === totalQuestions - 1 ? '#e2e8f0' : '#4f46e5',
-              color: currentIndex === totalQuestions - 1 ? '#94a3b8' : '#ffffff',
+              background: currentIndex === totalQuestions - 1 ? (darkMode ? '#334155' : '#e2e8f0') : '#4f46e5',
+              color: currentIndex === totalQuestions - 1 ? (darkMode ? '#64748b' : '#94a3b8') : '#ffffff',
               fontWeight: 800,
               fontSize: '0.78rem',
               cursor: currentIndex === totalQuestions - 1 ? 'not-allowed' : 'pointer',
@@ -90,29 +91,29 @@ export default function QuestionGridNav({
             if (userAns.userAnswerText && userAns.userAnswerText.trim() !== '') isAnswered = true;
           }
 
-          let bgColor = '#f8fafc';
-          let textColor = '#475569';
-          let borderColor = '#e2e8f0';
+          let bgColor = darkMode ? '#0f172a' : '#f8fafc';
+          let textColor = darkMode ? '#94a3b8' : '#475569';
+          let borderColor = darkMode ? '#334155' : '#e2e8f0';
 
           if (isReviewMode && isCorrect !== null) {
             if (isCorrect === true) {
-              bgColor = '#dcfce7';
-              textColor = '#15803d';
-              borderColor = '#86efac';
+              bgColor = darkMode ? '#064e3b' : '#dcfce7';
+              textColor = darkMode ? '#34d399' : '#15803d';
+              borderColor = darkMode ? '#059669' : '#86efac';
             } else if (isCorrect === false) {
-              bgColor = '#fee2e2';
-              textColor = '#b91c1c';
-              borderColor = '#fca5a5';
+              bgColor = darkMode ? '#7f1d1d' : '#fee2e2';
+              textColor = darkMode ? '#f87171' : '#b91c1c';
+              borderColor = darkMode ? '#dc2626' : '#fca5a5';
             }
           } else if (isAnswered) {
-            bgColor = '#e0e7ff';
-            textColor = '#4338ca';
-            borderColor = '#a5b4fc';
+            bgColor = darkMode ? '#312e81' : '#e0e7ff';
+            textColor = darkMode ? '#e0e7ff' : '#4338ca';
+            borderColor = darkMode ? '#6366f1' : '#a5b4fc';
           }
 
           if (isActive) {
-            borderColor = '#4f46e5';
-            bgColor = isReviewMode ? bgColor : '#4f46e5';
+            borderColor = '#38bdf8';
+            bgColor = isReviewMode ? bgColor : (darkMode ? '#0284c7' : '#4f46e5');
             textColor = isReviewMode ? textColor : '#ffffff';
           }
 
@@ -123,7 +124,7 @@ export default function QuestionGridNav({
               style={{
                 height: '38px',
                 borderRadius: '0.65rem',
-                border: `2px solid ${isActive ? '#4f46e5' : borderColor}`,
+                border: `2px solid ${isActive ? '#38bdf8' : borderColor}`,
                 background: bgColor,
                 color: textColor,
                 fontWeight: 900,
@@ -133,7 +134,7 @@ export default function QuestionGridNav({
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.15s ease',
-                boxShadow: isActive ? '0 0 0 3px rgba(79,70,229,0.2)' : 'none'
+                boxShadow: isActive ? '0 0 12px rgba(56,189,248,0.4)' : 'none'
               }}
             >
               {idx + 1}

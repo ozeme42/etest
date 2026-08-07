@@ -1,9 +1,28 @@
 import React from 'react';
-import { ArrowLeft, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, CheckCircle, XCircle, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+function getAnsIndex(val) {
+  if (val === null || val === undefined || val === '') return null;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const code = val.trim().toUpperCase().charCodeAt(0) - 65;
+    if (code >= 0 && code <= 4) return code;
+  }
+  return null;
+}
 
 export default function PhysicalQuizReview({ submission, test, questions }) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleGoBack = () => {
+    if (location.state?.from && !location.state.from.includes('/quiz/')) {
+      navigate(location.state.from, { replace: true });
+    } else {
+      navigate('/student', { replace: true });
+    }
+  };
 
   const answers = submission.answers || [];
   const qCount = questions.length || submission.totalQuestions || test.questionCount || test.totalQuestions || 20;
@@ -13,17 +32,19 @@ export default function PhysicalQuizReview({ submission, test, questions }) {
   const blankCount = submission.blankCount || (qCount - correctCount - wrongCount);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
-      <header style={{ padding: '0.85rem 1.5rem', background: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', sticky: 'top', zIndex: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+      
+      {/* HEADER */}
+      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
             style={{
               padding: '0.45rem 0.85rem',
               borderRadius: '0.75rem',
-              background: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              color: '#1e293b',
+              background: '#0f172a',
+              border: '1px solid #334155',
+              color: '#e2e8f0',
               fontWeight: 800,
               fontSize: '0.8rem',
               cursor: 'pointer',
@@ -35,94 +56,174 @@ export default function PhysicalQuizReview({ submission, test, questions }) {
             <ArrowLeft size={16} /> Geri Dön
           </button>
           <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#1e293b' }}>{test.title} — İnceleme Raporu</h2>
-            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>📋 Optik Form / Fiziki Sınav İncelemesi</div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name} — Optik Form İnceleme</h2>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>📋 İşaretlenmiş Optik Form Karşılaştırma Analizi</div>
           </div>
         </div>
 
+        {/* SCORE & BADGES */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ background: '#dcfce7', color: '#15803d', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #86efac' }}>
+          <div style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #10b981' }}>
             ✓ {correctCount} Doğru
           </div>
-          <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #fca5a5' }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #ef4444' }}>
             ✕ {wrongCount} Yanlış
           </div>
-          <div style={{ background: '#f1f5f9', color: '#64748b', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #cbd5e1' }}>
+          <div style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #334155' }}>
             ○ {blankCount} Boş
           </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: '900px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
-        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <FileSpreadsheet size={28} />
+      {/* BODY */}
+      <div style={{ maxWidth: '950px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+        
+        {/* BANNER WITH COLOR LEGEND */}
+        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FileSpreadsheet size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>Optik Form Sonuç Görünümü</h3>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                İşaretlediğiniz kabarcıklar ile doğru cevap anahtarı renklerle gösterilmiştir:
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>Optik Form İnceleme & Analiz</h3>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-              İşaretlediğiniz cevaplar ile cevap anahtarı karşılaştırması aşağıdadır.
-            </p>
+
+          {/* COLOR LEGEND GUIDES */}
+          <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(0,0,0,0.25)', padding: '0.5rem 0.85rem', borderRadius: '0.75rem', fontSize: '0.78rem', fontWeight: 800, flexWrap: 'wrap' }}>
+            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Doğru
+            </span>
+            <span style={{ color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
+            </span>
+            <span style={{ color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
+            </span>
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+        {/* OPTICAL FORM GRID REVIEW */}
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
           {Array.from({ length: qCount }).map((_, idx) => {
             const qNo = idx + 1;
             const qObj = questions[idx] || {};
-            const ansObj = answers.find(a => (a.questionNo === qNo || a.questionId === qObj.id)) || answers[idx] || {};
+            const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[idx] || {};
 
-            const userAns = ansObj.userAnswer;
+            const userAnsIndex = getAnsIndex(ansObj.userAnswer);
             const textAns = ansObj.userAnswerText;
-            const correctAns = qObj.correctAnswer;
-            const isCorrect = ansObj.isCorrect;
-            const isBlank = userAns === null || userAns === undefined;
+
+            let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
+            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
+            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
+
+            const isBlank = userAnsIndex === null && !textAns;
+            let isCorrect = ansObj.isCorrect;
+            if (isCorrect === null || isCorrect === undefined) {
+              if (userAnsIndex !== null && correctAnsIndex !== null) {
+                isCorrect = userAnsIndex === correctAnsIndex;
+              }
+            }
 
             return (
               <div
                 key={qNo}
                 style={{
-                  background: isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#f8fafc',
-                  padding: '1rem',
+                  background: '#0f172a',
+                  padding: '0.85rem 1rem',
                   borderRadius: '0.85rem',
-                  border: `1px solid ${isCorrect === true ? '#86efac' : isCorrect === false ? '#fca5a5' : '#cbd5e1'}`
+                  border: `1.5px solid ${isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : '#334155'}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>Soru {qNo}</span>
-                  {isCorrect === true ? (
-                    <span style={{ color: '#15803d', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <CheckCircle size={15} /> DOĞRU
+                {/* QUESTION HEADER */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem' }}>
+                  <span style={{ color: '#f8fafc' }}>
+                    {qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}
+                  </span>
+
+                  {isCorrect === true && (
+                    <span style={{ fontSize: '0.73rem', background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 900, border: '1px solid #10b981' }}>
+                      ✓ Doğru
                     </span>
-                  ) : isCorrect === false ? (
-                    <span style={{ color: '#b91c1c', fontWeight: 900, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <XCircle size={15} /> YANLIŞ
+                  )}
+                  {isCorrect === false && (
+                    <span style={{ fontSize: '0.73rem', background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 900, border: '1px solid #ef4444' }}>
+                      ✕ Yanlış
                     </span>
-                  ) : (
-                    <span style={{ color: '#64748b', fontWeight: 800, fontSize: '0.78rem' }}>BOŞ</span>
+                  )}
+                  {isBlank && (
+                    <span style={{ fontSize: '0.73rem', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 800 }}>
+                      — Boş
+                    </span>
                   )}
                 </div>
 
+                {/* TEXT / OPEN-ENDED RESPONSE */}
                 {textAns ? (
-                  <div style={{ fontSize: '0.82rem', color: '#334155', background: '#ffffff', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginTop: '0.35rem' }}>
-                    <strong>Cevabınız: </strong>{textAns}
+                  <div style={{ fontSize: '0.82rem', color: '#cbd5e1', background: '#1e293b', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
+                    <strong style={{ color: '#a5b4fc' }}>Yazılı Yanıt: </strong>{textAns}
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', justifyBetween: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>KODLANAN: </span>
-                      <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b' }}>
-                        {!isBlank ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
-                      </span>
-                    </div>
-                    {correctAns !== undefined && (
-                      <div>
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>CEVAP ANAHTARI: </span>
-                        <span style={{ fontWeight: 900, color: '#15803d' }}>
-                          {typeof correctAns === 'number' ? String.fromCharCode(65 + correctAns) : correctAns}
-                        </span>
-                      </div>
-                    )}
+                  /* 5 OPTICAL BUBBLES IN COLOR */
+                  <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.2rem' }}>
+                    {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                      const isUserMarked = userAnsIndex === optIdx;
+                      const isAnswerKey = correctAnsIndex === optIdx;
+
+                      let bg = '#1e293b';
+                      let color = '#94a3b8';
+                      let border = '1px solid #334155';
+                      let labelText = opt;
+
+                      if (isUserMarked && isAnswerKey) {
+                        // 🟢 Student marked correctly!
+                        bg = '#10b981';
+                        color = '#ffffff';
+                        border = '2px solid #059669';
+                        labelText = '✓ ' + opt;
+                      } else if (isUserMarked && !isAnswerKey) {
+                        // 🔴 Student marked wrong!
+                        bg = '#ef4444';
+                        color = '#ffffff';
+                        border = '2px solid #dc2626';
+                        labelText = '✕ ' + opt;
+                      } else if (!isUserMarked && isAnswerKey) {
+                        // 🟢 Correct Answer Key (missed or left blank)
+                        bg = 'rgba(16, 185, 129, 0.15)';
+                        color = '#34d399';
+                        border = '2px solid #10b981';
+                        labelText = opt + ' ★';
+                      }
+
+                      return (
+                        <div
+                          key={opt}
+                          style={{
+                            flex: 1,
+                            height: '34px',
+                            borderRadius: '0.5rem',
+                            background: bg,
+                            color: color,
+                            border: border,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 900,
+                            fontSize: '0.8rem',
+                            boxShadow: (isUserMarked || isAnswerKey) ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {labelText}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

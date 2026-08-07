@@ -107,14 +107,12 @@ export function QuestionBankProvider({ children }) {
       // Full PDF/Image DataURLs remain safely stored in React State & IndexedDB.
       const lightweightQuestions = (questions || []).map(q => {
         const copy = { ...q };
-        if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500) {
+        const isHtml = q.contentType === 'html' || q.sourceFormat === 'html' ||
+          (typeof q.contentPayload === 'string' && (q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE') || q.contentPayload.startsWith('data:text/html')));
+
+        // NEVER strip HTML content or text under 100,000 chars (100KB) from localStorage
+        if (!isHtml && typeof copy.contentPayload === 'string' && copy.contentPayload.length > 100000) {
           copy.contentPayload = '[STORED_IN_INDEXEDDB]';
-        }
-        if (copy.raw_data && typeof copy.raw_data === 'object') {
-          copy.raw_data = { ...copy.raw_data };
-          if (typeof copy.raw_data.contentPayload === 'string' && copy.raw_data.contentPayload.length > 500) {
-            copy.raw_data.contentPayload = '[STORED_IN_INDEXEDDB]';
-          }
         }
         return copy;
       });
@@ -161,15 +159,25 @@ export function QuestionBankProvider({ children }) {
       };
 
       if (singleBundleQuestion.contentPayload && singleBundleQuestion.contentPayload.length > 500) {
-        await idbSetPayload(singleBundleQuestion.id, singleBundleQuestion.contentPayload);
+        const payload = singleBundleQuestion.contentPayload;
+        const qId = singleBundleQuestion.id;
+        await idbSetPayload(qId, payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, ''), payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, 'q_'), payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, 'q'), payload);
       }
 
       setQuestions(prev => [...prev, singleBundleQuestion]);
       await dbAddQuestion(singleBundleQuestion);
     } else {
-      const newQuestion = { id: `q${Date.now()}`, ...questionData };
+      const newQuestion = { id: `q_${Date.now()}`, htmlPayload: questionData.contentPayload || questionData.htmlPayload, ...questionData };
       if (newQuestion.contentPayload && typeof newQuestion.contentPayload === 'string' && newQuestion.contentPayload.length > 500) {
-        await idbSetPayload(newQuestion.id, newQuestion.contentPayload);
+        const payload = newQuestion.contentPayload;
+        const qId = newQuestion.id;
+        await idbSetPayload(qId, payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, ''), payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, 'q_'), payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, 'q'), payload);
       }
       setQuestions(prev => [...prev, newQuestion]);
       await dbAddQuestion(newQuestion);
@@ -182,15 +190,16 @@ export function QuestionBankProvider({ children }) {
 
     // 1. Delete from IndexedDB (main ID and ID variants)
     await idbDeletePayload(id);
-    await idbDeletePayload(String(id).replace(/^q_/, ''));
+    await idbDeletePayload(String(id).replace(/^q_?/, ''));
     await idbDeletePayload(`q_${id}`);
+    await idbDeletePayload(`q${id}`);
 
     // 2. Delete sub-question payloads if bundle
     if (targetQ && Array.isArray(targetQ.questionsList)) {
       for (const subQ of targetQ.questionsList) {
         if (subQ.id) {
           await idbDeletePayload(subQ.id);
-          await idbDeletePayload(String(subQ.id).replace(/^q_/, ''));
+          await idbDeletePayload(String(subQ.id).replace(/^q_?/, ''));
         }
       }
     }
@@ -210,7 +219,12 @@ export function QuestionBankProvider({ children }) {
     }));
     if (updatedQ) {
       if (updatedQ.contentPayload && typeof updatedQ.contentPayload === 'string' && updatedQ.contentPayload.length > 500) {
-        await idbSetPayload(updatedQ.id, updatedQ.contentPayload);
+        const payload = updatedQ.contentPayload;
+        const qId = updatedQ.id;
+        await idbSetPayload(qId, payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, ''), payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, 'q_'), payload);
+        await idbSetPayload(String(qId).replace(/^q_?/, 'q'), payload);
       }
       await dbAddQuestion(updatedQ);
     }

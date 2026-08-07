@@ -9,6 +9,39 @@ export function useEvaluation() {
 
 const DEFAULT_SAMPLE_SUBMISSIONS = [
   {
+    id: 'sub_sample_open_1',
+    testId: 't4',
+    studentId: 'u1',
+    studentName: 'Ahmet Yılmaz',
+    testTitle: 'Din Kültürü ve Ahlak Bilgisi Açık Uçlu Sınavı',
+    title: 'Din Kültürü ve Ahlak Bilgisi Açık Uçlu Sınavı',
+    subject: 'Din Kültürü',
+    score: 0,
+    correctCount: 0,
+    wrongCount: 0,
+    emptyCount: 0,
+    pendingCount: 2,
+    totalQuestions: 2,
+    status: 'pending_evaluation',
+    isOpenEnded: true,
+    isEvaluatedByTeacher: false,
+    submittedAt: new Date().toISOString(),
+    answers: [
+      {
+        questionId: 'q1',
+        questionNo: 1,
+        questionText: '1) İslam dininde infak ve sadakanın toplumsal dayanışmaya katkılarını açıklayınız.',
+        userAnswerText: 'İnfak ve sadaka zenginler ile fakirler arasında sevgi ve kardeşlik bağını güçlendirir, toplumdaki ekonomik adaletsizlikleri azaltır.'
+      },
+      {
+        questionId: 'q2',
+        questionNo: 2,
+        questionText: '2) Hz. Muhammed\'in (s.a.v.) adaletli ve güvenilir bir lider olmasının toplumsal yansımalarını yazınız.',
+        userAnswerText: 'Peygamber efendimizin El-Emin sıfatı toplumda yüksek bir güven ortamı oluşturmuştur. Her konuda hakkaniyetli davranmıştır.'
+      }
+    ]
+  },
+  {
     id: 'sub_sample_1',
     testId: 't1',
     studentId: 'u1',
@@ -33,56 +66,6 @@ const DEFAULT_SAMPLE_SUBMISSIONS = [
       { questionId: 'q9', isCorrect: true, userAnswer: 'A' },
       { questionId: 'q10', isCorrect: true, userAnswer: 'B' }
     ]
-  },
-  {
-    id: 'sub_sample_2',
-    testId: 't2',
-    studentId: 'u1',
-    testTitle: 'Fen Bilimleri Mevsimler ve İklim Ünite Denemesi',
-    title: 'Fen Bilimleri Mevsimler ve İklim Ünite Denemesi',
-    subject: 'Fen Bilimleri',
-    score: 80,
-    correctCount: 8,
-    wrongCount: 1,
-    emptyCount: 1,
-    totalQuestions: 10,
-    submittedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    answers: [
-      { questionId: 'fq1', isCorrect: true, userAnswer: 'A' },
-      { questionId: 'fq2', isCorrect: false, userAnswer: 'D', subIndex: 1 },
-      { questionId: 'fq3', isCorrect: true, userAnswer: 'C' },
-      { questionId: 'fq4', isCorrect: true, userAnswer: 'B' },
-      { questionId: 'fq5', isCorrect: false, userAnswer: '', subIndex: 4 },
-      { questionId: 'fq6', isCorrect: true, userAnswer: 'A' },
-      { questionId: 'fq7', isCorrect: true, userAnswer: 'D' },
-      { questionId: 'fq8', isCorrect: true, userAnswer: 'C' },
-      { questionId: 'fq9', isCorrect: true, userAnswer: 'B' },
-      { questionId: 'fq10', isCorrect: true, userAnswer: 'A' }
-    ]
-  },
-  {
-    id: 'sub_sample_3',
-    testId: 't3',
-    studentId: 'u1',
-    testTitle: 'Türkçe Paragrafta Anlam ve Söz Sanatları Tara Testi',
-    title: 'Türkçe Paragrafta Anlam ve Söz Sanatları Tara Testi',
-    subject: 'Türkçe',
-    score: 75,
-    correctCount: 6,
-    wrongCount: 2,
-    emptyCount: 0,
-    totalQuestions: 8,
-    submittedAt: new Date(Date.now() - 86400000 * 6).toISOString(),
-    answers: [
-      { questionId: 'tq1', isCorrect: true, userAnswer: 'B' },
-      { questionId: 'tq2', isCorrect: false, userAnswer: 'A', subIndex: 1 },
-      { questionId: 'tq3', isCorrect: true, userAnswer: 'D' },
-      { questionId: 'tq4', isCorrect: false, userAnswer: 'C', subIndex: 3 },
-      { questionId: 'tq5', isCorrect: true, userAnswer: 'A' },
-      { questionId: 'tq6', isCorrect: true, userAnswer: 'B' },
-      { questionId: 'tq7', isCorrect: true, userAnswer: 'C' },
-      { questionId: 'tq8', isCorrect: true, userAnswer: 'D' }
-    ]
   }
 ];
 
@@ -101,8 +84,18 @@ export function EvaluationProvider({ children }) {
   useEffect(() => {
     async function syncFromSupabase() {
       const dbSubs = await dbGetSubmissions();
-      if (Array.isArray(dbSubs)) {
-        setSubmissions(dbSubs);
+      if (Array.isArray(dbSubs) && dbSubs.length > 0) {
+        setSubmissions(prev => {
+          const map = new Map();
+          dbSubs.forEach(s => map.set(String(s.id), s));
+          prev.forEach(s => {
+            const existing = map.get(String(s.id));
+            if (!existing || s.isEvaluatedByTeacher || s.status === 'completed' || s.status === 'evaluated') {
+              map.set(String(s.id), { ...existing, ...s });
+            }
+          });
+          return Array.from(map.values());
+        });
       }
     }
     syncFromSupabase();
@@ -173,6 +166,20 @@ export function EvaluationProvider({ children }) {
     });
   };
 
+  const updateSubmission = async (id, updatedData) => {
+    let target = null;
+    setSubmissions(prev => prev.map(sub => {
+      if (String(sub.id) === String(id)) {
+        target = { ...sub, ...updatedData, status: 'completed', isEvaluatedByTeacher: true };
+        return target;
+      }
+      return sub;
+    }));
+    if (target) {
+      await dbSaveSubmission(target);
+    }
+  };
+
   const deleteSubmission = async (id) => {
     setSubmissions(prev => prev.filter(s => s.id !== id));
     await dbDeleteSubmission(id);
@@ -189,6 +196,7 @@ export function EvaluationProvider({ children }) {
       addSubmission,
       evaluateAnswer,
       finalizeSubmission,
+      updateSubmission,
       deleteSubmission,
       clearSubmissionsForStudent
     }}>

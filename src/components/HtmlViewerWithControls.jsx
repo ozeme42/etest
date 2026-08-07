@@ -1,10 +1,80 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Globe } from 'lucide-react';
+
+function resolveIframeContent(payload) {
+  if (!payload || typeof payload !== 'string') return { src: undefined, srcDoc: undefined };
+  if (payload.includes('[STORED_IN_INDEXEDDB]') || payload.includes('[LOCALSTORAGE_CACHE]')) {
+    return { src: undefined, srcDoc: undefined };
+  }
+
+  const trimmed = payload.trim();
+
+  // HTTP / HTTPS / BLOB URLs -> use src
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:')) {
+    return { src: trimmed, srcDoc: undefined };
+  }
+
+  // DATA URLs (data:text/html...) -> decode to HTML string so srcDoc can be used safely without Tracking Prevention blocks
+  if (trimmed.startsWith('data:')) {
+    try {
+      const commaIdx = trimmed.indexOf(',');
+      if (commaIdx !== -1) {
+        const meta = trimmed.slice(0, commaIdx);
+        const dataPart = trimmed.slice(commaIdx + 1);
+        if (meta.includes('base64')) {
+          try {
+            const decoded = decodeURIComponent(escape(atob(dataPart)));
+            return { src: undefined, srcDoc: decoded };
+          } catch {
+            const decoded = atob(dataPart);
+            return { src: undefined, srcDoc: decoded };
+          }
+        } else {
+          const decoded = decodeURIComponent(dataPart);
+          return { src: undefined, srcDoc: decoded };
+        }
+      }
+    } catch (e) {
+      console.warn('[HtmlViewer] Data URI decode fallback:', e);
+    }
+  }
+
+  // Raw HTML string -> use srcDoc
+  return { src: undefined, srcDoc: trimmed };
+}
 
 export default function HtmlViewerWithControls({ payload, title = "HTML Dokümanı", height = "100%" }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [fetchedHtml, setFetchedHtml] = useState(null);
+  const [manualHtml, setManualHtml] = useState(null);
   const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof payload === 'string' && (payload.startsWith('http://') || payload.startsWith('https://'))) {
+      fetch(payload)
+        .then(res => res.text())
+        .then(text => {
+          if (text && text.trim().length > 0 && !text.includes('[STORED_IN_INDEXEDDB]')) {
+            setFetchedHtml(text);
+          }
+        })
+        .catch(err => console.warn('[HtmlViewer] Error fetching remote HTML payload:', err));
+    }
+  }, [payload]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const htmlText = event.target?.result;
+      if (typeof htmlText === 'string') {
+        setManualHtml(htmlText);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const handleZoomIn = (e) => {
     e.preventDefault();
@@ -29,17 +99,41 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
     }
   };
 
-  const isUrl = typeof payload === 'string' && (payload.startsWith('http://') || payload.startsWith('https://') || payload.startsWith('blob:'));
+  const activeHtml = manualHtml || fetchedHtml;
+  const iframeContent = activeHtml ? { src: undefined, srcDoc: activeHtml } : resolveIframeContent(payload);
 
-  if (!payload) {
+  const isValidContent = Boolean(iframeContent.src || iframeContent.srcDoc);
+
+  if (!isValidContent) {
     return (
-      <div style={{ padding: '3rem 1.5rem', textAlign: 'center', background: '#ecfdf5', border: '2px dashed #a7f3d0', borderRadius: '0.75rem', margin: '0.5rem 0' }}>
-        <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: '#d1fae5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto' }}>
-          <Globe size={24} />
+      <div style={{ padding: '3rem 1.5rem', textAlign: 'center', background: '#0f172a', border: '2px dashed #334155', borderRadius: '1rem', margin: '1rem', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', minHeight: '350px' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(6,182,212,0.15)', color: '#06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+          🌐
         </div>
-        <p style={{ fontSize: '1rem', fontWeight: 900, color: '#065f46', margin: 0 }}>
-          🌐 Bu Test İçin HTML Dokümanı Bulunamadı
-        </p>
+        <div style={{ maxWidth: '400px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 0.5rem 0' }}>
+            HTML Soru Dokümanı Yüklenemedi
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+            Bu test için HTML dosyası sunucuda veya önbellekte bulunamadı. Lütfen HTML dosyasını bilgisayarınızdan seçip anında görüntüleyin:
+          </p>
+        </div>
+        <label style={{
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.75rem',
+          background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+          color: 'white',
+          fontWeight: 900,
+          fontSize: '0.88rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(6,182,212,0.4)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          📂 HTML Dosyası Seç & Görüntüle
+          <input type="file" accept=".html,.htm" onChange={handleFileUpload} style={{ display: 'none' }} />
+        </label>
       </div>
     );
   }
@@ -128,9 +222,9 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
           }}
         >
           <iframe
-            key={isUrl ? payload : 'html_frame'}
-            src={isUrl ? payload : undefined}
-            srcDoc={!isUrl ? payload : undefined}
+            key={iframeContent.src || (iframeContent.srcDoc ? iframeContent.srcDoc.slice(0, 40) : 'html_frame')}
+            src={iframeContent.src}
+            srcDoc={iframeContent.srcDoc}
             title="HTML Soru Dokümanı"
             style={{
               width: '100%',

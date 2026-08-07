@@ -5,7 +5,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { 
   ArrowLeft, Plus, Trash2, BookMarked, Library, 
   FileText, HelpCircle, CheckCircle, XCircle, 
-  Edit, MoreVertical, ArrowRight, FileJson, AlertCircle 
+  Edit, MoreVertical, ArrowRight, FileJson, AlertCircle, Copy, Check
 } from 'lucide-react';
 import './BookManager.css';
 
@@ -24,6 +24,8 @@ export default function BookManager() {
   // Bulk Import States
   const [importModal, setImportModal] = useState({ isOpen: false, book: null });
   const [jsonInput, setJsonInput] = useState("");
+  const [sampleFormatTab, setSampleFormatTab] = useState("standard"); // "standard" | "direct" | "open_ended"
+  const [copiedFormat, setCopiedFormat] = useState(null);
 
   // Dropdown State
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -122,7 +124,9 @@ export default function BookManager() {
     
     try {
       const parsedData = JSON.parse(jsonInput);
-      if (!parsedData.subjects || !Array.isArray(parsedData.subjects)) {
+      const subjectsList = parsedData.subjects || (Array.isArray(parsedData) ? parsedData : null);
+
+      if (!subjectsList || !Array.isArray(subjectsList)) {
         throw new Error("Geçersiz format: JSON verisi bir 'subjects' dizisi içermelidir.");
       }
 
@@ -130,38 +134,74 @@ export default function BookManager() {
       const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects)); 
       const testsToCreate = [];
 
+      const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
+
       updatedSubjects.forEach(s => {
-        if (!s.id) s.id = "s_" + Date.now().toString() + Math.random().toString(36).substring(2, 9);
+        if (!s.id) s.id = genId("s");
         if (s.topics && Array.isArray(s.topics)) {
           s.topics.forEach(t => {
-            if (!t.id) t.id = "t_" + Date.now().toString() + Math.random().toString(36).substring(2, 9);
+            if (!t.id) t.id = genId("t");
           });
         }
       });
 
-      for (const subjData of parsedData.subjects) {
+      for (const subjData of subjectsList) {
         if (!subjData.name) continue;
 
         let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
         if (!subject) {
           subject = { 
-            id: "s_" + Date.now().toString() + Math.random().toString(36).substring(2, 9), 
+            id: genId("s"), 
             name: subjData.name, 
             topics: [] 
           };
           updatedSubjects.push(subject);
         }
+        if (!subject.topics) subject.topics = [];
 
+        const formatTestPayload = (testData, topicId = null) => {
+          const testPayload = {
+            subjectId: String(subject.id),
+            topicId: topicId ? String(topicId) : null,
+            name: String(testData.name || "İsimsiz Test"),
+            questionCount: Number(testData.questionCount) || 20,
+            answerKey: {}
+          };
+
+          if (targetBook.bookType !== 'open_ended' && testData.answerKey) {
+            if (Array.isArray(testData.answerKey)) {
+              testData.answerKey.forEach((ans, idx) => { 
+                if (ans !== undefined && ans !== null && ans !== "") {
+                  testPayload.answerKey[String(idx + 1)] = String(ans); 
+                }
+              });
+            } else if (typeof testData.answerKey === 'object') {
+              Object.entries(testData.answerKey).forEach(([k, v]) => {
+                if (v !== undefined && v !== null && v !== "") {
+                  testPayload.answerKey[k] = String(v);
+                }
+              });
+            }
+          }
+          return testPayload;
+        };
+
+        // 1. Direct tests under subject (Ders > Test)
+        if (subjData.tests && Array.isArray(subjData.tests)) {
+          for (const testData of subjData.tests) {
+            testsToCreate.push(formatTestPayload(testData, null));
+          }
+        }
+
+        // 2. Topic-based tests (Ders > Konu > Test)
         if (subjData.topics && Array.isArray(subjData.topics)) {
-          if (!subject.topics) subject.topics = [];
-          
           for (const topicData of subjData.topics) {
             if (!topicData.name) continue;
 
             let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
             if (!topic) {
               topic = { 
-                id: "t_" + Date.now().toString() + Math.random().toString(36).substring(2, 9), 
+                id: genId("t"), 
                 name: topicData.name 
               };
               subject.topics.push(topic);
@@ -169,33 +209,7 @@ export default function BookManager() {
 
             if (topicData.tests && Array.isArray(topicData.tests)) {
               for (const testData of topicData.tests) {
-                const safeSubjectId = subject.id ? String(subject.id) : ("s_" + Date.now());
-                const safeTopicId = topic.id ? String(topic.id) : ("t_" + Date.now());
-
-                const testPayload = {
-                  subjectId: safeSubjectId,
-                  topicId: safeTopicId,
-                  name: String(testData.name || "İsimsiz Test"),
-                  questionCount: Number(testData.questionCount) || 20,
-                  answerKey: {}
-                };
-                
-                if (targetBook.bookType !== 'open_ended' && testData.answerKey) {
-                  if (Array.isArray(testData.answerKey)) {
-                    testData.answerKey.forEach((ans, idx) => { 
-                      if (ans !== undefined && ans !== null && ans !== "") {
-                        testPayload.answerKey[String(idx + 1)] = String(ans); 
-                      }
-                    });
-                  } else if (typeof testData.answerKey === 'object') {
-                    Object.entries(testData.answerKey).forEach(([k, v]) => {
-                      if (v !== undefined && v !== null && v !== "") {
-                        testPayload.answerKey[k] = String(v);
-                      }
-                    });
-                  }
-                }
-                testsToCreate.push(testPayload);
+                testsToCreate.push(formatTestPayload(testData, topic.id));
               }
             }
           }
@@ -210,19 +224,24 @@ export default function BookManager() {
         }
       }
       
-      showToast(`${targetBook.title} kitabına ${testsToCreate.length} test eklendi.`);
+      showToast(`${targetBook.title} kitabına ${testsToCreate.length} test başarıyla eklendi!`);
       setJsonInput("");
       setImportModal({ isOpen: false, book: null });
     } catch (error) {
-      showToast("Geçersiz JSON formatı.", "error");
+      showToast("Geçersiz JSON formatı. Lütfen verilen örnekleri inceleyin.", "error");
     }
   };
 
-  const getSampleJson = (bookType = 'standard') => {
-    if (bookType === 'open_ended') {
-      return `{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        {\n          "name": "Üslü Sayılar",\n          "tests": [\n            { "name": "Klasik Sorular Testi 1", "questionCount": 5 },\n            { "name": "Klasik Sorular Testi 2", "questionCount": 8 }\n          ]\n        }\n      ]\n    }\n  ]\n}`;
-    }
-    return `{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        {\n          "name": "Üslü Sayılar",\n          "tests": [\n            { \n              "name": "Test 1", \n              "questionCount": 12, \n              "answerKey": ["A", "B", "C", "D", "E"] \n            }\n          ]\n        }\n      ]\n    }\n  ]\n}`;
+  const sampleJsonFormats = {
+    standard: `{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        {\n          "name": "Üslü Sayılar",\n          "tests": [\n            { \n              "name": "Test 1", \n              "questionCount": 12, \n              "answerKey": ["A", "B", "C", "D", "E"] \n            }\n          ]\n        }\n      ]\n    }\n  ]\n}`,
+    direct: `{\n  "subjects": [\n    {\n      "name": "Türkçe",\n      "tests": [\n        { \n          "name": "Kazanım Testi 1", \n          "questionCount": 20, \n          "answerKey": ["A", "B", "C", "D"] \n        },\n        { \n          "name": "Kazanım Testi 2", \n          "questionCount": 20, \n          "answerKey": ["B", "C", "D", "A"] \n        }\n      ]\n    }\n  ]\n}`,
+    open_ended: `{\n  "subjects": [\n    {\n      "name": "Sosyal Bilgiler",\n      "topics": [\n        {\n          "name": "Milli Uyanış",\n          "tests": [\n            { "name": "Klasik Çalışma Kağıdı 1", "questionCount": 5 },\n            { "name": "Klasik Çalışma Kağıdı 2", "questionCount": 8 }\n          ]\n        }\n      ]\n    }\n  ]\n}`
+  };
+
+  const copyToClipboard = (key, text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedFormat(key);
+    setTimeout(() => setCopiedFormat(null), 2000);
   };
 
   return (
@@ -417,33 +436,86 @@ export default function BookManager() {
               <strong>{importModal.book?.title}</strong> kitabına ait dersleri, konuları ve testleri JSON formatında tek seferde ekleyin.
             </p>
             
-            <div style={{ background: 'rgba(124, 58, 237, 0.05)', border: '1px solid rgba(124, 58, 237, 0.2)', padding: '1rem', borderRadius: 'var(--border-radius-sm)', marginBottom: '1.5rem' }}>
-              <h4 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={16} /> Örnek JSON Formatı 
-                <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                  ({importModal.book?.bookType === 'open_ended' ? 'Açık Uçlu - Soru Sayılı' : 'Standart - Cevap Anahtarlı'})
+            <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <AlertCircle size={16} /> Kopyalanabilir Örnek JSON Formatları:
                 </span>
-              </h4>
-              <pre style={{ background: 'rgba(0,0,0,0.8)', color: '#a7f3d0', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.85rem', overflowX: 'auto' }}>
-                {getSampleJson(importModal.book?.bookType)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sampleCode = sampleJsonFormats[sampleFormatTab];
+                    copyToClipboard(sampleFormatTab, sampleCode);
+                    setJsonInput(sampleCode);
+                  }}
+                  className="btn btn-outline"
+                  style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  {copiedFormat === sampleFormatTab ? <Check size={14} /> : <Copy size={14} />} 
+                  {copiedFormat === sampleFormatTab ? 'Kopyalandı & Yapıştırıldı!' : 'Kopyala ve Kutuya Yapıştır'}
+                </button>
+              </div>
+
+              {/* Format Selection Sub-tabs */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setSampleFormatTab("standard")}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                    background: sampleFormatTab === "standard" ? '#4f46e5' : 'white',
+                    color: sampleFormatTab === "standard" ? 'white' : '#475569',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  📘 3 Kademeli (Ders &gt; Konu &gt; Test)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSampleFormatTab("direct")}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                    background: sampleFormatTab === "direct" ? '#4f46e5' : 'white',
+                    color: sampleFormatTab === "direct" ? 'white' : '#475569',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  📗 2 Kademeli (Ders &gt; Test)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSampleFormatTab("open_ended")}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
+                    background: sampleFormatTab === "open_ended" ? '#7c3aed' : 'white',
+                    color: sampleFormatTab === "open_ended" ? 'white' : '#475569',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  ✍️ Açık Uçlu / Klasik
+                </button>
+              </div>
+
+              <pre style={{ background: '#0f172a', color: '#38bdf8', padding: '0.85rem', borderRadius: '0.5rem', fontSize: '0.82rem', overflowX: 'auto', margin: 0, maxHeight: '180px' }}>
+                {sampleJsonFormats[sampleFormatTab]}
               </pre>
             </div>
             
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>JSON Verisini Buraya Yapıştırın</label>
               <textarea 
                 autoFocus 
                 value={jsonInput} 
                 onChange={(e) => setJsonInput(e.target.value)} 
-                placeholder='{"subjects": [...]}'
-                style={{ width: '100%', minHeight: '200px', padding: '1rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.2)', fontFamily: 'monospace', resize: 'vertical' }}
+                placeholder='Yukarıdaki "Kopyala ve Kutuya Yapıştır" butonuna basarak örnek veriyi buraya aktarabilir ve düzenleyebilirsiniz...'
+                style={{ width: '100%', minHeight: '180px', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 spellCheck={false}
               />
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button className="btn btn-outline" onClick={() => setImportModal({ isOpen: false, book: null })}>Vazgeç</button>
-              <button className="btn btn-primary" onClick={handleImportJson} style={{ background: 'var(--color-success)', borderColor: 'var(--color-success)' }}>Verileri Aktar</button>
+              <button className="btn btn-primary" onClick={handleImportJson} style={{ background: 'var(--color-success)', borderColor: 'var(--color-success)', fontWeight: 800 }}>Verileri Aktar</button>
             </div>
           </div>
         </div>

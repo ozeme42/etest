@@ -1,25 +1,260 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { idbGetPayload } from '../../../services/indexedDbService';
+import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 
-export default function PdfQuizReview({ submission, test, questions }) {
+export default function PdfQuizReview({ submission, test, questions = [] }) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleGoBack = () => {
+    if (location.state?.from && !location.state.from.includes('/quiz/')) {
+      navigate(location.state.from, { replace: true });
+    } else {
+      navigate('/student', { replace: true });
+    }
+  };
 
   const answers = submission.answers || [];
-  const qCount = questions.length || submission.totalQuestions || test.questionCount || 10;
 
-  const correctCount = submission.correctCount || answers.filter(a => a.isCorrect === true).length;
-  const wrongCount = submission.wrongCount || answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length;
-  const blankCount = submission.blankCount || (qCount - correctCount - wrongCount);
+  const qCount = useMemo(() => {
+    let count = Number(
+      submission.totalQuestions ||
+      test.questionCount ||
+      test.totalQuestions ||
+      test.questionsCount ||
+      questions[0]?.questionCount ||
+      questions[0]?.totalQuestions ||
+      answers.length
+    );
+
+    const keyArray = test.answerKey || questions[0]?.answerKey;
+    if (Array.isArray(keyArray) && keyArray.length > 0) {
+      return Math.max(keyArray.length, answers.length);
+    }
+
+    if (answers.length > 1) {
+      return Math.max(answers.length, count || 1);
+    }
+
+    if (test.questionsList && test.questionsList.length > 0) {
+      return test.questionsList.length;
+    }
+
+    return (count && count > 1) ? count : (answers.length || 10);
+  }, [submission.totalQuestions, test, questions, answers]);
+
+  const [idbPdf, setIdbPdf] = useState(null);
+  const loadedRef = useRef(null);
+
+  const extractDirectPdf = (obj) => {
+    if (!obj) return null;
+    const candidates = [
+      obj.pdfPayload,
+      obj.contentPayload,
+      obj.url,
+      obj.pdfUrl,
+      obj.content,
+      obj.filePayload,
+      obj.payload,
+      obj.data
+    ];
+    return candidates.find(c => typeof c === 'string' && c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]') || null;
+  };
+
+  const getDirectPayload = () => {
+    let p = extractDirectPdf(test);
+    if (p) return p;
+
+    if (questions && questions.length > 0) {
+      for (const q of questions) {
+        p = extractDirectPdf(q);
+        if (p) return p;
+      }
+    }
+
+    if (test.questions && Array.isArray(test.questions)) {
+      for (const q of test.questions) {
+        p = extractDirectPdf(q);
+        if (p) return p;
+      }
+    }
+
+    if (test.questionsList && Array.isArray(test.questionsList)) {
+      for (const q of test.questionsList) {
+        p = extractDirectPdf(q);
+        if (p) return p;
+      }
+    }
+
+    return null;
+  };
+
+  useEffect(() => {
+    const direct = getDirectPayload();
+    if (direct) return;
+    if (loadedRef.current === test.id) return;
+
+    async function loadFromIdb() {
+      const rawIds = [
+        test.id,
+        test.id?.replace(/^hw_/, ''),
+        test.id?.replace(/^hw_/, 'q_'),
+        ...(test.questionIds || []),
+        ...(questions || []).map(q => q.id),
+        ...(test.questions || []).map(q => q.id),
+        ...(test.questionsList || []).map(q => q.id)
+      ];
+
+      const idsToTry = [];
+      rawIds.forEach(id => {
+        if (!id) return;
+        const strId = typeof id === 'object' ? (id.id || id.questionId) : String(id);
+        if (strId) {
+          idsToTry.push(strId);
+          idsToTry.push(strId.replace(/^q_?/, ''));
+          idsToTry.push(strId.replace(/^q_?/, 'q'));
+          idsToTry.push(strId.replace(/^q_?/, 'q_'));
+          idsToTry.push(strId.replace(/^hw_/, ''));
+          idsToTry.push(strId.replace(/^hw_/, 'q'));
+          idsToTry.push(strId.replace(/^hw_/, 'q_'));
+          idsToTry.push(`q_${strId}`);
+          idsToTry.push(`q${strId}`);
+        }
+      });
+
+      const uniqueIds = [...new Set(idsToTry)];
+
+      for (const id of uniqueIds) {
+        try {
+          const val = await idbGetPayload(id);
+          if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
+            loadedRef.current = test.id;
+            setIdbPdf(val);
+            return;
+          }
+        } catch (e) {}
+      }
+    }
+    loadFromIdb();
+  }, [test.id, test.contentPayload, test.pdfPayload, test.questionIds, questions]);
+
+  const pdfPayload = getDirectPayload() || idbPdf;
+
+  const isEvaluated = Boolean(
+    submission?.isEvaluatedByTeacher ||
+    submission?.status === 'completed' ||
+    submission?.status === 'evaluated' ||
+    submission?.status === 'graded'
+  );
+
+  const stats = useMemo(() => {
+    if (submission?.correctCount !== undefined && submission?.wrongCount !== undefined && isEvaluated) {
+      return {
+        correctCount: submission.correctCount || 0,
+        wrongCount: submission.wrongCount || 0,
+        blankCount: submission.blankCount ?? Math.max(0, qCount - ((submission.correctCount || 0) + (submission.wrongCount || 0)))
+      };
+    }
+
+    let cCount = 0;
+    let wCount = 0;
+    let bCount = 0;
+
+    Array.from({ length: qCount }).forEach((_, idx) => {
+      const qNo = idx + 1;
+      const qObj = questions[idx] || questions[0] || {};
+      const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
+
+      const userAns = ansObj.userAnswer;
+      const textAns = ansObj.userAnswerText;
+
+      const isCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
+        ? ansObj.isCorrect
+        : checkIsAnswerCorrect(userAns, qObj, test, qNo);
+
+      const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+
+      if (isCorrect === true) {
+        cCount++;
+      } else if (isCorrect === false && (hasAnswer || ansObj.score === 0)) {
+        wCount++;
+      } else if (hasAnswer) {
+        cCount++;
+      } else if (textAns) {
+        if (isCorrect === true) cCount++;
+        else if (isCorrect === false) wCount++;
+        else bCount++;
+      } else {
+        bCount++;
+      }
+    });
+
+    return {
+      correctCount: cCount,
+      wrongCount: wCount,
+      blankCount: bCount
+    };
+  }, [qCount, questions, answers, test, submission, isEvaluated]);
+
+  const isOpenEndedMode = useMemo(() => {
+    if (
+      test.questionType === 'acik_uclu' ||
+      test.questionType === 'yazili' ||
+      test.type === 'acik_uclu' ||
+      test.type === 'yazili' ||
+      test.contentType === 'acik_uclu' ||
+      test.contentType === 'yazili' ||
+      test.isOpenEnded
+    ) {
+      return true;
+    }
+
+    if (test.title && (
+      test.title.toLowerCase().includes('açık uçlu') ||
+      test.title.toLowerCase().includes('acik uclu') ||
+      test.title.toLowerCase().includes('yazılı') ||
+      test.title.toLowerCase().includes('yazili')
+    )) {
+      return true;
+    }
+
+    if (questions.some(q =>
+      q.type === 'acik_uclu' ||
+      q.type === 'yazili' ||
+      q.contentType === 'acik_uclu' ||
+      q.contentType === 'yazili' ||
+      q.isOpenEnded
+    )) {
+      return true;
+    }
+
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli'
+    ) {
+      return false;
+    }
+
+    return false;
+  }, [test, questions]);
+
+  const { correctCount, wrongCount, blankCount } = stats;
+  const totalCount = correctCount + wrongCount + blankCount;
+  const scorePercentage = (submission?.score !== undefined && submission?.score !== null)
+    ? submission.score
+    : (totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: 'white' }}>
       {/* Header */}
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', flexShrink: 0 }}>
+      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
             style={{
               padding: '0.45rem 0.85rem',
               borderRadius: '0.75rem',
@@ -43,23 +278,44 @@ export default function PdfQuizReview({ submission, test, questions }) {
         </div>
 
         {/* Score Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ background: '#064e3b', color: '#34d399', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #059669' }}>
-            ✓ {correctCount} Doğru
+        {isOpenEndedMode && !isEvaluated ? (
+          <div style={{
+            background: 'linear-gradient(135deg, #78350f, #92400e)',
+            color: '#fef3c7',
+            padding: '0.45rem 1.1rem',
+            borderRadius: '0.75rem',
+            fontWeight: 900,
+            fontSize: '0.85rem',
+            border: '1px solid #f59e0b',
+            boxShadow: '0 2px 10px rgba(245,158,11,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}>
+            ✍️ Değerlendirme Bekliyor
           </div>
-          <div style={{ background: '#7f1d1d', color: '#f87171', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #dc2626' }}>
-            ✕ {wrongCount} Yanlış
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ background: '#064e3b', color: '#34d399', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #059669' }}>
+              ✓ {correctCount} Doğru
+            </div>
+            <div style={{ background: '#7f1d1d', color: '#f87171', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #dc2626' }}>
+              ✕ {wrongCount} Yanlış
+            </div>
+            <div style={{ background: '#334155', color: '#94a3b8', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
+              ○ {blankCount} Boş
+            </div>
+            <div style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: '#e0e7ff', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #6366f1', boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }}>
+              🎯 %{scorePercentage} Başarı
+            </div>
           </div>
-          <div style={{ background: '#334155', color: '#94a3b8', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
-            ○ {blankCount} Boş
-          </div>
-        </div>
+        )}
       </header>
 
       {/* Split Screen */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <div style={{ flex: 1, height: '100%', borderRight: '1px solid #334155', background: '#0f172a' }}>
-          <PdfViewerWithControls payload={test.contentPayload || test.pdfPayload} title={test.title} height="100%" />
+          <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
         </div>
 
         <div style={{ width: '400px', flexShrink: 0, height: '100%', background: '#1e293b', overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -70,39 +326,64 @@ export default function PdfQuizReview({ submission, test, questions }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
-              const qObj = questions[idx] || {};
-              const ansObj = answers.find(a => (a.questionNo === qNo || a.questionId === qObj.id)) || answers[idx] || {};
+              const qObj = questions[idx] || questions[0] || {};
+              const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
 
               const userAns = ansObj.userAnswer;
               const textAns = ansObj.userAnswerText;
-              const correctAns = qObj.correctAnswer;
-              const isCorrect = ansObj.isCorrect;
 
-              const isBlank = userAns === null || userAns === undefined;
+              const isCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
+                ? ansObj.isCorrect
+                : checkIsAnswerCorrect(userAns, qObj, test, qNo);
+
+              const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
               const isText = !!textAns;
+
+              const keySource = test.answerKey || qObj.answerKey || test.opticAnswers || qObj.opticAnswers;
+              const rawCorrectKey = Array.isArray(keySource)
+                ? keySource[qNo - 1]
+                : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : qObj.correctAnswer);
+
+              const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
+                ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
+                : null;
+
+              const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
 
               return (
                 <div
                   key={qNo}
                   style={{
-                    background: isCorrect === true ? 'rgba(16,185,129,0.1)' : isCorrect === false ? 'rgba(239,68,68,0.1)' : '#0f172a',
+                    background: (isItemOE && !isEvaluated) ? '#0f172a' : (isCorrect === true ? 'rgba(16,185,129,0.1)' : isCorrect === false ? 'rgba(239,68,68,0.1)' : '#0f172a'),
                     padding: '1rem',
                     borderRadius: '0.85rem',
-                    border: `1px solid ${isCorrect === true ? '#059669' : isCorrect === false ? '#dc2626' : '#334155'}`
+                    border: `1px solid ${(isItemOE && !isEvaluated) ? '#334155' : (isCorrect === true ? '#059669' : isCorrect === false ? '#dc2626' : '#334155')}`
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>Soru {qNo}</span>
-                    {isCorrect === true ? (
-                      <span style={{ color: '#34d399', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <CheckCircle size={15} /> DOĞRU
-                      </span>
-                    ) : isCorrect === false ? (
-                      <span style={{ color: '#f87171', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <XCircle size={15} /> YANLIŞ
-                      </span>
+                    {isItemOE && !isEvaluated ? (
+                      isText ? (
+                        <span style={{ color: '#f59e0b', fontWeight: 900, fontSize: '0.8rem' }}>✍️ DEĞERLENDİRME BEKLİYOR</span>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
+                      )
+                    ) : hasAnswer ? (
+                      isCorrect === true ? (
+                        <span style={{ color: '#34d399', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <CheckCircle size={15} /> DOĞRU
+                        </span>
+                      ) : isCorrect === false ? (
+                        <span style={{ color: '#f87171', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          <XCircle size={15} /> YANLIŞ
+                        </span>
+                      ) : (
+                        <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.8rem' }}>✓ CEVAPLANDI</span>
+                      )
+                    ) : isText ? (
+                      <span style={{ color: '#f59e0b', fontWeight: 900, fontSize: '0.8rem' }}>✍️ YAZILI YANIT</span>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ / İNCELEMEDE</span>
+                      <span style={{ color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
                     )}
                   </div>
 
@@ -117,15 +398,15 @@ export default function PdfQuizReview({ submission, test, questions }) {
                     <div style={{ display: 'flex', justifyBetween: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>SENİN CEVABIN: </span>
-                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#34d399' : isCorrect === false ? '#f87171' : '#94a3b8' }}>
-                          {!isBlank ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
+                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#34d399' : isCorrect === false ? '#f87171' : '#38bdf8' }}>
+                          {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
                         </span>
                       </div>
-                      {correctAns !== undefined && (
+                      {displayCorrectKey && (
                         <div>
                           <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>DOĞRU CEVAP: </span>
                           <span style={{ fontWeight: 900, color: '#34d399' }}>
-                            {typeof correctAns === 'number' ? String.fromCharCode(65 + correctAns) : correctAns}
+                            {displayCorrectKey}
                           </span>
                         </div>
                       )}

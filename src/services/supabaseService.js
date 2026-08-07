@@ -363,7 +363,19 @@ export async function dbGetSubmissions(studentId) {
       emptyCount: s.empty_count,
       subject: s.subject,
       title: s.title,
+      testTitle: s.test_title || s.title,
+      status: s.status || (s.is_evaluated_by_teacher ? 'completed' : 'pending_evaluation'),
+      isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || s.status === 'completed' || s.status === 'evaluated'),
+      teacherFeedback: s.teacher_feedback || null,
+      totalScorePoints: s.total_score_points || null,
+      maxPossibleScore: s.max_possible_score || null,
+      evaluatedAt: s.evaluated_at || null,
       answers: s.answers || [],
+      questions: s.questions || [],
+      contentPayload: s.content_payload || null,
+      imageUrl: s.image_url || null,
+      imageUrls: s.image_urls || [],
+      contentType: s.content_type || null,
       createdAt: s.created_at
     }));
   } catch (err) {
@@ -384,8 +396,17 @@ export async function dbSaveSubmission(sub) {
       wrong_count: sub.wrongCount || 0,
       empty_count: sub.emptyCount || 0,
       subject: sub.subject || 'Genel',
-      title: sub.title || 'Sınav',
-      answers: sub.answers || []
+      title: sub.title || sub.testTitle || 'Sınav',
+      test_title: sub.testTitle || sub.title || 'Sınav',
+      status: sub.status || 'pending_evaluation',
+      is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || sub.status === 'completed' || sub.status === 'evaluated'),
+      teacher_feedback: sub.teacherFeedback || null,
+      total_score_points: sub.totalScorePoints || null,
+      max_possible_score: sub.maxPossibleScore || null,
+      evaluated_at: sub.evaluatedAt || null,
+      answers: sub.answers || [],
+      questions: sub.questions || [],
+      content_type: sub.contentType || null
     };
     const { data, error } = await supabase.from('submissions').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
@@ -483,14 +504,14 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
       const arr = fileOrDataUrl.split(',');
       const mimeMatch = arr[0].match(/:(.*?);/);
       const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
-      fileExt = mime.includes('pdf') ? 'pdf' : (mime.includes('image') ? 'png' : 'bin');
+      fileExt = mime.includes('pdf') ? 'pdf' : (mime.includes('html') ? 'html' : (mime.includes('image') ? 'png' : 'bin'));
       const bstr = atob(arr[1]);
       let n = bstr.length;
       const u8arr = new Uint8Array(n);
       while (n--) {
         u8arr[n] = bstr.charCodeAt(n);
       }
-      fileBlob = new Blob([u8arr], { type: mime });
+      fileBlob = new Blob([u8arr], { type: mime.includes('html') ? 'text/html; charset=utf-8' : mime });
     } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
       fileBlob = fileOrDataUrl;
       if (fileOrDataUrl.name) {
