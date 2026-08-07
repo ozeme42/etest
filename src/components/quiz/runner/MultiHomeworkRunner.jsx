@@ -480,6 +480,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     }
 
     if (Array.isArray(rawSections) && rawSections.length > 0) {
+      const isSingleSec = rawSections.length === 1;
+
       return rawSections.map((sec, idx) => {
         const qId = sec.questionId || sec.id || sec.testId || sec.bankQId;
         let foundInBank = qId ? findInAllSources(qId) : null;
@@ -502,16 +504,31 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         if ((!resolvedQuestions || resolvedQuestions.length === 0) && isReviewMode && userAnswers) {
           const rawAns = userAnswers.answers || userAnswers.formattedAnswers || userAnswers;
           if (Array.isArray(rawAns)) {
-            const secAns = rawAns.filter(a => String(a.sectionId) === String(sec.id) || a.sectionTitle === sec.title);
+            const secAns = isSingleSec ? rawAns : rawAns.filter(a =>
+              String(a.sectionId) === String(sec.id) ||
+              String(a.sectionId) === String(qId) ||
+              (a.questionId && (String(a.questionId).startsWith(String(sec.id)) || String(a.questionId).startsWith(String(qId)))) ||
+              a.sectionTitle === sec.title
+            );
             if (secAns.length > 0) {
-              resolvedQuestions = secAns.map(a => ({
-                id: a.questionId || `${sec.id}_${a.questionNo}`,
-                questionText: a.questionText || `Soru ${a.questionNo || 1}`,
+              resolvedQuestions = secAns.map((a, aIdx) => ({
+                id: a.questionId || `${sec.id}_${a.questionNo || aIdx + 1}`,
+                questionText: a.questionText || a.text || `Soru ${a.questionNo || aIdx + 1}`,
                 options: a.options || ['A', 'B', 'C', 'D', 'E'],
                 correctAnswer: a.correctAnswer !== undefined ? a.correctAnswer : 0
               }));
             }
           }
+        }
+
+        // Check questions prop if still empty
+        if ((!resolvedQuestions || resolvedQuestions.length === 0) && questions && questions.length > 0) {
+          const secQs = isSingleSec ? questions : questions.filter(q =>
+            String(q.sectionId) === String(sec.id) ||
+            String(q.sectionId) === String(qId) ||
+            q.sectionTitle === sec.title
+          );
+          resolvedQuestions = (secQs && secQs.length > 0) ? secQs : questions;
         }
 
         const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
@@ -598,11 +615,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       resolvedQuestions: finalQs,
       qCount: finalQs.length || 1
     }];
-  }, [test, questions, allBankQuestions, isReviewMode, userAnswers]);
+  }, [test, questions, allBankQuestions, findInAllSources, isReviewMode, userAnswers]);
 
   const [activeSecIdx, setActiveSecIdx] = useState(0);
   const activeSec = sections[activeSecIdx] || sections[0];
 
+  // 2. Initialize answer state cleanly per section
   const [sectionAnswers, setSectionAnswers] = useState(() => {
     if (isReviewMode && userAnswers) {
       const rawAns = userAnswers.answers || userAnswers.formattedAnswers || userAnswers.answersMap || userAnswers.userAnswers || userAnswers;
@@ -612,6 +630,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       if (Array.isArray(rawAns)) {
         rawAns.forEach((item, idx) => {
           let targetSec = sections.find(s => String(s.id) === String(item.sectionId)) ||
+                          sections.find(s => String(s.bankQ?.id) === String(item.sectionId)) ||
+                          sections.find(s => String(s.bankQ?.questionId) === String(item.sectionId)) ||
                           sections.find(s => s.title === item.sectionTitle);
 
           if (!targetSec) {
