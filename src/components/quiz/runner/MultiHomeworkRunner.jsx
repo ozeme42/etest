@@ -220,6 +220,189 @@ function RightOptikPanel({
   );
 }
 
+// ─── MULTI RESULT MODAL COMPONENT ─────────────────────────────────────────────
+function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
+  let totalMCQuestions = 0;
+  let totalMCDoğru = 0;
+  let totalMCYanlış = 0;
+  let totalMCBoş = 0;
+
+  let totalOEQuestions = 0;
+  let totalOECevaplanan = 0;
+
+  const sectionStats = sections.map((sec, idx) => {
+    const bankQ = sec.bankQ || {};
+    const isSecOE = checkIsOE(bankQ);
+    const sa = sectionAnswers[sec.id] || { answers: {}, openEndedText: {} };
+
+    let mcDoğru = 0;
+    let mcYanlış = 0;
+    let mcBoş = 0;
+    let oeCevaplanan = 0;
+    let hasAnyOE = isSecOE;
+
+    for (let i = 1; i <= sec.qCount; i++) {
+      const qObj = (sec.resolvedQuestions && sec.resolvedQuestions[i - 1]) || {};
+      const isQOE = isSecOE || checkIsOE(qObj);
+
+      if (isQOE) {
+        hasAnyOE = true;
+        totalOEQuestions++;
+        const textVal = sa.openEndedText?.[i] || '';
+        if (textVal && textVal.trim() !== '') {
+          oeCevaplanan++;
+          totalOECevaplanan++;
+        }
+      } else {
+        totalMCQuestions++;
+        const userAnsObj = sa.answers?.[i];
+        const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+
+        if (userAns === undefined || userAns === null) {
+          mcBoş++;
+          totalMCBoş++;
+        } else {
+          const correctAns = qObj.correctAnswer;
+          const isCorrect = (correctAns !== null && correctAns !== undefined)
+            ? userAns === correctAns
+            : (typeof userAnsObj === 'object' && userAnsObj.isCorrect === true);
+
+          if (isCorrect) {
+            mcDoğru++;
+            totalMCDoğru++;
+          } else {
+            mcYanlış++;
+            totalMCYanlış++;
+          }
+        }
+      }
+    }
+
+    const mcNet = Math.max(0, mcDoğru - (mcYanlış * 0.25));
+
+    return {
+      title: sec.title || `${idx + 1}. Bölüm`,
+      qCount: sec.qCount,
+      isOE: hasAnyOE,
+      mcDoğru,
+      mcYanlış,
+      mcBoş,
+      mcNet,
+      oeCevaplanan
+    };
+  });
+
+  const totalMCNet = Math.max(0, totalMCDoğru - (totalMCYanlış * 0.25));
+  const hasOE = totalOEQuestions > 0;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
+      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.5rem', width: '100%', maxWidth: '750px', color: '#f8fafc', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', margin: 'auto' }}>
+        
+        {/* TOP HEADER */}
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', boxShadow: '0 0 30px rgba(16,185,129,0.4)' }}>
+            🎉
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>Sınav Başarıyla Gönderildi!</h2>
+          <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: 0 }}>{test.title || test.name}</p>
+        </div>
+
+        {/* TEACHER EVALUATION ALERT BANNER */}
+        {hasOE && (
+          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15))', border: '1.5px solid #818cf8', borderRadius: '1rem', padding: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{ fontSize: '1.8rem' }}>⏳</div>
+            <div>
+              <h4 style={{ margin: '0 0 0.3rem 0', fontWeight: 900, color: '#c084fc', fontSize: '0.95rem' }}>
+                Yazılı / Açık Uçlu Cevaplarınız Öğretmen Değerlendirmesine Gönderildi
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                Çoktan seçmeli sorularınızın puan ve net hesaplaması tamamlanmıştır. Açık uçlu ({totalOEQuestions} soru) yanıtlarınız ise öğretmeniniz tarafından incelenip puanlandıktan sonra karnenize yansıyacaktır.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* OVERALL SUMMARY CARDS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+          <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800 }}>ÇOKTAN SEÇMELİ NET</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#38bdf8', marginTop: '0.2rem' }}>{totalMCNet.toFixed(2)}</div>
+          </div>
+          <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800 }}>DOĞRU / YANLIŞ</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#34d399', marginTop: '0.3rem' }}>
+              {totalMCDoğru} <span style={{ fontSize: '0.85rem', color: '#f87171' }}>D / {totalMCYanlış} Y</span>
+            </div>
+          </div>
+          <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#c084fc', marginTop: '0.3rem' }}>
+              {totalOECevaplanan} / {totalOEQuestions}
+            </div>
+          </div>
+        </div>
+
+        {/* BÖLÜM BAZLI DETAYLAR */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#cbd5e1' }}>📊 Bölüm Bazlı Sonuç Özeti</h4>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {sectionStats.map((secStat, sIdx) => (
+              <div key={sIdx} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '0.85rem', padding: '0.85rem 1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <span style={{ padding: '0.25rem 0.55rem', background: secStat.isOE ? '#7c3aed' : '#0284c7', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 900, color: 'white' }}>
+                    {secStat.isOE ? '✍️ Yazılı Bölüm' : '📝 Test Bölümü'}
+                  </span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#f8fafc' }}>{secStat.title}</span>
+                </div>
+
+                {secStat.isOE ? (
+                  <span style={{ padding: '0.3rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(192,132,252,0.15)', border: '1px solid #c084fc', color: '#c084fc', fontSize: '0.8rem', fontWeight: 900 }}>
+                    ⏳ Öğretmen Değerlendirmesinde ({secStat.oeCevaplanan}/{secStat.qCount} Yanıt)
+                  </span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.82rem', fontWeight: 800 }}>
+                    <span style={{ color: '#34d399' }}>{secStat.mcDoğru} Doğru</span>
+                    <span style={{ color: '#f87171' }}>{secStat.mcYanlış} Yanlış</span>
+                    <span style={{ color: '#94a3b8' }}>{secStat.mcBoş} Boş</span>
+                    <span style={{ padding: '0.2rem 0.6rem', background: '#0369a1', borderRadius: '0.4rem', color: 'white', fontWeight: 900 }}>
+                      Net: {secStat.mcNet.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CONFIRM BUTTON */}
+        <button
+          onClick={onConfirmClose}
+          style={{
+            marginTop: '0.5rem',
+            padding: '0.9rem 1.5rem',
+            borderRadius: '0.85rem',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            border: 'none',
+            color: 'white',
+            fontWeight: 900,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <CheckCircle2 size={20} /> Sonuçları Onayla ve Tamamla
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
 export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
   const { questions: allBankQuestions } = useQuestionBank();
@@ -452,6 +635,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
     });
   };
 
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [submissionAnswers, setSubmissionAnswers] = useState(null);
+
   const handleSubmit = () => {
     try {
       localStorage.removeItem(`${draftKey}_ans`);
@@ -485,7 +671,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
       }
     });
 
-    onSubmit(formattedAnswers);
+    setSubmissionAnswers(formattedAnswers);
+    setShowResultModal(true);
+  };
+
+  const handleConfirmCloseResult = () => {
+    if (submissionAnswers) {
+      onSubmit(submissionAnswers);
+    }
   };
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
@@ -1021,6 +1214,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
           </div>
         )}
       </div>
+
+      {showResultModal && (
+        <MultiResultModal
+          test={test}
+          sections={sections}
+          sectionAnswers={sectionAnswers}
+          onConfirmClose={handleConfirmCloseResult}
+        />
+      )}
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
     </div>
