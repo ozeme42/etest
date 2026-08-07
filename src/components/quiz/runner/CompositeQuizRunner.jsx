@@ -395,137 +395,152 @@ function ImageSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerChange
   );
 }
 
-// ─── STANDARD / WRITTEN SECTION RENDERER ──────────────────────────────────────
-function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerChange }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
+// ─── STANDARD / WRITTEN SECTION RENDERER (ALL QUESTIONS STACKED ON 1 PAGE) ──────
+function StandardSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerChange }) {
   const qCount = resolvedQuestions.length || bankQ.questionCount || 1;
-  const activeQ = resolvedQuestions[currentIdx] || bankQ || {};
-  const sectionOE = checkIsOE(bankQ) || checkIsOE(activeQ);
+  const sectionOE = checkIsOE(bankQ);
 
   const answers = sectionAnswers.answers || {};
   const openEndedText = sectionAnswers.openEndedText || {};
 
-  const handleSelect = (_qNo, optIdx) => {
-    const qNo = currentIdx + 1;
-    const correctAns = activeQ.correctAnswer;
+  const handleSelect = (qNo, optIdx, qObj) => {
+    const correctAns = qObj.correctAnswer;
     const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
-    onAnswerChange({ ...sectionAnswers, answers: { ...answers, [qNo]: { userAnswer: optIdx, isCorrect, questionId: activeQ.id } } });
+    onAnswerChange({
+      ...sectionAnswers,
+      answers: { ...answers, [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj.id } }
+    });
   };
 
-  const handleText = (_qNo, val) => {
-    const qNo = currentIdx + 1;
-    onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
+  const handleText = (qNo, val) => {
+    onAnswerChange({
+      ...sectionAnswers,
+      openEndedText: { ...openEndedText, [qNo]: val }
+    });
   };
-
-  const options = (activeQ.options && activeQ.options.length > 0) ? activeQ.options : ['A', 'B', 'C', 'D', 'E'];
-  const qText = activeQ.questionText || activeQ.text || activeQ.title || activeQ.questionTitle || activeQ.name || (activeQ.contentPayload && !activeQ.contentPayload.startsWith('data:') ? activeQ.contentPayload : null) || bankQ.questionText || bankQ.text || bankQ.title || bankQ.name || `Soru ${currentIdx + 1}`;
-
-  const rawImages = (activeQ.imageUrls && activeQ.imageUrls.length > 0)
-    ? activeQ.imageUrls
-    : (activeQ.imageUrl ? [activeQ.imageUrl] : (activeQ.contentPayload && activeQ.contentPayload.startsWith('data:image') ? [activeQ.contentPayload] : []));
-  const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-      <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflow: 'auto', padding: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          {Array.from({ length: qCount }).map((_, i) => (
-            <button key={i} onClick={() => setCurrentIdx(i)} style={{
-              width: 32, height: 32, borderRadius: '0.4rem', border: currentIdx === i ? '2px solid #6366f1' : '1px solid #cbd5e1',
-              background: currentIdx === i ? '#6366f1' : 'white', color: currentIdx === i ? 'white' : '#374151',
-              fontWeight: 900, cursor: 'pointer', fontSize: '0.8rem'
-            }}>{i + 1}</button>
-          ))}
-        </div>
+      
+      {/* ── Left / Center Area: All Questions Stacked Vertically on 1 Page ── */}
+      <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        
+        {Array.from({ length: qCount }).map((_, idx) => {
+          const qNo = idx + 1;
+          const qObj = resolvedQuestions[idx] || bankQ || {};
+          const isQOpenEnded = sectionOE || checkIsOE(qObj);
 
-        <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <span style={{ fontWeight: 900, color: '#6366f1', fontSize: '0.85rem' }}>SORU {currentIdx + 1}</span>
-            {sectionOE && (
-              <span style={{ padding: '0.2rem 0.6rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem', border: '1px solid #c7d2fe' }}>
-                ✍️ Açık Uçlu / Yazılı
-              </span>
-            )}
-          </div>
+          const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || bankQ.questionText || bankQ.text || bankQ.title || bankQ.name || `Soru ${qNo}`;
 
-          {imageUrls.map((url, imgIdx) => (
-            <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${currentIdx + 1} Görsel`} />
-          ))}
+          const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
+            ? qObj.imageUrls
+            : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
+          const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65, marginBottom: '1.25rem' }}>
-            {qText}
-          </div>
+          const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
+          const userAnsObj = answers[qNo];
+          const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+          const textVal = openEndedText[qNo] || '';
 
-          {!sectionOE ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {options.map((opt, optIdx) => {
-                const isSelected = (typeof answers[currentIdx + 1] === 'object' ? answers[currentIdx + 1]?.userAnswer : answers[currentIdx + 1]) === optIdx;
-                const optLetter = String.fromCharCode(65 + optIdx);
-                let optText = '';
-                if (typeof opt === 'string') {
-                  optText = opt;
-                } else if (opt && typeof opt === 'object') {
-                  optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
-                }
-                const showText = Boolean(optText && optText.trim() !== optLetter);
-
-                return (
-                  <button key={optIdx} onClick={() => handleSelect(null, optIdx)} style={{
-                    padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
-                    border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
-                    background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
-                    color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
-                    display: 'flex', alignItems: 'center'
-                  }}>
-                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
-                      {optLetter})
+          return (
+            <div key={qNo} id={`question_card_${qNo}`} style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              {/* Question Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ padding: '0.25rem 0.65rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                    SORU {qNo}
+                  </span>
+                  {isQOpenEnded && (
+                    <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
+                      ✍️ Açık Uçlu / Yazılı
                     </span>
-                    <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
-                      {showText ? optText : `Seçenek ${optLetter}`}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-              <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
-                ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
-              </label>
-              <textarea
-                value={openEndedText[currentIdx + 1] || ''}
-                onChange={e => handleText(null, e.target.value)}
-                placeholder="Yanıtınızı detaylı bir şekilde açıklayınız..."
-                rows={5}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
-              />
-            </div>
-          )}
-        </div>
+                  )}
+                </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-          <button onClick={() => setCurrentIdx(p => Math.max(0, p - 1))} disabled={currentIdx === 0} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === 0 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === 0 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>← Önceki Soru</button>
-          <button onClick={() => setCurrentIdx(p => Math.min(qCount - 1, p + 1))} disabled={currentIdx === qCount - 1} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === qCount - 1 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === qCount - 1 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>Sonraki Soru →</button>
-        </div>
+                {selectedOpt !== undefined || textVal ? (
+                  <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    ✓ Cevaplandı
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
+                    — Yanıtlanmadı
+                  </span>
+                )}
+              </div>
+
+              {/* Question Images */}
+              {imageUrls.map((url, imgIdx) => (
+                <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
+              ))}
+
+              {/* Question Text */}
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65 }}>
+                {qText}
+              </div>
+
+              {/* Multiple Choice Options or Written Input */}
+              {!isQOpenEnded ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
+                  {options.map((opt, optIdx) => {
+                    const isSelected = selectedOpt === optIdx;
+                    const optLetter = String.fromCharCode(65 + optIdx);
+                    let optText = '';
+                    if (typeof opt === 'string') {
+                      optText = opt;
+                    } else if (opt && typeof opt === 'object') {
+                      optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
+                    }
+                    const showText = Boolean(optText && optText.trim() !== optLetter);
+
+                    return (
+                      <button key={optIdx} onClick={() => handleSelect(qNo, optIdx, qObj)} style={{
+                        padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
+                        border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
+                        background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
+                        color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
+                        display: 'flex', alignItems: 'center'
+                      }}>
+                        <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                          {optLetter})
+                        </span>
+                        <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
+                          {showText ? optText : `Seçenek ${optLetter}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
+                    ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
+                  </label>
+                  <textarea
+                    value={textVal}
+                    onChange={e => handleText(qNo, e.target.value)}
+                    placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                    rows={4}
+                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* ── Right Area: Live Optik Panel for Quick Coding ── */}
       <InlineOptikPanel
         qCount={qCount}
         answers={answers}
         openEndedText={openEndedText}
         isOpenEndedMode={sectionOE}
         onOptionSelect={(qNo, optIdx) => {
-          const idx = qNo - 1;
-          setCurrentIdx(idx);
-          const qObj = resolvedQuestions[idx] || bankQ || {};
-          const correctAns = qObj.correctAnswer;
-          const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
-          onAnswerChange({ ...sectionAnswers, answers: { ...answers, [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj.id } } });
+          const qObj = resolvedQuestions[qNo - 1] || bankQ || {};
+          handleSelect(qNo, optIdx, qObj);
         }}
-        onTextChange={(qNo, val) => {
-          const idx = qNo - 1;
-          setCurrentIdx(idx);
-          onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
-        }}
+        onTextChange={(qNo, val) => handleText(qNo, val)}
       />
     </div>
   );
