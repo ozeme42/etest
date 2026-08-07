@@ -746,9 +746,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
             />
           </div>
         ) : (
-          /* STANDARD QUESTION CARDS + OPTIK PANEL */
+          /* STANDARD QUESTION CARDS + OPTIK PANEL (DARK THEME) */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               
               {/* SECTION BANNER */}
               <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -768,7 +768,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 </div>
               </div>
 
-              {/* QUESTION CARDS STACKED VERTICALLY */}
+              {/* QUESTION CARDS STACKED VERTICALLY (DARK THEME) */}
               {Array.from({ length: activeSec.qCount }).map((_, idx) => {
                 const qNo = idx + 1;
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
@@ -788,12 +788,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 const textVal = activeSecState.openEndedText?.[qNo] || '';
 
                 return (
-                  <div key={qNo} style={{ background: 'white', borderRadius: '1.1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div key={qNo} style={{ background: '#1e293b', borderRadius: '1.1rem', border: '1px solid #334155', padding: '1.5rem', boxShadow: '0 4px 14px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     
                     {/* QUESTION HEADER */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ padding: '0.3rem 0.75rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                        <span style={{ padding: '0.3rem 0.75rem', background: '#6366f1', color: 'white', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
                           SORU {qNo}
                         </span>
                         {isQOpenEnded && (
@@ -804,9 +804,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                       </div>
 
                       {selectedOpt !== undefined || textVal ? (
-                        <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 900 }}>✓ Cevaplandı</span>
+                        <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
                       ) : (
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                        <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
                       )}
                     </div>
 
@@ -816,7 +816,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                     ))}
 
                     {/* QUESTION TEXT */}
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65 }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.65 }}>
                       {qText}
                     </div>
 
@@ -837,15 +837,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                           return (
                             <button key={optIdx} onClick={() => handleSelectOption(activeSec.id, qNo, optIdx, qObj)} style={{
                               padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
-                              border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
-                              background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
-                              color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
+                              border: isSelected ? '2px solid #818cf8' : '1.5px solid #334155',
+                              background: isSelected ? 'linear-gradient(135deg, #4f46e5, #3730a3)' : '#0f172a',
+                              color: isSelected ? 'white' : '#cbd5e1', transition: 'all 0.15s ease',
                               display: 'flex', alignItems: 'center'
                             }}>
-                              <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                              <span style={{ fontWeight: 900, color: isSelected ? '#a5b4fc' : '#38bdf8', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
                                 {optLetter})
                               </span>
-                              <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
+                              <span style={{ fontSize: '0.95rem', color: isSelected ? 'white' : '#f8fafc', fontWeight: 700 }}>
                                 {showText ? optText : `Seçenek ${optLetter}`}
                               </span>
                             </button>
@@ -854,7 +854,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
+                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#a5b4fc' }}>
                           ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
                         </label>
                         <textarea
@@ -862,7 +862,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                           onChange={e => handleTextChange(activeSec.id, qNo, e.target.value)}
                           placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
                           rows={4}
-                          style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                          style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: '#0f172a', border: '1.5px solid #475569', color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
                         />
                       </div>
                     )}
@@ -875,7 +875,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
                 <button
                   onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
                   disabled={activeSecIdx === 0}
-                  style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#cbd5e1' : '#334155', border: 'none', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 >
                   <ChevronLeft size={18} /> Önceki Bölüm
                 </button>
