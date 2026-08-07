@@ -67,12 +67,10 @@ export default function ModularQuizPage() {
           targetBookTests = [foundTest];
         }
 
-        const resolvedQs = [];
-        let globalQNo = 1;
-
-        targetBookTests.forEach(bt => {
+        const sections = targetBookTests.map((bt, secIdx) => {
           const qCount = bt.questionCount || 20;
           const ansKey = bt.answerKey || {};
+          const secQs = [];
 
           for (let i = 1; i <= qCount; i++) {
             let letterAns = null;
@@ -106,21 +104,39 @@ export default function ModularQuizPage() {
               }
             }
 
-            resolvedQs.push({
+            secQs.push({
               id: `${bt.id || 'bt'}_q${i}`,
-              questionNo: globalQNo++,
-              testName: bt.name || bt.title || 'Test',
+              questionNo: i,
+              testName: bt.name || bt.title || `Bölüm ${secIdx + 1}`,
               questionText: `${bt.name || 'Test'} - Soru ${i}`,
               questionCount: 1,
               correctAnswer: idxAns,
               correctAnswerLetter: letterAns
             });
           }
+
+          return {
+            id: bt.id || `sec_${secIdx}`,
+            title: bt.name || bt.title || `Bölüm ${secIdx + 1}`,
+            questionCount: qCount,
+            questions: secQs
+          };
         });
 
-        if (resolvedQs.length === 0 && foundTest.totalQuestions) {
+        let globalQNo = 1;
+        const allResolvedQs = [];
+        sections.forEach(sec => {
+          sec.questions.forEach(q => {
+            allResolvedQs.push({
+              ...q,
+              globalQuestionNo: globalQNo++
+            });
+          });
+        });
+
+        if (allResolvedQs.length === 0 && foundTest.totalQuestions) {
           for (let i = 1; i <= foundTest.totalQuestions; i++) {
-            resolvedQs.push({
+            allResolvedQs.push({
               id: `hw_q${i}`,
               questionNo: i,
               testName: foundTest.title || 'Kitap Ödevi',
@@ -132,7 +148,11 @@ export default function ModularQuizPage() {
           }
         }
 
-        setQuestions(resolvedQs);
+        setTest({
+          ...foundTest,
+          sections
+        });
+        setQuestions(allResolvedQs);
       } else {
         const resolved = resolveTestQuestions(foundTest, allBankQuestions);
         setQuestions(resolved);
