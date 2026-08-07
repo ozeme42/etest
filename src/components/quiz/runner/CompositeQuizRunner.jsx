@@ -22,9 +22,8 @@ function detectTestType(testObj, questionsList = []) {
   if (testObj.htmlPayload || testObj.contentType === 'html' || testObj.sourceFormat === 'html' || testObj.type === 'html') return 'html';
   if (testObj.sourceFormat === 'image' || testObj.contentType === 'gorsel' || testObj.type === 'gorsel' || (testObj.imageUrls && testObj.imageUrls.length > 0)) return 'image';
 
-  // If JSON package or optik package without detailed question text inside questions
-  const hasRealQuestionTexts = questionsList.some(q => q.questionText && q.questionText !== 'Soru' && !/^Soru\s+\d+$/i.test(q.questionText.trim()) && q.questionText.length > 10);
-  if ((testObj.contentType === 'json' || testObj.sourceFormat === 'physical' || testObj.sourceType === 'trackedBook' || testObj.bookId || testObj.isOptik) && !hasRealQuestionTexts) {
+  // Only return 'optic' for purely physical tracked books where questionsList is empty
+  if ((testObj.sourceFormat === 'physical' || testObj.sourceType === 'trackedBook' || testObj.isPhysicalOptic) && (!questionsList || questionsList.length === 0)) {
     return 'optic';
   }
 
@@ -502,6 +501,25 @@ function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerCha
           <button onClick={() => setCurrentIdx(p => Math.min(qCount - 1, p + 1))} disabled={currentIdx === qCount - 1} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === qCount - 1 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === qCount - 1 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>Sonraki Soru →</button>
         </div>
       </div>
+      <InlineOptikPanel
+        qCount={qCount}
+        answers={answers}
+        openEndedText={openEndedText}
+        isOpenEndedMode={sectionOE}
+        onOptionSelect={(qNo, optIdx) => {
+          const idx = qNo - 1;
+          setCurrentIdx(idx);
+          const qObj = resolvedQuestions[idx] || bankQ || {};
+          const correctAns = qObj.correctAnswer;
+          const isCorrect = (correctAns !== null && correctAns !== undefined) ? optIdx === correctAns : null;
+          onAnswerChange({ ...sectionAnswers, answers: { ...answers, [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj.id } } });
+        }}
+        onTextChange={(qNo, val) => {
+          const idx = qNo - 1;
+          setCurrentIdx(idx);
+          onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
+        }}
+      />
     </div>
   );
 }
