@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useCurriculum } from '../../../context/CurriculumContext';
