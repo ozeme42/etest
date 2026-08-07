@@ -21,6 +21,20 @@ function checkIsOE(obj) {
   );
 }
 
+// Helper to check PDF section
+function isPdfSection(bankQ) {
+  if (!bankQ) return false;
+  return Boolean(
+    bankQ.contentType === 'pdf' ||
+    bankQ.sourceFormat === 'pdf' ||
+    bankQ.formatType === 'pdf' ||
+    bankQ.type === 'pdf' ||
+    bankQ.pdfPayload ||
+    bankQ.pdfUrl ||
+    (typeof bankQ.contentPayload === 'string' && (bankQ.contentPayload.includes('.pdf') || bankQ.contentPayload.startsWith('data:application/pdf')))
+  );
+}
+
 // ─── RIGHT OPTIK PANEL ────────────────────────────────────────────────────────
 function RightOptikPanel({ qCount, answers, openEndedText, isOpenEnded, onOptionSelect, onTextChange }) {
   return (
@@ -362,6 +376,32 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
   const secOE = checkIsOE(activeSec.bankQ);
 
+  const [idbPayload, setIdbPayload] = useState(null);
+  const loadedRef = React.useRef(null);
+
+  const extractPayload = (obj) => {
+    const candidates = [obj?.contentPayload, obj?.pdfPayload, obj?.pdfUrl, obj?.url, obj?.content];
+    return candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]') || null;
+  };
+
+  const activeBankQ = activeSec.bankQ || {};
+  const isPdf = isPdfSection(activeBankQ) || isPdfSection(test);
+  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(test) || idbPayload;
+
+  useEffect(() => {
+    if (!isPdf) return;
+    const targetObj = activeBankQ.id ? activeBankQ : test;
+    if (extractPayload(targetObj) || loadedRef.current === targetObj.id) return;
+    async function load() {
+      const val = await idbGetPayload(targetObj.id);
+      if (val && val !== '[STORED_IN_INDEXEDDB]') {
+        loadedRef.current = targetObj.id;
+        setIdbPayload(val);
+      }
+    }
+    load();
+  }, [activeBankQ, test, isPdf]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
       
@@ -453,172 +493,194 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT AREA (QUESTIONS STACKED ON 1 PAGE + RIGHT OPTIK PANEL) ── */}
+      {/* ── MAIN CONTENT AREA ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         
-        {/* CENTER / SCROLLABLE QUESTIONS LIST FOR ACTIVE SECTION */}
-        <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
-          {/* SECTION BANNER */}
-          <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FileSpreadsheet size={24} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-                  Bu bölümdeki {activeSec.qCount} sorunun tamamı aşağıda sıralanmıştır.
-                </p>
-              </div>
+        {isPdf ? (
+          /* PDF VIEWER + OPTIK PANEL ONLY */
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
+              <PdfViewerWithControls payload={activePdfPayload} title={activeSec.title} height="100%" />
             </div>
-            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
-              Bölüm {activeSecIdx + 1} / {sections.length}
-            </div>
+            <RightOptikPanel
+              qCount={activeSec.qCount}
+              answers={activeSecState.answers || {}}
+              openEndedText={activeSecState.openEndedText || {}}
+              isOpenEnded={secOE}
+              onOptionSelect={(qNo, optIdx) => {
+                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+              }}
+              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+            />
           </div>
+        ) : (
+          /* STANDARD QUESTION CARDS + OPTIK PANEL */
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              
+              {/* SECTION BANNER */}
+              <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileSpreadsheet size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
+                    <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+                      Bu bölümdeki {activeSec.qCount} sorunun tamamı aşağıda sıralanmıştır.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
+                  Bölüm {activeSecIdx + 1} / {sections.length}
+                </div>
+              </div>
 
-          {/* QUESTION CARDS STACKED VERTICALLY */}
-          {Array.from({ length: activeSec.qCount }).map((_, idx) => {
-            const qNo = idx + 1;
-            const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
-            const isQOpenEnded = secOE || checkIsOE(qObj);
+              {/* QUESTION CARDS STACKED VERTICALLY */}
+              {Array.from({ length: activeSec.qCount }).map((_, idx) => {
+                const qNo = idx + 1;
+                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
+                const isQOpenEnded = secOE || checkIsOE(qObj);
 
-            const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
+                const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
 
-            const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
-              ? qObj.imageUrls
-              : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
-            const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
+                const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
+                  ? qObj.imageUrls
+                  : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
+                const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-            const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
+                const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
 
-            const userAnsObj = activeSecState.answers?.[qNo];
-            const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
-            const textVal = activeSecState.openEndedText?.[qNo] || '';
+                const userAnsObj = activeSecState.answers?.[qNo];
+                const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+                const textVal = activeSecState.openEndedText?.[qNo] || '';
 
-            return (
-              <div key={qNo} style={{ background: 'white', borderRadius: '1.1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                
-                {/* QUESTION HEADER */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ padding: '0.3rem 0.75rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                      SORU {qNo}
-                    </span>
-                    {isQOpenEnded && (
-                      <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
-                        ✍️ Açık Uçlu / Yazılı
-                      </span>
+                return (
+                  <div key={qNo} style={{ background: 'white', borderRadius: '1.1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 4px 14px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    
+                    {/* QUESTION HEADER */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ padding: '0.3rem 0.75rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                          SORU {qNo}
+                        </span>
+                        {isQOpenEnded && (
+                          <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
+                            ✍️ Açık Uçlu / Yazılı
+                          </span>
+                        )}
+                      </div>
+
+                      {selectedOpt !== undefined || textVal ? (
+                        <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 900 }}>✓ Cevaplandı</span>
+                      ) : (
+                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                      )}
+                    </div>
+
+                    {/* QUESTION IMAGES */}
+                    {imageUrls.map((url, imgIdx) => (
+                      <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
+                    ))}
+
+                    {/* QUESTION TEXT */}
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65 }}>
+                      {qText}
+                    </div>
+
+                    {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
+                    {!isQOpenEnded ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
+                        {options.map((opt, optIdx) => {
+                          const isSelected = selectedOpt === optIdx;
+                          const optLetter = String.fromCharCode(65 + optIdx);
+                          let optText = '';
+                          if (typeof opt === 'string') {
+                            optText = opt;
+                          } else if (opt && typeof opt === 'object') {
+                            optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
+                          }
+                          const showText = Boolean(optText && optText.trim() !== optLetter);
+
+                          return (
+                            <button key={optIdx} onClick={() => handleSelectOption(activeSec.id, qNo, optIdx, qObj)} style={{
+                              padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
+                              border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
+                              background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
+                              color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
+                              display: 'flex', alignItems: 'center'
+                            }}>
+                              <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                                {optLetter})
+                              </span>
+                              <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
+                                {showText ? optText : `Seçenek ${optLetter}`}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
+                          ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
+                        </label>
+                        <textarea
+                          value={textVal}
+                          onChange={e => handleTextChange(activeSec.id, qNo, e.target.value)}
+                          placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                          rows={4}
+                          style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                        />
+                      </div>
                     )}
                   </div>
+                );
+              })}
 
-                  {selectedOpt !== undefined || textVal ? (
-                    <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 900 }}>✓ Cevaplandı</span>
-                  ) : (
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>— Yanıtlanmadı</span>
-                  )}
-                </div>
+              {/* BOTTOM SECTION NAV BUTTONS */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <button
+                  onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
+                  disabled={activeSecIdx === 0}
+                  style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#cbd5e1' : '#334155', border: 'none', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <ChevronLeft size={18} /> Önceki Bölüm
+                </button>
 
-                {/* QUESTION IMAGES */}
-                {imageUrls.map((url, imgIdx) => (
-                  <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
-                ))}
-
-                {/* QUESTION TEXT */}
-                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65 }}>
-                  {qText}
-                </div>
-
-                {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
-                {!isQOpenEnded ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
-                    {options.map((opt, optIdx) => {
-                      const isSelected = selectedOpt === optIdx;
-                      const optLetter = String.fromCharCode(65 + optIdx);
-                      let optText = '';
-                      if (typeof opt === 'string') {
-                        optText = opt;
-                      } else if (opt && typeof opt === 'object') {
-                        optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
-                      }
-                      const showText = Boolean(optText && optText.trim() !== optLetter);
-
-                      return (
-                        <button key={optIdx} onClick={() => handleSelectOption(activeSec.id, qNo, optIdx, qObj)} style={{
-                          padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
-                          border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
-                          background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
-                          color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
-                          display: 'flex', alignItems: 'center'
-                        }}>
-                          <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
-                            {optLetter})
-                          </span>
-                          <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
-                            {showText ? optText : `Seçenek ${optLetter}`}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {activeSecIdx < sections.length - 1 ? (
+                  <button
+                    onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                    style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+                  >
+                    Sonraki Bölüm <ChevronRight size={18} />
+                  </button>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
-                      ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
-                    </label>
-                    <textarea
-                      value={textVal}
-                      onChange={e => handleTextChange(activeSec.id, qNo, e.target.value)}
-                      placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                      rows={4}
-                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
-                    />
-                  </div>
+                  <button
+                    onClick={handleSubmit}
+                    style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                  >
+                    <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
+                  </button>
                 )}
               </div>
-            );
-          })}
+            </div>
 
-          {/* BOTTOM SECTION NAV BUTTONS */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <button
-              onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
-              disabled={activeSecIdx === 0}
-              style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#cbd5e1' : '#334155', border: 'none', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <ChevronLeft size={18} /> Önceki Bölüm
-            </button>
-
-            {activeSecIdx < sections.length - 1 ? (
-              <button
-                onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-                style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
-              >
-                Sonraki Bölüm <ChevronRight size={18} />
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-              >
-                <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
-              </button>
-            )}
+            {/* RIGHT OPTIK PANEL */}
+            <RightOptikPanel
+              qCount={activeSec.qCount}
+              answers={activeSecState.answers || {}}
+              openEndedText={activeSecState.openEndedText || {}}
+              isOpenEnded={secOE}
+              onOptionSelect={(qNo, optIdx) => {
+                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+              }}
+              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+            />
           </div>
-        </div>
-
-        {/* RIGHT OPTIK PANEL */}
-        <RightOptikPanel
-          qCount={activeSec.qCount}
-          answers={activeSecState.answers || {}}
-          openEndedText={activeSecState.openEndedText || {}}
-          isOpenEnded={secOE}
-          onOptionSelect={(qNo, optIdx) => {
-            const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
-            handleSelectOption(activeSec.id, qNo, optIdx, qObj);
-          }}
-          onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-        />
+        )}
       </div>
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
