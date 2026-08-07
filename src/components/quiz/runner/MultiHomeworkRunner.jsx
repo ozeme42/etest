@@ -446,20 +446,25 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   // 1. Build sections cleanly
   const sections = useMemo(() => {
-    // If test has explicit sections array
-    if (test.sections && Array.isArray(test.sections) && test.sections.length > 0) {
-      return test.sections.map((sec, idx) => {
-        const bankQ = allBankQuestions?.find(q => String(q.id) === String(sec.questionId || sec.id)) || sec;
+    const rawSections = test.sections || test.tests || test.selectedQuestions || test.items || [];
+
+    if (Array.isArray(rawSections) && rawSections.length > 0) {
+      return rawSections.map((sec, idx) => {
+        const qId = sec.questionId || sec.id || sec.testId || sec.bankQId;
+        let foundInBank = qId ? allBankQuestions?.find(q => String(q.id) === String(qId)) : null;
+
+        if (!foundInBank && (sec.id || sec.questionId)) {
+          foundInBank = allBankQuestions?.find(q => String(q.id) === String(sec.id) || String(q.id) === String(sec.questionId));
+        }
+
+        const bankQ = foundInBank ? { ...sec, ...foundInBank } : (sec.bankQ || sec.test || sec);
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
 
-        if (bankQ?.questionsList && Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) {
-          resolvedQuestions = bankQ.questionsList.map((q, qIdx) => ({
-            ...q,
-            id: q.id || `${bankQ.id}_q${qIdx + 1}`,
-            questionText: q.questionText || q.text || q.title || `Soru ${qIdx + 1}`,
-            options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E'],
-            correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0
-          }));
+        if ((!resolvedQuestions || resolvedQuestions.length === 0) && bankQ?.questionsList) {
+          resolvedQuestions = bankQ.questionsList;
+        }
+        if ((!resolvedQuestions || resolvedQuestions.length === 0) && sec.questions) {
+          resolvedQuestions = sec.questions;
         }
 
         const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
@@ -483,61 +488,6 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           bankQ: bankQ || sec,
           resolvedQuestions,
           qCount: resolvedQuestions.length
-        };
-      });
-    }
-
-    // If test has tests array
-    if (test.tests && Array.isArray(test.tests) && test.tests.length > 0) {
-      return test.tests.map((subTest, idx) => {
-        const bankQ = allBankQuestions?.find(q => String(q.id) === String(subTest.id || subTest.questionId)) || subTest;
-        let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (subTest.questions || []);
-        
-        if (bankQ?.questionsList && Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) {
-          resolvedQuestions = bankQ.questionsList;
-        }
-
-        const qCount = bankQ?.questionCount || subTest.questionCount || resolvedQuestions.length || 1;
-
-        if (resolvedQuestions.length < qCount) {
-          const filled = [...resolvedQuestions];
-          for (let i = filled.length; i < qCount; i++) {
-            filled.push({
-              id: `${bankQ?.id || subTest.id || 'q'}_sub_${i + 1}`,
-              questionText: `Soru ${i + 1}`,
-              options: ['A', 'B', 'C', 'D', 'E'],
-              correctAnswer: 0
-            });
-          }
-          resolvedQuestions = filled;
-        }
-
-        return {
-          id: subTest.id || `test_${idx}`,
-          title: subTest.title || subTest.name || bankQ?.title || `${idx + 1}. Bölüm`,
-          bankQ: bankQ || subTest,
-          resolvedQuestions,
-          qCount: resolvedQuestions.length
-        };
-      });
-    }
-
-    // If test has selectedQuestions array
-    if (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 0) {
-      return test.selectedQuestions.map((sq, idx) => {
-        const bankQ = allBankQuestions?.find(q => String(q.id) === String(sq.id || sq.questionId)) || sq;
-        let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sq.questions || []);
-
-        if (bankQ?.questionsList && Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) {
-          resolvedQuestions = bankQ.questionsList;
-        }
-
-        return {
-          id: sq.id || `sq_${idx}`,
-          title: sq.title || sq.name || bankQ?.title || `${idx + 1}. Bölüm`,
-          bankQ: bankQ || sq,
-          resolvedQuestions,
-          qCount: resolvedQuestions.length || bankQ?.questionCount || 1
         };
       });
     }
@@ -569,7 +519,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     }
 
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
-    const finalQs = resolvedQuestions.length > 0 ? resolvedQuestions : (questions || []);
+    const finalQs = (resolvedQuestions && resolvedQuestions.length > 0) ? resolvedQuestions : (questions || []);
     return [{
       id: test.id || 'sec_1',
       title: test.title || test.name || '1. Bölüm',
@@ -791,8 +741,25 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const loadedRef = React.useRef(null);
 
   const extractPayload = (obj) => {
-    const candidates = [obj?.contentPayload, obj?.pdfPayload, obj?.pdfUrl, obj?.url, obj?.content];
-    return candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]') || null;
+    if (!obj) return null;
+    const candidates = [
+      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.htmlPayload, obj.url, obj.content,
+      obj.bankQ?.contentPayload, obj.bankQ?.pdfPayload, obj.bankQ?.pdfUrl, obj.bankQ?.htmlPayload,
+      test?.contentPayload, test?.pdfPayload, test?.pdfUrl, test?.htmlPayload
+    ];
+    const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
+    if (direct) return direct;
+
+    const qId = obj.questionId || obj.id || obj.bankQ?.id;
+    if (qId && allBankQuestions) {
+      const found = allBankQuestions.find(q => String(q.id) === String(qId));
+      if (found) {
+        const foundCand = [found.contentPayload, found.pdfPayload, found.pdfUrl, found.htmlPayload, found.url, found.content];
+        const foundDirect = foundCand.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
+        if (foundDirect) return foundDirect;
+      }
+    }
+    return null;
   };
 
   const activeBankQ = activeSec.bankQ || {};
