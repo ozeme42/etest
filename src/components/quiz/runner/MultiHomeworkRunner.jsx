@@ -24,6 +24,14 @@ function checkIsOE(obj) {
 // Helper to check PDF section
 function isPdfSection(bankQ) {
   if (!bankQ) return false;
+  if (
+    bankQ.contentType === 'yazili' ||
+    bankQ.contentType === 'acik_uclu' ||
+    bankQ.type === 'yazili' ||
+    bankQ.type === 'acik_uclu'
+  ) {
+    return false;
+  }
   return Boolean(
     bankQ.contentType === 'pdf' ||
     bankQ.sourceFormat === 'pdf' ||
@@ -38,14 +46,37 @@ function isPdfSection(bankQ) {
 // Helper to check HTML section
 function isHtmlSection(bankQ) {
   if (!bankQ) return false;
-  return Boolean(
+  
+  // Written / open-ended questions or questions with question list are NOT HTML iframe documents!
+  if (
+    bankQ.contentType === 'yazili' ||
+    bankQ.contentType === 'acik_uclu' ||
+    bankQ.type === 'yazili' ||
+    bankQ.type === 'acik_uclu' ||
+    bankQ.questionType === 'yazili' ||
+    bankQ.questionType === 'acik_uclu' ||
+    bankQ.formatType === 'yazili' ||
+    bankQ.formatType === 'acik_uclu'
+  ) {
+    return false;
+  }
+
+  // Must explicitly have html type or html payload
+  const hasHtmlType = Boolean(
     bankQ.contentType === 'html' ||
     bankQ.sourceFormat === 'html' ||
     bankQ.formatType === 'html' ||
     bankQ.type === 'html' ||
-    bankQ.htmlPayload ||
-    (typeof bankQ.contentPayload === 'string' && (bankQ.contentPayload.includes('<!DOCTYPE') || bankQ.contentPayload.includes('<html') || bankQ.contentPayload.startsWith('data:text/html')))
+    bankQ.htmlPayload
   );
+
+  if (!hasHtmlType) return false;
+
+  // If it has individual questions list, it is a question set to render as cards, not an iframe!
+  if (Array.isArray(bankQ.questionsList) && bankQ.questionsList.length > 0) return false;
+  if (Array.isArray(bankQ.questions) && bankQ.questions.length > 0) return false;
+
+  return true;
 }
 
 // Helper to check Image section
