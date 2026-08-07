@@ -99,6 +99,7 @@ function RightOptikPanel({
   answers,
   openEndedText,
   isOpenEnded,
+  resolvedQuestions,
   onOptionSelect,
   onTextChange,
   onNextSection,
@@ -111,35 +112,50 @@ function RightOptikPanel({
   return (
     <div style={{ width: '300px', background: '#1e293b', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ padding: '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>📋 Optik Kodlama</span>
+        <span>📋 Optik Kodlama & Yanıtlar</span>
         <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Toplam {qCount} Soru</span>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
+          const qObj = (resolvedQuestions && resolvedQuestions[idx]) || {};
+          const isQOE = isOpenEnded || checkIsOE(qObj);
+
           const userAnsObj = answers[qNo];
           const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
           const textVal = openEndedText[qNo] || '';
 
           return (
-            <div key={qNo} style={{ background: '#0f172a', padding: '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div key={qNo} style={{ background: '#0f172a', padding: '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.78rem', color: '#f8fafc' }}>
-                <span>Soru {qNo}</span>
+                <span>Soru {qNo} {isQOE ? '(✍️ Yazılı)' : ''}</span>
                 {userAns !== undefined || textVal ? (
-                  <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
+                  <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 900 }}>✓ {isQOE ? 'Yazıldı' : 'Kodlandı'}</span>
                 ) : (
                   <span style={{ fontSize: '0.68rem', color: '#64748b' }}>— Boş</span>
                 )}
               </div>
 
-              {isOpenEnded ? (
+              {isQOE ? (
                 <textarea
                   value={textVal}
                   onChange={(e) => onTextChange(qNo, e.target.value)}
-                  placeholder={`Soru ${qNo} açık uçlu yanıt...`}
-                  rows={2}
-                  style={{ width: '100%', padding: '0.35rem', borderRadius: '0.4rem', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '0.78rem', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                  placeholder={`Soru ${qNo} açık uçlu / yazılı yanıt...`}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.65rem',
+                    borderRadius: '0.5rem',
+                    background: '#1e293b',
+                    border: textVal ? '1.5px solid #10b981' : '1px solid #334155',
+                    color: '#f8fafc',
+                    fontSize: '0.82rem',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
                 />
               ) : (
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
@@ -658,6 +674,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               answers={activeSecState.answers || {}}
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
+              resolvedQuestions={activeSec.resolvedQuestions}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -684,6 +701,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               answers={activeSecState.answers || {}}
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
+              resolvedQuestions={activeSec.resolvedQuestions}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -841,6 +859,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               answers={activeSecState.answers || {}}
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
+              resolvedQuestions={activeSec.resolvedQuestions}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
@@ -1011,6 +1030,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit }) {
               answers={activeSecState.answers || {}}
               openEndedText={activeSecState.openEndedText || {}}
               isOpenEnded={secOE}
+              resolvedQuestions={activeSec.resolvedQuestions}
               onOptionSelect={(qNo, optIdx) => {
                 const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
                 handleSelectOption(activeSec.id, qNo, optIdx, qObj);
