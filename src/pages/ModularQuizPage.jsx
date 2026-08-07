@@ -13,6 +13,7 @@ import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
 import ImageQuizRunner from '../components/quiz/runner/ImageQuizRunner';
 import StandardQuizRunner from '../components/quiz/runner/StandardQuizRunner';
 import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
+import BulkHomeworkRunner from '../components/quiz/runner/BulkHomeworkRunner';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 
@@ -392,6 +393,15 @@ export default function ModularQuizPage() {
     test.contentType === 'gorsel' || 
     test.type === 'gorsel'
   );
+
+  const isMultiSection = Boolean(
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 1)
+  );
+
+  if (isMultiSection) {
+    return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+  }
 
   if (isPhysical) {
     return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;

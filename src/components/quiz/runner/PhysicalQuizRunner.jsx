@@ -1,28 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ChevronRight, ChevronLeft, Layers } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock } from 'lucide-react';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
-
-  const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
-
-  // Sections array fallback
-  const sections = useMemo(() => {
-    if (test.sections && Array.isArray(test.sections) && test.sections.length > 0) {
-      return test.sections;
-    }
-    // If no sections array, treat questions as single section
-    return [{
-      id: test.id || 'sec_1',
-      title: test.title || test.name || 'Test',
-      questionCount: questions.length || test.questionCount || 20,
-      questions: questions
-    }];
-  }, [test.sections, test.id, test.title, test.name, test.questionCount, questions]);
-
-  const hasMultipleSections = sections.length > 1;
-  const currentSection = sections[currentSectionIdx] || sections[0];
 
   const [answers, setAnswers] = useState(() => {
     try {
@@ -56,15 +37,11 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
-  // Total questions across all sections
-  const totalQuestionsCount = useMemo(() => {
-    return sections.reduce((sum, sec) => sum + (sec.questions?.length || sec.questionCount || 0), 0) || questions.length || 20;
-  }, [sections, questions]);
-
+  const qCount = questions.length || test.questionCount || test.totalQuestions || 20;
   const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded;
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
-  const totalSeconds = useMemo(() => (totalQuestionsCount * perQuestionMins * 60) || 1200, [totalQuestionsCount, perQuestionMins]);
+  const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
 
   const [timeLeft, setTimeLeft] = useState(() => {
     try {
@@ -129,23 +106,19 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
     return h > 0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
   };
 
-  const getGlobalKey = (secIdx, qNo) => `${secIdx}_${qNo}`;
-
-  const handleOptionSelect = (secIdx, qNo, optIdx) => {
-    const key = getGlobalKey(secIdx, qNo);
+  const handleOptionSelect = (qNo, optIdx) => {
     setAnswers(prev => ({
       ...prev,
-      [key]: optIdx,
-      [String(key)]: optIdx
+      [qNo]: optIdx,
+      [String(qNo)]: optIdx
     }));
   };
 
-  const handleTextChange = (secIdx, qNo, val) => {
-    const key = getGlobalKey(secIdx, qNo);
+  const handleTextChange = (qNo, val) => {
     setOpenEndedText(prev => ({
       ...prev,
-      [key]: val,
-      [String(key)]: val
+      [qNo]: val,
+      [String(qNo)]: val
     }));
   };
 
@@ -156,79 +129,48 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
       localStorage.removeItem(`${draftKey}_time`);
     } catch {}
 
-    const formattedAnswers = [];
-    let globalNo = 1;
+    const formattedAnswers = Array.from({ length: qCount }).map((_, idx) => {
+      const qNo = idx + 1;
+      const qObj = questions[idx] || {};
+      
+      const userAns = answers[qNo] !== undefined ? answers[qNo] : (answers[String(qNo)] !== undefined ? answers[String(qNo)] : null);
+      const textAns = openEndedText[qNo] || openEndedText[String(qNo)] || null;
 
-    sections.forEach((sec, secIdx) => {
-      const secQs = sec.questions || [];
-      const qCount = secQs.length || sec.questionCount || 20;
-
-      for (let idx = 0; idx < qCount; idx++) {
-        const qNo = idx + 1;
-        const qObj = secQs[idx] || {};
-        const key = getGlobalKey(secIdx, qNo);
-
-        // Fallback for single section direct key
-        const userAns = answers[key] !== undefined ? answers[key] : (answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)]);
-        const textAns = openEndedText[key] || openEndedText[qNo] || openEndedText[String(qNo)] || null;
-
-        let correctOpt = qObj.correctAnswer;
-        if (correctOpt === null || correctOpt === undefined) {
-          const letter = qObj.correctAnswerLetter;
-          if (letter && typeof letter === 'string') {
-            correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
-          }
+      let correctOpt = qObj.correctAnswer;
+      if (correctOpt === null || correctOpt === undefined) {
+        const letter = qObj.correctAnswerLetter;
+        if (letter && typeof letter === 'string') {
+          correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
         }
-
-        let isCorrect = null;
-        if (userAns !== null && userAns !== undefined) {
-          if (correctOpt !== null && correctOpt !== undefined) {
-            isCorrect = Number(userAns) === Number(correctOpt);
-          }
-        }
-
-        formattedAnswers.push({
-          questionId: qObj.id || `sec${secIdx}_q${qNo}`,
-          questionNo: globalNo++,
-          sectionId: sec.id,
-          sectionTitle: sec.title,
-          userAnswer: userAns !== undefined ? userAns : null,
-          userAnswerText: textAns,
-          isCorrect,
-          correctAnswerLetter: qObj.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null)
-        });
       }
+
+      let isCorrect = null;
+      if (userAns !== null && userAns !== undefined) {
+        if (correctOpt !== null && correctOpt !== undefined) {
+          isCorrect = Number(userAns) === Number(correctOpt);
+        }
+      }
+
+      return {
+        questionId: qObj.id || `q_${qNo}`,
+        questionNo: qNo,
+        userAnswer: userAns,
+        userAnswerText: textAns,
+        isCorrect
+      };
     });
 
     onSubmit(formattedAnswers);
   };
 
-  // Section level answered count
-  const getSectionAnsweredCount = (secIdx, sec) => {
-    const qCount = sec.questions?.length || sec.questionCount || 0;
-    let count = 0;
-    for (let i = 1; i <= qCount; i++) {
-      const key = getGlobalKey(secIdx, i);
-      if (answers[key] !== undefined || answers[i] !== undefined || openEndedText[key] || openEndedText[i]) {
-        count++;
-      }
-    }
-    return count;
-  };
-
-  const currentSecQs = currentSection.questions || [];
-  const currentQCount = currentSecQs.length || currentSection.questionCount || 20;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
-      
-      {/* ── HEADER ── */}
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '0.75rem' }}>
+      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ padding: '0.35rem 0.65rem', background: hasMultipleSections ? '#7c3aed' : '#059669', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            {hasMultipleSections ? <><Layers size={14} /> BÖLÜMLÜ OPTİK FORM</> : 'FİZİKİ / OPTİK FORM'}
+          <span style={{ padding: '0.35rem 0.65rem', background: '#059669', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white' }}>
+            FİZİKİ / OPTİK FORM
           </span>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name}</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name || 'Fiziki Test'}</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -247,7 +189,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
             <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
             <span>{formatTime(timeLeft)}</span>
             <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
-              (Toplam {totalQuestionsCount * perQuestionMins} dk)
+              (Toplam {qCount * perQuestionMins} dk)
             </span>
           </div>
 
@@ -287,90 +229,36 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
               boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
             }}
           >
-            <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
+            <CheckCircle2 size={18} /> Optik Formu Kaydet
           </button>
         </div>
       </header>
 
-      {/* ── MULTI SECTION TABS (If homework has multiple tests/sections) ── */}
-      {hasMultipleSections && (
-        <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '0.65rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto' }}>
-          {sections.map((sec, secIdx) => {
-            const isCurrent = secIdx === currentSectionIdx;
-            const ansCount = getSectionAnsweredCount(secIdx, sec);
-            const totalCount = sec.questions?.length || sec.questionCount || 0;
-            const isCompleted = ansCount === totalCount && totalCount > 0;
-
-            return (
-              <button
-                key={sec.id || secIdx}
-                onClick={() => setCurrentSectionIdx(secIdx)}
-                style={{
-                  padding: '0.5rem 1.1rem',
-                  borderRadius: '0.75rem',
-                  fontWeight: 900,
-                  fontSize: '0.82rem',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : isCompleted ? 'rgba(16,185,129,0.15)' : '#1e293b',
-                  border: isCurrent ? '2px solid #818cf8' : isCompleted ? '1px solid #10b981' : '1px solid #334155',
-                  color: isCurrent ? 'white' : isCompleted ? '#34d399' : '#cbd5e1',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span>{secIdx + 1}. Bölüm: {sec.title}</span>
-                <span style={{ fontSize: '0.72rem', opacity: 0.85, padding: '0.1rem 0.4rem', borderRadius: '0.3rem', background: 'rgba(0,0,0,0.2)' }}>
-                  {ansCount}/{totalCount}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── MAIN CONTENT AREA ── */}
-      <div style={{ maxWidth: '950px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
-        
-        {/* SECTION BANNER */}
-        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <FileSpreadsheet size={28} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>
-                {hasMultipleSections ? `${currentSectionIdx + 1}. Bölüm — ${currentSection.title}` : 'Dijital Optik Form Kodlama'}
-              </h3>
-              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-                Kağıt üzerinde çözdüğünüz bölümün cevaplarını aşağıdaki kabarcıklara işaretleyiniz.
-              </p>
-            </div>
+      <div style={{ maxWidth: '900px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <FileSpreadsheet size={28} />
           </div>
-
-          {hasMultipleSections && (
-            <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontSize: '0.82rem', fontWeight: 900 }}>
-              Bölüm {currentSectionIdx + 1} / {sections.length}
-            </div>
-          )}
+          <div>
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>Dijital Optik Form Kodlama</h3>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+              Kağıt üzerinde çözdüğünüz deneme sınavının cevaplarını aşağıdaki kabarcıklara işaretleyiniz.
+            </p>
+          </div>
         </div>
 
-        {/* OPTIK GRID FORM FOR ACTIVE SECTION */}
+        {/* Optik Grid Form */}
         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-          {Array.from({ length: currentQCount }).map((_, idx) => {
+          {Array.from({ length: qCount }).map((_, idx) => {
             const qNo = idx + 1;
-            const qObj = currentSecQs[idx] || {};
-            const key = getGlobalKey(currentSectionIdx, qNo);
-
-            const selectedOpt = answers[key] !== undefined ? answers[key] : (answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)]);
-            const textVal = openEndedText[key] || openEndedText[qNo] || openEndedText[String(qNo)] || '';
+            const qObj = questions[idx] || {};
+            const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
+            const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
             return (
               <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
-                  <span>Soru {qNo}</span>
+                  <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
                   {selectedOpt !== undefined || textVal ? (
                     <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
                   ) : (
@@ -381,7 +269,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
                 {isOpenEndedMode ? (
                   <textarea
                     value={textVal}
-                    onChange={(e) => handleTextChange(currentSectionIdx, qNo, e.target.value)}
+                    onChange={(e) => handleTextChange(qNo, e.target.value)}
                     placeholder={`Soru ${qNo} açık uçlu yanıt...`}
                     rows={2}
                     style={{
@@ -402,7 +290,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
                       return (
                         <button
                           key={opt}
-                          onClick={() => handleOptionSelect(currentSectionIdx, qNo, optIdx)}
+                          onClick={() => handleOptionSelect(qNo, optIdx)}
                           style={{
                             flex: 1,
                             height: '34px',
@@ -426,73 +314,6 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
             );
           })}
         </div>
-
-        {/* ── BOTTOM SECTION NAVIGATION BUTTONS ── */}
-        {hasMultipleSections && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', gap: '1rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setCurrentSectionIdx(p => Math.max(0, p - 1))}
-              disabled={currentSectionIdx === 0}
-              style={{
-                padding: '0.75rem 1.5rem',
-                borderRadius: '0.85rem',
-                background: currentSectionIdx === 0 ? '#1e293b' : '#334155',
-                border: '1px solid #475569',
-                color: currentSectionIdx === 0 ? '#64748b' : '#f8fafc',
-                fontWeight: 900,
-                fontSize: '0.9rem',
-                cursor: currentSectionIdx === 0 ? 'default' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              <ChevronLeft size={18} /> Önceki Bölüm
-            </button>
-
-            {currentSectionIdx < sections.length - 1 ? (
-              <button
-                onClick={() => setCurrentSectionIdx(p => Math.min(sections.length - 1, p + 1))}
-                style={{
-                  padding: '0.75rem 1.75rem',
-                  borderRadius: '0.85rem',
-                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                  border: 'none',
-                  color: 'white',
-                  fontWeight: 900,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  boxShadow: '0 4px 16px rgba(99,102,241,0.35)'
-                }}
-              >
-                Sonraki Bölüm <ChevronRight size={18} />
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                style={{
-                  padding: '0.75rem 1.75rem',
-                  borderRadius: '0.85rem',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  border: 'none',
-                  color: 'white',
-                  fontWeight: 900,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
-                }}
-              >
-                <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
