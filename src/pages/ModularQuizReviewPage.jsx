@@ -136,12 +136,35 @@ export default function ModularQuizReviewPage() {
       );
     }
 
+    // 8.5 Check submission for embedded test object or sections
+    if (!foundTest && foundSubmission) {
+      const embedded = foundSubmission.test || foundSubmission.homework || foundSubmission.testDetails;
+      if (embedded && (embedded.sections || embedded.questions || embedded.contentPayload || embedded.pdfPayload)) {
+        foundTest = embedded;
+      }
+    }
+
     // 9. Synthetic test fallback if submission exists but test object was deleted/missing
     if (!foundTest && foundSubmission) {
+      let sectionsArr = foundSubmission.sections || null;
+      if (!sectionsArr && foundSubmission.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.length > 0) {
+        const groups = {};
+        foundSubmission.answers.forEach(ans => {
+          const sTitle = ans.sectionTitle || '1. Bölüm';
+          const sId = ans.sectionId || 'sec_1';
+          if (!groups[sId]) {
+            groups[sId] = { id: sId, title: sTitle, questionId: ans.questionId || sId, questions: [] };
+          }
+          groups[sId].questions.push(ans);
+        });
+        sectionsArr = Object.values(groups);
+      }
+
       foundTest = {
         id: resolvedTestId,
         title: foundSubmission.testTitle || foundSubmission.title || 'Ödev / Test İnceleme',
-        questions: foundSubmission.questions || [],
+        sections: sectionsArr || [],
+        questions: foundSubmission.questions || foundSubmission.answers || [],
         questionCount: foundSubmission.totalQuestions || (foundSubmission.answers?.length) || 1,
         sourceFormat: foundSubmission.sourceFormat || 'physical',
         sourceType: foundSubmission.sourceType || 'trackedBook'
