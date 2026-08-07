@@ -160,8 +160,22 @@ function RightOptikPanel({
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
                   {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
                     const isSelected = userAns === optIdx;
-                    const correctAns = qObj.correctAnswer;
-                    const isCorrectOpt = correctAns !== undefined && correctAns === optIdx;
+                    let correctAns = qObj.correctAnswer;
+                    if (correctAns === undefined || correctAns === null) {
+                      const keySource = bankQ?.answerKey || test?.answerKey;
+                      if (keySource) {
+                        const kaVal = keySource[qNo - 1] !== undefined ? keySource[qNo - 1] : keySource[String(qNo)];
+                        if (kaVal !== undefined && kaVal !== null) {
+                          if (typeof kaVal === 'number') correctAns = kaVal;
+                          else if (typeof kaVal === 'string') {
+                            const str = kaVal.trim().toUpperCase();
+                            if (/^[A-E]$/.test(str)) correctAns = str.charCodeAt(0) - 65;
+                            else if (!isNaN(Number(str))) correctAns = Number(str);
+                          }
+                        }
+                      }
+                    }
+                    const isCorrectOpt = correctAns !== undefined && correctAns !== null && correctAns === optIdx;
 
                     let bg = '#1e293b';
                     let border = '1px solid #334155';
@@ -541,8 +555,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             filled.push({
               id: `${bankQ?.id || sec.id || 'q'}_sub_${i + 1}`,
               questionText: `Soru ${i + 1}`,
-              options: ['A', 'B', 'C', 'D', 'E'],
-              correctAnswer: 0
+              options: ['A', 'B', 'C', 'D', 'E']
             });
           }
           resolvedQuestions = filled;

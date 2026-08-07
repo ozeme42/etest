@@ -31,8 +31,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
           ...q,
           id: q.id || `${foundTest.id || 'q'}_${idx + 1}`,
           questionText: q.questionText || q.text || q.question || q.title || `Soru ${idx + 1}`,
-          options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E'],
-          correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0
+          options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E']
         }));
       }
     } catch {}
@@ -49,8 +48,7 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
       return {
         id: qId,
         questionText: `Soru ${idx + 1}`,
-        options: ['A', 'B', 'C', 'D', 'E'],
-        correctAnswer: 0
+        options: ['A', 'B', 'C', 'D', 'E']
       };
     });
   }
