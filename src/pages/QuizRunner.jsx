@@ -176,8 +176,28 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       return sections.length > 0 ? sections : [{ ...test, isBundle: true, questionCount: answers.length || 1 }];
     }
 
-    // Bundle tests (isBundle: true, pdf, html, gorsel packages, json packages) stay as a single bundle package with right-hand optic form
-    if (test.isBundle || test.contentType === 'pdf' || test.contentType === 'gorsel' || test.contentType === 'html' || test.contentType === 'json' || test.questionsList?.length > 1) {
+    // 1. Multi-item test/homework from Question Bank (testQuestionList.length > 1)
+    if (testQuestionList.length > 1) {
+      if (typeof testQuestionList[0] === 'object' && testQuestionList[0] !== null) {
+        return testQuestionList;
+      }
+      const foundInBank = testQuestionIds.map(qId => allQuestions.find(q => String(q.id) === String(qId)) || { id: qId, title: 'Soru', type: 'coktan_secmeli' });
+      if (foundInBank.length > 0) {
+        return foundInBank;
+      }
+    }
+
+    // 2. Multi-item questionsList array on test itself (e.g. homework created from Soru Bankası selection)
+    if (test.questionsList && Array.isArray(test.questionsList) && test.questionsList.length > 1 && !test.contentType?.includes('pdf') && !test.contentType?.includes('html')) {
+      return test.questionsList.map((q, idx) => {
+        if (typeof q === 'object' && q !== null) return { ...q, title: q.title || q.questionText || `${idx + 1}. Bölüm` };
+        const found = allQuestions.find(bq => String(bq.id) === String(q));
+        return found || { id: q, title: `${idx + 1}. Bölüm`, type: 'coktan_secmeli' };
+      });
+    }
+
+    // 3. Bundle tests (single PDF, HTML, Gorsel package with right-hand optic form)
+    if (test.isBundle || test.contentType === 'pdf' || test.contentType === 'gorsel' || test.contentType === 'html' || test.contentType === 'json') {
       const qCount = test.questionCount || test.questionsList?.length || test.imageUrls?.length || 1;
       return [{
         ...test,
@@ -186,19 +206,16 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       }];
     }
 
-    if (testQuestionList.length > 0) {
-      if (typeof testQuestionList[0] === 'object' && testQuestionList[0] !== null) {
-        return testQuestionList;
-      }
-      const foundInBank = allQuestions.filter(q => testQuestionIds.includes(q.id));
-      if (foundInBank.length > 0) {
-        return foundInBank;
-      }
+    if (testQuestionList.length === 1) {
+      const singleItem = testQuestionList[0];
+      if (typeof singleItem === 'object' && singleItem !== null) return [singleItem];
+      const foundInBank = allQuestions.find(q => String(q.id) === String(singleItem));
+      if (foundInBank) return [foundInBank];
     }
 
-    const directQuestion = allQuestions.find(q => q.id === test.id || testQuestionIds.includes(q.id));
+    const directQuestion = allQuestions.find(q => String(q.id) === String(test.id) || testQuestionIds.includes(String(q.id)));
     if (directQuestion) {
-      if (directQuestion.isBundle || directQuestion.contentType === 'gorsel' || directQuestion.contentType === 'pdf' || directQuestion.contentType === 'html' || directQuestion.contentType === 'json' || directQuestion.questionsList?.length > 1) {
+      if (directQuestion.isBundle || directQuestion.contentType === 'gorsel' || directQuestion.contentType === 'pdf' || directQuestion.contentType === 'html' || directQuestion.contentType === 'json') {
         const qCount = directQuestion.questionCount || directQuestion.questionsList?.length || directQuestion.imageUrls?.length || 1;
         return [{
           ...directQuestion,
