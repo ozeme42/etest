@@ -272,7 +272,7 @@ function ImageSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerChange
 function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerChange }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const qCount = resolvedQuestions.length || bankQ.questionCount || 1;
-  const activeQ = resolvedQuestions[currentIdx] || {};
+  const activeQ = resolvedQuestions[currentIdx] || bankQ || {};
   const sectionOE = checkIsOE(bankQ) || checkIsOE(activeQ);
 
   const answers = sectionAnswers.answers || {};
@@ -290,7 +290,13 @@ function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerCha
     onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
   };
 
-  const options = activeQ.options?.length > 0 ? activeQ.options : ['A', 'B', 'C', 'D', 'E'];
+  const options = (activeQ.options && activeQ.options.length > 0) ? activeQ.options : ['A', 'B', 'C', 'D', 'E'];
+  const qText = activeQ.questionText || activeQ.text || activeQ.title || activeQ.questionTitle || activeQ.name || (activeQ.contentPayload && !activeQ.contentPayload.startsWith('data:') ? activeQ.contentPayload : null) || bankQ.questionText || bankQ.text || bankQ.title || bankQ.name || `Soru ${currentIdx + 1}`;
+
+  const rawImages = (activeQ.imageUrls && activeQ.imageUrls.length > 0)
+    ? activeQ.imageUrls
+    : (activeQ.imageUrl ? [activeQ.imageUrl] : (activeQ.contentPayload && activeQ.contentPayload.startsWith('data:image') ? [activeQ.contentPayload] : []));
+  const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
@@ -304,41 +310,66 @@ function StandardSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerCha
             }}>{i + 1}</button>
           ))}
         </div>
+
         <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div style={{ fontWeight: 900, color: '#6366f1', marginBottom: '0.75rem', fontSize: '0.85rem' }}>SORU {currentIdx + 1}</div>
-          {activeQ.imageUrl && <img src={activeQ.imageUrl} alt="" style={{ maxWidth: '100%', borderRadius: '0.5rem', marginBottom: '1rem' }} />}
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65, marginBottom: '1.25rem' }}>
-            {activeQ.questionText || activeQ.text || `Soru ${currentIdx + 1}`}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ fontWeight: 900, color: '#6366f1', fontSize: '0.85rem' }}>SORU {currentIdx + 1}</span>
+            {sectionOE && (
+              <span style={{ padding: '0.2rem 0.6rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem', border: '1px solid #c7d2fe' }}>
+                ✍️ Açık Uçlu / Yazılı
+              </span>
+            )}
           </div>
+
+          {imageUrls.map((url, imgIdx) => (
+            <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${currentIdx + 1} Görsel`} />
+          ))}
+
+          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65, marginBottom: '1.25rem' }}>
+            {qText}
+          </div>
+
           {!sectionOE ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {options.map((opt, optIdx) => {
                 const isSelected = (typeof answers[currentIdx + 1] === 'object' ? answers[currentIdx + 1]?.userAnswer : answers[currentIdx + 1]) === optIdx;
+                const optLetter = String.fromCharCode(65 + optIdx);
+                const rawOptText = typeof opt === 'string' ? opt : (opt?.text || opt?.label || '');
+                const optDisplay = (rawOptText && rawOptText.trim() !== optLetter) ? rawOptText : `Seçenek ${optLetter}`;
+
                 return (
                   <button key={optIdx} onClick={() => handleSelect(null, optIdx)} style={{
-                    padding: '0.75rem 1rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: 700,
+                    padding: '0.85rem 1.1rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
                     border: isSelected ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
                     background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
-                    color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s'
+                    color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
+                    display: 'flex', alignItems: 'center'
                   }}>
-                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#6b7280', marginRight: '0.6rem' }}>{String.fromCharCode(65 + optIdx)})</span>
-                    {typeof opt === 'string' ? opt : ''}
+                    <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#64748b', marginRight: '0.65rem', minWidth: '24px' }}>{optLetter})</span>
+                    <span>{optDisplay}</span>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <textarea
-              value={openEndedText[currentIdx + 1] || ''}
-              onChange={e => handleText(null, e.target.value)}
-              placeholder="Cevabınızı buraya yazın..."
-              style={{ width: '100%', minHeight: 120, padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box' }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+              <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
+                ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
+              </label>
+              <textarea
+                value={openEndedText[currentIdx + 1] || ''}
+                onChange={e => handleText(null, e.target.value)}
+                placeholder="Yanıtınızı detaylı bir şekilde açıklayınız..."
+                rows={5}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+              />
+            </div>
           )}
         </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-          <button onClick={() => setCurrentIdx(p => Math.max(0, p - 1))} disabled={currentIdx === 0} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === 0 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === 0 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>← Önceki</button>
-          <button onClick={() => setCurrentIdx(p => Math.min(qCount - 1, p + 1))} disabled={currentIdx === qCount - 1} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === qCount - 1 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === qCount - 1 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>Sonraki →</button>
+          <button onClick={() => setCurrentIdx(p => Math.max(0, p - 1))} disabled={currentIdx === 0} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === 0 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === 0 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>← Önceki Soru</button>
+          <button onClick={() => setCurrentIdx(p => Math.min(qCount - 1, p + 1))} disabled={currentIdx === qCount - 1} style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: currentIdx === qCount - 1 ? '#f1f5f9' : 'white', border: '1px solid #e2e8f0', cursor: currentIdx === qCount - 1 ? 'default' : 'pointer', fontWeight: 800, color: '#64748b' }}>Sonraki Soru →</button>
         </div>
       </div>
     </div>
