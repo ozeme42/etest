@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
+import { useHomework } from '../../../context/HomeworkContext';
+import { useCurriculum } from '../../../context/CurriculumContext';
+import { useTrackedBooks } from '../../../context/TrackedBookContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload } from '../../../services/indexedDbService';
@@ -442,7 +445,28 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
 export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null }) {
   const { questions: allBankQuestions } = useQuestionBank();
+  const { homeworks } = useHomework();
+  const { data: curriculumData } = useCurriculum();
+  const { bookTests } = useTrackedBooks();
   const draftKey = useMemo(() => `draft_multi_hw_${test.id || 'test'}`, [test.id]);
+
+  const findInAllSources = useMemo(() => (targetId) => {
+    if (!targetId) return null;
+    const strId = String(targetId);
+    const normId = strId.replace(/^hw_/, '').replace(/^q_?/, '');
+
+    let found = allBankQuestions?.find(q => String(q.id) === strId || normId === String(q.id).replace(/^q_?/, ''));
+    if (!found && homeworks) {
+      found = homeworks.find(h => String(h.id) === strId || normId === String(h.id).replace(/^hw_/, ''));
+    }
+    if (!found && curriculumData?.tests) {
+      found = curriculumData.tests.find(t => String(t.id) === strId || normId === String(t.id).replace(/^q_?/, ''));
+    }
+    if (!found && bookTests) {
+      found = bookTests.find(b => String(b.id) === strId || normId === String(b.id).replace(/^q_?/, ''));
+    }
+    return found || null;
+  }, [allBankQuestions, homeworks, curriculumData, bookTests]);
 
   // 1. Build sections cleanly
   const sections = useMemo(() => {
@@ -458,10 +482,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (Array.isArray(rawSections) && rawSections.length > 0) {
       return rawSections.map((sec, idx) => {
         const qId = sec.questionId || sec.id || sec.testId || sec.bankQId;
-        let foundInBank = qId ? allBankQuestions?.find(q => String(q.id) === String(qId)) : null;
+        let foundInBank = qId ? findInAllSources(qId) : null;
 
         if (!foundInBank && (sec.id || sec.questionId)) {
-          foundInBank = allBankQuestions?.find(q => String(q.id) === String(sec.id) || String(q.id) === String(sec.questionId));
+          foundInBank = findInAllSources(sec.id) || findInAllSources(sec.questionId);
         }
 
         const bankQ = foundInBank ? { ...sec, ...foundInBank } : (sec.bankQ || sec.test || sec);
