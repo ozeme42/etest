@@ -35,6 +35,7 @@ export default function ModularQuizPage() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submissionResult, setSubmissionResult] = useState(null);
+  const isSubmittingRef = useRef(false);
 
   // Grace period for initial context data load (5 seconds)
   const [initLoading, setInitLoading] = useState(true);
@@ -265,6 +266,9 @@ export default function ModularQuizPage() {
   }
 
   const handleSubmit = (formattedAnswers) => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    
     let correctCount = 0;
     let wrongCount = 0;
     let blankCount = 0;

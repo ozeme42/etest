@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
@@ -23,6 +23,7 @@ export default function BookQuizRunner() {
   const [studentAnswers, setStudentAnswers] = useState({});
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submissionComplete, setSubmissionComplete] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // 1. Find Homework
   const hw = homeworks.find(h => h.id === id);
@@ -58,10 +59,13 @@ export default function BookQuizRunner() {
   };
 
   const handleSubmit = () => {
+    if (isSubmittingRef.current) return;
     if (!showFinishModal) {
       setShowFinishModal(true);
       return;
     }
+    
+    isSubmittingRef.current = true;
 
     let correctCount = 0;
     let totalScore = 0;

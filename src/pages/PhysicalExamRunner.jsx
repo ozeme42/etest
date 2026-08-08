@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +38,7 @@ export default function PhysicalExamRunner() {
   const homework = homeworks.find(h => h.id === hwId);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const isSubmittingRef = useRef(false);
   
   // Student answers state: { "Türkçe": ["A", "B", "", "C", ...], "Matematik": [...] }
   const [answers, setAnswers] = useState({});
@@ -269,9 +270,11 @@ export default function PhysicalExamRunner() {
   };
 
   const handleSubmit = () => {
+    if (isSubmittingRef.current) return;
     if (isTeacherReviewing) return;
     if (!window.confirm("Cevaplarınızı göndermek istediğinize emin misiniz? Gönderdikten sonra optik form kilitlenecektir.")) return;
     
+    isSubmittingRef.current = true;
     const calculated = calculateResults(answers);
     
     // Save to HomeworkContext
