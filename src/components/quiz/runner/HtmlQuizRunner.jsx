@@ -370,9 +370,6 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
 
     onSubmit(formattedAnswers);
   };
-
-  const isMobile = useMediaQuery('(max-width: 768px)');
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: 'white' }}>
       <header style={{ 

@@ -392,7 +392,6 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
 
   const currentAnsObj = answers[currentIndex + 1] || {};
   const currentTextVal = openEndedText[currentIndex + 1] || '';
-  const isMobile = useMediaQuery('(max-width: 640px)');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
