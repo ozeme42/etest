@@ -560,7 +560,22 @@ export async function dbAddQuestion(q) {
       }
     }
 
-    const fullRaw = { ...q, id: qId, contentPayload: finalContentPayload };
+    // Strip large base64 payloads from raw_data so DB insert doesn't fail due to size limits
+    const safeRaw = { ...q, id: qId, contentPayload: finalContentPayload };
+    if (typeof safeRaw.contentPayload === 'string' && safeRaw.contentPayload.startsWith('data:') && safeRaw.contentPayload.length > 50000) {
+      safeRaw.contentPayload = '[STORED_IN_INDEXEDDB]';
+    }
+    if (typeof safeRaw.pdfPayload === 'string' && safeRaw.pdfPayload.startsWith('data:') && safeRaw.pdfPayload.length > 50000) {
+      safeRaw.pdfPayload = '[STORED_IN_INDEXEDDB]';
+    }
+    if (typeof safeRaw.htmlPayload === 'string' && safeRaw.htmlPayload.startsWith('data:') && safeRaw.htmlPayload.length > 50000) {
+      safeRaw.htmlPayload = '[STORED_IN_INDEXEDDB]';
+    }
+
+    // If finalContentPayload is STILL a huge base64 (because upload failed), don't break the DB!
+    const dbContentPayload = (typeof finalContentPayload === 'string' && finalContentPayload.startsWith('data:') && finalContentPayload.length > 50000) 
+      ? '[STORED_IN_INDEXEDDB]' 
+      : finalContentPayload;
 
     const payload = {
       id: dbId,
@@ -570,12 +585,12 @@ export async function dbAddQuestion(q) {
       topic_id: q.topicId || 'global_all',
       type: q.type || 'coktan_secmeli',
       content_type: q.contentType || 'text',
-      content_payload: finalContentPayload,
+      content_payload: dbContentPayload,
       is_bundle: Boolean(q.isBundle),
       answer_key: q.answerKey || [],
       title: q.title || '',
       question_count: q.questionCount || 1,
-      raw_data: fullRaw,
+      raw_data: safeRaw,
       question_text: q.questionText || '',
       options: q.options || [],
       correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
@@ -594,7 +609,7 @@ export async function dbAddQuestion(q) {
         question_text: q.questionText || '',
         options: q.options || [],
         correct_answer: String(q.correctAnswer !== undefined ? q.correctAnswer : '0'),
-        explanation: JSON.stringify(fullRaw),
+        explanation: JSON.stringify(safeRaw),
         image_url: q.imageUrl || ''
       };
       const res = await supabase.from('questions').upsert([fallbackPayload], { onConflict: 'id' }).select();
@@ -738,6 +753,25 @@ export async function dbAddHomework(hw) {
 
     const qIds = processedHw.questionIds || processedHw.tests || [];
     const fullRaw = { ...processedHw, questionIds: qIds, tests: qIds };
+
+    // Strip large base64 payloads from raw_data so DB insert doesn't fail due to size limits
+    const safeRaw = { ...fullRaw };
+    if (typeof safeRaw.pdfPayload === 'string' && safeRaw.pdfPayload.startsWith('data:') && safeRaw.pdfPayload.length > 50000) {
+      safeRaw.pdfPayload = '[STORED_IN_INDEXEDDB]';
+    }
+    if (Array.isArray(safeRaw.sections)) {
+      safeRaw.sections = safeRaw.sections.map(sec => {
+        const s = { ...sec };
+        if (typeof s.pdfPayload === 'string' && s.pdfPayload.startsWith('data:') && s.pdfPayload.length > 50000) {
+          s.pdfPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        if (typeof s.contentPayload === 'string' && s.contentPayload.startsWith('data:') && s.contentPayload.length > 50000) {
+          s.contentPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        return s;
+      });
+    }
+
     const payload = {
       id: String(processedHw.id || `hw_${Date.now()}`),
       title: processedHw.title,
@@ -750,7 +784,7 @@ export async function dbAddHomework(hw) {
       total_questions: processedHw.totalQuestions || qIds.length || 0,
       time_per_question: processedHw.timePerQuestion || 2,
       time: processedHw.time || 20,
-      raw_data: fullRaw
+      raw_data: safeRaw
     };
     let { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
@@ -761,7 +795,8 @@ export async function dbAddHomework(hw) {
         due_date: processedHw.dueDate,
         target_type: processedHw.targetType || 'grade',
         target_ids: processedHw.targetIds || [],
-        tests: qIds
+        tests: qIds,
+        raw_data: safeRaw
       };
       const res = await supabase.from('homeworks').upsert([fallbackPayload], { onConflict: 'id' }).select();
       if (res.error) throw res.error;
