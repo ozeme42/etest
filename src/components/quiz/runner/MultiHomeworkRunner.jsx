@@ -1187,11 +1187,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const activeBankQ = activeSec.bankQ || {};
 
   const [idbPayload, setIdbPayload] = useState(null);
+  const [idbLoading, setIdbLoading] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   // Reset section-specific payloads when active section changes
   useEffect(() => {
     setIdbPayload(null);
+    setIdbLoading(false);
     // Note: HTML iframe src is managed inside StableHtmlViewer (keyed by section id)
   }, [activeSec.id]);
 
@@ -1222,14 +1224,19 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const isHtml = !isPdf && (isHtmlSection(activeBankQ) || isHtmlSection(activeSec));
   const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec) || isImageSection(test) || Boolean(idbPayload && typeof idbPayload === 'string' && idbPayload.startsWith('data:image')));
 
+  // IDB loader runs ALWAYS on section change regardless of isPdf.
+  // This breaks the chicken-and-egg: isPdf can't be true without idbPayload,
+  // and idbPayload was never loaded because isPdf was false.
   useEffect(() => {
-    if (!isPdf) return;
     const targetObj = activeBankQ.id ? activeBankQ : activeSec;
+    // If direct payload already available, no need to hit IDB
     if (extractPayload(targetObj)) return;
     if (test?.pdfPayload || test?.pdfUrl) return;
+    if (idbPayload) return;
 
     let isMounted = true;
     async function load() {
+      setIdbLoading(true);
       const baseIds = [
         targetObj.id,
         activeBankQ?.id,
@@ -1263,14 +1270,16 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           const val = await idbGetPayload(idToTry);
           if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
             setIdbPayload(val);
-            break;
+            setIdbLoading(false);
+            return;
           }
         } catch (e) {}
       }
+      if (isMounted) setIdbLoading(false);
     }
     load();
     return () => { isMounted = false; };
-  }, [activeSec.id, activeBankQ, isPdf, extractPayload]);
+  }, [activeSec.id, activeBankQ?.id, extractPayload]);
 
   // HTML yükleme artık StableHtmlViewer içinde yapılıyor — burada useEffect yok
 
@@ -1394,7 +1403,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       {/* ── MAIN CONTENT AREA ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         
-        {isPdf ? (
+        {idbLoading ? (
+          /* Loading spinner while checking IDB for PDF/Image content */
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a', gap: '1rem' }}>
+            <div style={{ width: 48, height: 48, border: '4px solid #334155', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ color: '#94a3b8', fontWeight: 700, fontSize: '0.9rem' }}>İçerik yükleniyor...</p>
+          </div>
+        ) : isPdf ? (
           /* PDF VIEWER + OPTIK PANEL ONLY */
           <QuizPanelLayout
             panelTitle="Optik Form"
