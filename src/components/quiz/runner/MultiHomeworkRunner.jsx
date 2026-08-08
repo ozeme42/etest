@@ -11,7 +11,7 @@ import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/Im
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
-
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 function checkIsOE(obj) {
   if (!obj) return false;
 
@@ -566,6 +566,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
 
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
 export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { questions: allBankQuestions } = useQuestionBank();
   const { homeworks } = useHomework();
   const { data: curriculumData } = useCurriculum();
@@ -1247,55 +1248,65 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
       
       {/* ── HEADER BAR ── */}
-      <header style={{ padding: '0.75rem 1rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', flexShrink: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Layers size={14} /> {isReviewMode ? '🔍 ÖDEV İNCELEME MODU' : 'TOPLU ÖDEV RUNNER'}
-          </span>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name}</h2>
+      <header style={{ padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isMobile ? '0.5rem' : '0.75rem', flexShrink: 0, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', overflow: 'hidden' }}>
+          {!isMobile && (
+            <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Layers size={14} /> {isReviewMode ? '🔍 İNCELEME' : 'TOPLU ÖDEV RUNNER'}
+            </span>
+          )}
+          <h2 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 900, margin: 0, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+            {test.title || test.name}
+          </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap' }}>
           {isReviewMode ? (
-            <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#312e81', border: '1.5px solid #6366f1', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <CheckCircle2 size={16} color="#818cf8" />
-              <span>🏁 İnceleme Raporu</span>
+            <div style={{ padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#312e81', border: '1.5px solid #6366f1', color: '#c7d2fe', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <CheckCircle2 size={isMobile ? 14 : 16} color="#818cf8" />
+              {!isMobile && <span>🏁 İnceleme Raporu</span>}
             </div>
           ) : (
-            <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#7f1d1d' : '#0f172a', border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`, color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
+            <div style={{ padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#7f1d1d' : '#0f172a', border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`, color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
               <span>{formatTime(timeLeft)}</span>
             </div>
           )}
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-            style={{ padding: '0.5rem 1rem', borderRadius: '0.75rem', background: isDrawingOpen ? '#eab308' : '#0f172a', border: '1px solid #334155', color: isDrawingOpen ? 'white' : '#e2e8f0', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: isMobile ? '0.4rem 0.6rem' : '0.5rem 1rem', borderRadius: '0.75rem', background: isDrawingOpen ? '#eab308' : '#0f172a', border: '1px solid #334155', color: isDrawingOpen ? 'white' : '#e2e8f0', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            title="Çizim Aracı"
           >
-            <Pencil size={16} /> {isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı"}
+            <Pencil size={isMobile ? 14 : 16} /> 
+            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
           </button>
 
           {isReviewMode ? (
             <button
               onClick={() => onSubmit && onSubmit()}
-              style={{ padding: '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+              style={{ padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
             >
-              <CheckCircle2 size={18} /> İncelemeyi Kapat
+              <CheckCircle2 size={isMobile ? 14 : 18} /> 
+              {!isMobile && "İncelemeyi Kapat"}
+              {isMobile && "Kapat"}
             </button>
           ) : (
             <button
               onClick={handleSubmit}
-              style={{ padding: '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+              style={{ padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
             >
-              <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
+              <CheckCircle2 size={isMobile ? 14 : 18} /> 
+              {!isMobile && "Sınavı Bitir ve Gönder"}
+              {isMobile && "Bitir"}
             </button>
           )}
         </div>
       </header>
 
       {/* ── TOP SECTION TABS BAR (PERMANENT) ── */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, overflowX: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: isMobile ? '0.4rem 0.75rem' : '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, overflowX: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           {sections.map((sec, idx) => {
             const isCurrent = idx === activeSecIdx;
             const secAnsState = sectionAnswers[sec.id]?.answers || {};
@@ -1308,23 +1319,23 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 key={sec.id || idx}
                 onClick={() => setActiveSecIdx(idx)}
                 style={{
-                  padding: '0.5rem 1.1rem',
-                  borderRadius: '0.75rem',
+                  padding: isMobile ? '0.35rem 0.6rem' : '0.5rem 1.1rem',
+                  borderRadius: '0.6rem',
                   fontWeight: 900,
-                  fontSize: '0.82rem',
+                  fontSize: isMobile ? '0.7rem' : '0.82rem',
                   whiteSpace: 'nowrap',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
+                  gap: '0.35rem',
                   background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : isCompleted ? 'rgba(16,185,129,0.15)' : '#1e293b',
                   border: isCurrent ? '2px solid #818cf8' : isCompleted ? '1px solid #10b981' : '1px solid #334155',
                   color: isCurrent ? 'white' : isCompleted ? '#34d399' : '#cbd5e1',
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span>{idx + 1}. Bölüm: {sec.title}</span>
-                <span style={{ fontSize: '0.72rem', opacity: 0.85, padding: '0.1rem 0.4rem', borderRadius: '0.3rem', background: 'rgba(0,0,0,0.25)' }}>
+                <span>{idx + 1}. Bölüm{!isMobile && `: ${sec.title}`}</span>
+                <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', opacity: 0.85, padding: '0.1rem 0.3rem', borderRadius: '0.3rem', background: 'rgba(0,0,0,0.25)' }}>
                   {ansCount}/{sec.qCount}
                 </span>
               </button>
