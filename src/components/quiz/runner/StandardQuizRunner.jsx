@@ -310,29 +310,39 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
     questionImageUrls = [activeQuestion.contentPayload];
   } else {
     // Check all possible sources for the parent test images, including idbPayload which handles synced mobile payloads
-    let testRawImages = test.imageUrls || test.imageUrl;
+    const processPayloadStr = (payload) => {
+      if (!payload) return [];
+      if (Array.isArray(payload)) return payload;
+      if (typeof payload === 'string') {
+        if (payload.includes('|') || payload.includes('\n')) {
+          return payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
+        }
+        if (payload.startsWith('data:image') || payload.startsWith('http') || payload.startsWith('/')) {
+          return [payload];
+        }
+      }
+      return [];
+    };
+
+    let testRawImages = [];
     
-    if (!testRawImages || testRawImages.length === 0) {
-       const processPayloadStr = (payload) => {
-         if (!payload || typeof payload !== 'string') return [];
-         if (payload.includes('|') || payload.includes('\n')) {
-           return payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
-         }
-         if (payload.startsWith('data:image') || payload.startsWith('http')) {
-           return [payload];
-         }
-         return [];
-       };
-       
-       if (test.contentPayload && test.contentPayload !== '[STORED_IN_INDEXEDDB]') {
-         testRawImages = processPayloadStr(test.contentPayload);
-       } 
-       if ((!testRawImages || testRawImages.length === 0) && idbPayload && idbPayload !== '[STORED_IN_INDEXEDDB]') {
-         testRawImages = processPayloadStr(idbPayload);
-       }
+    if (test.imageUrls && test.imageUrls.length > 0) {
+      testRawImages = processPayloadStr(test.imageUrls);
     }
     
-    const testImages = (Array.isArray(testRawImages) ? testRawImages : [testRawImages]).filter(isValidImageUrl);
+    if (testRawImages.length === 0 && test.imageUrl) {
+      testRawImages = processPayloadStr(test.imageUrl);
+    }
+    
+    if (testRawImages.length === 0 && test.contentPayload && test.contentPayload !== '[STORED_IN_INDEXEDDB]') {
+      testRawImages = processPayloadStr(test.contentPayload);
+    } 
+    
+    if (testRawImages.length === 0 && idbPayload && idbPayload !== '[STORED_IN_INDEXEDDB]') {
+      testRawImages = processPayloadStr(idbPayload);
+    }
+    
+    const testImages = testRawImages.filter(isValidImageUrl);
     
     if (testImages.length > 0) {
       if (testImages.length === 1) {
