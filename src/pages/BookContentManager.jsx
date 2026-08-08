@@ -27,7 +27,7 @@ export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions } = useEvaluation();
+  const { submissions, deleteSubmissionsByTestId } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, deleteHomework } = useHomework();
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
@@ -608,7 +608,8 @@ export default function BookContentManager() {
   const handleDeleteHomeworkItem = (hwId) => {
     if (window.confirm("Bu ödevi ve ilgili kayıtları silmek istediğinize emin misiniz?")) {
       if (typeof deleteHomework === 'function') deleteHomework(hwId);
-      showToast("Ödev silindi.");
+      if (typeof deleteSubmissionsByTestId === 'function') deleteSubmissionsByTestId(hwId);
+      showToast("Ödev ve ilişkili değerlendirmeler silindi.");
     }
   };
 

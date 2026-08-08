@@ -204,6 +204,22 @@ export function EvaluationProvider({ children }) {
     await dbClearStudentSubmissions(studentId);
   };
 
+  const deleteSubmissionsByTestId = async (testId) => {
+    setSubmissions(prev => {
+      const remaining = [];
+      const toDelete = [];
+      prev.forEach(s => {
+        if (String(s.testId) === String(testId)) {
+          toDelete.push(s.id);
+        } else {
+          remaining.push(s);
+        }
+      });
+      toDelete.forEach(id => dbDeleteSubmission(id));
+      return remaining;
+    });
+  };
+
   return (
     <EvaluationContext.Provider value={{
       submissions,
@@ -213,7 +229,8 @@ export function EvaluationProvider({ children }) {
       finalizeSubmission,
       updateSubmission,
       deleteSubmission,
-      clearSubmissionsForStudent
+      clearSubmissionsForStudent,
+      deleteSubmissionsByTestId
     }}>
       {children}
     </EvaluationContext.Provider>

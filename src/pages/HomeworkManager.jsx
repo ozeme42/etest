@@ -52,7 +52,7 @@ export default function HomeworkManager() {
   const { questions: allQuestions } = useQuestionBank();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, deleteAllHomeworks } = useHomework();
   const { users } = useUser();
-  const { submissions } = useEvaluation();
+  const { submissions, deleteSubmissionsByTestId } = useEvaluation();
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
   const homeworks = useMemo(() => currentUser?.role === 'admin' ? allHomeworks : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
@@ -399,7 +399,7 @@ export default function HomeworkManager() {
                             <div className="hw-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
                               <button onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }} style={{ padding: '0.38rem 0.7rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}><BarChart2 size={12} /> Rapor</button>
                               <button onClick={() => openEditPage(hw)} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex' }}><Edit2 size={14} color="#475569" /></button>
-                              <button onClick={() => { if (window.confirm('Bu odevi silmek istediginize emin misiniz?')) deleteHomework(hw.id); }} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#fff1f2', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={14} color="#dc2626" /></button>
+                              <button onClick={() => { if (window.confirm('Bu odevi silmek istediginize emin misiniz?')) { deleteHomework(hw.id); deleteSubmissionsByTestId(hw.id); } }} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#fff1f2', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={14} color="#dc2626" /></button>
                             </div>
                           </td>
                         </tr>
