@@ -111,6 +111,13 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
   const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
 
+  // Grace period for initial context data load
+  const [initLoading, setInitLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setInitLoading(false), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
   // Check if test is already completed by this student (ignored if isRetake is true)
   const existingSubmission = useMemo(() => {
     if (isRetake) return null;
@@ -397,8 +404,16 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  if (!test) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Test bulunamadı.</div>;
-
+  if (!test) {
+    if (initLoading) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+          Sınav Yükleniyor...
+        </div>
+      );
+    }
+    return <div className="container" style={{ padding: '4rem', textAlign: 'center', color: '#f8fafc', background: '#0f172a', height: '100vh' }}>Sınav bulunamadı.</div>;
+  }
 
   if (isSyncing) {
     return (
