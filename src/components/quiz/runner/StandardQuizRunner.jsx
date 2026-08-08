@@ -309,7 +309,19 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
   } else if (!isQObjActuallyTest && activeQuestion.contentPayload && activeQuestion.contentPayload.startsWith('data:image')) {
     questionImageUrls = [activeQuestion.contentPayload];
   } else {
-    const testRawImages = test.imageUrls || test.imageUrl || (test.contentPayload?.startsWith('data:image') ? [test.contentPayload] : []);
+    // Check all possible sources for the parent test images, including idbPayload which handles synced mobile payloads
+    let testRawImages = test.imageUrls || test.imageUrl;
+    
+    if (!testRawImages || testRawImages.length === 0) {
+       if (test.contentPayload && (test.contentPayload.startsWith('data:image') || test.contentPayload.startsWith('http'))) {
+         testRawImages = [test.contentPayload];
+       } else if (idbPayload && (idbPayload.startsWith('data:image') || idbPayload.startsWith('http'))) {
+         testRawImages = [idbPayload];
+       } else {
+         testRawImages = [];
+       }
+    }
+    
     const testImages = (Array.isArray(testRawImages) ? testRawImages : [testRawImages]).filter(isValidImageUrl);
     
     if (testImages.length > 0) {
