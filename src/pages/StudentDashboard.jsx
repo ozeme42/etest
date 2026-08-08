@@ -287,7 +287,7 @@ export default function StudentDashboard() {
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
-  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks } = useCoaching();
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -304,6 +304,7 @@ export default function StudentDashboard() {
   const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);
   const studentMeetings = getMeetingsForStudent(selectedStudent?.id);
   const upcomingMeeting = studentMeetings.find(m => m.nextMeetingDate);
+  const hasCoach = coachingLinks?.some(l => String(l.studentId) === String(selectedStudent?.id));
 
   useEffect(() => {
     if (currentUser?.role === 'student') setSelectedStudent(currentUser);
@@ -452,7 +453,7 @@ export default function StudentDashboard() {
       <div style={{ width: '100%', padding: isMobile ? '0.85rem' : 'clamp(1rem,2.5vw,2rem)', boxSizing: 'border-box' }}>
 
         {/* 🏛️ KOÇLUK AKADEMİK & STRATEJİK HEDEFLERİ CARD (All Coaching Dossier Goals) */}
-        {coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
+        {hasCoach && coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
           const isGradeTracking = coachingProfile?.examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
           return (
             <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '2px solid #86efac', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(22,163,74,0.08)' }}>
