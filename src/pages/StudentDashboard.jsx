@@ -139,7 +139,7 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
 }
 
 /* ─── Homework Card ─────────────────────────────────────────────── */
-function HomeworkCard({ task, selectedStudent }) {
+function HomeworkCard({ task, selectedStudent, isMobile }) {
   const navigate = useNavigate();
   const category = task.subject;
   const conf = getSubConf(getThemeKey(category));
@@ -162,6 +162,41 @@ function HomeworkCard({ task, selectedStudent }) {
       {daysDiff + 1}g kaldı
     </span>
   );
+
+  const handleStart = () => {
+    let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
+    if (task.sourceType === 'trackedBook') {
+      path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
+    } else if (task.type === 'physicalExam') {
+      path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
+    }
+    navigate(path);
+  };
+
+  if (isMobile) {
+    return (
+      <div style={{ background: 'white', border: `1.5px solid ${conf.border}`, borderRadius: '1rem', padding: '0.85rem', display: 'flex', gap: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', position: 'relative', alignItems: 'center' }}>
+        <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: conf.bg, border: `1.5px solid ${conf.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon size={20} color={conf.color} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: conf.badge, textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.05em' }}>{category}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{task.title}</div>
+          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+             {urgencyPill}
+             <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Calendar size={10} /> {task.dueDateStr}</span>
+             <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700 }}>• {task.questionCount || 0} Soru</span>
+          </div>
+        </div>
+        <button
+          onClick={handleStart}
+          style={{ width: 38, height: 38, borderRadius: '50%', background: conf.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', flexShrink: 0, boxShadow: `0 4px 10px ${conf.color}40`, transition: 'transform 0.15s' }}
+        >
+          <PlayCircle size={18} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: 'white', border: `1.5px solid ${conf.border}`, borderRadius: '1.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}>
@@ -201,15 +236,7 @@ function HomeworkCard({ task, selectedStudent }) {
       </div>
 
       <button
-        onClick={() => {
-          let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
-          if (task.sourceType === 'trackedBook') {
-            path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
-          } else if (task.type === 'physicalExam') {
-            path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
-          }
-          navigate(path);
-        }}
+        onClick={handleStart}
         style={{ width: '100%', padding: '0.65rem', borderRadius: '0.75rem', background: conf.color, color: 'white', fontWeight: 800, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: `0 4px 12px ${conf.color}40`, transition: 'transform 0.15s' }}
       >
         <PlayCircle size={16} /> {task.type === 'physicalExam' ? 'Optik Formu Doldur' : 'Ödevi Çöz'}
@@ -656,7 +683,7 @@ export default function StudentDashboard() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.85rem' }}>
                   {pendingTasks.map(task => (
-                    <HomeworkCard key={task.id} task={task} selectedStudent={selectedStudent} />
+                    <HomeworkCard key={task.id} task={task} selectedStudent={selectedStudent} isMobile={isMobile} />
                   ))}
                 </div>
               )}
