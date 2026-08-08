@@ -884,13 +884,35 @@ export default function QuestionBank() {
     e.preventDefault();
     if (!categoryId) return;
 
-    // Determine correct subject and grade based on the selected categoryId (which is a topic ID)
-    const selectedTopicObj = curData.topics.find(t => t.id === categoryId);
-    const selectedUnitObj = selectedTopicObj ? curData.units.find(u => u.id === selectedTopicObj.unitId) : null;
-    const selectedSubjectObj = selectedUnitObj ? curData.subjects.find(s => s.id === selectedUnitObj.subjectId) : null;
-    
-    const foundSubject = selectedSubjectObj ? selectedSubjectObj.name : 'Matematik';
-    const foundGradeId = selectedSubjectObj ? selectedSubjectObj.gradeId : 'g1';
+    // Determine correct subject and grade based on the current context
+    let foundSubjectObj = null;
+
+    if (categoryId && !categoryId.includes('_all')) {
+      const selectedTopicObj = curData.topics.find(t => t.id === categoryId);
+      const selectedUnitObj = selectedTopicObj ? curData.units.find(u => u.id === selectedTopicObj.unitId) : null;
+      foundSubjectObj = selectedUnitObj ? curData.subjects.find(s => s.id === selectedUnitObj.subjectId) : null;
+    }
+
+    if (!foundSubjectObj && categoryId) {
+      if (categoryId.startsWith('sub_')) {
+        const sId = categoryId.split('_')[1];
+        foundSubjectObj = curData.subjects.find(s => s.id === sId);
+      } else if (categoryId.startsWith('unit_')) {
+        const uId = categoryId.split('_')[1];
+        const uObj = curData.units.find(u => u.id === uId);
+        foundSubjectObj = uObj ? curData.subjects.find(s => s.id === uObj.subjectId) : null;
+      }
+    }
+
+    if (!foundSubjectObj && selectedSubject && selectedSubject !== 'all') {
+      foundSubjectObj = curData.subjects.find(s => s.id === selectedSubject);
+    }
+    if (!foundSubjectObj && activeSubjectId && activeSubjectId !== 'all_subjects') {
+      foundSubjectObj = curData.subjects.find(s => s.id === activeSubjectId);
+    }
+
+    const foundSubject = foundSubjectObj ? foundSubjectObj.name : 'Diğer';
+    const foundGradeId = foundSubjectObj ? foundSubjectObj.gradeId : (activeGradeId || 'g1');
 
     if (formData.contentType === 'json') {
       let questionsList = [];
