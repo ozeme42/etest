@@ -1184,13 +1184,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
   const secOE = checkIsOE(activeSec.bankQ);
-
   const activeBankQ = activeSec.bankQ || {};
-  
-  // Section type MUST be determined strictly for the ACTIVE SECTION (not parent container)
-  const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec);
-  const isHtml = !isPdf && (isHtmlSection(activeBankQ) || isHtmlSection(activeSec));
-  const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec));
 
   const [idbPayload, setIdbPayload] = useState(null);
   const [lightboxSrc, setLightboxSrc] = useState(null);
@@ -1222,6 +1216,11 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   }, [findInAllSources, test?.id]);
 
   const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || test?.pdfPayload || test?.pdfUrl || idbPayload;
+
+  // Section type MUST be determined strictly for the ACTIVE SECTION (not parent container)
+  const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec) || isPdfSection(test) || Boolean(activePdfPayload && typeof activePdfPayload === 'string' && (activePdfPayload.startsWith('data:application/pdf') || activePdfPayload.includes('.pdf')));
+  const isHtml = !isPdf && (isHtmlSection(activeBankQ) || isHtmlSection(activeSec));
+  const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec) || isImageSection(test) || Boolean(idbPayload && typeof idbPayload === 'string' && idbPayload.startsWith('data:image')));
 
   useEffect(() => {
     if (!isPdf) return;
