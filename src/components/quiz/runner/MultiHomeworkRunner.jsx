@@ -271,7 +271,7 @@ function RightOptikPanel({
                       : qObj.correctAnswer;
                       
                     if (correctAns === undefined || correctAns === null) {
-                      const keySource = bankQ?.answerKey || test?.answerKey;
+                      const keySource = bankQ?.answerKey;
                       if (keySource) {
                         const kaVal = keySource[qNo - 1] !== undefined ? keySource[qNo - 1] : keySource[String(qNo)];
                         if (kaVal !== undefined && kaVal !== null) {
