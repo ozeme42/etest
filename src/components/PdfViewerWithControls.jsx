@@ -1,11 +1,21 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText, Loader2 } from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Set up the worker for react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [numPages, setNumPages] = useState(null);
   const wrapperRef = useRef(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
@@ -13,17 +23,21 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
     return getEmbeddablePdfUrl(payload);
   }, [payload]);
 
+  const onDocumentLoadSuccess = ({ numPages }) => {
+    setNumPages(numPages);
+  };
+
   const handleZoomIn = (e) => {
     e.preventDefault();
-    setZoomLevel(prev => Math.min(prev + 20, 220));
+    setZoomLevel(prev => Math.min(prev + 20, 300));
   };
   const handleZoomOut = (e) => {
     e.preventDefault();
-    setZoomLevel(prev => Math.max(prev - 20, 60));
+    setZoomLevel(prev => Math.max(prev - 20, 40));
   };
   const handleResetZoom = (e) => {
     e.preventDefault();
-    setZoomLevel(100);
+    setZoomLevel(isMobile ? 80 : 100);
   };
   
   const toggleExpanded = (e) => {
@@ -39,7 +53,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
   if (!embedUrl) {
     return (
       <div style={{ padding: '3rem 1.5rem', textAlign: 'center', background: '#fff5f5', border: '2px dashed #fca5a5', borderRadius: '0.75rem', margin: '0.5rem 0' }}>
-        <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justify: 'center', margin: '0 auto 0.75rem auto' }}>
+        <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto' }}>
           <FileText size={24} />
         </div>
         <p style={{ fontSize: '1rem', fontWeight: 900, color: '#991b1b', margin: '0 0 0.25rem 0' }}>
@@ -75,7 +89,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         padding: '0.4rem 0.75rem',
         background: '#1e293b',
         color: 'white',
@@ -153,63 +167,38 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
         </div>
       </div>
 
-      {/* Direct Seamless PDF Iframe - Smooth CSS Zoom Without Unmounting */}
-      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659' }}>
-        {(isMobile && embedUrl && embedUrl.startsWith('blob:')) ? (
-          <div style={{ padding: '2rem 1.5rem', textAlign: 'center', background: '#f8fafc', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <FileText size={56} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#1e293b', fontWeight: 900, fontSize: '1.1rem' }}>PDF Sınav Dokümanı</h3>
-            <p style={{ margin: '0 0 1.5rem 0', color: '#64748b', fontSize: '0.85rem', maxWidth: '280px', lineHeight: '1.4' }}>
-              Mobil tarayıcılar çevrimdışı PDF dosyalarını doğrudan ekrana gömmeyi desteklemiyor. Lütfen alttaki butona tıklayarak PDF'i güvenle açın.
-            </p>
-            <a
-              href={embedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download="sinav.pdf"
-              style={{
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                color: 'white',
-                padding: '0.85rem 1.5rem',
-                borderRadius: '0.75rem',
-                fontWeight: 900,
-                fontSize: '0.9rem',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 15px rgba(79,70,229,0.35)'
-              }}
-            >
-              <ExternalLink size={18} /> PDF'i Aç / İndir
-            </a>
-          </div>
-        ) : (
-          <div
-            style={{
-              width: `${zoomLevel}%`,
-              height: `${zoomLevel}%`,
-              minWidth: '100%',
-              minHeight: '100%',
-              transition: 'width 0.15s ease, height 0.15s ease'
-            }}
-          >
-            <iframe
-              key={embedUrl}
-              src={embedUrl}
-              title="PDF Sınav Dokümanı"
-              style={{
-                width: '100%',
-                height: '100%',
-                minWidth: '100%',
-                minHeight: '100%',
-                border: 'none',
-                background: 'white'
-              }}
-            />
-          </div>
-        )}
+      {/* React PDF Document Container */}
+      <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem 0' }}>
+        <Document
+          file={embedUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          loading={
+            <div style={{ padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: 'white' }}>
+              <Loader2 size={32} />
+              <p>PDF Yükleniyor...</p>
+            </div>
+          }
+          error={
+            <div style={{ padding: '3rem', color: '#fca5a5', textAlign: 'center' }}>
+              <FileText size={48} style={{ margin: '0 auto 1rem auto' }} />
+              <p style={{ fontWeight: 'bold' }}>PDF Yüklenemedi.</p>
+              <p style={{ fontSize: '0.85rem' }}>Lütfen dosyayı yenileyin veya tekrar deneyin.</p>
+            </div>
+          }
+        >
+          {Array.from(new Array(numPages), (el, index) => (
+            <div key={`page_${index + 1}`} style={{ marginBottom: '1rem', background: 'white', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', borderRadius: '4px', overflow: 'hidden' }}>
+              <Page
+                pageNumber={index + 1}
+                scale={zoomLevel / 100}
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+              />
+            </div>
+          ))}
+        </Document>
       </div>
     </div>
   );
 }
+
