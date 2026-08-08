@@ -1319,19 +1319,35 @@ export async function dbSaveCoachingProfile(profile) {
       parent_notes: profile.parentNotes || '',
       strengths: profile.strengths || '',
       hobbies: profile.hobbies || '',
-      data: profile
+      extra_data: JSON.stringify(profile)
     };
+    
+    // First try with extra_data
     const { data, error } = await supabase.from('coaching_profiles').upsert([payloadWithData], { onConflict: 'id' }).select().single();
+    
     if (error) {
-      // Fallback if 'data' column is not on table schema
-      const basePayload = { ...payloadWithData };
-      delete basePayload.data;
-      const fallback = await supabase.from('coaching_profiles').upsert([basePayload], { onConflict: 'id' }).select().single();
-      return fallback.data;
+      console.warn('[Supabase] dbSaveCoachingProfile extra_data failed, trying data column fallback:', error.message);
+      // Fallback to data column if extra_data doesn't exist
+      const fallbackPayload = { ...payloadWithData, data: payloadWithData.extra_data };
+      delete fallbackPayload.extra_data;
+      
+      const { data: fallbackData, error: fallbackError } = await supabase.from('coaching_profiles').upsert([fallbackPayload], { onConflict: 'id' }).select().single();
+      
+      if (fallbackError) {
+        console.warn('[Supabase] dbSaveCoachingProfile fallback failed:', fallbackError.message);
+        
+        // Final fallback: just save the raw columns without JSON
+        const rawPayload = { ...payloadWithData };
+        delete rawPayload.extra_data;
+        const { data: rawData } = await supabase.from('coaching_profiles').upsert([rawPayload], { onConflict: 'id' }).select().single();
+        return rawData;
+      }
+      return fallbackData;
     }
+    
     return data;
   } catch (err) {
-    console.warn('[Supabase] dbSaveCoachingProfile info:', err.message);
+    console.warn('[Supabase] dbSaveCoachingProfile catch:', err.message);
     return null;
   }
 }
