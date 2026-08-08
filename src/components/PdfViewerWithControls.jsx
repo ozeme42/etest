@@ -1,11 +1,13 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText } from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const wrapperRef = useRef(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const embedUrl = useMemo(() => {
     return getEmbeddablePdfUrl(payload);
@@ -153,29 +155,60 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
 
       {/* Direct Seamless PDF Iframe - Smooth CSS Zoom Without Unmounting */}
       <div style={{ flex: 1, width: '100%', height: '100%', overflow: 'auto', background: '#525659' }}>
-        <div
-          style={{
-            width: `${zoomLevel}%`,
-            height: `${zoomLevel}%`,
-            minWidth: '100%',
-            minHeight: '100%',
-            transition: 'width 0.15s ease, height 0.15s ease'
-          }}
-        >
-          <iframe
-            key={embedUrl}
-            src={embedUrl}
-            title="PDF Sınav Dokümanı"
+        {(isMobile && embedUrl && embedUrl.startsWith('blob:')) ? (
+          <div style={{ padding: '2rem 1.5rem', textAlign: 'center', background: '#f8fafc', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <FileText size={56} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#1e293b', fontWeight: 900, fontSize: '1.1rem' }}>PDF Sınav Dokümanı</h3>
+            <p style={{ margin: '0 0 1.5rem 0', color: '#64748b', fontSize: '0.85rem', maxWidth: '280px', lineHeight: '1.4' }}>
+              Mobil tarayıcılar çevrimdışı PDF dosyalarını doğrudan ekrana gömmeyi desteklemiyor. Lütfen alttaki butona tıklayarak PDF'i güvenle açın.
+            </p>
+            <a
+              href={embedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download="sinav.pdf"
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: 'white',
+                padding: '0.85rem 1.5rem',
+                borderRadius: '0.75rem',
+                fontWeight: 900,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 15px rgba(79,70,229,0.35)'
+              }}
+            >
+              <ExternalLink size={18} /> PDF'i Aç / İndir
+            </a>
+          </div>
+        ) : (
+          <div
             style={{
-              width: '100%',
-              height: '100%',
+              width: `${zoomLevel}%`,
+              height: `${zoomLevel}%`,
               minWidth: '100%',
               minHeight: '100%',
-              border: 'none',
-              background: 'white'
+              transition: 'width 0.15s ease, height 0.15s ease'
             }}
-          />
-        </div>
+          >
+            <iframe
+              key={embedUrl}
+              src={embedUrl}
+              title="PDF Sınav Dokümanı"
+              style={{
+                width: '100%',
+                height: '100%',
+                minWidth: '100%',
+                minHeight: '100%',
+                border: 'none',
+                background: 'white'
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
