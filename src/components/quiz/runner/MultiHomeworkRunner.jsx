@@ -1368,8 +1368,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       </header>
 
       {/* ── TOP SECTION TABS BAR (PERMANENT) ── */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: isMobile ? '0.4rem 0.75rem' : '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, overflowX: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: isMobile ? '0.4rem 0.5rem' : '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.3rem', flexShrink: 0, width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', overflowX: 'auto', flex: 1, paddingBottom: isMobile ? '2px' : '0' }}>
           {sections.map((sec, idx) => {
             const isCurrent = idx === activeSecIdx;
             const secAnsState = sectionAnswers[sec.id]?.answers || {};
@@ -1382,23 +1382,24 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 key={sec.id || idx}
                 onClick={() => setActiveSecIdx(idx)}
                 style={{
-                  padding: isMobile ? '0.35rem 0.6rem' : '0.5rem 1.1rem',
-                  borderRadius: '0.6rem',
+                  padding: isMobile ? '0.25rem 0.4rem' : '0.5rem 1.1rem',
+                  borderRadius: '0.5rem',
                   fontWeight: 900,
-                  fontSize: isMobile ? '0.7rem' : '0.82rem',
+                  fontSize: isMobile ? '0.65rem' : '0.82rem',
                   whiteSpace: 'nowrap',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
+                  gap: '0.2rem',
                   background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : isCompleted ? 'rgba(16,185,129,0.15)' : '#1e293b',
                   border: isCurrent ? '2px solid #818cf8' : isCompleted ? '1px solid #10b981' : '1px solid #334155',
                   color: isCurrent ? 'white' : isCompleted ? '#34d399' : '#cbd5e1',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0
                 }}
               >
-                <span>{idx + 1}. Bölüm{!isMobile && `: ${sec.title}`}</span>
-                <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', opacity: 0.85, padding: '0.1rem 0.3rem', borderRadius: '0.3rem', background: 'rgba(0,0,0,0.25)' }}>
+                <span>{idx + 1}. Blm{!isMobile && `: ${sec.title}`}</span>
+                <span style={{ fontSize: isMobile ? '0.6rem' : '0.72rem', opacity: 0.85, padding: '0.1rem 0.2rem', borderRadius: '0.3rem', background: 'rgba(0,0,0,0.25)' }}>
                   {ansCount}/{sec.qCount}
                 </span>
               </button>
@@ -1406,20 +1407,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.4rem' }}>
+        <div style={{ display: 'flex', gap: '0.2rem', flexShrink: 0 }}>
           <button
             onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
             disabled={activeSecIdx === 0}
-            style={{ padding: '0.4rem 0.9rem', borderRadius: '0.6rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 800, fontSize: '0.8rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+            style={{ padding: isMobile ? '0.3rem 0.4rem' : '0.4rem 0.9rem', borderRadius: '0.5rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 800, fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}
+            title="Önceki Bölüm"
           >
-            <ChevronLeft size={16} /> Önceki Bölüm
+            <ChevronLeft size={isMobile ? 14 : 16} /> {!isMobile && "Önceki"}
           </button>
           <button
             onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
             disabled={activeSecIdx === sections.length - 1}
-            style={{ padding: '0.4rem 0.9rem', borderRadius: '0.6rem', background: activeSecIdx === sections.length - 1 ? '#1e293b' : 'linear-gradient(135deg,#6366f1,#4f46e5)', border: 'none', color: activeSecIdx === sections.length - 1 ? '#64748b' : 'white', fontWeight: 800, fontSize: '0.8rem', cursor: activeSecIdx === sections.length - 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+            style={{ padding: isMobile ? '0.3rem 0.4rem' : '0.4rem 0.9rem', borderRadius: '0.5rem', background: activeSecIdx === sections.length - 1 ? '#1e293b' : 'linear-gradient(135deg,#6366f1,#4f46e5)', border: 'none', color: activeSecIdx === sections.length - 1 ? '#64748b' : 'white', fontWeight: 800, fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: activeSecIdx === sections.length - 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}
+            title="Sonraki Bölüm"
           >
-            Sonraki Bölüm <ChevronRight size={16} />
+            {!isMobile && "Sonraki"} <ChevronRight size={isMobile ? 14 : 16} />
           </button>
         </div>
       </div>
