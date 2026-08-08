@@ -62,14 +62,6 @@ export function QuestionBankProvider({ children }) {
             if (dbQ.id === 'q1') return;
 
             let existingKey = String(dbQ.id);
-            if (!mergedMap.has(existingKey)) {
-              for (const [key, val] of mergedMap.entries()) {
-                if (val.title && dbQ.title && val.title === dbQ.title && val.questionCount === dbQ.questionCount && val.contentType === dbQ.contentType) {
-                  existingKey = key;
-                  break;
-                }
-              }
-            }
 
             const existing = mergedMap.get(existingKey);
             if (existing) {
