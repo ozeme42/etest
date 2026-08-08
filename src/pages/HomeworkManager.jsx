@@ -11,6 +11,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useAuth } from '../context/AuthContext';
+import { idbGetPayload } from '../services/indexedDbService';
 import './Dashboard.css';
 
 const subjectThemes = {
@@ -208,7 +209,7 @@ export default function HomeworkManager() {
   const canStep2 = !!(title.trim() && dueDate);
   const canSubmit = !!(title.trim() && dueDate && selectedTargets.length > 0 && selectedQuestionIds.length > 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
       showToast('⚠️ Lütfen Ödev Başlığını giriniz!');
       setStep(1);
@@ -236,6 +237,53 @@ export default function HomeworkManager() {
     const totalQCount = isPhysical ? physicalExam.totalQuestions : selectedQs.reduce((acc, q) => acc + (q.isBundle ? (q.questionCount || 1) : 1), 0);
     const firstQ = selectedQs[0] || {};
     const firstSub = firstQ.subject || firstQ.subjectName || 'Genel';
+
+    // Read actual PDF payloads from IDB for each question (payload may be stored as placeholder)
+    const sectionsWithPayloads = await Promise.all(selectedQs.map(async (q, idx) => {
+      let pdfPayload = q.pdfPayload;
+      let contentPayload = q.contentPayload;
+
+      // If placeholder, try to get real data from IDB
+      const needsIdb = (p) => !p || p === '[STORED_IN_INDEXEDDB]' || p === '[LOCALSTORAGE_CACHE]';
+      if (needsIdb(pdfPayload) || needsIdb(contentPayload)) {
+        const idVariants = [
+          q.id,
+          String(q.id).replace(/^q_?/, ''),
+          String(q.id).replace(/^q_?/, 'q_'),
+          String(q.id).replace(/^q_?/, 'q'),
+        ];
+        for (const idv of idVariants) {
+          try {
+            const val = await idbGetPayload(idv);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
+              if (needsIdb(pdfPayload) && (q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || (typeof val === 'string' && val.startsWith('data:application/pdf')))) {
+                pdfPayload = val;
+              } else if (needsIdb(contentPayload)) {
+                contentPayload = val;
+              }
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+
+      return {
+        id: q.id,
+        questionId: q.id,
+        title: q.title || q.name || `${idx + 1}. Bölüm`,
+        contentType: q.contentType || q.type || q.formatType || q.sourceFormat,
+        formatType: q.formatType || q.sourceFormat,
+        sourceFormat: q.sourceFormat,
+        questionCount: q.questionCount || q.totalQuestions || q.qCount || 10,
+        questionType: q.questionType || q.type,
+        answerKey: q.answerKey,
+        pdfPayload: needsIdb(pdfPayload) ? undefined : pdfPayload,
+        contentPayload: needsIdb(contentPayload) ? undefined : contentPayload,
+        pdfUrl: q.pdfUrl,
+        imageUrls: q.imageUrls,
+      };
+    }));
+
     const hwData = {
       title, dueDate, timePerQuestion: parseInt(timePerQuestion, 10),
       totalQuestions: totalQCount, subject: firstSub,
@@ -252,21 +300,7 @@ export default function HomeworkManager() {
       subjects: isPhysical ? physicalExam.subjects : undefined,
       penaltyRatio: isPhysical ? physicalExam.penaltyRatio : undefined,
       examType: isPhysical ? physicalExam.examType : undefined,
-      // Store per-section metadata so mobile can detect content type without question bank context
-      sections: selectedQs.map((q, idx) => ({
-        id: q.id,
-        questionId: q.id,
-        title: q.title || q.name || `${idx + 1}. Bölüm`,
-        contentType: q.contentType || q.type || q.formatType || q.sourceFormat,
-        formatType: q.formatType || q.sourceFormat,
-        sourceFormat: q.sourceFormat,
-        questionCount: q.questionCount || q.totalQuestions || q.qCount || 10,
-        questionType: q.questionType || q.type,
-        answerKey: q.answerKey,
-        pdfPayload: q.pdfPayload && q.pdfPayload !== '[STORED_IN_INDEXEDDB]' ? q.pdfPayload : undefined,
-        pdfUrl: q.pdfUrl,
-        imageUrls: q.imageUrls,
-      }))
+      sections: sectionsWithPayloads
     };
     if (editingHwId) { updateHomework(editingHwId, hwData); showToast('🎉 Ödev güncellendi!'); }
     else { addHomework(hwData); showToast('🎉 Ödev başarıyla yayınlandı!'); }
