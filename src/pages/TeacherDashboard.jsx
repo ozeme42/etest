@@ -161,13 +161,18 @@ export default function TeacherDashboard() {
     if (!testName || !catId || selQIds.length === 0) return;
     const chosen = poolQs.filter(q => selQIds.includes(q.id));
     const total  = chosen.reduce((s, q) => s + (q.isBundle ? (q.questionCount || 1) : 1), 0);
+    const firstQ = chosen[0];
+    const testType = firstQ ? (firstQ.type || 'coktan_secmeli') : 'coktan_secmeli';
+    const sourceType = firstQ ? (firstQ.sourceType || firstQ.contentType || null) : null;
+
     let subName  = 'Genel (Tümü)';
     if (selSubject !== 'all' && selSubject !== '') subName = data.subjects.find(s => s.id === selSubject)?.name || subName;
     const payload = {
       title: testName, subject: subName, topicId: catId,
       questions: total, questionIds: selQIds,
       timePerQuestion: +timePerQ, time: total * +timePerQ,
-      color: 'primary', filters: { selGrade, selSubject, selUnit, selTopic }
+      color: 'primary', filters: { selGrade, selSubject, selUnit, selTopic },
+      type: testType, sourceType: sourceType
     };
     editingTestId ? updateTest(editingTestId, payload) : addTest(payload);
     resetForm();
