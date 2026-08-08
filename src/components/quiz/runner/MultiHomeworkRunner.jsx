@@ -1221,22 +1221,23 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     return null;
   }, [findInAllSources, test?.id]);
 
-  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || idbPayload;
+  const activePdfPayload = extractPayload(activeBankQ) || extractPayload(activeSec) || test?.pdfPayload || test?.pdfUrl || idbPayload;
 
   useEffect(() => {
     if (!isPdf) return;
     const targetObj = activeBankQ.id ? activeBankQ : activeSec;
     if (extractPayload(targetObj)) return;
+    if (test?.pdfPayload || test?.pdfUrl) return;
 
     let isMounted = true;
     async function load() {
       const baseIds = [
-        test?.id,
         targetObj.id,
         activeBankQ?.id,
         activeSec?.id,
         activeBankQ?.questionId,
         activeSec?.questionId,
+        test?.id,
         ...(test?.questionIds || []),
         ...(test?.questions || []).map(q => q.id),
         ...(test?.questionsList || []).map(q => q.id)
