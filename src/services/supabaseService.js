@@ -706,32 +706,61 @@ export async function dbGetHomeworks() {
 export async function dbAddHomework(hw) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const qIds = hw.questionIds || hw.tests || [];
-    const fullRaw = { ...hw, questionIds: qIds, tests: qIds };
+    // Upload large PDF/image payloads in sections[] to Supabase Storage
+    // so all devices can load the PDF via public URL (not just the device that created it)
+    let processedHw = { ...hw };
+
+    if (Array.isArray(processedHw.sections)) {
+      processedHw.sections = await Promise.all(processedHw.sections.map(async (sec) => {
+        const s = { ...sec };
+        if (typeof s.pdfPayload === 'string' && s.pdfPayload.startsWith('data:') && s.pdfPayload.length > 1000) {
+          try {
+            const url = await dbUploadFileToStorage(s.pdfPayload, `hw_sec_${s.id || Date.now()}`);
+            if (url) { s.pdfPayload = url; s.pdfUrl = url; }
+          } catch (e) {}
+        }
+        if (typeof s.contentPayload === 'string' && s.contentPayload.startsWith('data:') && s.contentPayload.length > 1000) {
+          try {
+            const url = await dbUploadFileToStorage(s.contentPayload, `hw_sec_content_${s.id || Date.now()}`);
+            if (url) { s.contentPayload = url; }
+          } catch (e) {}
+        }
+        return s;
+      }));
+    }
+
+    if (typeof processedHw.pdfPayload === 'string' && processedHw.pdfPayload.startsWith('data:') && processedHw.pdfPayload.length > 1000) {
+      try {
+        const url = await dbUploadFileToStorage(processedHw.pdfPayload, `hw_pdf_${processedHw.id || Date.now()}`);
+        if (url) { processedHw.pdfPayload = url; processedHw.pdfUrl = url; }
+      } catch (e) {}
+    }
+
+    const qIds = processedHw.questionIds || processedHw.tests || [];
+    const fullRaw = { ...processedHw, questionIds: qIds, tests: qIds };
     const payload = {
-      id: String(hw.id || `hw_${Date.now()}`),
-      title: hw.title,
-      subject: hw.subject || 'Genel',
-      due_date: hw.dueDate,
-      target_type: hw.targetType || 'grade',
-      target_ids: hw.targetIds || [],
+      id: String(processedHw.id || `hw_${Date.now()}`),
+      title: processedHw.title,
+      subject: processedHw.subject || 'Genel',
+      due_date: processedHw.dueDate,
+      target_type: processedHw.targetType || 'grade',
+      target_ids: processedHw.targetIds || [],
       tests: qIds,
       question_ids: qIds,
-      total_questions: hw.totalQuestions || qIds.length || 0,
-      time_per_question: hw.timePerQuestion || 2,
-      time: hw.time || 20,
+      total_questions: processedHw.totalQuestions || qIds.length || 0,
+      time_per_question: processedHw.timePerQuestion || 2,
+      time: processedHw.time || 20,
       raw_data: fullRaw
     };
     let { data, error } = await supabase.from('homeworks').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
-      // Fallback if question_ids or raw_data columns don't exist yet in Supabase schema
       const fallbackPayload = {
-        id: String(hw.id || `hw_${Date.now()}`),
-        title: hw.title,
-        subject: hw.subject || 'Genel',
-        due_date: hw.dueDate,
-        target_type: hw.targetType || 'grade',
-        target_ids: hw.targetIds || [],
+        id: String(processedHw.id || `hw_${Date.now()}`),
+        title: processedHw.title,
+        subject: processedHw.subject || 'Genel',
+        due_date: processedHw.dueDate,
+        target_type: processedHw.targetType || 'grade',
+        target_ids: processedHw.targetIds || [],
         tests: qIds
       };
       const res = await supabase.from('homeworks').upsert([fallbackPayload], { onConflict: 'id' }).select();
