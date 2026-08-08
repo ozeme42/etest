@@ -1204,7 +1204,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const extractPayload = useCallback((obj) => {
     if (!obj) return null;
     const candidates = [
-      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.htmlPayload, obj.url, obj.content
+      obj.contentPayload, obj.pdfPayload, obj.pdfUrl, obj.url
     ];
     const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
     if (direct) return direct;
@@ -1213,7 +1213,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     if (qId && String(qId) !== String(test?.id)) {
       const found = findInAllSources(qId);
       if (found && String(found.id) !== String(test?.id)) {
-        const foundCand = [found.contentPayload, found.pdfPayload, found.pdfUrl, found.htmlPayload, found.url, found.content];
+        const foundCand = [found.contentPayload, found.pdfPayload, found.pdfUrl, found.url];
         const foundDirect = foundCand.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
         if (foundDirect) return foundDirect;
       }
