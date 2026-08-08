@@ -118,7 +118,17 @@ export default function StudentResultsPage() {
 
     const allCombined = [...baseSubs, ...hwSubs];
 
-    return allCombined
+    // Deduplicate: Keep only the latest submission per assignment/test
+    const deduplicatedMap = new Map();
+    allCombined.forEach(s => {
+      const uniqueKey = s.hwId || s.testId || s.id;
+      const existing = deduplicatedMap.get(uniqueKey);
+      if (!existing || new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+        deduplicatedMap.set(uniqueKey, s);
+      }
+    });
+
+    return Array.from(deduplicatedMap.values())
       .map(s => {
         let correctCount = s.correctCount !== undefined ? s.correctCount : 0;
         let wrongCount = s.wrongCount !== undefined ? s.wrongCount : 0;
