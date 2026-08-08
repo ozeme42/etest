@@ -466,7 +466,7 @@ export default function StudentDashboard() {
     return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
   }, [goals, selectedStudent]);
 
-  const gradeLabel = data?.grades?.find(g => g.id === selectedStudent?.gradeId)?.name || '';
+  const gradeLabel = curData?.grades?.find(g => g.id === selectedStudent?.gradeId)?.name || '';
   const avatarColor = avatarColors[studentMembers.findIndex(s => s.id === selectedStudent?.id) % avatarColors.length] || '#6366f1';
 
   /* ── Input style ── */
