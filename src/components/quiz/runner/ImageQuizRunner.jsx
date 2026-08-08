@@ -539,11 +539,11 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                 />
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
+                <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.25rem', textAlign: 'center' }}>
                   Doğru Şıkkı Seçiniz:
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                   {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
                     const isSelected = currentAnsObj.userAnswer === optIdx;
                     return (
@@ -551,25 +551,23 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                         key={opt}
                         onClick={() => handleOptionSelect(optIdx)}
                         style={{
-                          padding: '0.85rem 1.25rem',
-                          borderRadius: '0.85rem',
-                          border: isSelected ? '2px solid #6366f1' : '1px solid #334155',
-                          background: isSelected ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : '#0f172a',
-                          color: isSelected ? '#ffffff' : '#cbd5e1',
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          border: isSelected ? '2px solid #6366f1' : '2px solid #334155',
+                          background: isSelected ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : '#1e293b',
+                          color: isSelected ? '#ffffff' : '#94a3b8',
                           fontWeight: 900,
-                          fontSize: '1rem',
+                          fontSize: '1.1rem',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.75rem',
+                          justifyContent: 'center',
                           transition: 'all 0.15s ease',
                           boxShadow: isSelected ? '0 4px 14px rgba(79,70,229,0.35)' : 'none'
                         }}
                       >
-                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: isSelected ? '#ffffff' : '#1e293b', color: isSelected ? '#4338ca' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem' }}>
-                          {opt}
-                        </div>
-                        <span>Şık {opt}</span>
+                        {opt}
                       </button>
                     );
                   })}

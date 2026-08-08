@@ -199,6 +199,14 @@ export default function StudentResultsPage() {
       .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
   }, [submissions, homeworks, allCurTestsMap, selectedStudent]);
 
+  // Helper to calculate true success percentage
+  const getTrueSuccess = (s) => {
+    if (s.score !== undefined && s.score !== null && s.score <= 100) return s.score;
+    if (s.totalQuestions > 0) return Math.round(((s.correctCount || 0) / s.totalQuestions) * 100);
+    if (s.score !== undefined && s.score !== null) return Math.min(100, s.score);
+    return 0;
+  };
+
   // Statistics calculation
   const stats = useMemo(() => {
     const total = studentSubmissions.length;
@@ -209,7 +217,7 @@ export default function StudentResultsPage() {
     let completedCount = 0;
 
     studentSubmissions.forEach(s => {
-      const sc = s.score || 0;
+      const sc = getTrueSuccess(s);
       sumScore += sc;
       if (sc > max) max = sc;
       if (s.status !== 'pending_evaluation') completedCount++;
@@ -239,7 +247,7 @@ export default function StudentResultsPage() {
       return {
         name: dateStr,
         title: s.testTitle || 'Ödev Sınavı',
-        başarı: s.score || 0,
+        başarı: getTrueSuccess(s),
         doğru: s.correctCount,
         yanlış: s.wrongCount,
         boş: s.blankCount,
@@ -439,7 +447,7 @@ export default function StudentResultsPage() {
             </div>
             <div className="min-w-0">
               <div className="text-xl sm:text-2xl font-black text-amber-600 leading-none">%{stats.maxScore}</div>
-              <div className="text-[10px] sm:text-xs font-bold text-slate-500 mt-1 truncate">En Yüksek Puan</div>
+              <div className="text-[10px] sm:text-xs font-bold text-slate-500 mt-1 truncate">En Yüksek Başarı</div>
             </div>
           </div>
 
@@ -504,7 +512,7 @@ export default function StudentResultsPage() {
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                 <span className="text-xs sm:text-sm font-bold text-slate-700">
-                  Zaman İçindeki Puan Değişimi (% Başarı):
+                  Zaman İçindeki Başarı Değişimi:
                 </span>
                 
                 <select
@@ -715,7 +723,7 @@ export default function StudentResultsPage() {
                     <th className="p-3 sm:p-3.5 font-black">TARİH</th>
                     <th className="p-3 sm:p-3.5 font-black">TÜR</th>
                     <th className="p-3 sm:p-3.5 font-black">SONUÇ DETAYI</th>
-                    <th className="p-3 sm:p-3.5 font-black">PUAN / NET</th>
+                    <th className="p-3 sm:p-3.5 font-black">BAŞARI / NET</th>
                     <th className="p-3 sm:p-3.5 text-right font-black">EYLEM</th>
                   </tr>
                 </thead>
@@ -891,7 +899,7 @@ export default function StudentResultsPage() {
                       ) : (
                         <div className="flex items-baseline gap-1">
                           <span className="text-xl font-black text-emerald-600">%{score}</span>
-                          <span className="text-[10px] font-extrabold text-emerald-500">Başarı Puanı</span>
+                          <span className="text-[10px] font-extrabold text-emerald-500">Başarı Oranı</span>
                         </div>
                       )}
                     </div>
