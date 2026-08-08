@@ -97,6 +97,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   const [submissionId, setSubmissionId] = useState(null);
   const [finalStats, setFinalStats] = useState(null);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // Advanced Layout States
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -523,10 +524,13 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   };
 
   async function handleFinishTest(autoSubmit = false) {
+    if (isSubmittingRef.current) return;
     if (!autoSubmit && !showFinishModal) {
       setShowFinishModal(true);
       return;
     }
+    
+    isSubmittingRef.current = true;
     
     setIsFinished(true);
     setShowFinishModal(false);
