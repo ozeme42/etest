@@ -10,6 +10,7 @@ import PdfViewerWithControls from '../../PdfViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
+import QuizPanelLayout from './QuizPanelLayout';
 
 function checkIsOE(obj) {
   if (!obj) return false;
@@ -193,7 +194,7 @@ function RightOptikPanel({
   const isLastSec = activeSecIdx === totalSections - 1;
 
   return (
-    <div style={{ width: '300px', background: '#1e293b', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: '100%', background: '#1e293b', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{ padding: '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{isReviewMode ? '🔍 İnceleme & Cevaplar' : '📋 Optik Kodlama & Yanıtlar'}</span>
         <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Toplam {qCount} Soru</span>
@@ -1246,7 +1247,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
       
       {/* ── HEADER BAR ── */}
-      <header style={{ padding: '0.75rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', flexShrink: 0, zIndex: 10 }}>
+      <header style={{ padding: '0.75rem 1rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', flexShrink: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Layers size={14} /> {isReviewMode ? '🔍 ÖDEV İNCELEME MODU' : 'TOPLU ÖDEV RUNNER'}
@@ -1254,7 +1255,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name}</h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {isReviewMode ? (
             <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#312e81', border: '1.5px solid #6366f1', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <CheckCircle2 size={16} color="#818cf8" />
@@ -1293,7 +1294,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       </header>
 
       {/* ── TOP SECTION TABS BAR (PERMANENT) ── */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '0.65rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, overflowX: 'auto' }}>
+      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexShrink: 0, overflowX: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {sections.map((sec, idx) => {
             const isCurrent = idx === activeSecIdx;
@@ -1354,540 +1355,572 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
         
         {isPdf ? (
           /* PDF VIEWER + OPTIK PANEL ONLY */
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
-              <PdfViewerWithControls payload={activePdfPayload} title={activeSec.title} height="100%" />
-            </div>
-            <RightOptikPanel
-              qCount={activeSec.qCount}
-              answers={activeSecState.answers || {}}
-              openEndedText={activeSecState.openEndedText || {}}
-              isOpenEnded={secOE}
-              resolvedQuestions={activeSec.resolvedQuestions}
-              bankQ={activeSec.bankQ || test}
-              isReviewMode={isReviewMode}
-              onOptionSelect={(qNo, optIdx) => {
-                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
-                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
-              }}
-              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-              onSubmit={handleSubmit}
-              activeSecIdx={activeSecIdx}
-              totalSections={sections.length}
-            />
-          </div>
+          <QuizPanelLayout
+            panelTitle="Optik Form"
+            panelSubtitle={`${activeSecIdx + 1}. Bölüm`}
+            icon="📋"
+            defaultPosition="right"
+            defaultSize={320}
+            documentContent={
+              <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden', height: '100%' }}>
+                <PdfViewerWithControls payload={activePdfPayload} title={activeSec.title} height="100%" />
+              </div>
+            }
+            answerContent={
+              <RightOptikPanel
+                qCount={activeSec.qCount}
+                answers={activeSecState.answers || {}}
+                openEndedText={activeSecState.openEndedText || {}}
+                isOpenEnded={secOE}
+                resolvedQuestions={activeSec.resolvedQuestions}
+                bankQ={activeSec.bankQ || test}
+                isReviewMode={isReviewMode}
+                onOptionSelect={(qNo, optIdx) => {
+                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+                }}
+                onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+                onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                onSubmit={handleSubmit}
+                activeSecIdx={activeSecIdx}
+                totalSections={sections.length}
+              />
+            }
+          />
         ) : isHtml ? (
           /* HTML VIEWER + OPTIK PANEL ONLY — StableHtmlViewer sayesinde titreme yok */
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
-              <StableHtmlViewer
-                bankQ={activeBankQ}
-                secId={activeSec.id}
-                title={activeSec.title}
+          <QuizPanelLayout
+            panelTitle="Optik Form"
+            panelSubtitle={`${activeSecIdx + 1}. Bölüm`}
+            icon="📋"
+            defaultPosition="right"
+            defaultSize={320}
+            documentContent={
+              <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden', height: '100%' }}>
+                <StableHtmlViewer
+                  bankQ={activeBankQ}
+                  secId={activeSec.id}
+                  title={activeSec.title}
+                />
+              </div>
+            }
+            answerContent={
+              <RightOptikPanel
+                qCount={activeSec.qCount}
+                answers={activeSecState.answers || {}}
+                openEndedText={activeSecState.openEndedText || {}}
+                isOpenEnded={secOE}
+                resolvedQuestions={activeSec.resolvedQuestions}
+                bankQ={activeSec.bankQ || test}
+                isReviewMode={isReviewMode}
+                onOptionSelect={(qNo, optIdx) => {
+                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+                }}
+                onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+                onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                onSubmit={handleSubmit}
+                activeSecIdx={activeSecIdx}
+                totalSections={sections.length}
               />
-            </div>
-            <RightOptikPanel
-              qCount={activeSec.qCount}
-              answers={activeSecState.answers || {}}
-              openEndedText={activeSecState.openEndedText || {}}
-              isOpenEnded={secOE}
-              resolvedQuestions={activeSec.resolvedQuestions}
-              bankQ={activeSec.bankQ || test}
-              isReviewMode={isReviewMode}
-              onOptionSelect={(qNo, optIdx) => {
-                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
-                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
-              }}
-              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-              onSubmit={handleSubmit}
-              activeSecIdx={activeSecIdx}
-              totalSections={sections.length}
-            />
-          </div>
+            }
+          />
         ) : isImage ? (
           /* IMAGE SET VIEWER (DARK THEME & SINGLE LINE ABCDE BUTTONS) */
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-            <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
-            
-            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              
-              {/* SECTION BANNER */}
-              <div style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(2,132,199,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
-                    🖼️
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
-                    <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-                      Görsel Soru Seti — Aşağıdaki soruları inceleyip şıkları işaretleyiniz.
-                    </p>
-                  </div>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
-                  Bölüm {activeSecIdx + 1} / {sections.length}
-                </div>
-              </div>
-
-              {/* QUESTION CARDS IN DARK THEME */}
-              {Array.from({ length: activeSec.qCount }).map((_, idx) => {
-                const qNo = idx + 1;
-                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
-                const isQOpenEnded = secOE || checkIsOE(qObj);
-
-                const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
-                  ? qObj.imageUrls
-                  : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
-                const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
-
-                const userAnsObj = activeSecState.answers?.[qNo];
-                const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
-                const textVal = activeSecState.openEndedText?.[qNo] || '';
-
-                // Review mode: resolve correctAnswer from multiple sources
-                let correctAns = userAnsObj?.correctAnswer;
-                if ((correctAns === undefined || correctAns === null) && qObj.correctAnswer !== undefined) correctAns = qObj.correctAnswer;
-                if ((correctAns === undefined || correctAns === null) && qObj.correctAnswerLetter) {
-                  const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                  if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
-                }
-                if ((correctAns === undefined || correctAns === null) && activeSec.bankQ?.answerKey) {
-                  const ak = activeSec.bankQ.answerKey;
-                  const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
-                  if (kaVal !== undefined && kaVal !== null) {
-                    if (typeof kaVal === 'number') correctAns = kaVal;
-                    else if (typeof kaVal === 'string') {
-                      const s = kaVal.trim().toUpperCase();
-                      if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
-                      else if (!isNaN(Number(s))) correctAns = Number(s);
-                    }
-                  }
-                }
-
-                const isQAnswered = selectedOpt !== undefined && selectedOpt !== null;
-                const isQCorrect = isReviewMode && isQAnswered
-                  ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (correctAns !== null && correctAns !== undefined && selectedOpt === correctAns))
-                  : null;
-
-                return (
-                  <div key={qNo} style={{
-                    background: '#1e293b',
-                    borderRadius: '1.1rem',
-                    border: isReviewMode && isQAnswered ? `1.5px solid ${isQCorrect ? '#10b981' : '#ef4444'}` : '1px solid #334155',
-                    padding: '1.5rem',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem'
-                  }}>
-                    
-                    {/* QUESTION HEADER */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ padding: '0.3rem 0.75rem', background: '#38bdf8', color: '#0f172a', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                          SORU {qNo}
-                        </span>
-                        {isQOpenEnded && (
-                          <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
-                            ✍️ Açık Uçlu / Yazılı
-                          </span>
-                        )}
+          <QuizPanelLayout
+            panelTitle="Optik Form"
+            panelSubtitle={`${activeSecIdx + 1}. Bölüm`}
+            icon="📋"
+            defaultPosition="right"
+            defaultSize={320}
+            documentContent={
+              <>
+                <ImageLightbox isOpen={Boolean(lightboxSrc)} src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+                <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+                  {/* SECTION BANNER */}
+                  <div style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(2,132,199,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+                        🖼️
                       </div>
-
-                      {isReviewMode ? (
-                        isQOpenEnded ? (
-                          <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
-                        ) : isQAnswered ? (
-                          isQCorrect
-                            ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
-                            : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
-                        ) : (
-                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
-                        )
-                      ) : (
-                        isQAnswered || textVal ? (
-                          <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
-                        ) : (
-                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
-                        )
-                      )}
+                      <div>
+                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+                          Görsel Soru Seti — Aşağıdaki soruları inceleyip şıkları işaretleyiniz.
+                        </p>
+                      </div>
                     </div>
+                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
+                      Bölüm {activeSecIdx + 1} / {sections.length}
+                    </div>
+                  </div>
 
-                    {/* QUESTION IMAGES */}
-                    {imageUrls.map((url, imgIdx) => (
-                      <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} onOpenFullscreen={() => setLightboxSrc(url)} />
-                    ))}
+                  {/* QUESTION CARDS IN DARK THEME */}
+                  {Array.from({ length: activeSec.qCount }).map((_, idx) => {
+                    const qNo = idx + 1;
+                    const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
+                    const isQOpenEnded = secOE || checkIsOE(qObj);
 
-                    {/* SINGLE LINE HORIZONTAL ABCDE BUTTONS */}
-                    {!isQOpenEnded ? (
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                          const isSelected = selectedOpt === optIdx;
-                          const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
+                    const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
+                      ? qObj.imageUrls
+                      : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
+                    const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-                          let bg = '#0f172a';
-                          let border = '1px solid #475569';
-                          let color = '#cbd5e1';
+                    const userAnsObj = activeSecState.answers?.[qNo];
+                    const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
+                    const textVal = activeSecState.openEndedText?.[qNo] || '';
 
-                          if (isReviewMode) {
-                            if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
-                            else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
-                            else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.15)'; border = '1.5px solid #10b981'; color = '#34d399'; }
-                          } else if (isSelected) {
-                            bg = 'linear-gradient(135deg, #059669, #10b981)';
-                            border = 'none'; color = 'white';
-                          }
+                    // Review mode: resolve correctAnswer from multiple sources
+                    let correctAns = userAnsObj?.correctAnswer;
+                    if ((correctAns === undefined || correctAns === null) && qObj.correctAnswer !== undefined) correctAns = qObj.correctAnswer;
+                    if ((correctAns === undefined || correctAns === null) && qObj.correctAnswerLetter) {
+                      const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                      if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
+                    }
+                    if ((correctAns === undefined || correctAns === null) && activeSec.bankQ?.answerKey) {
+                      const ak = activeSec.bankQ.answerKey;
+                      const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
+                      if (kaVal !== undefined && kaVal !== null) {
+                        if (typeof kaVal === 'number') correctAns = kaVal;
+                        else if (typeof kaVal === 'string') {
+                          const s = kaVal.trim().toUpperCase();
+                          if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                          else if (!isNaN(Number(s))) correctAns = Number(s);
+                        }
+                      }
+                    }
 
-                          return (
-                            <button
-                              key={opt}
-                              onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
-                              disabled={isReviewMode}
+                    const isQAnswered = selectedOpt !== undefined && selectedOpt !== null;
+                    const isQCorrect = isReviewMode && isQAnswered
+                      ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (correctAns !== null && correctAns !== undefined && selectedOpt === correctAns))
+                      : null;
+
+                    return (
+                      <div key={qNo} style={{
+                        background: '#1e293b',
+                        borderRadius: '1.1rem',
+                        border: isReviewMode && isQAnswered ? `1.5px solid ${isQCorrect ? '#10b981' : '#ef4444'}` : '1px solid #334155',
+                        padding: '1.5rem',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                      }}>
+                        
+                        {/* QUESTION HEADER */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ padding: '0.3rem 0.75rem', background: '#38bdf8', color: '#0f172a', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                              SORU {qNo}
+                            </span>
+                            {isQOpenEnded && (
+                              <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
+                                ✍️ Açık Uçlu / Yazılı
+                              </span>
+                            )}
+                          </div>
+
+                          {isReviewMode ? (
+                            isQOpenEnded ? (
+                              <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                            ) : isQAnswered ? (
+                              isQCorrect
+                                ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
+                                : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
+                            )
+                          ) : (
+                            isQAnswered || textVal ? (
+                              <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                            )
+                          )}
+                        </div>
+
+                        {/* QUESTION IMAGES */}
+                        {imageUrls.map((url, imgIdx) => (
+                          <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} onOpenFullscreen={() => setLightboxSrc(url)} />
+                        ))}
+
+                        {/* SINGLE LINE HORIZONTAL ABCDE BUTTONS */}
+                        {!isQOpenEnded ? (
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                            {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                              const isSelected = selectedOpt === optIdx;
+                              const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
+
+                              let bg = '#0f172a';
+                              let border = '1px solid #475569';
+                              let color = '#cbd5e1';
+
+                              if (isReviewMode) {
+                                if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
+                                else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
+                                else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.15)'; border = '1.5px solid #10b981'; color = '#34d399'; }
+                              } else if (isSelected) {
+                                bg = 'linear-gradient(135deg, #059669, #10b981)';
+                                border = 'none'; color = 'white';
+                              }
+
+                              return (
+                                <button
+                                  key={opt}
+                                  onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                                  disabled={isReviewMode}
+                                  style={{
+                                    flex: 1,
+                                    height: '42px',
+                                    borderRadius: '0.65rem',
+                                    border,
+                                    background: bg,
+                                    color,
+                                    fontWeight: 900,
+                                    fontSize: '1rem',
+                                    cursor: isReviewMode ? 'default' : 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {isReviewMode && textVal && (
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>Öğrenci Yanıtı:</div>
+                            )}
+                            <textarea
+                              value={textVal}
+                              onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
+                              readOnly={isReviewMode}
+                              placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                              rows={4}
                               style={{
-                                flex: 1,
-                                height: '42px',
-                                borderRadius: '0.65rem',
-                                border,
-                                background: bg,
-                                color,
-                                fontWeight: 900,
-                                fontSize: '1rem',
-                                cursor: isReviewMode ? 'default' : 'pointer',
-                                transition: 'all 0.15s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
+                                width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
+                                background: isReviewMode ? '#0f172a' : '#0f172a',
+                                border: isReviewMode
+                                  ? (textVal ? '1.5px solid #10b981' : '1px solid #475569')
+                                  : '1px solid #475569',
+                                color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
+                                resize: isReviewMode ? 'none' : 'vertical',
+                                boxSizing: 'border-box', outline: 'none',
+                                cursor: isReviewMode ? 'default' : 'text'
                               }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {isReviewMode && textVal && (
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>Öğrenci Yanıtı:</div>
+                            />
+                          </div>
                         )}
-                        <textarea
-                          value={textVal}
-                          onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
-                          readOnly={isReviewMode}
-                          placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                          rows={4}
-                          style={{
-                            width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
-                            background: isReviewMode ? '#0f172a' : '#0f172a',
-                            border: isReviewMode
-                              ? (textVal ? '1.5px solid #10b981' : '1px solid #475569')
-                              : '1px solid #475569',
-                            color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
-                            resize: isReviewMode ? 'none' : 'vertical',
-                            boxSizing: 'border-box', outline: 'none',
-                            cursor: isReviewMode ? 'default' : 'text'
-                          }}
-                        />
                       </div>
+                    );
+                  })}
+
+                  {/* BOTTOM SECTION NAV BUTTONS */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <button
+                      onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
+                      disabled={activeSecIdx === 0}
+                      style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <ChevronLeft size={18} /> Önceki Bölüm
+                    </button>
+
+                    {activeSecIdx < sections.length - 1 ? (
+                      <button
+                        onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+                      >
+                        Sonraki Bölüm <ChevronRight size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleSubmit}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                      >
+                        <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
+                      </button>
                     )}
                   </div>
-                );
-              })}
-
-              {/* BOTTOM SECTION NAV BUTTONS */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <button
-                  onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
-                  disabled={activeSecIdx === 0}
-                  style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  <ChevronLeft size={18} /> Önceki Bölüm
-                </button>
-
-                {activeSecIdx < sections.length - 1 ? (
-                  <button
-                    onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-                    style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
-                  >
-                    Sonraki Bölüm <ChevronRight size={18} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSubmit}
-                    style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-                  >
-                    <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* RIGHT OPTIK PANEL */}
-            <RightOptikPanel
-              qCount={activeSec.qCount}
-              answers={activeSecState.answers || {}}
-              openEndedText={activeSecState.openEndedText || {}}
-              isOpenEnded={secOE}
-              resolvedQuestions={activeSec.resolvedQuestions}
-              bankQ={activeSec.bankQ || test}
-              isReviewMode={isReviewMode}
-              onOptionSelect={(qNo, optIdx) => {
-                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
-                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
-              }}
-              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-              onSubmit={handleSubmit}
-              activeSecIdx={activeSecIdx}
-              totalSections={sections.length}
-            />
-          </div>
+                </div>
+              </>
+            }
+            answerContent={
+              <RightOptikPanel
+                qCount={activeSec.qCount}
+                answers={activeSecState.answers || {}}
+                openEndedText={activeSecState.openEndedText || {}}
+                isOpenEnded={secOE}
+                resolvedQuestions={activeSec.resolvedQuestions}
+                bankQ={activeSec.bankQ || test}
+                isReviewMode={isReviewMode}
+                onOptionSelect={(qNo, optIdx) => {
+                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+                }}
+                onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+                onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                onSubmit={handleSubmit}
+                activeSecIdx={activeSecIdx}
+                totalSections={sections.length}
+              />
+            }
+          />
         ) : (
           /* STANDARD QUESTION CARDS + OPTIK PANEL (DARK THEME) */
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              
-              {/* SECTION BANNER */}
-              <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileSpreadsheet size={24} />
+          /* STANDARD QUESTION CARDS + OPTIK PANEL (DARK THEME) */
+          <QuizPanelLayout
+            panelTitle="Optik Form"
+            panelSubtitle={`${activeSecIdx + 1}. Bölüm`}
+            icon="📋"
+            defaultPosition="right"
+            defaultSize={320}
+            documentContent={
+              <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+                {/* SECTION BANNER */}
+                <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileSpreadsheet size={24} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+                        Bu bölümdeki {activeSec.qCount} sorunun tamamı aşağıda sıralanmıştır.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>{activeSecIdx + 1}. Bölüm — {activeSec.title}</h3>
-                    <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-                      Bu bölümdeki {activeSec.qCount} sorunun tamamı aşağıda sıralanmıştır.
-                    </p>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
+                    Bölüm {activeSecIdx + 1} / {sections.length}
                   </div>
                 </div>
-                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
-                  Bölüm {activeSecIdx + 1} / {sections.length}
-                </div>
-              </div>
 
-              {/* QUESTION CARDS STACKED VERTICALLY (DARK THEME) */}
-              {Array.from({ length: activeSec.qCount }).map((_, idx) => {
-                const qNo = idx + 1;
-                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
-                const isQOpenEnded = secOE || checkIsOE(qObj);
+                {/* QUESTION CARDS STACKED VERTICALLY (DARK THEME) */}
+                {Array.from({ length: activeSec.qCount }).map((_, idx) => {
+                  const qNo = idx + 1;
+                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
+                  const isQOpenEnded = secOE || checkIsOE(qObj);
 
-                const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
+                  const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
 
-                const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
-                  ? qObj.imageUrls
-                  : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
-                const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
+                  const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
+                    ? qObj.imageUrls
+                    : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
+                  const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-                const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
+                  const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
 
-                const userAnsObj = activeSecState.answers?.[qNo];
-                const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
-                const textVal = activeSecState.openEndedText?.[qNo] || '';
+                  const userAnsObj = activeSecState.answers?.[qNo];
+                  const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+                  const textVal = activeSecState.openEndedText?.[qNo] || '';
 
-                // Review mode: resolve correctAnswer
-                let corrAns = userAnsObj?.correctAnswer;
-                if ((corrAns === undefined || corrAns === null) && qObj.correctAnswer !== undefined) corrAns = qObj.correctAnswer;
-                if ((corrAns === undefined || corrAns === null) && qObj.correctAnswerLetter) {
-                  const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
-                  if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
-                }
-                if ((corrAns === undefined || corrAns === null) && activeSec.bankQ?.answerKey) {
-                  const ak = activeSec.bankQ.answerKey;
-                  const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
-                  if (kaVal !== undefined && kaVal !== null) {
-                    if (typeof kaVal === 'number') corrAns = kaVal;
-                    else if (typeof kaVal === 'string') {
-                      const s = kaVal.trim().toUpperCase();
-                      if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
-                      else if (!isNaN(Number(s))) corrAns = Number(s);
+                  // Review mode: resolve correctAnswer
+                  let corrAns = userAnsObj?.correctAnswer;
+                  if ((corrAns === undefined || corrAns === null) && qObj.correctAnswer !== undefined) corrAns = qObj.correctAnswer;
+                  if ((corrAns === undefined || corrAns === null) && qObj.correctAnswerLetter) {
+                    const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                    if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
+                  }
+                  if ((corrAns === undefined || corrAns === null) && activeSec.bankQ?.answerKey) {
+                    const ak = activeSec.bankQ.answerKey;
+                    const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
+                    if (kaVal !== undefined && kaVal !== null) {
+                      if (typeof kaVal === 'number') corrAns = kaVal;
+                      else if (typeof kaVal === 'string') {
+                        const s = kaVal.trim().toUpperCase();
+                        if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
+                        else if (!isNaN(Number(s))) corrAns = Number(s);
+                      }
                     }
                   }
-                }
 
-                const isStdAnswered = selectedOpt !== undefined && selectedOpt !== null;
-                const isStdCorrect = isReviewMode && isStdAnswered
-                  ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (corrAns !== null && corrAns !== undefined && selectedOpt === corrAns))
-                  : null;
+                  const isStdAnswered = selectedOpt !== undefined && selectedOpt !== null;
+                  const isStdCorrect = isReviewMode && isStdAnswered
+                    ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (corrAns !== null && corrAns !== undefined && selectedOpt === corrAns))
+                    : null;
 
-                return (
-                  <div key={qNo} style={{
-                    background: '#1e293b',
-                    borderRadius: '1.1rem',
-                    border: isReviewMode && !isQOpenEnded && isStdAnswered
-                      ? `1.5px solid ${isStdCorrect ? '#10b981' : '#ef4444'}`
-                      : '1px solid #334155',
-                    padding: '1.5rem',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                    display: 'flex', flexDirection: 'column', gap: '1rem'
-                  }}>
-                    
-                    {/* QUESTION HEADER */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ padding: '0.3rem 0.75rem', background: '#6366f1', color: 'white', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                          SORU {qNo}
-                        </span>
-                        {isQOpenEnded && (
-                          <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
-                            ✍️ Açık Uçlu / Yazılı
+                  return (
+                    <div key={qNo} style={{
+                      background: '#1e293b',
+                      borderRadius: '1.1rem',
+                      border: isReviewMode && !isQOpenEnded && isStdAnswered
+                        ? `1.5px solid ${isStdCorrect ? '#10b981' : '#ef4444'}`
+                        : '1px solid #334155',
+                      padding: '1.5rem',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                      display: 'flex', flexDirection: 'column', gap: '1rem'
+                    }}>
+                      
+                      {/* QUESTION HEADER */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ padding: '0.3rem 0.75rem', background: '#6366f1', color: 'white', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                            SORU {qNo}
                           </span>
+                          {isQOpenEnded && (
+                            <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
+                              ✍️ Açık Uçlu / Yazılı
+                            </span>
+                          )}
+                        </div>
+
+                        {isReviewMode ? (
+                          isQOpenEnded ? (
+                            <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                          ) : isStdAnswered ? (
+                            isStdCorrect
+                              ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
+                              : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
+                          ) : (
+                            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
+                          )
+                        ) : (
+                          isStdAnswered || textVal ? (
+                            <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                          ) : (
+                            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                          )
                         )}
                       </div>
 
-                      {isReviewMode ? (
-                        isQOpenEnded ? (
-                          <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
-                        ) : isStdAnswered ? (
-                          isStdCorrect
-                            ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
-                            : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
-                        ) : (
-                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
-                        )
+                      {/* QUESTION IMAGES */}
+                      {imageUrls.map((url, imgIdx) => (
+                        <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
+                      ))}
+
+                      {/* QUESTION TEXT */}
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.65 }}>
+                        {qText}
+                      </div>
+
+                      {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
+                      {!isQOpenEnded ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
+                          {options.map((opt, optIdx) => {
+                            const isSelected = selectedOpt === optIdx;
+                            const isCorrectOpt = corrAns !== null && corrAns !== undefined && corrAns === optIdx;
+                            const optLetter = String.fromCharCode(65 + optIdx);
+                            let optText = '';
+                            if (typeof opt === 'string') optText = opt;
+                            else if (opt && typeof opt === 'object') optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
+                            const showText = Boolean(optText && optText.trim() !== optLetter);
+
+                            let bg = '#0f172a';
+                            let border = '1.5px solid #334155';
+                            let color = '#cbd5e1';
+
+                            if (isReviewMode) {
+                              if (isSelected && isCorrectOpt) { bg = 'linear-gradient(135deg,#059669,#10b981)'; border = 'none'; color = 'white'; }
+                              else if (isSelected && !isCorrectOpt) { bg = 'linear-gradient(135deg,#dc2626,#b91c1c)'; border = 'none'; color = 'white'; }
+                              else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.12)'; border = '1.5px solid #10b981'; color = '#34d399'; }
+                            } else if (isSelected) {
+                              bg = 'linear-gradient(135deg, #4f46e5, #3730a3)'; border = 'none'; color = 'white';
+                            }
+
+                            return (
+                              <button key={optIdx}
+                                onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                                disabled={isReviewMode}
+                                style={{
+                                  padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left',
+                                  cursor: isReviewMode ? 'default' : 'pointer',
+                                  fontWeight: (isSelected || isCorrectOpt) ? 900 : 700,
+                                  border, background: bg, color, transition: 'all 0.15s ease',
+                                  display: 'flex', alignItems: 'center'
+                                }}>
+                                <span style={{ fontWeight: 900, color: isSelected ? (isReviewMode ? 'rgba(255,255,255,0.8)' : '#a5b4fc') : (isCorrectOpt && isReviewMode ? '#34d399' : '#38bdf8'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                                  {optLetter})
+                                </span>
+                                <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                                  {showText ? optText : `Seçenek ${optLetter}`}
+                                </span>
+                                {isReviewMode && isCorrectOpt && !isSelected && (
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Doğru Yanıt</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       ) : (
-                        isStdAnswered || textVal ? (
-                          <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
-                        ) : (
-                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
-                        )
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isReviewMode ? '#94a3b8' : '#a5b4fc' }}>
+                            {isReviewMode ? '📝 Öğrenci Yanıtı:' : '✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:'}
+                          </label>
+                          <textarea
+                            value={textVal}
+                            onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
+                            readOnly={isReviewMode}
+                            placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                            rows={4}
+                            style={{
+                              width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
+                              background: '#0f172a',
+                              border: isReviewMode ? (textVal ? '1.5px solid #10b981' : '1px solid #475569') : '1.5px solid #475569',
+                              color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
+                              resize: isReviewMode ? 'none' : 'vertical',
+                              boxSizing: 'border-box', outline: 'none',
+                              cursor: isReviewMode ? 'default' : 'text'
+                            }}
+                          />
+                        </div>
                       )}
                     </div>
+                  );
+                })}
 
-                    {/* QUESTION IMAGES */}
-                    {imageUrls.map((url, imgIdx) => (
-                      <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
-                    ))}
-
-                    {/* QUESTION TEXT */}
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.65 }}>
-                      {qText}
-                    </div>
-
-                    {/* MULTIPLE CHOICE OPTIONS OR WRITTEN INPUT */}
-                    {!isQOpenEnded ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
-                        {options.map((opt, optIdx) => {
-                          const isSelected = selectedOpt === optIdx;
-                          const isCorrectOpt = corrAns !== null && corrAns !== undefined && corrAns === optIdx;
-                          const optLetter = String.fromCharCode(65 + optIdx);
-                          let optText = '';
-                          if (typeof opt === 'string') optText = opt;
-                          else if (opt && typeof opt === 'object') optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
-                          const showText = Boolean(optText && optText.trim() !== optLetter);
-
-                          let bg = '#0f172a';
-                          let border = '1.5px solid #334155';
-                          let color = '#cbd5e1';
-
-                          if (isReviewMode) {
-                            if (isSelected && isCorrectOpt) { bg = 'linear-gradient(135deg,#059669,#10b981)'; border = 'none'; color = 'white'; }
-                            else if (isSelected && !isCorrectOpt) { bg = 'linear-gradient(135deg,#dc2626,#b91c1c)'; border = 'none'; color = 'white'; }
-                            else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.12)'; border = '1.5px solid #10b981'; color = '#34d399'; }
-                          } else if (isSelected) {
-                            bg = 'linear-gradient(135deg, #4f46e5, #3730a3)'; border = 'none'; color = 'white';
-                          }
-
-                          return (
-                            <button key={optIdx}
-                              onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
-                              disabled={isReviewMode}
-                              style={{
-                                padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left',
-                                cursor: isReviewMode ? 'default' : 'pointer',
-                                fontWeight: (isSelected || isCorrectOpt) ? 900 : 700,
-                                border, background: bg, color, transition: 'all 0.15s ease',
-                                display: 'flex', alignItems: 'center'
-                              }}>
-                              <span style={{ fontWeight: 900, color: isSelected ? (isReviewMode ? 'rgba(255,255,255,0.8)' : '#a5b4fc') : (isCorrectOpt && isReviewMode ? '#34d399' : '#38bdf8'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
-                                {optLetter})
-                              </span>
-                              <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                                {showText ? optText : `Seçenek ${optLetter}`}
-                              </span>
-                              {isReviewMode && isCorrectOpt && !isSelected && (
-                                <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Doğru Yanıt</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isReviewMode ? '#94a3b8' : '#a5b4fc' }}>
-                          {isReviewMode ? '📝 Öğrenci Yanıtı:' : '✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:'}
-                        </label>
-                        <textarea
-                          value={textVal}
-                          onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
-                          readOnly={isReviewMode}
-                          placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                          rows={4}
-                          style={{
-                            width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
-                            background: '#0f172a',
-                            border: isReviewMode ? (textVal ? '1.5px solid #10b981' : '1px solid #475569') : '1.5px solid #475569',
-                            color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
-                            resize: isReviewMode ? 'none' : 'vertical',
-                            boxSizing: 'border-box', outline: 'none',
-                            cursor: isReviewMode ? 'default' : 'text'
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* BOTTOM SECTION NAV BUTTONS */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <button
-                  onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
-                  disabled={activeSecIdx === 0}
-                  style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  <ChevronLeft size={18} /> Önceki Bölüm
-                </button>
-
-                {activeSecIdx < sections.length - 1 ? (
+                {/* BOTTOM SECTION NAV BUTTONS */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <button
-                    onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-                    style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+                    onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
+                    disabled={activeSecIdx === 0}
+                    style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                   >
-                    Sonraki Bölüm <ChevronRight size={18} />
+                    <ChevronLeft size={18} /> Önceki Bölüm
                   </button>
-                ) : (
-                  <button
-                    onClick={handleSubmit}
-                    style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-                  >
-                    <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
-                  </button>
-                )}
+
+                  {activeSecIdx < sections.length - 1 ? (
+                    <button
+                      onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+                    >
+                      Sonraki Bölüm <ChevronRight size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSubmit}
+                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+                    >
+                      <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {/* RIGHT OPTIK PANEL */}
-            <RightOptikPanel
-              qCount={activeSec.qCount}
-              answers={activeSecState.answers || {}}
-              openEndedText={activeSecState.openEndedText || {}}
-              isOpenEnded={secOE}
-              resolvedQuestions={activeSec.resolvedQuestions}
-              bankQ={activeSec.bankQ || test}
-              isReviewMode={isReviewMode}
-              onOptionSelect={(qNo, optIdx) => {
-                const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
-                handleSelectOption(activeSec.id, qNo, optIdx, qObj);
-              }}
-              onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
-              onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-              onSubmit={handleSubmit}
-              activeSecIdx={activeSecIdx}
-              totalSections={sections.length}
-            />
-          </div>
+            }
+            answerContent={
+              <RightOptikPanel
+                qCount={activeSec.qCount}
+                answers={activeSecState.answers || {}}
+                openEndedText={activeSecState.openEndedText || {}}
+                isOpenEnded={secOE}
+                resolvedQuestions={activeSec.resolvedQuestions}
+                bankQ={activeSec.bankQ || test}
+                isReviewMode={isReviewMode}
+                onOptionSelect={(qNo, optIdx) => {
+                  const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[qNo - 1]) || {};
+                  handleSelectOption(activeSec.id, qNo, optIdx, qObj);
+                }}
+                onTextChange={(qNo, val) => handleTextChange(activeSec.id, qNo, val)}
+                onNextSection={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
+                onSubmit={handleSubmit}
+                activeSecIdx={activeSecIdx}
+                totalSections={sections.length}
+              />
+            }
+          />
         )}
       </div>
 
