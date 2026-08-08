@@ -884,6 +884,14 @@ export default function QuestionBank() {
     e.preventDefault();
     if (!categoryId) return;
 
+    // Determine correct subject and grade based on the selected categoryId (which is a topic ID)
+    const selectedTopicObj = curData.topics.find(t => t.id === categoryId);
+    const selectedUnitObj = selectedTopicObj ? curData.units.find(u => u.id === selectedTopicObj.unitId) : null;
+    const selectedSubjectObj = selectedUnitObj ? curData.subjects.find(s => s.id === selectedUnitObj.subjectId) : null;
+    
+    const foundSubject = selectedSubjectObj ? selectedSubjectObj.name : 'Matematik';
+    const foundGradeId = selectedSubjectObj ? selectedSubjectObj.gradeId : 'g1';
+
     if (formData.contentType === 'json') {
       let questionsList = [];
       
@@ -927,6 +935,8 @@ export default function QuestionBank() {
       const bundleData = {
         title: formData.title || `Toplu Yazılı Test Paketi (${questionsList.length} Soru)`,
         topicId: categoryId,
+        subject: foundSubject,
+        gradeId: foundGradeId,
         contentType: 'json',
         type: formData.type || 'coktan_secmeli',
         isBundle: true,
@@ -961,6 +971,8 @@ export default function QuestionBank() {
         updateQuestion(editingQuestionId, {
           ...formData,
           topicId: categoryId,
+          subject: foundSubject,
+          gradeId: foundGradeId,
           isBundle: true,
           answerKey: parsedKey,
           createdBy: formData.createdBy || teacherId
@@ -999,6 +1011,8 @@ export default function QuestionBank() {
         updateQuestion(editingQuestionId, {
           ...formData,
           topicId: categoryId,
+          subject: foundSubject,
+          gradeId: foundGradeId,
           isBundle: !isSingleQuestion,
           questionCount: totalQs,
           imageUrls: validUrls,
@@ -1012,6 +1026,8 @@ export default function QuestionBank() {
         updateQuestion(editingQuestionId, {
           ...formData,
           topicId: categoryId,
+          subject: foundSubject,
+          gradeId: foundGradeId,
           isBundle: false,
           createdBy: formData.createdBy || teacherId
         });
@@ -1032,6 +1048,8 @@ export default function QuestionBank() {
         addQuestion({
           ...formData,
           topicId: categoryId,
+          subject: foundSubject,
+          gradeId: foundGradeId,
           isBundle: true,
           answerKey: parsedKey,
           createdBy: teacherId
@@ -1071,6 +1089,8 @@ export default function QuestionBank() {
         addQuestion({
           ...formData,
           topicId: categoryId,
+          subject: foundSubject,
+          gradeId: foundGradeId,
           isBundle: !isSingleQuestion,
           questionCount: totalQs,
           imageUrls: validUrls,
@@ -1085,6 +1105,8 @@ export default function QuestionBank() {
         addQuestion({
           ...formData,
           topicId: categoryId,
+          subject: foundSubject,
+          gradeId: foundGradeId,
           isBundle: false,
           createdBy: teacherId
         });
