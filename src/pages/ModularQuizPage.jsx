@@ -46,18 +46,28 @@ export default function ModularQuizPage() {
   }, [submissions, testId, studentId]);
 
   // Prevent taking the exam again if already submitted (protects against F5 refresh after submit)
+  const completedSub = useMemo(() => {
+    if (!submissions || submissions.length === 0) return null;
+    return submissions.find(
+      s => String(s.testId) === String(testId) && 
+           String(s.studentId) === String(studentId) && 
+           s.status !== 'in_progress' && s.status !== 'draft'
+    );
+  }, [submissions, testId, studentId]);
+
   useEffect(() => {
-    if (submissions && submissions.length > 0 && !submissionResult) {
-      const completedSub = submissions.find(
-        s => String(s.testId) === String(testId) && 
-             String(s.studentId) === String(studentId) && 
-             s.status !== 'in_progress' && s.status !== 'draft'
-      );
-      if (completedSub) {
-        navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
-      }
+    if (completedSub && !submissionResult) {
+      navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
     }
-  }, [submissions, testId, studentId, navigate, submissionResult]);
+  }, [completedSub, submissionResult, navigate, testId, studentId]);
+
+  if (completedSub && !submissionResult) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
+      </div>
+    );
+  }
 
 
   useEffect(() => {
