@@ -162,7 +162,12 @@ export function QuestionBankProvider({ children }) {
       setQuestions(prev => [...prev, singleBundleQuestion]);
       await dbAddQuestion(singleBundleQuestion);
     } else {
-      const newQuestion = { id: `q_${Date.now()}`, htmlPayload: questionData.contentPayload || questionData.htmlPayload, ...questionData };
+      const isHtmlType = questionData.contentType === 'html';
+      const newQuestion = { 
+        id: `q_${Date.now()}`, 
+        htmlPayload: isHtmlType ? (questionData.contentPayload || questionData.htmlPayload) : questionData.htmlPayload,
+        ...questionData 
+      };
       if (newQuestion.contentPayload && typeof newQuestion.contentPayload === 'string' && newQuestion.contentPayload.length > 500) {
         const payload = newQuestion.contentPayload;
         const qId = newQuestion.id;

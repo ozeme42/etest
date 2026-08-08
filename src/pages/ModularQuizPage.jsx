@@ -537,8 +537,11 @@ export default function ModularQuizPage() {
     q.type === 'html' || q.questionType === 'html' || q.contentType === 'html' || q.formatType === 'html' || q.sourceFormat === 'html' || (q.htmlPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
   ));
   const isDefinitelyStandardForHtml = isRealStandardQuiz && !hasExplicitHtmlQuestions;
+  
+  const isValidHtmlPayload = test.htmlPayload && typeof test.htmlPayload === 'string' && !test.htmlPayload.startsWith('data:image');
+  
   const isHtml = !isDefinitelyStandardForHtml && Boolean(
-    test.htmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
+    isValidHtmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
     test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions
   );
 
