@@ -551,31 +551,81 @@ export async function dbAddQuestion(q) {
 
     let finalContentPayload = q.contentPayload || '';
 
-    // Automatically upload Base64 PDF/Image DataURLs to Supabase Storage Bucket!
-    if (typeof finalContentPayload === 'string' && finalContentPayload.startsWith('data:')) {
-      const publicUrl = await dbUploadFileToStorage(finalContentPayload, `q_${dbId}`);
-      if (publicUrl) {
-        finalContentPayload = publicUrl;
-        q.contentPayload = publicUrl; // Update in-memory object URL
+    const safeRaw = { ...q, id: qId };
+
+    // Helper to upload or strip base64
+    const processBase64String = async (val, suffix) => {
+      if (typeof val === 'string' && val.startsWith('data:')) {
+        const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
+        return publicUrl || (val.length > 50000 ? '[STORED_IN_INDEXEDDB]' : val);
+      }
+      return val;
+    };
+
+    // Helper to process joined or single payload strings
+    const processPayload = async (payload, suffix) => {
+      if (typeof payload === 'string') {
+        if (payload.includes('\n') || payload.includes('|')) {
+          const parts = payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
+          const processedParts = [];
+          for (let i = 0; i < parts.length; i++) {
+             processedParts.push(await processBase64String(parts[i], `${suffix}_part${i}`));
+          }
+          return processedParts.join('|');
+        }
+        return await processBase64String(payload, suffix);
+      }
+      return payload;
+    };
+
+    // Process main content payload
+    finalContentPayload = await processPayload(finalContentPayload, 'main');
+    safeRaw.contentPayload = finalContentPayload;
+    q.contentPayload = finalContentPayload;
+
+    if (typeof safeRaw.pdfPayload === 'string') {
+      safeRaw.pdfPayload = await processBase64String(safeRaw.pdfPayload, 'pdf');
+      q.pdfPayload = safeRaw.pdfPayload;
+    }
+    if (typeof safeRaw.htmlPayload === 'string') {
+      safeRaw.htmlPayload = await processBase64String(safeRaw.htmlPayload, 'html');
+      q.htmlPayload = safeRaw.htmlPayload;
+    }
+
+    // Process image URLs array
+    if (Array.isArray(safeRaw.imageUrls)) {
+      for (let i = 0; i < safeRaw.imageUrls.length; i++) {
+        const res = await processBase64String(safeRaw.imageUrls[i], `img_${i}`);
+        safeRaw.imageUrls[i] = res;
+        q.imageUrls[i] = res;
       }
     }
 
-    // Strip large base64 payloads from raw_data so DB insert doesn't fail due to size limits
-    const safeRaw = { ...q, id: qId, contentPayload: finalContentPayload };
-    if (typeof safeRaw.contentPayload === 'string' && safeRaw.contentPayload.startsWith('data:') && safeRaw.contentPayload.length > 50000) {
-      safeRaw.contentPayload = '[STORED_IN_INDEXEDDB]';
-    }
-    if (typeof safeRaw.pdfPayload === 'string' && safeRaw.pdfPayload.startsWith('data:') && safeRaw.pdfPayload.length > 50000) {
-      safeRaw.pdfPayload = '[STORED_IN_INDEXEDDB]';
-    }
-    if (typeof safeRaw.htmlPayload === 'string' && safeRaw.htmlPayload.startsWith('data:') && safeRaw.htmlPayload.length > 50000) {
-      safeRaw.htmlPayload = '[STORED_IN_INDEXEDDB]';
+    // Process sub-questions in questionsList
+    if (Array.isArray(safeRaw.questionsList)) {
+      for (let i = 0; i < safeRaw.questionsList.length; i++) {
+        let sq = safeRaw.questionsList[i];
+        if (sq.contentPayload) {
+           const res = await processPayload(sq.contentPayload, `sq_${i}`);
+           sq.contentPayload = res;
+           q.questionsList[i].contentPayload = res;
+        }
+      }
     }
 
-    // If finalContentPayload is STILL a huge base64 (because upload failed), don't break the DB!
-    const dbContentPayload = (typeof finalContentPayload === 'string' && finalContentPayload.startsWith('data:') && finalContentPayload.length > 50000) 
-      ? '[STORED_IN_INDEXEDDB]' 
-      : finalContentPayload;
+    // Process items array (sometimes used in homeworks/tests)
+    if (Array.isArray(safeRaw.items)) {
+      for (let i = 0; i < safeRaw.items.length; i++) {
+        let item = safeRaw.items[i];
+        if (item.contentPayload) {
+           const res = await processPayload(item.contentPayload, `item_${i}`);
+           item.contentPayload = res;
+           q.items[i].contentPayload = res;
+        }
+      }
+    }
+
+    const dbContentPayload = finalContentPayload;
 
     const payload = {
       id: dbId,
