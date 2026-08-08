@@ -6,8 +6,10 @@ import QuestionGridNav from '../common/QuestionGridNav';
 import { Pencil, CheckCircle2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -440,64 +442,91 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
       {/* Header */}
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ padding: '0.35rem 0.65rem', background: '#6366f1', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white' }}>
-            STANDART SINAV
+      <header style={{ 
+        padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        background: '#1e293b', 
+        borderBottom: '1px solid #334155',
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 10,
+        flexShrink: 0,
+        gap: '0.5rem',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+          <h2 style={{ 
+            color: '#f8fafc', 
+            fontSize: isMobile ? '0.9rem' : '1.15rem', 
+            fontWeight: 800, 
+            margin: 0, 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis' 
+          }}>
+            {test.title || "Standart Sınav"}
+          </h2>
+          <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
+            {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
           </span>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title}</h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {/* Total Countdown Timer Badge */}
           <div style={{
-            padding: '0.4rem 0.85rem',
+            padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
             background: timeLeft < 300 ? '#7f1d1d' : '#0f172a',
             border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`,
             color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff',
             fontWeight: 900,
-            fontSize: '0.85rem',
+            fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem'
           }}>
-            <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#6366f1'} />
+            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#ef4444' : '#6366f1'} />
             <span>{formatTime(timeLeft)}</span>
-            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
-              (Toplam {qCount * perQuestionMins} dk)
-            </span>
+            {!isMobile && (
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+                (Toplam {qCount * perQuestionMins} dk)
+              </span>
+            )}
           </div>
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
             style={{
-              padding: '0.5rem 1rem',
+              padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
               background: isDrawingOpen ? '#eab308' : '#0f172a',
               border: '1px solid #334155',
               color: isDrawingOpen ? 'white' : '#e2e8f0',
               fontWeight: 800,
-              fontSize: '0.82rem',
+              fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem'
             }}
+            title="Çizim Aracı"
           >
-            <Pencil size={16} /> {isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı"}
+            <Pencil size={isMobile ? 14 : 16} /> 
+            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
           </button>
 
           <button
             onClick={handleSubmit}
             style={{
-              padding: '0.55rem 1.25rem',
+              padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem',
               borderRadius: '0.75rem',
               background: 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: '0.85rem',
+              fontSize: isMobile ? '0.75rem' : '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -505,7 +534,9 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
               boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
             }}
           >
-            <CheckCircle2 size={18} /> Sınavı Bitir
+            <CheckCircle2 size={isMobile ? 14 : 18} /> 
+            {!isMobile && "Sınavı Bitir"}
+            {isMobile && "Bitir"}
           </button>
         </div>
       </header>

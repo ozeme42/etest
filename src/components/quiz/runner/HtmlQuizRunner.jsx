@@ -5,8 +5,10 @@ import { Pencil, CheckCircle2, Clock } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import QuizPanelLayout from './QuizPanelLayout';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
@@ -369,66 +371,92 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
     onSubmit(formattedAnswers);
   };
 
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: 'white' }}>
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ padding: '0.35rem 0.65rem', background: '#06b6d4', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'black' }}>
-            HTML SINAV
+      <header style={{ 
+        padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        background: '#1e293b', 
+        borderBottom: '1px solid #334155',
+        flexShrink: 0,
+        gap: '0.5rem',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+          <h2 style={{ 
+            color: '#f8fafc', 
+            fontSize: isMobile ? '0.9rem' : '1.15rem', 
+            fontWeight: 800, 
+            margin: 0, 
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis' 
+          }}>
+            {test.title || "HTML Testi"}
+          </h2>
+          <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
+            {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
           </span>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>{test.title}</h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {/* Total Countdown Timer Badge */}
           <div style={{
-            padding: '0.4rem 0.85rem',
+            padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
             background: timeLeft < 300 ? 'rgba(225,29,72,0.2)' : 'rgba(255,255,255,0.08)',
             border: `1px solid ${timeLeft < 300 ? '#f43f5e' : 'rgba(255,255,255,0.15)'}`,
             color: timeLeft < 300 ? '#fda4af' : '#f8fafc',
             fontWeight: 900,
-            fontSize: '0.85rem',
+            fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem'
           }}>
-            <Clock size={16} color={timeLeft < 300 ? '#f43f5e' : '#06b6d4'} />
+            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#f43f5e' : '#06b6d4'} />
             <span>{formatTime(timeLeft)}</span>
-            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
-              (Toplam {qCount * perQuestionMins} dk)
-            </span>
+            {!isMobile && (
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+                (Toplam {qCount * perQuestionMins} dk)
+              </span>
+            )}
           </div>
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
             style={{
-              padding: '0.5rem 1rem',
+              padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
               background: isDrawingOpen ? '#eab308' : 'rgba(255,255,255,0.1)',
               border: 'none',
               color: 'white',
               fontWeight: 800,
-              fontSize: '0.82rem',
+              fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem'
             }}
+            title="Çizim Aracı"
           >
-            <Pencil size={16} /> {isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı"}
+            <Pencil size={isMobile ? 14 : 16} /> 
+            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
           </button>
 
           <button
             onClick={handleSubmit}
             style={{
-              padding: '0.55rem 1.25rem',
+              padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem',
               borderRadius: '0.75rem',
               background: 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: '0.85rem',
+              fontSize: isMobile ? '0.75rem' : '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -436,7 +464,9 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
               boxShadow: '0 4px 12px rgba(16,185,129,0.3)'
             }}
           >
-            <CheckCircle2 size={18} /> Sınavı Bitir
+            <CheckCircle2 size={isMobile ? 14 : 18} /> 
+            {!isMobile && "Sınavı Bitir"}
+            {isMobile && "Bitir"}
           </button>
         </div>
       </header>
