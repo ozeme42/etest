@@ -61,6 +61,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
     position: 'relative',
     width: '100%',
     height: height,
+    flex: 1,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden'

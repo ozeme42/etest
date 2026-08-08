@@ -1374,7 +1374,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             defaultPosition="right"
             defaultSize={320}
             documentContent={
-              <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden', height: '100%' }}>
+              <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#0f172a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <PdfViewerWithControls payload={activePdfPayload} title={activeSec.title} height="100%" />
               </div>
             }
@@ -1408,7 +1408,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             defaultPosition="right"
             defaultSize={320}
             documentContent={
-              <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden', height: '100%' }}>
+              <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#0f172a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <StableHtmlViewer
                   bankQ={activeBankQ}
                   secId={activeSec.id}
