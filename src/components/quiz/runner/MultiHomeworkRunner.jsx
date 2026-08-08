@@ -1230,13 +1230,32 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
     let isMounted = true;
     async function load() {
-      const idsToTry = [targetObj.id, activeBankQ.questionId, activeSec.id, activeSec.questionId].filter(Boolean);
-      for (const idToTry of idsToTry) {
-        const val = await idbGetPayload(idToTry);
-        if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
-          setIdbPayload(val);
-          break;
-        }
+      const baseIds = [targetObj.id, activeBankQ?.id, activeSec?.id, activeBankQ?.questionId, activeSec?.questionId].filter(Boolean);
+      const idsToTry = [];
+      
+      baseIds.forEach(id => {
+        const strId = String(id);
+        idsToTry.push(strId);
+        idsToTry.push(strId.replace(/^q_?/, ''));
+        idsToTry.push(strId.replace(/^q_?/, 'q'));
+        idsToTry.push(strId.replace(/^q_?/, 'q_'));
+        idsToTry.push(strId.replace(/^hw_/, ''));
+        idsToTry.push(strId.replace(/^hw_/, 'q'));
+        idsToTry.push(strId.replace(/^hw_/, 'q_'));
+        idsToTry.push(`q_${strId}`);
+        idsToTry.push(`q${strId}`);
+      });
+
+      const uniqueIds = [...new Set(idsToTry)];
+
+      for (const idToTry of uniqueIds) {
+        try {
+          const val = await idbGetPayload(idToTry);
+          if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+            setIdbPayload(val);
+            break;
+          }
+        } catch (e) {}
       }
     }
     load();
