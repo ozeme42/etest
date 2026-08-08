@@ -1541,10 +1541,27 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
                     const isQOpenEnded = secOE || checkIsOE(qObj);
 
-                    const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
-                      ? qObj.imageUrls
-                      : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
-                    const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
+                    let questionImageUrls = [];
+                    const isQObjActuallySection = String(qObj.id) === String(activeSec.bankQ?.id) || String(qObj.id) === String(activeSec.id);
+
+                    if (!isQObjActuallySection && qObj.imageUrls && qObj.imageUrls.length > 0) {
+                      questionImageUrls = qObj.imageUrls;
+                    } else if (!isQObjActuallySection && qObj.imageUrl) {
+                      questionImageUrls = [qObj.imageUrl];
+                    } else if (!isQObjActuallySection && qObj.contentPayload && qObj.contentPayload.startsWith('data:image')) {
+                      questionImageUrls = [qObj.contentPayload];
+                    } else {
+                      const secRawImages = activeSec.imageUrls || activeSec.bankQ?.imageUrls || (activeSec.bankQ?.contentPayload?.startsWith('data:image') ? [activeSec.bankQ.contentPayload] : (idbPayload?.startsWith('data:image') ? [idbPayload] : []));
+                      const secImages = (Array.isArray(secRawImages) ? secRawImages : [secRawImages]).filter(isValidImageUrl);
+                      if (secImages.length > 0) {
+                        if (secImages.length === activeSec.qCount || secImages.length > 1) {
+                          if (secImages[idx]) questionImageUrls = [secImages[idx]];
+                        } else {
+                          if (idx === 0) questionImageUrls = [secImages[0]];
+                        }
+                      }
+                    }
+                    const imageUrls = (Array.isArray(questionImageUrls) ? questionImageUrls : [questionImageUrls]).filter(isValidImageUrl);
 
                     const userAnsObj = activeSecState.answers?.[qNo];
                     const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
