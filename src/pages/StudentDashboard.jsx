@@ -430,15 +430,21 @@ export default function StudentDashboard() {
       const dueDateObj = parseSafeDate(t.dueDate);
       
       let resolvedType = t.type;
-      let resolvedSourceType = t.sourceType;
+      let resolvedSourceType = t.sourceType || t.contentType;
       
       if (!resolvedType || resolvedType === 'test') {
-        const firstQId = t.questionIds?.[0];
-        const firstQ = allQuestions?.find(q => q.id === firstQId);
-        if (firstQ) {
-          resolvedType = firstQ.type || 'coktan_secmeli';
-          if (!resolvedSourceType) {
-            resolvedSourceType = firstQ.sourceType || firstQ.contentType;
+        if (t.isOpenEnded || t.questionType === 'acik_uclu') {
+          resolvedType = 'acik_uclu';
+        } else if (t.questionType === 'coktan_secmeli') {
+          resolvedType = 'coktan_secmeli';
+        } else {
+          const firstQId = t.questionIds?.[0];
+          const firstQ = allQuestions?.find(q => q.id === firstQId);
+          if (firstQ) {
+            resolvedType = firstQ.type || 'coktan_secmeli';
+            if (!resolvedSourceType) {
+              resolvedSourceType = firstQ.sourceType || firstQ.contentType;
+            }
           }
         }
       }
