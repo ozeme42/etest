@@ -251,7 +251,22 @@ export default function HomeworkManager() {
       answerKey: isPhysical ? physicalExam.answerKey : undefined,
       subjects: isPhysical ? physicalExam.subjects : undefined,
       penaltyRatio: isPhysical ? physicalExam.penaltyRatio : undefined,
-      examType: isPhysical ? physicalExam.examType : undefined
+      examType: isPhysical ? physicalExam.examType : undefined,
+      // Store per-section metadata so mobile can detect content type without question bank context
+      sections: selectedQs.map((q, idx) => ({
+        id: q.id,
+        questionId: q.id,
+        title: q.title || q.name || `${idx + 1}. Bölüm`,
+        contentType: q.contentType || q.type || q.formatType || q.sourceFormat,
+        formatType: q.formatType || q.sourceFormat,
+        sourceFormat: q.sourceFormat,
+        questionCount: q.questionCount || q.totalQuestions || q.qCount || 10,
+        questionType: q.questionType || q.type,
+        answerKey: q.answerKey,
+        pdfPayload: q.pdfPayload && q.pdfPayload !== '[STORED_IN_INDEXEDDB]' ? q.pdfPayload : undefined,
+        pdfUrl: q.pdfUrl,
+        imageUrls: q.imageUrls,
+      }))
     };
     if (editingHwId) { updateHomework(editingHwId, hwData); showToast('🎉 Ödev güncellendi!'); }
     else { addHomework(hwData); showToast('🎉 Ödev başarıyla yayınlandı!'); }

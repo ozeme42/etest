@@ -614,7 +614,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           foundInBank = findInAllSources(sec.id) || findInAllSources(sec.questionId);
         }
 
-        const bankQ = foundInBank ? { ...sec, ...foundInBank } : (sec.bankQ || sec.test || sec);
+        // Merge: foundInBank is base, sec fields override — this preserves sec.contentType/formatType saved in hwData.sections
+        const bankQ = foundInBank
+          ? { ...foundInBank, ...sec, bankQ: foundInBank }  // sec fields (contentType, etc.) win over foundInBank
+          : (sec.bankQ || sec.test || sec);
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
 
         if ((!resolvedQuestions || resolvedQuestions.length === 0) && bankQ?.questionsList) {
