@@ -19,6 +19,7 @@ import { useGoal } from '../context/GoalContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useQuestionBank } from '../context/QuestionBankContext';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
@@ -332,7 +333,8 @@ const avatarColors = ['#6366f1', '#3b82f6', '#10b981', '#f97316', '#a855f7', '#f
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const { data } = useCurriculum();
+  const { data: curData } = useCurriculum();
+  const { questions: allQuestions } = useQuestionBank();
   const { homeworks } = useHomework();
   const { submissions } = useEvaluation();
   const { users } = useUser();
@@ -426,10 +428,25 @@ export default function StudentDashboard() {
   const pendingTasks = useMemo(() => {
     const tTasks = tests.filter(t => t.status === 'Atandı').map(t => {
       const dueDateObj = parseSafeDate(t.dueDate);
-      return { id: t.id, type: t.type || 'test', title: t.title, subject: getCategoryName(t), dueDateStr: new Date(t.dueDate).toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: t.sourceType };
+      
+      let resolvedType = t.type;
+      let resolvedSourceType = t.sourceType;
+      
+      if (!resolvedType || resolvedType === 'test') {
+        const firstQId = t.questionIds?.[0];
+        const firstQ = allQuestions?.find(q => q.id === firstQId);
+        if (firstQ) {
+          resolvedType = firstQ.type || 'coktan_secmeli';
+          if (!resolvedSourceType) {
+            resolvedSourceType = firstQ.sourceType || firstQ.contentType;
+          }
+        }
+      }
+      
+      return { id: t.id, type: resolvedType || 'test', title: t.title, subject: getCategoryName(t), dueDateStr: new Date(t.dueDate).toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: resolvedSourceType };
     });
     return [...tTasks].sort((a, b) => a.dueDateObj - b.dueDateObj);
-  }, [tests, assignments]);
+  }, [tests, assignments, allQuestions]);
 
   const stats = useMemo(() => {
     const completedTests = tests.filter(t => t.status === 'Sonuçlandı');
