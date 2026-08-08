@@ -36,6 +36,13 @@ export default function ModularQuizPage() {
   const [loading, setLoading] = useState(true);
   const [submissionResult, setSubmissionResult] = useState(null);
 
+  // Grace period for initial context data load (5 seconds)
+  const [initLoading, setInitLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setInitLoading(false), 5000);
+    return () => clearTimeout(t);
+  }, []);
+
   const draftSubmission = useMemo(() => {
     if (!submissions || submissions.length === 0) return null;
     return submissions.find(
@@ -240,6 +247,13 @@ export default function ModularQuizPage() {
   }
 
   if (!test) {
+    if (initLoading) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+          Sınav Yükleniyor...
+        </div>
+      );
+    }
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1rem' }}>
         <h2>Sınav Bulunamadı</h2>
