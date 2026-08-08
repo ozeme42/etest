@@ -21,7 +21,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   const { updateQuestion, questions: allQuestions } = useQuestionBank();
 
   const { homeworks, submitHomework } = useHomework();
-  const { submissions = [], addSubmission, updateSubmission } = useEvaluation();
+  const { submissions = [], addSubmission, updateSubmission, isSyncing } = useEvaluation();
   const { users } = useUser();
   
   const queryParams = new URLSearchParams(location.search);
@@ -56,8 +56,9 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(savedState?.currentQuestionIdx || 0);
   const [subQuestionIdx, setSubQuestionIdx] = useState(0);
   const [studentAnswers, setStudentAnswers] = useState(() => {
+    let m = null;
     if (targetSubmission && Array.isArray(targetSubmission.answers)) {
-      const m = {};
+      m = {};
       targetSubmission.answers.forEach(ans => {
         const k = ans.sectionId || ans.questionId || id;
         if (ans.subIndex !== undefined) {
@@ -67,9 +68,23 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
           m[k] = ans.userAnswer ?? ans.userAnswerText;
         }
       });
-      return m;
     }
-    return savedState?.studentAnswers || {};
+    
+    if (savedState?.studentAnswers) {
+      if (!m) m = {};
+      Object.keys(savedState.studentAnswers).forEach(k => {
+        if (typeof savedState.studentAnswers[k] === 'object' && savedState.studentAnswers[k] !== null) {
+          if (!m[k] || typeof m[k] !== 'object') m[k] = {};
+          Object.keys(savedState.studentAnswers[k]).forEach(subK => {
+            m[k][subK] = savedState.studentAnswers[k][subK];
+          });
+        } else {
+          m[k] = savedState.studentAnswers[k];
+        }
+      });
+    }
+    
+    return m || {};
   });
   const [openEvalGrades, setOpenEvalGrades] = useState({});
 
@@ -315,6 +330,13 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   }, [id, currentQuestionIdx, studentAnswers, timeLeft, totalQuestionsCount, isFinished]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      triggerAutoSave();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [studentAnswers, isFinished, isReadOnlyMode, triggerAutoSave]);
+
+  useEffect(() => {
     if (timeLeft === null || isFinished) return;
     
     if (timeLeft > 0) {
@@ -376,9 +398,19 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   }, []);
 
   if (!test) return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Test bulunamadı.</div>;
+
+
+  if (isSyncing) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        Sınav Yükleniyor...
+      </div>
+    );
+  }
+
   if (testQuestions.length === 0) {
     return (
-      <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1rem' }}>
         <h2>Bu testin içerisinde soru bulunmuyor.</h2>
         <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '1rem', marginTop: '1rem', borderRadius: '8px' }}>
           <p><strong>Test ID:</strong> {id}</p>

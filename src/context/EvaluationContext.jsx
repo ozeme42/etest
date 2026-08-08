@@ -81,28 +81,39 @@ export function EvaluationProvider({ children }) {
     return DEFAULT_SAMPLE_SUBMISSIONS;
   });
 
+  const [isSyncing, setIsSyncing] = useState(true);
+
   useEffect(() => {
     async function syncFromSupabase() {
-      const dbSubs = await dbGetSubmissions();
-      if (Array.isArray(dbSubs) && dbSubs.length > 0) {
-        setSubmissions(prev => {
-          const map = new Map();
-          dbSubs.forEach(s => map.set(String(s.id), s));
-          prev.forEach(s => {
-            const existing = map.get(String(s.id));
-            if (!existing || s.isEvaluatedByTeacher || s.status === 'completed' || s.status === 'evaluated') {
-              map.set(String(s.id), { ...existing, ...s });
-            }
+      setIsSyncing(true);
+      try {
+        const dbSubs = await dbGetSubmissions();
+        if (Array.isArray(dbSubs) && dbSubs.length > 0) {
+          setSubmissions(prev => {
+            const map = new Map();
+            dbSubs.forEach(s => map.set(String(s.id), s));
+            prev.forEach(s => {
+              const existing = map.get(String(s.id));
+              if (!existing || s.isEvaluatedByTeacher || s.status === 'completed' || s.status === 'evaluated') {
+                map.set(String(s.id), { ...existing, ...s });
+              }
+            });
+            return Array.from(map.values());
           });
-          return Array.from(map.values());
-        });
+        }
+      } finally {
+        setIsSyncing(false);
       }
     }
     syncFromSupabase();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('eTestSubmissions', JSON.stringify(submissions));
+    try {
+      localStorage.setItem('eTestSubmissions', JSON.stringify(submissions));
+    } catch (err) {
+      console.warn('EvaluationContext: localStorage quota exceeded while saving submissions.', err);
+    }
   }, [submissions]);
 
   const addSubmission = async (subData) => {
@@ -167,17 +178,20 @@ export function EvaluationProvider({ children }) {
   };
 
   const updateSubmission = async (id, updatedData) => {
-    let target = null;
-    setSubmissions(prev => prev.map(sub => {
-      if (String(sub.id) === String(id)) {
-        target = { ...sub, ...updatedData, status: 'completed', isEvaluatedByTeacher: true };
-        return target;
+    setSubmissions(prev => {
+      let target = null;
+      const nextSubs = prev.map(sub => {
+        if (String(sub.id) === String(id)) {
+          target = { ...sub, ...updatedData };
+          return target;
+        }
+        return sub;
+      });
+      if (target) {
+        dbSaveSubmission(target);
       }
-      return sub;
-    }));
-    if (target) {
-      await dbSaveSubmission(target);
-    }
+      return nextSubs;
+    });
   };
 
   const deleteSubmission = async (id) => {
@@ -193,6 +207,7 @@ export function EvaluationProvider({ children }) {
   return (
     <EvaluationContext.Provider value={{
       submissions,
+      isSyncing,
       addSubmission,
       evaluateAnswer,
       finalizeSubmission,

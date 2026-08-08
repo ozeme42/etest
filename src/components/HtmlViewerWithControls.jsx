@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Globe } from 'lucide-react';
 
 function resolveIframeContent(payload) {
@@ -43,7 +43,7 @@ function resolveIframeContent(payload) {
   return { src: undefined, srcDoc: trimmed };
 }
 
-export default function HtmlViewerWithControls({ payload, title = "HTML Dokümanı", height = "100%" }) {
+export default React.memo(function HtmlViewerWithControls({ payload, title = "HTML Dokümanı", height = "100%" }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [fetchedHtml, setFetchedHtml] = useState(null);
@@ -147,13 +147,30 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
     overflow: 'hidden'
   };
 
+  const iframeElement = useMemo(() => (
+    <iframe
+      key={iframeContent.src || (iframeContent.srcDoc ? iframeContent.srcDoc.slice(0, 40) : 'html_frame')}
+      src={iframeContent.src}
+      srcDoc={iframeContent.srcDoc}
+      title="HTML Soru Dokümanı"
+      style={{
+        width: '100%',
+        height: '100%',
+        minWidth: '100%',
+        minHeight: '100%',
+        border: 'none',
+        background: 'white'
+      }}
+    />
+  ), [iframeContent.src, iframeContent.srcDoc]);
+
   return (
     <div ref={wrapperRef} style={containerStyle}>
       {/* Sleek Minimal Controls Bar */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         padding: '0.4rem 0.75rem',
         background: '#064e3b',
         color: 'white',
@@ -221,22 +238,9 @@ export default function HtmlViewerWithControls({ payload, title = "HTML Doküman
             transition: 'width 0.15s ease, height 0.15s ease'
           }}
         >
-          <iframe
-            key={iframeContent.src || (iframeContent.srcDoc ? iframeContent.srcDoc.slice(0, 40) : 'html_frame')}
-            src={iframeContent.src}
-            srcDoc={iframeContent.srcDoc}
-            title="HTML Soru Dokümanı"
-            style={{
-              width: '100%',
-              height: '100%',
-              minWidth: '100%',
-              minHeight: '100%',
-              border: 'none',
-              background: 'white'
-            }}
-          />
+          {iframeElement}
         </div>
       </div>
     </div>
   );
-}
+});

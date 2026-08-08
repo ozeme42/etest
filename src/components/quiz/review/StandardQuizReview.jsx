@@ -4,6 +4,7 @@ import QuestionGridNav from '../common/QuestionGridNav';
 import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 
 export default function StandardQuizReview({ submission, test, questions = [] }) {
   const navigate = useNavigate();
@@ -22,7 +23,22 @@ export default function StandardQuizReview({ submission, test, questions = [] })
   const answers = submission.answers || [];
 
   const resolvedQuestions = useMemo(() => {
+    const parseJsonList = (str) => {
+      if (typeof str === 'string' && (str.trim().startsWith('[') || str.trim().startsWith('{'))) {
+        try {
+          const parsed = JSON.parse(str);
+          const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.questionsList || parsed.items);
+          if (list && Array.isArray(list) && list.length > 0) return list;
+        } catch {}
+      }
+      return null;
+    };
+
     if (questions && questions.length > 0) {
+      if (questions.length === 1 && questions[0].contentPayload) {
+        const parsed = parseJsonList(questions[0].contentPayload);
+        if (parsed) return parsed;
+      }
       if (questions.length === 1 && Array.isArray(questions[0].questionsList) && questions[0].questionsList.length > 0) {
         return questions[0].questionsList;
       }
@@ -31,6 +47,9 @@ export default function StandardQuizReview({ submission, test, questions = [] })
     if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
       return test.questionsList;
     }
+    const payloadParsed = parseJsonList(test.contentPayload);
+    if (payloadParsed) return payloadParsed;
+
     if (Array.isArray(test.questions) && test.questions.length > 0) {
       return test.questions;
     }
@@ -58,33 +77,37 @@ export default function StandardQuizReview({ submission, test, questions = [] })
     return count > 0 ? count : (answers.length || 1);
   }, [submission.totalQuestions, test, questions, resolvedQuestions.length, answers]);
 
+  const reEvalCorrect = (ansObj, qObj, qNo) => {
+    const uAns = ansObj?.userAnswer;
+    const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
+    
+    if (hasAns) {
+      const computed = checkIsAnswerCorrect(uAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+      if (computed !== null && computed !== undefined) return computed;
+    } else if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
+      // Sadece cevap varsa veya elle notlandıysa isCorrect'i al
+      if (ansObj.isCorrect === true || ansObj.score === 0 || ansObj.score > 0) return ansObj.isCorrect;
+    }
+    
+    return null;
+  };
+
   const activeQuestion = resolvedQuestions[currentIndex] || questions[currentIndex] || questions[0] || {};
   const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
 
   const userAns = activeAnsObj.userAnswer;
   const textAns = activeAnsObj.userAnswerText;
 
-  const isCorrect = (activeAnsObj.isCorrect !== undefined && activeAnsObj.isCorrect !== null)
-    ? activeAnsObj.isCorrect
-    : checkIsAnswerCorrect(userAns, activeQuestion, test, currentIndex + 1);
+  const isCorrect = reEvalCorrect(activeAnsObj, activeQuestion, currentIndex + 1);
 
   const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
 
   const rawImages = activeQuestion.imageUrls || (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : (activeQuestion.contentPayload ? [activeQuestion.contentPayload] : []));
   const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-  const rawQText = activeQuestion.questionText || activeQuestion.text || activeQuestion.question || activeQuestion.title ||
-    (activeQuestion.contentPayload && !activeQuestion.contentPayload.startsWith('http') && !activeQuestion.contentPayload.startsWith('data:') && activeQuestion.contentPayload !== '[STORED_IN_INDEXEDDB]' ? activeQuestion.contentPayload : null) ||
-    (currentIndex === 0 ? (test.title || test.testTitle) : null);
+  const questionText = extractQuestionText(activeQuestion, test, currentIndex);
 
-  const questionText = (rawQText && typeof rawQText === 'string' && !rawQText.startsWith('data:') && !rawQText.startsWith('http') && rawQText.trim())
-    ? rawQText
-    : `${test.title || test.testTitle || 'Açık Uçlu Sınav'} — Soru ${currentIndex + 1}`;
-
-  const rawOptions = activeQuestion.options || activeQuestion.choices || test.options;
-  const optionsList = Array.isArray(rawOptions) && rawOptions.length > 0
-    ? rawOptions
-    : ['A', 'B', 'C', 'D', 'E'];
+  const optionsList = extractQuestionOptions(activeQuestion, test);
 
   const keySource = test.answerKey || activeQuestion.answerKey || questions[0]?.answerKey;
   const rawCorrectKey = Array.isArray(keySource)
@@ -103,14 +126,6 @@ export default function StandardQuizReview({ submission, test, questions = [] })
   );
 
   const stats = useMemo(() => {
-    if (submission.correctCount !== undefined && submission.wrongCount !== undefined && isEvaluated) {
-      return {
-        correctCount: submission.correctCount || 0,
-        wrongCount: submission.wrongCount || 0,
-        blankCount: submission.blankCount ?? Math.max(0, qCount - ((submission.correctCount || 0) + (submission.wrongCount || 0)))
-      };
-    }
-
     let cCount = 0;
     let wCount = 0;
     let bCount = 0;
@@ -123,9 +138,7 @@ export default function StandardQuizReview({ submission, test, questions = [] })
       const uAns = ansObj.userAnswer;
       const tAns = ansObj.userAnswerText;
 
-      const evalCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
-        ? ansObj.isCorrect
-        : checkIsAnswerCorrect(uAns, qObj, test, qNo);
+      const evalCorrect = reEvalCorrect(ansObj, qObj, qNo);
 
       const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
 
@@ -159,32 +172,42 @@ export default function StandardQuizReview({ submission, test, questions = [] })
       const qNo = idx + 1;
       const qObj = resolvedQuestions[idx] || questions[idx] || {};
       const foundAns = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx];
-      if (foundAns) map[qNo] = foundAns;
+      if (foundAns) {
+        const evalCorrect = reEvalCorrect(foundAns, qObj, qNo);
+        map[qNo] = { ...foundAns, isCorrect: evalCorrect };
+      }
     });
     return map;
   }, [qCount, resolvedQuestions, questions, answers]);
 
   const isOpenEndedMode = useMemo(() => {
+    // 1. If the test as a whole is EXPLICITLY Open-Ended (Overrides everything!)
     if (
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.contentType === 'acik_uclu' ||
+      test.isOpenEnded
+    ) {
+      return true;
+    }
+
+    const isTestExplicitlyMC = (
       test.questionType === 'coktan_secmeli' ||
       test.type === 'coktan_secmeli' ||
       test.contentType === 'coktan_secmeli' ||
       (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
       (Array.isArray(questions[0]?.answerKey) && questions[0]?.answerKey.length > 0)
-    ) {
-      return false;
-    }
+    );
 
-    if (
-      test.questionType === 'acik_uclu' ||
-      test.questionType === 'yazili' ||
-      test.type === 'acik_uclu' ||
-      test.type === 'yazili' ||
-      test.contentType === 'acik_uclu' ||
-      test.contentType === 'yazili' ||
-      test.isOpenEnded
-    ) {
-      return true;
+    const hasMCQuestions = resolvedQuestions.length > 0 && resolvedQuestions.some(q => 
+      q.type === 'coktan_secmeli' || q.questionType === 'coktan_secmeli'
+    );
+    const hasOEQuestions = resolvedQuestions.some(q =>
+      q.type === 'acik_uclu' || q.type === 'yazili' || q.contentType === 'acik_uclu' || q.contentType === 'yazili' || q.isOpenEnded
+    );
+
+    if (isTestExplicitlyMC || (hasMCQuestions && !hasOEQuestions)) {
+      return false;
     }
 
     if (test.title && (
@@ -196,13 +219,7 @@ export default function StandardQuizReview({ submission, test, questions = [] })
       return true;
     }
 
-    return resolvedQuestions.some(q =>
-      q.type === 'acik_uclu' ||
-      q.type === 'yazili' ||
-      q.contentType === 'acik_uclu' ||
-      q.contentType === 'yazili' ||
-      q.isOpenEnded
-    );
+    return hasOEQuestions;
   }, [test, questions, resolvedQuestions]);
 
   return (
@@ -345,9 +362,11 @@ export default function StandardQuizReview({ submission, test, questions = [] })
             </div>
           )}
 
-          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.6 }}>
-            {questionText}
-          </div>
+          {questionText && (
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.6 }}>
+              {questionText}
+            </div>
+          )}
 
           {textAns ? (
             <div style={{ background: '#0f172a', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
@@ -360,7 +379,7 @@ export default function StandardQuizReview({ submission, test, questions = [] })
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
               {optionsList.map((opt, optIdx) => {
                 const optLabel = String.fromCharCode(65 + optIdx);
-                const optText = typeof opt === 'string' ? opt : (opt?.text || opt?.label || opt?.optionText || '');
+                const optText = typeof opt === 'string' ? opt : (opt?.text || opt?.label || opt?.optionText || optLabel);
 
                 const isUserChoice = userAns === optIdx || userAns === optLabel;
                 const isCorrectOption = displayCorrectIndex === optIdx || displayCorrectIndex === optLabel;
@@ -398,7 +417,7 @@ export default function StandardQuizReview({ submission, test, questions = [] })
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: isCorrectOption ? '#059669' : (isUserChoice ? '#dc2626' : '#334155'), color: (isCorrectOption || isUserChoice) ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                       {optLabel}
                     </div>
-                    <span style={{ flexGrow: 1 }}>{optText || `Şık ${optLabel}`}</span>
+                    <span style={{ flexGrow: 1 }}>{optText}</span>
                     {isCorrectOption && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399' }}>✓ DOĞRU CEVAP</span>}
                     {isUserChoice && !isCorrectOption && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#f87171' }}>✕ SENİN SEÇİMİN</span>}
                   </div>
@@ -414,7 +433,7 @@ export default function StandardQuizReview({ submission, test, questions = [] })
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', paddingBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2rem' }}>
           <button
             onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
             disabled={currentIndex === 0}

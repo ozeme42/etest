@@ -4,6 +4,7 @@ import { resolveTestQuestions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
+import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet } from 'lucide-react';
 
@@ -42,8 +43,25 @@ function checkIsOE(obj, questionsList = []) {
   ) {
     return true;
   }
+
+  const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
+  if (titleStr && (
+    titleStr.includes('açık uçlu') ||
+    titleStr.includes('acik uclu') ||
+    titleStr.includes('yazılı') ||
+    titleStr.includes('yazili')
+  )) {
+    return true;
+  }
+
   if (Array.isArray(questionsList) && questionsList.length > 0) {
-    const isAllWritten = questionsList.every(q => q.type === 'acik_uclu' || q.type === 'yazili' || q.questionType === 'acik_uclu' || q.questionType === 'yazili' || q.isOpenEnded === true);
+    const isAllWritten = questionsList.every(q => {
+      if (!q) return false;
+      if (q.type === 'acik_uclu' || q.type === 'yazili' || q.questionType === 'acik_uclu' || q.questionType === 'yazili' || q.isOpenEnded === true) return true;
+      const qTitle = String(q.title || q.name || q.questionText || q.text || '').toLowerCase();
+      if (qTitle && (qTitle.includes('açık uçlu') || qTitle.includes('acik uclu') || qTitle.includes('yazılı') || qTitle.includes('yazili'))) return true;
+      return false;
+    });
     if (isAllWritten) return true;
   }
   return false;
@@ -120,8 +138,8 @@ function InlineOptikPanel({ qCount, answers, openEndedText, isOpenEndedMode, onO
 }
 
 // ─── OPTIC / WRITTEN FORM SECTION RENDERER ────────────────────────────────────
-function OpticSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerChange }) {
-  const qCount = resolvedQuestions.length || bankQ.questionCount || (bankQ.questionsList?.length) || 20;
+const OpticSection = React.memo(function OpticSection({ bankQ, resolvedQuestions = [], totalCount, sectionAnswers, onAnswerChange }) {
+  const qCount = totalCount || resolvedQuestions.length || bankQ.questionCount || bankQ.totalQuestions || (bankQ.questionsList?.length) || 20;
   const isOpenEndedMode = checkIsOE(bankQ, resolvedQuestions);
 
   const answers = sectionAnswers.answers || {};
@@ -230,11 +248,11 @@ function OpticSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerC
       </div>
     </div>
   );
-}
+});
 
 // ─── PDF SECTION RENDERER ─────────────────────────────────────────────────────
-function PdfSection({ bankQ, sectionAnswers, onAnswerChange, sectionOE }) {
-  const qCount = bankQ.questionCount || (bankQ.questionsList?.length) || 1;
+const PdfSection = React.memo(function PdfSection({ bankQ, totalCount, sectionAnswers, onAnswerChange, sectionOE }) {
+  const qCount = totalCount || bankQ.questionCount || bankQ.totalQuestions || (bankQ.questionsList?.length) || 1;
   const [idbPayload, setIdbPayload] = useState(null);
   const loadedRef = React.useRef(null);
 
@@ -279,38 +297,32 @@ function PdfSection({ bankQ, sectionAnswers, onAnswerChange, sectionOE }) {
       />
     </div>
   );
-}
+});
 
 // ─── HTML SECTION RENDERER ────────────────────────────────────────────────────
-function HtmlSection({ bankQ, sectionAnswers, onAnswerChange, sectionOE }) {
-  const qCount = bankQ.questionCount || (bankQ.questionsList?.length) || 1;
+const HtmlSection = React.memo(function HtmlSection({ bankQ, totalCount, sectionAnswers, onAnswerChange, sectionOE }) {
+  const qCount = totalCount || bankQ.questionCount || bankQ.totalQuestions || (bankQ.questionsList?.length) || 1;
   const [idbPayload, setIdbPayload] = useState(null);
-  const [iframeSrc, setIframeSrc] = useState(null);
   const loadedRef = React.useRef(null);
+  const extractPayload = (obj) => {
+    return obj?.contentPayload && obj.contentPayload !== '[STORED_IN_INDEXEDDB]' && obj.contentPayload !== '[LOCALSTORAGE_CACHE]' 
+      ? obj.contentPayload 
+      : null;
+  };
 
   useEffect(() => {
-    const payload = bankQ.contentPayload;
-    if (payload && payload !== '[STORED_IN_INDEXEDDB]' && payload !== '[LOCALSTORAGE_CACHE]') {
-      if (payload.startsWith('http')) { setIframeSrc(payload); return; }
-      if (payload.startsWith('data:text/html') || payload.startsWith('<!DOCTYPE') || payload.startsWith('<html') || payload.includes('<html')) {
-        const blob = new Blob([payload.startsWith('data:') ? atob(payload.split(',')[1] || '') : payload], { type: 'text/html' });
-        setIframeSrc(URL.createObjectURL(blob));
-        return;
-      }
-    }
-    if (loadedRef.current === bankQ.id) return;
+    if (extractPayload(bankQ) || loadedRef.current === bankQ.id) return;
     async function load() {
       const val = await idbGetPayload(bankQ.id);
       if (val && val !== '[STORED_IN_INDEXEDDB]') {
         loadedRef.current = bankQ.id;
         setIdbPayload(val);
-        if (val.startsWith('http')) { setIframeSrc(val); return; }
-        const blob = new Blob([val.startsWith('data:') ? atob(val.split(',')[1] || '') : val], { type: 'text/html' });
-        setIframeSrc(URL.createObjectURL(blob));
       }
     }
     load();
   }, [bankQ.id, bankQ.contentPayload]);
+
+  const htmlPayload = extractPayload(bankQ) || idbPayload;
 
   const answers = sectionAnswers.answers || {};
   const openEndedText = sectionAnswers.openEndedText || {};
@@ -320,11 +332,7 @@ function HtmlSection({ bankQ, sectionAnswers, onAnswerChange, sectionOE }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
       <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
-        {iframeSrc ? (
-          <iframe src={iframeSrc} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} title={bankQ.title} sandbox="allow-scripts allow-same-origin" />
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontWeight: 700 }}>İçerik Yükleniyor...</div>
-        )}
+        <HtmlViewerWithControls payload={htmlPayload} title={bankQ.title} height="100%" />
       </div>
       <InlineOptikPanel
         qCount={qCount}
@@ -336,10 +344,10 @@ function HtmlSection({ bankQ, sectionAnswers, onAnswerChange, sectionOE }) {
       />
     </div>
   );
-}
+});
 
 // ─── IMAGE SECTION RENDERER ───────────────────────────────────────────────────
-function ImageSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerChange }) {
+const ImageSection = React.memo(function ImageSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerChange }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const qCount = resolvedQuestions.length || bankQ.questionCount || 1;
@@ -393,10 +401,10 @@ function ImageSection({ bankQ, resolvedQuestions, sectionAnswers, onAnswerChange
       />
     </div>
   );
-}
+});
 
 // ─── STANDARD / WRITTEN SECTION RENDERER (ALL QUESTIONS STACKED ON 1 PAGE) ──────
-function StandardSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerChange }) {
+const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnswerChange }) {
   const qCount = resolvedQuestions.length || bankQ.questionCount || 1;
   const sectionOE = checkIsOE(bankQ);
 
@@ -544,7 +552,7 @@ function StandardSection({ bankQ, resolvedQuestions = [], sectionAnswers, onAnsw
       />
     </div>
   );
-}
+});
 
 // ─── MAIN COMPOSITE / MULTI-SECTION RUNNER ───────────────────────────────────
 export default function CompositeQuizRunner({ test, questions, onSubmit }) {
@@ -557,7 +565,7 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(sec.questionId || sec.id)) || sec;
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
         
-        const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
+        const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 10;
 
         if (resolvedQuestions.length < qCount) {
           const filled = [...resolvedQuestions];
@@ -590,15 +598,22 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
       return test.tests.map((subTest, idx) => {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(subTest.id || subTest.questionId)) || subTest;
         const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (subTest.questions || []);
-        const qCount = bankQ?.questionCount || subTest.questionCount || resolvedQuestions.length || 1;
+        
+        const safeMaxAns = (obj) => {
+          if (!obj || !obj.answerKey) return 0;
+          if (Array.isArray(obj.answerKey) || typeof obj.answerKey === 'string') return obj.answerKey.length;
+          if (typeof obj.answerKey === 'object') return Object.keys(obj.answerKey).length;
+          return 0;
+        };
+        const maxAns = Math.max(safeMaxAns(bankQ), safeMaxAns(subTest));
+        const qCount = bankQ?.questionCount || bankQ?.totalQuestions || subTest.questionCount || subTest.totalQuestions || resolvedQuestions.length || maxAns || 10;
 
         return {
-          id: subTest.id || `test_${idx}`,
-          title: subTest.title || subTest.name || bankQ?.title || `Bölüm ${idx + 1}`,
-          _idx: idx,
-          bankQ: bankQ || subTest,
+          id: subTest.id || `sec_${idx}`,
+          title: subTest.name || subTest.title || `${idx + 1}. Bölüm`,
+          bankQ,
           resolvedQuestions,
-          _totalCount: qCount,
+          _totalCount: qCount
         };
       });
     }
@@ -629,12 +644,20 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
 
     // 4. Default fallback: 1 section
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
+    const finalQs = resolvedQuestions.length > 0 ? resolvedQuestions : (questions || []);
+    const safeMaxAns = (obj) => {
+      if (!obj || !obj.answerKey) return 0;
+      if (Array.isArray(obj.answerKey) || typeof obj.answerKey === 'string') return obj.answerKey.length;
+      if (typeof obj.answerKey === 'object') return Object.keys(obj.answerKey).length;
+      return 0;
+    };
+    const maxAns = safeMaxAns(test);
     return [{
-      id: test.id || 'sec_1',
-      title: test.title || test.name || 'Bölüm 1',
+      id: test.id || 'sec_0',
+      title: test.title || test.name || '1. Bölüm',
       bankQ: test,
-      resolvedQuestions: resolvedQuestions.length > 0 ? resolvedQuestions : (questions || []),
-      _totalCount: test.questionCount || resolvedQuestions.length || questions.length || 1
+      resolvedQuestions: finalQs,
+      _totalCount: test.questionCount || test.totalQuestions || finalQs.length || maxAns || 1
     }];
   }, [test, questions, allBankQuestions]);
 
@@ -661,9 +684,15 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
     return h > 0 ? `${p(h)}:${p(m)}:${p(sec)}` : `${p(m)}:${p(sec)}`;
   };
 
-  const handleAnswerChange = (sectionId, newAnswers) => {
+  const handleAnswerChange = useCallback((sectionId, newAnswers) => {
     setSectionAnswers(prev => ({ ...prev, [sectionId]: newAnswers }));
-  };
+  }, []);
+
+  const onCurrentSectionAnswerChange = useCallback((newAnswers) => {
+    if (currentSection) {
+      handleAnswerChange(currentSection.id, newAnswers);
+    }
+  }, [currentSection, handleAnswerChange]);
 
   const handleFinalSubmit = () => {
     const allAnswers = [];
@@ -678,14 +707,15 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
       Array.from({ length: totalQ }).forEach((_, idx) => {
         const qNo = idx + 1;
         const qObj = sec.resolvedQuestions[idx] || {};
-        const ansObj = sa.answers?.[qNo] || {};
-        const userAns = typeof ansObj === 'object' ? ansObj.userAnswer : ansObj;
+        const rawAns = sa.answers?.[qNo];
+        const userAns = typeof rawAns === 'object' && rawAns !== null ? rawAns.userAnswer : rawAns;
         const textAns = sa.openEndedText?.[qNo] || null;
-        const isCorrect = sectionOE ? null : (userAns !== undefined && userAns !== null ? (ansObj.isCorrect !== undefined ? ansObj.isCorrect : checkIsAnswerCorrect(userAns, qObj, bankQ, qNo)) : null);
+        const isCorrect = sectionOE ? null : (userAns !== undefined && userAns !== null ? ((typeof rawAns === 'object' && rawAns !== null && rawAns.isCorrect !== undefined) ? rawAns.isCorrect : checkIsAnswerCorrect(userAns, qObj, bankQ, qNo)) : null);
 
         allAnswers.push({
           questionId: qObj.id || `${sec.id}_${qNo}`,
           questionNo: questionNoOffset + qNo,
+          questionNoInSection: qNo,
           sectionId: sec.id,
           sectionTitle: sec.title,
           userAnswer: userAns !== undefined ? userAns : null,
@@ -788,19 +818,19 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
       {/* ── Section Content (Optic Grid, PDF, HTML, Image, Standard) ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         {sectionType === 'optic' && (
-          <OpticSection bankQ={bankQ} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} />
+          <OpticSection bankQ={bankQ} totalCount={currentSection._totalCount} sectionAnswers={currentSA} onAnswerChange={onCurrentSectionAnswerChange} />
         )}
         {sectionType === 'pdf' && (
-          <PdfSection bankQ={bankQ} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} sectionOE={sectionOE} />
+          <PdfSection bankQ={bankQ} totalCount={currentSection._totalCount} sectionAnswers={currentSA} onAnswerChange={onCurrentSectionAnswerChange} sectionOE={sectionOE} />
         )}
         {sectionType === 'html' && (
-          <HtmlSection bankQ={bankQ} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} sectionOE={sectionOE} />
+          <HtmlSection bankQ={bankQ} totalCount={currentSection._totalCount} sectionAnswers={currentSA} onAnswerChange={onCurrentSectionAnswerChange} sectionOE={sectionOE} />
         )}
         {sectionType === 'image' && (
-          <ImageSection bankQ={bankQ} resolvedQuestions={currentSection.resolvedQuestions} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} />
+          <ImageSection bankQ={bankQ} resolvedQuestions={currentSection.resolvedQuestions} sectionAnswers={currentSA} onAnswerChange={onCurrentSectionAnswerChange} />
         )}
         {sectionType === 'standard' && (
-          <StandardSection bankQ={bankQ} resolvedQuestions={currentSection.resolvedQuestions} sectionAnswers={currentSA} onAnswerChange={sa => handleAnswerChange(currentSection.id, sa)} />
+          <StandardSection bankQ={bankQ} resolvedQuestions={currentSection.resolvedQuestions} sectionAnswers={currentSA} onAnswerChange={onCurrentSectionAnswerChange} />
         )}
       </div>
     </div>

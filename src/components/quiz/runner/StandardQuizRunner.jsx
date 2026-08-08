@@ -1,20 +1,46 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import DrawingCanvas from '../common/DrawingCanvas';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import QuestionGridNav from '../common/QuestionGridNav';
 import { Pencil, CheckCircle2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { idbGetPayload } from '../../../services/indexedDbService';
+import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 
-export default function StandardQuizRunner({ test, questions, onSubmit }) {
+export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers }) {
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState(() => {
+    if (draftAnswers && draftAnswers.length > 0) {
+      const initAns = {};
+      draftAnswers.forEach(a => {
+        if (a.userAnswer !== null && a.userAnswer !== undefined) {
+          initAns[a.questionNo] = a.userAnswer;
+          initAns[String(a.questionNo)] = a.userAnswer;
+        }
+      });
+      return initAns;
+    }
+
     try {
       const saved = localStorage.getItem(`${draftKey}_ans`);
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
+
   const [openEndedText, setOpenEndedText] = useState(() => {
+    if (draftAnswers && draftAnswers.length > 0) {
+      const initTxt = {};
+      draftAnswers.forEach(a => {
+        if (a.userAnswerText) {
+          initTxt[a.questionNo] = a.userAnswerText;
+          initTxt[String(a.questionNo)] = a.userAnswerText;
+        }
+      });
+      return initTxt;
+    }
+
     try {
       const saved = localStorage.getItem(`${draftKey}_txt`);
       return saved ? JSON.parse(saved) : {};
@@ -23,9 +49,162 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
-  const activeQuestion = questions[currentIndex] || {};
-  const qCount = questions.length || test.questionCount || 1;
-  const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded || activeQuestion.type === 'acik_uclu';
+  // IndexedDB payload loading if contentPayload is in IndexedDB
+  const loadedRef = useRef(null);
+  const [idbPayload, setIdbPayload] = useState(null);
+
+  useEffect(() => {
+    const testId = test.id;
+    const extractPayload = (obj) => {
+      if (!obj) return null;
+      const candidates = [obj.contentPayload, obj.jsonPayload, obj.payload];
+      return candidates.find(c => typeof c === 'string' && c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]') || null;
+    };
+
+    if (extractPayload(test)) return;
+    if (loadedRef.current === testId) return;
+
+    async function loadFromIdb() {
+      const ids = [testId, testId?.replace(/^q_/, ''), questions?.[0]?.id, test.questionsList?.[0]?.id].filter(Boolean);
+      let resolved = null;
+      for (const id of ids) {
+        try {
+          const val = await idbGetPayload(id);
+          if (val && val !== '[STORED_IN_INDEXEDDB]') { resolved = val; break; }
+        } catch {}
+      }
+      if (!resolved && questions?.length > 0) {
+        for (const q of questions) {
+          const c = extractPayload(q);
+          if (c) { resolved = c; break; }
+          if (q.id) {
+            try {
+              const val = await idbGetPayload(q.id);
+              if (val) { resolved = val; break; }
+            } catch {}
+          }
+        }
+      }
+      if (resolved) { loadedRef.current = testId; setIdbPayload(resolved); }
+    }
+    loadFromIdb();
+  }, [test.id, test.contentPayload, questions]);
+
+  // Resolve questions array
+  const resolvedQuestions = useMemo(() => {
+    const parseJsonList = (str) => {
+      if (typeof str === 'string' && (str.trim().startsWith('[') || str.trim().startsWith('{'))) {
+        try {
+          const parsed = JSON.parse(str);
+          const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.questionsList || parsed.items);
+          if (list && Array.isArray(list) && list.length > 0) return list;
+        } catch {}
+      }
+      return null;
+    };
+
+    if (questions && questions.length > 0) {
+      if (questions.length === 1 && (questions[0].contentPayload || idbPayload)) {
+        const parsed = parseJsonList(questions[0].contentPayload || idbPayload);
+        if (parsed) return parsed;
+      }
+      if (questions.length === 1 && Array.isArray(questions[0].questionsList) && questions[0].questionsList.length > 0) {
+        return questions[0].questionsList;
+      }
+
+      // Eğer tekil soru ve questionText/options varsa doğrudan kullan
+      if (questions.length === 1) {
+        const q = questions[0];
+        // questionText yoksa test nesnesinden al
+        const qText = q.questionText || q.text || q.question || test.questionText || test.text || '';
+        const qOpts = (Array.isArray(q.options) && q.options.some(o => o && String(o).trim())) ? q.options
+                    : (Array.isArray(test.options) && test.options.some(o => o && String(o).trim())) ? test.options
+                    : q.options || [];
+        return [{ ...q, questionText: qText, options: qOpts }];
+      }
+
+      return questions;
+    }
+
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
+      return test.questionsList;
+    }
+
+    const payloadParsed = parseJsonList(test.contentPayload || idbPayload);
+    if (payloadParsed) return payloadParsed;
+
+    if (Array.isArray(test.questions) && test.questions.length > 0) {
+      return test.questions;
+    }
+
+    // Fallback: test nesnesinin kendisi tek soru olarak kullanılıyor
+    return [test];
+  }, [questions, test, idbPayload]);
+
+  const activeQuestion = resolvedQuestions[currentIndex] || {};
+  const qCount = useMemo(() => {
+    return Math.max(test.questionCount || 0, resolvedQuestions.length || 1);
+  }, [test.questionCount, resolvedQuestions.length]);
+
+  const isOpenEndedMode = useMemo(() => {
+    // 1. If the test as a whole is EXPLICITLY Open-Ended (Overrides everything!)
+    if (
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.contentType === 'acik_uclu' ||
+      test.isOpenEnded
+    ) {
+      return true;
+    }
+
+    // 2. If the specific active question is EXPLICITLY Open-Ended
+    if (activeQuestion && (
+      activeQuestion.type === 'acik_uclu' ||
+      activeQuestion.type === 'yazili' ||
+      activeQuestion.contentType === 'acik_uclu' ||
+      activeQuestion.contentType === 'yazili' ||
+      activeQuestion.isOpenEnded
+    )) {
+      return true;
+    }
+
+    // 3. If the specific active question is EXPLICITLY Multiple Choice
+    if (activeQuestion && (
+      activeQuestion.type === 'coktan_secmeli' ||
+      activeQuestion.questionType === 'coktan_secmeli'
+    )) {
+      return false;
+    }
+
+    // 4. If the test as a whole is EXPLICITLY Multiple Choice
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+    ) {
+      return false;
+    }
+
+    // 5. Check if options actually have valid text (not just empty strings)
+    const hasValidOptions = activeQuestion && Array.isArray(activeQuestion.options) && activeQuestion.options.some(opt => opt && String(opt).trim() !== '');
+    if (hasValidOptions) {
+      return false;
+    }
+
+    // 6. Ambiguous fallback based on title
+    const titleStr = String(test.title || test.name || '').toLowerCase();
+    if (titleStr && (
+      titleStr.includes('açık uçlu') ||
+      titleStr.includes('acik uclu') ||
+      titleStr.includes('yazılı') ||
+      titleStr.includes('yazili')
+    )) {
+      return true;
+    }
+    
+    return false;
+  }, [test, activeQuestion]);
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
@@ -64,6 +243,33 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
     } catch {}
   }, [openEndedText, draftKey]);
 
+  const [saveTimeout, setSaveTimeout] = useState(null);
+
+  const triggerAutoSave = (currentAnswers, currentText) => {
+    if (!onAutoSave) return;
+    if (saveTimeout) clearTimeout(saveTimeout);
+
+    const timeoutId = setTimeout(() => {
+      const formattedAnswers = [];
+      for (let i = 0; i < qCount; i++) {
+        const qNo = i + 1;
+        const qObj = questions[i] || {};
+        const userAns = currentAnswers[qNo] !== undefined ? currentAnswers[qNo] : (currentAnswers[String(qNo)] !== undefined ? currentAnswers[String(qNo)] : currentAnswers[i + 1]);
+        const textAns = currentText[qNo] || currentText[String(qNo)] || null;
+
+        formattedAnswers.push({
+          questionId: qObj.id || `q${qNo}`,
+          questionNo: qNo,
+          userAnswer: userAns !== undefined ? userAns : null,
+          userAnswerText: textAns,
+          correctAnswerLetter: qObj.correctAnswerLetter || null
+        });
+      }
+      onAutoSave(formattedAnswers);
+    }, 2000);
+    setSaveTimeout(timeoutId);
+  };
+
   // Save timer instantly
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -100,21 +306,40 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
   const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
   const handleOptionSelect = (optionIdx) => {
-    setAnswers(prev => ({
-      ...prev,
-      [currentIndex + 1]: {
-        questionId: activeQuestion.id || `q_${currentIndex + 1}`,
-        userAnswer: optionIdx,
-        isCorrect: activeQuestion.correctAnswer !== undefined ? optionIdx === activeQuestion.correctAnswer : null
-      }
-    }));
+    setAnswers(prev => {
+      const updated = {
+        ...prev,
+        [currentIndex + 1]: {
+          questionId: activeQuestion.id || `q_${currentIndex + 1}`,
+          userAnswer: optionIdx,
+          isCorrect: activeQuestion.correctAnswer !== undefined ? optionIdx === activeQuestion.correctAnswer : null
+        }
+      };
+      
+      const simplifiedAnswers = {};
+      Object.keys(updated).forEach(k => {
+        simplifiedAnswers[k] = updated[k]?.userAnswer;
+      });
+      triggerAutoSave(simplifiedAnswers, openEndedText);
+      return updated;
+    });
   };
 
   const handleTextChange = (val) => {
-    setOpenEndedText(prev => ({
-      ...prev,
-      [currentIndex + 1]: val
-    }));
+    setOpenEndedText(prev => {
+      const updatedText = {
+        ...prev,
+        [currentIndex + 1]: val
+      };
+      
+      const simplifiedAnswers = {};
+      Object.keys(answers).forEach(k => {
+        simplifiedAnswers[k] = answers[k]?.userAnswer;
+      });
+      triggerAutoSave(simplifiedAnswers, updatedText);
+      return updatedText;
+    });
+
     setAnswers(prev => ({
       ...prev,
       [currentIndex + 1]: {
@@ -138,12 +363,19 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
       const savedAns = answers[qNo] || {};
       const textVal = openEndedText[qNo] || '';
 
+      const userAns = savedAns.userAnswer !== undefined ? savedAns.userAnswer : null;
+      const textAns = textVal || savedAns.userAnswerText || null;
+      
+      const isCorrect = userAns !== null 
+        ? checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo)
+        : (textAns ? null : false);
+
       return {
         questionId: qObj.id || `q_${qNo}`,
         questionNo: qNo,
-        userAnswer: savedAns.userAnswer !== undefined ? savedAns.userAnswer : null,
-        userAnswerText: textVal || savedAns.userAnswerText || null,
-        isCorrect: qObj.correctAnswer !== undefined && savedAns.userAnswer !== undefined ? savedAns.userAnswer === qObj.correctAnswer : null
+        userAnswer: userAns,
+        userAnswerText: textAns,
+        isCorrect: isCorrect
       };
     });
 
@@ -262,9 +494,14 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
           )}
 
           {/* Question Text */}
-          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.6 }}>
-            {activeQuestion.text || activeQuestion.questionText || `Soru ${currentIndex + 1}`}
-          </div>
+          {(() => {
+            const questionText = extractQuestionText(activeQuestion, test, currentIndex);
+            return questionText ? (
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.6 }}>
+                {questionText}
+              </div>
+            ) : null;
+          })()}
 
           {/* Options or Open-Ended Answer Input */}
           <div style={{ marginTop: '0.75rem', paddingTop: '1.25rem', borderTop: '1px solid #334155' }}>
@@ -292,47 +529,61 @@ export default function StandardQuizRunner({ test, questions, onSubmit }) {
                   }}
                 />
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {(activeQuestion.options && activeQuestion.options.length > 0
-                  ? activeQuestion.options
-                  : ['A', 'B', 'C', 'D', 'E']
-                ).map((opt, optIdx) => {
-                  const isSelected = currentAnsObj.userAnswer === optIdx;
-                  const optLabel = String.fromCharCode(65 + optIdx);
-                  const rawOptText = typeof opt === 'string' ? opt : (opt?.text || '');
-                  const optText = (rawOptText && rawOptText.trim() !== optLabel) ? rawOptText : `Şık ${optLabel}`;
+            ) : (() => {
+              const opts = extractQuestionOptions(activeQuestion, test);
+              if (opts.length === 0) {
+                return (
+                  <div style={{
+                    padding: '1.25rem',
+                    background: 'rgba(245,158,11,0.08)',
+                    border: '1px dashed #f59e0b',
+                    borderRadius: '0.85rem',
+                    color: '#fbbf24',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    textAlign: 'center'
+                  }}>
+                    ⚠️ Bu soru için seçenek girilmemiş. Lütfen Soru Bankası'ndan soruyu düzenleyerek şıkları ekleyin.
+                  </div>
+                );
+              }
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {opts.map((optText, optIdx) => {
+                    const isSelected = currentAnsObj.userAnswer === optIdx;
+                    const optLabel = String.fromCharCode(65 + optIdx);
 
-                  return (
-                    <button
-                      key={optIdx}
-                      onClick={() => handleOptionSelect(optIdx)}
-                      style={{
-                        padding: '1rem 1.25rem',
-                        borderRadius: '0.85rem',
-                        border: isSelected ? '2px solid #6366f1' : '1px solid #334155',
-                        background: isSelected ? 'linear-gradient(135deg, #312e81, #1e1b4b)' : '#0f172a',
-                        color: isSelected ? '#ffffff' : '#cbd5e1',
-                        fontWeight: isSelected ? 900 : 700,
-                        fontSize: '0.95rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.85rem',
-                        textAlign: 'left',
-                        transition: 'all 0.15s ease',
-                        boxShadow: isSelected ? '0 4px 16px rgba(99,102,241,0.3)' : 'none'
-                      }}
-                    >
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSelected ? '#6366f1' : '#1e293b', color: isSelected ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', flexShrink: 0, border: `1px solid ${isSelected ? '#818cf8' : '#475569'}` }}>
-                        {optLabel}
-                      </div>
-                      <span style={{ flexGrow: 1 }}>{optText}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    return (
+                      <button
+                        key={optIdx}
+                        onClick={() => handleOptionSelect(optIdx)}
+                        style={{
+                          padding: '1rem 1.25rem',
+                          borderRadius: '0.85rem',
+                          border: isSelected ? '2px solid #6366f1' : '1px solid #334155',
+                          background: isSelected ? 'linear-gradient(135deg, #312e81, #1e1b4b)' : '#0f172a',
+                          color: isSelected ? '#ffffff' : '#cbd5e1',
+                          fontWeight: isSelected ? 900 : 700,
+                          fontSize: '0.95rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.85rem',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          boxShadow: isSelected ? '0 4px 16px rgba(99,102,241,0.3)' : 'none'
+                        }}
+                      >
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: isSelected ? '#6366f1' : '#1e293b', color: isSelected ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', flexShrink: 0, border: `1px solid ${isSelected ? '#818cf8' : '#475569'}` }}>
+                          {optLabel}
+                        </div>
+                        <span style={{ flexGrow: 1 }}>{optText}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

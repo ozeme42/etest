@@ -170,12 +170,17 @@ export default function PdfQuizReview({ submission, test, questions = [] }) {
 
       const userAns = ansObj.userAnswer;
       const textAns = ansObj.userAnswerText;
-
-      const isCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
-        ? ansObj.isCorrect
-        : checkIsAnswerCorrect(userAns, qObj, test, qNo);
-
       const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+
+      // Çoktan seçmeli sorularda geçmiş hatalı DB kayıtlarını ezmek için her zaman lokal hesaplama yap.
+      let isCorrect;
+      if (hasAnswer) {
+        isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+      } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
+        isCorrect = ansObj.isCorrect;
+      } else {
+        isCorrect = false;
+      }
 
       if (isCorrect === true) {
         cCount++;
@@ -200,6 +205,15 @@ export default function PdfQuizReview({ submission, test, questions = [] }) {
   }, [qCount, questions, answers, test, submission, isEvaluated]);
 
   const isOpenEndedMode = useMemo(() => {
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+    ) {
+      return false;
+    }
+
     if (
       test.questionType === 'acik_uclu' ||
       test.questionType === 'yazili' ||
@@ -331,23 +345,28 @@ export default function PdfQuizReview({ submission, test, questions = [] }) {
 
               const userAns = ansObj.userAnswer;
               const textAns = ansObj.userAnswerText;
-
-              const isCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
-                ? ansObj.isCorrect
-                : checkIsAnswerCorrect(userAns, qObj, test, qNo);
-
               const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
-              const isText = !!textAns;
 
-              const keySource = test.answerKey || qObj.answerKey || test.opticAnswers || qObj.opticAnswers;
-              const rawCorrectKey = Array.isArray(keySource)
-                ? keySource[qNo - 1]
-                : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : qObj.correctAnswer);
+              // Önce kaydedilmiş isCorrect kullan, yoksa merkezi fonksiyonla hesapla
+              let isCorrect;
+              if (hasAnswer) {
+                isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+              } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
+                isCorrect = ansObj.isCorrect;
+              } else {
+                isCorrect = false;
+              }
+
+              // Doğru cevabı göstermek için answerKey'den al
+              const keySource = test.answerKey || questions[0]?.answerKey || null;
+              const rawCorrectKey = Array.isArray(keySource) ? keySource[qNo - 1]
+                : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : null);
 
               const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
                 ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
                 : null;
 
+              const isText = !!textAns;
               const isItemOE = isOpenEndedMode || isText || qObj.type === 'acik_uclu';
 
               return (

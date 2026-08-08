@@ -3031,7 +3031,7 @@ const getAnswerKeyCount = (answerKey) => {
                             {qItem.questionText}
                           </h5>
 
-                          {qItem.options && qItem.options.length > 0 && (
+                          {qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && q.type !== 'yazili' && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
                               {qItem.options.map((opt, oIdx) => {
                                 const isCorrect = qItem.correctAnswer === oIdx;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useCurriculum } from '../../../context/CurriculumContext';
@@ -11,10 +11,12 @@ import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/Im
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 
-// Helper to check open-ended
 function checkIsOE(obj) {
   if (!obj) return false;
-  return Boolean(
+
+  const isExplicitlyMultipleChoice = obj.questionType === 'coktan_secmeli' || obj.type === 'coktan_secmeli';
+
+  const isOE = Boolean(
     obj.questionType === 'acik_uclu' ||
     obj.type === 'acik_uclu' ||
     obj.questionType === 'yazili' ||
@@ -22,6 +24,16 @@ function checkIsOE(obj) {
     obj.contentType === 'yazili' ||
     obj.isOpenEnded === true
   );
+
+  const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
+  const hasOEWord = titleStr && (
+    titleStr.includes('açık uçlu') ||
+    titleStr.includes('acik uclu') ||
+    titleStr.includes('yazılı') ||
+    titleStr.includes('yazili')
+  );
+  
+  return (isOE || hasOEWord) && !isExplicitlyMultipleChoice;
 }
 
 // Helper to check PDF section (always true if PDF payload/contentType exists, whether MC or Open-Ended)
@@ -73,6 +85,95 @@ function isImageSection(bankQ) {
   );
 }
 
+// ─── STABLE HTML VIEWER — React.memo ile sarılmış, sectionAnswers değişiminden TAMAMEN izole ──────
+// Bu bileşen sadece activeSec.id veya bankQ.id değiştiğinde yeniden yüklenir.
+// sectionAnswers, optik panel cevapları gibi değişkenlerden etkilenmez, iframe titremez.
+const StableHtmlViewer = memo(function StableHtmlViewer({ bankQ, secId, title }) {
+  const [iframeSrc, setIframeSrc] = useState(null);
+  const loadedRef = useRef(null);
+  const blobUrlRef = useRef(null);
+
+  useEffect(() => {
+    // Temizleme: önceki blob URL'yi serbest bırak
+    return () => {
+      if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [secId]);
+
+  useEffect(() => {
+    const makeBlob = (raw) => {
+      try {
+        const html = raw.startsWith('data:') ? atob(raw.split(',')[1] || '') : raw;
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
+          URL.revokeObjectURL(blobUrlRef.current);
+        }
+        blobUrlRef.current = url;
+        return url;
+      } catch {
+        return null;
+      }
+    };
+
+    // 1. Önce direkt payload'dan dene
+    const candidates = [bankQ?.contentPayload, bankQ?.htmlPayload, bankQ?.pdfUrl, bankQ?.url];
+    const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
+    if (direct) {
+      if (direct.startsWith('http')) {
+        setIframeSrc(direct);
+        return;
+      }
+      if (direct.startsWith('data:text/html') || direct.startsWith('<!DOCTYPE') || direct.startsWith('<html') || direct.includes('<html')) {
+        const url = makeBlob(direct);
+        if (url) { setIframeSrc(url); return; }
+      }
+    }
+
+    // 2. IndexedDB'den yükle
+    const cacheKey = bankQ?.id || secId;
+    if (loadedRef.current === cacheKey) return;
+
+    let isMounted = true;
+    async function loadFromIdb() {
+      const idsToTry = [bankQ?.id, bankQ?.questionId, secId].filter(Boolean);
+      for (const id of idsToTry) {
+        const val = await idbGetPayload(id);
+        if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+          loadedRef.current = cacheKey;
+          if (val.startsWith('http')) { setIframeSrc(val); break; }
+          const url = makeBlob(val);
+          if (url) { setIframeSrc(url); break; }
+        }
+      }
+    }
+    loadFromIdb();
+    return () => { isMounted = false; };
+  // Sadece bölüm kimliği değiştiğinde yeniden çalış — cevap state'i burada YOK
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secId, bankQ?.id, bankQ?.contentPayload, bankQ?.htmlPayload]);
+
+  if (!iframeSrc) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontWeight: 700 }}>
+        HTML İçerik Yükleniyor...
+      </div>
+    );
+  }
+  return (
+    <iframe
+      key={iframeSrc}  /* key sadece src gerçekten değiştiğinde iframe'i sıfırlar */
+      src={iframeSrc}
+      style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
+      title={title}
+      sandbox="allow-scripts allow-same-origin"
+    />
+  );
+});
+
 // ─── RIGHT OPTIK PANEL ────────────────────────────────────────────────────────
 function RightOptikPanel({
   qCount,
@@ -108,7 +209,9 @@ function RightOptikPanel({
           const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
           const textVal = openEndedText[qNo] || '';
 
-          const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
+          const isCorrect = (userAnsObj && userAnsObj.isCorrect !== undefined)
+            ? userAnsObj.isCorrect
+            : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
           return (
             <div key={qNo} style={{ background: '#0f172a', padding: '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -160,7 +263,11 @@ function RightOptikPanel({
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
                   {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
                     const isSelected = userAns === optIdx;
-                    let correctAns = qObj.correctAnswer;
+                    
+                    let correctAns = (userAnsObj && userAnsObj.correctAnswer !== undefined && userAnsObj.correctAnswer !== null) 
+                      ? userAnsObj.correctAnswer 
+                      : qObj.correctAnswer;
+                      
                     if (correctAns === undefined || correctAns === null) {
                       const keySource = bankQ?.answerKey || test?.answerKey;
                       if (keySource) {
@@ -457,7 +564,7 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
 }
 
 // ─── MAIN MULTI-HOMEWORK RUNNER COMPONENT ────────────────────────────────────
-export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null }) {
+export default function MultiHomeworkRunner({ test, questions, onSubmit, isReviewMode = false, userAnswers = null, onAutoSave, draftAnswers }) {
   const { questions: allBankQuestions } = useQuestionBank();
   const { homeworks } = useHomework();
   const { data: curriculumData } = useCurriculum();
@@ -547,7 +654,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           }
         }
 
-        const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 1;
+        const safeMaxAns = (obj) => {
+          if (!obj || !obj.answerKey) return 0;
+          if (Array.isArray(obj.answerKey) || typeof obj.answerKey === 'string') return obj.answerKey.length;
+          if (typeof obj.answerKey === 'object') return Object.keys(obj.answerKey).length;
+          return 0;
+        };
+        const maxAns = Math.max(safeMaxAns(bankQ), safeMaxAns(sec));
+        const qCount = bankQ?.questionCount || bankQ?.totalQuestions || sec.questionCount || sec.totalQuestions || resolvedQuestions.length || maxAns || 10;
 
         if (resolvedQuestions.length < qCount) {
           const filled = [...resolvedQuestions];
@@ -621,6 +735,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     }
 
+    const safeMaxAns = (obj) => {
+      if (!obj || !obj.answerKey) return 0;
+      if (Array.isArray(obj.answerKey) || typeof obj.answerKey === 'string') return obj.answerKey.length;
+      if (typeof obj.answerKey === 'object') return Object.keys(obj.answerKey).length;
+      return 0;
+    };
+    
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
     const finalQs = (resolvedQuestions && resolvedQuestions.length > 0) ? resolvedQuestions : (questions || []);
     return [{
@@ -628,7 +749,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       title: test.title || test.name || '1. Bölüm',
       bankQ: test,
       resolvedQuestions: finalQs,
-      qCount: finalQs.length || 1
+      qCount: test.questionCount || test.totalQuestions || finalQs.length || safeMaxAns(test) || 10
     }];
   }, [test, questions, allBankQuestions, findInAllSources, isReviewMode, userAnswers]);
 
@@ -637,26 +758,53 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   // 2. Initialize answer state cleanly per section
   const [sectionAnswers, setSectionAnswers] = useState(() => {
+    // A) If Review Mode, populate from userAnswers (which holds the completed submission)
     if (isReviewMode && userAnswers) {
       const rawAns = userAnswers.answers || userAnswers.formattedAnswers || userAnswers.answersMap || userAnswers.userAnswers || userAnswers;
       const initialMap = {};
       sections.forEach(s => { initialMap[s.id] = { answers: {}, openEndedText: {} }; });
 
-      if (Array.isArray(rawAns)) {
-        rawAns.forEach((item, idx) => {
-          let targetSec = sections.find(s => String(s.id) === String(item.sectionId)) ||
-                          sections.find(s => String(s.bankQ?.id) === String(item.sectionId)) ||
-                          sections.find(s => String(s.bankQ?.questionId) === String(item.sectionId)) ||
-                          sections.find(s => s.title === item.sectionTitle);
+      if (Array.isArray(rawAns) && rawAns.length > 0) {
+        // Build lookup maps for fast section matching
+        const secById = {};
+        const secByBankId = {};
+        const secByTitle = {};
+        sections.forEach(s => {
+          secById[String(s.id)] = s;
+          if (s.bankQ?.id) secByBankId[String(s.bankQ.id)] = s;
+          if (s.bankQ?.questionId) secByBankId[String(s.bankQ.questionId)] = s;
+          if (s.title) secByTitle[s.title] = s;
+        });
 
+        // Precompute cumulative offsets for sequential fallback
+        const secOffsets = [];
+        let acc = 0;
+        sections.forEach(s => { secOffsets.push(acc); acc += s.qCount; });
+
+        rawAns.forEach((item, idx) => {
+          // 1. Try direct ID match
+          let targetSec =
+            secById[String(item.sectionId)] ||
+            secByBankId[String(item.sectionId)] ||
+            secByTitle[item.sectionTitle];
+
+          // 2. If no match, try normalized IDs (strip prefixes)
+          if (!targetSec && item.sectionId) {
+            const normItemSecId = String(item.sectionId).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
+            targetSec = sections.find(s => {
+              const normSecId = String(s.id).replace(/^hw_/, '').replace(/^q_?/, '').replace(/^sec_/, '');
+              const normBankId = String(s.bankQ?.id || '').replace(/^hw_/, '').replace(/^q_?/, '');
+              return normSecId === normItemSecId || normBankId === normItemSecId;
+            });
+          }
+
+          // 3. Fallback: assign sequentially based on global question index
           if (!targetSec) {
-            let accumulated = 0;
-            for (const s of sections) {
-              if (idx < accumulated + s.qCount) {
-                targetSec = s;
+            for (let si = sections.length - 1; si >= 0; si--) {
+              if (idx >= secOffsets[si]) {
+                targetSec = sections[si];
                 break;
               }
-              accumulated += s.qCount;
             }
             if (!targetSec) targetSec = sections[0];
           }
@@ -665,33 +813,60 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             const secId = targetSec.id;
             if (!initialMap[secId]) initialMap[secId] = { answers: {}, openEndedText: {} };
 
-            let qNo = item.questionNoInSection || item.qNo || item.questionNo;
-            if (!qNo || isNaN(qNo)) {
-              let accumulated = 0;
-              for (const s of sections) {
-                if (s.id === secId) break;
-                accumulated += s.qCount;
+            // Resolve question number within section
+            let qNo = item.questionNoInSection ? Number(item.questionNoInSection) : null;
+            if (!qNo || isNaN(qNo) || qNo < 1) {
+              const globalQNo = item.questionNo || item.qNo;
+              const secStartIdx = secOffsets[sections.indexOf(targetSec)];
+              if (globalQNo && globalQNo > 0) {
+                // If global qNo is larger than section size, offset it
+                const localQNo = globalQNo - secStartIdx;
+                qNo = (localQNo >= 1 && localQNo <= targetSec.qCount) ? localQNo : ((idx - secStartIdx) + 1);
+              } else {
+                qNo = (idx - secStartIdx) + 1;
               }
-              qNo = (idx - accumulated) + 1;
-              if (qNo < 1 || qNo > targetSec.qCount) qNo = (idx % targetSec.qCount) + 1;
+              // Clamp to valid range
+              if (qNo < 1) qNo = 1;
+              if (qNo > targetSec.qCount) qNo = ((idx - secStartIdx) % targetSec.qCount) + 1;
             }
 
-            if (item.userAnswerText || item.textAns || item.openEndedText) {
-              initialMap[secId].openEndedText[qNo] = item.userAnswerText || item.textAns || item.openEndedText;
+            // Populate open-ended text
+            const oeText = item.userAnswerText || item.textAns || item.openEndedText || item.writtenAnswer || null;
+            if (oeText) {
+              initialMap[secId].openEndedText[qNo] = oeText;
             }
 
+            // Populate multiple-choice answer
             const userAns = item.userAnswer !== undefined ? item.userAnswer : item.userAns;
             if (userAns !== undefined && userAns !== null) {
+              // Resolve correctAnswer - try multiple sources
+              let correctAns = item.correctAnswer;
+              if ((correctAns === undefined || correctAns === null) && item.correctAnswerLetter) {
+                const letter = String(item.correctAnswerLetter).trim().toUpperCase();
+                if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
+              }
               initialMap[secId].answers[qNo] = {
-                userAnswer: userAns,
+                userAnswer: typeof userAns === 'string' && /^[A-Ea-e]$/.test(userAns.trim())
+                  ? userAns.trim().toUpperCase().charCodeAt(0) - 65
+                  : userAns,
                 isCorrect: item.isCorrect,
+                correctAnswer: correctAns,
                 questionId: item.questionId
+              };
+            } else if (oeText) {
+              // Open-ended: store a marker so we know it was answered
+              initialMap[secId].answers[qNo] = {
+                userAnswer: null,
+                isCorrect: item.isCorrect,
+                correctAnswer: null,
+                questionId: item.questionId,
+                isOpenEnded: true
               };
             }
           }
         });
         return initialMap;
-      } else if (rawAns && typeof rawAns === 'object') {
+      } else if (rawAns && typeof rawAns === 'object' && !Array.isArray(rawAns)) {
         const secId = sections[0]?.id || 'sec_1';
         if (rawAns[secId] && (rawAns[secId].answers || rawAns[secId].openEndedText)) {
           return rawAns;
@@ -702,11 +877,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             if (!isNaN(qNo)) {
               const val = rawAns[k];
               if (typeof val === 'object' && val !== null) {
-                if (val.userAnswerText) initialMap[secId].openEndedText[qNo] = val.userAnswerText;
-                initialMap[secId].answers[qNo] = { userAnswer: val.userAnswer !== undefined ? val.userAnswer : val.userAns, isCorrect: val.isCorrect };
+                const oeText = val.userAnswerText || val.textAns || val.openEndedText;
+                if (oeText) initialMap[secId].openEndedText[qNo] = oeText;
+                if (val.userAnswer !== undefined && val.userAnswer !== null) {
+                  initialMap[secId].answers[qNo] = { userAnswer: val.userAnswer !== undefined ? val.userAnswer : val.userAns, isCorrect: val.isCorrect, correctAnswer: val.correctAnswer };
+                }
               } else if (typeof val === 'string') {
                 initialMap[secId].openEndedText[qNo] = val;
-              } else {
+              } else if (typeof val === 'number') {
                 initialMap[secId].answers[qNo] = { userAnswer: val };
               }
             }
@@ -716,12 +894,132 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       }
     }
 
-    try {
-      const saved = localStorage.getItem(`${draftKey}_ans`);
-      if (saved) return JSON.parse(saved);
-    } catch {}
+    // B) If Solver Mode, check DB draft (draftAnswers) FIRST
+    let initSa = null;
+    if (!isReviewMode && draftAnswers && draftAnswers.length > 0) {
+      initSa = {};
+      sections.forEach(sec => {
+        const secAns = draftAnswers.filter(a =>
+          String(a.sectionId) === String(sec.id) ||
+          String(a.sectionId) === String(sec.questionId) ||
+          (a.questionId && (String(a.questionId).startsWith(String(sec.id)) || String(a.questionId).startsWith(String(sec.questionId)))) ||
+          a.sectionTitle === sec.title
+        );
+
+        if (secAns.length > 0) {
+          const ansMap = {};
+          const txtMap = {};
+          secAns.forEach((a, aIdx) => {
+            let qNo = a.questionNoInSection;
+            if (!qNo) {
+              qNo = Number(a.questionNo);
+              let accumulated = 0;
+              const sIdx = sections.findIndex(s => s.id === sec.id);
+              for(let i=0; i<sIdx; i++) accumulated += sections[i].qCount;
+              
+              if (qNo > accumulated && qNo <= accumulated + sec.qCount) {
+                qNo = qNo - accumulated;
+              } else if (qNo > sec.qCount) {
+                qNo = ((qNo - 1) % sec.qCount) + 1;
+              } else if (isNaN(qNo)) {
+                qNo = aIdx + 1;
+              }
+            }
+
+            if (a.userAnswer !== null && a.userAnswer !== undefined) {
+              ansMap[qNo] = { userAnswer: a.userAnswer, isCorrect: a.isCorrect, questionId: a.questionId };
+            }
+            if (a.userAnswerText) {
+              txtMap[qNo] = a.userAnswerText;
+            }
+          });
+          initSa[sec.id] = { answers: ansMap, openEndedText: txtMap };
+        }
+      });
+    }
+
+    // Merge with localStorage
+    if (!isReviewMode) {
+      try {
+        const saved = localStorage.getItem(`${draftKey}_ans`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (!initSa) initSa = {};
+          Object.keys(parsed).forEach(secId => {
+            if (!initSa[secId]) initSa[secId] = { answers: {}, openEndedText: {} };
+            const pAns = parsed[secId].answers || {};
+            Object.keys(pAns).forEach(qNo => {
+               // LocalStorage answers format: { userAnswer: val } or val directly depending on version. Handle both.
+               const val = pAns[qNo];
+               if (typeof val === 'object' && val !== null) {
+                 initSa[secId].answers[qNo] = { userAnswer: val.userAnswer !== undefined ? val.userAnswer : val.userAns, isCorrect: val.isCorrect };
+               } else {
+                 initSa[secId].answers[qNo] = { userAnswer: val };
+               }
+            });
+            const pTxt = parsed[secId].openEndedText || {};
+            Object.keys(pTxt).forEach(qNo => {
+               initSa[secId].openEndedText[qNo] = pTxt[qNo];
+            });
+          });
+        }
+      } catch {}
+    }
+    
+    if (initSa) {
+      sections.forEach(sec => {
+        if (!initSa[sec.id]) initSa[sec.id] = { answers: {}, openEndedText: {} };
+      });
+      return initSa;
+    }
+
+    // Default empty
     return Object.fromEntries(sections.map(s => [s.id, { answers: {}, openEndedText: {} }]));
   });
+
+  // Debounced Auto-Save trigger
+  const [saveTimeout, setSaveTimeout] = useState(null);
+
+  const triggerAutoSave = useCallback((currentSectionAnswers) => {
+    if (isReviewMode || !onAutoSave) return;
+    
+    if (saveTimeout) clearTimeout(saveTimeout);
+    
+    const timeoutId = setTimeout(() => {
+      const formattedAnswers = [];
+      let globalNo = 1;
+
+      sections.forEach(sec => {
+        const sa = currentSectionAnswers[sec.id] || {};
+        const secQs = sec.resolvedQuestions || [];
+        const bankQ = sec.bankQ || test;
+
+        for (let idx = 0; idx < sec.qCount; idx++) {
+          const qNo = idx + 1;
+          const qObj = secQs[idx] || {};
+          const ansObj = sa.answers?.[qNo] || {};
+          const userAns = typeof ansObj === 'object' ? ansObj.userAnswer : ansObj;
+          const textAns = sa.openEndedText?.[qNo] || null;
+          
+          const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
+
+          formattedAnswers.push({
+            questionId: qObj.id || `${sec.id}_${qNo}`,
+            questionNo: globalNo++,
+            questionNoInSection: qNo,
+            sectionId: sec.id,
+            sectionTitle: sec.title,
+            userAnswer: userAns !== undefined ? userAns : null,
+            userAnswerText: textAns,
+            isCorrect,
+            correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : null
+          });
+        }
+      });
+      onAutoSave(formattedAnswers);
+    }, 500); // reduced from 2000 to 500ms for instant save
+    setSaveTimeout(timeoutId);
+  }, [isReviewMode, onAutoSave, saveTimeout, sections, test]);
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
@@ -771,30 +1069,23 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     return h > 0 ? `${p(h)}:${p(m)}:${p(sec)}` : `${p(m)}:${p(sec)}`;
   };
 
-  const handleSelectOption = (secId, qNo, optIdx, qObj) => {
-    const sec = sections.find(s => s.id === secId) || activeSec;
-    const bankQ = sec.bankQ || test;
-    const isCorrect = checkIsAnswerCorrect(optIdx, qObj, bankQ, qNo);
-
+  const handleSelectOption = useCallback((secId, qNo, optIdx, qObj) => {
+    if (isReviewMode) return;
     setSectionAnswers(prev => {
-      const currentSecState = prev[secId] || { answers: {}, openEndedText: {} };
-      return {
-        ...prev,
-        [secId]: {
-          ...currentSecState,
-          answers: {
-            ...currentSecState.answers,
-            [qNo]: { userAnswer: optIdx, isCorrect, questionId: qObj?.id }
-          }
-        }
-      };
+      const secState = prev[secId] || { answers: {}, openEndedText: {} };
+      const newAnswers = { ...secState.answers, [qNo]: optIdx };
+      const updated = { ...prev, [secId]: { ...secState, answers: newAnswers } };
+      
+      try { localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated)); } catch {}
+      triggerAutoSave(updated);
+      return updated;
     });
-  };
+  }, [draftKey, isReviewMode, triggerAutoSave]);
 
   const handleTextChange = (secId, qNo, val) => {
     setSectionAnswers(prev => {
       const currentSecState = prev[secId] || { answers: {}, openEndedText: {} };
-      return {
+      const updated = {
         ...prev,
         [secId]: {
           ...currentSecState,
@@ -804,6 +1095,10 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           }
         }
       };
+      
+      try { localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated)); } catch {}
+      triggerAutoSave(updated);
+      return updated;
     });
   };
 
@@ -832,20 +1127,44 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       for (let idx = 0; idx < sec.qCount; idx++) {
         const qNo = idx + 1;
         const qObj = secQs[idx] || {};
-        const ansObj = sa.answers?.[qNo] || {};
-        const userAns = typeof ansObj === 'object' ? ansObj.userAnswer : ansObj;
+        const ansObj = sa.answers?.[qNo];
+        const userAns = ansObj !== undefined ? (typeof ansObj === 'object' ? ansObj?.userAnswer : ansObj) : null;
         const textAns = sa.openEndedText?.[qNo] || null;
-        const isCorrect = userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null;
+        const isCorrect = userAns !== undefined && userAns !== null
+          ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo)
+          : null;
+
+        // Resolve correctAnswer letter for review display
+        let correctAns = qObj.correctAnswer !== undefined ? qObj.correctAnswer : null;
+        if (correctAns === null && qObj.correctAnswerLetter) {
+          const letter = String(qObj.correctAnswerLetter).trim().toUpperCase();
+          if (/^[A-E]$/.test(letter)) correctAns = letter.charCodeAt(0) - 65;
+        }
+        if (correctAns === null && bankQ?.answerKey) {
+          const kaVal = Array.isArray(bankQ.answerKey)
+            ? bankQ.answerKey[idx]
+            : (bankQ.answerKey[qNo - 1] !== undefined ? bankQ.answerKey[qNo - 1] : bankQ.answerKey[String(qNo)]);
+          if (kaVal !== undefined && kaVal !== null) {
+            if (typeof kaVal === 'number') correctAns = kaVal;
+            else if (typeof kaVal === 'string') {
+              const s = kaVal.trim().toUpperCase();
+              if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+              else if (!isNaN(Number(s))) correctAns = Number(s);
+            }
+          }
+        }
 
         formattedAnswers.push({
           questionId: qObj.id || `${sec.id}_${qNo}`,
           questionNo: globalNo++,
+          questionNoInSection: qNo,
           sectionId: sec.id,
           sectionTitle: sec.title,
-          userAnswer: userAns !== undefined ? userAns : null,
+          userAnswer: userAns !== null && userAns !== undefined ? userAns : null,
           userAnswerText: textAns,
           isCorrect,
-          correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : null
+          correctAnswer: correctAns,
+          correctAnswerLetter: correctAns !== null && correctAns !== undefined ? String.fromCharCode(65 + correctAns) : null
         });
       }
     });
@@ -871,13 +1190,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec));
 
   const [idbPayload, setIdbPayload] = useState(null);
-  const [htmlIframeSrc, setHtmlIframeSrc] = useState(null);
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   // Reset section-specific payloads when active section changes
   useEffect(() => {
     setIdbPayload(null);
-    setHtmlIframeSrc(null);
+    // Note: HTML iframe src is managed inside StableHtmlViewer (keyed by section id)
   }, [activeSec.id]);
 
   const extractPayload = useCallback((obj) => {
@@ -922,34 +1240,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     return () => { isMounted = false; };
   }, [activeSec.id, activeBankQ, isPdf, extractPayload]);
 
-  useEffect(() => {
-    if (!isHtml) return;
-    const payload = extractPayload(activeBankQ) || extractPayload(activeSec);
-    if (payload && payload !== '[STORED_IN_INDEXEDDB]' && payload !== '[LOCALSTORAGE_CACHE]') {
-      if (payload.startsWith('http')) { setHtmlIframeSrc(payload); return; }
-      if (payload.startsWith('data:text/html') || payload.startsWith('<!DOCTYPE') || payload.startsWith('<html') || payload.includes('<html')) {
-        const blob = new Blob([payload.startsWith('data:') ? atob(payload.split(',')[1] || '') : payload], { type: 'text/html' });
-        setHtmlIframeSrc(URL.createObjectURL(blob));
-        return;
-      }
-    }
-
-    let isMounted = true;
-    async function loadHtmlFromIdb() {
-      const idsToTry = [activeBankQ.id, activeBankQ.questionId, activeSec.id, activeSec.questionId].filter(Boolean);
-      for (const idToTry of idsToTry) {
-        const val = await idbGetPayload(idToTry);
-        if (val && val !== '[STORED_IN_INDEXEDDB]' && isMounted) {
-          if (val.startsWith('http')) { setHtmlIframeSrc(val); break; }
-          const blob = new Blob([val.startsWith('data:') ? atob(val.split(',')[1] || '') : val], { type: 'text/html' });
-          setHtmlIframeSrc(URL.createObjectURL(blob));
-          break;
-        }
-      }
-    }
-    loadHtmlFromIdb();
-    return () => { isMounted = false; };
-  }, [activeSec.id, activeBankQ, isHtml, extractPayload]);
+  // HTML yükleme artık StableHtmlViewer içinde yapılıyor — burada useEffect yok
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
@@ -1087,14 +1378,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             />
           </div>
         ) : isHtml ? (
-          /* HTML VIEWER + OPTIK PANEL ONLY */
+          /* HTML VIEWER + OPTIK PANEL ONLY — StableHtmlViewer sayesinde titreme yok */
           <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
-              {htmlIframeSrc ? (
-                <iframe src={htmlIframeSrc} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} title={activeSec.title} sandbox="allow-scripts allow-same-origin" />
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontWeight: 700 }}>HTML İçerik Yükleniyor...</div>
-              )}
+              <StableHtmlViewer
+                bankQ={activeBankQ}
+                secId={activeSec.id}
+                title={activeSec.title}
+              />
             </div>
             <RightOptikPanel
               qCount={activeSec.qCount}
@@ -1152,11 +1443,45 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
                 const userAnsObj = activeSecState.answers?.[qNo];
-                const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+                const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
                 const textVal = activeSecState.openEndedText?.[qNo] || '';
 
+                // Review mode: resolve correctAnswer from multiple sources
+                let correctAns = userAnsObj?.correctAnswer;
+                if ((correctAns === undefined || correctAns === null) && qObj.correctAnswer !== undefined) correctAns = qObj.correctAnswer;
+                if ((correctAns === undefined || correctAns === null) && qObj.correctAnswerLetter) {
+                  const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                  if (/^[A-E]$/.test(lt)) correctAns = lt.charCodeAt(0) - 65;
+                }
+                if ((correctAns === undefined || correctAns === null) && activeSec.bankQ?.answerKey) {
+                  const ak = activeSec.bankQ.answerKey;
+                  const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
+                  if (kaVal !== undefined && kaVal !== null) {
+                    if (typeof kaVal === 'number') correctAns = kaVal;
+                    else if (typeof kaVal === 'string') {
+                      const s = kaVal.trim().toUpperCase();
+                      if (/^[A-E]$/.test(s)) correctAns = s.charCodeAt(0) - 65;
+                      else if (!isNaN(Number(s))) correctAns = Number(s);
+                    }
+                  }
+                }
+
+                const isQAnswered = selectedOpt !== undefined && selectedOpt !== null;
+                const isQCorrect = isReviewMode && isQAnswered
+                  ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (correctAns !== null && correctAns !== undefined && selectedOpt === correctAns))
+                  : null;
+
                 return (
-                  <div key={qNo} style={{ background: '#1e293b', borderRadius: '1.1rem', border: '1px solid #334155', padding: '1.5rem', boxShadow: '0 4px 14px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div key={qNo} style={{
+                    background: '#1e293b',
+                    borderRadius: '1.1rem',
+                    border: isReviewMode && isQAnswered ? `1.5px solid ${isQCorrect ? '#10b981' : '#ef4444'}` : '1px solid #334155',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                  }}>
                     
                     {/* QUESTION HEADER */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
@@ -1171,10 +1496,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         )}
                       </div>
 
-                      {selectedOpt !== undefined || textVal ? (
-                        <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                      {isReviewMode ? (
+                        isQOpenEnded ? (
+                          <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                        ) : isQAnswered ? (
+                          isQCorrect
+                            ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
+                            : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
+                        )
                       ) : (
-                        <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                        isQAnswered || textVal ? (
+                          <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                        )
                       )}
                     </div>
 
@@ -1188,25 +1525,41 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                         {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
                           const isSelected = selectedOpt === optIdx;
+                          const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
+
+                          let bg = '#0f172a';
+                          let border = '1px solid #475569';
+                          let color = '#cbd5e1';
+
+                          if (isReviewMode) {
+                            if (isSelected && isCorrectOpt) { bg = '#059669'; border = 'none'; color = 'white'; }
+                            else if (isSelected && !isCorrectOpt) { bg = '#dc2626'; border = 'none'; color = 'white'; }
+                            else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.15)'; border = '1.5px solid #10b981'; color = '#34d399'; }
+                          } else if (isSelected) {
+                            bg = 'linear-gradient(135deg, #059669, #10b981)';
+                            border = 'none'; color = 'white';
+                          }
+
                           return (
                             <button
                               key={opt}
-                              onClick={() => handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                              onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                              disabled={isReviewMode}
                               style={{
                                 flex: 1,
                                 height: '42px',
                                 borderRadius: '0.65rem',
-                                border: isSelected ? 'none' : '1px solid #475569',
-                                background: isSelected ? 'linear-gradient(135deg, #059669, #10b981)' : '#0f172a',
-                                color: isSelected ? 'white' : '#cbd5e1',
+                                border,
+                                background: bg,
+                                color,
                                 fontWeight: 900,
                                 fontSize: '1rem',
-                                cursor: 'pointer',
+                                cursor: isReviewMode ? 'default' : 'pointer',
                                 transition: 'all 0.15s ease',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
+                                boxShadow: isSelected && !isReviewMode ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
                               }}
                             >
                               {opt}
@@ -1215,13 +1568,29 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         })}
                       </div>
                     ) : (
-                      <textarea
-                        value={textVal}
-                        onChange={e => handleTextChange(activeSec.id, qNo, e.target.value)}
-                        placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                        rows={4}
-                        style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: '#0f172a', border: '1px solid #475569', color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
-                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {isReviewMode && textVal && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>Öğrenci Yanıtı:</div>
+                        )}
+                        <textarea
+                          value={textVal}
+                          onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
+                          readOnly={isReviewMode}
+                          placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                          rows={4}
+                          style={{
+                            width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
+                            background: isReviewMode ? '#0f172a' : '#0f172a',
+                            border: isReviewMode
+                              ? (textVal ? '1.5px solid #10b981' : '1px solid #475569')
+                              : '1px solid #475569',
+                            color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
+                            resize: isReviewMode ? 'none' : 'vertical',
+                            boxSizing: 'border-box', outline: 'none',
+                            cursor: isReviewMode ? 'default' : 'text'
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                 );
@@ -1317,8 +1686,42 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                 const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
                 const textVal = activeSecState.openEndedText?.[qNo] || '';
 
+                // Review mode: resolve correctAnswer
+                let corrAns = userAnsObj?.correctAnswer;
+                if ((corrAns === undefined || corrAns === null) && qObj.correctAnswer !== undefined) corrAns = qObj.correctAnswer;
+                if ((corrAns === undefined || corrAns === null) && qObj.correctAnswerLetter) {
+                  const lt = String(qObj.correctAnswerLetter).trim().toUpperCase();
+                  if (/^[A-E]$/.test(lt)) corrAns = lt.charCodeAt(0) - 65;
+                }
+                if ((corrAns === undefined || corrAns === null) && activeSec.bankQ?.answerKey) {
+                  const ak = activeSec.bankQ.answerKey;
+                  const kaVal = Array.isArray(ak) ? ak[idx] : (ak[idx] !== undefined ? ak[idx] : ak[String(qNo)]);
+                  if (kaVal !== undefined && kaVal !== null) {
+                    if (typeof kaVal === 'number') corrAns = kaVal;
+                    else if (typeof kaVal === 'string') {
+                      const s = kaVal.trim().toUpperCase();
+                      if (/^[A-E]$/.test(s)) corrAns = s.charCodeAt(0) - 65;
+                      else if (!isNaN(Number(s))) corrAns = Number(s);
+                    }
+                  }
+                }
+
+                const isStdAnswered = selectedOpt !== undefined && selectedOpt !== null;
+                const isStdCorrect = isReviewMode && isStdAnswered
+                  ? (userAnsObj?.isCorrect !== undefined ? userAnsObj.isCorrect : (corrAns !== null && corrAns !== undefined && selectedOpt === corrAns))
+                  : null;
+
                 return (
-                  <div key={qNo} style={{ background: '#1e293b', borderRadius: '1.1rem', border: '1px solid #334155', padding: '1.5rem', boxShadow: '0 4px 14px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div key={qNo} style={{
+                    background: '#1e293b',
+                    borderRadius: '1.1rem',
+                    border: isReviewMode && !isQOpenEnded && isStdAnswered
+                      ? `1.5px solid ${isStdCorrect ? '#10b981' : '#ef4444'}`
+                      : '1px solid #334155',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                    display: 'flex', flexDirection: 'column', gap: '1rem'
+                  }}>
                     
                     {/* QUESTION HEADER */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
@@ -1333,10 +1736,22 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         )}
                       </div>
 
-                      {selectedOpt !== undefined || textVal ? (
-                        <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                      {isReviewMode ? (
+                        isQOpenEnded ? (
+                          <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                        ) : isStdAnswered ? (
+                          isStdCorrect
+                            ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
+                            : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
+                        )
                       ) : (
-                        <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                        isStdAnswered || textVal ? (
+                          <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
+                        )
                       )}
                     </div>
 
@@ -1355,44 +1770,69 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
                         {options.map((opt, optIdx) => {
                           const isSelected = selectedOpt === optIdx;
+                          const isCorrectOpt = corrAns !== null && corrAns !== undefined && corrAns === optIdx;
                           const optLetter = String.fromCharCode(65 + optIdx);
                           let optText = '';
-                          if (typeof opt === 'string') {
-                            optText = opt;
-                          } else if (opt && typeof opt === 'object') {
-                            optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
-                          }
+                          if (typeof opt === 'string') optText = opt;
+                          else if (opt && typeof opt === 'object') optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
                           const showText = Boolean(optText && optText.trim() !== optLetter);
 
+                          let bg = '#0f172a';
+                          let border = '1.5px solid #334155';
+                          let color = '#cbd5e1';
+
+                          if (isReviewMode) {
+                            if (isSelected && isCorrectOpt) { bg = 'linear-gradient(135deg,#059669,#10b981)'; border = 'none'; color = 'white'; }
+                            else if (isSelected && !isCorrectOpt) { bg = 'linear-gradient(135deg,#dc2626,#b91c1c)'; border = 'none'; color = 'white'; }
+                            else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.12)'; border = '1.5px solid #10b981'; color = '#34d399'; }
+                          } else if (isSelected) {
+                            bg = 'linear-gradient(135deg, #4f46e5, #3730a3)'; border = 'none'; color = 'white';
+                          }
+
                           return (
-                            <button key={optIdx} onClick={() => handleSelectOption(activeSec.id, qNo, optIdx, qObj)} style={{
-                              padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
-                              border: isSelected ? '2px solid #818cf8' : '1.5px solid #334155',
-                              background: isSelected ? 'linear-gradient(135deg, #4f46e5, #3730a3)' : '#0f172a',
-                              color: isSelected ? 'white' : '#cbd5e1', transition: 'all 0.15s ease',
-                              display: 'flex', alignItems: 'center'
-                            }}>
-                              <span style={{ fontWeight: 900, color: isSelected ? '#a5b4fc' : '#38bdf8', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                            <button key={optIdx}
+                              onClick={() => !isReviewMode && handleSelectOption(activeSec.id, qNo, optIdx, qObj)}
+                              disabled={isReviewMode}
+                              style={{
+                                padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left',
+                                cursor: isReviewMode ? 'default' : 'pointer',
+                                fontWeight: (isSelected || isCorrectOpt) ? 900 : 700,
+                                border, background: bg, color, transition: 'all 0.15s ease',
+                                display: 'flex', alignItems: 'center'
+                              }}>
+                              <span style={{ fontWeight: 900, color: isSelected ? (isReviewMode ? 'rgba(255,255,255,0.8)' : '#a5b4fc') : (isCorrectOpt && isReviewMode ? '#34d399' : '#38bdf8'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
                                 {optLetter})
                               </span>
-                              <span style={{ fontSize: '0.95rem', color: isSelected ? 'white' : '#f8fafc', fontWeight: 700 }}>
+                              <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
                                 {showText ? optText : `Seçenek ${optLetter}`}
                               </span>
+                              {isReviewMode && isCorrectOpt && !isSelected && (
+                                <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Doğru Yanıt</span>
+                              )}
                             </button>
                           );
                         })}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#a5b4fc' }}>
-                          ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
+                        <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isReviewMode ? '#94a3b8' : '#a5b4fc' }}>
+                          {isReviewMode ? '📝 Öğrenci Yanıtı:' : '✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:'}
                         </label>
                         <textarea
                           value={textVal}
-                          onChange={e => handleTextChange(activeSec.id, qNo, e.target.value)}
-                          placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                          onChange={e => !isReviewMode && handleTextChange(activeSec.id, qNo, e.target.value)}
+                          readOnly={isReviewMode}
+                          placeholder={isReviewMode ? 'Öğrenci bu soruya yanıt yazmadı.' : `Soru ${qNo} için yanıtınızı buraya yazınız...`}
                           rows={4}
-                          style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: '#0f172a', border: '1.5px solid #475569', color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                          style={{
+                            width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
+                            background: '#0f172a',
+                            border: isReviewMode ? (textVal ? '1.5px solid #10b981' : '1px solid #475569') : '1.5px solid #475569',
+                            color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
+                            resize: isReviewMode ? 'none' : 'vertical',
+                            boxSizing: 'border-box', outline: 'none',
+                            cursor: isReviewMode ? 'default' : 'text'
+                          }}
                         />
                       </div>
                     )}

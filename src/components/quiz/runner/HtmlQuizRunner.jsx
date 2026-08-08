@@ -5,16 +5,36 @@ import { Pencil, CheckCircle2, Clock } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 
-export default function HtmlQuizRunner({ test, questions = [], onSubmit }) {
+export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers }) {
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
+    if (draftAnswers && draftAnswers.length > 0) {
+      const initAns = {};
+      draftAnswers.forEach(a => {
+        if (a.userAnswer !== null && a.userAnswer !== undefined) {
+          initAns[a.questionNo] = a.userAnswer;
+          initAns[String(a.questionNo)] = a.userAnswer;
+        }
+      });
+      return initAns;
+    }
     try {
       const saved = localStorage.getItem(`${draftKey}_ans`);
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
   const [openEndedText, setOpenEndedText] = useState(() => {
+    if (draftAnswers && draftAnswers.length > 0) {
+      const initTxt = {};
+      draftAnswers.forEach(a => {
+        if (a.userAnswerText) {
+          initTxt[a.questionNo] = a.userAnswerText;
+          initTxt[String(a.questionNo)] = a.userAnswerText;
+        }
+      });
+      return initTxt;
+    }
     try {
       const saved = localStorage.getItem(`${draftKey}_txt`);
       return saved ? JSON.parse(saved) : {};
@@ -160,6 +180,15 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit }) {
 
   const isOpenEndedMode = useMemo(() => {
     if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+    ) {
+      return false;
+    }
+
+    if (
       test.questionType === 'acik_uclu' ||
       test.questionType === 'yazili' ||
       test.type === 'acik_uclu' ||
@@ -238,6 +267,31 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit }) {
     } catch {}
   }, [openEndedText, draftKey]);
 
+  const [saveTimeout, setSaveTimeout] = useState(null);
+
+  const triggerAutoSave = (currentAnswers, currentText) => {
+    if (!onAutoSave) return;
+    if (saveTimeout) clearTimeout(saveTimeout);
+
+    const timeoutId = setTimeout(() => {
+      const formattedAnswers = Array.from({ length: qCount }).map((_, idx) => {
+        const qNo = idx + 1;
+        const qObj = questions[idx] || questions[0] || {};
+        const userAns = currentAnswers[qNo];
+        const textAns = currentText[qNo];
+
+        return {
+          questionId: qObj.id ? `${qObj.id}_${qNo}` : `q_${qNo}`,
+          questionNo: qNo,
+          userAnswer: userAns !== undefined ? userAns : null,
+          userAnswerText: textAns || null
+        };
+      });
+      onAutoSave(formattedAnswers);
+    }, 2000);
+    setSaveTimeout(timeoutId);
+  };
+
   // Save timer instantly
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -268,11 +322,19 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit }) {
   };
 
   const handleOptionSelect = (qNo, optionIdx) => {
-    setAnswers(prev => ({ ...prev, [qNo]: optionIdx }));
+    setAnswers(prev => {
+      const updated = { ...prev, [qNo]: optionIdx };
+      triggerAutoSave(updated, openEndedText);
+      return updated;
+    });
   };
 
   const handleTextChange = (qNo, val) => {
-    setOpenEndedText(prev => ({ ...prev, [qNo]: val }));
+    setOpenEndedText(prev => {
+      const updated = { ...prev, [qNo]: val };
+      triggerAutoSave(answers, updated);
+      return updated;
+    });
   };
 
   const handleSubmit = () => {
@@ -289,8 +351,9 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit }) {
       const userAns = answers[qNo];
       const textAns = openEndedText[qNo];
 
+      // checkIsAnswerCorrect artık answerKey'i qObj.correctAnswer'dan önce kontrol ediyor
       const isCorrect = (userAns !== undefined && userAns !== null)
-        ? checkIsAnswerCorrect(userAns, qObj, test, qNo)
+        ? checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo)
         : (textAns ? null : false);
 
       return {

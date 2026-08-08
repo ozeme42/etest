@@ -369,7 +369,6 @@ export async function dbGetSubmissions(studentId) {
       teacherFeedback: s.teacher_feedback || null,
       totalScorePoints: s.total_score_points || null,
       maxPossibleScore: s.max_possible_score || null,
-      evaluatedAt: s.evaluated_at || null,
       answers: s.answers || [],
       questions: s.questions || [],
       contentPayload: s.content_payload || null,
@@ -403,10 +402,8 @@ export async function dbSaveSubmission(sub) {
       teacher_feedback: sub.teacherFeedback || null,
       total_score_points: sub.totalScorePoints || null,
       max_possible_score: sub.maxPossibleScore || null,
-      evaluated_at: sub.evaluatedAt || null,
       answers: sub.answers || [],
-      questions: sub.questions || [],
-      content_type: sub.contentType || null
+      questions: sub.questions || []
     };
     const { data, error } = await supabase.from('submissions').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;

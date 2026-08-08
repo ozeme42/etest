@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ChevronRight, ChevronLeft, Layers } from 'lucide-react';
 
-export default function BulkHomeworkRunner({ test, questions, onSubmit }) {
+export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSave, submissionAnswers }) {
   const draftKey = useMemo(() => `draft_bulk_quiz_${test.id || 'test'}`, [test.id]);
 
   const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
@@ -46,42 +46,101 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit }) {
   const currentSection = sections[currentSectionIdx] || sections[0];
 
   const [answers, setAnswers] = useState(() => {
+    let initAns = null;
+    if (submissionAnswers && submissionAnswers.length > 0) {
+      initAns = {};
+      submissionAnswers.forEach(a => {
+        if (a.userAnswer !== null && a.userAnswer !== undefined) {
+          const secIdx = sections.findIndex(s => s.id === a.sectionId || s.title === a.sectionTitle);
+          
+          let qNo = a.questionNoInSection;
+          if (!qNo) {
+            qNo = Number(a.questionNo);
+            let accumulated = 0;
+            for(let i=0; i<secIdx; i++) accumulated += sections[i].questionCount || sections[i].totalQuestions || sections[i].questions?.length || 20;
+            if (qNo > accumulated && qNo <= accumulated + (sections[secIdx]?.questionCount || sections[secIdx]?.totalQuestions || 20)) {
+              qNo = qNo - accumulated;
+            } else if (qNo > (sections[secIdx]?.questionCount || sections[secIdx]?.totalQuestions || 20)) {
+              qNo = ((qNo - 1) % (sections[secIdx]?.questionCount || sections[secIdx]?.totalQuestions || 20)) + 1;
+            }
+          }
+          
+          const key = secIdx >= 0 ? `${secIdx}_${qNo}` : `${qNo}`;
+          initAns[key] = a.userAnswer;
+          initAns[String(key)] = a.userAnswer;
+        }
+      });
+    }
+
     try {
       const saved = localStorage.getItem(`${draftKey}_ans`);
-      if (!saved) return {};
-      const parsed = JSON.parse(saved);
-      const normalized = {};
-      Object.entries(parsed).forEach(([k, v]) => {
-        normalized[k] = v;
-        normalized[Number(k)] = v;
-        normalized[String(k)] = v;
-      });
-      return normalized;
-    } catch { return {}; }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!initAns) initAns = {};
+        Object.entries(parsed).forEach(([k, v]) => {
+          initAns[k] = v;
+          initAns[Number(k)] = v;
+          initAns[String(k)] = v;
+        });
+      }
+    } catch {}
+    return initAns || {};
   });
 
   const [openEndedText, setOpenEndedText] = useState(() => {
+    let initTxt = null;
+    if (submissionAnswers && submissionAnswers.length > 0) {
+      initTxt = {};
+      submissionAnswers.forEach(a => {
+        if (a.userAnswerText) {
+          const secIdx = sections.findIndex(s => s.id === a.sectionId || s.title === a.sectionTitle);
+          let qNo = a.questionNoInSection;
+          if (!qNo) {
+            qNo = Number(a.questionNo);
+            let accumulated = 0;
+            for(let i=0; i<secIdx; i++) accumulated += sections[i].questionCount || sections[i].questions?.length || 20;
+            if (qNo > accumulated && qNo <= accumulated + (sections[secIdx]?.questionCount || 20)) {
+              qNo = qNo - accumulated;
+            } else if (qNo > (sections[secIdx]?.questionCount || 20)) {
+              qNo = ((qNo - 1) % (sections[secIdx]?.questionCount || 20)) + 1;
+            }
+          }
+          const key = secIdx >= 0 ? `${secIdx}_${qNo}` : `${qNo}`;
+          initTxt[key] = a.userAnswerText;
+          initTxt[String(key)] = a.userAnswerText;
+        }
+      });
+    }
+
     try {
       const saved = localStorage.getItem(`${draftKey}_txt`);
-      if (!saved) return {};
-      const parsed = JSON.parse(saved);
-      const normalized = {};
-      Object.entries(parsed).forEach(([k, v]) => {
-        normalized[k] = v;
-        normalized[Number(k)] = v;
-        normalized[String(k)] = v;
-      });
-      return normalized;
-    } catch { return {}; }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!initTxt) initTxt = {};
+        Object.entries(parsed).forEach(([k, v]) => {
+          initTxt[k] = v;
+          initTxt[Number(k)] = v;
+          initTxt[String(k)] = v;
+        });
+      }
+    } catch {}
+    return initTxt || {};
   });
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
   const totalQuestionsCount = useMemo(() => {
-    return sections.reduce((sum, sec) => sum + (sec.questions?.length || sec.questionCount || 0), 0) || questions.length || 20;
+    return sections.reduce((sum, sec) => sum + (sec.questions?.length || sec.questionCount || sec.totalQuestions || 0), 0) || questions.length || 20;
   }, [sections, questions]);
 
-  const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded;
+  const titleStr = String(test.title || test.name || '').toLowerCase();
+  const isExplicitlyMultipleChoice = test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli';
+  const isOpenEndedMode = Boolean(
+    test.questionType === 'acik_uclu' || 
+    test.isOpenEnded || 
+    test.type === 'acik_uclu' ||
+    (titleStr && (titleStr.includes('açık uçlu') || titleStr.includes('yazılı')))
+  ) && !isExplicitlyMultipleChoice;
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (totalQuestionsCount * perQuestionMins * 60) || 1200, [totalQuestionsCount, perQuestionMins]);
 
@@ -148,22 +207,77 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit }) {
 
   const getGlobalKey = (secIdx, qNo) => `${secIdx}_${qNo}`;
 
+  const [saveTimeout, setSaveTimeout] = useState(null);
+
+  const triggerAutoSave = (currentAnswers, currentOpenEnded) => {
+    if (!onAutoSave) return;
+    if (saveTimeout) clearTimeout(saveTimeout);
+    
+    const timeoutId = setTimeout(() => {
+      const formattedAnswers = [];
+      let globalNo = 1;
+
+      sections.forEach((sec, secIdx) => {
+        const secQs = sec.questions || [];
+        const qCount = secQs.length || sec.questionCount || sec.totalQuestions || 20;
+
+        for (let idx = 0; idx < qCount; idx++) {
+          const qNo = idx + 1;
+          const qObj = secQs[idx] || {};
+          const key = getGlobalKey(secIdx, qNo);
+
+          const userAns = currentAnswers[key] !== undefined ? currentAnswers[key] : (currentAnswers[qNo] !== undefined ? currentAnswers[qNo] : currentAnswers[String(qNo)]);
+          const textAns = currentOpenEnded[key] || currentOpenEnded[qNo] || currentOpenEnded[String(qNo)] || null;
+
+          let correctOpt = qObj.correctAnswer;
+          if (correctOpt === null || correctOpt === undefined) {
+            const letter = qObj.correctAnswerLetter;
+            if (letter && typeof letter === 'string') {
+              correctOpt = letter.toUpperCase().charCodeAt(0) - 65;
+            }
+          }
+
+          let isCorrect = null;
+          if (userAns !== null && userAns !== undefined) {
+            if (correctOpt !== null && correctOpt !== undefined) {
+              isCorrect = Number(userAns) === Number(correctOpt);
+            }
+          }
+
+          formattedAnswers.push({
+            questionId: qObj.id || `sec${secIdx}_q${qNo}`,
+            questionNo: globalNo++,
+            questionNoInSection: qNo,
+            sectionId: sec.id,
+            sectionTitle: sec.title,
+            userAnswer: userAns !== undefined ? userAns : null,
+            userAnswerText: textAns,
+            isCorrect,
+            correctAnswerLetter: qObj.correctAnswerLetter || (correctOpt !== null && correctOpt !== undefined ? String.fromCharCode(65 + correctOpt) : null)
+          });
+        }
+      });
+      onAutoSave(formattedAnswers);
+    }, 500);
+    setSaveTimeout(timeoutId);
+  };
+
   const handleOptionSelect = (secIdx, qNo, optIdx) => {
     const key = getGlobalKey(secIdx, qNo);
-    setAnswers(prev => ({
-      ...prev,
-      [key]: optIdx,
-      [String(key)]: optIdx
-    }));
+    setAnswers(prev => {
+      const updated = { ...prev, [key]: optIdx, [String(key)]: optIdx };
+      triggerAutoSave(updated, openEndedText);
+      return updated;
+    });
   };
 
   const handleTextChange = (secIdx, qNo, val) => {
     const key = getGlobalKey(secIdx, qNo);
-    setOpenEndedText(prev => ({
-      ...prev,
-      [key]: val,
-      [String(key)]: val
-    }));
+    setOpenEndedText(prev => {
+      const updated = { ...prev, [key]: val, [String(key)]: val };
+      triggerAutoSave(answers, updated);
+      return updated;
+    });
   };
 
   const handleSubmit = () => {
@@ -178,7 +292,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit }) {
 
     sections.forEach((sec, secIdx) => {
       const secQs = sec.questions || [];
-      const qCount = secQs.length || sec.questionCount || 20;
+      const qCount = secQs.length || sec.questionCount || sec.totalQuestions || 20;
 
       for (let idx = 0; idx < qCount; idx++) {
         const qNo = idx + 1;
@@ -206,6 +320,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit }) {
         formattedAnswers.push({
           questionId: qObj.id || `sec${secIdx}_q${qNo}`,
           questionNo: globalNo++,
+          questionNoInSection: qNo,
           sectionId: sec.id,
           sectionTitle: sec.title,
           userAnswer: userAns !== undefined ? userAns : null,

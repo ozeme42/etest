@@ -1,4 +1,103 @@
 /**
+ * Helper to extract question text robustly from any question object format.
+ */
+export function extractQuestionText(qObj, testObj = {}, index = 0) {
+  if (!qObj) qObj = {};
+  if (!testObj) testObj = {};
+
+  const candidates = [
+    qObj.questionText,
+    qObj.text,
+    qObj.question,
+    qObj.title,
+    qObj.questionTitle,
+    qObj.stem,
+    qObj.body,
+    qObj.prompt,
+    qObj.soruMetni,
+    qObj.soru,
+    qObj.content,
+    qObj.description,
+    qObj.name,
+    qObj.questionTextHtml,
+    qObj.htmlText,
+    qObj.html,
+    (typeof qObj.contentPayload === 'string' && !qObj.contentPayload.startsWith('http') && !qObj.contentPayload.startsWith('data:') && !qObj.contentPayload.startsWith('[') && !qObj.contentPayload.startsWith('{') && qObj.contentPayload !== '[STORED_IN_INDEXEDDB]' && qObj.contentPayload !== '[LOCALSTORAGE_CACHE]' ? qObj.contentPayload : null),
+    (index === 0 ? (testObj.questionText || testObj.text || testObj.question || testObj.title) : null)
+  ];
+
+  for (const c of candidates) {
+    if (c && typeof c === 'string' && c.trim() && !c.startsWith('data:') && !c.startsWith('http')) {
+      return c.trim();
+    }
+  }
+
+  return `Soru ${index + 1}`;
+}
+
+/**
+ * Helper to extract option texts robustly from any question object format.
+ */
+export function extractQuestionOptions(qObj, testObj = {}) {
+  if (!qObj) qObj = {};
+  if (!testObj) testObj = {};
+
+  const rawOptions = qObj.options || qObj.choices || qObj.secenekler || qObj.optionsList || qObj.answers || qObj.items || qObj.opt || testObj.options || testObj.choices || testObj.secenekler;
+
+  let optArray = [];
+
+  if (Array.isArray(rawOptions) && rawOptions.length > 0) {
+    optArray = rawOptions;
+  } else if (rawOptions && typeof rawOptions === 'object') {
+    const keys = ['A', 'B', 'C', 'D', 'E'];
+    const foundKeys = keys.filter(k => rawOptions[k] !== undefined || rawOptions[k.toLowerCase()] !== undefined);
+    if (foundKeys.length > 0) {
+      optArray = keys.map(k => rawOptions[k] ?? rawOptions[k.toLowerCase()]);
+    } else {
+      optArray = Object.values(rawOptions);
+    }
+  }
+
+  if (optArray.length === 0) {
+    return [];
+  }
+
+  const mapped = optArray.map((opt, optIdx) => {
+    const optLabel = String.fromCharCode(65 + optIdx);
+    if (typeof opt === 'string') {
+      const trimmed = opt.trim();
+      return trimmed || null;
+    }
+    if (opt && typeof opt === 'object') {
+      const textCandidate = [
+        opt.text,
+        opt.optionText,
+        opt.content,
+        opt.value,
+        opt.statement,
+        opt.choice,
+        opt.val,
+        opt.title,
+        opt.secenekText,
+        opt.name,
+        opt.answer,
+        opt.label
+      ].find(t => t && typeof t === 'string' && t.trim());
+
+      if (textCandidate) return textCandidate.trim();
+    }
+    return null;
+  });
+
+  // Eğer tüm seçenekler gerçek metin içeriyorsa döndür
+  const realOptions = mapped.filter(Boolean);
+  if (realOptions.length > 0) return mapped.map((m, i) => m || String.fromCharCode(65 + i));
+
+  // Tüm seçenekler boş - boş array döndür (soru girişi tamamlanmamış)
+  return [];
+}
+
+/**
  * Resolves full question objects for a given test from QuestionBank.
  */
 export function resolveTestQuestions(foundTest, allBankQuestions = []) {
@@ -16,8 +115,8 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
       }
       return {
         ...q,
-        questionText: q.questionText || q.text || q.question || q.title || `Soru ${idx + 1}`,
-        options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E']
+        questionText: extractQuestionText(q, foundTest, idx),
+        options: extractQuestionOptions(q, foundTest)
       };
     });
   }
@@ -30,8 +129,8 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
         rawQuestions = list.map((q, idx) => ({
           ...q,
           id: q.id || `${foundTest.id || 'q'}_${idx + 1}`,
-          questionText: q.questionText || q.text || q.question || q.title || `Soru ${idx + 1}`,
-          options: (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E']
+          questionText: extractQuestionText(q, foundTest, idx),
+          options: extractQuestionOptions(q, foundTest)
         }));
       }
     } catch {}
@@ -44,22 +143,33 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
         String(bq.id) === String(qId) ||
         normalizeId(bq.id) === normalizeId(qId)
       );
-      if (bankMatch) return bankMatch;
+      if (bankMatch) {
+        // Eğer text tipli tekil soru ise doğrudan döndür (questionText ve options korunur)
+        return {
+          ...bankMatch,
+          questionText: bankMatch.questionText || bankMatch.text || bankMatch.title || `Soru ${idx + 1}`,
+          options: bankMatch.options || []
+        };
+      }
       return {
         id: qId,
         questionText: `Soru ${idx + 1}`,
-        options: ['A', 'B', 'C', 'D', 'E']
+        options: []
       };
     });
   }
   // 4. If test has questions array directly
   else if (rawQuestions.length === 0 && foundTest.questions && Array.isArray(foundTest.questions) && foundTest.questions.length > 0) {
-    rawQuestions = foundTest.questions.map(q => {
+    rawQuestions = foundTest.questions.map((q, idx) => {
       if (typeof q === 'string') {
         const bankMatch = allBankQuestions.find(bq => String(bq.id) === String(q) || normalizeId(bq.id) === normalizeId(q));
-        return bankMatch || { id: q, questionText: 'Soru', options: ['A','B','C','D','E'] };
+        return bankMatch || { id: q, questionText: `Soru ${idx + 1}`, options: ['A','B','C','D','E'] };
       }
-      return q;
+      return {
+        ...q,
+        questionText: extractQuestionText(q, foundTest, idx),
+        options: extractQuestionOptions(q, foundTest)
+      };
     });
   }
   // 5. Fallback: single item
@@ -68,13 +178,18 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
   }
 
   // Final check: enrich items from allBankQuestions if needed
-  const finalQuestions = rawQuestions.map(q => {
+  const finalQuestions = rawQuestions.map((q, idx) => {
     if (q.id && (!q.contentPayload && !q.htmlPayload && !q.pdfPayload && !q.questionText)) {
       const matched = allBankQuestions.find(bq => String(bq.id) === String(q.id) || normalizeId(bq.id) === normalizeId(q.id));
       if (matched) return { ...matched, ...q };
     }
-    return q;
+    return {
+      ...q,
+      questionText: extractQuestionText(q, foundTest, idx),
+      options: extractQuestionOptions(q, foundTest)
+    };
   });
 
   return finalQuestions;
 }
+

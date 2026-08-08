@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -26,8 +26,8 @@ export default function ModularQuizPage() {
   const navigate = useNavigate();
 
   const { homeworks } = useHomework();
-  const { addSubmission } = useEvaluation();
   const { data: curriculumData } = useCurriculum();
+  const { submissions, addSubmission, updateSubmission, isSyncing } = useEvaluation();
   const { questions: allBankQuestions } = useQuestionBank();
   const { bookTests } = useTrackedBooks();
 
@@ -35,6 +35,17 @@ export default function ModularQuizPage() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submissionResult, setSubmissionResult] = useState(null);
+
+  // Synchronously compute draft to prevent race condition on runner mount
+  const draftSubmission = useMemo(() => {
+    if (!submissions || submissions.length === 0) return null;
+    return submissions.find(
+      s => String(s.testId) === String(testId) && 
+           String(s.studentId) === String(studentId) && 
+           (s.status === 'in_progress' || s.status === 'draft')
+    );
+  }, [submissions, testId, studentId]);
+
 
   useEffect(() => {
     let foundTest = homeworks.find(h => String(h.id) === String(testId));
@@ -71,7 +82,7 @@ export default function ModularQuizPage() {
         }
 
         const sections = targetBookTests.map((bt, secIdx) => {
-          const qCount = bt.questionCount || 20;
+          const qCount = bt.questionCount || bt.totalQuestions || bt.questionsCount || 20;
           const ansKey = bt.answerKey || {};
           const secQs = [];
 
@@ -137,8 +148,9 @@ export default function ModularQuizPage() {
           });
         });
 
-        if (allResolvedQs.length === 0 && foundTest.totalQuestions) {
-          for (let i = 1; i <= foundTest.totalQuestions; i++) {
+        const totalQFallback = foundTest.totalQuestions || foundTest.questionCount || foundTest.questionsCount;
+        if (allResolvedQs.length === 0 && totalQFallback) {
+          for (let i = 1; i <= totalQFallback; i++) {
             allResolvedQs.push({
               id: `hw_q${i}`,
               questionNo: i,
@@ -194,9 +206,9 @@ export default function ModularQuizPage() {
       }
     }
     setLoading(false);
-  }, [testId, homeworks, curriculumData, allBankQuestions, bookTests]);
+  }, [testId, homeworks, curriculumData, allBankQuestions, bookTests, submissions, studentId]);
 
-  if (loading) {
+  if (loading || isSyncing) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
         Sınav Yükleniyor...
@@ -228,12 +240,16 @@ export default function ModularQuizPage() {
       const qNo = ans.questionNo || (idx + 1);
 
       let isCorrect = ans.isCorrect;
-      if (userAns !== null && userAns !== undefined && userAns !== '') {
-        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-      } else if (textVal) {
-        isCorrect = null; // Open ended pending
-      } else {
-        isCorrect = false; // Blank
+      
+      // Sadece isCorrect undefined ise (runner tarafından değerlendirilmemişse) burada değerlendir.
+      if (isCorrect === undefined) {
+        if (userAns !== null && userAns !== undefined && userAns !== '') {
+          isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+        } else if (textVal) {
+          isCorrect = null; // Open ended pending
+        } else {
+          isCorrect = false; // Blank
+        }
       }
 
       if (isCorrect === true) correctCount++;
@@ -241,10 +257,19 @@ export default function ModularQuizPage() {
       else if (isCorrect === null && textVal) pendingCount++;
       else blankCount++;
 
+      // Do\u011fru cevab\u0131 \u00f6nce runner'dan gelen ans.correctAnswer'dan al,
+      // sonra test.answerKey'den, sonra bireysel qObj'den al
+      const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
+      const answerKeyLetter = (answerKeyArr && Array.isArray(answerKeyArr)) ? answerKeyArr[qNo - 1] : null;
+      const finalCorrectAnswer = (ans.correctAnswer !== undefined && ans.correctAnswer !== null && ans.correctAnswer !== '')
+        ? ans.correctAnswer
+        : answerKeyLetter
+        ?? (qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined && !Array.isArray(questions) || questions.length > 1 ? String.fromCharCode(65 + qObj.correctAnswer) : null));
+
       return {
         ...ans,
         isCorrect,
-        correctAnswer: qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined ? String.fromCharCode(65 + qObj.correctAnswer) : null)
+        correctAnswer: finalCorrectAnswer
       };
     });
 
@@ -255,7 +280,7 @@ export default function ModularQuizPage() {
     const newSubId = `sub_${Date.now()}`;
 
     const submissionData = {
-      id: newSubId,
+      id: draftSubmission ? draftSubmission.id : newSubId,
       testId: test.id,
       testTitle: test.title || test.name || 'Sınav',
       studentId: studentId,
@@ -290,7 +315,11 @@ export default function ModularQuizPage() {
       submittedAt: new Date().toISOString()
     };
 
-    addSubmission(submissionData);
+    if (draftSubmission) {
+      updateSubmission(draftSubmission.id, submissionData);
+    } else {
+      addSubmission(submissionData);
+    }
 
     setSubmissionResult({
       submissionId: newSubId,
@@ -302,6 +331,57 @@ export default function ModularQuizPage() {
       totalQuestions: totalQ,
       score
     });
+  };
+
+  const handleAutoSave = (formattedAnswers) => {
+    const evaluatedAnswers = formattedAnswers.map((ans, idx) => {
+      const qObj = questions[idx] || {};
+      const userAns = ans.userAnswer;
+      const textVal = ans.userAnswerText;
+      const qNo = ans.questionNo || (idx + 1);
+
+      let isCorrect = ans.isCorrect;
+      if (isCorrect === undefined) {
+        if (userAns !== null && userAns !== undefined && userAns !== '') {
+          isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+        } else if (textVal) {
+          isCorrect = null;
+        } else {
+          isCorrect = false;
+        }
+      }
+
+      return {
+        ...ans,
+        isCorrect,
+        correctAnswer: ans.correctAnswerLetter || ans.correctAnswer || qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined ? String.fromCharCode(65 + qObj.correctAnswer) : null)
+      };
+    });
+
+    const totalQ = questions.length || test.questionCount || test.totalQuestions || formattedAnswers.length || 1;
+    const isAcikUclu = test.questionType === 'acik_uclu' || test.type === 'acik_uclu';
+
+    const draftData = {
+      testId: test.id,
+      testTitle: test.title || test.name || 'Sınav',
+      studentId: studentId,
+      studentName: searchParams.get('studentName') || 'Öğrenci',
+      subject: test.subject || test.publisher || 'Genel',
+      bookId: test.bookId || null,
+      isOpenEnded: isAcikUclu,
+      answers: evaluatedAnswers,
+      totalQuestions: totalQ,
+      status: 'in_progress',
+      updatedAt: new Date().toISOString()
+    };
+
+    if (draftSubmission) {
+      updateSubmission(draftSubmission.id, draftData);
+    } else {
+      const newDraftId = `draft_${Date.now()}`;
+      const fullDraftData = { id: newDraftId, ...draftData, submittedAt: new Date().toISOString() };
+      addSubmission(fullDraftData);
+    }
   };
 
   if (submissionResult) {
@@ -392,22 +472,46 @@ export default function ModularQuizPage() {
   }
 
   // Determine Source Format Mode
-  const isHtml = Boolean(
-    test.htmlPayload ||
-    test.sourceFormat === 'html' ||
-    test.formatType === 'html' ||
-    test.contentType === 'html' ||
-    test.type === 'html' ||
-    test.questionType === 'html'
+  const isWritten = Boolean(
+    test.questionType === 'yazili' ||
+    test.type === 'yazili' ||
+    test.contentType === 'yazili' ||
+    test.questionType === 'acik_uclu' ||
+    test.type === 'acik_uclu' ||
+    test.contentType === 'acik_uclu' ||
+    test.sourceFormat === 'yazili' ||
+    test.formatType === 'yazili' ||
+    test.isOpenEnded ||
+    (questions && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu'))
   );
 
-  const isPdf = Boolean(
-    test.pdfPayload ||
-    test.sourceFormat === 'pdf' ||
-    test.formatType === 'pdf' ||
-    test.contentType === 'pdf' ||
-    test.type === 'pdf' ||
-    test.questionType === 'pdf'
+
+  const isRealStandardQuiz = Boolean(
+    questions && Array.isArray(questions) && questions.length > 0 && questions.some(q => {
+      if (!q.questionText) return false;
+      const text = q.questionText.trim();
+      if (text.length <= 10) return false;
+      if (/^soru\s*\d+/i.test(text) || /^\d+\.\s*soru/i.test(text)) return false;
+      return true;
+    })
+  );
+
+  const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'html' || q.questionType === 'html' || q.contentType === 'html' || q.formatType === 'html' || q.sourceFormat === 'html' || (q.htmlPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+  ));
+  const isDefinitelyStandardForHtml = isRealStandardQuiz && !hasExplicitHtmlQuestions;
+  const isHtml = !isDefinitelyStandardForHtml && Boolean(
+    test.htmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
+    test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions
+  );
+
+  const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || (q.pdfPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+  ));
+  const isDefinitelyStandardForPdf = isRealStandardQuiz && !hasExplicitPdfQuestions;
+  const isPdf = !isDefinitelyStandardForPdf && Boolean(
+    test.pdfPayload || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
+    test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions
   );
 
   // ALWAYS force Physical Optik Grid Form for tracked book homeworks or tests!
@@ -420,12 +524,13 @@ export default function ModularQuizPage() {
     test.bookId
   );
 
-  const isImageTest = !isHtml && !isPdf && !isPhysical && (
-    test.sourceFormat === 'image' || 
-    test.formatType === 'image' || 
-    test.questionType === 'gorsel_klasik' || 
-    test.contentType === 'gorsel' || 
-    test.type === 'gorsel'
+  const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+  ));
+  const isDefinitelyStandardForImage = isRealStandardQuiz && !hasExplicitImageQuestions;
+  const isImageTest = !isHtml && !isPdf && !isPhysical && !isDefinitelyStandardForImage && Boolean(
+    test.sourceFormat === 'image' || test.formatType === 'image' ||
+    test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions
   );
 
   const isMultiSection = Boolean(
@@ -440,26 +545,26 @@ export default function ModularQuizPage() {
 
   if (isMultiSection) {
     if (isPhysical) {
-      return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+      return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
     }
-    return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   }
 
   if (isPhysical) {
-    return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   }
 
   if (isHtml) {
-    return <HtmlQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    return <HtmlQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   }
 
   if (isPdf) {
-    return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   }
 
   if (isImageTest) {
-    return <ImageQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+    return <ImageQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   }
 
-  return <StandardQuizRunner test={test} questions={questions} onSubmit={handleSubmit} />;
+  return <StandardQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
 }

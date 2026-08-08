@@ -152,15 +152,37 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
     submission?.status === 'graded'
   );
 
-  const stats = useMemo(() => {
-    if (submission?.correctCount !== undefined && submission?.wrongCount !== undefined && isEvaluated) {
-      return {
-        correctCount: submission.correctCount || 0,
-        wrongCount: submission.wrongCount || 0,
-        blankCount: submission.blankCount ?? Math.max(0, qCount - ((submission.correctCount || 0) + (submission.wrongCount || 0)))
-      };
+  const computeQuestionEvaluation = (qNo, qObj, ansObj) => {
+    const userAns = ansObj.userAnswer;
+
+    const userAnsLetter = (userAns !== null && userAns !== undefined && userAns !== '')
+      ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : String(userAns).toUpperCase())
+      : null;
+
+    const keySource = test.answerKey || qObj.answerKey || test.opticAnswers || qObj.opticAnswers;
+    const rawCorrectKey = Array.isArray(keySource)
+      ? keySource[qNo - 1]
+      : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : qObj.correctAnswer);
+
+    const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
+      ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
+      : null;
+
+    const isMatches = Boolean(userAnsLetter && displayCorrectKey && userAnsLetter === displayCorrectKey);
+
+    let isCorrect = false;
+    if (isMatches) {
+      isCorrect = true;
+    } else if (userAns !== null && userAns !== undefined && userAns !== '') {
+      isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
+    } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
+      isCorrect = ansObj.isCorrect;
     }
 
+    return { userAnsLetter, displayCorrectKey, isCorrect };
+  };
+
+  const stats = useMemo(() => {
     let cCount = 0;
     let wCount = 0;
     let bCount = 0;
@@ -172,12 +194,9 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
 
       const userAns = ansObj.userAnswer;
       const textAns = ansObj.userAnswerText;
-
-      const isCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
-        ? ansObj.isCorrect
-        : checkIsAnswerCorrect(userAns, qObj, test, qNo);
-
       const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+
+      const { isCorrect } = computeQuestionEvaluation(qNo, qObj, ansObj);
 
       if (isCorrect === true) {
         cCount++;
@@ -199,9 +218,19 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
       wrongCount: wCount,
       blankCount: bCount
     };
-  }, [qCount, questions, answers, test, submission, isEvaluated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qCount, questions, answers, test]);
 
   const isOpenEndedMode = useMemo(() => {
+    if (
+      test.questionType === 'coktan_secmeli' ||
+      test.type === 'coktan_secmeli' ||
+      test.contentType === 'coktan_secmeli' ||
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+    ) {
+      return false;
+    }
+
     if (
       test.questionType === 'acik_uclu' ||
       test.questionType === 'yazili' ||
@@ -331,22 +360,11 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
 
               const userAns = ansObj.userAnswer;
               const textAns = ansObj.userAnswerText;
-              
-              const isCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
-                ? ansObj.isCorrect
-                : checkIsAnswerCorrect(userAns, qObj, test, qNo);
+
+              const { userAnsLetter, displayCorrectKey, isCorrect } = computeQuestionEvaluation(qNo, qObj, ansObj);
 
               const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
               const isBlank = !hasAnswer && !textAns;
-
-              const keySource = test.answerKey || qObj.answerKey || test.opticAnswers || qObj.opticAnswers;
-              const rawCorrectKey = Array.isArray(keySource)
-                ? keySource[qNo - 1]
-                : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[qNo - 1]) : qObj.correctAnswer);
-
-              const displayCorrectKey = (rawCorrectKey !== undefined && rawCorrectKey !== null)
-                ? (typeof rawCorrectKey === 'number' ? String.fromCharCode(65 + rawCorrectKey) : String(rawCorrectKey).toUpperCase())
-                : null;
 
               const isItemOE = isOpenEndedMode || !!textAns || qObj.type === 'acik_uclu';
 
@@ -395,11 +413,11 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', justifyBetween: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>SENİN CEVABIN: </span>
                         <span style={{ fontWeight: 900, color: isCorrect === true ? '#34d399' : isCorrect === false ? '#f87171' : '#38bdf8' }}>
-                          {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
+                          {hasAnswer ? (userAnsLetter || 'Boş') : 'Boş'}
                         </span>
                       </div>
                       {displayCorrectKey && (

@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import QuestionGridNav from '../common/QuestionGridNav';
 import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import { idbGetPayload } from '../../../services/indexedDbService';
 
 export default function ImageQuizReview({ submission, test, questions = [] }) {
   const navigate = useNavigate();
@@ -22,21 +23,65 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
   const answers = submission.answers || [];
   const bundleQ = questions[0] || {};
 
+  const loadedRef = useRef(null);
+  const [idbPayload, setIdbPayload] = useState(null);
+
+  const extractPayload = (obj) => {
+    if (!obj) return null;
+    const candidates = [obj.contentPayload, obj.imageUrl, obj.url, obj.imagePayload, obj.payload];
+    return candidates.find(c => typeof c === 'string' && c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]') || null;
+  };
+
+  useEffect(() => {
+    const testId = test.id;
+    if (extractPayload(test)) return;
+    if (loadedRef.current === testId) return;
+
+    async function loadFromIdb() {
+      const ids = [testId, testId?.replace(/^q_/, ''), questions?.[0]?.id, test.questionsList?.[0]?.id].filter(Boolean);
+      let resolved = null;
+      for (const id of ids) {
+        const val = await idbGetPayload(id);
+        if (val && val !== '[STORED_IN_INDEXEDDB]') { resolved = val; break; }
+      }
+      if (!resolved && questions?.length > 0) {
+        for (const q of questions) {
+          const c = extractPayload(q);
+          if (c) { resolved = c; break; }
+          if (q.id) { const val = await idbGetPayload(q.id); if (val) { resolved = val; break; } }
+        }
+      }
+      if (resolved) { loadedRef.current = testId; setIdbPayload(resolved); }
+    }
+    loadFromIdb();
+  }, [test.id, test.contentPayload, questions]);
+
   const allImageUrls = useMemo(() => {
     const urls = [];
-    if (questions.length > 1) {
-      questions.forEach(q => {
-        const u = q.imageUrls || (q.imageUrl ? [q.imageUrl] : (q.contentPayload ? [q.contentPayload] : []));
-        if (Array.isArray(u)) urls.push(...u);
-        else if (u) urls.push(u);
-      });
-    } else if (bundleQ) {
-      const u = bundleQ.imageUrls || (bundleQ.imageUrl ? [bundleQ.imageUrl] : (bundleQ.contentPayload ? bundleQ.contentPayload.split(/\n\n|\n|\|/) : []));
-      if (Array.isArray(u)) urls.push(...u);
-      else if (u) urls.push(u);
+    const getObjUrls = (obj) => {
+      if (!obj) return [];
+      if (obj.imageUrls && Array.isArray(obj.imageUrls) && obj.imageUrls.length > 0) return obj.imageUrls;
+      if (obj.imageUrl && typeof obj.imageUrl === 'string' && obj.imageUrl !== '[STORED_IN_INDEXEDDB]') return [obj.imageUrl];
+      const payload = extractPayload(obj) || idbPayload;
+      if (payload && typeof payload === 'string') {
+        if (payload.startsWith('http') || payload.startsWith('data:image')) return [payload];
+        if (payload.includes('|') || payload.includes('\n')) return payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
+      }
+      if (obj.url && typeof obj.url === 'string') return [obj.url];
+      return [];
+    };
+
+    if (questions.length > 0) {
+      questions.forEach(q => urls.push(...getObjUrls(q)));
+    }
+    if (urls.length === 0) {
+      urls.push(...getObjUrls(test));
+    }
+    if (urls.length === 0 && bundleQ) {
+      urls.push(...getObjUrls(bundleQ));
     }
     return urls.filter(isValidImageUrl);
-  }, [questions, bundleQ]);
+  }, [questions, bundleQ, test, idbPayload]);
 
   const qCount = useMemo(() => {
     let count = Number(
@@ -64,18 +109,52 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
   }, [submission.totalQuestions, test, questions, bundleQ, allImageUrls.length, answers]);
 
   const activeQuestion = questions[currentIndex] || questions[0] || {};
-  const activeImageUrl = allImageUrls[currentIndex] || activeQuestion.imageUrl || activeQuestion.contentPayload;
-  const imageUrls = activeImageUrl ? [activeImageUrl].filter(isValidImageUrl) : [];
+  
+  const activeImageUrl = useMemo(() => {
+    const qDirect = activeQuestion.imageUrl || (activeQuestion.imageUrls && activeQuestion.imageUrls[0]) || activeQuestion.contentPayload;
+    if (qDirect && isValidImageUrl(qDirect) && qDirect !== '[STORED_IN_INDEXEDDB]') {
+      return qDirect;
+    }
+    if (allImageUrls[currentIndex]) {
+      return allImageUrls[currentIndex];
+    }
+    if (allImageUrls.length > 0) {
+      return allImageUrls[0];
+    }
+    const testDirect = test.imageUrl || test.contentPayload || (test.imageUrls && test.imageUrls[0]) || idbPayload;
+    if (testDirect && isValidImageUrl(testDirect) && testDirect !== '[STORED_IN_INDEXEDDB]') {
+      return testDirect;
+    }
+    return null;
+  }, [activeQuestion, allImageUrls, currentIndex, test, idbPayload]);
 
-  const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
+  const imageUrls = useMemo(() => {
+    // Paket halinde yüklenen görsel soru setlerinde allImageUrls öncelikli
+    if (allImageUrls.length > 0) {
+      const url = allImageUrls[currentIndex] || allImageUrls[0];
+      return url ? [url] : [];
+    }
+    // Bireysel soruların kendi imageUrls dizisi varsa sadece ilkini al
+    if (activeQuestion.imageUrls && Array.isArray(activeQuestion.imageUrls) && activeQuestion.imageUrls.length > 0) {
+      const firstValid = activeQuestion.imageUrls.find(isValidImageUrl);
+      return firstValid ? [firstValid] : [];
+    }
+    return activeImageUrl ? [activeImageUrl].filter(isValidImageUrl) : [];
+  }, [activeQuestion, allImageUrls, currentIndex, activeImageUrl]);
+
+  const activeAnsObj = answers.find(a => 
+    a.questionNo === currentIndex + 1 || 
+    String(a.questionId || '').endsWith(`_${currentIndex + 1}`) || 
+    a.questionId === `q_${currentIndex + 1}`
+  ) || {};
   const userAns = activeAnsObj.userAnswer;
   const textAns = activeAnsObj.userAnswerText;
-
-  const isCorrect = (activeAnsObj.isCorrect !== undefined && activeAnsObj.isCorrect !== null)
-    ? activeAnsObj.isCorrect
-    : checkIsAnswerCorrect(userAns, activeQuestion, test, currentIndex + 1);
-
   const hasAnswer = userAns !== null && userAns !== undefined && userAns !== '';
+
+  const isCorrect = hasAnswer
+    ? checkIsAnswerCorrect(userAns, activeQuestion, { ...test, answerKey: test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers }, currentIndex + 1)
+    : (activeAnsObj.isCorrect !== undefined && activeAnsObj.isCorrect !== null ? activeAnsObj.isCorrect : null);
+
 
   const keySource = test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers;
   const rawCorrectKey = Array.isArray(keySource)
@@ -94,7 +173,9 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
   );
 
   const stats = useMemo(() => {
-    if (submission?.correctCount !== undefined && submission?.wrongCount !== undefined && isEvaluated) {
+    // Sadece answers dizisi boşsa (yani cevaplar yüklenemediyse) submission'dan hazır değerleri al.
+    // Aksi takdirde güncel answers dizisi üzerinden her zaman yeniden hesapla.
+    if (answers.length === 0 && submission?.correctCount !== undefined && submission?.wrongCount !== undefined && isEvaluated) {
       return {
         correctCount: submission.correctCount || 0,
         wrongCount: submission.wrongCount || 0,
@@ -109,27 +190,33 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
     Array.from({ length: qCount }).forEach((_, idx) => {
       const qNo = idx + 1;
       const qObj = questions[idx] || questions[0] || {};
-      const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx] || {};
+      // Sadece questionNo veya questionId ile eşleştir, idx fallback kullanma
+      const ansObj = answers.find(a =>
+        a.questionNo === qNo ||
+        String(a.questionId || '').endsWith(`_${qNo}`) ||
+        a.questionId === `q_${qNo}`
+      ) || {};
 
       const uAns = ansObj.userAnswer;
       const tAns = ansObj.userAnswerText;
-
-      const evalCorrect = (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null)
-        ? ansObj.isCorrect
-        : checkIsAnswerCorrect(uAns, qObj, test, qNo);
-
       const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
+
+      // Çoktan seçmeli sorularda geçmiş hatalı DB kayıtlarını ezmek için her zaman lokal hesaplama yap.
+      let evalCorrect;
+      if (hasAns) {
+        // qObj bundle sınavlarında answersKey içermeyebilir, test'i güçlendir
+        evalCorrect = checkIsAnswerCorrect(uAns, qObj, { ...test, answerKey: test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers }, qNo);
+      } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
+        evalCorrect = ansObj.isCorrect;
+      } else {
+        evalCorrect = null;
+      }
 
       if (evalCorrect === true) {
         cCount++;
-      } else if (evalCorrect === false && (hasAns || ansObj.score === 0)) {
+      } else if (hasAns || tAns) {
+        // Cevap verilmiş ama yanlış ya da hesaplanamadı
         wCount++;
-      } else if (hasAns) {
-        cCount++;
-      } else if (tAns) {
-        if (evalCorrect === true) cCount++;
-        else if (evalCorrect === false) wCount++;
-        else bCount++;
       } else {
         bCount++;
       }
@@ -150,8 +237,24 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
     Array.from({ length: qCount }).forEach((_, idx) => {
       const qNo = idx + 1;
       const qObj = questions[idx] || questions[0] || {};
-      const foundAns = answers.find(a => (a.questionNo === qNo || String(a.questionId).includes(`_${qNo}`))) || answers[idx];
-      if (foundAns) map[qNo] = foundAns;
+      const foundAns = answers.find(a => 
+        a.questionNo === qNo || 
+        String(a.questionId || '').endsWith(`_${qNo}`) ||
+        a.questionId === `q_${qNo}`
+      );
+      if (foundAns) {
+        const uAns = foundAns.userAnswer;
+        const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
+        let evalCorrect;
+        if (hasAns) {
+          evalCorrect = checkIsAnswerCorrect(uAns, qObj, { ...test, answerKey: test.answerKey || bundleQ.answerKey || test.opticAnswers || bundleQ.opticAnswers }, qNo);
+        } else if (foundAns.isCorrect !== undefined && foundAns.isCorrect !== null) {
+          evalCorrect = foundAns.isCorrect;
+        } else {
+          evalCorrect = null;
+        }
+        map[qNo] = { ...foundAns, isCorrect: evalCorrect };
+      }
     });
     return map;
   }, [qCount, questions, answers]);

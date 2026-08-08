@@ -2,10 +2,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, FileSpreadsheet, Clock } from 'lucide-react';
 
-export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
+export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers }) {
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
+    if (draftAnswers && draftAnswers.length > 0) {
+      const initAns = {};
+      draftAnswers.forEach(a => {
+        if (a.userAnswer !== null && a.userAnswer !== undefined) {
+          initAns[a.questionNo] = a.userAnswer;
+          initAns[String(a.questionNo)] = a.userAnswer;
+        }
+      });
+      return initAns;
+    }
     try {
       const saved = localStorage.getItem(`${draftKey}_ans`);
       if (!saved) return {};
@@ -21,6 +31,16 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
   });
 
   const [openEndedText, setOpenEndedText] = useState(() => {
+    if (draftAnswers && draftAnswers.length > 0) {
+      const initTxt = {};
+      draftAnswers.forEach(a => {
+        if (a.userAnswerText) {
+          initTxt[a.questionNo] = a.userAnswerText;
+          initTxt[String(a.questionNo)] = a.userAnswerText;
+        }
+      });
+      return initTxt;
+    }
     try {
       const saved = localStorage.getItem(`${draftKey}_txt`);
       if (!saved) return {};
@@ -37,7 +57,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
 
-  const qCount = questions.length || test.questionCount || test.totalQuestions || 20;
+  const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
   const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded;
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
@@ -77,6 +97,33 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
     } catch {}
   }, [openEndedText, draftKey]);
 
+  const [saveTimeout, setSaveTimeout] = useState(null);
+
+  const triggerAutoSave = (currentAnswers, currentText) => {
+    if (!onAutoSave) return;
+    if (saveTimeout) clearTimeout(saveTimeout);
+
+    const timeoutId = setTimeout(() => {
+      const formattedAnswers = [];
+      for (let i = 0; i < qCount; i++) {
+        const qNo = i + 1;
+        const qObj = questions[i] || {};
+        const userAns = currentAnswers[qNo] !== undefined ? currentAnswers[qNo] : (currentAnswers[String(qNo)] !== undefined ? currentAnswers[String(qNo)] : currentAnswers[i + 1]);
+        const textAns = currentText[qNo] || currentText[String(qNo)] || null;
+
+        formattedAnswers.push({
+          questionId: qObj.id || `q${qNo}`,
+          questionNo: qNo,
+          userAnswer: userAns !== undefined ? userAns : null,
+          userAnswerText: textAns || null,
+          correctAnswerLetter: qObj.correctAnswerLetter || null
+        });
+      }
+      onAutoSave(formattedAnswers);
+    }, 2000);
+    setSaveTimeout(timeoutId);
+  };
+
   // Save timer instantly
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -107,19 +154,27 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit }) {
   };
 
   const handleOptionSelect = (qNo, optIdx) => {
-    setAnswers(prev => ({
-      ...prev,
-      [qNo]: optIdx,
-      [String(qNo)]: optIdx
-    }));
+    setAnswers(prev => {
+      const updated = {
+        ...prev,
+        [qNo]: optIdx,
+        [String(qNo)]: optIdx
+      };
+      triggerAutoSave(updated, openEndedText);
+      return updated;
+    });
   };
 
   const handleTextChange = (qNo, val) => {
-    setOpenEndedText(prev => ({
-      ...prev,
-      [qNo]: val,
-      [String(qNo)]: val
-    }));
+    setOpenEndedText(prev => {
+      const updated = {
+        ...prev,
+        [qNo]: val,
+        [String(qNo)]: val
+      };
+      triggerAutoSave(answers, updated);
+      return updated;
+    });
   };
 
   const handleSubmit = () => {

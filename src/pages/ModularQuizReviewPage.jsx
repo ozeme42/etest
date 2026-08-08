@@ -216,10 +216,10 @@ export default function ModularQuizReviewPage() {
         if (Array.isArray(questionIdList) && questionIdList.length > 1) {
           sections = questionIdList.map((item, idx) => {
             const itemId = typeof item === 'object' ? (item.id || item.questionId) : item;
-            const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId)) || (typeof item === 'object' ? item : null);
+            const bankQ = allBankQuestions?.find(q => String(q.id) === String(itemId)) || bookTests?.find(q => String(q.id) === String(itemId)) || (typeof item === 'object' ? item : null);
             const resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : [];
             const title = bankQ?.title || bankQ?.name || (typeof item === 'object' ? (item.title || item.name) : null) || `${idx + 1}. Bölüm`;
-            const qCount = bankQ?.questionCount || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
+            const qCount = bankQ?.questionCount || bankQ?.totalQuestions || bankQ?.questionsList?.length || resolvedQuestions.length || 1;
 
             return {
               id: itemId || `sec_${idx}`,
@@ -246,7 +246,7 @@ export default function ModularQuizReviewPage() {
           
           testQs = foundSubmission.answers.map((ans, idx) => {
             let currentSec = sectionsArr[sectionIndex] || {};
-            let expectedCount = currentSec.questionCount || currentSec.qCount || (currentSec.bankQ?.questionCount) || 1;
+            let expectedCount = currentSec.questionCount || currentSec.totalQuestions || currentSec.qCount || currentSec.bankQ?.questionCount || currentSec.bankQ?.totalQuestions || 1;
             
             let correctOpt = ans.correctAnswer;
             if (correctOpt === null || correctOpt === undefined) {
@@ -294,7 +294,7 @@ export default function ModularQuizReviewPage() {
             if (ans.sectionId) return ans; // Zaten sectionId varsa atla
             
             let currentSec = sectionsArr[sectionIndex] || {};
-            let expectedCount = currentSec.questionCount || currentSec.qCount || (currentSec.bankQ?.questionCount) || 1;
+            let expectedCount = currentSec.questionCount || currentSec.totalQuestions || currentSec.qCount || currentSec.bankQ?.questionCount || currentSec.bankQ?.totalQuestions || 1;
             
             const enriched = {
               ...ans,
@@ -337,22 +337,46 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  const isHtml = Boolean(
-    test.htmlPayload ||
-    test.sourceFormat === 'html' ||
-    test.formatType === 'html' ||
-    test.contentType === 'html' ||
-    test.type === 'html' ||
-    test.questionType === 'html'
+  const isWritten = Boolean(
+    test.questionType === 'yazili' ||
+    test.type === 'yazili' ||
+    test.contentType === 'yazili' ||
+    test.questionType === 'acik_uclu' ||
+    test.type === 'acik_uclu' ||
+    test.contentType === 'acik_uclu' ||
+    test.sourceFormat === 'yazili' ||
+    test.formatType === 'yazili' ||
+    test.isOpenEnded ||
+    (test.questions && Array.isArray(test.questions) && test.questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu')) ||
+    (questions && Array.isArray(questions) && questions.some(q => q.type === 'yazili' || q.type === 'acik_uclu' || q.contentType === 'yazili' || q.contentType === 'acik_uclu'))
   );
 
-  const isPdf = Boolean(
-    test.pdfPayload ||
-    test.sourceFormat === 'pdf' ||
-    test.formatType === 'pdf' ||
-    test.contentType === 'pdf' ||
-    test.type === 'pdf' ||
-    test.questionType === 'pdf'
+  const isRealStandardQuiz = Boolean(
+    questions && Array.isArray(questions) && questions.length > 0 && questions.some(q => {
+      if (!q.questionText) return false;
+      const text = q.questionText.trim();
+      if (text.length <= 10) return false;
+      if (/^soru\s*\d+/i.test(text) || /^\d+\.\s*soru/i.test(text)) return false;
+      return true;
+    })
+  );
+
+  const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'html' || q.questionType === 'html' || q.contentType === 'html' || q.formatType === 'html' || q.sourceFormat === 'html' || (q.htmlPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+  ));
+  const isDefinitelyStandardForHtml = isRealStandardQuiz && !hasExplicitHtmlQuestions;
+  const isHtml = !isDefinitelyStandardForHtml && Boolean(
+    test.htmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
+    test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions
+  );
+
+  const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || (q.pdfPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+  ));
+  const isDefinitelyStandardForPdf = isRealStandardQuiz && !hasExplicitPdfQuestions;
+  const isPdf = !isDefinitelyStandardForPdf && Boolean(
+    test.pdfPayload || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
+    test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions
   );
 
   const isPhysical = Boolean(
@@ -365,12 +389,13 @@ export default function ModularQuizReviewPage() {
     (submission && (submission.bookId || submission.sourceType === 'trackedBook'))
   );
 
-  const isImageTest = !isHtml && !isPdf && !isPhysical && (
-    test.sourceFormat === 'image' || 
-    test.formatType === 'image' || 
-    test.questionType === 'gorsel_klasik' || 
-    test.contentType === 'gorsel' || 
-    test.type === 'gorsel'
+  const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
+    q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+  ));
+  const isDefinitelyStandardForImage = isRealStandardQuiz && !hasExplicitImageQuestions;
+  const isImageTest = !isHtml && !isPdf && !isPhysical && !isDefinitelyStandardForImage && Boolean(
+    test.sourceFormat === 'image' || test.formatType === 'image' ||
+    test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions
   );
 
   const isMultiSection = Boolean(
@@ -391,13 +416,72 @@ export default function ModularQuizReviewPage() {
     }
   };
 
+  // ── Render the correct review component based on test type ──────────────────
+  // Multi-section composite homework → always MultiHomeworkRunner
+  if (isMultiSection) {
+    return (
+      <MultiHomeworkRunner
+        test={test}
+        questions={questions}
+        isReviewMode={true}
+        userAnswers={submission}
+        onSubmit={handleCloseReview}
+      />
+    );
+  }
+
+  // Single-section tests → dispatch to the appropriate review component
+  if (isPdf) {
+    return (
+      <PdfQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  if (isHtml) {
+    return (
+      <HtmlQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  if (isImageTest) {
+    return (
+      <ImageQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  if (isPhysical) {
+    return (
+      <PhysicalQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // Default: Standard (JSON) quiz review
   return (
-    <MultiHomeworkRunner
+    <StandardQuizReview
+      submission={submission}
       test={test}
       questions={questions}
-      isReviewMode={true}
-      userAnswers={submission}
-      onSubmit={handleCloseReview}
+      onClose={handleCloseReview}
     />
   );
 }
