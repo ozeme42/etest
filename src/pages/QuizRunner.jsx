@@ -114,7 +114,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   // Grace period for initial context data load
   const [initLoading, setInitLoading] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setInitLoading(false), 2000);
+    const t = setTimeout(() => setInitLoading(false), 5000);
     return () => clearTimeout(t);
   }, []);
 
