@@ -299,11 +299,31 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
     return h > 0 ? `${p(h)}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
   };
 
-  const rawImages = (activeQuestion.imageUrls && activeQuestion.imageUrls.length > 0)
-    ? activeQuestion.imageUrls
-    : (activeQuestion.imageUrl ? [activeQuestion.imageUrl] : (activeQuestion.contentPayload ? [activeQuestion.contentPayload] : []));
+  let questionImageUrls = [];
+  const isQObjActuallyTest = String(activeQuestion.id) === String(test.id);
 
-  const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
+  if (!isQObjActuallyTest && activeQuestion.imageUrls && activeQuestion.imageUrls.length > 0) {
+    questionImageUrls = activeQuestion.imageUrls;
+  } else if (!isQObjActuallyTest && activeQuestion.imageUrl) {
+    questionImageUrls = [activeQuestion.imageUrl];
+  } else if (!isQObjActuallyTest && activeQuestion.contentPayload && activeQuestion.contentPayload.startsWith('data:image')) {
+    questionImageUrls = [activeQuestion.contentPayload];
+  } else {
+    const testRawImages = test.imageUrls || test.imageUrl || (test.contentPayload?.startsWith('data:image') ? [test.contentPayload] : []);
+    const testImages = (Array.isArray(testRawImages) ? testRawImages : [testRawImages]).filter(isValidImageUrl);
+    
+    if (testImages.length > 0) {
+      if (testImages.length === 1) {
+        questionImageUrls = [testImages[0]];
+      } else {
+        if (testImages[currentIndex]) {
+          questionImageUrls = [testImages[currentIndex]];
+        }
+      }
+    }
+  }
+
+  const imageUrls = (Array.isArray(questionImageUrls) ? questionImageUrls : [questionImageUrls]).filter(isValidImageUrl);
 
   const handleOptionSelect = (optionIdx) => {
     setAnswers(prev => {
