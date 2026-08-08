@@ -277,7 +277,7 @@ export default function PhysicalExamManager() {
     const newExamDefinition = {
       title: examTitle.trim(),
       contentType: 'physicalExam',
-      subject: 'Genel Deneme Sınavları',
+      subject: 'Genel Testler',
       examType,
       penaltyRatio,
       subjects, // We need to store subjects info for the runner
@@ -299,7 +299,7 @@ export default function PhysicalExamManager() {
       dueDate: assignDueDate,
       timePerQuestion: 2,
       totalQuestions: assignModalExam.totalQuestions,
-      subject: assignModalExam.subject || 'Genel Deneme Sınavları',
+      subject: assignModalExam.subject || 'Genel Testler',
       targetType: assignTargetMode,
       targetIds: assignTargets,
       questionIds: [assignModalExam.id],

@@ -3462,7 +3462,7 @@ export default function StudentCoachingPage() {
             {generalTrialExams.length > 0 && (
               <div style={{ marginBottom: '2rem' }}>
                 <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>🏆</span> Genel Deneme Sınavları ({generalTrialExams.length})
+                  <span>🏆</span> Genel Testler ({generalTrialExams.length})
                 </div>
 
                 {/* Özet istatistik */}

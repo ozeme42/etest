@@ -22,7 +22,7 @@ const subjectThemes = {
   'Türkçe': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: BookCopy },
   'Sosyal Bilgiler': { bg: '#faf5ff', color: '#7e22ce', border: '#e9d5ff', icon: Globe },
   'İngilizce': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3', icon: MessageSquare },
-  'Genel Deneme Sınavları': { bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe', icon: Trophy },
+  'Genel Testler': { bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe', icon: Trophy },
   'Diğer': { bg: '#f8fafc', color: '#475569', border: '#e2e8f0', icon: BookOpen }
 };
 
@@ -171,7 +171,7 @@ export default function StudentResultsPage() {
         // Resolve Subject Key
         let subjectKey = 'Diğer';
         if (s.type === 'physicalExam' || matchedHw?.type === 'physicalExam') {
-          subjectKey = 'Genel Deneme Sınavları';
+          subjectKey = 'Genel Testler';
         } else if (matchedHw?.subject && subjectThemes[matchedHw.subject]) {
           subjectKey = matchedHw.subject;
         } else if (matchedTest?.subject && subjectThemes[matchedTest.subject]) {
@@ -183,7 +183,7 @@ export default function StudentResultsPage() {
           else if (tTitle.includes('türk') || tTitle.includes('turk')) subjectKey = 'Türkçe';
           else if (tTitle.includes('sosyal') || tTitle.includes('inkılap') || tTitle.includes('inkilap')) subjectKey = 'Sosyal Bilgiler';
           else if (tTitle.includes('ing') || tTitle.includes('english')) subjectKey = 'İngilizce';
-          else if (tTitle.includes('deneme')) subjectKey = 'Genel Deneme Sınavları';
+          else if (tTitle.includes('deneme')) subjectKey = 'Genel Testler';
         }
 
         return {

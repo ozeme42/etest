@@ -56,7 +56,7 @@ const subjectConfig = {
   'Türkçe':               { icon: BookCopy,      color: '#f97316', bg: '#fff7ed', border: '#fed7aa', badge: '#ea580c' },
   'Sosyal Bilgiler':      { icon: Globe,         color: '#a855f7', bg: '#faf5ff', border: '#e9d5ff', badge: '#9333ea' },
   'İngilizce':            { icon: MessageSquare, color: '#f43f5e', bg: '#fff1f2', border: '#fecdd3', badge: '#e11d48' },
-  'Genel Deneme Sınavları':{ icon: ClipboardList, color: '#6366f1', bg: '#eff6ff', border: '#c7d2fe', badge: '#4f46e5' },
+  'Genel Testler':{ icon: ClipboardList, color: '#6366f1', bg: '#eff6ff', border: '#c7d2fe', badge: '#4f46e5' },
   'Diğer':                { icon: FileText,      color: '#64748b', bg: '#f8fafc', border: '#e2e8f0', badge: '#475569' },
 };
 const getSubConf = (s) => subjectConfig[s] || subjectConfig['Diğer'];
@@ -69,7 +69,7 @@ const getThemeKey = (cat) => {
   if (c.includes('türkçe') || c.includes('turkce')) return 'Türkçe';
   if (c.includes('sosyal')) return 'Sosyal Bilgiler';
   if (c.includes('ingilizce')) return 'İngilizce';
-  if (c.includes('deneme') || c.includes('genel')) return 'Genel Deneme Sınavları';
+  if (c.includes('deneme') || c.includes('genel')) return 'Genel Testler';
   return 'Diğer';
 };
 

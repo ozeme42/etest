@@ -29,7 +29,7 @@ function getThemeKey(cat) {
   if (c.includes('türkçe') || c.includes('turkce')) return 'Türkçe';
   if (c.includes('sosyal')) return 'Sosyal Bilgiler';
   if (c.includes('ingilizce') || c.includes('ing')) return 'İngilizce';
-  if (c.includes('deneme') || c.includes('genel') || c.includes('tümü')) return 'Genel Deneme Sınavları';
+  if (c.includes('deneme') || c.includes('genel') || c.includes('tümü')) return 'Genel Testler';
   return 'Diğer';
 }
 
