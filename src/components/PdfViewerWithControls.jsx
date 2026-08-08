@@ -1,10 +1,11 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, ExternalLink, FileText, Loader2, Pencil, Eraser, Trash2, X } from 'lucide-react';
 import { getEmbeddablePdfUrl } from '../utils/pdfUtils';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import LazyPdfPage from './quiz/common/LazyPdfPage';
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -12,12 +13,30 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false }) {
+export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı", height = "100%", onUploadFile, allowUpload = false, isDrawingOpen = false, onToggleDrawing }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isExpanded, setIsExpanded] = useState(false);
   const [numPages, setNumPages] = useState(null);
   const wrapperRef = useRef(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
+  
+  // Drawing states
+  const [drawingTool, setDrawingTool] = useState('pencil');
+  const [drawingColor, setDrawingColor] = useState('#ef4444');
+  const [strokeWidth, setStrokeWidth] = useState(3);
+  const overlayRefs = useRef([]);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (wrapperRef.current) {
+        setContainerWidth(wrapperRef.current.clientWidth);
+      }
+    };
+    setTimeout(updateWidth, 100);
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   const embedUrl = useMemo(() => {
     return getEmbeddablePdfUrl(payload);
@@ -25,6 +44,11 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
+    overlayRefs.current = Array(numPages).fill(null);
+  };
+
+  const clearAllCanvases = () => {
+    overlayRefs.current.forEach(ref => ref?.clear());
   };
 
   const handleZoomIn = (e) => {
@@ -187,17 +211,142 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
           }
         >
           {Array.from(new Array(numPages), (el, index) => (
-            <div key={`page_${index + 1}`} style={{ marginBottom: '1rem', background: 'white', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', borderRadius: '4px', overflow: 'hidden' }}>
-              <Page
-                pageNumber={index + 1}
-                scale={zoomLevel / 100}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-              />
-            </div>
+            <LazyPdfPage
+              key={`page_${index + 1}`}
+              index={index}
+              containerWidth={containerWidth}
+              pdfScale={zoomLevel / 100}
+              isDrawingMode={isDrawingOpen}
+              drawingTool={drawingTool}
+              strokeWidth={strokeWidth}
+              stylusOnly={false}
+              overlayRef={el => overlayRefs.current[index] = el}
+            />
           ))}
         </Document>
       </div>
+
+      {/* Floating Drawing Toolbar */}
+      {isDrawingOpen && (
+        <div style={{
+          position: 'absolute',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '1.5rem',
+          padding: '0.6rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+          zIndex: 100
+        }}>
+          {/* Tools */}
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <button
+              onClick={() => setDrawingTool('pencil')}
+              style={{
+                padding: '0.6rem',
+                borderRadius: '50%',
+                background: drawingTool === 'pencil' ? '#6366f1' : 'transparent',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Pencil size={18} />
+            </button>
+            <button
+              onClick={() => setDrawingTool('eraser')}
+              style={{
+                padding: '0.6rem',
+                borderRadius: '50%',
+                background: drawingTool === 'eraser' ? '#f43f5e' : 'transparent',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Eraser size={18} />
+            </button>
+          </div>
+          
+          <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)' }} />
+          
+          {/* Colors */}
+          {drawingTool === 'pencil' && (
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#ffffff', '#000000'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setDrawingColor(c)}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: c,
+                    border: drawingColor === c ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
+                    cursor: 'pointer',
+                    transform: drawingColor === c ? 'scale(1.2)' : 'scale(1)',
+                    transition: 'transform 0.2s'
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {drawingTool === 'pencil' && <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)' }} />}
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <button
+              onClick={clearAllCanvases}
+              style={{
+                padding: '0.6rem',
+                borderRadius: '50%',
+                background: 'transparent',
+                color: '#f87171',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Tüm Sayfaları Temizle"
+            >
+              <Trash2 size={18} />
+            </button>
+            
+            <button
+              onClick={() => onToggleDrawing && onToggleDrawing()}
+              style={{
+                padding: '0.6rem',
+                borderRadius: '50%',
+                background: 'rgba(244,63,94,0.3)',
+                color: '#fecdd3',
+                border: '1px solid rgba(244,63,94,0.5)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: '0.5rem'
+              }}
+              title="Çizim Modundan Çık"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

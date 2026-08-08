@@ -445,9 +445,15 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
         icon={isOpenEndedMode ? "✍️" : "🎯"}
         documentContent={useMemo(() => (
           <div style={{ flex: 1, width: '100%', height: '100%', background: '#0f172a' }}>
-            <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
+            <PdfViewerWithControls 
+              payload={pdfPayload} 
+              title={test.title} 
+              height="100%" 
+              isDrawingOpen={isDrawingOpen}
+              onToggleDrawing={() => setIsDrawingOpen(false)}
+            />
           </div>
-        ), [pdfPayload, test.title])}
+        ), [pdfPayload, test.title, isDrawingOpen])}
         answerContent={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
@@ -522,8 +528,6 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
           </div>
         }
       />
-
-      <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
     </div>
   );
 }
