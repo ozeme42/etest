@@ -477,14 +477,7 @@ export default function StudentDashboard() {
                         {coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takdir Belgesi'}
                       </div>
                     </div>
-                    {(coachingProfile.gradeClass || coachingProfile.goals?.gradeClass) && (
-                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
-                        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎓 Sınıf / Dönem</div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>
-                          {coachingProfile.gradeClass || coachingProfile.goals?.gradeClass} {coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm ? `(${coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm}. Dönem)` : ''}
-                        </div>
-                      </div>
-                    )}
+
                     {(coachingProfile.targetScore || coachingProfile.goals?.targetScore) && (
                       <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📅 Devamsızlık Hedefi</div>
