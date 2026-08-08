@@ -273,8 +273,8 @@ export default function ModularQuizPage() {
       };
     });
 
-    const totalQ = questions.length || test.questionCount || test.totalQuestions || formattedAnswers.length || 1;
-    const score = Math.round((correctCount / totalQ) * 100);
+    const totalQ = correctCount + wrongCount + blankCount + pendingCount;
+    const score = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
     const isAcikUclu = test.questionType === 'acik_uclu' || test.type === 'acik_uclu' || pendingCount > 0;
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
     const newSubId = `sub_${Date.now()}`;
@@ -433,7 +433,7 @@ export default function ModularQuizPage() {
               Tebrikler! Test Tamamlandı
             </h1>
             <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#34d399', margin: '0.5rem 0' }}>
-              %{submissionResult.score} Puan
+              %{submissionResult.score} Başarı
             </div>
           </div>
 

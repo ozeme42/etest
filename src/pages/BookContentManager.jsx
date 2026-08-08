@@ -1068,7 +1068,7 @@ export default function BookContentManager() {
                                   <span>Çözülen: {item.solvedCount} / {item.totalTestsInHw} Test</span>
                                   {item.solvedSubmissions.length > 0 && (
                                     <span style={{ color: '#059669', fontWeight: 800 }}>
-                                      {item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length}% Puan
+                                      {item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length}% Başarı
                                     </span>
                                   )}
                                 </div>
