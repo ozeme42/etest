@@ -313,12 +313,22 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
     let testRawImages = test.imageUrls || test.imageUrl;
     
     if (!testRawImages || testRawImages.length === 0) {
-       if (test.contentPayload && (test.contentPayload.startsWith('data:image') || test.contentPayload.startsWith('http'))) {
-         testRawImages = [test.contentPayload];
-       } else if (idbPayload && (idbPayload.startsWith('data:image') || idbPayload.startsWith('http'))) {
-         testRawImages = [idbPayload];
-       } else {
-         testRawImages = [];
+       const processPayloadStr = (payload) => {
+         if (!payload || typeof payload !== 'string') return [];
+         if (payload.includes('|') || payload.includes('\n')) {
+           return payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
+         }
+         if (payload.startsWith('data:image') || payload.startsWith('http')) {
+           return [payload];
+         }
+         return [];
+       };
+       
+       if (test.contentPayload && test.contentPayload !== '[STORED_IN_INDEXEDDB]') {
+         testRawImages = processPayloadStr(test.contentPayload);
+       } 
+       if ((!testRawImages || testRawImages.length === 0) && idbPayload && idbPayload !== '[STORED_IN_INDEXEDDB]') {
+         testRawImages = processPayloadStr(idbPayload);
        }
     }
     
