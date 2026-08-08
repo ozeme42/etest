@@ -443,7 +443,7 @@ export default function StudentDashboard() {
         }
       }
       
-      return { id: t.id, type: resolvedType || 'test', title: t.title, subject: getCategoryName(t), dueDateStr: new Date(t.dueDate).toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: resolvedSourceType };
+      return { id: t.id, type: resolvedType || 'test', title: t.title, subject: getCategoryName(t), dueDateStr: dueDateObj.toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: resolvedSourceType };
     });
     return [...tTasks].sort((a, b) => a.dueDateObj - b.dueDateObj);
   }, [tests, assignments, allQuestions]);
