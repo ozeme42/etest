@@ -165,7 +165,7 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
 
   const typeTag = (
     <span style={{ fontSize: '0.6rem', fontWeight: 800, background: '#f3f4f6', color: '#4b5563', padding: '0.15rem 0.5rem', borderRadius: 6, border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 3 }}>
-      {task.type === 'acik_uclu' ? '📝 Açık Uçlu' : task.type === 'physicalExam' ? '📖 Optik Form' : '🔘 Çoktan Seçmeli'}
+      {task.type === 'acik_uclu' ? '📝 Açık Uçlu' : task.type === 'physicalExam' ? '📖 Optik Form' : task.type === 'coktan_secmeli' ? '🔘 Çoktan Seçmeli' : '📄 Sınav / Test'}
     </span>
   );
 
