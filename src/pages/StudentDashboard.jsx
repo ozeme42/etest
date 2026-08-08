@@ -150,18 +150,38 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
   const daysDiff = differenceInDays(dueDate, new Date());
 
   const urgencyPill = overdue ? (
-    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#ef4444', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-      <Flame size={10} /> {differenceInDays(new Date(), dueDate)}g Gecikti
+    <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#fee2e2', color: '#b91c1c', padding: '0.2rem 0.6rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid #fca5a5', boxShadow: '0 2px 8px rgba(185,28,28,0.15)' }}>
+      <Flame size={12} fill="#ef4444" color="#ef4444" /> {differenceInDays(new Date(), dueDate)}g Gecikti
     </span>
   ) : dueToday ? (
-    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#f59e0b', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-      ⚡ Bugün Son
+    <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#fef3c7', color: '#b45309', padding: '0.2rem 0.6rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid #fde68a', boxShadow: '0 2px 8px rgba(217,119,6,0.15)' }}>
+      <Zap size={12} fill="#f59e0b" color="#f59e0b" /> Bugün Son
     </span>
   ) : (
-    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#10b981', color: 'white', padding: '0.15rem 0.55rem', borderRadius: 99 }}>
-      {daysDiff + 1}g kaldı
+    <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#dcfce7', color: '#15803d', padding: '0.2rem 0.6rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid #86efac' }}>
+      <Clock size={12} color="#16a34a" /> {daysDiff + 1} Gün Kaldı
     </span>
   );
+
+  const typeTag = (
+    <span style={{ fontSize: '0.6rem', fontWeight: 800, background: '#f3f4f6', color: '#4b5563', padding: '0.15rem 0.5rem', borderRadius: 6, border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 3 }}>
+      {task.type === 'acik_uclu' ? '📝 Açık Uçlu' : task.type === 'physicalExam' ? '📖 Optik Form' : '🔘 Çoktan Seçmeli'}
+    </span>
+  );
+
+  const sourceTag = task.sourceType === 'trackedBook' ? (
+    <span style={{ fontSize: '0.6rem', fontWeight: 800, background: '#f5f3ff', color: '#6d28d9', padding: '0.15rem 0.5rem', borderRadius: 6, border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 3 }}>
+      📚 Kitap Testi
+    </span>
+  ) : task.sourceType === 'pdf' ? (
+    <span style={{ fontSize: '0.6rem', fontWeight: 800, background: '#fff1f2', color: '#be123c', padding: '0.15rem 0.5rem', borderRadius: 6, border: '1px solid #fecdd3', display: 'flex', alignItems: 'center', gap: 3 }}>
+      📕 PDF
+    </span>
+  ) : task.sourceType === 'html' ? (
+    <span style={{ fontSize: '0.6rem', fontWeight: 800, background: '#ecfdf5', color: '#047857', padding: '0.15rem 0.5rem', borderRadius: 6, border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: 3 }}>
+      🌐 Web Testi
+    </span>
+  ) : null;
 
   const handleStart = () => {
     let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
@@ -180,12 +200,16 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
           <Icon size={20} color={conf.color} />
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: conf.badge, textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.05em' }}>{category}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: conf.badge, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{category}</div>
+            {sourceTag}
+            {typeTag}
+          </div>
           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{task.title}</div>
-          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
              {urgencyPill}
-             <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}><Calendar size={10} /> {task.dueDateStr}</span>
-             <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700 }}>• {task.questionCount || 0} Soru</span>
+             <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 3 }}><Calendar size={12} color="#94a3b8" /> {task.dueDateStr}</span>
+             <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>• {task.questionCount || 0} Soru</span>
           </div>
         </div>
         <button
@@ -205,7 +229,9 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: conf.color, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: conf.badge, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{category}</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: conf.badge, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{category}</span>
+            {sourceTag}
+            {typeTag}
           </div>
           <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {task.title}
@@ -216,11 +242,11 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-          <Calendar size={12} /> {task.dueDateStr}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
         {urgencyPill}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>
+          <Calendar size={12} color="#94a3b8" /> {task.dueDateStr}
+        </div>
       </div>
 
       <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f1f5f9' }}>
