@@ -443,11 +443,11 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
         panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
         panelSubtitle="Sınav dokümanını okuyup soruları cevaplayınız."
         icon={isOpenEndedMode ? "✍️" : "🎯"}
-        documentContent={
+        documentContent={useMemo(() => (
           <div style={{ flex: 1, width: '100%', height: '100%', background: '#0f172a' }}>
             <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
           </div>
-        }
+        ), [pdfPayload, test.title])}
         answerContent={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
