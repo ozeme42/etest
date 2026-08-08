@@ -516,24 +516,32 @@ export default function StudentDashboard() {
                 const dGoalsStr = renderGoalList(coachingProfile.dailyGoals);
                 if (!mGoalsStr && !wGoalsStr && !dGoalsStr) return null;
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'white', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
                     {mGoalsStr && (
-                      <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                        <span style={{ fontWeight: 900, color: '#15803d' }}>📅 Aylık Strateji:</span> {mGoalsStr}
+                      <div style={{ background: '#f0fdf4', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #bbf7d0', display: 'flex', flexDirection: 'column', gap: '0.35rem', boxShadow: '0 2px 8px rgba(22,163,74,0.06)' }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Calendar size={13} strokeWidth={2.5} /> AYLIK STRATEJİ
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#14532d', fontWeight: 700, lineHeight: 1.4 }}>{mGoalsStr}</div>
                       </div>
                     )}
                     {wGoalsStr && (
-                      <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                        <span style={{ fontWeight: 900, color: '#15803d' }}>⚡ Haftalık Hedef:</span> {wGoalsStr}
+                      <div style={{ background: '#fffbeb', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #fde68a', display: 'flex', flexDirection: 'column', gap: '0.35rem', boxShadow: '0 2px 8px rgba(217,119,6,0.06)' }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Zap size={13} strokeWidth={2.5} /> HAFTALIK HEDEF
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#78350f', fontWeight: 700, lineHeight: 1.4 }}>{wGoalsStr}</div>
                       </div>
                     )}
                     {dGoalsStr && (
-                      <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 700 }}>
-                        <span style={{ fontWeight: 900, color: '#15803d' }}>🔥 Günlük Rutin:</span> {dGoalsStr}
+                      <div style={{ background: '#fef2f2', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '0.35rem', boxShadow: '0 2px 8px rgba(220,38,38,0.06)' }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Flame size={13} strokeWidth={2.5} /> GÜNLÜK RUTİN
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#7f1d1d', fontWeight: 700, lineHeight: 1.4 }}>{dGoalsStr}</div>
                       </div>
                     )}
                   </div>
-                );
               })()}
             </div>
           );
