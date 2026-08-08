@@ -52,7 +52,7 @@ export default function HomeworkManager() {
   const { questions: allQuestions } = useQuestionBank();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, deleteAllHomeworks } = useHomework();
   const { users } = useUser();
-  const { submissions, deleteSubmissionsByTestId } = useEvaluation();
+  const { submissions, deleteSubmissionsByTestId, deleteAllSubmissions } = useEvaluation();
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
   const homeworks = useMemo(() => currentUser?.role === 'admin' ? allHomeworks : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
@@ -308,7 +308,7 @@ export default function HomeworkManager() {
           </div>
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
             {currentUser?.role === 'admin' && (
-              <button onClick={() => { if (window.confirm('Tum odevleri silmek istediginize emin misiniz?')) { if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks(); }}} style={{ padding: '0.5rem 0.9rem', borderRadius: '0.65rem', background: '#fff1f2', border: '1.5px solid #fecaca', color: '#dc2626', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <button onClick={() => { if (window.confirm('Tum odevleri silmek istediginize emin misiniz?')) { if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks(); if (typeof deleteAllSubmissions === 'function') deleteAllSubmissions(); }}} style={{ padding: '0.5rem 0.9rem', borderRadius: '0.65rem', background: '#fff1f2', border: '1.5px solid #fecaca', color: '#dc2626', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <Trash2 size={14} /> Tumunu Sil
               </button>
             )}
