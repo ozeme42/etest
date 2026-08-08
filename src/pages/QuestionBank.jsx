@@ -911,7 +911,7 @@ export default function QuestionBank() {
       foundSubjectObj = curData.subjects.find(s => s.id === activeSubjectId);
     }
 
-    const foundSubject = foundSubjectObj ? foundSubjectObj.name : 'Diğer';
+    const foundSubject = foundSubjectObj ? foundSubjectObj.name : 'Genel Deneme Sınavları';
     const foundGradeId = foundSubjectObj ? foundSubjectObj.gradeId : (activeGradeId || 'g1');
 
     if (formData.contentType === 'json') {
