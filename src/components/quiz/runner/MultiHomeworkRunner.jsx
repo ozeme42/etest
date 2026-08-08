@@ -192,15 +192,16 @@ function RightOptikPanel({
   isReviewMode = false
 }) {
   const isLastSec = activeSecIdx === totalSections - 1;
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
     <div style={{ width: '100%', background: '#1e293b', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>{isReviewMode ? '🔍 İnceleme & Cevaplar' : '📋 Optik Kodlama & Yanıtlar'}</span>
-        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Toplam {qCount} Soru</span>
+      <div style={{ padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: isMobile ? '0.8rem' : '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{isReviewMode ? '🔍 İnceleme & Cevaplar' : '📋 Optik Kodlama'}</span>
+        <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', color: '#94a3b8' }}>Toplam {qCount} Soru</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.4rem' : '0.85rem', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.35rem' : '0.65rem' }}>
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
           const qObj = (resolvedQuestions && resolvedQuestions[idx]) || {};
@@ -215,8 +216,8 @@ function RightOptikPanel({
             : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
           return (
-            <div key={qNo} style={{ background: '#0f172a', padding: '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.78rem', color: '#f8fafc' }}>
+            <div key={qNo} style={{ background: '#0f172a', padding: isMobile ? '0.4rem 0.5rem' : '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.3rem' : '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: isMobile ? '0.72rem' : '0.78rem', color: '#f8fafc' }}>
                 <span>Soru {qNo} {isQOE ? '(✍️ Yazılı)' : ''}</span>
                 {isReviewMode ? (
                   isQOE ? (
@@ -248,7 +249,7 @@ function RightOptikPanel({
                   rows={3}
                   style={{
                     width: '100%',
-                    padding: '0.5rem 0.65rem',
+                    padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 0.65rem',
                     borderRadius: '0.5rem',
                     background: '#1e293b',
                     border: textVal ? '1.5px solid #10b981' : '1px solid #334155',
@@ -308,13 +309,13 @@ function RightOptikPanel({
                         disabled={isReviewMode}
                         style={{
                           flex: 1,
-                          height: '30px',
+                          height: isMobile ? '26px' : '30px',
                           borderRadius: '0.4rem',
                           border,
                           background: bg,
                           color,
                           fontWeight: 900,
-                          fontSize: '0.8rem',
+                          fontSize: isMobile ? '0.75rem' : '0.8rem',
                           cursor: isReviewMode ? 'default' : 'pointer',
                           transition: 'all 0.15s ease'
                         }}
@@ -331,19 +332,19 @@ function RightOptikPanel({
       </div>
 
       {/* FOOTER BUTTONS AT THE BOTTOM OF OPTIK PANEL */}
-      <div style={{ padding: '0.75rem', background: '#0f172a', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
+      <div style={{ padding: isMobile ? '0.5rem' : '0.75rem', background: '#0f172a', borderTop: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
         {totalSections > 1 && !isLastSec && (
           <button
             onClick={onNextSection}
             style={{
               width: '100%',
-              padding: '0.65rem 1rem',
+              padding: isMobile ? '0.5rem 0.75rem' : '0.65rem 1rem',
               borderRadius: '0.65rem',
               background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: '0.82rem',
+              fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -352,7 +353,7 @@ function RightOptikPanel({
               boxShadow: '0 3px 12px rgba(99,102,241,0.3)'
             }}
           >
-            Sonraki Bölüme Geç <ChevronRight size={16} />
+            Sonraki Bölüme Geç <ChevronRight size={isMobile ? 14 : 16} />
           </button>
         )}
 
@@ -361,13 +362,13 @@ function RightOptikPanel({
             onClick={onSubmit}
             style={{
               width: '100%',
-              padding: '0.65rem 1rem',
+              padding: isMobile ? '0.5rem 0.75rem' : '0.65rem 1rem',
               borderRadius: '0.65rem',
               background: isReviewMode ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none',
               color: 'white',
               fontWeight: 900,
-              fontSize: '0.82rem',
+              fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -376,7 +377,7 @@ function RightOptikPanel({
               boxShadow: '0 3px 12px rgba(16,185,129,0.3)'
             }}
           >
-            <CheckCircle2 size={16} /> {isReviewMode ? 'İncelemeyi Kapat' : 'Sınavı Bitir ve Gönder'}
+            <CheckCircle2 size={isMobile ? 14 : 16} /> {isReviewMode ? 'İncelemeyi Kapat' : 'Sınavı Bitir ve Gönder'}
           </button>
         )}
       </div>
