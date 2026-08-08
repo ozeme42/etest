@@ -98,3 +98,19 @@ export async function idbGetAllEntries() {
     return [];
   }
 }
+
+export async function idbGetAllKeys() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAllKeys();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  } catch (err) {
+    console.warn('[IndexedDB] idbGetAllKeys error:', err);
+    return [];
+  }
+}

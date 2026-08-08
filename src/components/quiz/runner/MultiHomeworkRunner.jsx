@@ -5,7 +5,7 @@ import { useCurriculum } from '../../../context/CurriculumContext';
 import { useTrackedBooks } from '../../../context/TrackedBookContext';
 import { resolveTestQuestions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
-import { idbGetPayload } from '../../../services/indexedDbService';
+import { idbGetPayload, idbGetAllKeys } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil } from 'lucide-react';
@@ -1265,6 +1265,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
       const uniqueIds = [...new Set(idsToTry)];
 
+      // 1st pass: try specific IDs
       for (const idToTry of uniqueIds) {
         try {
           const val = await idbGetPayload(idToTry);
@@ -1275,6 +1276,26 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           }
         } catch (e) {}
       }
+
+      // 2nd pass: scan ALL IDB keys and fuzzy-match against our IDs
+      // This catches cases where the stored key doesn't exactly match any known ID variant
+      try {
+        const allKeys = await idbGetAllKeys();
+        const normIds = uniqueIds.map(id => String(id).replace(/^(hw_|q_|q)/, '').toLowerCase());
+        for (const key of allKeys) {
+          const normKey = String(key).replace(/^(hw_|q_|q)/, '').toLowerCase();
+          const isMatch = normIds.some(nid => nid === normKey || normKey.includes(nid) || nid.includes(normKey));
+          if (isMatch) {
+            const val = await idbGetPayload(key);
+            if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+              setIdbPayload(val);
+              setIdbLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+
       if (isMounted) setIdbLoading(false);
     }
     load();
