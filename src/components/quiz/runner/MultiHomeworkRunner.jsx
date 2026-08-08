@@ -1230,7 +1230,17 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
     let isMounted = true;
     async function load() {
-      const baseIds = [targetObj.id, activeBankQ?.id, activeSec?.id, activeBankQ?.questionId, activeSec?.questionId].filter(Boolean);
+      const baseIds = [
+        test?.id,
+        targetObj.id,
+        activeBankQ?.id,
+        activeSec?.id,
+        activeBankQ?.questionId,
+        activeSec?.questionId,
+        ...(test?.questionIds || []),
+        ...(test?.questions || []).map(q => q.id),
+        ...(test?.questionsList || []).map(q => q.id)
+      ].filter(Boolean);
       const idsToTry = [];
       
       baseIds.forEach(id => {
