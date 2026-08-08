@@ -302,7 +302,7 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
             onClick={handleGoBack}
@@ -346,7 +346,7 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
             ✍️ Değerlendirme Bekliyor
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div style={{ background: '#064e3b', color: '#34d399', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #059669' }}>
               ✓ {correctCount} Doğru
             </div>
@@ -363,7 +363,7 @@ export default function ImageQuizReview({ submission, test, questions = [] }) {
         )}
       </header>
 
-      <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+      <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
         <QuestionGridNav
           totalQuestions={qCount}
           currentIndex={currentIndex}

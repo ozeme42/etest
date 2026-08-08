@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import QuizPanelLayout from '../runner/QuizPanelLayout';
 
 export default function HtmlQuizReview({ submission, test, questions = [] }) {
   const navigate = useNavigate();
@@ -342,16 +343,18 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
         )}
       </header>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{ flex: 1, height: '100%', borderRight: '1px solid #334155', background: '#ffffff', color: '#1e293b' }}>
-          <HtmlViewerWithControls payload={htmlPayload} title={test.title} height="100%" />
-        </div>
-
-        <div style={{ width: '400px', flexShrink: 0, height: '100%', background: '#1e293b', overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#38bdf8', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
-            📊 Cevap Analiz & İnceleme
-          </h3>
-
+      <QuizPanelLayout
+        panelTitle="Cevap Analiz & İnceleme"
+        panelSubtitle="Sınavınızdaki detaylı analiz"
+        icon="📊"
+        defaultPosition="right"
+        defaultSize={400}
+        documentContent={
+          <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#ffffff', color: '#1e293b' }}>
+            <HtmlViewerWithControls payload={htmlPayload} title={test.title} height="100%" />
+          </div>
+        }
+        answerContent={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
@@ -434,8 +437,8 @@ export default function HtmlQuizReview({ submission, test, questions = [] }) {
               );
             })}
           </div>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

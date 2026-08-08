@@ -4,6 +4,7 @@ import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, Clock, FileText } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import QuizPanelLayout from './QuizPanelLayout';
 
 export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSave, draftAnswers }) {
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
@@ -438,24 +439,16 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
         </div>
       </header>
 
-      {/* Main Content Split View */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left: PDF Document Viewer */}
-        <div style={{ flex: 1, height: '100%', borderRight: '1px solid #334155', background: '#0f172a' }}>
-          <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
-        </div>
-
-        {/* Right: Answer Panel */}
-        <div style={{ width: '380px', flexShrink: 0, height: '100%', background: '#1e293b', overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#a5b4fc' }}>
-              {isOpenEndedMode ? "✍️ Açık Uçlu / Yazılı Cevap Paneli" : "🎯 Optik Cevap Paneli"}
-            </h3>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
-              Sol taraftaki PDF dokümanını inceleyerek yanıtlarınızı giriniz.
-            </p>
+      <QuizPanelLayout
+        panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
+        panelSubtitle="Sınav dokümanını okuyup soruları cevaplayınız."
+        icon={isOpenEndedMode ? "✍️" : "🎯"}
+        documentContent={
+          <div style={{ flex: 1, width: '100%', height: '100%', background: '#0f172a' }}>
+            <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
           </div>
-
+        }
+        answerContent={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
@@ -464,7 +457,7 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
 
               return (
                 <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#e2e8f0', display: 'flex', justifyBetween: 'space-between' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Soru {qNo}</span>
                     {selectedOpt !== undefined || textVal ? (
                       <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Yanıtlandı</span>
@@ -477,22 +470,23 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                     <textarea
                       value={textVal}
                       onChange={(e) => handleTextChange(qNo, e.target.value)}
-                      placeholder={`Soru ${qNo} için cevabınızı/açıklamanızı yazınız...`}
+                      placeholder={`Soru ${qNo} için cevabınızı yazınız...`}
                       rows={3}
                       style={{
                         width: '100%',
-                        background: '#1e293b',
-                        border: '1px solid #475569',
+                        padding: '0.65rem',
                         borderRadius: '0.5rem',
-                        padding: '0.5rem',
-                        color: 'white',
-                        fontSize: '0.82rem',
-                        resize: 'vertical',
-                        outline: 'none'
+                        background: '#1e293b',
+                        border: '1px solid #334155',
+                        color: '#f8fafc',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        fontFamily: 'inherit',
+                        boxSizing: 'border-box'
                       }}
                     />
                   ) : (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
                       {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
                         const isSelected = selectedOpt === optIdx;
                         return (
@@ -503,13 +497,17 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
                               flex: 1,
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: isSelected ? 'none' : '1px solid #475569',
-                              background: isSelected ? '#4f46e5' : '#1e293b',
+                              border: isSelected ? 'none' : '1px solid #334155',
+                              background: isSelected ? 'linear-gradient(135deg, #10b981, #059669)' : '#1e293b',
                               color: isSelected ? 'white' : '#cbd5e1',
                               fontWeight: 900,
                               fontSize: '0.85rem',
                               cursor: 'pointer',
-                              transition: 'all 0.15s ease'
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease',
+                              boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
                             }}
                           >
                             {opt}
@@ -522,8 +520,8 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
               );
             })}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
     </div>

@@ -394,7 +394,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
       {/* Header */}
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', sticky: 'top', zIndex: 10 }}>
+      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ padding: '0.35rem 0.65rem', background: '#ec4899', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white' }}>
             🖼️ GÖRSEL SINAV
@@ -465,7 +465,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
       </header>
 
       {/* Main Body */}
-      <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+      <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
         {/* Top Question Stepper & Grid */}
         <QuestionGridNav
           totalQuestions={qCount}

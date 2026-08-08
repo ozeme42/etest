@@ -7,6 +7,7 @@ import PdfViewerWithControls from '../../PdfViewerWithControls';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet } from 'lucide-react';
+import QuizPanelLayout from './QuizPanelLayout';
 
 function getSectionIcon(contentType, type) {
   if (contentType === 'pdf') return '📕';
@@ -70,69 +71,62 @@ function checkIsOE(obj, questionsList = []) {
 // ─── INLINE OPTIK PANEL COMPONENT ─────────────────────────────────────────────
 function InlineOptikPanel({ qCount, answers, openEndedText, isOpenEndedMode, onOptionSelect, onTextChange }) {
   return (
-    <div style={{ width: '320px', background: '#1e293b', borderLeft: '1px solid #334155', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '0.85rem 1rem', background: '#0f172a', borderBottom: '1px solid #334155', fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>📋 Optik Form</span>
-        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Toplam {qCount} Soru</span>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {Array.from({ length: qCount }).map((_, idx) => {
+        const qNo = idx + 1;
+        const userAnsObj = answers[qNo];
+        const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+        const textVal = openEndedText[qNo] || '';
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {Array.from({ length: qCount }).map((_, idx) => {
-          const qNo = idx + 1;
-          const userAnsObj = answers[qNo];
-          const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
-          const textVal = openEndedText[qNo] || '';
-
-          return (
-            <div key={qNo} style={{ background: '#0f172a', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.8rem', color: '#f8fafc' }}>
-                <span>Soru {qNo}</span>
-                {userAns !== undefined || textVal ? (
-                  <span style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
-                ) : (
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>— Boş</span>
-                )}
-              </div>
-
-              {isOpenEndedMode ? (
-                <textarea
-                  value={textVal}
-                  onChange={(e) => onTextChange(qNo, e.target.value)}
-                  placeholder={`Soru ${qNo} açık uçlu yanıt...`}
-                  rows={2}
-                  style={{ width: '100%', padding: '0.4rem', borderRadius: '0.4rem', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '0.8rem', fontFamily: 'inherit' }}
-                />
+        return (
+          <div key={qNo} style={{ background: '#0f172a', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.8rem', color: '#f8fafc' }}>
+              <span>Soru {qNo}</span>
+              {userAns !== undefined || textVal ? (
+                <span style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
               ) : (
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
-                  {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                    const isSelected = userAns === optIdx;
-                    return (
-                      <button
-                        key={opt}
-                        onClick={() => onOptionSelect(qNo, optIdx)}
-                        style={{
-                          flex: 1,
-                          height: '32px',
-                          borderRadius: '0.4rem',
-                          border: isSelected ? 'none' : '1px solid #334155',
-                          background: isSelected ? '#059669' : '#1e293b',
-                          color: isSelected ? 'white' : '#cbd5e1',
-                          fontWeight: 900,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>— Boş</span>
               )}
             </div>
-          );
-        })}
-      </div>
+
+            {isOpenEndedMode ? (
+              <textarea
+                value={textVal}
+                onChange={(e) => onTextChange(qNo, e.target.value)}
+                placeholder={`Soru ${qNo} açık uçlu yanıt...`}
+                rows={2}
+                style={{ width: '100%', padding: '0.4rem', borderRadius: '0.4rem', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '0.8rem', fontFamily: 'inherit' }}
+              />
+            ) : (
+              <div style={{ display: 'flex', gap: '0.3rem' }}>
+                {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                  const isSelected = userAns === optIdx;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => onOptionSelect(qNo, optIdx)}
+                      style={{
+                        flex: 1,
+                        height: '32px',
+                        borderRadius: '0.4rem',
+                        border: isSelected ? 'none' : '1px solid #334155',
+                        background: isSelected ? '#059669' : '#1e293b',
+                        color: isSelected ? 'white' : '#cbd5e1',
+                        fontWeight: 900,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -283,19 +277,26 @@ const PdfSection = React.memo(function PdfSection({ bankQ, totalCount, sectionAn
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-      <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
-        <PdfViewerWithControls payload={pdfPayload} title={bankQ.title} height="100%" />
-      </div>
-      <InlineOptikPanel
-        qCount={qCount}
-        answers={answers}
-        openEndedText={openEndedText}
-        isOpenEndedMode={sectionOE}
-        onOptionSelect={handleSelect}
-        onTextChange={handleText}
-      />
-    </div>
+    <QuizPanelLayout
+      panelTitle={sectionOE ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
+      panelSubtitle="Dokümanı okuyup soruları cevaplayınız."
+      icon={sectionOE ? "✍️" : "🎯"}
+      documentContent={
+        <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
+          <PdfViewerWithControls payload={pdfPayload} title={bankQ.title} height="100%" />
+        </div>
+      }
+      answerContent={
+        <InlineOptikPanel
+          qCount={qCount}
+          answers={answers}
+          openEndedText={openEndedText}
+          isOpenEndedMode={sectionOE}
+          onOptionSelect={handleSelect}
+          onTextChange={handleText}
+        />
+      }
+    />
   );
 });
 
@@ -330,19 +331,26 @@ const HtmlSection = React.memo(function HtmlSection({ bankQ, totalCount, section
   const handleText = (qNo, val) => onAnswerChange({ ...sectionAnswers, openEndedText: { ...openEndedText, [qNo]: val } });
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-      <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
-        <HtmlViewerWithControls payload={htmlPayload} title={bankQ.title} height="100%" />
-      </div>
-      <InlineOptikPanel
-        qCount={qCount}
-        answers={answers}
-        openEndedText={openEndedText}
-        isOpenEndedMode={sectionOE}
-        onOptionSelect={handleSelect}
-        onTextChange={handleText}
-      />
-    </div>
+    <QuizPanelLayout
+      panelTitle={sectionOE ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
+      panelSubtitle="Dokümanı okuyup soruları cevaplayınız."
+      icon={sectionOE ? "✍️" : "🎯"}
+      documentContent={
+        <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflow: 'hidden' }}>
+          <HtmlViewerWithControls payload={htmlPayload} title={bankQ.title} height="100%" />
+        </div>
+      }
+      answerContent={
+        <InlineOptikPanel
+          qCount={qCount}
+          answers={answers}
+          openEndedText={openEndedText}
+          isOpenEndedMode={sectionOE}
+          onOptionSelect={handleSelect}
+          onTextChange={handleText}
+        />
+      }
+    />
   );
 });
 
@@ -428,129 +436,121 @@ const StandardSection = React.memo(function StandardSection({ bankQ, resolvedQue
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0 }}>
-      
-      {/* ── Left / Center Area: All Questions Stacked Vertically on 1 Page ── */}
-      <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        
-        {Array.from({ length: qCount }).map((_, idx) => {
-          const qNo = idx + 1;
-          const qObj = resolvedQuestions[idx] || bankQ || {};
-          const isQOpenEnded = sectionOE || checkIsOE(qObj);
+    <QuizPanelLayout
+      panelTitle={sectionOE ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Paneli"}
+      panelSubtitle="Soruları okuyup cevaplarınızı işaretleyiniz."
+      icon={sectionOE ? "✍️" : "🎯"}
+      documentContent={
+        <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {Array.from({ length: qCount }).map((_, idx) => {
+            const qNo = idx + 1;
+            const qObj = resolvedQuestions[idx] || bankQ || {};
+            const isQOpenEnded = sectionOE || checkIsOE(qObj);
 
-          const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || bankQ.questionText || bankQ.text || bankQ.title || bankQ.name || `Soru ${qNo}`;
+            const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || bankQ.questionText || bankQ.text || bankQ.title || bankQ.name || `Soru ${qNo}`;
 
-          const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
-            ? qObj.imageUrls
-            : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
-          const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
+            const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
+              ? qObj.imageUrls
+              : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
+            const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-          const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
-          const userAnsObj = answers[qNo];
-          const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
-          const textVal = openEndedText[qNo] || '';
+            const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
+            const userAnsObj = answers[qNo];
+            const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
+            const textVal = openEndedText[qNo] || '';
 
-          return (
-            <div key={qNo} id={`question_card_${qNo}`} style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
-              {/* Question Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ padding: '0.25rem 0.65rem', background: '#eef2ff', color: '#4f46e5', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
-                    SORU {qNo}
-                  </span>
+            return (
+              <div key={qNo} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+                    Soru {qNo}
+                  </h4>
                   {isQOpenEnded && (
-                    <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
-                      ✍️ Açık Uçlu / Yazılı
-                    </span>
+                    <span style={{ padding: '0.2rem 0.5rem', background: '#e0e7ff', color: '#4f46e5', borderRadius: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>✍️ Yazılı</span>
                   )}
                 </div>
 
-                {selectedOpt !== undefined || textVal ? (
-                  <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    ✓ Cevaplandı
-                  </span>
+                {imageUrls.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+                    {imageUrls.map((url, i) => (
+                      <StandardImageFrame key={i} src={url} alt={`Soru ${qNo} Görsel ${i+1}`} onOpenFullscreen={() => {}} />
+                    ))}
+                  </div>
+                )}
+
+                {qText && qText !== `Soru ${qNo}` && (
+                  <div style={{ fontSize: '1rem', color: '#334155', lineHeight: 1.6, fontWeight: 600, marginBottom: '1.25rem' }}>
+                    {qText}
+                  </div>
+                )}
+
+                {!isQOpenEnded ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                    {options.map((optText, optIdx) => {
+                      const isSelected = selectedOpt === optIdx;
+                      const optLetter = String.fromCharCode(65 + optIdx);
+                      const showText = typeof optText === 'string' && optText.length > 1 && optText !== optLetter;
+
+                      return (
+                        <button
+                          key={optIdx}
+                          onClick={() => handleSelect(qNo, optIdx, qObj)}
+                          style={{
+                            padding: '0.85rem 1.25rem',
+                            borderRadius: '0.85rem',
+                            border: isSelected ? '2px solid #6366f1' : '1px solid #cbd5e1',
+                            background: isSelected ? 'rgba(99,102,241,0.05)' : '#ffffff',
+                            textAlign: 'left',
+                            display: 'flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                            {optLetter})
+                          </span>
+                          <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
+                            {showText ? optText : `Seçenek ${optLetter}`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 ) : (
-                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
-                    — Yanıtlanmadı
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
+                      ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
+                    </label>
+                    <textarea
+                      value={textVal}
+                      onChange={e => handleText(qNo, e.target.value)}
+                      placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
+                      rows={4}
+                      style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                    />
+                  </div>
                 )}
               </div>
-
-              {/* Question Images */}
-              {imageUrls.map((url, imgIdx) => (
-                <StandardImageFrame key={imgIdx} src={url} alt={`Soru ${qNo} Görsel`} />
-              ))}
-
-              {/* Question Text */}
-              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.65 }}>
-                {qText}
-              </div>
-
-              {/* Multiple Choice Options or Written Input */}
-              {!isQOpenEnded ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.5rem' }}>
-                  {options.map((opt, optIdx) => {
-                    const isSelected = selectedOpt === optIdx;
-                    const optLetter = String.fromCharCode(65 + optIdx);
-                    let optText = '';
-                    if (typeof opt === 'string') {
-                      optText = opt;
-                    } else if (opt && typeof opt === 'object') {
-                      optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
-                    }
-                    const showText = Boolean(optText && optText.trim() !== optLetter);
-
-                    return (
-                      <button key={optIdx} onClick={() => handleSelect(qNo, optIdx, qObj)} style={{
-                        padding: '0.9rem 1.25rem', borderRadius: '0.75rem', textAlign: 'left', cursor: 'pointer', fontWeight: isSelected ? 900 : 700,
-                        border: isSelected ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
-                        background: isSelected ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'white',
-                        color: isSelected ? '#3730a3' : '#1e293b', transition: 'all 0.15s ease',
-                        display: 'flex', alignItems: 'center'
-                      }}>
-                        <span style={{ fontWeight: 900, color: isSelected ? '#6366f1' : '#475569', fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
-                          {optLetter})
-                        </span>
-                        <span style={{ fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#1e293b', fontWeight: 700 }}>
-                          {showText ? optText : `Seçenek ${optLetter}`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
-                    ✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:
-                  </label>
-                  <textarea
-                    value={textVal}
-                    onChange={e => handleText(qNo, e.target.value)}
-                    placeholder={`Soru ${qNo} için yanıtınızı buraya yazınız...`}
-                    rows={4}
-                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Right Area: Live Optik Panel for Quick Coding ── */}
-      <InlineOptikPanel
-        qCount={qCount}
-        answers={answers}
-        openEndedText={openEndedText}
-        isOpenEndedMode={sectionOE}
-        onOptionSelect={(qNo, optIdx) => {
-          const qObj = resolvedQuestions[qNo - 1] || bankQ || {};
-          handleSelect(qNo, optIdx, qObj);
-        }}
-        onTextChange={(qNo, val) => handleText(qNo, val)}
-      />
-    </div>
+            );
+          })}
+        </div>
+      }
+      answerContent={
+        <InlineOptikPanel
+          qCount={qCount}
+          answers={answers}
+          openEndedText={openEndedText}
+          isOpenEndedMode={sectionOE}
+          onOptionSelect={(qNo, optIdx) => {
+            const qObj = resolvedQuestions[qNo - 1] || bankQ || {};
+            handleSelect(qNo, optIdx, qObj);
+          }}
+          onTextChange={(qNo, val) => handleText(qNo, val)}
+        />
+      }
+    />
   );
 });
 
