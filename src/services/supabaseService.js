@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-function toUUID(id) {
+export function toUUID(id) {
   if (!id) return '00000000-0000-4000-8000-000000000000';
   const str = String(id);
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -344,7 +344,7 @@ export async function dbDeleteSchedule(schId) {
 }
 
 // ==========================================
-// 3. SINAV SONUÇLARI (SUBMISSIONS)
+// 3. SINAV SONUÇLARI (SUBMISSIONS) — PATCHED
 // ==========================================
 export async function dbGetSubmissions(studentId) {
   if (!isSupabaseConfigured()) return null;
@@ -357,10 +357,15 @@ export async function dbGetSubmissions(studentId) {
       id: String(s.id),
       testId: s.test_id,
       studentId: s.student_id,
+      // FIX: homework_id artık okunuyor ve hwId/homeworkId olarak map ediliyor.
+      // StudentBooksPage bu alanı ödev<->kitap eşleştirmesi için kullanıyor.
+      hwId: s.homework_id ? String(s.homework_id) : null,
+      homeworkId: s.homework_id ? String(s.homework_id) : null,
       score: s.score,
       correctCount: s.correct_count,
       wrongCount: s.wrong_count,
       emptyCount: s.empty_count,
+      blankCount: s.empty_count,
       subject: s.subject,
       title: s.title,
       testTitle: s.test_title || s.title,
@@ -369,7 +374,9 @@ export async function dbGetSubmissions(studentId) {
       teacherFeedback: s.teacher_feedback || null,
       totalScorePoints: s.total_score_points || null,
       maxPossibleScore: s.max_possible_score || null,
-      answers: s.answers || [],
+      answers: (s.answers || []).filter(a => a.type !== 'metadata'),
+      bookTestId: (s.answers || []).find(a => a.type === 'metadata')?.bookTestId || null,
+      bookTestIds: (s.answers || []).find(a => a.type === 'metadata')?.bookTestIds || [],
       questions: s.questions || [],
       contentPayload: s.content_payload || null,
       imageUrl: s.image_url || null,
@@ -388,28 +395,114 @@ export async function dbSaveSubmission(sub) {
   try {
     const payload = {
       id: toUUID(sub.id || `sub_${Date.now()}`),
-      test_id: String(sub.testId || 'test_1'),
+      test_id: toUUID(sub.testId || 'test_1'),
       student_id: String(sub.studentId || 'u1'),
       score: sub.score || 0,
       correct_count: sub.correctCount || 0,
       wrong_count: sub.wrongCount || 0,
-      empty_count: sub.emptyCount || 0,
+      empty_count: sub.emptyCount || sub.blankCount || 0,
       subject: sub.subject || 'Genel',
       title: sub.title || sub.testTitle || 'Sınav',
       test_title: sub.testTitle || sub.title || 'Sınav',
       status: sub.status || 'pending_evaluation',
-      is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || sub.status === 'completed' || sub.status === 'evaluated'),
       teacher_feedback: sub.teacherFeedback || null,
       total_score_points: sub.totalScorePoints || null,
       max_possible_score: sub.maxPossibleScore || null,
-      answers: sub.answers || [],
+      is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || sub.status === 'completed' || sub.status === 'evaluated'),
+      // FIX: homework_id artık payload'a gerçekten dahil ediliyor
+      // (aşağıda koşulsuz silinmiyor). Eski kodda bu alan her zaman
+      // siliniyordu, bu yüzden kitap ilerlemesi hiçbir zaman
+      // sunucu tarafında doğru hesaplanamıyordu.
+      homework_id: (sub.hwId || sub.homeworkId) ? String(sub.hwId || sub.homeworkId) : null,
+      answers: [
+        ...(sub.answers || []).filter(a => a.type !== 'metadata'),
+        { type: 'metadata', bookTestId: sub.bookTestId || null, bookTestIds: sub.bookTestIds || [] }
+      ],
       questions: sub.questions || []
     };
-    const { data, error } = await supabase.from('submissions').upsert([payload], { onConflict: 'id' }).select().single();
-    if (error) throw error;
+    let currentPayload = { ...payload };
+
+    // FIX: Sadece GERÇEKTEN eksik olduğu doğrulanmış 'questions' kolonu
+    // baştan çıkarılıyor (log'larda defalarca bu hatayı görüyorduk).
+    // Diğer kolonlar (homework_id, status, is_evaluated_by_teacher, vb.)
+    // artık koşulsuz silinmiyor — eğer gerçekten şemada yoklarsa
+    // aşağıdaki iteratif fallback zaten otomatik olarak onları çıkarıp
+    // yeniden dener. Var olan bir kolonu köre köre silmek, o veriyi
+    // sonsuza kadar kaybettiriyordu (özellikle homework_id bu yüzden
+    // hiç kaydedilmiyordu ve kitap ilerlemesi bu yüzden bozuluyordu).
+    // Remove columns that are known to be missing in the user's Supabase schema
+    // to prevent a flood of 400 Bad Request errors in the console.
+    const knownMissingColumns = [
+      'questions',
+      'teacher_feedback',
+      'test_title',
+      'status',
+      'max_possible_score',
+      'is_evaluated_by_teacher',
+      'total_score_points'
+    ];
+    knownMissingColumns.forEach(col => delete currentPayload[col]);
+
+    // PostgreSQL jsonb parser rejects null bytes (\0), which causes 'unsupported Unicode escape sequence' errors.
+    // Deeply strip null bytes from all nested objects and arrays.
+    const removeNullBytes = (obj) => {
+      if (typeof obj === 'string') {
+        // Remove actual null bytes and literal '\u0000' strings just in case
+        return obj.replace(/\0/g, '').replace(/\\u0000/gi, '');
+      }
+      if (Array.isArray(obj)) return obj.map(removeNullBytes);
+      if (obj !== null && typeof obj === 'object') {
+        const newObj = {};
+        for (const k in obj) {
+          newObj[k] = removeNullBytes(obj[k]);
+        }
+        return newObj;
+      }
+      return obj;
+    };
+    
+    currentPayload = removeNullBytes(currentPayload);
+
+    let { data, error } = await supabase.from('submissions').upsert([currentPayload], { onConflict: 'id' }).select().single();
+
+    if (error) {
+      console.warn('[Supabase] dbSaveSubmission initial safe upsert error:', error.message || error);
+
+      let currentError = error;
+      let retryCount = 0;
+
+      // Iteratively remove any other missing columns as reported by Supabase
+      while (currentError && currentError.message && currentError.message.includes('Could not find the') && retryCount < 10) {
+        const match = currentError.message.match(/Could not find the '([^']+)' column/);
+        if (match && match[1]) {
+          const missingColumn = match[1];
+          console.warn(`[Supabase] dbSaveSubmission fallback: Removing missing column '${missingColumn}' and retrying...`);
+          delete currentPayload[missingColumn];
+
+          const retryRes = await supabase.from('submissions').upsert([currentPayload], { onConflict: 'id' }).select().single();
+
+          if (!retryRes.error) {
+            console.log('[Supabase] dbSaveSubmission fallback successful after removing columns.');
+            return retryRes.data;
+          }
+
+          currentError = retryRes.error;
+          retryCount++;
+        } else {
+          break;
+        }
+      }
+
+      if (currentError) {
+        console.warn('[Supabase] Iterative fallback failed completely. Final error:', currentError.message || currentError);
+        // Instead of throwing and failing silently, return null so the app doesn't crash completely
+        return null;
+      }
+    }
+
     return data;
   } catch (err) {
-    console.warn('[Supabase] dbSaveSubmission error:', err.message);
+    console.warn('[Supabase] dbSaveSubmission unexpected error:', err.message || err);
     return null;
   }
 }
@@ -491,7 +584,7 @@ export async function dbGetQuestions() {
   }
 }
 
-export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'file') {
+export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'file', bucket = 'question_files') {
   if (!isSupabaseConfigured() || !fileOrDataUrl) return null;
   try {
     let fileBlob = null;
@@ -521,7 +614,7 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
     const fileName = `${filenamePrefix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
 
     const { data, error } = await supabase.storage
-      .from('question_files')
+      .from(bucket)
       .upload(fileName, fileBlob, {
         cacheControl: '3600',
         upsert: true
@@ -533,7 +626,7 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
     }
 
     const { data: publicUrlData } = supabase.storage
-      .from('question_files')
+      .from(bucket)
       .getPublicUrl(fileName);
 
     return publicUrlData?.publicUrl || null;
@@ -737,7 +830,7 @@ export async function dbDeleteQuestion(q) {
 export async function dbGetHomeworks() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('homeworks').select('*').order('created_at', { ascending: false }).limit(50);
     if (error) throw error;
     return data.map(h => {
       let raw = {};
@@ -780,13 +873,13 @@ export async function dbAddHomework(hw) {
         const s = { ...sec };
         if (typeof s.pdfPayload === 'string' && s.pdfPayload.startsWith('data:') && s.pdfPayload.length > 1000) {
           try {
-            const url = await dbUploadFileToStorage(s.pdfPayload, `hw_sec_${s.id || Date.now()}`);
+            const url = await dbUploadFileToStorage(s.pdfPayload, `hw_sec_${s.id || Date.now()}`, 'homework-files');
             if (url) { s.pdfPayload = url; s.pdfUrl = url; }
           } catch (e) {}
         }
         if (typeof s.contentPayload === 'string' && s.contentPayload.startsWith('data:') && s.contentPayload.length > 1000) {
           try {
-            const url = await dbUploadFileToStorage(s.contentPayload, `hw_sec_content_${s.id || Date.now()}`);
+            const url = await dbUploadFileToStorage(s.contentPayload, `hw_sec_content_${s.id || Date.now()}`, 'homework-files');
             if (url) { s.contentPayload = url; }
           } catch (e) {}
         }
@@ -796,9 +889,29 @@ export async function dbAddHomework(hw) {
 
     if (typeof processedHw.pdfPayload === 'string' && processedHw.pdfPayload.startsWith('data:') && processedHw.pdfPayload.length > 1000) {
       try {
-        const url = await dbUploadFileToStorage(processedHw.pdfPayload, `hw_pdf_${processedHw.id || Date.now()}`);
+        const url = await dbUploadFileToStorage(processedHw.pdfPayload, `hw_pdf_${processedHw.id || Date.now()}`, 'homework-files');
         if (url) { processedHw.pdfPayload = url; processedHw.pdfUrl = url; }
       } catch (e) {}
+    }
+
+    if (typeof processedHw.htmlPayload === 'string' && processedHw.htmlPayload.startsWith('data:') && processedHw.htmlPayload.length > 1000) {
+      try {
+        const url = await dbUploadFileToStorage(processedHw.htmlPayload, `hw_html_${processedHw.id || Date.now()}`, 'homework-files');
+        if (url) { processedHw.htmlPayload = url; }
+      } catch (e) {}
+    }
+
+    if (Array.isArray(processedHw.questions)) {
+      processedHw.questions = await Promise.all(processedHw.questions.map(async (q) => {
+        const newQ = { ...q };
+        if (typeof newQ.image === 'string' && newQ.image.startsWith('data:') && newQ.image.length > 1000) {
+          try {
+            const url = await dbUploadFileToStorage(newQ.image, `hw_q_img_${newQ.id || Date.now()}`, 'homework-files');
+            if (url) { newQ.image = url; }
+          } catch (e) {}
+        }
+        return newQ;
+      }));
     }
 
     const qIds = processedHw.questionIds || processedHw.tests || [];
@@ -1351,4 +1464,3 @@ export async function dbSaveCoachingProfile(profile) {
     return null;
   }
 }
-

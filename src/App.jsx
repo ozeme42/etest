@@ -9,6 +9,8 @@ import Landing from './pages/Landing';
 import AdminDashboard from './pages/AdminDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentBooksPage from './pages/StudentBooksPage';
+import StudentBookDetailsPage from './pages/StudentBookDetailsPage';
 import HomeworkManager from './pages/HomeworkManager';
 import EvaluationManager from './pages/EvaluationManager';
 import QuestionBank from './pages/QuestionBank';
@@ -97,6 +99,9 @@ function Sidebar() {
             <>
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
                 <GraduationCap size={20} /> Öğrenci Paneli
+              </NavLink>
+              <NavLink to="/student/books" className="nav-link" onClick={closeSidebar}>
+                <BookOpen size={20} /> Kitaplarım
               </NavLink>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
                 <ListTree size={20} /> Sonuçlarım
@@ -215,6 +220,8 @@ function AppContent() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/student" element={<StudentDashboard />} />
+          <Route path="/student/books" element={<StudentBooksPage />} />
+          <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
           <Route path="/homeworks" element={<HomeworkManager />} />
           <Route path="/evaluations" element={<EvaluationManager />} />
           <Route path="/questions" element={<QuestionBank />} />

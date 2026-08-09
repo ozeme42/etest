@@ -39,7 +39,10 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     } else if (typeof keySource === 'object') {
       targetKeyVal = keySource[qNo] ?? keySource[String(qNo)] ?? keySource[qNo - 1] ?? keySource[String(qNo - 1)];
     } else if (typeof keySource === 'string' && keySource.trim().length > 0) {
-      const cleanStr = keySource.replace(/[^A-Ea-e0-4]/g, '');
+      let cleanStr = keySource.replace(/[^A-Ea-e0-4]/g, '');
+      if (/[A-Ea-e]/.test(cleanStr)) {
+        cleanStr = cleanStr.replace(/[0-4]/g, '');
+      }
       targetKeyVal = cleanStr[qNo - 1];
     }
 
@@ -54,7 +57,10 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   // --- Adım 2: answerKey yoksa bulkAnswerKey dene ---
   const bulkStr = test.bulkAnswerKey || qObj.bulkAnswerKey;
   if (typeof bulkStr === 'string' && bulkStr.trim().length > 0) {
-    const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
+    let cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
+    if (/[A-Ea-e]/.test(cleanBulk)) {
+      cleanBulk = cleanBulk.replace(/[0-4]/g, '');
+    }
     const bulkKeyVal = cleanBulk[qNo - 1];
     if (bulkKeyVal) {
       const targetIdx = normalizeAns(bulkKeyVal);

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useAuth } from '../context/AuthContext';
 import { Clock3, Trophy, Eye, Home, CheckCircle2 } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
 
@@ -21,8 +22,9 @@ import { resolveTestQuestions } from '../utils/testResolver';
 
 export default function ModularQuizPage() {
   const { testId } = useParams();
+  const { currentUser } = useAuth();
   const [searchParams] = useSearchParams();
-  const studentId = searchParams.get('studentId') || 'u1';
+  const studentId = searchParams.get('studentId') || currentUser?.id;
   const navigate = useNavigate();
 
   const { homeworks } = useHomework();
@@ -328,6 +330,8 @@ export default function ModularQuizPage() {
       studentName: searchParams.get('studentName') || 'Öğrenci',
       subject: test.subject || test.publisher || 'Genel',
       bookId: test.bookId || null,
+      bookTestId: test.id,
+      bookTestIds: test.tests || [test.id],
       questionsList: questions.map(q => ({
         id: q.id,
         text: q.questionText || q.text || '',
@@ -409,6 +413,8 @@ export default function ModularQuizPage() {
       studentName: searchParams.get('studentName') || 'Öğrenci',
       subject: test.subject || test.publisher || 'Genel',
       bookId: test.bookId || null,
+      bookTestId: test.id,
+      bookTestIds: test.tests || [test.id],
       isOpenEnded: isAcikUclu,
       answers: evaluatedAnswers,
       totalQuestions: totalQ,

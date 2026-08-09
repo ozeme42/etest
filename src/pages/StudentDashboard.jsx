@@ -103,7 +103,7 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
     return (
       <div
         style={{
-          background: 'white',
+          background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)',
           border: `1.5px solid ${color}30`,
           borderRadius: '0.75rem',
           padding: '0.5rem 0.2rem',
@@ -126,7 +126,7 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
   }
 
   return (
-    <div style={{ background: 'white', border: `1.5px solid ${color}25`, borderRadius: '1.1rem', padding: '1rem 1.1rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: `1.5px solid ${color}25`, borderRadius: '1.1rem', padding: '1rem 1.1rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}>
       <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: bg, border: `1.5px solid ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon size={20} color={color} />
       </div>
@@ -196,7 +196,7 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
 
   if (isMobile) {
     return (
-      <div style={{ background: 'white', border: `1.5px solid ${conf.border}`, borderRadius: '1rem', padding: '0.85rem', display: 'flex', gap: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', position: 'relative', alignItems: 'center' }}>
+      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: `1.5px solid ${conf.border}`, borderRadius: '1rem', padding: '0.85rem', display: 'flex', gap: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', position: 'relative', alignItems: 'center' }}>
         <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: conf.bg, border: `1.5px solid ${conf.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon size={20} color={conf.color} />
         </div>
@@ -224,7 +224,7 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
   }
 
   return (
-    <div style={{ background: 'white', border: `1.5px solid ${conf.border}`, borderRadius: '1.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: `1.5px solid ${conf.border}`, borderRadius: '1.25rem', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: 4, background: conf.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -245,12 +245,12 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
         {urgencyPill}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,1)', borderRadius: '0.5rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>
           <Calendar size={12} color="#94a3b8" /> {task.dueDateStr}
         </div>
       </div>
 
-      <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f1f5f9' }}>
+      <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #f1f5f9' }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Soru</div>
           <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{task.questionCount || '—'}</div>
@@ -393,6 +393,8 @@ export default function StudentDashboard() {
     ].filter(Boolean);
 
     return homeworks.filter(hw => {
+      if (hw.isBookAssignment) return false;
+      
       if (hw.targetType === 'student') {
         return hw.targetIds?.includes(selectedStudent.id);
       }
@@ -462,10 +464,69 @@ export default function StudentDashboard() {
     const completedRate = totalAll > 0 ? (totalDone / totalAll) * 100 : 0;
     let totalQ = 0, totalC = 0;
     completedTests.forEach(t => { totalQ += t.questionCount || 0; totalC += ((t.correctAnswers || 0) / 100) * (t.questionCount || 0); });
-    const successRate = totalQ > 0 ? (totalC / totalQ) * 100 : 0;
+    
+    // Calculate global success rate from unified submissions for 100% consistency with other pages
+    const baseSubs = (submissions || [])
+      .filter(s => selectedStudent && String(s.studentId) === String(selectedStudent.id));
+
+    const hwSubs = [];
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        if (selectedStudent && String(sub.studentId) === String(selectedStudent.id)) {
+          const alreadyExists = baseSubs.some(s => (s.hwId === hw.id || s.testId === hw.id || s.id === hw.id));
+          if (!alreadyExists) {
+            hwSubs.push({
+              totalQuestions: hw.totalQuestions || sub.totalQuestions || hw.questionCount || 0,
+              correctCount: sub.correctCount || (sub.score ? Math.round((sub.score/100)*(hw.totalQuestions||sub.totalQuestions||hw.questionCount||0)) : 0),
+              wrongCount: sub.wrongCount || 0,
+              blankCount: sub.blankCount || 0
+            });
+          }
+        }
+      });
+    });
+
+    const allCombined = [...baseSubs, ...hwSubs];
+    const deduplicatedMap = new Map();
+    allCombined.forEach(s => {
+      const uniqueKey = s.hwId || s.testId || s.id;
+      const existing = deduplicatedMap.get(uniqueKey);
+      if (!existing || new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+        deduplicatedMap.set(uniqueKey, s);
+      }
+    });
+
+    const unifiedSubmissions = Array.from(deduplicatedMap.values()).map(s => {
+      let correctCount = s.correctCount !== undefined ? s.correctCount : 0;
+      let wrongCount = s.wrongCount !== undefined ? s.wrongCount : 0;
+      let blankCount = s.blankCount !== undefined ? s.blankCount : 0;
+      if (s.answers && s.answers.length > 0) {
+        correctCount = 0; wrongCount = 0; blankCount = 0;
+        s.answers.forEach(ans => {
+          if (ans.isCorrect === true) correctCount++;
+          else if (ans.isCorrect === false) {
+            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+            if (isB) blankCount++; else wrongCount++;
+          }
+        });
+      }
+      return { ...s, correctCount, wrongCount, blankCount };
+    });
+
+    let globalCorrect = 0, globalTotal = 0;
+    unifiedSubmissions.forEach(s => {
+      const correct = s.correctCount || 0;
+      const qCount = s.totalQuestions || (correct + (s.wrongCount || 0) + (s.blankCount || 0));
+      if (qCount > 0) {
+        globalCorrect += correct;
+        globalTotal += qCount;
+      }
+    });
+    const successRate = globalTotal > 0 ? (globalCorrect / globalTotal) * 100 : 0;
+
     const overdueCount = tests.filter(t => t.status === 'Atandı' && isPast(parseSafeDate(t.dueDate)) && !isToday(parseSafeDate(t.dueDate))).length;
     return { testCount: tests.length, pendingCount: (tests.length - completedTests.length), successRate, overdueCount, completedRate };
-  }, [tests, assignments]);
+  }, [tests, assignments, submissions, selectedStudent]);
 
   const studentGoals = useMemo(() => {
     if (!selectedStudent) return [];
@@ -476,7 +537,7 @@ export default function StudentDashboard() {
   const avatarColor = avatarColors[studentMembers.findIndex(s => s.id === selectedStudent?.id) % avatarColors.length] || '#6366f1';
 
   /* ── Input style ── */
-  const inp = { padding: '0.65rem 0.9rem', borderRadius: '0.65rem', border: '1.5px solid #e2e8f0', fontFamily: 'inherit', background: '#f8fafc', color: '#0f172a', fontSize: '0.88rem', outline: 'none', width: '100%', boxSizing: 'border-box' };
+  const inp = { padding: '0.65rem 0.9rem', borderRadius: '0.65rem', border: '1.5px solid #e2e8f0', fontFamily: 'inherit', background: 'rgba(255, 255, 255, 0.5)', color: '#0f172a', fontSize: '0.88rem', outline: 'none', width: '100%', boxSizing: 'border-box' };
 
   /* ── Render ── */
   return (
@@ -502,7 +563,7 @@ export default function StudentDashboard() {
 
           <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '1rem', padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem', textAlign: 'center', flexShrink: 0, width: isMobile ? '100%' : 'auto', marginTop: isMobile ? 6 : 0 }}>
             <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.75)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Genel Başarı</div>
-            <div style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.floor(stats.successRate)}</div>
+            <div style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>%{Math.round(stats.successRate)}</div>
             <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{tests.filter(t => t.status === 'Sonuçlandı').length} sınav tamamlandı</div>
           </div>
         </div>
@@ -527,6 +588,38 @@ export default function StudentDashboard() {
 
       {/* ═══ CONTENT ═══ */}
       <div style={{ width: '100%', padding: isMobile ? '0.85rem' : 'clamp(1rem,2.5vw,2rem)', boxSizing: 'border-box' }}>
+      
+        {/* KİTAPLARIM WIDGET */}
+        <div 
+          onClick={() => navigate('/student/books')}
+          className="hover-lift"
+          style={{ 
+            background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', 
+            border: '2px solid #cbd5e1', 
+            borderRadius: '1.25rem', 
+            padding: isMobile ? '1rem' : '1.25rem 1.5rem', 
+            marginBottom: '1.5rem', 
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.03)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ background: 'var(--color-primary)', color: 'white', padding: '0.75rem', borderRadius: '0.75rem' }}>
+              <BookOpen size={24} />
+            </div>
+            <div>
+              <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: '#1e293b', fontWeight: 900 }}>📚 Kitaplarım ve İlerlemem</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Sana atanan kitapları oyun haritası gibi adım adım çöz!</p>
+            </div>
+          </div>
+          <div style={{ background: '#e2e8f0', color: '#475569', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowRight size={18} />
+          </div>
+        </div>
 
         {/* 🏛️ KOÇLUK AKADEMİK & STRATEJİK HEDEFLERİ CARD (All Coaching Dossier Goals) */}
         {hasCoach && coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
@@ -548,7 +641,7 @@ export default function StudentDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '0.85rem' }}>
                 {isGradeTracking ? (
                   <>
-                    <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
                       <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🏅 Hedef Belge / Başarı</div>
                       <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#16a34a', marginTop: 2 }}>
                         {coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takdir Belgesi'}
@@ -556,7 +649,7 @@ export default function StudentDashboard() {
                     </div>
 
                     {(coachingProfile.targetScore || coachingProfile.goals?.targetScore) && (
-                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📅 Devamsızlık Hedefi</div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>Maks {coachingProfile.targetScore || coachingProfile.goals?.targetScore} gün</div>
                       </div>
@@ -565,19 +658,19 @@ export default function StudentDashboard() {
                 ) : (
                   <>
                     {coachingProfile.targetSchool && (
-                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🎯 İstenen Okul & Bölüm</div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetSchool}</div>
                       </div>
                     )}
                     {coachingProfile.targetScore && (
-                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>🏆 Puan Hedefi</div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{coachingProfile.targetScore} Puan</div>
                       </div>
                     )}
                     {coachingProfile.targetNet > 0 && (
-                      <div style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #bbf7d0' }}>
                         <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase' }}>📈 Net Hedefi</div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#16a34a', marginTop: 2 }}>{coachingProfile.targetNet} Net</div>
                       </div>
@@ -640,7 +733,7 @@ export default function StudentDashboard() {
             </div>
 
             {coachingNote?.weeklyFocus && (
-              <div style={{ background: 'white', borderRadius: '0.75rem', padding: '0.6rem 0.9rem', marginBottom: 10, border: '1px solid #c4b5fd', fontWeight: 800, fontSize: '0.85rem', color: '#5b21b6' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '0.75rem', padding: '0.6rem 0.9rem', marginBottom: 10, border: '1px solid #c4b5fd', fontWeight: 800, fontSize: '0.85rem', color: '#5b21b6' }}>
                 🎯 Haftalık Odak: {coachingNote.weeklyFocus}
               </div>
             )}
@@ -680,7 +773,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* PROGRESS BAR */}
-        <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Trophy size={16} color="#f59e0b" /> Genel İlerleme
@@ -724,7 +817,7 @@ export default function StudentDashboard() {
                 </h2>
               </div>
               {pendingTasks.length === 0 ? (
-                <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '2rem 1rem' : '3rem', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '2rem 1rem' : '3rem', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎉</div>
                   <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem', marginBottom: 4 }}>Harika! Tüm ödevler tamamlandı.</div>
                   <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Bekleyen göreviniz bulunmuyor.</div>
@@ -744,7 +837,7 @@ export default function StudentDashboard() {
                 <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <CheckCircle2 size={14} color="#22c55e" /> Tamamlanan Sınavlar
                 </h2>
-                <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
                   {tests.filter(t => t.status === 'Sonuçlandı').slice(0, 6).map((test, i, arr) => {
                     const conf = getSubConf(getThemeKey(getCategoryName(test)));
                     const score = test.correctAnswers || 0;
@@ -781,7 +874,7 @@ export default function StudentDashboard() {
                                 }
                               }}
                               title="İncele & Karne"
-                              style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: '#f1f5f9', color: '#475569', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 3 }}
+                              style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: 'rgba(255, 255, 255, 0.6)', color: '#475569', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 3 }}
                             >
                               <Eye size={12} /> İncele
                             </button>
@@ -816,7 +909,7 @@ export default function StudentDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Goals */}
-            <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1.5px solid #f1f5f9', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 5 }}><Target size={15} color="#f43f5e" /> Hedeflerim ({studentGoals.length})</span>
                 <button onClick={() => setShowGoalModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', background: '#eff6ff', border: '1px solid #c7d2fe', borderRadius: '0.5rem', padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
@@ -835,7 +928,7 @@ export default function StudentDashboard() {
                     <GoalMini key={g.id} goal={g} onDelete={deleteGoal} onUpdateProgress={updateGoalProgress} onNavigate={navigate} />
                   ))}
                   {studentGoals.length > 5 && (
-                    <button onClick={() => navigate('/goals')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0.6rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#6366f1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
+                    <button onClick={() => navigate('/goals')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0.6rem', borderRadius: '0.65rem', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,1)', color: '#6366f1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
                       +{studentGoals.length - 5} daha <ArrowRight size={12} />
                     </button>
                   )}
@@ -875,7 +968,7 @@ export default function StudentDashboard() {
 
             {/* Navigate to Results */}
             <button onClick={() => navigate('/student-results')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '1.1rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1.5px solid #e2e8f0', borderRadius: '1.1rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#eff6ff'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = 'white'; }}
             >
@@ -898,10 +991,10 @@ export default function StudentDashboard() {
       {/* ═══ GOAL MODAL ═══ */}
       {showGoalModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '1.75rem', width: '100%', maxWidth: 460, boxShadow: '0 24px 80px rgba(0,0,0,0.18)' }}>
+          <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.5rem', padding: '1.75rem', width: '100%', maxWidth: 460, boxShadow: '0 24px 80px rgba(0,0,0,0.18)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h2 style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', margin: 0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '0.65rem', padding: '0.5rem', cursor: 'pointer', display: 'flex' }}><X size={16} color="#64748b" /></button>
+              <button onClick={() => setShowGoalModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', border: 'none', borderRadius: '0.65rem', padding: '0.5rem', cursor: 'pointer', display: 'flex' }}><X size={16} color="#64748b" /></button>
             </div>
             <form onSubmit={handleSaveGoal} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <input placeholder="Hedef başlığı..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))} style={inp} required />

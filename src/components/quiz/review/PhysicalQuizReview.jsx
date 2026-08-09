@@ -25,7 +25,13 @@ export default function PhysicalQuizReview({ submission, test, questions }) {
   };
 
   const answers = submission.answers || [];
-  const qCount = questions.length || submission.totalQuestions || test.questionCount || test.totalQuestions || 20;
+  const expectedCount = Math.max(
+    questions?.length || 0,
+    submission?.totalQuestions || 0,
+    test?.questionCount || 0,
+    test?.totalQuestions || 0
+  );
+  const qCount = expectedCount > 0 ? expectedCount : 20;
 
   const correctCount = submission.correctCount || answers.filter(a => a.isCorrect === true).length;
   const wrongCount = submission.wrongCount || answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length;

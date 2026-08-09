@@ -77,19 +77,13 @@ export default function StudentResultsPage() {
 
     // 1. Gather all submissions from EvaluationContext
     const baseSubs = (submissions || [])
-      .filter(s => s.studentId === selectedStudent.id)
-      .filter(s => {
-        const targetId = s.hwId || s.testId;
-        if (!targetId) return true;
-        return (homeworks || []).some(h => String(h.id) === String(targetId)) ||
-               s.isTrial || s.isExam || s.sourceType === 'manual';
-      });
+      .filter(s => selectedStudent && String(s.studentId) === String(selectedStudent.id));
 
     // 2. Also incorporate completed homeworks from HomeworkContext if not already in EvaluationContext
     const hwSubs = [];
     (homeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(sub => {
-        if (sub.studentId === selectedStudent.id) {
+        if (selectedStudent && String(sub.studentId) === String(selectedStudent.id)) {
           const alreadyExists = baseSubs.some(s => 
             (s.hwId === hw.id || s.testId === hw.id || s.id === hw.id)
           );
@@ -104,10 +98,11 @@ export default function StudentResultsPage() {
               submittedAt: sub.completedAt || sub.submittedAt || new Date().toISOString(),
               isHomework: true,
               type: hw.type || 'homework',
-              totalQuestions: hw.totalQuestions || sub.totalQuestions || 0,
-              correctCount: sub.correctCount,
-              wrongCount: sub.wrongCount,
-              blankCount: sub.blankCount,
+              totalQuestions: hw.totalQuestions || sub.totalQuestions || hw.questionCount || 0,
+              correctCount: sub.correctCount || (sub.score ? Math.round((sub.score/100)*(hw.totalQuestions||sub.totalQuestions||hw.questionCount||0)) : 0),
+              wrongCount: sub.wrongCount || 0,
+              blankCount: sub.blankCount || 0,
+              status: sub.status || 'completed',
               subjectStats: sub.subjectStats,
               studentAnswers: sub.studentAnswers
             });
@@ -225,19 +220,29 @@ export default function StudentResultsPage() {
     let sumScore = 0;
     let max = 0;
     let completedCount = 0;
+    let totalCorrectQs = 0;
+    let totalQs = 0;
 
     studentSubmissions.forEach(s => {
       const sc = getTrueSuccess(s);
       sumScore += sc;
       if (sc > max) max = sc;
       if (s.status !== 'pending_evaluation') completedCount++;
+
+      const correct = s.correctCount || 0;
+      const qCount = s.totalQuestions || (correct + (s.wrongCount || 0) + (s.blankCount || 0));
+      if (qCount > 0) {
+        totalCorrectQs += correct;
+        totalQs += qCount;
+      }
     });
 
     return {
-      total,
-      avgScore: Math.round(sumScore / total),
-      maxScore: max,
-      completedCount
+      total: total,
+      completedCount,
+      avgScore: totalQs > 0 ? Math.round((totalCorrectQs / totalQs) * 100) : 0,
+      maxScore: Math.round(max),
+      minScore: 0
     };
   }, [studentSubmissions]);
 

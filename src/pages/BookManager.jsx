@@ -360,7 +360,7 @@ export default function BookManager() {
 
       {/* NEW / EDIT BOOK MODAL */}
       {isDialogOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '500px', textAlign: 'left' }}>
             <h2 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem' }}>{editingBook ? "Kitabı Düzenle" : "Yeni Kitap Ekle"}</h2>
             <p className="text-muted" style={{ marginBottom: '1.5rem' }}>{editingBook ? "Kitap bilgilerini güncelleyin." : "Takip edilecek yeni bir kitap oluşturun."}</p>
@@ -427,7 +427,7 @@ export default function BookManager() {
 
       {/* JSON IMPORT MODAL */}
       {importModal.isOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '700px', textAlign: 'left' }}>
             <h2 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FileJson /> Toplu İçerik İçe Aktar

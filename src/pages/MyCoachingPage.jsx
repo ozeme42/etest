@@ -93,7 +93,7 @@ export const processWeeklyProgramWeekChange = (rawProgram, savedWeekKey) => {
 };
 
 /* ─── Styles ─── */
-const inp = { width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.7rem', border: '1.5px solid #e2e8f0', fontSize: '0.84rem', outline: 'none', background: 'white', fontFamily: 'inherit', boxSizing: 'border-box' };
+const inp = { width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.7rem', border: '1.5px solid #e2e8f0', fontSize: '0.84rem', outline: 'none', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', fontFamily: 'inherit', boxSizing: 'border-box' };
 const ta = { ...inp, minHeight: 72, resize: 'vertical', lineHeight: 1.6 };
 const lbl = { fontSize: '0.7rem', fontWeight: 800, color: '#64748b', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' };
 
@@ -113,7 +113,7 @@ function TabBtn({ id, active, label, onClick }) {
 
 function Card({ emoji, title, children, color = '#7c3aed' }) {
   return (
-    <div style={{ background: 'white', borderRadius: '1.25rem', border: '2px solid #f1f5f9', padding: '1.35rem', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', marginBottom: '1rem' }}>
+    <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.8)', padding: '1.35rem', boxShadow: '0 10px 30px -10px rgba(30,41,59,0.06)', marginBottom: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.1rem', paddingBottom: '0.75rem', borderBottom: '2px solid #f8fafc' }}>
         <span style={{ fontSize: '1.1rem' }}>{emoji}</span>
         <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>{title}</span>
@@ -157,7 +157,7 @@ function Progress({ value, max, color = '#7c3aed', label }) {
       {label && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>
         <span>{label}</span><span style={{ color }}>{pct}%</span>
       </div>}
-      <div style={{ height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+      <div style={{ height: 10, background: 'rgba(255, 255, 255, 0.6)', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99, transition: 'width 0.5s ease' }} />
       </div>
     </div>
@@ -203,14 +203,14 @@ function VisualGoalSection({ studentId }) {
     <Card emoji="📊" title={`Görsel Özel Hedef Takip Panosu (${studentGoals.length} hedef)`}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8, gap: 2 }}>
+          <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.6)', padding: 3, borderRadius: 8, gap: 2 }}>
             {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
               <button key={p} onClick={() => setPeriodFilter(p)} style={{ border: 'none', background: periodFilter === p ? '#4f46e5' : 'transparent', color: periodFilter === p ? 'white' : '#64748b', fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: 6, cursor: 'pointer' }}>
                 {p}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8, gap: 2 }}>
+          <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.6)', padding: 3, borderRadius: 8, gap: 2 }}>
             {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
               <button key={t} onClick={() => setTypeFilter(t)} style={{ border: 'none', background: typeFilter === t ? '#e11d48' : 'transparent', color: typeFilter === t ? 'white' : '#64748b', fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: 6, cursor: 'pointer' }}>
                 {t}
@@ -225,7 +225,7 @@ function VisualGoalSection({ studentId }) {
       </div>
 
       {filteredGoals.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontWeight: 700, fontSize: '0.84rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1.5px dashed #e2e8f0' }}>
+        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontWeight: 700, fontSize: '0.84rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.75rem', border: '1.5px dashed #e2e8f0' }}>
           🎯 Henüz özel bir görsel hedef tanımlanmadı. Yukarıdaki butondan hemen ekleyebilirsin!
         </div>
       ) : (
@@ -285,7 +285,7 @@ function VisualGoalSection({ studentId }) {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.25rem', padding: '1.25rem', width: '100%', maxWidth: 420, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.25rem', padding: '1.25rem', width: '100%', maxWidth: 420, border: '1px solid rgba(255,255,255,1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>🎯 Yeni Özel Görsel Hedef</span>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={18} /></button>
@@ -319,7 +319,7 @@ function VisualGoalSection({ studentId }) {
                 <input type="number" min="1" style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700 }} placeholder="Örn: 50" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: Number(e.target.value) }))} required />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '0.65rem', padding: '0.55rem 0.9rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>İptal</button>
+                <button type="button" onClick={() => setShowModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', color: '#64748b', border: 'none', borderRadius: '0.65rem', padding: '0.55rem 0.9rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>İptal</button>
                 <button type="submit" style={{ background: '#e11d48', color: 'white', border: 'none', borderRadius: '0.65rem', padding: '0.55rem 1rem', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer' }}>Hedefi Kaydet</button>
               </div>
             </form>
@@ -1412,7 +1412,7 @@ export default function MyCoachingPage() {
   if (currentUser?.role === 'student' && !isCoached) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-        <div style={{ padding: '2.5rem 2rem', textAlign: 'center', maxWidth: 480, width: '100%', background: 'white', borderRadius: '1.5rem', border: '2px solid #e2e8f0', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
+        <div style={{ padding: '2.5rem 2rem', textAlign: 'center', maxWidth: 480, width: '100%', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.5rem', border: '2px solid #e2e8f0', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', border: '2px solid #fde68a' }}>
             <AlertTriangle size={32} />
           </div>
@@ -1458,18 +1458,80 @@ export default function MyCoachingPage() {
 
         {/* Mini istatistikler */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Çözülen Soru', value: Math.round(totalDailyQuestions), icon: '📝' },
-            { label: 'Çalışma (s)', value: totalDailyHours.toFixed(1), icon: '⏱️' },
-            { label: 'Konu Bitti', value: completedTopics, icon: '✅' },
-            { label: 'Deneme', value: mySubmissions.length, icon: '📊' },
-          ].map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.75rem', padding: '0.5rem 0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.2)', minWidth: 70 }}>
-              <div style={{ fontSize: '1rem', marginBottom: 1 }}>{s.icon}</div>
-              <div style={{ fontWeight: 900, fontSize: '0.95rem', lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: '0.62rem', opacity: 0.8, fontWeight: 700, marginTop: 1 }}>{s.label}</div>
-            </div>
-          ))}
+          {(() => {
+            const baseSubs = (mySubmissions || []);
+
+            const hwSubs = [];
+            (homeworks || []).forEach(hw => {
+              (hw.submissions || []).forEach(sub => {
+                if (String(sub.studentId) === String(studentId)) {
+                  const alreadyExists = baseSubs.some(s => (s.hwId === hw.id || s.testId === hw.id || s.id === hw.id));
+                  if (!alreadyExists) {
+                    hwSubs.push({
+                      totalQuestions: hw.totalQuestions || sub.totalQuestions || hw.questionCount || 0,
+                      correctCount: sub.correctCount || (sub.score ? Math.round((sub.score/100)*(hw.totalQuestions||sub.totalQuestions||hw.questionCount||0)) : 0),
+                      wrongCount: sub.wrongCount || 0,
+                      blankCount: sub.blankCount || 0
+                    });
+                  }
+                }
+              });
+            });
+
+            const allCombined = [...baseSubs, ...hwSubs];
+            const deduplicatedMap = new Map();
+            allCombined.forEach(s => {
+              const uniqueKey = s.hwId || s.testId || s.id;
+              const existing = deduplicatedMap.get(uniqueKey);
+              if (!existing || new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+                deduplicatedMap.set(uniqueKey, s);
+              }
+            });
+
+            const unifiedSubmissions = Array.from(deduplicatedMap.values()).map(s => {
+              let correctCount = s.correctCount !== undefined ? s.correctCount : 0;
+              let wrongCount = s.wrongCount !== undefined ? s.wrongCount : 0;
+              let blankCount = s.blankCount !== undefined ? s.blankCount : 0;
+              if (s.answers && s.answers.length > 0) {
+                correctCount = 0; wrongCount = 0; blankCount = 0;
+                s.answers.forEach(ans => {
+                  if (ans.isCorrect === true) correctCount++;
+                  else if (ans.isCorrect === false) {
+                    const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+                    if (isB) blankCount++; else wrongCount++;
+                  }
+                });
+              }
+              return { ...s, correctCount, wrongCount, blankCount };
+            });
+
+            let globalCorrect = 0, globalTotal = 0;
+            unifiedSubmissions.forEach(s => {
+              const correct = s.correctCount || 0;
+              const qCount = s.totalQuestions || (correct + (s.wrongCount || 0) + (s.blankCount || 0));
+              if (qCount > 0) {
+                globalCorrect += correct;
+                globalTotal += qCount;
+              }
+            });
+            const overallSuccess = globalTotal > 0 ? Math.round((globalCorrect / globalTotal) * 100) : 0;
+            const totalHwQuestions = globalTotal;
+
+            return [
+              { label: 'Çözülen Soru', value: totalHwQuestions, icon: '📝' },
+              { label: 'Test', value: otherHomeworkSubmissions.length, icon: '📋' },
+              { label: 'Deneme', value: generalTrialExams.length, icon: '📊' },
+              { label: 'Başarı Oranı', value: `%${overallSuccess}`, icon: '🎯' },
+              { label: 'Çalışma (s)', value: totalDailyHours.toFixed(1), icon: '⏱️' },
+              { label: 'Konu Bitti', value: completedTopics, icon: '✅' },
+            ].map(s => (
+              <div key={s.label} style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.75rem', padding: '0.5rem 0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.2)', minWidth: 70, flex: '1 1 auto' }}>
+                <div style={{ fontSize: '1.05rem', marginBottom: 2 }}>{s.icon}</div>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: '0.62rem', opacity: 0.8, fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+              </div>
+            ));
+          })()}
         </div>
 
         <button onClick={handleSave} style={{ background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '0.85rem', padding: '0.55rem 1.1rem', color: 'white', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)', transition: 'all 0.2s' }}>
@@ -1478,12 +1540,12 @@ export default function MyCoachingPage() {
       </div>
 
       {/* ── TAB BAR ── */}
-      <div style={{ background: 'white', borderRadius: '1rem 1rem 0 0', border: '2px solid #e2e8f0', borderBottom: 'none', display: 'flex', overflowX: 'auto', padding: '0.4rem 0.4rem 0', gap: 3, boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem 1rem 0 0', border: '2px solid #e2e8f0', borderBottom: 'none', display: 'flex', overflowX: 'auto', padding: '0.4rem 0.4rem 0', gap: 3, boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' }}>
         {TABS.map(t => <TabBtn key={t.id} id={t.id} active={activeTab === t.id} label={t.label} onClick={setActiveTab} />)}
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <div style={{ background: 'white', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid #e2e8f0', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid #e2e8f0', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
 
         {/* ═══ KONU & PROGRAM MERKEZİ (Tek Ekran Akıllı Görünüm) ═══ */}
         {activeTab === 'konumerkezi' && (
@@ -1537,7 +1599,7 @@ export default function MyCoachingPage() {
                   {/* Alt Detay Rozetleri */}
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <div style={{ background: 'white', border: '1.5px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1.5px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
                         📚 Toplam Konu: <span style={{ color: '#6366f1' }}>{totalTopics}</span>
                       </div>
                       <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', padding: '0.35rem 0.75rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 800, color: '#dc2626' }}>
@@ -1591,7 +1653,7 @@ export default function MyCoachingPage() {
                   placeholder="🔍 Konu / ders ara..." />
 
                 <button onClick={() => setShowTemplates(p => !p)}
-                  style={{ background: '#f8fafc', color: '#6366f1', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.4rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  style={{ background: 'rgba(255, 255, 255, 0.5)', color: '#6366f1', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.4rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                   ⚡ Şablon Yükle {showTemplates ? '▲' : '▼'}
                 </button>
               </div>
@@ -1661,7 +1723,7 @@ export default function MyCoachingPage() {
                         ▼ Tümünü Aç
                       </button>
                       <button onClick={() => setExpandedPoolSubjects({})}
-                        style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '0.45rem', padding: '0.25rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                        style={{ background: 'rgba(255, 255, 255, 0.5)', color: '#64748b', border: '1px solid rgba(255,255,255,1)', borderRadius: '0.45rem', padding: '0.25rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
                         ▲ Tümünü Kapat
                       </button>
                     </div>
@@ -1669,7 +1731,7 @@ export default function MyCoachingPage() {
                 </div>
 
                 {topicPool.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', fontWeight: 700, background: '#f8fafc', borderRadius: '1rem', border: '2px dashed #cbd5e1' }}>
+                  <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', fontWeight: 700, background: 'rgba(255, 255, 255, 0.5)', borderRadius: '1rem', border: '2px dashed #cbd5e1' }}>
                     <div style={{ fontSize: '2rem', marginBottom: 6 }}>📚</div>
                     <div>Henüz ders eklenmedi.</div>
                     <div style={{ fontSize: '0.8rem', marginTop: 4 }}>Şablon yükleyebilir veya ders ekleyebilirsin.</div>
@@ -1711,7 +1773,7 @@ export default function MyCoachingPage() {
                   const totalCnt = sub.topics.length;
 
                   return (
-                    <div key={sub.id} style={{ background: 'white', border: `2px solid ${sub.color}30`, borderRadius: '1rem', marginBottom: '1rem', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
+                    <div key={sub.id} style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: `2px solid ${sub.color}30`, borderRadius: '1rem', marginBottom: '1rem', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
                       
                       {/* Ders Başlığı */}
                       <div 
@@ -1817,7 +1879,7 @@ export default function MyCoachingPage() {
 
                                   {/* Hızlı Güne Atama Modalı / Popover */}
                                   {isAssigningThis && (
-                                    <div style={{ marginTop: 6, background: '#f8fafc', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.65rem', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div style={{ marginTop: 6, background: 'rgba(255, 255, 255, 0.5)', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.65rem', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                                       <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#374151' }}>Gün:</span>
                                       <select style={{ ...inp, padding: '0.25rem 0.5rem', fontSize: '0.78rem', width: 'auto' }} value={assignDay} onChange={e => setAssignDay(e.target.value)}>
                                         {DAYS.map(d => <option key={d} value={d}>{d} ({DAY_LONG[d]})</option>)}
@@ -1871,7 +1933,7 @@ export default function MyCoachingPage() {
                 })}
 
                 {/* Yeni Ders Ekle Kartı */}
-                <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '1rem', padding: '0.85rem 1.1rem', marginTop: 12 }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.5)', border: '2px dashed #cbd5e1', borderRadius: '1rem', padding: '0.85rem 1.1rem', marginTop: 12 }}>
                   <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569', marginBottom: 6 }}>➕ Yeni Ders Ekle</div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <input style={{ ...inp, flex: 1, fontSize: '0.82rem', padding: '0.4rem 0.7rem' }}
@@ -1895,7 +1957,7 @@ export default function MyCoachingPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button 
                       onClick={() => setHideDoneInProgram(p => !p)}
-                      style={{ background: hideDoneInProgram ? '#f8fafc' : '#f0fdf4', color: hideDoneInProgram ? '#64748b' : '#15803d', border: '1px solid #e2e8f0', borderRadius: '0.45rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                      style={{ background: hideDoneInProgram ? '#f8fafc' : '#f0fdf4', color: hideDoneInProgram ? '#64748b' : '#15803d', border: '1px solid rgba(255,255,255,1)', borderRadius: '0.45rem', padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
                       {hideDoneInProgram ? '👁️ Bitenleri Göster' : '🙈 Bitenleri Gizle'}
                     </button>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', background: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
@@ -1912,7 +1974,7 @@ export default function MyCoachingPage() {
                     const visibleItems = hideDoneInProgram ? items.filter(i => !i.done) : items;
 
                     return (
-                      <div key={dayName} style={{ background: 'white', borderRadius: '0.9rem', border: '1.5px solid #e2e8f0', padding: '0.75rem 0.9rem', boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}>
+                      <div key={dayName} style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '0.9rem', border: '1.5px solid #e2e8f0', padding: '0.75rem 0.9rem', boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: visibleItems.length > 0 ? 8 : 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ background: '#7c3aed', color: 'white', fontWeight: 900, fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem' }}>{dayName}</span>
@@ -2015,7 +2077,7 @@ export default function MyCoachingPage() {
                           <button
                             onClick={() => setIsEditingLongTermGoal(true)}
                             style={{
-                              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', background: 'white',
+                              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)',
                               border: '1px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.8rem',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
                               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -2163,7 +2225,7 @@ export default function MyCoachingPage() {
                 { label: 'Günlük Rutinler', value: completedDaily, max: totalDaily, color: '#dc2626', icon: '🔥' },
                 { label: 'Konular Tamamlandı', value: completedTopics, max: totalTopics, color: '#7c3aed', icon: '✅' },
               ].map(item => (
-                <div key={item.label} style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '0.85rem', border: '1px solid #e2e8f0' }}>
+                <div key={item.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
                   <div style={{ fontSize: '1.2rem', marginBottom: 4 }}>{item.icon}</div>
                   <div style={{ fontWeight: 900, fontSize: '1.3rem', color: item.color }}>{item.value}<span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>/{item.max || '—'}</span></div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>{item.label}</div>
@@ -2177,7 +2239,7 @@ export default function MyCoachingPage() {
               <Card emoji="⏱️" title="Son Çalışmalarım">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {dailyLogs.slice(0, 5).map(log => (
-                    <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 0.85rem', background: '#f8fafc', borderRadius: '0.65rem', fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
+                    <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 0.85rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.65rem', fontSize: '0.82rem', border: '1px solid rgba(255,255,255,1)' }}>
                       <span style={{ color: '#64748b', fontWeight: 700, minWidth: 80 }}>{log.date}</span>
                       <span style={{ fontWeight: 900, color: '#4f46e5' }}>{log.studyHours}s</span>
                       <span style={{ color: '#374151', fontWeight: 700 }}>{log.questions} soru</span>
@@ -2437,7 +2499,7 @@ export default function MyCoachingPage() {
                 const wTotal = (goals.weeklyGoals || []).length;
                 const wPct = wTotal > 0 ? Math.round((wDone / wTotal) * 100) : 0;
                 return (
-                  <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
                     <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>HAFTALIK HEDEFLER</div>
                     <div style={{ fontSize: '2rem', fontWeight: 900, color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{wDone} / {wTotal}</span>
@@ -2454,7 +2516,7 @@ export default function MyCoachingPage() {
                 const mTotal = (goals.monthlyGoals || []).length;
                 const mPct = mTotal > 0 ? Math.round((mDone / mTotal) * 100) : 0;
                 return (
-                  <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
                     <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>AYLIK HEDEFLER</div>
                     <div style={{ fontSize: '2rem', fontWeight: 900, color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{mDone} / {mTotal}</span>
@@ -2471,7 +2533,7 @@ export default function MyCoachingPage() {
             {/* BÜTÜNLEŞİK HEDEF EKLEME & YÖNETİM PANOSU */}
             <Card emoji="🎯" title="Bütünleşik Hedef Takip & Ekleme Panosu">
               {/* Sayısal Sayaç vs Görev Listesi Mod Butonları */}
-              <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.25rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.5rem', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
                 <button
                   type="button"
                   onClick={() => setGoalTabMode('sayisal')}
@@ -2518,7 +2580,7 @@ export default function MyCoachingPage() {
 
                   {/* Yeni Sayısal Hedef Ekleme Formu (Açılır/Kapanır) */}
                   {showAddCounterForm && (
-                    <form onSubmit={e => { handleCreateCounterGoal(e); setShowAddCounterForm(false); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0', marginBottom: '1rem', alignItems: 'end' }}>
+                    <form onSubmit={e => { handleCreateCounterGoal(e); setShowAddCounterForm(false); }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,1)', marginBottom: '1rem', alignItems: 'end' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: 2 }}>Hedef Adı</label>
                         <input
@@ -2601,7 +2663,7 @@ export default function MyCoachingPage() {
 
                       return (
                         <div key={unitKey} style={{
-                          background: 'white', borderRadius: '0.9rem', padding: '1rem 1.1rem',
+                          background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '0.9rem', padding: '1rem 1.1rem',
                           border: '1.5px solid #cbd5e1', boxShadow: '0 3px 10px rgba(0,0,0,0.03)',
                           display: 'flex', flexDirection: 'column', gap: '0.85rem'
                         }}>
@@ -2656,7 +2718,7 @@ export default function MyCoachingPage() {
 
                               return (
                                 <div key={cg.id} style={{
-                                  background: '#f8fafc', borderRadius: '0.65rem', padding: '0.65rem 0.85rem',
+                                  background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.65rem', padding: '0.65rem 0.85rem',
                                   border: isCompleted ? '1.5px solid #10b981' : '1px solid #e2e8f0',
                                   display: 'flex', flexDirection: 'column', gap: '0.35rem'
                                 }}>
@@ -2716,7 +2778,7 @@ export default function MyCoachingPage() {
               {goalTabMode === 'gorev' && (
                 <div>
                   {/* Yeni Hedef Ekleme Formu */}
-                  <form onSubmit={handleAddUnifiedGoal} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#f8fafc', padding: '1.15rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                  <form onSubmit={handleAddUnifiedGoal} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'rgba(255, 255, 255, 0.5)', padding: '1.15rem', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,1)', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#334155' }}>Hedef Periyodu / Türü Seç:</span>
                       {['Günlük', 'Haftalık', 'Aylık', 'Özel'].map(t => (
@@ -3059,8 +3121,8 @@ export default function MyCoachingPage() {
                   {dailyLogs.map(log => (
                     <div key={log.id} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem',
-                      padding: '0.65rem 0.9rem', background: '#f8fafc', borderRadius: '0.75rem', fontSize: '0.82rem',
-                      border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                      padding: '0.65rem 0.9rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.75rem', fontSize: '0.82rem',
+                      border: '1px solid rgba(255,255,255,1)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 800, color: '#64748b', background: '#e2e8f0', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem' }}>
@@ -3165,7 +3227,7 @@ export default function MyCoachingPage() {
             <Card emoji="💡" title="Koçtan Derece Yaptıran Çalışma Önerileri & Stratejiler">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
                 
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1.3rem' }}>🧠</span>
                     <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>1. Aktif Hatırlama (Active Recall)</span>
@@ -3175,7 +3237,7 @@ export default function MyCoachingPage() {
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1.3rem' }}>⏱️</span>
                     <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>2. Pomodoro & Odaklanma</span>
@@ -3185,7 +3247,7 @@ export default function MyCoachingPage() {
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1.3rem' }}>✍️</span>
                     <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>3. Yanlış Defteri (Fener Defteri)</span>
@@ -3195,7 +3257,7 @@ export default function MyCoachingPage() {
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1.3rem' }}>📱</span>
                     <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>4. Dijital Detoks & Sessiz Alan</span>
@@ -3278,7 +3340,7 @@ export default function MyCoachingPage() {
                 <div style={{ fontSize: '0.72rem', opacity: 0.8, marginTop: 4 }}>Kesintisiz alışkanlık seriniz</div>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>TOPLAM İŞARETLENEN</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981' }}>
                   {habits.reduce((sum, h) => sum + Object.values(h.days || {}).filter(Boolean).length, 0)} / {habits.length * 7}
@@ -3286,7 +3348,7 @@ export default function MyCoachingPage() {
                 <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>Haftalık yapılan alışkanlık</div>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>ZİNCİRİ TAMAMLIYOR</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#6366f1' }}>
                   {habits.filter(h => calculateHabitStreak(h).maxStreak >= 5).length} Alışkanlık
@@ -3333,7 +3395,7 @@ export default function MyCoachingPage() {
 
                       return (
                         <tr key={h.id}>
-                          <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', background: '#f8fafc', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid #e2e8f0', borderRight: 'none' }}>
+                          <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid rgba(255,255,255,1)', borderRight: 'none' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
                               <button
                                 onClick={() => setSelectedMonthlyHabit(h)}
@@ -3348,7 +3410,7 @@ export default function MyCoachingPage() {
                           </td>
 
                           {/* Seri Badgesi */}
-                          <td style={{ textAlign: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
+                          <td style={{ textAlign: 'center', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,1)', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
                             <button
                               onClick={() => setSelectedMonthlyHabit(h)}
                               style={{
@@ -3390,7 +3452,7 @@ export default function MyCoachingPage() {
                             );
                           })}
 
-                          <td style={{ background: '#f8fafc', borderRadius: '0 0.65rem 0.65rem 0', border: '1px solid #e2e8f0', borderLeft: 'none', textAlign: 'center' }}>
+                          <td style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0 0.65rem 0.65rem 0', border: '1px solid rgba(255,255,255,1)', borderLeft: 'none', textAlign: 'center' }}>
                             <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }} title="Sil">
                               <Trash2 size={14} />
                             </button>
@@ -3411,7 +3473,7 @@ export default function MyCoachingPage() {
             <Tip>Çözdüğün online sınavlar buraya otomatik yansır. Dışarıda girdiğin denemeleri de yukarıdaki buton ile ekleyip koçuna onaya gönderebilirsin!</Tip>
 
             {/* Top Action Bar with Add Button */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: '#f8fafc', padding: '0.85rem 1.1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem 1.1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,1)', flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>Harici / Fiziki Deneme Kaydı</span>
                 <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Fiziki girdiğin denemelerin D/Y/B ve netlerini açılır pencereden kolayca ekle.</div>
@@ -3429,7 +3491,7 @@ export default function MyCoachingPage() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {pendingExams.map(m => (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.65rem 0.85rem', background: 'white', borderRadius: '0.75rem', border: '1px solid #fef08a' }}>
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '0.75rem', border: '1px solid #fef08a' }}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{m.title}</div>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
@@ -3472,7 +3534,7 @@ export default function MyCoachingPage() {
                     { label: 'En Yüksek Net', value: Math.max(...generalTrialExams.map(x => x.totalNet || 0)).toFixed(1), color: '#059669' },
                     { label: 'Son Deneme', value: generalTrialExams[0]?.totalNet ?? '—', color: '#f59e0b' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                    <div key={s.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
                       <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
                       <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
                     </div>
@@ -3517,7 +3579,7 @@ export default function MyCoachingPage() {
                       {s.scores && Object.keys(s.scores).length > 0 && (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, pt: 4, borderTop: '1px border-dashed #e2e8f0' }}>
                           {Object.entries(s.scores).map(([subName, sc]) => (
-                            <div key={subName} style={{ fontSize: '0.7rem', fontWeight: 700, background: 'white', border: '1px solid #e2e8f0', color: '#334155', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div key={subName} style={{ fontSize: '0.7rem', fontWeight: 700, background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,1)', color: '#334155', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span style={{ color: '#64748b', fontWeight: 800 }}>{subName}:</span>
                               <span style={{ color: '#7c3aed', fontWeight: 900 }}>{sc.net} Net</span>
                               <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>({sc.correct || 0}D {sc.wrong || 0}Y {sc.empty || 0}B)</span>
@@ -3546,7 +3608,7 @@ export default function MyCoachingPage() {
                 <div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>{schoolGrades.length} Yazılı Kayıtlı</div>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>EN YÜKSEK NOT</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981' }}>
                   {schoolGrades.length > 0 ? `${Math.max(...schoolGrades.map(g => parseFloat(g.score) || 0))}` : '—'}
@@ -3554,7 +3616,7 @@ export default function MyCoachingPage() {
                 <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>En başarılı yazılınız</div>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '1rem', padding: '1.15rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>DERS ÇEŞİDİ</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f59e0b' }}>
                   {new Set(schoolGrades.map(g => g.subject)).size} Ders
@@ -3564,7 +3626,7 @@ export default function MyCoachingPage() {
             </div>
 
             {/* Şablon Seçim Modu Butonları */}
-            <div style={{ display: 'flex', gap: '0.65rem', background: 'white', padding: '0.75rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,1)' }}>
               <button
                 onClick={() => setGradeTemplateMode('ortaokul')}
                 style={{
@@ -3599,7 +3661,7 @@ export default function MyCoachingPage() {
               const allSubjectsForTable = Array.from(new Set([...templateSubjects, ...customSubjects, ...extraFromGrades]));
 
               return (
-                <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid rgba(255,255,255,1)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>{SCHOOL_LEVEL_TEMPLATES[gradeTemplateMode].name}</span>
                     <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Kutucuklara doğrudan puanınızı girin</span>
@@ -3608,7 +3670,7 @@ export default function MyCoachingPage() {
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                       <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                        <tr style={{ background: 'rgba(255, 255, 255, 0.5)', borderBottom: '2px solid #e2e8f0' }}>
                           <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: '#475569', fontWeight: 800 }}>Ders</th>
                           {EXAM_TERMS.map(term => (
                             <th key={term} style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: '#475569', fontWeight: 800, width: 110 }}>
@@ -3730,7 +3792,7 @@ export default function MyCoachingPage() {
                     { label: 'Toplam Doğru', value: otherHomeworkSubmissions.reduce((s, x) => s + (x.correctCount || 0), 0), color: '#059669' },
                     { label: 'Toplam Yanlış', value: otherHomeworkSubmissions.reduce((s, x) => s + (x.wrongCount || 0), 0), color: '#dc2626' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                    <div key={s.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
                       <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
                       <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
                     </div>
@@ -3739,7 +3801,7 @@ export default function MyCoachingPage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {otherHomeworkSubmissions.map((s, i) => (
-                    <div key={s.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.85rem 1rem', background: '#f8fafc', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
+                    <div key={s.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>{s.title}</div>
                         <div style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
@@ -3764,7 +3826,7 @@ export default function MyCoachingPage() {
             {/* ═══ DENEME EKLEME MODAL POPUP ═══ */}
             {showMockModal && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-                <div style={{ background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: 650, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.25rem', width: '100%', maxWidth: 650, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
                   
                   {/* Modal Header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '2px solid #f1f5f9' }}>
@@ -3775,7 +3837,7 @@ export default function MyCoachingPage() {
                         <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sonuçlarınız kaydolduktan sonra koç öğretmeninizin onayına sunulur.</p>
                       </div>
                     </div>
-                    <button onClick={() => setShowMockModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+                    <button onClick={() => setShowMockModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
                       <X size={18} />
                     </button>
                   </div>
@@ -3799,7 +3861,7 @@ export default function MyCoachingPage() {
                     <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '0.85rem', overflow: 'hidden', marginBottom: '0.85rem' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                         <thead>
-                          <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontWeight: 800, fontSize: '0.73rem', textTransform: 'uppercase' }}>
+                          <tr style={{ background: 'rgba(255, 255, 255, 0.5)', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontWeight: 800, fontSize: '0.73rem', textTransform: 'uppercase' }}>
                             <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left' }}>Ders</th>
                             <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#16a34a', width: 70 }}>Doğru (D)</th>
                             <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#dc2626', width: 70 }}>Yanlış (Y)</th>
@@ -3847,7 +3909,7 @@ export default function MyCoachingPage() {
                     </div>
 
                     {/* Ders Ekle Satırı */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', alignItems: 'center', background: '#f8fafc', border: '1.5px dashed #c7d2fe', borderRadius: '0.85rem', padding: '0.65rem 0.85rem' }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', alignItems: 'center', background: 'rgba(255, 255, 255, 0.5)', border: '1.5px dashed #c7d2fe', borderRadius: '0.85rem', padding: '0.65rem 0.85rem' }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366f1', whiteSpace: 'nowrap' }}>➕ Ders Ekle:</span>
                       <select
                         value={newSubjectName}
@@ -3892,7 +3954,7 @@ export default function MyCoachingPage() {
 
                     {/* Buttons */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                      <button type="button" onClick={() => setShowMockModal(false)} style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.2rem', fontWeight: 800, fontSize: '0.83rem', cursor: 'pointer' }}>
+                      <button type="button" onClick={() => setShowMockModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', color: '#64748b', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.2rem', fontWeight: 800, fontSize: '0.83rem', cursor: 'pointer' }}>
                         Vazgeç
                       </button>
                       <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.4rem', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(124,58,237,0.3)' }}>
@@ -3913,7 +3975,7 @@ export default function MyCoachingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
         }}>
           <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: 540,
+            background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.25rem', width: '100%', maxWidth: 540,
             padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
             display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto'
           }}>
@@ -3927,7 +3989,7 @@ export default function MyCoachingPage() {
               </div>
               <button
                 onClick={() => setSelectedMonthlyHabit(null)}
-                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+                style={{ background: 'rgba(255, 255, 255, 0.6)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
               >
                 <X size={18} />
               </button>
@@ -3947,19 +4009,19 @@ export default function MyCoachingPage() {
               return (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,1)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>BU AY</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669', marginTop: 2 }}>{checkedInMonth} / {totalDaysInMonth}</div>
                       <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Tamamlanan gün</div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,1)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>BAŞARI ORANI</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb', marginTop: 2 }}>%{percentage}</div>
                       <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Aylık başarım</div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,1)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>AKTİF SERİ</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626', marginTop: 2 }}>🔥 {streakInfo.currentStreak} Gün</div>
                       <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Kesintisiz zincir</div>

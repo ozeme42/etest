@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework } from '../services/supabaseService';
+import { useAuth } from './AuthContext';
 import { idbSetPayload } from '../services/indexedDbService';
 
 const HomeworkContext = createContext();
@@ -13,20 +14,27 @@ export function HomeworkProvider({ children }) {
     const saved = localStorage.getItem('eTestHomeworks');
     return saved ? JSON.parse(saved) : [];
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function syncHomeworksFromSupabase() {
-      const dbHws = await dbGetHomeworks();
-      if (dbHws) {
-        setHomeworks(dbHws);
+      setIsLoading(true);
+      try {
+        const dbHws = await dbGetHomeworks();
+        if (dbHws) {
+          setHomeworks(dbHws);
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
     syncHomeworksFromSupabase();
   }, []);
 
   useEffect(() => {
+    let sanitized = [];
     try {
-      const sanitized = homeworks.map(hw => {
+      sanitized = homeworks.map(hw => {
         const copy = { ...hw };
         if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
           copy.contentPayload = '[STORED_IN_INDEXEDDB]';
@@ -37,13 +45,65 @@ export function HomeworkProvider({ children }) {
         if (typeof copy.htmlPayload === 'string' && copy.htmlPayload.length > 500 && !copy.htmlPayload.startsWith('http')) {
           copy.htmlPayload = '[STORED_IN_INDEXEDDB]';
         }
+        if (Array.isArray(copy.questions)) {
+          copy.questions = copy.questions.map(q => {
+            const newQ = { ...q };
+            if (typeof newQ.image === 'string' && newQ.image.length > 500 && !newQ.image.startsWith('http')) {
+              newQ.image = '[STORED_IN_INDEXEDDB]';
+            }
+            return newQ;
+          });
+        }
         return copy;
       });
+      
       localStorage.setItem('eTestHomeworks', JSON.stringify(sanitized));
     } catch (err) {
-      console.warn('[HomeworkContext] localStorage quota exceeded, saved in memory & DB:', err);
+      if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        try {
+          // Keep only the latest 10 homeworks to fit in quota
+          const trimmed = sanitized.slice(-10);
+          localStorage.setItem('eTestHomeworks', JSON.stringify(trimmed));
+          console.warn('[HomeworkContext] localStorage quota exceeded, trimmed to 10 latest homeworks.');
+        } catch (e2) {
+          console.warn('[HomeworkContext] Quota exceeded even after trimming:', e2);
+        }
+      } else {
+        console.warn('[HomeworkContext] Error saving to localStorage:', err);
+      }
     }
   }, [homeworks]);
+
+const { user } = useAuth();
+
+useEffect(() => {
+  if (user?.id && homeworks.length > 0) {
+    let hasU1 = false;
+    homeworks.forEach(hw => {
+      if (hw.submissions?.some(s => s.studentId === 'u1')) {
+        hasU1 = true;
+      }
+    });
+
+    if (hasU1) {
+      setHomeworks(prev => {
+        const updated = prev.map(hw => {
+          if (hw.submissions?.some(s => s.studentId === 'u1')) {
+            const newSubmissions = hw.submissions.map(s => s.studentId === 'u1' ? { ...s, studentId: user.id } : s);
+            const newHw = { ...hw, submissions: newSubmissions };
+            dbAddHomework(newHw).catch(() => {});
+            return newHw;
+          }
+          return hw;
+        });
+        try {
+          localStorage.setItem('eTestHomeworks', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+  }
+}, [user?.id, homeworks]);
 
   const addHomework = async (hwData) => {
     const newId = `hw_${Date.now()}`;
@@ -134,6 +194,7 @@ export function HomeworkProvider({ children }) {
   return (
     <HomeworkContext.Provider value={{
       homeworks,
+      isLoading,
       addHomework,
       updateHomework,
       deleteHomework,

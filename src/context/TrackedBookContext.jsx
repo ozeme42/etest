@@ -25,23 +25,51 @@ export function TrackedBookProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     async function syncTrackedBooksFromSupabase() {
-      const res = await dbGetTrackedBooks();
-      if (res) {
-        if (res.books) setBooks(res.books);
-        if (res.bookTests) setBookTests(res.bookTests);
+      setIsLoading(true);
+      try {
+        const res = await dbGetTrackedBooks();
+        if (res) {
+          if (res.books) setBooks(res.books);
+          if (res.bookTests) setBookTests(res.bookTests);
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
     syncTrackedBooksFromSupabase();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('eTestTrackedBooks', JSON.stringify(books));
+    try {
+      localStorage.setItem('eTestTrackedBooks', JSON.stringify(books));
+    } catch (e) {
+      console.warn('TrackedBookContext: localStorage quota exceeded for books', e);
+    }
   }, [books]);
 
   useEffect(() => {
-    localStorage.setItem('eTestTrackedBookTests', JSON.stringify(bookTests));
+    try {
+      const sanitizedTests = bookTests.map(test => {
+        const copy = { ...test };
+        if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
+          copy.contentPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        if (typeof copy.pdfPayload === 'string' && copy.pdfPayload.length > 500 && !copy.pdfPayload.startsWith('http')) {
+          copy.pdfPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        if (typeof copy.htmlPayload === 'string' && copy.htmlPayload.length > 500 && !copy.htmlPayload.startsWith('http')) {
+          copy.htmlPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        return copy;
+      });
+      localStorage.setItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
+    } catch (e) {
+      console.warn('TrackedBookContext: localStorage quota exceeded for bookTests', e);
+    }
   }, [bookTests]);
 
   const addTrackedBook = async (bookData) => {
@@ -96,6 +124,7 @@ export function TrackedBookProvider({ children }) {
     <TrackedBookContext.Provider value={{
       books,
       bookTests,
+      isLoading,
       addTrackedBook,
       updateTrackedBook,
       deleteTrackedBook,

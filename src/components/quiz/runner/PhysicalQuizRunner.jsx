@@ -401,6 +401,28 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           })}
         </div>
       </div>
+      <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+        <button
+          onClick={handleSubmit}
+          style={{
+            padding: '1rem 3rem',
+            borderRadius: '1rem',
+            background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+            border: 'none',
+            color: 'white',
+            fontWeight: 900,
+            fontSize: '1.2rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            boxShadow: '0 8px 25px rgba(79, 70, 229, 0.4)'
+          }}
+        >
+          <CheckCircle2 size={24} /> 
+          Sınavı Bitir ve Gönder
+        </button>
+      </div>
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
     </div>

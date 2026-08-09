@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbClearStudentSubmissions } from '../services/supabaseService';
+import { useAuth } from './AuthContext';
 
 const EvaluationContext = createContext();
 
@@ -87,20 +88,41 @@ export function EvaluationProvider({ children }) {
     async function syncFromSupabase() {
       setIsSyncing(true);
       try {
-        const dbSubs = await dbGetSubmissions();
-        if (Array.isArray(dbSubs) && dbSubs.length > 0) {
-          setSubmissions(prev => {
-            const map = new Map();
-            dbSubs.forEach(s => map.set(String(s.id), s));
-            prev.forEach(s => {
-              const existing = map.get(String(s.id));
-              if (!existing || s.isEvaluatedByTeacher || s.status === 'completed' || s.status === 'evaluated') {
-                map.set(String(s.id), { ...existing, ...s });
+        const dbSubsList = await dbGetSubmissions() || [];
+        setSubmissions(prev => {
+          const map = new Map();
+          dbSubsList.forEach(s => map.set(String(s.id), s));
+          prev.forEach(s => {
+            const existing = map.get(String(s.id));
+
+            // Yüksek boyutlu verileri temizle (eski kayıtlar için)
+            delete s.contentPayload;
+            delete s.pdfPayload;
+            delete s.htmlPayload;
+            delete s.imageUrl;
+            delete s.imageUrls;
+            if (s.questionsList) {
+              s.questionsList = s.questionsList.map(q => {
+                const qCopy = { ...q };
+                delete qCopy.contentPayload;
+                delete qCopy.htmlPayload;
+                delete qCopy.imageUrls;
+                delete qCopy.imageUrl;
+                return qCopy;
+              });
+            }
+
+            if (!existing) {
+              if (!s.id.startsWith('sub_sample')) {
+                dbSaveSubmission(s).catch(err => console.warn('Background sync failed:', err));
               }
-            });
-            return Array.from(map.values());
+              map.set(String(s.id), s);
+            } else if (s.isEvaluatedByTeacher || s.status === 'completed' || s.status === 'evaluated') {
+              map.set(String(s.id), { ...existing, ...s });
+            }
           });
-        }
+          return Array.from(map.values());
+        });
       } finally {
         setIsSyncing(false);
       }
@@ -112,9 +134,56 @@ export function EvaluationProvider({ children }) {
     try {
       localStorage.setItem('eTestSubmissions', JSON.stringify(submissions));
     } catch (err) {
-      console.warn('EvaluationContext: localStorage quota exceeded while saving submissions.', err);
+      if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        try {
+          // Keep only the latest 10 submissions to fit in quota
+          const trimmed = submissions.slice(-10);
+          localStorage.setItem('eTestSubmissions', JSON.stringify(trimmed));
+          // Silently trimmed. The React state still holds all items, but localStorage holds 10 to prevent crashes.
+        } catch (e2) {
+          // Ignore
+        }
+      } else {
+        console.warn('EvaluationContext: Error saving to localStorage:', err);
+      }
     }
   }, [submissions]);
+
+  const { user } = useAuth();
+
+  // FIX: Bu ref, 'u1' -> gerçek kullanıcı id'si taşıma işleminin
+  // yalnızca BİR KEZ çalışmasını garanti eder. Önceki kodda bu effect
+  // `submissions` state'ine bağımlıydı; setSubmissions her çağrıldığında
+  // yeni bir array referansı oluştuğu için effect kendi kendini tekrar
+  // tetikliyor ve her seferinde dbSaveSubmission'ı yeniden çağırıyordu
+  // (log'daki yüzlerce tekrarlanan hatanın sebebi buydu).
+  const didMigrateU1Ref = useRef(false);
+
+  useEffect(() => {
+    if (!user?.id || didMigrateU1Ref.current) return;
+
+    setSubmissions(prev => {
+      const hasU1 = prev.some(s => s.studentId === 'u1');
+      if (!hasU1) return prev; // Referansı değiştirme, gereksiz re-render/effect tetikleme
+
+      didMigrateU1Ref.current = true;
+
+      const updated = prev.map(s => s.studentId === 'u1' ? { ...s, studentId: user.id } : s);
+
+      try {
+        localStorage.setItem('eTestSubmissions', JSON.stringify(updated));
+        updated
+          .filter(s => s.studentId === user.id && s.id && !s.id.startsWith('sub_sample'))
+          .forEach(s => {
+            dbSaveSubmission(s).catch(() => {});
+          });
+      } catch (e) {}
+
+      return updated;
+    });
+    // Yalnızca user.id değiştiğinde çalışsın; submissions'a bağımlı DEĞİL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const addSubmission = async (subData) => {
     const newSub = {
@@ -122,6 +191,24 @@ export function EvaluationProvider({ children }) {
       submittedAt: new Date().toISOString(),
       ...subData
     };
+
+    // Yüksek boyutlu verileri silerek localStorage'ı koru
+    delete newSub.contentPayload;
+    delete newSub.pdfPayload;
+    delete newSub.htmlPayload;
+    delete newSub.imageUrl;
+    delete newSub.imageUrls;
+    if (newSub.questionsList) {
+      newSub.questionsList = newSub.questionsList.map(q => {
+        const qCopy = { ...q };
+        delete qCopy.contentPayload;
+        delete qCopy.htmlPayload;
+        delete qCopy.imageUrls;
+        delete qCopy.imageUrl;
+        return qCopy;
+      });
+    }
+
     setSubmissions(prev => [...prev, newSub]);
     await dbSaveSubmission(newSub);
     return newSub.id;
@@ -134,10 +221,10 @@ export function EvaluationProvider({ children }) {
         if (sub.id !== submissionId) return sub;
 
         let updatedAnswers = sub.answers.map(ans => {
-          const isMatch = isBundle 
+          const isMatch = isBundle
             ? ans.questionId === questionId && ans.isBundle && ans.subIndex === subIndex
             : ans.questionId === questionId && !ans.isBundle;
-            
+
           if (isMatch) {
             return {
               ...ans,
@@ -164,7 +251,7 @@ export function EvaluationProvider({ children }) {
       let updatedSub = null;
       const nextSubs = prev.map(sub => {
         if (sub.id !== submissionId) return sub;
-        
+
         const totalScore = sub.answers.reduce((acc, ans) => acc + (ans.earnedPoints || 0), 0);
         updatedSub = { ...sub, status: 'completed', score: totalScore };
         return updatedSub;
@@ -183,6 +270,24 @@ export function EvaluationProvider({ children }) {
       const nextSubs = prev.map(sub => {
         if (String(sub.id) === String(id)) {
           target = { ...sub, ...updatedData };
+
+          // Yüksek boyutlu verileri silerek localStorage'ı koru
+          delete target.contentPayload;
+          delete target.pdfPayload;
+          delete target.htmlPayload;
+          delete target.imageUrl;
+          delete target.imageUrls;
+          if (target.questionsList) {
+            target.questionsList = target.questionsList.map(q => {
+              const qCopy = { ...q };
+              delete qCopy.contentPayload;
+              delete qCopy.htmlPayload;
+              delete qCopy.imageUrls;
+              delete qCopy.imageUrl;
+              return qCopy;
+            });
+          }
+
           return target;
         }
         return sub;

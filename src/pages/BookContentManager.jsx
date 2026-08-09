@@ -96,6 +96,7 @@ export default function BookContentManager() {
   const [assignTargetMode, setAssignTargetMode] = useState("class"); // "class" | "student"
   const [assignSelectedTargetIds, setAssignSelectedTargetIds] = useState([]);
   const [assignCustomTitle, setAssignCustomTitle] = useState("");
+  const [assignAsBook, setAssignAsBook] = useState(false);
   const [assignDueDateDays, setAssignDueDateDays] = useState(7);
 
   // Mistake Filter States
@@ -132,7 +133,11 @@ export default function BookContentManager() {
       }
       totalTargetStudents += hwStudents.length;
 
-      const hwTests = hw.tests || [];
+      let hwTests = hw.tests || [];
+      if (hw.title && hw.title.includes('(Tüm Kitap Görevi)')) {
+        hwTests = tests.map(t => t.id);
+      }
+
       hwStudents.forEach(st => {
         const solved = submissions.filter(s => s.studentId === st.id && hwTests.includes(s.testId) && s.status === 'completed');
         if (solved.length >= hwTests.length && hwTests.length > 0) completedCount++;
@@ -595,6 +600,7 @@ export default function BookContentManager() {
       tests: selectedTests,
       sourceType: 'trackedBook',
       bookId: book.id,
+      isBookAssignment: assignAsBook,
       totalQuestions: totalQCount,
       subject: selectedTestObjs[0]?.subjectName || book.publisher || 'Kitap Takibi'
     });
@@ -603,6 +609,28 @@ export default function BookContentManager() {
     setIsAssignDialogOpen(false);
     setSelectedTests([]);
     setAssignSelectedTargetIds([]);
+    setAssignAsBook(false);
+  };
+
+  const handleAssignEntireBook = () => {
+    setSelectedTests(tests.map(t => t.id));
+    setAssignCustomTitle(`${book.title} (Tüm Kitap Görevi)`);
+    setAssignAsBook(true);
+    setAssignDueDateDays(90);
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleAssignSubject = (subject) => {
+    const subjectTests = tests.filter(t => String(t.subjectId) === String(subject.id));
+    if (subjectTests.length === 0) {
+      showToast("Bu derse ait test bulunmamaktadır.", "error");
+      return;
+    }
+    setSelectedTests(subjectTests.map(t => t.id));
+    setAssignCustomTitle(`${book.title} - ${subject.name} (Görev)`);
+    setAssignAsBook(true);
+    setAssignDueDateDays(30);
+    setIsAssignDialogOpen(true);
   };
 
   const handleDeleteHomeworkItem = (hwId) => {
@@ -676,6 +704,9 @@ export default function BookContentManager() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={handleAssignEntireBook} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800 }}>
+            <BookOpen size={18} /> Tüm Kitabı Ata
+          </button>
           <button className="btn btn-secondary" onClick={() => setIsBulkWizardOpen(true)} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800 }}>
             <Zap size={18} /> Toplu Ekle & Yapılandır
           </button>
@@ -761,6 +792,7 @@ export default function BookContentManager() {
                         </span>
                       </div>
                       <div style={{ padding: '0 1rem', display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={(e) => { e.stopPropagation(); handleAssignSubject(subject); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-primary)' }} title="Tüm Dersi Ödev Olarak Ata"><BookOpen size={16} /></button>
                         <button onClick={() => { setCurrentSubject(subject); setNewSubjectName(subject.name); setIsSubjectDialogOpen(true); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }}><Edit size={16} /></button>
                         <button onClick={() => handleDeleteSubject(subject.id)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
                       </div>
@@ -973,13 +1005,17 @@ export default function BookContentManager() {
 
                   let completedStudentsCount = 0;
                   const studentProgressDetails = targetStudents.map(st => {
-                    const solvedSubmissions = submissions.filter(s => s.studentId === st.id && hwTests.includes(s.testId) && s.status === 'completed');
-                    const solvedCount = solvedSubmissions.length;
-                    const isDone = solvedCount >= totalTestsInHw;
+                    const solvedSubmissions = submissions.filter(s => 
+                      s.studentId === st.id && 
+                      s.status === 'completed' &&
+                      (s.testId === hw.id || s.homeworkId === hw.id || s.hwId === hw.id || hwTests.includes(s.testId) || hwTests.includes(s.bookTestId))
+                    );
+                    
+                    const isDone = solvedSubmissions.length > 0; // If any matching submission exists, they finished the homework
                     if (isDone) completedStudentsCount++;
                     
-                    const pct = Math.min(100, Math.round((solvedCount / totalTestsInHw) * 100));
-                    return { student: st, solvedCount, totalTestsInHw, isDone, pct, solvedSubmissions };
+                    const pct = isDone ? 100 : 0;
+                    return { student: st, solvedCount: isDone ? totalTestsInHw : 0, totalTestsInHw, isDone, pct, solvedSubmissions };
                   });
 
                   const overallHwPct = targetStudents.length > 0 ? Math.round((completedStudentsCount / targetStudents.length) * 100) : 0;
@@ -1065,12 +1101,20 @@ export default function BookContentManager() {
                                   <div style={{ width: `${item.pct}%`, background: item.isDone ? '#10b981' : '#38bdf8', height: '100%' }} />
                                 </div>
 
-                                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem', alignItems: 'center' }}>
                                   <span>Çözülen: {item.solvedCount} / {item.totalTestsInHw} Test</span>
                                   {item.solvedSubmissions.length > 0 && (
-                                    <span style={{ color: '#059669', fontWeight: 800 }}>
-                                      {item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length}% Başarı
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <span style={{ color: '#059669', fontWeight: 800 }}>
+                                        {item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length}% Başarı
+                                      </span>
+                                      <button 
+                                        onClick={() => navigate(`/review/${item.solvedSubmissions[item.solvedSubmissions.length - 1].id}`)}
+                                        style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}
+                                      >
+                                        İncele
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1190,7 +1234,7 @@ export default function BookContentManager() {
 
       {/* ⚡ UNIFIED BULK IMPORT WIZARD */}
       {isBulkWizardOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
@@ -1401,7 +1445,7 @@ export default function BookContentManager() {
 
       {/* Subject Modal */}
       {isSubjectDialogOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
             <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>{currentSubject ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.5rem 0' }}>
@@ -1418,7 +1462,7 @@ export default function BookContentManager() {
 
       {/* Topic Modal */}
       {isTopicDialogOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
             <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>{currentTopic ? 'Konuyu Düzenle' : 'Yeni Konu Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.5rem 0' }}>
@@ -1435,7 +1479,7 @@ export default function BookContentManager() {
 
       {/* Test Modal */}
       {isTestDialogOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '450px' }}>
             <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>{currentTest ? 'Testi Düzenle' : 'Yeni Test Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.5rem 0 1rem 0' }}>
@@ -1509,7 +1553,7 @@ export default function BookContentManager() {
 
       {/* 🏫 ADVANCED ASSIGN HOMEWORK MODAL (CLASS & STUDENT SELECTION) */}
       {isAssignDialogOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '540px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
               <h3 style={{ marginTop: 0, marginBottom: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
@@ -1638,11 +1682,22 @@ export default function BookContentManager() {
                 onChange={(e) => setAssignDueDateDays(parseInt(e.target.value) || 7)}
                 style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
               >
-                <option value={3}>3 Gün</option>
-                <option value={5}>5 Gün</option>
+                {!assignAsBook && (
+                  <>
+                    <option value={3}>3 Gün</option>
+                    <option value={5}>5 Gün</option>
+                  </>
+                )}
                 <option value={7}>1 Hafta (7 Gün)</option>
                 <option value={14}>2 Hafta (14 Gün)</option>
                 <option value={30}>1 Ay (30 Gün)</option>
+                {assignAsBook && (
+                  <>
+                    <option value={60}>2 Ay (60 Gün)</option>
+                    <option value={90}>Dönem Sonu (90 Gün)</option>
+                    <option value={180}>Yıl Sonu (180 Gün)</option>
+                  </>
+                )}
               </select>
             </div>
 
