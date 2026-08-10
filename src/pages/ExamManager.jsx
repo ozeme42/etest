@@ -3,7 +3,7 @@ import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
-  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3, Users
+  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,8 +13,6 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
-import { useEvaluation } from '../context/EvaluationContext';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
@@ -81,15 +79,12 @@ export default function ExamManager() {
   const { addHomework, homeworks } = useHomework();
   const { data: curData } = useCurriculum();
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
-  const { submissions } = useEvaluation();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
   // UX Toggle: Default to List View (showAddForm === false)
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewingExamDetails, setViewingExamDetails] = useState(null);
-  const [activeTab, setActiveTab] = useState('reports');
-  const [viewingStudentResult, setViewingStudentResult] = useState(null);
   
   // Edit Mode State for Existing Exams
   const [isEditingExam, setIsEditingExam] = useState(false);
@@ -395,7 +390,6 @@ export default function ExamManager() {
 
   const handleViewExamDetails = (exam) => {
     setViewingExamDetails(exam);
-    setActiveTab('reports');
     setIsEditingExam(false);
     setEditingAnswerKey(exam.answerKey || {});
     setEditingExamMeta({
@@ -473,65 +467,13 @@ export default function ExamManager() {
     return 0; // Not applicable for the definition library view
   }, [physicalExamsDatabase]);
 
-  const chartData = useMemo(() => {
-    return physicalExamsDatabase.map(exam => {
-      const examHws = homeworks.filter(hw => hw.bookId === exam.id);
-      const hwIds = examHws.map(h => h.id);
-      const examSubs = submissions.filter(s => hwIds.includes(s.hwId) || s.bookId === exam.id);
-      
-      const uniqueStudents = new Set(examSubs.map(s => s.studentId));
-      let totalScore = 0;
-      uniqueStudents.forEach(stId => {
-        const sSubs = examSubs.filter(s => s.studentId === stId);
-        totalScore += sSubs.reduce((acc, curr) => acc + (curr.score || 0), 0);
-      });
-      
-      const avgScore = uniqueStudents.size > 0 ? totalScore / uniqueStudents.size : 0;
-      
-      return {
-        name: (exam.title || 'İsimsiz').substring(0, 15) + ((exam.title || 'İsimsiz').length > 15 ? '...' : ''),
-        Katılım: uniqueStudents.size,
-        Ortalama: Math.round(avgScore)
-      };
-    }).slice(0, 6);
-  }, [physicalExamsDatabase, submissions, homeworks]);
-
-  const studentResults = useMemo(() => {
-    if (!viewingExamDetails) return [];
-    const examHws = homeworks.filter(hw => hw.bookId === viewingExamDetails.id);
-    const hwIds = examHws.map(h => h.id);
-    const subs = submissions.filter(s => hwIds.includes(s.hwId) || s.bookId === viewingExamDetails.id);
-    
-    const map = {};
-    subs.forEach(s => {
-      if (!map[s.studentId]) {
-        const studentInfo = students.find(st => st.id === s.studentId) || { name: 'Bilinmeyen Öğrenci' };
-        map[s.studentId] = {
-          studentId: s.studentId,
-          studentName: studentInfo.name,
-          score: 0,
-          correctCount: 0,
-          wrongCount: 0,
-          emptyCount: 0,
-          submissions: []
-        };
-      }
-      map[s.studentId].score += (s.score || 0);
-      map[s.studentId].correctCount += (s.correctCount || 0);
-      map[s.studentId].wrongCount += (s.wrongCount || 0);
-      map[s.studentId].emptyCount += (s.emptyCount || 0);
-      map[s.studentId].submissions.push(s);
-    });
-    return Object.values(map).sort((a,b) => b.score - a.score);
-  }, [viewingExamDetails, homeworks, submissions, students]);
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 p-4 sm:p-6 pb-20">
+    <div className="min-h-screen bg-slate-50  text-slate-800  p-4 sm:p-6 pb-20">
       
       {/* HEADER BAR */}
       <div className="max-w-7xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-black text-slate-900  flex items-center gap-2.5">
             <ClipboardCheck className="w-7 h-7 text-indigo-500" />
             Fiziki Deneme & Dijital Optik Form Girişi
           </h1>
@@ -545,7 +487,7 @@ export default function ExamManager() {
           {showAddForm ? (
             <button
               onClick={() => setShowAddForm(false)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-black hover:bg-slate-300 transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-200  text-slate-700  text-xs font-black hover:bg-slate-300 transition-all"
             >
               <ArrowLeft className="w-4 h-4" /> Kayıtlı Denemelere Dön
             </button>
@@ -553,7 +495,7 @@ export default function ExamManager() {
             <>
               <button
                 onClick={() => setShowJsonModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100  text-slate-700  text-xs font-bold border border-slate-200  hover:border-indigo-400 transition-all"
               >
                 <FileCode2 className="w-4 h-4 text-emerald-500" /> Toplu JSON Aktar
               </button>
@@ -575,78 +517,51 @@ export default function ExamManager() {
           
           {/* STATS OVERVIEW CARDS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-white  border border-slate-200  rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Girilen Deneme</span>
-                <span className="text-base font-black text-slate-900 dark:text-white">{physicalExamsDatabase.length} Deneme</span>
+                <span className="text-base font-black text-slate-900 ">{physicalExamsDatabase.length} Deneme</span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#1E293B] border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-white  border border-emerald-200  rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Net Ortalaması</span>
-                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{avgNet} Net</span>
+                <span className="text-base font-black text-emerald-600 ">{avgNet} Net</span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#1E293B] border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-white  border border-amber-200  rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
                 <Trophy className="w-5 h-5" />
               </div>
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Rekor Net</span>
-                <span className="text-base font-black text-amber-600 dark:text-amber-400">{highestNet} Net</span>
+                <span className="text-base font-black text-amber-600 ">{highestNet} Net</span>
               </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md dark:bg-[#1E293B] border border-purple-200/60 dark:border-purple-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-white  border border-purple-200  rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Koçluk Sync</span>
-                <span className="text-xs font-black text-purple-600 dark:text-purple-400">Sayfa 7 Aktif</span>
+                <span className="text-xs font-black text-purple-600 ">Sayfa 7 Aktif</span>
               </div>
             </div>
           </div>
 
-          {/* CHART OVERVIEW */}
-          {chartData.length > 0 && (
-            <div className="bg-white/80 dark:bg-[#1E293B] backdrop-blur-xl border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-              <h3 className="text-base font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-indigo-500" />
-                Sınav Katılım & Ortalama Analizi
-              </h3>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)' }}
-                      labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
-                    <Bar yAxisId="left" dataKey="Katılım" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} />
-                    <Bar yAxisId="right" dataKey="Ortalama" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
           {/* MAIN RECORDED EXAMS TABLE / CARDS GRID */}
-          <div className="bg-white/90 backdrop-blur-md dark:bg-[#1E293B] border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
-              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white  border border-slate-200  rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3 flex-wrap gap-2">
+              <h2 className="text-base font-black text-slate-900  flex items-center gap-2">
                 <Layers className="w-5 h-5 text-indigo-500" />
                 Fiziki Deneme Havuzu (Soru Bankası)
               </h2>
@@ -659,11 +574,11 @@ export default function ExamManager() {
             </div>
 
             {physicalExamsDatabase.length === 0 ? (
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
-                <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mx-auto">
+              <div className="border-2 border-dashed border-slate-200  rounded-3xl p-12 text-center space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50  text-indigo-500 flex items-center justify-center mx-auto">
                   <ClipboardCheck className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
+                <h3 className="text-base font-bold text-slate-800 ">Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   Öğrencinizin Özdebir, Töder veya Kurumsal fiziki denemelerinin cevaplarını dijital optik forma kodlayarak ilk kaydı oluşturun.
                 </p>
@@ -677,32 +592,32 @@ export default function ExamManager() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {physicalExamsDatabase.map(m => (
-                  <div key={m.id} className="bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-all group relative">
+                  <div key={m.id} className="bg-slate-50/70  border border-slate-200  rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-all group relative">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100  text-indigo-600  px-2 py-0.5 rounded-md">
                           {m.publisher || 'LGS'} Sınavı
                         </span>
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug mt-1 line-clamp-2">{m.title}</h3>
+                        <h3 className="text-sm font-bold text-slate-800  leading-snug mt-1 line-clamp-2">{m.title}</h3>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                           <Calendar className="w-3 h-3" /> {(m.subjects || []).length} Ders
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 leading-none block">Havuzda</span>
+                        <span className="text-xs font-black text-amber-600  leading-none block">Havuzda</span>
                       </div>
                     </div>
 
                     {/* SUBJECT QUESTION COUNT BREAKDOWN */}
-                    <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 text-center">
+                    <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60  text-[11px] font-bold text-slate-600  text-center">
                       {(m.subjects || []).slice(0, 3).map((s, sIdx) => (
-                        <div key={sIdx} className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <div key={sIdx} className="bg-white  p-1.5 rounded-lg border border-slate-100 ">
                           <span className="text-[9px] text-slate-400 block font-black truncate">{s.name}</span>
                         </div>
                       ))}
                       {(!m.subjects || m.subjects.length === 0) && (
-                        <div className="col-span-3 bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50 text-[10px] text-slate-400">
+                        <div className="col-span-3 bg-white  p-1.5 rounded-lg border border-slate-100  text-[10px] text-slate-400">
                           Standart Ders Dağılımı
                         </div>
                       )}
@@ -711,7 +626,7 @@ export default function ExamManager() {
                     <div className="flex items-center justify-between pt-1">
                       <button
                         onClick={() => handleViewExamDetails(m)}
-                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                        className="text-xs font-bold text-indigo-600  hover:underline flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" /> Detaylar
                       </button>
@@ -719,13 +634,13 @@ export default function ExamManager() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setAssignModalExam(m)}
-                          className="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 text-[10px] font-black hover:bg-emerald-200 transition-colors"
+                          className="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700   text-[10px] font-black hover:bg-emerald-200 transition-colors"
                         >
                           Ödev Ata
                         </button>
                         <button
                           onClick={() => { if(window.confirm('Bu denemeyi havuzdan silmek istediğinize emin misiniz?')) deleteTrackedBook(m.id); }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50  transition-all"
                           title="Denemeyi Sil"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -747,7 +662,7 @@ export default function ExamManager() {
         <div className="max-w-7xl mx-auto space-y-6">
           
           {/* TOP CONFIG BAR */}
-          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+          <div className="bg-white  border border-slate-200  rounded-3xl p-5 shadow-sm space-y-4">
             
             {/* PRESET SELECTOR */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -759,7 +674,7 @@ export default function ExamManager() {
                     'py-2.5 px-4 rounded-2xl border text-xs font-black transition-all flex flex-col items-center justify-center gap-1',
                     examType === key
                       ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
-                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'
+                      : 'bg-slate-50  border-slate-200  text-slate-600  hover:border-indigo-300'
                   )}
                 >
                   <span>{key === 'CUSTOM' ? 'Özel / Boş Şablon' : `${key} Sınavı`}</span>
@@ -779,7 +694,7 @@ export default function ExamManager() {
                   placeholder="Örn: Özdebir LGS Genel Deneme 1"
                   value={examTitle}
                   onChange={e => setExamTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200  bg-slate-50  text-xs font-bold text-slate-800  outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -789,18 +704,18 @@ export default function ExamManager() {
                   type="date"
                   value={examDate}
                   onChange={e => setExamDate(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200  bg-slate-50  text-xs font-bold text-slate-800  outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">PDF Linki (İsteğe Bağlı)</label>
+                <label className="block text-xs font-black text-slate-500  uppercase tracking-wider mb-1.5">PDF Linki (İsteğe Bağlı)</label>
                 <input
                   type="url"
                   value={examPdfUrl}
                   onChange={e => setExamPdfUrl(e.target.value)}
                   placeholder="https://drive.google.com/... veya direkt PDF linki"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200  bg-white  text-sm font-bold text-slate-800  focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">Google Drive paylaşım linki veya direkt PDF URL girin. Öğrenciler PDF'yi soru çözerken yanlarında görebilir.</p>
               </div>
@@ -810,7 +725,7 @@ export default function ExamManager() {
                 <select
                   value={penaltyRatio}
                   onChange={e => setPenaltyRatio(Number(e.target.value))}
-                  className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-indigo-200  bg-indigo-50/60  text-xs font-bold text-indigo-700  outline-none"
                 >
                   <option value={3}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
                   <option value={4}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
@@ -824,15 +739,15 @@ export default function ExamManager() {
           </div>
 
           {/* SUBJECTS PREVIEW & CONFIGURATION */}
-          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white  border border-slate-200  rounded-3xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3 flex-wrap gap-2">
+              <h3 className="text-sm font-black text-slate-900  flex items-center gap-2">
                 <Layers className="w-5 h-5 text-indigo-500" />
                 Dersler (Testler) ve Soru Dağılımı
               </h3>
               <button
                 onClick={() => setShowSettingsModal(true)}
-                className="px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl border border-indigo-200  bg-indigo-50  text-indigo-600  text-xs font-bold hover:bg-indigo-100  transition-colors flex items-center gap-1.5"
               >
                 <Settings2 className="w-4 h-4" /> Ders / Soru Düzenle
               </button>
@@ -840,10 +755,10 @@ export default function ExamManager() {
             
             {subjects.length === 0 ? (
               <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-xl bg-slate-100  text-slate-400 flex items-center justify-center mx-auto mb-3">
                   <AlertCircle className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Şu an hiç ders yok!</p>
+                <p className="text-sm font-bold text-slate-600  mb-1">Şu an hiç ders yok!</p>
                 <p className="text-xs text-slate-400">Özel Şablon seçtiniz. Devam etmek için en az bir ders eklemelisiniz.</p>
                 <button
                   onClick={() => setShowSettingsModal(true)}
@@ -855,9 +770,9 @@ export default function ExamManager() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {subjects.map(sub => (
-                  <div key={sub.name} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex flex-col justify-between">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">{sub.name}</span>
-                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md self-start">
+                  <div key={sub.name} className="bg-slate-50  border border-slate-200  rounded-2xl p-3 flex flex-col justify-between">
+                    <span className="text-xs font-bold text-slate-800  block mb-1">{sub.name}</span>
+                    <span className="text-[10px] font-black text-indigo-600  bg-indigo-100  px-2 py-0.5 rounded-md self-start">
                       {sub.count} Soru
                     </span>
                   </div>
@@ -870,7 +785,7 @@ export default function ExamManager() {
           <div className="flex justify-end gap-3 mt-6">
             <button
               onClick={() => setShowAddForm(false)}
-              className="px-6 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+              className="px-6 py-3 rounded-2xl bg-white  border border-slate-200  text-xs font-bold text-slate-600  hover:bg-slate-50  transition-all shadow-sm"
             >
               Vazgeç
             </button>
@@ -888,20 +803,20 @@ export default function ExamManager() {
       {/* TOPLU YAPIŞTIR MODAL — sadece cevap anahtarı */}
       {showBulkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-base">
+          <div className="bg-white  rounded-3xl p-6 w-full max-w-md border border-slate-200  shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
+              <div className="flex items-center gap-2 text-amber-600  font-black text-base">
                 <Key className="w-5 h-5" />
                 {subjects[activeSubjectIndex]?.name} — Cevap Anahtarı Yapıştır
               </div>
-              <button onClick={() => setShowBulkModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setShowBulkModal(false)} className="p-1 text-slate-400 hover:text-slate-600 ">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Cevapları yapıştırın (Örn: <code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">ABCDABCD</code> veya <code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">A, B, C, D</code>).
-              <br/><strong className="text-amber-600 dark:text-amber-400">✨ Kaç soru girerseniz o kadarı uygulanır.</strong>
+            <p className="text-xs text-slate-500  leading-relaxed">
+              Cevapları yapıştırın (Örn: <code className="bg-amber-100  text-amber-700  px-1 py-0.5 rounded">ABCDABCD</code> veya <code className="bg-amber-100  text-amber-700  px-1 py-0.5 rounded">A, B, C, D</code>).
+              <br/><strong className="text-amber-600 ">✨ Kaç soru girerseniz o kadarı uygulanır.</strong>
             </p>
 
             <form onSubmit={handleApplyBulkInput} className="space-y-3">
@@ -910,23 +825,23 @@ export default function ExamManager() {
                 placeholder="Örn: A B C D A B C D A B C D A B C D A B C D"
                 value={bulkInputText}
                 onChange={e => setBulkInputText(e.target.value)}
-                className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500 uppercase tracking-widest"
+                className="w-full p-3 rounded-2xl border border-slate-200  bg-slate-50  text-xs font-mono text-slate-800  outline-none focus:border-indigo-500 uppercase tracking-widest"
               />
 
               {parsedBulkInput.length > 0 && (
-                <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 text-xs text-indigo-800 dark:text-indigo-200 space-y-1">
+                <div className="p-3 rounded-xl bg-indigo-50  border border-indigo-200  text-xs text-indigo-800  space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     {parsedBulkInput.length} Soru Cevabı Algılandı (Soru 1 ile {Math.min(parsedBulkInput.length, subjects[activeSubjectIndex]?.count || 20)} arası güncellenecektir):
                   </div>
-                  <div className="font-mono text-[11px] truncate tracking-widest text-indigo-950 dark:text-indigo-100 font-bold">
+                  <div className="font-mono text-[11px] truncate tracking-widest text-indigo-950  font-bold">
                     {parsedBulkInput.slice(0, subjects[activeSubjectIndex]?.count || 20).join(' - ')}
                   </div>
                 </div>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowBulkModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button type="button" onClick={() => setShowBulkModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 ">İptal</button>
               <button
                   type="submit"
                   disabled={parsedBulkInput.length === 0}
@@ -943,23 +858,23 @@ export default function ExamManager() {
 
       {/* DENEME ÖNİZLEME VE CEVAP ANAHTARI DETAY MODAL */}
       {viewingExamDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-          <div className="bg-white/95 backdrop-blur-xl dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-4xl border border-slate-200/60 dark:border-slate-700 shadow-2xl space-y-4 max-h-[95vh] overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white  rounded-3xl p-6 w-full max-w-2xl border border-slate-200  shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
               <div className="flex-1 mr-4">
                 <div className="flex items-center gap-2 mb-1">
                   {isEditingExam ? (
                     <select
                       value={editingExamMeta.publisher}
                       onChange={(e) => setEditingExamMeta(p => ({ ...p, publisher: e.target.value }))}
-                      className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 focus:outline-none"
+                      className="px-2 py-1 rounded-md border border-slate-200  bg-white  text-[10px] font-black uppercase tracking-wider text-indigo-600  focus:outline-none"
                     >
                       {['LGS', 'Özdebir', 'Töder', 'Sinan Kuzucu', 'Nartest', 'Okyanus'].map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
                   ) : (
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100  text-indigo-600  px-2 py-0.5 rounded-md">
                       {viewingExamDetails.publisher || 'LGS'} Sınav Önizlemesi
                     </span>
                   )}
@@ -970,202 +885,129 @@ export default function ExamManager() {
                     type="text"
                     value={editingExamMeta.title}
                     onChange={(e) => setEditingExamMeta(p => ({ ...p, title: e.target.value }))}
-                    className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-lg font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-1.5 rounded-lg border border-slate-200  bg-white  text-lg font-black text-slate-900  focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 ) : (
-                  <h3 className="font-black text-slate-900 dark:text-white text-xl leading-tight">{viewingExamDetails.title}</h3>
+                  <h3 className="font-black text-slate-900  text-lg leading-tight">{viewingExamDetails.title}</h3>
                 )}
               </div>
               <div className="flex items-center gap-2 self-start">
                 {!isEditingExam ? (
-                  <button onClick={() => setIsEditingExam(true)} className="p-1.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors">
+                  <button onClick={() => setIsEditingExam(true)} className="p-1.5 text-amber-500 hover:bg-amber-50  rounded-lg flex items-center gap-1 text-xs font-bold transition-colors">
                     <Edit3 className="w-4 h-4" /> Düzenle
                   </button>
                 ) : (
                   <span className="text-xs font-black text-amber-500 animate-pulse">Düzenleme Modu</span>
                 )}
-                <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 ">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* TAB NAVIGATION */}
-            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl shrink-0">
-              <button 
-                onClick={() => setActiveTab('reports')}
-                className={cn(
-                  "flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all",
-                  activeTab === 'reports' ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Öğrenci Sonuçları ve Raporlar
-              </button>
-              <button 
-                onClick={() => setActiveTab('settings')}
-                className={cn(
-                  "flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all",
-                  activeTab === 'settings' ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Ayarlar ve Cevap Anahtarı
-              </button>
+            {isEditingExam && (
+              <div className="space-y-3 pb-3 border-b border-slate-100 ">
+                <div>
+                  <label className="text-xs font-bold text-slate-500  mb-1 block">PDF Linki</label>
+                  <input
+                    type="url"
+                    value={editingExamMeta.pdfUrl}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, pdfUrl: e.target.value }))}
+                    placeholder="https://drive.google.com/... veya direkt PDF URL"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200  bg-white  text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500  mb-1 block">Değerlendirme (Ceza Kuralı)</label>
+                  <select
+                    value={editingExamMeta.penaltyRatio}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200  bg-white  text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value={0}>Yanlışlar Doğruyu Götürmez</option>
+                    <option value={3}>3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+                    <option value={4}>4 Yanlış 1 Doğruyu Götürür</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* QUICK SPECS */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
+              <div className="bg-slate-50  border border-slate-200  p-3 rounded-2xl">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Toplam Soru</span>
+                <span className="text-base font-black text-slate-800 ">{viewingExamDetails.totalQuestions} Soru</span>
+              </div>
+              <div className="bg-slate-50  border border-slate-200  p-3 rounded-2xl">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ceza Kuralı</span>
+                <span className="text-base font-black text-amber-600 ">
+                  {viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}
+                </span>
+              </div>
+              <div className="bg-slate-50  border border-slate-200  p-3 rounded-2xl col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ders Sayısı</span>
+                <span className="text-base font-black text-indigo-600 ">
+                  {viewingExamDetails.subjects?.length || 0} Ders
+                </span>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-[300px]">
-              {activeTab === 'reports' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-200">
-                      Sınava Katılan Öğrenciler ({studentResults.length})
-                    </h4>
-                  </div>
-                  
-                  {studentResults.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
-                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
-                        <Users className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-slate-800 font-bold mb-1">Henüz Çözen Öğrenci Yok</h3>
-                      <p className="text-xs text-slate-500">Bu sınavı henüz çözen bir öğrenci bulunmuyor. Ödev olarak atayabilirsiniz.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {studentResults.map((res, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => setViewingStudentResult(res)}
-                          className="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-2xl p-4 transition-all cursor-pointer group"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-slate-800 group-hover:text-indigo-700 flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
-                                {res.studentName.charAt(0)}
-                              </div>
-                              {res.studentName}
-                            </span>
-                            <span className="text-lg font-black text-indigo-600">{res.score} Puan</span>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs font-bold">
-                            <span className="text-emerald-600">{res.correctCount} Doğru</span>
-                            <span className="text-rose-500">{res.wrongCount} Yanlış</span>
-                            <span className="text-slate-400">{res.emptyCount} Boş</span>
-                          </div>
+            {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-black text-slate-800  flex items-center gap-1.5 uppercase tracking-wider">
+                <Key className="w-4 h-4 text-amber-500" /> Dersler ve Kayıtlı Cevap Anahtarları:
+              </h4>
+
+              <div className="space-y-2.5">
+                {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
+                  const subAnswers = isEditingExam ? (editingAnswerKey[sub.name] || []) : (viewingExamDetails.answerKey?.[sub.name] || []);
+                  return (
+                    <div key={sIdx} className="bg-slate-50  border border-slate-200  rounded-2xl p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-xs text-slate-800  flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                          {sub.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {isEditingExam && (
+                            <input
+                              type="text"
+                              value={inlineInputs[sub.name] || ''}
+                              onChange={(e) => handleInlineInputChange(sub.name, e.target.value, sub.count)}
+                              placeholder="Cevaplar..."
+                              className="w-48 px-2 py-1 rounded-lg border border-slate-200  bg-white  text-[10px] font-mono uppercase tracking-widest text-indigo-700  focus:outline-none focus:border-indigo-500"
+                            />
+                          )}
+                          <span className="text-[11px] font-bold text-slate-500 ">
+                            {sub.count} Soru
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div className="space-y-4">
-                  {isEditingExam && (
-                    <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">PDF Linki</label>
-                        <input
-                          type="url"
-                          value={editingExamMeta.pdfUrl}
-                          onChange={(e) => setEditingExamMeta(p => ({ ...p, pdfUrl: e.target.value }))}
-                          placeholder="https://drive.google.com/... veya direkt PDF URL"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
                       </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Değerlendirme (Ceza Kuralı)</label>
-                        <select
-                          value={editingExamMeta.penaltyRatio}
-                          onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                          <option value={0}>Yanlışlar Doğruyu Götürmez</option>
-                          <option value={3}>3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
-                          <option value={4}>4 Yanlış 1 Doğruyu Götürür</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
 
-                  {/* QUICK SPECS */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
-                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Toplam Soru</span>
-                      <span className="text-base font-black text-slate-800 dark:text-slate-100">{viewingExamDetails.totalQuestions} Soru</span>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ceza Kuralı</span>
-                      <span className="text-base font-black text-amber-600 dark:text-amber-400">
-                        {viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}
-                      </span>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl col-span-2 sm:col-span-1">
-                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ders Sayısı</span>
-                      <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                        {viewingExamDetails.subjects?.length || 0} Ders
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
-                  <div className="space-y-3 pt-2">
-                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
-                      <Key className="w-4 h-4 text-amber-500" /> Dersler ve Kayıtlı Cevap Anahtarları:
-                    </h4>
-
-                    <div className="space-y-2.5">
-                      {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
-                        const subAnswers = isEditingExam ? (editingAnswerKey[sub.name] || []) : (viewingExamDetails.answerKey?.[sub.name] || []);
-                        return (
-                          <div key={sIdx} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-black text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                                {sub.name}
+                      {/* Optical Answer Strip */}
+                      <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1 bg-white  rounded-xl border border-slate-100 ">
+                        {Array.from({ length: sub.count }).map((_, qIdx) => {
+                          const ans = subAnswers[qIdx] || '-';
+                          return (
+                            <div key={qIdx} className="flex flex-col items-center justify-center w-7 h-8 rounded-lg bg-slate-50  border border-slate-200  text-[10px]">
+                              <span className="text-[8px] text-slate-400 font-bold">{qIdx + 1}</span>
+                              <span className={cn(
+                                "font-black leading-none",
+                                ans !== '-' ? "text-indigo-600 " : "text-slate-300"
+                              )}>
+                                {ans}
                               </span>
-                              <div className="flex items-center gap-2">
-                                {isEditingExam && (
-                                  <input
-                                    type="text"
-                                    value={inlineInputs[sub.name] || ''}
-                                    onChange={(e) => handleInlineInputChange(sub.name, e.target.value, sub.count)}
-                                    placeholder="Cevaplar..."
-                                    className="w-48 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[10px] font-mono uppercase tracking-widest text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-indigo-500"
-                                  />
-                                )}
-                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                  {sub.count} Soru
-                                </span>
-                              </div>
                             </div>
-
-                            {/* Optical Answer Strip */}
-                            <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                              {Array.from({ length: sub.count }).map((_, qIdx) => {
-                                const ans = subAnswers[qIdx] || '-';
-                                return (
-                                  <div key={qIdx} className="flex flex-col items-center justify-center w-7 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px]">
-                                    <span className="text-[8px] text-slate-400 font-bold">{qIdx + 1}</span>
-                                    <span className={cn(
-                                      "font-black leading-none",
-                                      ans !== '-' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-300"
-                                    )}>
-                                      {ans}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+            <div className="pt-3 border-t border-slate-100  flex items-center justify-between">
               {!isEditingExam ? (
                 <>
                   <button
@@ -1181,7 +1023,7 @@ export default function ExamManager() {
 
                   <button 
                     onClick={() => setViewingExamDetails(null)} 
-                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-slate-100  hover:bg-slate-200 text-slate-700  text-xs font-black transition-colors"
                   >
                     Kapat
                   </button>
@@ -1190,7 +1032,7 @@ export default function ExamManager() {
                 <>
                   <button 
                     onClick={() => setIsEditingExam(false)} 
-                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-slate-100  hover:bg-slate-200 text-slate-700  text-xs font-black transition-colors"
                   >
                     İptal Et
                   </button>
@@ -1207,106 +1049,15 @@ export default function ExamManager() {
         </div>
       )}
 
-      {/* STUDENT RESULT SUB-MODAL */}
-      {viewingStudentResult && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-3xl border border-slate-200 dark:border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 shrink-0">
-              <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">
-                  {viewingStudentResult.studentName.charAt(0)}
-                </div>
-                {viewingStudentResult.studentName} - Sınav Karnesi
-              </h3>
-              <button onClick={() => setViewingStudentResult(null)} className="p-1.5 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-center">
-                  <div className="w-40 h-40">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Doğru', value: viewingStudentResult.correctCount, color: '#10b981' },
-                            { name: 'Yanlış', value: viewingStudentResult.wrongCount, color: '#f43f5e' },
-                            { name: 'Boş', value: viewingStudentResult.emptyCount, color: '#94a3b8' }
-                          ]}
-                          cx="50%" cy="50%" innerRadius={35} outerRadius={60}
-                          dataKey="value"
-                        >
-                          { [
-                            { name: 'Doğru', value: viewingStudentResult.correctCount, color: '#10b981' },
-                            { name: 'Yanlış', value: viewingStudentResult.wrongCount, color: '#f43f5e' },
-                            { name: 'Boş', value: viewingStudentResult.emptyCount, color: '#94a3b8' }
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-2 ml-4">
-                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500" /> Doğru: {viewingStudentResult.correctCount}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-bold text-rose-500">
-                      <div className="w-3 h-3 rounded-full bg-rose-500" /> Yanlış: {viewingStudentResult.wrongCount}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
-                      <div className="w-3 h-3 rounded-full bg-slate-400" /> Boş: {viewingStudentResult.emptyCount}
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-slate-200 font-black text-indigo-700">
-                      Puan: {viewingStudentResult.score}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                   <h4 className="font-bold text-slate-800 text-sm mb-3">Ders Bazlı Performans</h4>
-                   <div className="space-y-3">
-                     {viewingStudentResult.submissions.map(sub => (
-                       <div key={sub.id} className="bg-white border border-slate-200 rounded-xl p-2.5">
-                         <div className="flex justify-between items-center mb-2">
-                           <span className="text-xs font-black text-slate-700">{sub.subject || sub.testTitle || 'Test'}</span>
-                           <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{sub.score} Puan</span>
-                         </div>
-                         <div className="flex flex-wrap gap-1">
-                           {(sub.answers || []).map((ans, idx) => {
-                             let bgClass = "bg-slate-100 border-slate-200 text-slate-400";
-                             if (ans.isCorrect) bgClass = "bg-emerald-50 border-emerald-200 text-emerald-600";
-                             else if (ans.userAnswer) bgClass = "bg-rose-50 border-rose-200 text-rose-500";
-                             
-                             return (
-                               <div key={idx} className={cn("w-6 h-7 rounded flex flex-col items-center justify-center border text-[9px] font-bold", bgClass)}>
-                                 <span>{idx + 1}</span>
-                               </div>
-                             );
-                           })}
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* DERS & SORU SAYISI DÜZENLEME MODAL */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+          <div className="bg-white  rounded-3xl p-6 w-full max-w-lg border border-slate-200  shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
+              <div className="flex items-center gap-2 text-indigo-600  font-black text-base">
                 <Settings2 className="w-5 h-5" /> Ders Soru Sayıları & Özel Ders Ekle
               </div>
-              <button onClick={() => setShowSettingsModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setShowSettingsModal(false)} className="p-1 text-slate-400 hover:text-slate-600 ">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1317,8 +1068,8 @@ export default function ExamManager() {
                 <p className="text-xs text-slate-400 italic py-2 text-center">Henüz tanımlı ders yok. Aşağıdan ekleyebilirsiniz.</p>
               ) : (
                 subjects.map(s => (
-                  <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{s.name}</span>
+                  <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200  bg-slate-50  text-xs">
+                    <span className="font-bold text-slate-800 ">{s.name}</span>
                     <div className="flex items-center gap-2">
                       <label className="text-[10px] font-black text-slate-400">Soru Sayısı:</label>
                       <input
@@ -1327,7 +1078,7 @@ export default function ExamManager() {
                         max="100"
                         value={s.count}
                         onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
-                        className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-black text-center"
+                        className="w-14 px-2 py-1 rounded-lg border border-slate-300  bg-white  text-xs font-black text-center"
                       />
                       <button onClick={() => handleDeleteSubject(s.name)} className="p-1 text-slate-400 hover:text-rose-500">
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1339,15 +1090,15 @@ export default function ExamManager() {
             </div>
 
             {/* ADD NEW SUBJECT FORM */}
-            <form onSubmit={handleAddCustomSubject} className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-              <div className="text-xs font-black text-slate-800 dark:text-slate-200">+ Yeni Özel Ders Tanımla</div>
+            <form onSubmit={handleAddCustomSubject} className="pt-3 border-t border-slate-100  space-y-3">
+              <div className="text-xs font-black text-slate-800 ">+ Yeni Özel Ders Tanımla</div>
               <div className="grid grid-cols-3 gap-2">
                 <input
                   type="text"
                   placeholder="Ders Adı (Örn: Geometri)"
                   value={newSubName}
                   onChange={e => setNewSubName(e.target.value)}
-                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200  bg-slate-50  text-xs font-bold outline-none"
                   required
                 />
                 <input
@@ -1355,13 +1106,13 @@ export default function ExamManager() {
                   placeholder="Soru Sayısı"
                   value={newSubCount}
                   onChange={e => setNewSubCount(e.target.value)}
-                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200  bg-slate-50  text-xs font-bold outline-none"
                   required
                 />
                 <select
                   value={newSubOptions}
                   onChange={e => setNewSubOptions(Number(e.target.value))}
-                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200  bg-slate-50  text-xs font-bold outline-none"
                 >
                   <option value={4}>4 Şıklı (A-D)</option>
                   <option value={5}>5 Şıklı (A-E)</option>
@@ -1369,7 +1120,7 @@ export default function ExamManager() {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowSettingsModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Kapat</button>
+                <button type="button" onClick={() => setShowSettingsModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 ">Kapat</button>
                 <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition-all flex items-center gap-1">
                   <Plus className="w-3.5 h-3.5" /> Dersi Ekle
                 </button>
@@ -1383,22 +1134,22 @@ export default function ExamManager() {
       {/* JSON BULK IMPORT MODAL */}
       {showJsonModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+          <div className="bg-white  rounded-3xl p-6 w-full max-w-xl border border-slate-200  shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
+              <div className="flex items-center gap-2 text-indigo-600  font-black text-base">
                 <FileCode2 className="w-5 h-5" /> Toplu JSON Aktarımı
               </div>
-              <button onClick={() => setShowJsonModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setShowJsonModal(false)} className="p-1 text-slate-400 hover:text-slate-600 ">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 ">
               Tüm deneme soru ve cevaplarını JSON formatında yapıştırarak optik formu tek tıkla saniyeler içinde doldurabilirsiniz.
             </p>
 
-            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center justify-between bg-slate-50  p-3 rounded-2xl border border-slate-200 ">
+              <div className="text-xs font-bold text-slate-700 ">
                 📋 Örnek JSON Şablon Yapısı
               </div>
               <button
@@ -1411,7 +1162,7 @@ export default function ExamManager() {
             </div>
 
             {jsonError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-rose-50  border border-rose-200  text-xs font-bold text-rose-600  flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" /> {jsonError}
               </div>
             )}
@@ -1422,11 +1173,11 @@ export default function ExamManager() {
                 placeholder="Örnek JSON yapısını buraya yapıştırın..."
                 value={jsonInputText}
                 onChange={e => setJsonInputText(e.target.value)}
-                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                className="w-full p-3.5 rounded-2xl border border-slate-200  bg-slate-50  text-xs font-mono text-slate-800  outline-none focus:border-indigo-500"
               />
 
               <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={() => setShowJsonModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button type="button" onClick={() => setShowJsonModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 ">İptal</button>
                 <button type="submit" className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" /> Optik Formu Doldur & İçe Aktar
                 </button>
@@ -1439,25 +1190,25 @@ export default function ExamManager() {
       {/* QUICK ASSIGN MODAL */}
       {assignModalExam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+          <div className="bg-white  rounded-3xl p-6 w-full max-w-lg border border-slate-200  shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
+              <div className="flex items-center gap-2 text-indigo-600  font-black text-base">
                 <CheckCircle2 className="w-5 h-5" /> Ödev Olarak Ata
               </div>
-              <button onClick={() => setAssignModalExam(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <button onClick={() => setAssignModalExam(null)} className="p-1 text-slate-400 hover:text-slate-600 ">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">📅 Son Teslim Tarihi *</label>
+                <label className="block text-xs font-bold text-slate-700  mb-1">📅 Son Teslim Tarihi *</label>
                 <input
                   type="date"
                   value={assignDueDate}
                   onChange={e => setAssignDueDate(e.target.value)}
                   onClick={e => e.target.showPicker && e.target.showPicker()}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200  bg-slate-50  text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   required
                 />
               </div>
@@ -1466,25 +1217,25 @@ export default function ExamManager() {
                 <button 
                   type="button" 
                   onClick={() => { setAssignTargetMode('grade'); setAssignTargets([]); }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${assignTargetMode === 'grade' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${assignTargetMode === 'grade' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100  text-slate-600 '}`}
                 >
                   Sınıf Bazlı ({curData.grades.length})
                 </button>
                 <button 
                   type="button" 
                   onClick={() => { setAssignTargetMode('student'); setAssignTargets([]); }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${assignTargetMode === 'student' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${assignTargetMode === 'student' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100  text-slate-600 '}`}
                 >
                   Öğrenci Bazlı ({students.length})
                 </button>
               </div>
 
-              <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+              <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 rounded-2xl bg-slate-50  border border-slate-200 ">
                 {assignTargetMode === 'grade' ? (
                   curData.grades.map(g => {
                     const checked = assignTargets.includes(g.id);
                     return (
-                      <label key={g.id} className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer ${checked ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 font-bold text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                      <label key={g.id} className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer ${checked ? 'bg-indigo-50  border-indigo-500 font-bold text-indigo-700 ' : 'bg-white  border-slate-200 '}`}>
                         <div className="flex items-center gap-2">
                           <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(g.id) ? p.filter(id => id !== g.id) : [...p, g.id])} />
                           <span>🎓 {g.name}</span>
@@ -1496,7 +1247,7 @@ export default function ExamManager() {
                   students.map(s => {
                     const checked = assignTargets.includes(s.id);
                     return (
-                      <label key={s.id} className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer ${checked ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 font-bold text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                      <label key={s.id} className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer ${checked ? 'bg-indigo-50  border-indigo-500 font-bold text-indigo-700 ' : 'bg-white  border-slate-200 '}`}>
                         <div className="flex items-center gap-2">
                           <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(s.id) ? p.filter(id => id !== s.id) : [...p, s.id])} />
                           <span className="truncate">👤 {s.name}</span>
@@ -1509,7 +1260,7 @@ export default function ExamManager() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setAssignModalExam(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+              <button type="button" onClick={() => setAssignModalExam(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 ">İptal</button>
               <button onClick={handleQuickAssign} className="px-5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-all shadow-md">
                 Ödevi Yayınla
               </button>
