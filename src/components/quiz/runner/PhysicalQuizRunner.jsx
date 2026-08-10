@@ -8,7 +8,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const isMobile = useMediaQuery('(max-width: 768px)');
   const hasPdf = !!(bookPdfUrl);
   // 'side' | 'top' | 'float' | 'hidden'
-  const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'hidden' : 'side') : 'hidden');
+  const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
   const [showOptikForm, setShowOptikForm] = useState(true);
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
@@ -298,22 +298,24 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           {/* PDF Mode Buttons */}
           {hasPdf && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              {/* Side */}
-              <button
-                onClick={() => setPdfMode('side')}
-                title="Sol panele sabitle"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#3b82f6' : '#334155'}`,
-                  background: pdfMode === 'side' ? '#1d4ed8' : '#0f172a',
-                  color: pdfMode === 'side' ? 'white' : '#93c5fd',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
-                }}
-              >
-                <PanelLeft size={isMobile ? 13 : 14} />
-                {!isMobile && 'Sol Panel'}
-              </button>
+              {/* Side (Hidden on Mobile) */}
+              {!isMobile && (
+                <button
+                  onClick={() => setPdfMode('side')}
+                  title="Sol panele sabitle"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#3b82f6' : '#334155'}`,
+                    background: pdfMode === 'side' ? '#1d4ed8' : '#0f172a',
+                    color: pdfMode === 'side' ? 'white' : '#93c5fd',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  <PanelLeft size={isMobile ? 13 : 14} />
+                  Sol Panel
+                </button>
+              )}
               {/* Top */}
               <button
                 onClick={() => setPdfMode('top')}
