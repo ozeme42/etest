@@ -78,7 +78,7 @@ export default function ExamManager() {
   const { questions, addQuestion, deleteQuestion } = useQuestionBank();
   const { addHomework, homeworks } = useHomework();
   const { data: curData } = useCurriculum();
-  const { addTrackedBook, addTrackedBookTest, updateTrackedBookTest, books, bookTests } = useTrackedBooks();
+  const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
@@ -88,6 +88,7 @@ export default function ExamManager() {
   
   // Edit Mode State for Existing Exams
   const [isEditingExam, setIsEditingExam] = useState(false);
+  const [editingExamMeta, setEditingExamMeta] = useState({});
   const [editingAnswerKey, setEditingAnswerKey] = useState({});
   const [inlineInputs, setInlineInputs] = useState({});
 
@@ -391,6 +392,12 @@ export default function ExamManager() {
     setViewingExamDetails(exam);
     setIsEditingExam(false);
     setEditingAnswerKey(exam.answerKey || {});
+    setEditingExamMeta({
+      title: exam.title || '',
+      publisher: exam.publisher || 'LGS',
+      pdfUrl: exam.pdfUrl || '',
+      penaltyRatio: exam.penaltyRatio || 3
+    });
     
     const inlines = {};
     (exam.subjects || []).forEach(sub => {
@@ -414,9 +421,17 @@ export default function ExamManager() {
        }
     });
     await Promise.all(testPromises);
+
+    await updateTrackedBook(viewingExamDetails.id, {
+      title: editingExamMeta.title,
+      publisher: editingExamMeta.publisher,
+      pdfUrl: editingExamMeta.pdfUrl,
+      penaltyRatio: editingExamMeta.penaltyRatio
+    });
+
     setIsEditingExam(false);
     setViewingExamDetails(null);
-    alert('✅ Cevap anahtarı başarıyla güncellendi!');
+    alert('✅ Deneme başarıyla güncellendi!');
   };
 
   const handleQuickAssign = async () => {
@@ -624,7 +639,7 @@ export default function ExamManager() {
                           Ödev Ata
                         </button>
                         <button
-                          onClick={() => { if(window.confirm('Bu denemeyi havuzdan silmek istediğinize emin misiniz?')) deleteQuestion(m.id); }}
+                          onClick={() => { if(window.confirm('Bu denemeyi havuzdan silmek istediğinize emin misiniz?')) deleteTrackedBook(m.id); }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
                           title="Denemeyi Sil"
                         >
@@ -846,16 +861,37 @@ export default function ExamManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-2xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
+              <div className="flex-1 mr-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
-                    {viewingExamDetails.examType || 'LGS'} Sınav Önizlemesi
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400">{viewingExamDetails.date}</span>
+                  {isEditingExam ? (
+                    <select
+                      value={editingExamMeta.publisher}
+                      onChange={(e) => setEditingExamMeta(p => ({ ...p, publisher: e.target.value }))}
+                      className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 focus:outline-none"
+                    >
+                      {['LGS', 'Özdebir', 'Töder', 'Sinan Kuzucu', 'Nartest', 'Okyanus'].map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                      {viewingExamDetails.publisher || 'LGS'} Sınav Önizlemesi
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold text-slate-400">{viewingExamDetails.date || new Date(viewingExamDetails.createdAt).toLocaleDateString('tr-TR')}</span>
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{viewingExamDetails.title}</h3>
+                {isEditingExam ? (
+                  <input
+                    type="text"
+                    value={editingExamMeta.title}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, title: e.target.value }))}
+                    className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-lg font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                ) : (
+                  <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{viewingExamDetails.title}</h3>
+                )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start">
                 {!isEditingExam ? (
                   <button onClick={() => setIsEditingExam(true)} className="p-1.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors">
                     <Edit3 className="w-4 h-4" /> Düzenle
@@ -868,6 +904,33 @@ export default function ExamManager() {
                 </button>
               </div>
             </div>
+
+            {isEditingExam && (
+              <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">PDF Linki</label>
+                  <input
+                    type="url"
+                    value={editingExamMeta.pdfUrl}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, pdfUrl: e.target.value }))}
+                    placeholder="https://drive.google.com/... veya direkt PDF URL"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Değerlendirme (Ceza Kuralı)</label>
+                  <select
+                    value={editingExamMeta.penaltyRatio}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value={0}>Yanlışlar Doğruyu Götürmez</option>
+                    <option value={3}>3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+                    <option value={4}>4 Yanlış 1 Doğruyu Götürür</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             {/* QUICK SPECS */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
