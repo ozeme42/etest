@@ -302,7 +302,7 @@ export default function ExamManager() {
               </div>
               
               <div className="book-badge">
-                {book.bookType === 'open_ended' ? 'Açık Uçlu Deneme' : 'Standart Deneme'}
+                Deneme
               </div>
 
               <div className="book-stats">
@@ -389,33 +389,7 @@ export default function ExamManager() {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Deneme Türü</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label className={`radio-card ${newBook.bookType === 'standard' ? 'active' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-sm)', cursor: 'pointer', background: newBook.bookType === 'standard' ? 'rgba(124, 58, 237, 0.05)' : 'transparent', borderColor: newBook.bookType === 'standard' ? 'var(--color-primary)' : 'rgba(0,0,0,0.1)' }}>
-                  <input 
-                    type="radio" 
-                    name="bookType" 
-                    value="standard" 
-                    checked={newBook.bookType === 'standard'} 
-                    onChange={() => setNewBook({ ...newBook, bookType: 'standard' })}
-                    style={{ accentColor: 'var(--color-primary)', transform: 'scale(1.2)' }}
-                  />
-                  <strong>Standart Deneme</strong> (Çoktan Seçmeli)
-                </label>
-                <label className={`radio-card ${newBook.bookType === 'open_ended' ? 'active' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 'var(--border-radius-sm)', cursor: 'pointer', background: newBook.bookType === 'open_ended' ? 'rgba(124, 58, 237, 0.05)' : 'transparent', borderColor: newBook.bookType === 'open_ended' ? 'var(--color-primary)' : 'rgba(0,0,0,0.1)' }}>
-                  <input 
-                    type="radio" 
-                    name="bookType" 
-                    value="open_ended" 
-                    checked={newBook.bookType === 'open_ended'} 
-                    onChange={() => setNewBook({ ...newBook, bookType: 'open_ended' })}
-                    style={{ accentColor: 'var(--color-primary)', transform: 'scale(1.2)' }}
-                  />
-                  <strong>Açık Uçlu Deneme</strong> (Klasik Sorular)
-                </label>
-              </div>
-            </div>
+
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem' }}>
               <button className="btn btn-outline" onClick={() => setIsDialogOpen(false)}>İptal</button>

@@ -50,7 +50,7 @@ export default function BookManager() {
   }, [editingBook]);
 
   const enrichedBooks = useMemo(() => {
-    return books.map(book => {
+    return books.filter(b => b.bookType !== 'exam').map(book => {
       const tests = bookTests.filter(bt => bt.bookId === book.id);
       
       const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId) && s.status === 'completed');
