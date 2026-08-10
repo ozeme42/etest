@@ -123,19 +123,33 @@ export default function StudyPlanDetail() {
     const lines = bulkTopicText.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length === 0) return;
 
-    const newSubjects = subjects.map(s => {
-      if (s.id === bulkTopicModal.unitId) {
-        let newTopics = [...(s.topics || [])];
-        lines.forEach(line => {
-          newTopics.push({
-            id: `top_${Math.random().toString(36).substring(2, 9)}`,
-            name: line
+    let newSubjects = [...subjects];
+
+    if (bulkTopicModal.unitId === 'auto_create') {
+      const newTopics = lines.map(line => ({
+        id: `top_${Math.random().toString(36).substring(2, 9)}`,
+        name: line
+      }));
+      newSubjects.push({
+        id: `sub_${Date.now()}`,
+        name: 'Genel',
+        topics: newTopics
+      });
+    } else {
+      newSubjects = subjects.map(s => {
+        if (s.id === bulkTopicModal.unitId) {
+          let newTopics = [...(s.topics || [])];
+          lines.forEach(line => {
+            newTopics.push({
+              id: `top_${Math.random().toString(36).substring(2, 9)}`,
+              name: line
+            });
           });
-        });
-        return { ...s, topics: newTopics };
-      }
-      return s;
-    });
+          return { ...s, topics: newTopics };
+        }
+        return s;
+      });
+    }
 
     updateStudyPlan(plan.id, { subjects: newSubjects });
     setBulkTopicModal({ isOpen: false, unitId: null });
@@ -249,15 +263,25 @@ export default function StudyPlanDetail() {
           </div>
 
           {subjects.length === 0 ? (
-            <div className="text-center p-12 bg-white/50 border border-dashed border-slate-300 rounded-2xl">
-              <p className="text-slate-500 mb-4">Henüz bir ünite eklenmemiş.</p>
-              <button
-                onClick={() => openUnitModal()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Ünite Ekle
-              </button>
+            <div className="text-center p-12 bg-white/50 border border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center">
+              <p className="text-slate-500 mb-6 font-medium">Henüz bir ünite eklenmemiş.</p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => openUnitModal()}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 font-semibold rounded-xl hover:bg-blue-100 transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  Önce Ünite Ekle
+                </button>
+                <div className="text-slate-400 text-sm font-medium">veya</div>
+                <button
+                  onClick={() => { setBulkTopicModal({ isOpen: true, unitId: 'auto_create' }); setBulkTopicText(''); }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 font-semibold rounded-xl hover:bg-indigo-100 transition-colors"
+                >
+                  <ListPlus className="w-5 h-5" />
+                  Direkt Satır Satır Konuları Yapıştır
+                </button>
+              </div>
             </div>
           ) : (
             subjects.map((unit) => {
