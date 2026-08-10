@@ -30,7 +30,7 @@ import StudentExamsPage from './pages/StudentExamsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
 import StudentCoachingPage from './pages/StudentCoachingPage';
 import MyCoachingPage from './pages/MyCoachingPage';
-import PhysicalExamManager from './pages/PhysicalExamManager';
+import ExamManager from './pages/ExamManager';
 import PhysicalExamRunner from './pages/PhysicalExamRunner';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
@@ -245,7 +245,7 @@ function AppContent() {
           <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
           <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
           <Route path="/my-coaching" element={<MyCoachingPage />} />
-          <Route path="/physical-exam" element={<PhysicalExamManager />} />
+          <Route path="/physical-exam" element={<ExamManager />} />
           <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
