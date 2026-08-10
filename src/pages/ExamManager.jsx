@@ -1,499 +1,1014 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTrackedBooks } from '../context/TrackedBookContext';
-import { useEvaluation } from '../context/EvaluationContext';
-import { 
-  ArrowLeft, Plus, Trash2, BookMarked, Library, 
-  FileText, HelpCircle, CheckCircle, XCircle, 
-  Edit, MoreVertical, ArrowRight, FileJson, AlertCircle, Copy, Check
+import React, { useState, useMemo } from 'react';
+import {
+  ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
+  BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
+  TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
+  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3
 } from 'lucide-react';
-import './BookManager.css';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { useQuestionBank } from '../context/QuestionBankContext';
+import { useCurriculum } from '../context/CurriculumContext';
+import { useHomework } from '../context/HomeworkContext';
+import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
+
+function cn(...inputs) { return twMerge(clsx(inputs)); }
+
+const EXAM_PRESETS = {
+  LGS: {
+    title: '🎓 LGS Sınav Formatı (90 Soru · 3 Yanlış 1 Doğruyu Götürür)',
+    penaltyRatio: 3,
+    subjects: [
+      { name: 'Türkçe', count: 20, options: ['A', 'B', 'C', 'D'] },
+      { name: 'Matematik', count: 20, options: ['A', 'B', 'C', 'D'] },
+      { name: 'Fen Bilimleri', count: 20, options: ['A', 'B', 'C', 'D'] },
+      { name: 'T.C. İnkılap Tarihi', count: 10, options: ['A', 'B', 'C', 'D'] },
+      { name: 'Din Kültürü', count: 10, options: ['A', 'B', 'C', 'D'] },
+      { name: 'İngilizce', count: 10, options: ['A', 'B', 'C', 'D'] },
+    ]
+  },
+  TYT: {
+    title: '🏛️ YKS TYT Sınav Formatı (120 Soru · 4 Yanlış 1 Doğruyu Götürür)',
+    penaltyRatio: 4,
+    subjects: [
+      { name: 'Türkçe', count: 40, options: ['A', 'B', 'C', 'D', 'E'] },
+      { name: 'Sosyal Bilimler', count: 20, options: ['A', 'B', 'C', 'D', 'E'] },
+      { name: 'Temel Matematik', count: 40, options: ['A', 'B', 'C', 'D', 'E'] },
+      { name: 'Fen Bilimleri', count: 20, options: ['A', 'B', 'C', 'D', 'E'] },
+    ]
+  },
+  AYT: {
+    title: '🏛️ YKS AYT Sınav Formatı (80 Soru · 4 Yanlış 1 Doğruyu Götürür)',
+    penaltyRatio: 4,
+    subjects: [
+      { name: 'Matematik (AYT)', count: 40, options: ['A', 'B', 'C', 'D', 'E'] },
+      { name: 'Fen Bilimleri (AYT)', count: 40, options: ['A', 'B', 'C', 'D', 'E'] },
+    ]
+  },
+  CUSTOM: {
+    title: '📊 Özel / Boş Şablon (Hiçbir ders yok · Elle veya Toplu JSON ile ders ekleyin)',
+    penaltyRatio: 0,
+    subjects: [] // Empty by default for CUSTOM option
+  }
+};
+
+const SAMPLE_JSON_TEMPLATE = {
+  examTitle: "Özdebir LGS 1. Genel Deneme Sınavı",
+  examType: "CUSTOM",
+  examDate: new Date().toISOString().split('T')[0],
+  penaltyRatio: 3,
+  studentId: "u1",
+  answers: {
+    "Türkçe": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
+    "Matematik": ["A","B","C","D","A","B","","D","A","B","C","D","A","B","C","D","A","B","C","D"],
+    "Fen Bilimleri": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"]
+  },
+  answerKey: {
+    "Türkçe": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
+    "Matematik": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"],
+    "Fen Bilimleri": ["A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D","A","B","C","D"]
+  }
+};
 
 export default function ExamManager() {
-  const navigate = useNavigate();
-  const { books, bookTests, addTrackedBook, updateTrackedBook, deleteTrackedBook, addTrackedBookTest } = useTrackedBooks();
-  const { submissions } = useEvaluation();
-  
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Book Form States
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingBook, setEditingBook] = useState(null);
-  const [newBook, setNewBook] = useState({ title: "", publisher: "", bookType: "exam" });
+  const { users } = useUser();
+  const { currentUser } = useAuth();
+  const { questions, addQuestion, deleteQuestion } = useQuestionBank();
+  const { addHomework, homeworks } = useHomework();
+  const { data: curData } = useCurriculum();
+  const { addTrackedBook, addTrackedBookTest, books, bookTests } = useTrackedBooks();
 
-  // Bulk Import States
-  const [importModal, setImportModal] = useState({ isOpen: false, book: null });
-  const [jsonInput, setJsonInput] = useState("");
-  const [sampleFormatTab, setSampleFormatTab] = useState("standard"); // "standard" | "direct" | "open_ended"
-  const [copiedFormat, setCopiedFormat] = useState(null);
+  const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
-  // Dropdown State
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const dropdownRef = useRef(null);
+  // UX Toggle: Default to List View (showAddForm === false)
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [viewingExamDetails, setViewingExamDetails] = useState(null);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setActiveDropdown(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  // Quick Assign Modal State
+  const [assignModalExam, setAssignModalExam] = useState(null);
+  const [assignTargetMode, setAssignTargetMode] = useState('student');
+  const [assignTargets, setAssignTargets] = useState([]);
+  const [assignDueDate, setAssignDueDate] = useState('');
 
-  useEffect(() => {
-    if (editingBook) {
-      setNewBook({ title: editingBook.title, publisher: editingBook.publisher, bookType: editingBook.bookType || 'standard' });
-    } else {
-      setNewBook({ title: "", publisher: "", bookType: "exam" });
-    }
-  }, [editingBook]);
+  const [examType, setExamType] = useState('LGS');
+  const [examTitle, setExamTitle] = useState('Özdebir LGS Genel Deneme 1');
+  const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const enrichedBooks = useMemo(() => {
-    return books.filter(b => b.bookType === 'exam').map(book => {
-      const tests = bookTests.filter(bt => bt.bookId === book.id);
-      
-      const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId) && s.status === 'completed');
-      
-      const subjectCount = book.subjects ? book.subjects.length : 0;
-      const testCount = tests.length;
-      const questionCount = tests.reduce((acc, bt) => acc + (bt.questionCount || 0), 0);
-      
-      const totalCorrect = solvedSubmissions.reduce((acc, sub) => acc + sub.answers.filter(a => a.isCorrect === true).length, 0);
-      const totalIncorrect = solvedSubmissions.reduce((acc, sub) => acc + sub.answers.filter(a => a.isCorrect === false).length, 0);
+  // Optional Penalty Ratio (3, 4, 0, or custom)
+  const [penaltyRatio, setPenaltyRatio] = useState(3);
 
-      return {
-        ...book,
-        subjectCount,
-        testCount,
-        questionCount,
-        solvedTestCount: solvedSubmissions.length,
-        totalCorrectAnswers: totalCorrect,
-        totalIncorrectAnswers: totalIncorrect
-      };
+  // Dynamic Subjects List State
+  const [subjects, setSubjects] = useState(EXAM_PRESETS.LGS.subjects);
+  const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
+
+  // Answer Key State only: { 'Türkçe': ['A', 'B', 'C', ...], ... }
+  const [answerKey, setAnswerKey] = useState(() => {
+    const init = {};
+    EXAM_PRESETS.LGS.subjects.forEach(sub => {
+      init[sub.name] = Array(sub.count).fill('');
     });
-  }, [books, bookTests, submissions]);
+    return init;
+  });
 
-  const showToast = (title, type = 'success') => {
-    alert(`${type === 'success' ? '✅' : '❌'} ${title}`);
+  // Modal States
+  const [showJsonModal, setShowJsonModal] = useState(false);
+  const [jsonInputText, setJsonInputText] = useState('');
+  const [jsonError, setJsonError] = useState('');
+  const [copiedNotice, setCopiedNotice] = useState(false);
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubCount, setNewSubCount] = useState(15);
+  const [newSubOptions, setNewSubOptions] = useState(4);
+
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkInputText, setBulkInputText] = useState('');
+
+  const physicalExamsDatabase = useMemo(() => {
+    return books.filter(b => b.bookType === 'exam');
+  }, [books]);
+
+  // Switch Preset Exam Format
+  const handleExamTypeChange = (newType) => {
+    setExamType(newType);
+    const newPreset = EXAM_PRESETS[newType] || EXAM_PRESETS.LGS;
+    setPenaltyRatio(newPreset.penaltyRatio);
+    setSubjects(newPreset.subjects);
+    setActiveSubjectIndex(0);
+
+    const initKey = {};
+    newPreset.subjects.forEach(sub => {
+      initKey[sub.name] = Array(sub.count).fill('');
+    });
+    setAnswerKey(initKey);
   };
 
-  const handleAddOrUpdateBook = () => {
-    if (!newBook.title.trim() || !newBook.publisher.trim()) {
-      showToast("Lütfen tüm alanları doldurun!", "error");
+  // Update specific subject's question count dynamically
+  const handleSubjectQuestionCountChange = (subjectName, newCount) => {
+    const countNum = Math.max(1, Math.min(100, Number(newCount) || 1));
+    setSubjects(prev => prev.map(s => s.name === subjectName ? { ...s, count: countNum } : s));
+    setAnswerKey(prev => {
+      const currentList = prev[subjectName] || [];
+      if (countNum > currentList.length) {
+        return { ...prev, [subjectName]: [...currentList, ...Array(countNum - currentList.length).fill('')] };
+      }
+      return { ...prev, [subjectName]: currentList.slice(0, countNum) };
+    });
+  };
+
+  // Add custom new subject
+  const handleAddCustomSubject = (e) => {
+    e.preventDefault();
+    if (!newSubName.trim()) return;
+    const optArray = newSubOptions === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+    const newSubject = { name: newSubName.trim(), count: Number(newSubCount) || 10, options: optArray };
+    setSubjects(prev => [...prev, newSubject]);
+    setAnswerKey(prev => ({ ...prev, [newSubject.name]: Array(newSubject.count).fill('') }));
+    setNewSubName('');
+    setNewSubCount(15);
+    setShowSettingsModal(false);
+  };
+
+  // Delete custom subject
+  const handleDeleteSubject = (subjectName) => {
+    setSubjects(prev => prev.filter(s => s.name !== subjectName));
+    setActiveSubjectIndex(0);
+  };
+
+  // Clicking a bubble sets the answer key directly
+  const handleOptionClick = (subjectName, qIdx, option) => {
+    setAnswerKey(prev => {
+      const currentList = [...(prev[subjectName] || [])];
+      currentList[qIdx] = currentList[qIdx] === option ? '' : option;
+      return { ...prev, [subjectName]: currentList };
+    });
+  };
+
+  // Extract valid letters (A, B, C, D, E) from user text
+  const parsedBulkInput = useMemo(() => {
+    if (!bulkInputText) return [];
+    return bulkInputText.toUpperCase().match(/[A-E]/g) || [];
+  }, [bulkInputText]);
+
+  // Apply Bulk Inputs to answer key (partial update supported)
+  const handleApplyBulkInput = (e) => {
+    e.preventDefault();
+    const currentSub = subjects[activeSubjectIndex];
+    if (!currentSub || parsedBulkInput.length === 0) return;
+    setAnswerKey(prev => {
+      const existing = [...(prev[currentSub.name] || Array(currentSub.count).fill(''))];
+      parsedBulkInput.forEach((ans, idx) => {
+        if (idx < currentSub.count) existing[idx] = ans;
+      });
+      return { ...prev, [currentSub.name]: existing };
+    });
+    setShowBulkModal(false);
+    setBulkInputText('');
+  };
+
+  const openBulkModal = () => {
+    setBulkInputText('');
+    setShowBulkModal(true);
+  };
+
+  // Bulk JSON Import Parser
+  const handleImportJson = (e) => {
+    e.preventDefault();
+    setJsonError('');
+    try {
+      const parsed = JSON.parse(jsonInputText.trim());
+      if (parsed.examTitle) setExamTitle(parsed.examTitle);
+      if (parsed.examType && EXAM_PRESETS[parsed.examType]) {
+        setExamType(parsed.examType);
+      } else {
+        setExamType('CUSTOM');
+      }
+
+      if (parsed.penaltyRatio !== undefined) setPenaltyRatio(Number(parsed.penaltyRatio) || 0);
+      if (parsed.examDate) setExamDate(parsed.examDate);
+
+      if (parsed.answerKey && typeof parsed.answerKey === 'object') {
+        const jsonSubjectNames = Object.keys(parsed.answerKey);
+        if (jsonSubjectNames.length > 0) {
+          const newSubjects = jsonSubjectNames.map(name => {
+            const keyArr = parsed.answerKey[name] || [];
+            const hasE = keyArr.includes('E');
+            return { name, count: keyArr.length || 1, options: hasE ? ['A','B','C','D','E'] : ['A','B','C','D'] };
+          });
+          setSubjects(newSubjects);
+          setActiveSubjectIndex(0);
+        }
+      }
+
+      if (parsed.answerKey && typeof parsed.answerKey === 'object') {
+        setAnswerKey(prev => ({ ...prev, ...parsed.answerKey }));
+      }
+
+      setShowJsonModal(false);
+      setShowAddForm(true);
+      setJsonInputText('');
+    } catch (err) {
+      setJsonError('Geçersiz JSON formatı! Lütfen kontrol edin.');
+    }
+  };
+
+  const handleCopySampleJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(SAMPLE_JSON_TEMPLATE, null, 2));
+    setCopiedNotice(true);
+    setTimeout(() => setCopiedNotice(false), 2000);
+  };
+
+  // Count filled answer key slots per subject
+  const evaluationResults = useMemo(() => {
+    const subjectStats = subjects.map(sub => {
+      const keyArr = answerKey[sub.name] || [];
+      const filled = keyArr.filter(Boolean).length;
+      return { name: sub.name, count: sub.count, filled };
+    });
+    const totalFilled = subjectStats.reduce((a, s) => a + s.filled, 0);
+    const totalQuestions = subjects.reduce((a, s) => a + s.count, 0);
+    return { subjectStats, totalFilled, totalQuestions };
+  }, [answerKey, subjects]);
+
+  // Save Physical Mock Exam to Book Tracking System
+  const handleSaveExam = async () => {
+    if (!examTitle.trim()) return;
+    
+    const createdBook = await addTrackedBook({
+      title: examTitle.trim(),
+      publisher: examType,
+      subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name })),
+      bookType: 'exam',
+      penaltyRatio
+    });
+
+    const testPromises = [];
+    subjects.forEach((subject, idx) => {
+       const subId = createdBook.subjects[idx].id;
+       const ak = {};
+       const srcAnswers = answerKey[subject.name] || [];
+       srcAnswers.forEach((ans, i) => {
+         if (ans) ak[i + 1] = ans;
+       });
+
+       testPromises.push(
+          addTrackedBookTest(createdBook.id, {
+             subjectId: subId,
+             name: `${subject.name} Testi`,
+             questionCount: subject.count,
+             isOpenEnded: false,
+             answerKey: ak
+          })
+       );
+    });
+    
+    await Promise.all(testPromises);
+
+    setShowAddForm(false);
+    alert('🎉 Fiziki deneme sisteme "Deneme" olarak eklendi! Ödevler sekmesinden öğrencilerinize atayabilirsiniz.');
+  };
+
+  const handleQuickAssign = async () => {
+    if (!assignDueDate || assignTargets.length === 0 || !assignModalExam) {
+      alert("Lütfen tarih ve atanacak kişi/sınıf seçin.");
       return;
     }
+    const testsForExam = bookTests.filter(t => t.bookId === assignModalExam.id).map(t => t.id);
 
-    try {
-      if (editingBook) {
-        updateTrackedBook(editingBook.id, newBook);
-        showToast("Deneme başarıyla güncellendi!");
-      } else {
-        addTrackedBook(newBook);
-        showToast("Deneme başarıyla eklendi!");
-      }
-      setNewBook({ title: "", publisher: "", bookType: "exam" });
-      setIsDialogOpen(false);
-      setEditingBook(null);
-    } catch (error) {
-      showToast("İşlem sırasında bir hata oluştu!", "error");
-    }
+    const hwData = {
+      title: assignModalExam.title,
+      dueDate: assignDueDate,
+      isBookAssignment: true,
+      bookId: assignModalExam.id,
+      targetType: assignTargetMode,
+      targetIds: assignTargets,
+      tests: testsForExam,
+      assignedBy: currentUser?.id
+    };
+    await addHomework(hwData);
+    setAssignModalExam(null);
+    setAssignTargets([]);
+    setAssignDueDate('');
+    alert("✅ Deneme başarıyla ödev olarak atandı!");
   };
 
-  const handleDeleteBook = (id) => {
-    if (window.confirm("Bu denemeyi silmek istediğinize emin misiniz?")) {
-      deleteTrackedBook(id);
-      showToast("Deneme silindi!", "success");
-      setActiveDropdown(null);
-    }
-  };
+  // Stats for the list view header
+  const avgNet = useMemo(() => {
+    return 0; // Not applicable for the definition library view
+  }, [physicalExamsDatabase]);
 
-  const handleManageBook = (bookId) => {
-    navigate(`/books/${bookId}`);
-  };
-  
-  const openDialog = (book) => {
-    setEditingBook(book);
-    setIsDialogOpen(true);
-    setActiveDropdown(null);
-  };
-
-  const handleImportJson = () => {
-    if (!importModal.book || !jsonInput.trim()) return;
-    const targetBook = importModal.book;
-    
-    try {
-      const parsedData = JSON.parse(jsonInput);
-      const subjectsList = parsedData.subjects || (Array.isArray(parsedData) ? parsedData : null);
-
-      if (!subjectsList || !Array.isArray(subjectsList)) {
-        throw new Error("Geçersiz format: JSON verisi bir 'subjects' dizisi içermelidir.");
-      }
-
-      const existingSubjects = targetBook.subjects || [];
-      const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects)); 
-      const testsToCreate = [];
-
-      const genId = (prefix) => prefix + "_" + Date.now().toString() + Math.random().toString(36).substring(2, 7);
-
-      updatedSubjects.forEach(s => {
-        if (!s.id) s.id = genId("s");
-        if (s.topics && Array.isArray(s.topics)) {
-          s.topics.forEach(t => {
-            if (!t.id) t.id = genId("t");
-          });
-        }
-      });
-
-      for (const subjData of subjectsList) {
-        if (!subjData.name) continue;
-
-        let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
-        if (!subject) {
-          subject = { 
-            id: genId("s"), 
-            name: subjData.name, 
-            topics: [] 
-          };
-          updatedSubjects.push(subject);
-        }
-        if (!subject.topics) subject.topics = [];
-
-        const formatTestPayload = (testData, topicId = null) => {
-          const testPayload = {
-            subjectId: String(subject.id),
-            topicId: topicId ? String(topicId) : null,
-            name: String(testData.name || "İsimsiz Test"),
-            questionCount: Number(testData.questionCount) || 20,
-            answerKey: {}
-          };
-
-          if (targetBook.bookType !== 'open_ended' && testData.answerKey) {
-            if (Array.isArray(testData.answerKey)) {
-              testData.answerKey.forEach((ans, idx) => { 
-                if (ans !== undefined && ans !== null && ans !== "") {
-                  testPayload.answerKey[String(idx + 1)] = String(ans); 
-                }
-              });
-            } else if (typeof testData.answerKey === 'object') {
-              Object.entries(testData.answerKey).forEach(([k, v]) => {
-                if (v !== undefined && v !== null && v !== "") {
-                  testPayload.answerKey[k] = String(v);
-                }
-              });
-            }
-          }
-          return testPayload;
-        };
-
-        // 1. Direct tests under subject (Ders > Test)
-        if (subjData.tests && Array.isArray(subjData.tests)) {
-          for (const testData of subjData.tests) {
-            testsToCreate.push(formatTestPayload(testData, null));
-          }
-        }
-
-        // 2. Topic-based tests (Ders > Konu > Test)
-        if (subjData.topics && Array.isArray(subjData.topics)) {
-          for (const topicData of subjData.topics) {
-            if (!topicData.name) continue;
-
-            let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
-            if (!topic) {
-              topic = { 
-                id: genId("t"), 
-                name: topicData.name 
-              };
-              subject.topics.push(topic);
-            }
-
-            if (topicData.tests && Array.isArray(topicData.tests)) {
-              for (const testData of topicData.tests) {
-                testsToCreate.push(formatTestPayload(testData, topic.id));
-              }
-            }
-          }
-        }
-      }
-
-      updateTrackedBook(targetBook.id, { subjects: updatedSubjects });
-      
-      if (testsToCreate.length > 0) {
-        for (const testPayload of testsToCreate) {
-          addTrackedBookTest(targetBook.id, testPayload);
-        }
-      }
-      
-      showToast(`${targetBook.title} denemesine ${testsToCreate.length} test başarıyla eklendi!`);
-      setJsonInput("");
-      setImportModal({ isOpen: false, book: null });
-    } catch (error) {
-      showToast("Geçersiz JSON formatı. Lütfen verilen örnekleri inceleyin.", "error");
-    }
-  };
-
-  const sampleJsonFormats = {
-    standard: `{\n  "subjects": [\n    {\n      "name": "Matematik",\n      "topics": [\n        {\n          "name": "Üslü Sayılar",\n          "tests": [\n            { \n              "name": "Test 1", \n              "questionCount": 12, \n              "answerKey": ["A", "B", "C", "D", "E"] \n            }\n          ]\n        }\n      ]\n    }\n  ]\n}`,
-    direct: `{\n  "subjects": [\n    {\n      "name": "Türkçe",\n      "tests": [\n        { \n          "name": "Kazanım Testi 1", \n          "questionCount": 20, \n          "answerKey": ["A", "B", "C", "D"] \n        },\n        { \n          "name": "Kazanım Testi 2", \n          "questionCount": 20, \n          "answerKey": ["B", "C", "D", "A"] \n        }\n      ]\n    }\n  ]\n}`,
-    open_ended: `{\n  "subjects": [\n    {\n      "name": "Sosyal Bilgiler",\n      "topics": [\n        {\n          "name": "Milli Uyanış",\n          "tests": [\n            { "name": "Klasik Çalışma Kağıdı 1", "questionCount": 5 },\n            { "name": "Klasik Çalışma Kağıdı 2", "questionCount": 8 }\n          ]\n        }\n      ]\n    }\n  ]\n}`
-  };
-
-  const copyToClipboard = (key, text) => {
-    navigator.clipboard.writeText(text);
-    setCopiedFormat(key);
-    setTimeout(() => setCopiedFormat(null), 2000);
-  };
+  const highestNet = useMemo(() => {
+    return 0; // Not applicable for the definition library view
+  }, [physicalExamsDatabase]);
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem' }}>
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 p-4 sm:p-6 pb-20">
       
-      {/* HEADER */}
-      <div className="card glass" style={{ marginBottom: '2rem', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="btn btn-outline" onClick={() => navigate('/admin')} style={{ padding: '0.5rem', border: 'none', background: 'transparent' }}>
-            <ArrowLeft size={24} />
-          </button>
-          <div style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))', color: 'white', padding: '1rem', borderRadius: 'var(--border-radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <BookMarked size={28} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.8rem', margin: 0, color: 'var(--color-primary)' }}>Deneme Takibi</h1>
-            <p className="text-muted" style={{ margin: 0 }}>Fiziki Denemeler ve Soru Analiz Yönetimi</p>
-          </div>
+      {/* HEADER BAR */}
+      <div className="max-w-7xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+            <ClipboardCheck className="w-7 h-7 text-indigo-500" />
+            Fiziki Deneme & Dijital Optik Form Girişi
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {showAddForm ? 'Yeni fiziki deneme cevaplarınızı optik forma kodlayın' : 'Kayıtlı fiziki deneme sınavları ve karne geçmişi'}
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={() => openDialog(null)}>
-          <Plus size={18} /> Yeni Deneme Ekle
-        </button>
+
+        <div className="flex items-center gap-2">
+
+          {showAddForm ? (
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-black hover:bg-slate-300 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" /> Kayıtlı Denemelere Dön
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowJsonModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all"
+              >
+                <FileCode2 className="w-4 h-4 text-emerald-500" /> Toplu JSON Aktar
+              </button>
+
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4" /> + Yeni Deneme Girişi Yap
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-          Yükleniyor...
-        </div>
-      ) : enrichedBooks.length === 0 ? (
-        <div className="card glass" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <BookMarked size={64} style={{ color: 'var(--color-text-muted)', opacity: 0.3, margin: '0 auto 1rem auto' }} />
-          <h3>Henüz Deneme Eklenmemiş</h3>
-          <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Takip edilecek denemelerinizi buradan ekleyebilirsiniz.</p>
-          <button className="btn btn-outline" onClick={() => openDialog(null)}>İlk Denemeyi Ekle</button>
-        </div>
-      ) : (
-        <div className="book-grid">
-          {enrichedBooks.map((book) => (
-            <div key={book.id} className="card glass book-card">
-              <div className="book-card-header">
-                <div>
-                  <h3 className="book-title">{book.title}</h3>
-                  <p className="book-publisher">{book.publisher}</p>
+      {/* VIEW MODE 1: KAYITLI DENEMELER LİSTESİ */}
+      {!showAddForm && (
+        <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* STATS OVERVIEW CARDS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Girilen Deneme</span>
+                <span className="text-base font-black text-slate-900 dark:text-white">{physicalExamsDatabase.length} Deneme</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1E293B] border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Net Ortalaması</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{avgNet} Net</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1E293B] border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Rekor Net</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400">{highestNet} Net</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1E293B] border border-purple-200 dark:border-purple-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Koçluk Sync</span>
+                <span className="text-xs font-black text-purple-600 dark:text-purple-400">Sayfa 7 Aktif</span>
+              </div>
+            </div>
+          </div>
+
+          {/* MAIN RECORDED EXAMS TABLE / CARDS GRID */}
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-500" />
+                Fiziki Deneme Havuzu (Soru Bankası)
+              </h2>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black shadow-md hover:bg-indigo-700 transition-all"
+              >
+                <Plus className="w-4 h-4" /> + Yeni Deneme Girişi Yap
+              </button>
+            </div>
+
+            {physicalExamsDatabase.length === 0 ? (
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mx-auto">
+                  <ClipboardCheck className="w-8 h-8" />
                 </div>
-                
-                <div className="book-menu">
-                  <button className="book-menu-trigger" onClick={() => setActiveDropdown(activeDropdown === book.id ? null : book.id)}>
-                    <MoreVertical size={20} />
-                  </button>
-                  {activeDropdown === book.id && (
-                    <div className="book-dropdown card" ref={dropdownRef}>
-                      <button onClick={() => openDialog(book)}><Edit size={16} /> Düzenle</button>
-                      <button onClick={() => handleDeleteBook(book.id)} style={{ color: 'var(--color-error)' }}><Trash2 size={16} /> Sil</button>
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Öğrencinizin Özdebir, Töder veya Kurumsal fiziki denemelerinin cevaplarını dijital optik forma kodlayarak ilk kaydı oluşturun.
+                </p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-black shadow-md hover:shadow-lg transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Yeni Fiziki Deneme Kodla
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {physicalExamsDatabase.map(m => (
+                  <div key={m.id} className="bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-all group relative">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                          {m.publisher || 'LGS'} Sınavı
+                        </span>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug mt-1 line-clamp-2">{m.title}</h3>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Calendar className="w-3 h-3" /> {(m.subjects || []).length} Ders
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 leading-none block">Havuzda</span>
+                      </div>
                     </div>
+
+                    {/* SUBJECT QUESTION COUNT BREAKDOWN */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 text-center">
+                      {(m.subjects || []).slice(0, 3).map((s, sIdx) => (
+                        <div key={sIdx} className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <span className="text-[9px] text-slate-400 block font-black truncate">{s.name}</span>
+                        </div>
+                      ))}
+                      {(!m.subjects || m.subjects.length === 0) && (
+                        <div className="col-span-3 bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50 text-[10px] text-slate-400">
+                          Standart Ders Dağılımı
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        onClick={() => setViewingExamDetails(m)}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Detaylar
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setAssignModalExam(m)}
+                          className="px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 text-[10px] font-black hover:bg-emerald-200 transition-colors"
+                        >
+                          Ödev Ata
+                        </button>
+                        <button
+                          onClick={() => { if(window.confirm('Bu denemeyi havuzdan silmek istediğinize emin misiniz?')) deleteQuestion(m.id); }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                          title="Denemeyi Sil"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+
+        </div>
+      )}
+
+      {/* VIEW MODE 2: YENİ FİZİKİ DENEME VE OPTİK FORM GİRİŞİ */}
+      {showAddForm && (
+        <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* TOP CONFIG BAR */}
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+            
+            {/* PRESET SELECTOR */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {Object.keys(EXAM_PRESETS).map(key => (
+                <button
+                  key={key}
+                  onClick={() => handleExamTypeChange(key)}
+                  className={cn(
+                    'py-2.5 px-4 rounded-2xl border text-xs font-black transition-all flex flex-col items-center justify-center gap-1',
+                    examType === key
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300'
                   )}
-                </div>
-              </div>
-              
-              <div className="book-badge">
-                Deneme
+                >
+                  <span>{key === 'CUSTOM' ? 'Özel / Boş Şablon' : `${key} Sınavı`}</span>
+                  <span className="text-[10px] font-bold opacity-80">
+                    {subjects.length > 0 ? `${subjects.reduce((a, s) => a + s.count, 0)} Soru` : 'Boş (Elle / JSON)'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* INPUTS & OPTIONAL PENALTY RATIO SELECTOR */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Fiziki Deneme Adı / Yayın</label>
+                <input
+                  type="text"
+                  placeholder="Örn: Özdebir LGS Genel Deneme 1"
+                  value={examTitle}
+                  onChange={e => setExamTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                />
               </div>
 
-              <div className="book-stats">
-                <div className="book-stat-item">
-                  <span className="text-muted"><Library size={16} /> Ders</span>
-                  <strong>{book.subjectCount || 0}</strong>
-                </div>
-                <div className="book-stat-item">
-                  <span className="text-muted"><FileText size={16} /> Test</span>
-                  <strong>{book.testCount || 0}</strong>
-                </div>
-                <div className="book-stat-item">
-                  <span className="text-muted"><HelpCircle size={16} /> Soru</span>
-                  <strong>{book.questionCount || 0}</strong>
-                </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Deneme Tarihi</label>
+                <input
+                  type="date"
+                  value={examDate}
+                  onChange={e => setExamDate(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+                />
               </div>
 
-              {(book.solvedTestCount || 0) > 0 && (
-                <div className="book-stats-solved">
-                  <div className="book-stat-item">
-                    <span className="text-muted">Çözülen Test</span>
-                    <span className="tag-mono">{book.solvedTestCount}</span>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Değerlendirme Formatı (Opsiyonel)</label>
+                <select
+                  value={penaltyRatio}
+                  onChange={e => setPenaltyRatio(Number(e.target.value))}
+                  className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/40 text-xs font-bold text-indigo-700 dark:text-indigo-300 outline-none"
+                >
+                  <option value={3}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+                  <option value={4}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
+                  <option value={0}>✨ Yanlışlar Doğruyu Götürmüyor (0 Yanlış)</option>
+                  <option value={2}>⚡ 2 Yanlış 1 Doğruyu Götürür</option>
+                  <option value={5}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+          {/* SAVE BUTTON FOR NEW EXAM */}
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="px-6 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+            >
+              Vazgeç
+            </button>
+            <button
+              onClick={handleSaveExam}
+              className="px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-black shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center gap-2"
+            >
+              <CheckCircle2 className="w-5 h-5" /> Denemeyi Sisteme Ekle
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      {/* TOPLU YAPIŞTIR MODAL — sadece cevap anahtarı */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-base">
+                <Key className="w-5 h-5" />
+                {subjects[activeSubjectIndex]?.name} — Cevap Anahtarı Yapıştır
+              </div>
+              <button onClick={() => setShowBulkModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Cevapları yapıştırın (Örn: <code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">ABCDABCD</code> veya <code className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded">A, B, C, D</code>).
+              <br/><strong className="text-amber-600 dark:text-amber-400">✨ Kaç soru girerseniz o kadarı uygulanır.</strong>
+            </p>
+
+            <form onSubmit={handleApplyBulkInput} className="space-y-3">
+              <textarea
+                rows={4}
+                placeholder="Örn: A B C D A B C D A B C D A B C D A B C D"
+                value={bulkInputText}
+                onChange={e => setBulkInputText(e.target.value)}
+                className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500 uppercase tracking-widest"
+              />
+
+              {parsedBulkInput.length > 0 && (
+                <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 text-xs text-indigo-800 dark:text-indigo-200 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    {parsedBulkInput.length} Soru Cevabı Algılandı (Soru 1 ile {Math.min(parsedBulkInput.length, subjects[activeSubjectIndex]?.count || 20)} arası güncellenecektir):
                   </div>
-                  <div className="book-stat-item" style={{ color: 'var(--color-success)' }}>
-                    <span><CheckCircle size={14} /> Doğru</span>
-                    <span className="tag-success">{book.totalCorrectAnswers}</span>
-                  </div>
-                  <div className="book-stat-item" style={{ color: 'var(--color-error)' }}>
-                    <span><XCircle size={14} /> Yanlış</span>
-                    <span className="tag-danger">{book.totalIncorrectAnswers}</span>
+                  <div className="font-mono text-[11px] truncate tracking-widest text-indigo-950 dark:text-indigo-100 font-bold">
+                    {parsedBulkInput.slice(0, subjects[activeSubjectIndex]?.count || 20).join(' - ')}
                   </div>
                 </div>
               )}
 
-              <div className="book-actions">
-                <button className="btn btn-secondary" style={{ flex: 1, padding: '0.5rem' }} onClick={() => handleManageBook(book.id)}>
-                  İçeriği Yönet <ArrowRight size={16} style={{ marginLeft: '0.25rem' }} />
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowBulkModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+              <button
+                  type="submit"
+                  disabled={parsedBulkInput.length === 0}
+                  className="px-5 py-2 rounded-xl text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50 bg-amber-500 hover:bg-amber-600"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Cevap Anahtarını Uygula
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DENEME ÖNİZLEME VE CEVAP ANAHTARI DETAY MODAL */}
+      {viewingExamDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-2xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
+                    {viewingExamDetails.examType || 'LGS'} Sınav Önizlemesi
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">{viewingExamDetails.date}</span>
+                </div>
+                <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{viewingExamDetails.title}</h3>
+              </div>
+              <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* QUICK SPECS */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Toplam Soru</span>
+                <span className="text-base font-black text-slate-800 dark:text-slate-100">{viewingExamDetails.totalQuestions} Soru</span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ceza Kuralı</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400">
+                  {viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}
+                </span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ders Sayısı</span>
+                <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                  {viewingExamDetails.subjects?.length || 0} Ders
+                </span>
+              </div>
+            </div>
+
+            {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                <Key className="w-4 h-4 text-amber-500" /> Dersler ve Kayıtlı Cevap Anahtarları:
+              </h4>
+
+              <div className="space-y-2.5">
+                {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
+                  const subAnswers = viewingExamDetails.answerKey?.[sub.name] || [];
+                  return (
+                    <div key={sIdx} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                          {sub.name}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          {sub.count} Soru
+                        </span>
+                      </div>
+
+                      {/* Optical Answer Strip */}
+                      <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+                        {Array.from({ length: sub.count }).map((_, qIdx) => {
+                          const ans = subAnswers[qIdx] || '-';
+                          return (
+                            <div key={qIdx} className="flex flex-col items-center justify-center w-7 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px]">
+                              <span className="text-[8px] text-slate-400 font-bold">{qIdx + 1}</span>
+                              <span className={cn(
+                                "font-black leading-none",
+                                ans !== '-' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-300"
+                              )}>
+                                {ans}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const examToAssign = viewingExamDetails;
+                  setViewingExamDetails(null);
+                  setAssignModalExam(examToAssign);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
+              >
+                <Plus className="w-4 h-4" /> Bu Denemeyi Ödev Olarak Ata
+              </button>
+
+              <button 
+                onClick={() => setViewingExamDetails(null)} 
+                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DERS & SORU SAYISI DÜZENLEME MODAL */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+                <Settings2 className="w-5 h-5" /> Ders Soru Sayıları & Özel Ders Ekle
+              </div>
+              <button onClick={() => setShowSettingsModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* SUBJECT LIST WITH EDITABLE COUNTS */}
+            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+              {subjects.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-2 text-center">Henüz tanımlı ders yok. Aşağıdan ekleyebilirsiniz.</p>
+              ) : (
+                subjects.map(s => (
+                  <div key={s.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{s.name}</span>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] font-black text-slate-400">Soru Sayısı:</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={s.count}
+                        onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
+                        className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-black text-center"
+                      />
+                      <button onClick={() => handleDeleteSubject(s.name)} className="p-1 text-slate-400 hover:text-rose-500">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* ADD NEW SUBJECT FORM */}
+            <form onSubmit={handleAddCustomSubject} className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="text-xs font-black text-slate-800 dark:text-slate-200">+ Yeni Özel Ders Tanımla</div>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Ders Adı (Örn: Geometri)"
+                  value={newSubName}
+                  onChange={e => setNewSubName(e.target.value)}
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  required
+                />
+                <input
+                  type="number"
+                  placeholder="Soru Sayısı"
+                  value={newSubCount}
+                  onChange={e => setNewSubCount(e.target.value)}
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                  required
+                />
+                <select
+                  value={newSubOptions}
+                  onChange={e => setNewSubOptions(Number(e.target.value))}
+                  className="col-span-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold outline-none"
+                >
+                  <option value={4}>4 Şıklı (A-D)</option>
+                  <option value={5}>5 Şıklı (A-E)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowSettingsModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Kapat</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition-all flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Dersi Ekle
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* JSON BULK IMPORT MODAL */}
+      {showJsonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+                <FileCode2 className="w-5 h-5" /> Toplu JSON Aktarımı
+              </div>
+              <button onClick={() => setShowJsonModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Tüm deneme soru ve cevaplarını JSON formatında yapıştırarak optik formu tek tıkla saniyeler içinde doldurabilirsiniz.
+            </p>
+
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                📋 Örnek JSON Şablon Yapısı
+              </div>
+              <button
+                type="button"
+                onClick={handleCopySampleJson}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition-all active:scale-95"
+              >
+                <Copy className="w-3.5 h-3.5" /> {copiedNotice ? 'Şablon Kopyalandı!' : 'Şablonu Kopyala'}
+              </button>
+            </div>
+
+            {jsonError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {jsonError}
+              </div>
+            )}
+
+            <form onSubmit={handleImportJson} className="space-y-3">
+              <textarea
+                rows={9}
+                placeholder="Örnek JSON yapısını buraya yapıştırın..."
+                value={jsonInputText}
+                onChange={e => setJsonInputText(e.target.value)}
+                className="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
+              />
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setShowJsonModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> Optik Formu Doldur & İçe Aktar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK ASSIGN MODAL */}
+      {assignModalExam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-lg border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-black text-base">
+                <CheckCircle2 className="w-5 h-5" /> Ödev Olarak Ata
+              </div>
+              <button onClick={() => setAssignModalExam(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">📅 Son Teslim Tarihi *</label>
+                <input
+                  type="date"
+                  value={assignDueDate}
+                  onChange={e => setAssignDueDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => { setAssignTargetMode('grade'); setAssignTargets([]); }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${assignTargetMode === 'grade' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                >
+                  Sınıf Bazlı ({curData.grades.length})
                 </button>
                 <button 
-                  className="btn btn-outline" 
-                  title="JSON İle Toplu İçerik Ekle"
-                  style={{ padding: '0.5rem', width: '3rem' }}
-                  onClick={() => {
-                    setJsonInput("");
-                    setImportModal({ isOpen: true, book });
-                  }}
+                  type="button" 
+                  onClick={() => { setAssignTargetMode('student'); setAssignTargets([]); }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${assignTargetMode === 'student' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
                 >
-                  <FileJson size={18} />
+                  Öğrenci Bazlı ({students.length})
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
 
-      {/* NEW / EDIT BOOK MODAL */}
-      {isDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '500px', textAlign: 'left' }}>
-            <h2 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem' }}>{editingBook ? "Denemeyi Düzenle" : "Yeni Deneme Ekle"}</h2>
-            <p className="text-muted" style={{ marginBottom: '1.5rem' }}>{editingBook ? "Deneme bilgilerini güncelleyin." : "Takip edilecek yeni bir deneme oluşturun."}</p>
-            
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Deneme Adı</label>
-              <input 
-                type="text" 
-                className="input-field"
-                value={newBook.title} 
-                onChange={(e) => setNewBook({ ...newBook, title: e.target.value })} 
-                placeholder="Örn: TYT Genel Denemesi 1"
-                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
-              />
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Yayınevi</label>
-              <input 
-                type="text" 
-                className="input-field"
-                value={newBook.publisher} 
-                onChange={(e) => setNewBook({ ...newBook, publisher: e.target.value })} 
-                placeholder="Örn: Merkez Yayınları"
-                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
-              />
+              <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                {assignTargetMode === 'grade' ? (
+                  curData.grades.map(g => {
+                    const checked = assignTargets.includes(g.id);
+                    return (
+                      <label key={g.id} className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer ${checked ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 font-bold text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(g.id) ? p.filter(id => id !== g.id) : [...p, g.id])} />
+                          <span>🎓 {g.name}</span>
+                        </div>
+                      </label>
+                    );
+                  })
+                ) : (
+                  students.map(s => {
+                    const checked = assignTargets.includes(s.id);
+                    return (
+                      <label key={s.id} className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer ${checked ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 font-bold text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(s.id) ? p.filter(id => id !== s.id) : [...p, s.id])} />
+                          <span className="truncate">👤 {s.name}</span>
+                        </div>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
-
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsDialogOpen(false)}>İptal</button>
-              <button className="btn btn-primary" onClick={handleAddOrUpdateBook}>{editingBook ? "Güncelle" : "Ekle"}</button>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setAssignModalExam(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">İptal</button>
+              <button onClick={handleQuickAssign} className="px-5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-all shadow-md">
+                Ödevi Yayınla
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* JSON IMPORT MODAL */}
-      {importModal.isOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '700px', textAlign: 'left' }}>
-            <h2 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FileJson /> Toplu İçerik İçe Aktar
-            </h2>
-            <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
-              <strong>{importModal.book?.title}</strong> denemesine ait dersleri, konuları ve testleri JSON formatında tek seferde ekleyin.
-            </p>
-            
-            <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <AlertCircle size={16} /> Kopyalanabilir Örnek JSON Formatları:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const sampleCode = sampleJsonFormats[sampleFormatTab];
-                    copyToClipboard(sampleFormatTab, sampleCode);
-                    setJsonInput(sampleCode);
-                  }}
-                  className="btn btn-outline"
-                  style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  {copiedFormat === sampleFormatTab ? <Check size={14} /> : <Copy size={14} />} 
-                  {copiedFormat === sampleFormatTab ? 'Kopyalandı & Yapıştırıldı!' : 'Kopyala ve Kutuya Yapıştır'}
-                </button>
-              </div>
-
-              {/* Format Selection Sub-tabs */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setSampleFormatTab("standard")}
-                  style={{
-                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
-                    background: sampleFormatTab === "standard" ? '#4f46e5' : 'white',
-                    color: sampleFormatTab === "standard" ? 'white' : '#475569',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  📘 3 Kademeli (Ders &gt; Konu &gt; Test)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSampleFormatTab("direct")}
-                  style={{
-                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
-                    background: sampleFormatTab === "direct" ? '#4f46e5' : 'white',
-                    color: sampleFormatTab === "direct" ? 'white' : '#475569',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  📗 2 Kademeli (Ders &gt; Test)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSampleFormatTab("open_ended")}
-                  style={{
-                    padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
-                    background: sampleFormatTab === "open_ended" ? '#7c3aed' : 'white',
-                    color: sampleFormatTab === "open_ended" ? 'white' : '#475569',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  ✍️ Açık Uçlu / Klasik
-                </button>
-              </div>
-
-              <pre style={{ background: '#0f172a', color: '#38bdf8', padding: '0.85rem', borderRadius: '0.5rem', fontSize: '0.82rem', overflowX: 'auto', margin: 0, maxHeight: '180px' }}>
-                {sampleJsonFormats[sampleFormatTab]}
-              </pre>
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>JSON Verisini Buraya Yapıştırın</label>
-              <textarea 
-                autoFocus 
-                value={jsonInput} 
-                onChange={(e) => setJsonInput(e.target.value)} 
-                placeholder='Yukarıdaki "Kopyala ve Kutuya Yapıştır" butonuna basarak örnek veriyi buraya aktarabilir ve düzenleyebilirsiniz...'
-                style={{ width: '100%', minHeight: '180px', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                spellCheck={false}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setImportModal({ isOpen: false, book: null })}>Vazgeç</button>
-              <button className="btn btn-primary" onClick={handleImportJson} style={{ background: 'var(--color-success)', borderColor: 'var(--color-success)', fontWeight: 800 }}>Verileri Aktar</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
+}
+
+function MinusCircle(props) {
+  return <AlertCircle {...props} />;
+}
+
+function BarChart2Icon(props) {
+  return <BarChart3 {...props} />;
 }
