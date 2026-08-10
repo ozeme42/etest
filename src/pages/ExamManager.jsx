@@ -3,7 +3,7 @@ import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
-  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3
+  Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3, Users
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,6 +13,8 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useEvaluation } from '../context/EvaluationContext';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from 'recharts';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
@@ -79,12 +81,15 @@ export default function ExamManager() {
   const { addHomework, homeworks } = useHomework();
   const { data: curData } = useCurriculum();
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
+  const { submissions } = useEvaluation();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
   // UX Toggle: Default to List View (showAddForm === false)
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewingExamDetails, setViewingExamDetails] = useState(null);
+  const [activeTab, setActiveTab] = useState('reports');
+  const [viewingStudentResult, setViewingStudentResult] = useState(null);
   
   // Edit Mode State for Existing Exams
   const [isEditingExam, setIsEditingExam] = useState(false);
@@ -390,6 +395,7 @@ export default function ExamManager() {
 
   const handleViewExamDetails = (exam) => {
     setViewingExamDetails(exam);
+    setActiveTab('reports');
     setIsEditingExam(false);
     setEditingAnswerKey(exam.answerKey || {});
     setEditingExamMeta({
@@ -466,6 +472,58 @@ export default function ExamManager() {
   const highestNet = useMemo(() => {
     return 0; // Not applicable for the definition library view
   }, [physicalExamsDatabase]);
+
+  const chartData = useMemo(() => {
+    return physicalExamsDatabase.map(exam => {
+      const examHws = homeworks.filter(hw => hw.bookId === exam.id);
+      const hwIds = examHws.map(h => h.id);
+      const examSubs = submissions.filter(s => hwIds.includes(s.hwId) || s.bookId === exam.id);
+      
+      const uniqueStudents = new Set(examSubs.map(s => s.studentId));
+      let totalScore = 0;
+      uniqueStudents.forEach(stId => {
+        const sSubs = examSubs.filter(s => s.studentId === stId);
+        totalScore += sSubs.reduce((acc, curr) => acc + (curr.score || 0), 0);
+      });
+      
+      const avgScore = uniqueStudents.size > 0 ? totalScore / uniqueStudents.size : 0;
+      
+      return {
+        name: (exam.title || 'İsimsiz').substring(0, 15) + ((exam.title || 'İsimsiz').length > 15 ? '...' : ''),
+        Katılım: uniqueStudents.size,
+        Ortalama: Math.round(avgScore)
+      };
+    }).slice(0, 6);
+  }, [physicalExamsDatabase, submissions, homeworks]);
+
+  const studentResults = useMemo(() => {
+    if (!viewingExamDetails) return [];
+    const examHws = homeworks.filter(hw => hw.bookId === viewingExamDetails.id);
+    const hwIds = examHws.map(h => h.id);
+    const subs = submissions.filter(s => hwIds.includes(s.hwId) || s.bookId === viewingExamDetails.id);
+    
+    const map = {};
+    subs.forEach(s => {
+      if (!map[s.studentId]) {
+        const studentInfo = students.find(st => st.id === s.studentId) || { name: 'Bilinmeyen Öğrenci' };
+        map[s.studentId] = {
+          studentId: s.studentId,
+          studentName: studentInfo.name,
+          score: 0,
+          correctCount: 0,
+          wrongCount: 0,
+          emptyCount: 0,
+          submissions: []
+        };
+      }
+      map[s.studentId].score += (s.score || 0);
+      map[s.studentId].correctCount += (s.correctCount || 0);
+      map[s.studentId].wrongCount += (s.wrongCount || 0);
+      map[s.studentId].emptyCount += (s.emptyCount || 0);
+      map[s.studentId].submissions.push(s);
+    });
+    return Object.values(map).sort((a,b) => b.score - a.score);
+  }, [viewingExamDetails, homeworks, submissions, students]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 p-4 sm:p-6 pb-20">
@@ -547,7 +605,7 @@ export default function ExamManager() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#1E293B] border border-purple-200 dark:border-purple-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+            <div className="bg-white/80 backdrop-blur-md dark:bg-[#1E293B] border border-purple-200/60 dark:border-purple-900/50 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
@@ -558,8 +616,35 @@ export default function ExamManager() {
             </div>
           </div>
 
+          {/* CHART OVERVIEW */}
+          {chartData.length > 0 && (
+            <div className="bg-white/80 dark:bg-[#1E293B] backdrop-blur-xl border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+              <h3 className="text-base font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-indigo-500" />
+                Sınav Katılım & Ortalama Analizi
+              </h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)' }}
+                      labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+                    <Bar yAxisId="left" dataKey="Katılım" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} />
+                    <Bar yAxisId="right" dataKey="Ortalama" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           {/* MAIN RECORDED EXAMS TABLE / CARDS GRID */}
-          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="bg-white/90 backdrop-blur-md dark:bg-[#1E293B] border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
               <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Layers className="w-5 h-5 text-indigo-500" />
@@ -858,9 +943,9 @@ export default function ExamManager() {
 
       {/* DENEME ÖNİZLEME VE CEVAP ANAHTARI DETAY MODAL */}
       {viewingExamDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-2xl border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-xl dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-4xl border border-slate-200/60 dark:border-slate-700 shadow-2xl space-y-4 max-h-[95vh] overflow-y-auto flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
               <div className="flex-1 mr-4">
                 <div className="flex items-center gap-2 mb-1">
                   {isEditingExam ? (
@@ -888,7 +973,7 @@ export default function ExamManager() {
                     className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-lg font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 ) : (
-                  <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{viewingExamDetails.title}</h3>
+                  <h3 className="font-black text-slate-900 dark:text-white text-xl leading-tight">{viewingExamDetails.title}</h3>
                 )}
               </div>
               <div className="flex items-center gap-2 self-start">
@@ -899,115 +984,188 @@ export default function ExamManager() {
                 ) : (
                   <span className="text-xs font-black text-amber-500 animate-pulse">Düzenleme Modu</span>
                 )}
-                <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {isEditingExam && (
-              <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">PDF Linki</label>
-                  <input
-                    type="url"
-                    value={editingExamMeta.pdfUrl}
-                    onChange={(e) => setEditingExamMeta(p => ({ ...p, pdfUrl: e.target.value }))}
-                    placeholder="https://drive.google.com/... veya direkt PDF URL"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Değerlendirme (Ceza Kuralı)</label>
-                  <select
-                    value={editingExamMeta.penaltyRatio}
-                    onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value={0}>Yanlışlar Doğruyu Götürmez</option>
-                    <option value={3}>3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
-                    <option value={4}>4 Yanlış 1 Doğruyu Götürür</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* QUICK SPECS */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Toplam Soru</span>
-                <span className="text-base font-black text-slate-800 dark:text-slate-100">{viewingExamDetails.totalQuestions} Soru</span>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
-                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ceza Kuralı</span>
-                <span className="text-base font-black text-amber-600 dark:text-amber-400">
-                  {viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}
-                </span>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl col-span-2 sm:col-span-1">
-                <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ders Sayısı</span>
-                <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                  {viewingExamDetails.subjects?.length || 0} Ders
-                </span>
-              </div>
+            {/* TAB NAVIGATION */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl shrink-0">
+              <button 
+                onClick={() => setActiveTab('reports')}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+                  activeTab === 'reports' ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+              >
+                Öğrenci Sonuçları ve Raporlar
+              </button>
+              <button 
+                onClick={() => setActiveTab('settings')}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+                  activeTab === 'settings' ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+              >
+                Ayarlar ve Cevap Anahtarı
+              </button>
             </div>
 
-            {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
-                <Key className="w-4 h-4 text-amber-500" /> Dersler ve Kayıtlı Cevap Anahtarları:
-              </h4>
-
-              <div className="space-y-2.5">
-                {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
-                  const subAnswers = isEditingExam ? (editingAnswerKey[sub.name] || []) : (viewingExamDetails.answerKey?.[sub.name] || []);
-                  return (
-                    <div key={sIdx} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                          {sub.name}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {isEditingExam && (
-                            <input
-                              type="text"
-                              value={inlineInputs[sub.name] || ''}
-                              onChange={(e) => handleInlineInputChange(sub.name, e.target.value, sub.count)}
-                              placeholder="Cevaplar..."
-                              className="w-48 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[10px] font-mono uppercase tracking-widest text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-indigo-500"
-                            />
-                          )}
-                          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                            {sub.count} Soru
-                          </span>
-                        </div>
+            <div className="flex-1 overflow-y-auto min-h-[300px]">
+              {activeTab === 'reports' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-200">
+                      Sınava Katılan Öğrenciler ({studentResults.length})
+                    </h4>
+                  </div>
+                  
+                  {studentResults.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                        <Users className="w-6 h-6" />
                       </div>
+                      <h3 className="text-slate-800 font-bold mb-1">Henüz Çözen Öğrenci Yok</h3>
+                      <p className="text-xs text-slate-500">Bu sınavı henüz çözen bir öğrenci bulunmuyor. Ödev olarak atayabilirsiniz.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {studentResults.map((res, idx) => (
+                        <div 
+                          key={idx}
+                          onClick={() => setViewingStudentResult(res)}
+                          className="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-2xl p-4 transition-all cursor-pointer group"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-slate-800 group-hover:text-indigo-700 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
+                                {res.studentName.charAt(0)}
+                              </div>
+                              {res.studentName}
+                            </span>
+                            <span className="text-lg font-black text-indigo-600">{res.score} Puan</span>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs font-bold">
+                            <span className="text-emerald-600">{res.correctCount} Doğru</span>
+                            <span className="text-rose-500">{res.wrongCount} Yanlış</span>
+                            <span className="text-slate-400">{res.emptyCount} Boş</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-                      {/* Optical Answer Strip */}
-                      <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {Array.from({ length: sub.count }).map((_, qIdx) => {
-                          const ans = subAnswers[qIdx] || '-';
-                          return (
-                            <div key={qIdx} className="flex flex-col items-center justify-center w-7 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px]">
-                              <span className="text-[8px] text-slate-400 font-bold">{qIdx + 1}</span>
-                              <span className={cn(
-                                "font-black leading-none",
-                                ans !== '-' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-300"
-                              )}>
-                                {ans}
-                              </span>
-                            </div>
-                          );
-                        })}
+              {activeTab === 'settings' && (
+                <div className="space-y-4">
+                  {isEditingExam && (
+                    <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">PDF Linki</label>
+                        <input
+                          type="url"
+                          value={editingExamMeta.pdfUrl}
+                          onChange={(e) => setEditingExamMeta(p => ({ ...p, pdfUrl: e.target.value }))}
+                          placeholder="https://drive.google.com/... veya direkt PDF URL"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">Değerlendirme (Ceza Kuralı)</label>
+                        <select
+                          value={editingExamMeta.penaltyRatio}
+                          onChange={(e) => setEditingExamMeta(p => ({ ...p, penaltyRatio: Number(e.target.value) }))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value={0}>Yanlışlar Doğruyu Götürmez</option>
+                          <option value={3}>3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+                          <option value={4}>4 Yanlış 1 Doğruyu Götürür</option>
+                        </select>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+
+                  {/* QUICK SPECS */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
+                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Toplam Soru</span>
+                      <span className="text-base font-black text-slate-800 dark:text-slate-100">{viewingExamDetails.totalQuestions} Soru</span>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl">
+                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ceza Kuralı</span>
+                      <span className="text-base font-black text-amber-600 dark:text-amber-400">
+                        {viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl col-span-2 sm:col-span-1">
+                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Ders Sayısı</span>
+                      <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                        {viewingExamDetails.subjects?.length || 0} Ders
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Key className="w-4 h-4 text-amber-500" /> Dersler ve Kayıtlı Cevap Anahtarları:
+                    </h4>
+
+                    <div className="space-y-2.5">
+                      {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
+                        const subAnswers = isEditingExam ? (editingAnswerKey[sub.name] || []) : (viewingExamDetails.answerKey?.[sub.name] || []);
+                        return (
+                          <div key={sIdx} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-black text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                {sub.name}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {isEditingExam && (
+                                  <input
+                                    type="text"
+                                    value={inlineInputs[sub.name] || ''}
+                                    onChange={(e) => handleInlineInputChange(sub.name, e.target.value, sub.count)}
+                                    placeholder="Cevaplar..."
+                                    className="w-48 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[10px] font-mono uppercase tracking-widest text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-indigo-500"
+                                  />
+                                )}
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                  {sub.count} Soru
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Optical Answer Strip */}
+                            <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto p-1 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+                              {Array.from({ length: sub.count }).map((_, qIdx) => {
+                                const ans = subAnswers[qIdx] || '-';
+                                return (
+                                  <div key={qIdx} className="flex flex-col items-center justify-center w-7 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px]">
+                                    <span className="text-[8px] text-slate-400 font-bold">{qIdx + 1}</span>
+                                    <span className={cn(
+                                      "font-black leading-none",
+                                      ans !== '-' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-300"
+                                    )}>
+                                      {ans}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
               {!isEditingExam ? (
                 <>
                   <button
@@ -1044,6 +1202,97 @@ export default function ExamManager() {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STUDENT RESULT SUB-MODAL */}
+      {viewingStudentResult && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white dark:bg-[#1E293B] rounded-3xl p-6 w-full max-w-3xl border border-slate-200 dark:border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 shrink-0">
+              <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">
+                  {viewingStudentResult.studentName.charAt(0)}
+                </div>
+                {viewingStudentResult.studentName} - Sınav Karnesi
+              </h3>
+              <button onClick={() => setViewingStudentResult(null)} className="p-1.5 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-center">
+                  <div className="w-40 h-40">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Doğru', value: viewingStudentResult.correctCount, color: '#10b981' },
+                            { name: 'Yanlış', value: viewingStudentResult.wrongCount, color: '#f43f5e' },
+                            { name: 'Boş', value: viewingStudentResult.emptyCount, color: '#94a3b8' }
+                          ]}
+                          cx="50%" cy="50%" innerRadius={35} outerRadius={60}
+                          dataKey="value"
+                        >
+                          { [
+                            { name: 'Doğru', value: viewingStudentResult.correctCount, color: '#10b981' },
+                            { name: 'Yanlış', value: viewingStudentResult.wrongCount, color: '#f43f5e' },
+                            { name: 'Boş', value: viewingStudentResult.emptyCount, color: '#94a3b8' }
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2 ml-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500" /> Doğru: {viewingStudentResult.correctCount}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-bold text-rose-500">
+                      <div className="w-3 h-3 rounded-full bg-rose-500" /> Yanlış: {viewingStudentResult.wrongCount}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+                      <div className="w-3 h-3 rounded-full bg-slate-400" /> Boş: {viewingStudentResult.emptyCount}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-200 font-black text-indigo-700">
+                      Puan: {viewingStudentResult.score}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                   <h4 className="font-bold text-slate-800 text-sm mb-3">Ders Bazlı Performans</h4>
+                   <div className="space-y-3">
+                     {viewingStudentResult.submissions.map(sub => (
+                       <div key={sub.id} className="bg-white border border-slate-200 rounded-xl p-2.5">
+                         <div className="flex justify-between items-center mb-2">
+                           <span className="text-xs font-black text-slate-700">{sub.subject || sub.testTitle || 'Test'}</span>
+                           <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{sub.score} Puan</span>
+                         </div>
+                         <div className="flex flex-wrap gap-1">
+                           {(sub.answers || []).map((ans, idx) => {
+                             let bgClass = "bg-slate-100 border-slate-200 text-slate-400";
+                             if (ans.isCorrect) bgClass = "bg-emerald-50 border-emerald-200 text-emerald-600";
+                             else if (ans.userAnswer) bgClass = "bg-rose-50 border-rose-200 text-rose-500";
+                             
+                             return (
+                               <div key={idx} className={cn("w-6 h-7 rounded flex flex-col items-center justify-center border text-[9px] font-bold", bgClass)}>
+                                 <span>{idx + 1}</span>
+                               </div>
+                             );
+                           })}
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
