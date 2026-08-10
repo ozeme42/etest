@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ChevronRight, ChevronLeft, Layers } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ChevronRight, ChevronLeft, Layers, ArrowLeft } from 'lucide-react';
 
-export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSave, submissionAnswers }) {
+export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSave, submissionAnswers, onBack }) {
   const draftKey = useMemo(() => `draft_bulk_quiz_${test.id || 'test'}`, [test.id]);
 
   const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
@@ -355,6 +355,13 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
       {/* ── HEADER ── */}
       <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button 
+            onClick={() => window.history.back()}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Geri Dön"
+          >
+            <ArrowLeft size={22} />
+          </button>
           <span style={{ padding: '0.35rem 0.65rem', background: '#7c3aed', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <Layers size={14} /> BÖLÜMLÜ ÇOKLU ÖDEV
           </span>

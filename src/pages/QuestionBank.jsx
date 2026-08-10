@@ -329,7 +329,7 @@ export default function QuestionBank() {
           }
 
           const formattedQs = qArray.map((q, i) => ({
-            id: `q_${Date.now()}_${i}`,
+            id: `q_${i}_${Date.now()}`,
             questionText: q.questionText || q.question || q.title || `Soru ${i+1}`,
             options: q.options || q.choices || ['', '', '', ''],
             correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : (typeof q.correctAnswer === 'string' ? ['A','B','C','D','E'].indexOf(q.correctAnswer.toUpperCase()) : 0)

@@ -369,7 +369,7 @@ export async function dbGetSubmissions(studentId) {
       subject: s.subject,
       title: s.title,
       testTitle: s.test_title || s.title,
-      status: s.status || (s.is_evaluated_by_teacher ? 'completed' : 'pending_evaluation'),
+      status: (s.answers || []).find(a => a.type === 'metadata')?.status || s.status || (s.is_evaluated_by_teacher ? 'completed' : 'pending_evaluation'),
       isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || s.status === 'completed' || s.status === 'evaluated'),
       teacherFeedback: s.teacher_feedback || null,
       totalScorePoints: s.total_score_points || null,
@@ -416,7 +416,7 @@ export async function dbSaveSubmission(sub) {
       homework_id: (sub.hwId || sub.homeworkId) ? String(sub.hwId || sub.homeworkId) : null,
       answers: [
         ...(sub.answers || []).filter(a => a.type !== 'metadata'),
-        { type: 'metadata', bookTestId: sub.bookTestId || null, bookTestIds: sub.bookTestIds || [] }
+        { type: 'metadata', bookTestId: sub.bookTestId || null, bookTestIds: sub.bookTestIds || [], status: sub.status || 'pending_evaluation' }
       ],
       questions: sub.questions || []
     };
@@ -1100,7 +1100,7 @@ export async function dbGetTrackedBooks() {
   try {
     const [bRes, tRes] = await Promise.all([
       supabase.from('tracked_books').select('*').order('created_at', { ascending: false }),
-      supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: false })
+      supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: true })
     ]);
 
     if (bRes.error || tRes.error) return null;

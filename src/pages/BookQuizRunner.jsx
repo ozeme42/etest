@@ -18,7 +18,7 @@ export default function BookQuizRunner() {
   const { homeworks, submitHomework } = useHomework();
   const { books, bookTests } = useTrackedBooks();
   const { users } = useUser();
-  const { addSubmission } = useEvaluation();
+  const { submissions, addSubmission } = useEvaluation();
 
   const [studentAnswers, setStudentAnswers] = useState({});
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -44,6 +44,17 @@ export default function BookQuizRunner() {
     return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Test yüklenirken bir sorun oluştu. Geçersiz bağlantı.</div>;
   }
 
+  const existingSubmission = (submissions || []).find(s => 
+    String(s.studentId) === String(studentId) && 
+    (String(s.testId) === String(hw.id) || String(s.hwId) === String(hw.id))
+  );
+
+  useEffect(() => {
+    if (existingSubmission && !submissionComplete) {
+      navigate(`/review/${existingSubmission.id}`, { replace: true, state: { from: `/student/books/${book.id}` } });
+    }
+  }, [existingSubmission, submissionComplete, navigate, book]);
+
   const isOpenEnded = book.bookType === 'open_ended';
   const qCount = testDef.questionCount || 0;
 
@@ -58,7 +69,7 @@ export default function BookQuizRunner() {
     setStudentAnswers(prev => ({ ...prev, [qNum]: text }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isSubmittingRef.current) return;
     if (!showFinishModal) {
       setShowFinishModal(true);
@@ -121,7 +132,7 @@ export default function BookQuizRunner() {
       answers
     };
 
-    const newSubId = addSubmission(submissionData);
+    const newSubId = await addSubmission(submissionData);
     if (submitHomework) {
       submitHomework(hw.id, student.id, Math.round(totalScore), qCount);
     }
@@ -131,7 +142,7 @@ export default function BookQuizRunner() {
     
     // Redirect after brief delay
     setTimeout(() => {
-      navigate(`/review/${newSubId}`, { replace: true, state: { from: '/student' } });
+      navigate(`/review/${newSubId}`, { replace: true, state: { from: `/student/books/${book.id}` } });
     }, 2500);
   };
 
@@ -158,12 +169,12 @@ export default function BookQuizRunner() {
       {/* HEADER */}
       <div className="card glass" style={{ marginBottom: '2rem', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="btn btn-outline" onClick={() => navigate('/student')} style={{ padding: '0.5rem', border: 'none', background: 'transparent' }}>
+          <button className="btn btn-outline" onClick={() => navigate(`/student/books/${book.id}`)} style={{ padding: '0.5rem', border: 'none', background: 'transparent' }}>
             <ArrowLeft size={24} />
           </button>
           <div>
             <h1 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-primary)' }}>{hw.title}</h1>
-            <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+            <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem', marginTop: '0.25rem' }}>
               Öğrenci: {student.name} | Soru Sayısı: {qCount} | Tip: {isOpenEnded ? 'Açık Uçlu Cevap Kağıdı' : 'Optik Form'}
             </p>
           </div>

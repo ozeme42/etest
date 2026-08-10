@@ -69,7 +69,7 @@ export function StudyPlanProvider({ children }) {
 
   const addStudyAssignment = async (assignmentData) => {
     const newAssignment = {
-      id: `sa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `sa_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`,
       createdAt: new Date().toISOString(),
       status: 'assigned',
       ...assignmentData

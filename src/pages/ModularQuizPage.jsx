@@ -6,7 +6,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
-import { Clock3, Trophy, Eye, Home, CheckCircle2 } from 'lucide-react';
+import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
@@ -452,17 +452,26 @@ export default function ModularQuizPage() {
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '1rem' }}>
               <button
-                onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`)}
+                onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: `/student/books/${test.bookId || test.id}` } })}
                 style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}
               >
                 <Eye size={18} /> Cevapları İncele
               </button>
-              <button
-                onClick={() => navigate('/student')}
-                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                <Home size={18} /> Ana Sayfaya Dön
-              </button>
+              {test?.bookId ? (
+                <button
+                  onClick={() => navigate(`/student/books/${test.bookId}`)}
+                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <BookOpen size={18} /> Kitaba Dön
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/student')}
+                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <Home size={18} /> Ana Sayfaya Dön
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -501,17 +510,26 @@ export default function ModularQuizPage() {
 
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '1rem' }}>
             <button
-              onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`)}
+              onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: `/student/books/${test.bookId || test.id}` } })}
               style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}
             >
               <Eye size={18} /> Detaylı İncele
             </button>
-            <button
-              onClick={() => navigate('/student')}
-              style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              <Home size={18} /> Ana Sayfaya Dön
-            </button>
+            {test?.bookId ? (
+              <button
+                onClick={() => navigate(`/student/books/${test.bookId}`)}
+                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <BookOpen size={18} /> Kitaba Dön
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/student')}
+                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <Home size={18} /> Ana Sayfaya Dön
+              </button>
+            )}
           </div>
         </div>
       </div>

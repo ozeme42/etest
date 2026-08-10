@@ -140,7 +140,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       window.history.pushState(null, '', window.location.href);
       const handlePopState = (e) => {
         e.preventDefault();
-        navigate('/student', { replace: true });
+        navigate(location.state?.from || '/student', { replace: true });
       };
       window.addEventListener('popstate', handlePopState);
       return () => window.removeEventListener('popstate', handlePopState);
@@ -1348,7 +1348,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
               Tebrikler, testi bitirdiniz. Ancak bu testte yer alan <strong>Açık Uçlu sorular</strong> öğretmeniniz tarafından değerlendirildikten sonra puanınız ve sınav sonuçlarınız kesinleşecektir.
             </p>
 
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/student', { replace: true })} style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
+            <button className="btn btn-primary btn-lg" onClick={() => navigate(location.state?.from || '/student', { replace: true })} style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
               Kontrol Paneline Dön
             </button>
             
@@ -1417,10 +1417,10 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate('/student', { replace: true })} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
+            <button className="btn btn-secondary btn-lg" onClick={() => navigate(location.state?.from || '/student', { replace: true })} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
               Panele Dön
             </button>
-            <button className="btn btn-primary btn-lg" onClick={() => navigate(`/review/${submissionId}`, { replace: true, state: { from: '/student' } })} style={{ flex: '1 1 200px', maxWidth: '300px', background: statusColor, borderColor: statusColor }}>
+            <button className="btn btn-primary btn-lg" onClick={() => navigate(`/review/${submissionId}`, { replace: true, state: { from: location.state?.from || '/student' } })} style={{ flex: '1 1 200px', maxWidth: '300px', background: statusColor, borderColor: statusColor }}>
               Soruları İncele
             </button>
           </div>
@@ -1460,7 +1460,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
-              onClick={() => navigate('/student')}
+              onClick={() => navigate(location.state?.from || '/student')}
               style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
             >
               <ChevronLeft size={20} />

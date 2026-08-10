@@ -74,7 +74,7 @@ export function TrackedBookProvider({ children }) {
 
   const addTrackedBook = async (bookData) => {
     const newBook = {
-      id: `tb_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: `tb_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`,
       createdAt: new Date().toISOString(),
       subjects: [],
       ...bookData
@@ -97,7 +97,7 @@ export function TrackedBookProvider({ children }) {
 
   const addTrackedBookTest = async (bookId, testData) => {
     const newTest = {
-      id: `tbt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: `tbt_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`,
       bookId,
       createdAt: new Date().toISOString(),
       ...testData

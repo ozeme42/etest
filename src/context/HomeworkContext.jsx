@@ -106,7 +106,7 @@ useEffect(() => {
 }, [user?.id, homeworks]);
 
   const addHomework = async (hwData) => {
-    const newId = `hw_${Date.now()}`;
+    const newId = `hw_${Math.random().toString(36).substr(2, 6)}_${Date.now()}`;
     const newHw = {
       id: newId,
       createdAt: new Date().toISOString(),

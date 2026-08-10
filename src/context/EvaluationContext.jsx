@@ -149,6 +149,20 @@ export function EvaluationProvider({ children }) {
     }
   }, [submissions]);
 
+  // Sync across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'eTestSubmissions' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          setSubmissions(parsed);
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const { user } = useAuth();
 
   // FIX: Bu ref, 'u1' -> gerçek kullanıcı id'si taşıma işleminin

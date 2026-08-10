@@ -393,7 +393,7 @@ export default function BookContentManager() {
     Object.entries(subjectsMap).forEach(([sName, sData]) => {
       let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === sName.toLocaleLowerCase('tr-TR'));
       if (!subject) {
-        subject = { id: `subj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: sName, topics: [] };
+        subject = { id: `subj_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: sName, topics: [] };
         updatedSubjects.push(subject);
       }
       if (!subject.topics) subject.topics = [];
@@ -413,7 +413,7 @@ export default function BookContentManager() {
       Object.entries(sData.topics).forEach(([tName, testObjs]) => {
         let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === tName.toLocaleLowerCase('tr-TR'));
         if (!topic) {
-          topic = { id: `topic_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: tName };
+          topic = { id: `topic_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: tName };
           subject.topics.push(topic);
         }
 
@@ -450,7 +450,7 @@ export default function BookContentManager() {
     let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjectName.trim().toLocaleLowerCase('tr-TR'));
 
     if (!subject) {
-      subject = { id: `subj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: subjectName.trim(), topics: [] };
+      subject = { id: `subj_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: subjectName.trim(), topics: [] };
       updatedSubjects.push(subject);
     }
     if (!subject.topics) subject.topics = [];
@@ -459,7 +459,7 @@ export default function BookContentManager() {
     if (!isDirectSubject && topicName.trim()) {
       let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicName.trim().toLocaleLowerCase('tr-TR'));
       if (!topic) {
-        topic = { id: `topic_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: topicName.trim() };
+        topic = { id: `topic_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: topicName.trim() };
         subject.topics.push(topic);
       }
       topicId = String(topic.id);
@@ -494,7 +494,7 @@ export default function BookContentManager() {
         if (!subjData.name) continue;
         let subject = updatedSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
         if (!subject) {
-          subject = { id: `subj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: subjData.name, topics: [] };
+          subject = { id: `subj_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: subjData.name, topics: [] };
           updatedSubjects.push(subject);
         }
 
@@ -525,7 +525,7 @@ export default function BookContentManager() {
           for (const topicData of subjData.topics) {
             let topic = subject.topics.find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
             if (!topic) {
-              topic = { id: `topic_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, name: topicData.name };
+              topic = { id: `topic_${Math.random().toString(36).substr(2, 5)}_${Date.now()}`, name: topicData.name };
               subject.topics.push(topic);
             }
             if (topicData.tests && Array.isArray(topicData.tests)) {

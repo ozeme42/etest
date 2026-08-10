@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
-import { BookOpen, Map, ArrowRight, BarChart2, Star } from 'lucide-react';
+import { BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X } from 'lucide-react';
 import { toUUID } from '../services/supabaseService';
 
 // Debug flag - set to true to see matching details in console while diagnosing progress issues
@@ -13,14 +13,74 @@ const DEBUG_PROGRESS = false;
 export default function StudentBooksPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { homeworks = [] } = useHomework();
-  const { books = [], bookTests = [], isLoading: booksLoading } = useTrackedBooks();
+  const { homeworks = [], addHomework } = useHomework();
+  const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
 
   const studentId = currentUser?.id;
   const grade = currentUser?.grade;
   const gradeId = currentUser?.gradeId;
   const className = currentUser?.className;
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveNewBook = async () => {
+    if (!newBook.title || !newBook.publisher) return;
+    setIsSaving(true);
+    try {
+      const bookSubjects = newBook.subjects
+         .filter(s => s.name.trim() !== '' && s.testCount > 0)
+         .map(s => ({ id: s.id, name: s.name }));
+         
+      if (bookSubjects.length === 0) {
+        bookSubjects.push({ id: 'genel', name: 'Genel' });
+      }
+
+      const createdBook = await addTrackedBook({
+        title: newBook.title,
+        publisher: newBook.publisher,
+        subjects: bookSubjects
+      });
+
+      const testPromises = [];
+      const testIds = [];
+      
+      newBook.subjects.forEach(subject => {
+        if (subject.name.trim() === '' || subject.testCount <= 0) return;
+        
+        for (let i = 1; i <= subject.testCount; i++) {
+          testPromises.push(
+            addTrackedBookTest(createdBook.id, {
+              subjectId: subject.id,
+              name: `Test ${i}`,
+              questionCount: subject.questionsPerTest,
+              isOpenEnded: false
+            }).then(test => testIds.push(test.id))
+          );
+        }
+      });
+      
+      await Promise.all(testPromises);
+
+      await addHomework({
+        title: `${newBook.title} (Kendi Eklediğim)`,
+        isBookAssignment: true,
+        bookId: createdBook.id,
+        targetType: 'student',
+        targetIds: [studentId],
+        tests: testIds
+      });
+
+      setIsAddModalOpen(false);
+      setNewBook({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
+    } catch (e) {
+      console.error('Failed to add book', e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Filter book assignments
   const bookAssignments = useMemo(() => {
@@ -56,8 +116,8 @@ export default function StudentBooksPage() {
         bookMap[book.id] = {
           ...book,
           assignedHomeworks: [],
-          totalAssignedTests: 0,
-          totalSolvedTests: 0,
+          allAssignedTestIds: new Set(),
+          allSolvedTestIds: new Set(),
         };
       }
 
@@ -69,15 +129,7 @@ export default function StudentBooksPage() {
          const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(book.id));
          hwTestIdsRaw = allBookTests.map(bt => bt.id);
       }
-      bookMap[book.id].totalAssignedTests += hwTestIdsRaw.length;
-
-      // Every test id in both its raw string form AND its UUID form
-      const hwTestIdSet = new Set();
-      hwTestIdsRaw.forEach(id => {
-        hwTestIdSet.add(String(id));
-        const uuid = toUUID(id);
-        if (uuid) hwTestIdSet.add(String(uuid));
-      });
+      hwTestIdsRaw.forEach(id => bookMap[book.id].allAssignedTestIds.add(String(id)));
 
       // Also allow matching directly on the homework id itself (some flows store
       // submissions against the homework, not the individual test)
@@ -85,45 +137,41 @@ export default function StudentBooksPage() {
       const hwUUID = toUUID(hw.id);
       if (hwUUID) hwIdSet.add(String(hwUUID));
 
-      const solvedInHw = studentSubmissions.filter(s => {
+      studentSubmissions.forEach(s => {
         // Normalize every possible id field on the submission, both raw and UUID form
         const candidateFields = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
           candidateFields.push(...s.bookTestIds);
         }
 
-        return candidateFields.some(field => {
-          if (field === undefined || field === null) return false;
+        let isHwSolved = false;
+        const matchedTestIds = new Set();
+
+        candidateFields.forEach(field => {
+          if (field === undefined || field === null) return;
           const raw = String(field);
           const uuid = toUUID(field);
 
-          if (hwTestIdSet.has(raw)) return true;
-          if (uuid && hwTestIdSet.has(String(uuid))) return true;
-          if (hwIdSet.has(raw)) return true;
-          if (uuid && hwIdSet.has(String(uuid))) return true;
+          if (hwIdSet.has(raw) || (uuid && hwIdSet.has(String(uuid)))) {
+            isHwSolved = true;
+          }
 
-          return false;
+          hwTestIdsRaw.forEach(id => {
+            const strId = String(id);
+            const uuidId = toUUID(id);
+            if (strId === raw || (uuid && String(uuidId) === String(uuid))) {
+              matchedTestIds.add(strId);
+            }
+          });
         });
+
+        if (isHwSolved) {
+          hwTestIdsRaw.forEach(id => bookMap[book.id].allSolvedTestIds.add(String(id)));
+        } else {
+          matchedTestIds.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
+        }
       });
 
-      if (DEBUG_PROGRESS) {
-        // eslint-disable-next-line no-console
-        console.log('[Books Progress Debug] hw:', hw.id, {
-          hwTestIdsRaw,
-          hwTestIdSet: Array.from(hwTestIdSet),
-          hwIdSet: Array.from(hwIdSet),
-          studentSubmissionsSample: studentSubmissions.map(s => ({
-            testId: s.testId,
-            bookTestId: s.bookTestId,
-            homeworkId: s.homeworkId,
-            hwId: s.hwId,
-            status: s.status,
-          })),
-          solvedInHwCount: solvedInHw.length,
-        });
-      }
-
-      bookMap[book.id].totalSolvedTests += solvedInHw.length;
 
       // Calculate earliest due date among unfinished assignments
       if (hw.dueDate) {
@@ -135,6 +183,9 @@ export default function StudentBooksPage() {
     });
 
     Object.values(bookMap).forEach(b => {
+      b.totalAssignedTests = b.allAssignedTestIds.size;
+      b.totalSolvedTests = b.allSolvedTestIds.size;
+      
       // Guard against solved count exceeding assigned count due to overlapping homeworks
       if (b.totalSolvedTests > b.totalAssignedTests) {
         b.totalSolvedTests = b.totalAssignedTests;
@@ -143,6 +194,46 @@ export default function StudentBooksPage() {
         const diff = b.targetDueDate.getTime() - new Date().getTime();
         b.remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
       }
+
+      // Calculate best submission stats
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let totalBlank = 0;
+      
+      const bestSubsByKey = {};
+      
+      studentSubmissions.forEach(s => {
+        const candidateFields = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
+        
+        let belongsToThisBook = false;
+        candidateFields.forEach(field => {
+           if (!field) return;
+           const raw = String(field);
+           if (b.allAssignedTestIds.has(raw)) belongsToThisBook = true;
+           b.assignedHomeworks.forEach(hw => {
+              if (String(hw.id) === raw || String(toUUID(hw.id)) === raw) belongsToThisBook = true;
+           });
+        });
+        
+        if (belongsToThisBook) {
+           const key = String(s.testId || s.bookTestId || s.id);
+           const existing = bestSubsByKey[key];
+           if (!existing || (s.score > existing.score) || (s.score === existing.score && new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0))) {
+             bestSubsByKey[key] = s;
+           }
+        }
+      });
+      
+      Object.values(bestSubsByKey).forEach(sub => {
+         totalCorrect += sub.correctCount || 0;
+         totalWrong += sub.wrongCount || 0;
+         totalBlank += sub.blankCount || 0;
+      });
+      
+      b.totalCorrect = totalCorrect;
+      b.totalWrong = totalWrong;
+      b.totalBlank = totalBlank;
     });
 
     return Object.values(bookMap);
@@ -150,13 +241,21 @@ export default function StudentBooksPage() {
 
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1200, margin: '0 auto' }}>
-      <header style={{ marginBottom: '2.5rem' }}>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 0.5rem 0' }}>
-          <Map size={36} /> Kitaplarım ve İlerlemem
-        </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', margin: 0 }}>
-          Sana atanan kitapları oyun haritası gibi adım adım çöz, başarı oranını artır!
-        </p>
+      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 0.5rem 0' }}>
+            <Map size={36} /> Kitaplarım ve İlerlemem
+          </h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', margin: 0 }}>
+            Sana atanan kitapları oyun haritası gibi adım adım çöz, başarı oranını artır!
+          </p>
+        </div>
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}
+        >
+          <Plus size={20} /> Kendi Kitabını Ekle
+        </button>
       </header>
 
       {assignedBooks.length === 0 ? (
@@ -224,9 +323,30 @@ export default function StudentBooksPage() {
                   <div style={{ background: '#e2e8f0', height: 8, borderRadius: 99, overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, background: isCompleted ? '#10b981' : 'linear-gradient(90deg, var(--color-primary), var(--color-primary-light))', height: '100%', transition: 'width 0.5s ease' }} />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
                     <span>Çözülen: {book.totalSolvedTests}</span>
                     <span>Toplam: {book.totalAssignedTests} Test</span>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginTop: '0.75rem', textAlign: 'center' }}>
+                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800 }}>Doğru</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#059669' }}>{book.totalCorrect}</div>
+                     </div>
+                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>Yanlış</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#b91c1c' }}>{book.totalWrong}</div>
+                     </div>
+                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>Boş</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#64748b' }}>{book.totalBlank}</div>
+                     </div>
+                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 800 }}>Başarı</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#4f46e5' }}>
+                          %{(book.totalCorrect + book.totalWrong + book.totalBlank) > 0 ? Math.round((book.totalCorrect / (book.totalCorrect + book.totalWrong + book.totalBlank)) * 100) : 0}
+                        </div>
+                     </div>
                   </div>
                 </div>
 
@@ -250,6 +370,87 @@ export default function StudentBooksPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* NEW BOOK MODAL */}
+      {isAddModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+          <div className="card glass" style={{ width: '100%', maxWidth: '450px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'scaleIn 0.2s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Kendi Kitabını Ekle</h2>
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={24} /></button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Kitap Adı</label>
+                <input type="text" value={newBook.title} onChange={e => setNewBook(prev => ({...prev, title: e.target.value}))} placeholder="Örn: TYT Matematik Soru Bankası" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Yayınevi</label>
+                <input type="text" value={newBook.publisher} onChange={e => setNewBook(prev => ({...prev, publisher: e.target.value}))} placeholder="Örn: 3D Yayınları" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.4rem' }}>
+                  Dersler / Bölümler
+                </label>
+                {newBook.subjects.map((subj, index) => (
+                  <div key={subj.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 2 }}>
+                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: '#64748b' }}>Ders Adı</label>}
+                      <input type="text" value={subj.name} onChange={e => {
+                        const newSubs = [...newBook.subjects];
+                        newSubs[index].name = e.target.value;
+                        setNewBook({...newBook, subjects: newSubs});
+                      }} placeholder="Örn: Matematik" style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: '#64748b' }}>Test Sayısı</label>}
+                      <input type="number" min="1" value={subj.testCount} onChange={e => {
+                        const newSubs = [...newBook.subjects];
+                        newSubs[index].testCount = Number(e.target.value);
+                        setNewBook({...newBook, subjects: newSubs});
+                      }} style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: '#64748b' }}>Soru (Ort.)</label>}
+                      <input type="number" min="1" value={subj.questionsPerTest} onChange={e => {
+                        const newSubs = [...newBook.subjects];
+                        newSubs[index].questionsPerTest = Number(e.target.value);
+                        setNewBook({...newBook, subjects: newSubs});
+                      }} style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: 'transparent' }}>X</label>}
+                      <button onClick={() => {
+                        const newSubs = newBook.subjects.filter((_, i) => i !== index);
+                        setNewBook({...newBook, subjects: newSubs});
+                      }} style={{ padding: '0.6rem', background: newBook.subjects.length > 1 ? '#fee2e2' : '#f1f5f9', color: newBook.subjects.length > 1 ? '#ef4444' : '#cbd5e1', border: 'none', borderRadius: '0.5rem', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', marginTop: index === 0 ? '0' : '0' }} disabled={newBook.subjects.length <= 1}>
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                <button 
+                  onClick={() => setNewBook(prev => ({...prev, subjects: [...prev.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
+                  style={{ padding: '0.5rem', background: '#f8fafc', color: '#3b82f6', border: '1px dashed #bfdbfe', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginTop: '0.25rem' }}
+                >
+                  <Plus size={16} /> Yeni Ders Ekle
+                </button>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleSaveNewBook} 
+              disabled={isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)}
+              style={{ width: '100%', padding: '1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 800, fontSize: '1rem', cursor: (isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)) ? 'not-allowed' : 'pointer', opacity: (isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)) ? 0.7 : 1, marginTop: '0.5rem' }}
+            >
+              {isSaving ? 'Harita Oluşturuluyor...' : 'Kitabı Haritama Ekle'}
+            </button>
+          </div>
+          <style>{`@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
         </div>
       )}
     </div>

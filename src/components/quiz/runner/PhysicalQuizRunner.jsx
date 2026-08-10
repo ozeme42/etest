@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet, Clock } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers }) {
@@ -58,6 +58,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   });
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
 
   const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
   const isOpenEndedMode = test.questionType === 'acik_uclu' || test.isOpenEnded;
@@ -179,7 +180,12 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (force = false) => {
+    if (!force) {
+      setShowFinishModal(true);
+      return;
+    }
+
     try {
       localStorage.removeItem(`${draftKey}_ans`);
       localStorage.removeItem(`${draftKey}_txt`);
@@ -237,17 +243,26 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         flexWrap: 'wrap'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-          <h2 style={{ 
-            color: '#f8fafc', 
-            fontSize: isMobile ? '0.9rem' : '1.15rem', 
-            fontWeight: 800, 
-            margin: 0, 
-            whiteSpace: 'nowrap', 
-            overflow: 'hidden', 
-            textOverflow: 'ellipsis' 
-          }}>
-            {test.title || test.name || 'Fiziki Test'}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button 
+              onClick={() => window.history.back()}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Geri Dön"
+            >
+              <ArrowLeft size={isMobile ? 18 : 22} />
+            </button>
+            <h2 style={{ 
+              color: '#f8fafc', 
+              fontSize: isMobile ? '0.9rem' : '1.15rem', 
+              fontWeight: 800, 
+              margin: 0, 
+              whiteSpace: 'nowrap', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis' 
+            }}>
+              {test.title || test.name || 'Fiziki Test'}
+            </h2>
+          </div>
           <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
             Fiziki Sınav • {qCount} Soru
           </span>
@@ -297,7 +312,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           </button>
 
           <button
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             style={{
               padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem',
               borderRadius: '0.75rem',
@@ -403,7 +418,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
       </div>
       <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
         <button
-          onClick={handleSubmit}
+          onClick={() => handleSubmit()}
           style={{
             padding: '1rem 3rem',
             borderRadius: '1rem',
@@ -420,11 +435,43 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           }}
         >
           <CheckCircle2 size={24} /> 
-          Sınavı Bitir ve Gönder
+          Sınavı Kaydet ve Gönder
         </button>
       </div>
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
+
+      {/* FINISH MODAL */}
+      {showFinishModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(5px)' }}>
+          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2.5rem', background: '#1e293b', borderRadius: '1.5rem', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#f8fafc' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '2px solid #ef4444', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)' }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 style={{ margin: '0', fontSize: '1.5rem', fontWeight: 900 }}>Sınavı Bitiriyorsunuz</h3>
+            <p style={{ margin: '0', color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6 }}>
+              Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz? Sınavı bitirdikten sonra cevaplarınızı değiştiremezsiniz.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => setShowFinishModal(false)}
+                style={{ flex: 1, minWidth: '140px', padding: '0.85rem 1rem', borderRadius: '0.85rem', background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}
+              >
+                Kontrol Etmeye Dön
+              </button>
+              <button 
+                onClick={() => {
+                  setShowFinishModal(false);
+                  handleSubmit(true);
+                }}
+                style={{ flex: 1, minWidth: '140px', padding: '0.85rem 1rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}
+              >
+                Sınavı Kaydet ve Gönder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
