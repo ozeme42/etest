@@ -601,6 +601,50 @@ export default function ExamManager() {
             </div>
 
           </div>
+
+          {/* SUBJECTS PREVIEW & CONFIGURATION */}
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-500" />
+                Dersler (Testler) ve Soru Dağılımı
+              </h3>
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors flex items-center gap-1.5"
+              >
+                <Settings2 className="w-4 h-4" /> Ders / Soru Düzenle
+              </button>
+            </div>
+            
+            {subjects.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-1">Şu an hiç ders yok!</p>
+                <p className="text-xs text-slate-400">Özel Şablon seçtiniz. Devam etmek için en az bir ders eklemelisiniz.</p>
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  className="mt-3 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black shadow-md hover:bg-indigo-700 transition-all inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" /> Ders Ekle
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {subjects.map(sub => (
+                  <div key={sub.name} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex flex-col justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">{sub.name}</span>
+                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md self-start">
+                      {sub.count} Soru
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* SAVE BUTTON FOR NEW EXAM */}
           <div className="flex justify-end gap-3 mt-6">
             <button
