@@ -137,8 +137,8 @@ export default function QuestionBank() {
     return (allQuestions || []).filter(q => q.createdBy === currentUser?.id);
   }, [allQuestions, currentUser]);
   
-  // Portal Overview Active Tab: 'subjects' | 'grades'
-  const [overviewTab, setOverviewTab] = useState('subjects');
+  // Portal Overview Active Tab is always grades now
+  const [overviewTab, setOverviewTab] = useState('grades');
 
   // Active Subject Page State: null = Overview Grid, s.id = Subject Page, 'all_subjects' = Tüm Dersler
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -1566,159 +1566,7 @@ const getAnswerKeyCount = (answerKey) => {
             renderSearchResults()
           ) : (
             <>
-              {/* Overview Tab Switcher: Ders Kartları vs Sınıf Kartları */}
-              <div style={{ display: 'flex', gap: '0.5rem', background: '#e2e8f0', padding: '0.35rem', borderRadius: '1rem', marginBottom: '2rem' }}>
-                <button
-                  onClick={() => setOverviewTab('subjects')}
-                  style={{
-                    padding: '0.65rem 1.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer',
-                    fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                    background: overviewTab === 'subjects' ? '#4f46e5' : 'transparent',
-                    color: overviewTab === 'subjects' ? 'white' : '#475569',
-                    boxShadow: overviewTab === 'subjects' ? '0 4px 12px rgba(79,70,229,0.3)' : 'none',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <BookOpen size={18} /> Ders Kartları ({curData.subjects.length} Ders)
-                </button>
-
-                <button
-                  onClick={() => setOverviewTab('grades')}
-                  style={{
-                    padding: '0.65rem 1.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer',
-                    fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                    background: overviewTab === 'grades' ? '#4f46e5' : 'transparent',
-                    color: overviewTab === 'grades' ? 'white' : '#475569',
-                    boxShadow: overviewTab === 'grades' ? '0 4px 12px rgba(79,70,229,0.3)' : 'none',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <School size={18} /> Sınıf Kartları ({curData.grades.map(g=>g).length} Sınıf)
-                </button>
-              </div>
-
-              {/* TAB 1: SUBJECT CARDS GRID */}
-              {overviewTab === 'subjects' && (
-                <div className="qbank-grid">
-                  <div
-                    onClick={() => {
-                      setActiveSubjectId('all_subjects');
-                      setSelectedUnit('all');
-                      setSelectedTopic('all');
-                    }}
-                    style={{
-                      background: subjectThemes['all_subjects'].bg,
-                      borderRadius: '1.5rem',
-                      padding: '1.75rem',
-                      color: 'white',
-                      cursor: 'pointer',
-                      boxShadow: subjectThemes['all_subjects'].shadow,
-                      border: '2px solid rgba(255,255,255,0.4)',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justify: 'space-between',
-                      minHeight: '190px'
-                    }}
-                    className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
-                  >
-                    <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.22, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
-                      <GraduationCap size={130} />
-                    </div>
-
-                    <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-                      <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <GraduationCap size={28} color="white" />
-                      </div>
-
-                      <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
-                        ⚡ {questions.length} İçerik / Test
-                      </span>
-                    </div>
-
-                    <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm Dersler (Genel Portföy)</h3>
-                      <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
-                        <span>Tüm Genel İçerikleri Göster</span>
-                        <ChevronRight size={16} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* INDIVIDUAL SUBJECT CARDS */}
-                  {curData.subjects.map(s => {
-                    const theme = subjectThemes[s.name] || subjectThemes['Diğer'];
-                    const Icon = theme.icon;
-                    const count = subjectCounts[s.id] || 0;
-                    const gradeObj = curData.grades.find(g => g.id === s.gradeId);
-                    const gradeName = gradeObj ? gradeObj.name : '';
-
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => {
-                          setActiveSubjectId(s.id);
-                          setSelectedUnit('all');
-                          setSelectedTopic('all');
-                        }}
-                        style={{
-                          background: theme.bg,
-                          borderRadius: '1.5rem',
-                          padding: '1.75rem',
-                          color: 'white',
-                          cursor: 'pointer',
-                          boxShadow: theme.shadow,
-                          border: '1px solid rgba(255,255,255,0.2)',
-                          transition: 'all 0.3s ease',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justify: 'space-between',
-                          minHeight: '190px'
-                        }}
-                        className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
-                      >
-                        <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
-                          <Icon size={120} />
-                        </div>
-
-                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon size={28} color="white" />
-                            </div>
-                            {gradeName && (
-                              <span className="card-badge" style={{ background: 'rgba(255,255,255,0.25)', color: 'white', fontSize: '0.8rem', fontWeight: 900, padding: '0.3rem 0.75rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(4px)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
-                                🎓 {gradeName}
-                              </span>
-                            )}
-                          </div>
-
-                          <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
-                            ⚡ {count} İçerik / Test
-                          </span>
-                        </div>
-
-                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, lineHeight: 1.2 }}>
-                            {gradeName ? `${gradeName} ${s.name}` : s.name}
-                          </h3>
-                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
-                            <span>Ders Sayfasına Git</span>
-                            <ChevronRight size={16} />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* TAB 2: GRADE CARDS GRID (SINIF KARTLARI) */}
-              {overviewTab === 'grades' && (
+              {/* TAB: GRADE CARDS GRID (SINIF KARTLARI) */}
                 <div className="qbank-grid">
                   {curData.grades.map(g => {
                     const theme = gradeThemes[g.name] || gradeThemes['Diğer'];
@@ -1777,7 +1625,6 @@ const getAnswerKeyCount = (answerKey) => {
                     );
                   })}
                 </div>
-              )}
             </>
           )}
 
@@ -1837,154 +1684,95 @@ const getAnswerKeyCount = (answerKey) => {
                   </div>
                   <div>
                     <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1.1 }}>
-                      🎓 {activeGrade?.name} Soru Bankası &amp; Testleri
+                      🎓 {activeGrade?.name} Dersleri
                     </h1>
                     <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
-                      Bu sınıfa ait tüm dersler, üniteler, konular ve sorular aşağıda listelenmiştir.
+                      Lütfen incelemek veya soru eklemek istediğiniz dersi seçin.
                     </p>
                   </div>
                 </div>
 
                 <div style={{ position: 'relative', zIndex: 2 }}>
                   <span style={{ background: 'white', color: activeGradeTheme.color, fontSize: '1rem', fontWeight: 900, padding: '0.5rem 1.25rem', borderRadius: '30px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
-                    ⚡ {filteredQuestions.length} İçerik Bulundu
+                    ⚡ {curData.subjects.filter(s => s.gradeId === activeGradeId).length} Ders Bulundu
                   </span>
                 </div>
               </div>
             );
           })()}
 
-          {/* Grade Filter Bar */}
-          <div className="card glass top-filter-bar" style={{ marginBottom: '1.75rem' }}>
-            <div className="filter-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Filter size={18} /> {activeGrade?.name} Filtreleri
-              </div>
+          {/* Subject Cards for this Grade */}
+          <div className="qbank-grid">
+            {curData.subjects.filter(s => s.gradeId === activeGradeId).map(s => {
+              const theme = subjectThemes[s.name] || subjectThemes['Diğer'];
+              const Icon = theme.icon;
+              const count = subjectCounts[s.id] || 0;
 
-              {/* SEARCH INPUT BAR */}
-              <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Bu sınıfta soru / test ara..."
-                  style={{
-                    width: '100%',
-                    padding: '0.45rem 2rem 0.45rem 2.25rem',
-                    borderRadius: '0.65rem',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    background: 'white'
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => {
+                    setActiveSubjectId(s.id);
+                    setSelectedUnit('all');
+                    setSelectedTopic('all');
                   }}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0.2rem' }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="filter-grid">
-              <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setSelectedUnit('all'); setSelectedTopic('all'); }}>
-                <option value="all">Tüm Dersler (Genel Portföy)</option>
-                {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+                  style={{
+                    background: theme.bg,
+                    borderRadius: '1.5rem',
+                    padding: '1.75rem',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: theme.shadow,
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justify: 'space-between',
+                    minHeight: '190px'
+                  }}
+                  className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
+                >
+                  <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                    <Icon size={120} />
+                  </div>
 
-              <select value={selectedUnit} onChange={e => { setSelectedUnit(e.target.value); setSelectedTopic('all'); }}>
-                <option value="all">Tüm Üniteler (Genel)</option>
-                {filteredUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-
-              <select value={selectedTopic} onChange={e => setSelectedTopic(e.target.value)}>
-                <option value="all">Tüm Konular (Genel)</option>
-                {filteredTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-
-              <div className="filter-divider"></div>
-
-              <select value={selectedContentType} onChange={e => setSelectedContentType(e.target.value)} style={{ background: 'var(--color-surface-hover)', borderColor: 'var(--color-primary-light)' }}>
-                <option value="all">Tüm İçerik Türleri</option>
-                <option value="text">Sadece Metin</option>
-                <option value="json">Yazılı Test Paketleri</option>
-                <option value="gorsel">Sadece Görsel</option>
-                <option value="pdf">PDF Paketleri</option>
-                <option value="html">HTML Paketleri</option>
-              </select>
-
-              {/* View toggle */}
-              <div style={{ display: 'flex', gap: '0.3rem', background: '#f1f5f9', borderRadius: '0.65rem', padding: '0.25rem' }}>
-                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'white' : 'transparent', color: viewMode === 'card' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'card' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
-                  <LayoutGrid size={15} /> Kart
-                </button>
-                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'white' : 'transparent', color: viewMode === 'row' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'row' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
-                  <List size={15} /> Satır
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* IF SEARCH QUERY IS ACTIVE -> RENDER LINE-BY-LINE SEARCH RESULTS */}
-          {searchQuery.trim() !== '' ? (
-            renderSearchResults()
-          ) : (
-            /* Categorical Grouping Inside Grade Page */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', marginBottom: '2.5rem' }}>
-              {groupedPageQuestions.map(group => (
-                <div key={group.key} className="card glass" style={{ borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid #e2e8f0', background: 'white' }}>
-                  
-                  {/* Category Header */}
-                  <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', padding: '1.15rem 1.5rem', borderBottom: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '0.65rem', background: activeGradeTheme.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <BookOpen size={18} />
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.1rem' }}>
-                          {group.title}
-                        </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.85rem', color: '#475569', fontWeight: 700 }}>
-                          {group.subtitle}
-                        </p>
+                  <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={28} color="white" />
                       </div>
                     </div>
 
-                    <span style={{ background: 'white', color: activeGradeTheme.color, fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                      {group.items.length} İçerik / Test
+                    <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                      ⚡ {count} İçerik / Test
                     </span>
                   </div>
 
-                  {/* Question Cards - Card / Row toggle */}
-                  {renderQList(group.items, '#fafafa')}
-
+                  <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>
+                      {s.name}
+                    </h3>
+                    <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
+                      <span>Ders Sayfasına Git</span>
+                      <ChevronRight size={16} />
+                    </div>
+                  </div>
                 </div>
-              ))}
-
-              {groupedPageQuestions.length === 0 && (
-                <div className="card glass empty-state" style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1' }}>
-                  <BookOpen size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>
-                    {activeGrade?.name} sınıfında bu filtrelere uygun soru bulunamadı.
-                  </h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: '#64748b' }}>
-                    Hemen yeni bir soru, PDF dokümanı veya test paketi ekleyebilirsiniz.
-                  </p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => { resetForm(); setShowModal(true); }}
-                    style={{ background: activeGradeTheme.color, borderColor: activeGradeTheme.color, padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 900 }}
-                  >
-                    <Plus size={18} /> {activeGrade?.name} Sınıfına Soru Ekle
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
+              );
+            })}
+            
+            {curData.subjects.filter(s => s.gradeId === activeGradeId).length === 0 && (
+              <div style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1', gridColumn: '1 / -1' }}>
+                <BookOpen size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+                <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>Bu sınıfa ait ders bulunamadı.</h3>
+                <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: '#64748b' }}>
+                  Yönetici panelinden bu sınıfa yeni dersler ekleyebilirsiniz.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         /* ═════════════════════════════════════════════════════════════════════
