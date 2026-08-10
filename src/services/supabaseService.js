@@ -1110,6 +1110,7 @@ export async function dbGetTrackedBooks() {
       title: b.title,
       publisher: b.publisher,
       bookType: b.book_type,
+      pdfUrl: b.pdf_url || '',
       subjects: b.subjects || [],
       createdAt: b.created_at
     }));
@@ -1122,6 +1123,7 @@ export async function dbGetTrackedBooks() {
       name: t.name,
       questionCount: t.question_count || 20,
       answerKey: t.answer_key || {},
+      pdfUrl: t.pdf_url || '',
       createdAt: t.created_at
     }));
 
@@ -1140,6 +1142,7 @@ export async function dbAddTrackedBook(book) {
       title: book.title,
       publisher: book.publisher || '',
       book_type: book.bookType || 'standard',
+      pdf_url: book.pdfUrl || '',
       subjects: book.subjects || []
     };
     const { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().single();
@@ -1158,6 +1161,7 @@ export async function dbUpdateTrackedBook(bookId, updates) {
     if (updates.title !== undefined) payload.title = updates.title;
     if (updates.publisher !== undefined) payload.publisher = updates.publisher;
     if (updates.bookType !== undefined) payload.book_type = updates.bookType;
+    if (updates.pdfUrl !== undefined) payload.pdf_url = updates.pdfUrl;
     if (updates.subjects !== undefined) payload.subjects = updates.subjects;
 
     const { data, error } = await supabase.from('tracked_books').update(payload).eq('id', String(bookId)).select();
@@ -1191,7 +1195,8 @@ export async function dbAddTrackedBookTest(test) {
       topic_id: test.topicId ? String(test.topicId) : null,
       name: test.name,
       question_count: test.questionCount || 20,
-      answer_key: test.answerKey || {}
+      answer_key: test.answerKey || {},
+      pdf_url: test.pdfUrl || ''
     };
     const { data, error } = await supabase.from('tracked_book_tests').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
