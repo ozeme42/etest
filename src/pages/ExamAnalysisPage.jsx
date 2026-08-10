@@ -57,7 +57,7 @@ export default function ExamAnalysisPage() {
       
       return {
         studentId,
-        studentName: student ? `${student.firstName} ${student.lastName}` : sSubmissions[0].studentName || 'Bilinmeyen Öğrenci',
+        studentName: student ? student.name : sSubmissions[0].studentName || 'Bilinmeyen Öğrenci',
         classId: student?.classId || student?.gradeId || 'Bilinmeyen Sınıf',
         avgScore: aScore,
         totalScore: tScore,
