@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, PanelTop, Maximize2, X as XIcon, EyeOff, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers, bookPdfUrl }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const hasPdf = !!(bookPdfUrl);
+  const navigate = useNavigate();
   // 'side' | 'top' | 'float' | 'hidden'
   const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
   const [showOptikForm, setShowOptikForm] = useState(true);
@@ -250,7 +252,13 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button 
-              onClick={() => window.history.back()}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/');
+                }
+              }}
               style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Geri Dön"
             >
