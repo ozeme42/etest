@@ -204,9 +204,9 @@ export default function StudentStudyPlanView() {
                         </div>
 
                         <div className="flex items-center gap-2 pl-10 md:pl-0">
-                          {topic.resourceUrl && (
+                          {(topic.resourceUrl || subject.resourceUrl) && (
                             <a 
-                              href={topic.resourceUrl}
+                              href={topic.resourceUrl || subject.resourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className={cn(

@@ -36,7 +36,7 @@ export default function StudyPlanDetail() {
   const [jsonModal, setJsonModal] = useState(false);
 
   // Form states
-  const [unitForm, setUnitForm] = useState({ name: '', dueDate: '' });
+  const [unitForm, setUnitForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
   const [topicForm, setTopicForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
   const [bulkTopicText, setBulkTopicText] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -59,7 +59,7 @@ export default function StudyPlanDetail() {
 
   // Unit Actions
   const openUnitModal = (unit = null) => {
-    setUnitForm(unit ? { name: unit.name, dueDate: unit.dueDate || '' } : { name: '', dueDate: '' });
+    setUnitForm(unit ? { name: unit.name, dueDate: unit.dueDate || '', resourceUrl: unit.resourceUrl || '' } : { name: '', dueDate: '', resourceUrl: '' });
     setUnitModal({ isOpen: true, unit });
   };
 
@@ -74,6 +74,7 @@ export default function StudyPlanDetail() {
         id: `sub_${Date.now()}`,
         name: unitForm.name,
         dueDate: unitForm.dueDate,
+        resourceUrl: unitForm.resourceUrl,
         topics: []
       });
     }
@@ -305,6 +306,18 @@ export default function StudyPlanDetail() {
                             <span>Hedef: {unit.dueDate}</span>
                           </div>
                         )}
+                        {unit.resourceUrl && (
+                          <a 
+                            href={unit.resourceUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 hover:underline mt-1"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <LinkIcon className="w-3.5 h-3.5" />
+                            <span>Genel Kaynak Linki</span>
+                          </a>
+                        )}
                       </div>
                     </div>
                     
@@ -430,6 +443,16 @@ export default function StudyPlanDetail() {
                     value={unitForm.dueDate}
                     onChange={(e) => setUnitForm({...unitForm, dueDate: e.target.value})}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Kaynak Linki (İsteğe bağlı)</label>
+                  <input
+                    type="url"
+                    value={unitForm.resourceUrl}
+                    onChange={(e) => setUnitForm({...unitForm, resourceUrl: e.target.value})}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700"
+                    placeholder="Tüm konular için geçerli genel kaynak"
                   />
                 </div>
               </div>
