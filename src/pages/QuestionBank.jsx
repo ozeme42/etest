@@ -1678,7 +1678,7 @@ const getAnswerKeyCount = (answerKey) => {
           )}
 
         </div>
-      ) : activeGradeId ? (
+      ) : activeGradeId && !activeSubjectId ? (
         /* ═════════════════════════════════════════════════════════════════════
             SCREEN B1: DEDICATED GRADE PAGE (activeGradeId !== null)
         ═════════════════════════════════════════════════════════════════════ */
