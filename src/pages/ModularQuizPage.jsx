@@ -614,7 +614,7 @@ export default function ModularQuizPage() {
   );
 
   const bookForTest = books?.find(b => b.id === test?.bookId);
-  const bookPdfUrl = bookForTest?.pdfUrl || '';
+  const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 
   if (isMultiSection) {
     if (isPhysical) {
