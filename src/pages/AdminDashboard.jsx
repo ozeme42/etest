@@ -239,6 +239,16 @@ function CurriculumManager() {
               </button>
             </div>
             
+            <div className="px-6 py-2 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">JSON İçeriği</span>
+              <button 
+                onClick={() => setJsonText('[\n  {\n    "grade": "5. Sınıf",\n    "subjects": [\n      {\n        "name": "Matematik",\n        "units": [\n          {\n            "name": "1. Ünite - Doğal Sayılar",\n            "topics": [\n              "Doğal Sayıların Okunuşu ve Yazılışı",\n              "Milyonlar Bölüğü"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]')}
+                className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 font-bold rounded-lg transition-colors"
+              >
+                Örnek Şablonu Doldur
+              </button>
+            </div>
+
             <div className="p-6 flex-1 overflow-y-auto">
               <textarea
                 className="w-full h-64 p-4 font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
