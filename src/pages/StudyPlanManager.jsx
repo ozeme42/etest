@@ -1,91 +1,147 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudyPlan } from '../context/StudyPlanContext';
-import { Plus, Edit, Trash2, ArrowLeft, BookHeart, ChevronRight, Target } from 'lucide-react';
-import NewStudyPlanForm from '../components/NewStudyPlanForm';
-import './StudyPlanManager.css';
+import { Plus, Edit, Trash2, ArrowLeft, Target, ChevronRight, Layers, FileText, CheckCircle } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs) { return twMerge(clsx(inputs)); }
 
 export default function StudyPlanManager() {
   const navigate = useNavigate();
-  const { studyPlans, addStudyPlan, updateStudyPlan, deleteStudyPlan } = useStudyPlan();
+  const { studyPlans, addStudyPlan, deleteStudyPlan } = useStudyPlan();
   
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingPlan, setEditingPlan] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
 
-  const handleFormSubmit = (data) => {
-    if (editingPlan) {
-      updateStudyPlan(editingPlan.id, data);
-    } else {
-      addStudyPlan(data);
-    }
-    setIsFormOpen(false);
-    setEditingPlan(null);
+  const handleCreate = async () => {
+    if (!newTitle.trim()) return;
+    const plan = await addStudyPlan({ title: newTitle.trim(), subjects: [] });
+    setIsAdding(false);
+    setNewTitle('');
+    navigate(`/study-plans/${plan.id}`);
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Bu planı silmek istediğinize emin misiniz?')) {
+    if (window.confirm('Bu yol haritasını silmek istediğinize emin misiniz?')) {
       deleteStudyPlan(id);
     }
   };
 
   return (
-    <div className="study-plan-container">
-      <header className="study-plan-header">
-        <div className="study-plan-header-content">
-          <div className="header-left">
-            <button onClick={() => navigate(-1)} className="btn-icon text-muted hover:text-primary">
-              <ArrowLeft size={24} />
+    <div className="min-h-screen bg-slate-50/50 p-6 md:p-8 font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:shadow-md transition-all"
+            >
+              <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="icon-box-pink">
-              <Target size={24} />
-            </div>
-            <div className="header-titles">
-              <h1>Yol Haritaları</h1>
-              <p>Konu Anlatım Planları</p>
+            <div>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <Target className="w-7 h-7 text-indigo-500" />
+                Yol Haritaları
+              </h1>
+              <p className="text-sm font-medium text-slate-500 mt-1">
+                Öğrenciler için konu anlatım ve takip planları oluşturun.
+              </p>
             </div>
           </div>
-          <button onClick={() => { setEditingPlan(null); setIsFormOpen(true); }} className="btn-pink">
-            <Plus size={20} /> <span className="hide-on-mobile">Yeni Plan</span>
+          
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
+          >
+            <Plus className="w-5 h-5" />
+            Yeni Plan Oluştur
           </button>
         </div>
-      </header>
 
-      <main className="study-plan-main">
+        {/* Add Form */}
+        {isAdding && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/50 max-w-2xl">
+              <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-indigo-500" /> Yeni Yol Haritası Ekle
+              </h3>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  placeholder="Plan Adı (Örn: 5.Sınıf Matematik, LGS Hızlandırma...)"
+                  className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                />
+                <button 
+                  onClick={handleCreate}
+                  className="px-6 py-3 bg-emerald-500 text-white text-sm font-bold rounded-2xl hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 whitespace-nowrap"
+                >
+                  Oluştur
+                </button>
+                <button 
+                  onClick={() => setIsAdding(false)}
+                  className="px-6 py-3 bg-slate-100 text-slate-600 text-sm font-bold rounded-2xl hover:bg-slate-200 transition-colors"
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Grid List */}
         {studyPlans.length > 0 ? (
-          <div className="plan-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {studyPlans.map(plan => {
               const totalTopics = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
               return (
-                <div key={plan.id} className="plan-card">
-                  <div className="plan-card-header">
-                    <div className="plan-card-top">
-                      <span className="badge-plan">PLAN</span>
-                      <div className="plan-actions">
-                        <button className="btn-icon" onClick={() => { setEditingPlan(plan); setIsFormOpen(true); }} style={{ color: 'var(--color-text-muted)' }} onMouseOver={e => e.currentTarget.style.color = 'var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color = 'var(--color-text-muted)'}>
-                          <Edit size={16} />
-                        </button>
-                        <button className="btn-icon text-error" onClick={() => handleDelete(plan.id)}>
-                          <Trash2 size={16} />
-                        </button>
+                <div key={plan.id} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col">
+                  <div className="p-6 flex-1">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <Target className="w-6 h-6" />
+                      </div>
+                      <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-wider rounded-lg">
+                        YOL HARİTASI
+                      </span>
+                    </div>
+                    
+                    <h3 className="text-lg font-black text-slate-800 mb-2 line-clamp-2" title={plan.title}>
+                      {plan.title}
+                    </h3>
+                    
+                    <div className="flex items-center gap-4 mt-4 py-4 border-t border-b border-slate-100">
+                      <div className="flex-1 text-center border-r border-slate-100">
+                        <div className="text-2xl font-black text-indigo-600">{plan.subjects?.length || 0}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Ünite / Ders</div>
+                      </div>
+                      <div className="flex-1 text-center">
+                        <div className="text-2xl font-black text-emerald-600">{totalTopics}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Konu / Adım</div>
                       </div>
                     </div>
-                    <h3 className="plan-card-title" title={plan.title}>{plan.title}</h3>
                   </div>
-                  <div className="plan-card-content">
-                    <div className="plan-stats-grid">
-                      <div className="plan-stat-box">
-                        <span className="plan-stat-value">{plan.subjects?.length || 0}</span>
-                        <span className="plan-stat-label">Ders</span>
-                      </div>
-                      <div className="plan-stat-box">
-                        <span className="plan-stat-value">{totalTopics}</span>
-                        <span className="plan-stat-label">Konu</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="plan-card-footer">
-                    <button className="btn-secondary-full" onClick={() => navigate(`/study-plans/${plan.id}`)}>
-                      Detayları Yönet <ChevronRight size={16} style={{ marginLeft: '0.5rem' }} />
+                  
+                  <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
+                    <button 
+                      onClick={() => handleDelete(plan.id)}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      title="Planı Sil"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => navigate(`/study-plans/${plan.id}`)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-indigo-600 text-sm font-bold rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors shadow-sm"
+                    >
+                      İçeriği Yönet <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -93,43 +149,23 @@ export default function StudyPlanManager() {
             })}
           </div>
         ) : (
-          <div className="empty-state">
-            <div className="empty-icon-wrapper">
-              <BookHeart size={40} />
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center">
+            <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-6">
+              <Target className="w-10 h-10" />
             </div>
-            <h3 className="empty-title">Yol Haritası Yok</h3>
-            <p className="empty-desc">
-              Ders veya ünite bazlı konu anlatım planları oluşturarak öğrencilere hedefler atayabilirsiniz.
+            <h3 className="text-xl font-black text-slate-800 mb-2">Henüz Yol Haritası Yok</h3>
+            <p className="text-slate-500 font-medium max-w-md mb-8">
+              Öğrencilerinize adım adım takip edebilecekleri çalışma planları ve konu listeleri oluşturmak için yeni bir yol haritası ekleyin.
             </p>
-            <button onClick={() => setIsFormOpen(true)} className="btn-pink" style={{ marginTop: '1rem', padding: '0.75rem 2rem', fontSize: '1rem' }}>
-              <Plus size={20} /> İlk Planı Oluştur
+            <button 
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
+            >
+              <Plus className="w-5 h-5" /> İlk Planı Oluştur
             </button>
           </div>
         )}
-      </main>
-
-      {isFormOpen && (
-        <div className="study-plan-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setIsFormOpen(false); }}>
-          <div className="study-plan-modal">
-            <div className="study-plan-modal-header">
-              <h2>{editingPlan ? 'Planı Düzenle' : 'Yeni Yol Haritası'}</h2>
-              <button onClick={() => setIsFormOpen(false)} className="btn-icon"><X size={20} /></button>
-            </div>
-            <div className="study-plan-modal-body">
-              <NewStudyPlanForm 
-                initialData={editingPlan} 
-                onSubmit={handleFormSubmit} 
-                onCancel={() => setIsFormOpen(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
-}
-
-// Helper icon
-function X({ size }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 }

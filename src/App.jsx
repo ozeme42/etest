@@ -28,6 +28,7 @@ import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentExamsPage from './pages/StudentExamsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
+import StudentStudyPlanView from "./pages/StudentStudyPlanView";
 import StudentCoachingPage from './pages/StudentCoachingPage';
 import MyCoachingPage from './pages/MyCoachingPage';
 import ExamManager from './pages/ExamManager';
@@ -240,6 +241,7 @@ function AppContent() {
           <Route path="/books/:id" element={<BookContentManager />} />
           <Route path="/study-plans" element={<StudyPlanManager />} />
           <Route path="/study-plans/:id" element={<StudyPlanDetail />} />
+          <Route path="/student/study-plan/:assignmentId" element={<StudentStudyPlanView />} />
           <Route path="/statistics" element={<StatisticsDashboard />} />
           <Route path="/goals" element={<GoalsAndSchedulePage />} />
           <Route path="/student-results" element={<StudentResultsPage />} />

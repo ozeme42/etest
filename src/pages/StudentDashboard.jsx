@@ -139,7 +139,13 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
   );
 }
 
-/* ─── Homework Card ─────────────────────────────────────────────── */
+/*  // Study Plans logic
+  const { studyAssignments, studyPlans } = useStudyPlan();
+  const myStudyAssignments = useMemo(() => {
+    return (studyAssignments || []).filter(a => a.studentId === selectedStudent?.id);
+  }, [studyAssignments, selectedStudent]);
+
+  // Homework LogicCard ─────────────────────────────────────────────── */
 function HomeworkCard({ task, selectedStudent, isMobile }) {
   const navigate = useNavigate();
   const category = task.subject;
@@ -620,6 +626,68 @@ export default function StudentDashboard() {
             <ArrowRight size={18} />
           </div>
         </div>
+
+        {/* YOL HARİTASI WIDGET */}
+        {myStudyAssignments.length > 0 && (
+          <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#1e293b', margin: 0, paddingLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Target size={18} color="#6366f1" /> Sana Atanan Yol Haritaları
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {myStudyAssignments.map(assignment => {
+                const plan = studyPlans.find(p => p.id === assignment.planId);
+                if (!plan) return null;
+                
+                const totalTopics = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
+                const completedCount = assignment.completedTopics?.length || 0;
+                const pct = totalTopics > 0 ? (completedCount / totalTopics) * 100 : 0;
+                
+                return (
+                  <div 
+                    key={assignment.id}
+                    onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
+                    className="hover-lift"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.8)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1.5px solid #e0e7ff',
+                      borderRadius: '1.25rem',
+                      padding: '1rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      boxShadow: '0 4px 10px rgba(99,102,241,0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: '0.75rem', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Target size={18} />
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#1e293b' }}>{plan.title}</h4>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>Adım Adım Çalışma Planı</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} color="#94a3b8" />
+                    </div>
+                    
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800, marginBottom: '0.35rem' }}>
+                        <span style={{ color: '#64748b' }}>İlerleme</span>
+                        <span style={{ color: '#4f46e5' }}>%{Math.round(pct)}</span>
+                      </div>
+                      <div style={{ height: 6, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: '#4f46e5', width: `${pct}%`, transition: 'width 0.5s' }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 🏛️ KOÇLUK AKADEMİK & STRATEJİK HEDEFLERİ CARD (All Coaching Dossier Goals) */}
         {hasCoach && coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
