@@ -14,6 +14,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useHomework } from '../context/HomeworkContext';
+import { useCurriculum } from '../context/CurriculumContext';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
@@ -25,6 +26,7 @@ export default function ExamAnalysisPage() {
   const { submissions } = useEvaluation();
   const { users } = useUser();
   const { homeworks } = useHomework();
+  const { data: curData } = useCurriculum();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -55,10 +57,14 @@ export default function ExamAnalysisPage() {
       const tWrong = sSubmissions.reduce((sum, s) => sum + (s.wrongCount || 0), 0);
       const tEmpty = sSubmissions.reduce((sum, s) => sum + (s.emptyCount || 0), 0);
       
+      const rawClassId = student?.classId || student?.gradeId;
+      const gradeObj = curData?.grades?.find(g => g.id === rawClassId);
+      const className = gradeObj ? gradeObj.name : (rawClassId || 'Bilinmeyen Sınıf');
+      
       return {
         studentId,
         studentName: student ? student.name : sSubmissions[0].studentName || 'Bilinmeyen Öğrenci',
-        classId: student?.classId || student?.gradeId || 'Bilinmeyen Sınıf',
+        classId: className,
         avgScore: aScore,
         totalScore: tScore,
         totalCorrect: tCorrect,
@@ -129,7 +135,7 @@ export default function ExamAnalysisPage() {
       classChartData: clsChartData,
       questionAnalysisMap: qMap
     };
-  }, [examSubmissions, students]);
+  }, [examSubmissions, students, curData]);
 
   const tabs = [
     { id: 'overview', label: 'Genel Durum', icon: BarChart3 },
