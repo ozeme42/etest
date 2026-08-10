@@ -1568,6 +1568,55 @@ const getAnswerKeyCount = (answerKey) => {
             <>
               {/* TAB: GRADE CARDS GRID (SINIF KARTLARI) */}
                 <div className="qbank-grid">
+                  <div
+                    onClick={() => {
+                      setActiveSubjectId('all_subjects');
+                      setActiveGradeId(null);
+                      setSelectedSubject('all');
+                      setSelectedUnit('all');
+                      setSelectedTopic('all');
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                      borderRadius: '1.5rem',
+                      padding: '1.75rem',
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)',
+                      border: '2px solid rgba(255,255,255,0.4)',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justify: 'space-between',
+                      minHeight: '190px'
+                    }}
+                    className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
+                  >
+                    <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.22, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                      <Layers size={130} />
+                    </div>
+
+                    <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                      <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Layers size={28} color="white" />
+                      </div>
+
+                      <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                        ⚡ {questions.length} İçerik / Test
+                      </span>
+                    </div>
+
+                    <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm İçerikler</h3>
+                      <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
+                        <span>Sistemdeki Tüm İçerikleri Göster</span>
+                        <ChevronRight size={16} />
+                      </div>
+                    </div>
+                  </div>
+
                   {curData.grades.map(g => {
                     const theme = gradeThemes[g.name] || gradeThemes['Diğer'];
                     const Icon = theme.icon;
@@ -1703,6 +1752,53 @@ const getAnswerKeyCount = (answerKey) => {
 
           {/* Subject Cards for this Grade */}
           <div className="qbank-grid">
+            <div
+              onClick={() => {
+                setActiveSubjectId('all_subjects');
+                setSelectedUnit('all');
+                setSelectedTopic('all');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderRadius: '1.5rem',
+                padding: '1.75rem',
+                color: 'white',
+                cursor: 'pointer',
+                boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)',
+                border: '2px solid rgba(255,255,255,0.4)',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justify: 'space-between',
+                minHeight: '190px'
+              }}
+              className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
+            >
+              <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.22, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                <BookOpen size={130} />
+              </div>
+
+              <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookOpen size={28} color="white" />
+                </div>
+
+                <span className="card-badge" style={{ background: 'white', color: '#10b981', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                  ⚡ Tümünü Göster
+                </span>
+              </div>
+
+              <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>📚 Tüm Dersler</h3>
+                <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
+                  <span>Bu Sınıfın Tüm İçerikleri</span>
+                  <ChevronRight size={16} />
+                </div>
+              </div>
+            </div>
+
             {curData.subjects.filter(s => s.gradeId === activeGradeId).map(s => {
               const theme = subjectThemes[s.name] || subjectThemes['Diğer'];
               const Icon = theme.icon;
