@@ -13,7 +13,8 @@ import {
   Link as LinkIcon,
   Calendar,
   FileJson,
-  X
+  X,
+  ListPlus
 } from 'lucide-react';
 
 export default function StudyPlanDetail() {
@@ -30,12 +31,14 @@ export default function StudyPlanDetail() {
   // Modals
   const [unitModal, setUnitModal] = useState({ isOpen: false, unit: null }); // null = add, else edit
   const [topicModal, setTopicModal] = useState({ isOpen: false, unitId: null, topic: null }); // topic null = add, else edit
+  const [bulkTopicModal, setBulkTopicModal] = useState({ isOpen: false, unitId: null });
   const [assignModal, setAssignModal] = useState(false);
   const [jsonModal, setJsonModal] = useState(false);
 
   // Form states
   const [unitForm, setUnitForm] = useState({ name: '', dueDate: '' });
   const [topicForm, setTopicForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
+  const [bulkTopicText, setBulkTopicText] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [jsonText, setJsonText] = useState('');
 
@@ -112,6 +115,31 @@ export default function StudyPlanDetail() {
 
     updateStudyPlan(plan.id, { subjects: newSubjects });
     setTopicModal({ isOpen: false, unitId: null, topic: null });
+  };
+
+  const saveBulkTopics = () => {
+    if (!bulkTopicText.trim()) return;
+    
+    const lines = bulkTopicText.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) return;
+
+    const newSubjects = subjects.map(s => {
+      if (s.id === bulkTopicModal.unitId) {
+        let newTopics = [...(s.topics || [])];
+        lines.forEach(line => {
+          newTopics.push({
+            id: `top_${Math.random().toString(36).substring(2, 9)}`,
+            name: line
+          });
+        });
+        return { ...s, topics: newTopics };
+      }
+      return s;
+    });
+
+    updateStudyPlan(plan.id, { subjects: newSubjects });
+    setBulkTopicModal({ isOpen: false, unitId: null });
+    setBulkTopicText('');
   };
 
   const deleteTopic = (unitId, topicId) => {
@@ -257,6 +285,14 @@ export default function StudyPlanDetail() {
                     </div>
                     
                     <div className="flex items-center gap-2 self-end sm:self-auto" onClick={e => e.stopPropagation()}>
+                      <button 
+                        onClick={() => { setBulkTopicModal({ isOpen: true, unitId: unit.id }); setBulkTopicText(''); }}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1"
+                        title="Toplu Konu Ekle (Satır Satır)"
+                      >
+                        <ListPlus className="w-4 h-4" />
+                        <span className="text-xs font-medium hidden sm:inline">Toplu Ekle</span>
+                      </button>
                       <button 
                         onClick={() => openTopicModal(unit.id)}
                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-1"
@@ -444,6 +480,47 @@ export default function StudyPlanDetail() {
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium shadow-sm"
               >
                 Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Topic Add Modal */}
+      {bulkTopicModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Toplu Konu Ekle</h3>
+                <p className="text-sm text-slate-500 mt-1">Her satıra bir konu gelecek şekilde yazın</p>
+              </div>
+              <button onClick={() => setBulkTopicModal({ isOpen: false, unitId: null })} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 flex-1 overflow-y-auto">
+              <textarea
+                className="w-full h-64 p-4 font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
+                placeholder="Kesirlerde Toplama&#10;Kesirlerde Çıkarma&#10;Kesirlerde Çarpma"
+                value={bulkTopicText}
+                onChange={(e) => setBulkTopicText(e.target.value)}
+              />
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => setBulkTopicModal({ isOpen: false, unitId: null })}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium"
+              >
+                İptal
+              </button>
+              <button
+                onClick={saveBulkTopics}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors font-medium shadow-sm"
+              >
+                Satırları Ekle
               </button>
             </div>
           </div>
