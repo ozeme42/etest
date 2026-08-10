@@ -291,7 +291,7 @@ export default function StudyPlanDetail() {
                         title="Toplu Konu Ekle (Satır Satır)"
                       >
                         <ListPlus className="w-4 h-4" />
-                        <span className="text-xs font-medium hidden sm:inline">Toplu Ekle</span>
+                        <span className="text-xs font-medium">Toplu Ekle</span>
                       </button>
                       <button 
                         onClick={() => openTopicModal(unit.id)}
