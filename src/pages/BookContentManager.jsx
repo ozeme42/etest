@@ -77,7 +77,7 @@ export default function BookContentManager() {
   
   const [newSubjectName, setNewSubjectName] = useState("");
   const [newTopicName, setNewTopicName] = useState("");
-  const [testFormData, setTestFormData] = useState({ name: "", questionCount: 20, answerKey: {} });
+  const [testFormData, setTestFormData] = useState({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' });
   
   // Bulk Wizard Form States
   const [bulkTextInput, setBulkTextInput] = useState("");
@@ -370,6 +370,7 @@ export default function BookContentManager() {
       topicId: currentTopic ? String(currentTopic.id) : null,
       name: testFormData.name,
       questionCount: testFormData.questionCount || 20,
+      pdfUrl: testFormData.pdfUrl || '',
     };
     
     if (book.bookType !== 'open_ended') testPayload.answerKey = testFormData.answerKey;
@@ -829,7 +830,7 @@ export default function BookContentManager() {
                                     </div>
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {} }); setIsTestDialogOpen(true); }}>
+                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {}, pdfUrl: test.pdfUrl || '' }); setIsTestDialogOpen(true); }}>
                                       <Edit size={14} />
                                     </button>
                                     <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
@@ -889,7 +890,7 @@ export default function BookContentManager() {
                                             </div>
                                           </div>
                                           <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {} }); setIsTestDialogOpen(true); }}>
+                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {}, pdfUrl: test.pdfUrl || '' }); setIsTestDialogOpen(true); }}>
                                               <Edit size={14} />
                                             </button>
                                             <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
@@ -903,7 +904,7 @@ export default function BookContentManager() {
                                     )}
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {} }); setIsTestDialogOpen(true); }}>
+                                    <button className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
                                       <Plus size={14} /> Test Ekle
                                     </button>
                                   </div>
@@ -918,7 +919,7 @@ export default function BookContentManager() {
                           <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: 'var(--color-primary)', border: '1px dashed var(--color-primary)' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setNewTopicName(""); setIsTopicDialogOpen(true); }}>
                             <Plus size={15} /> Konu Ekle
                           </button>
-                          <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: '#059669', border: '1px dashed #059669' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {} }); setIsTestDialogOpen(true); }}>
+                          <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: '#059669', border: '1px dashed #059669' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
                             <Plus size={15} /> Direkt Test Ekle (Konusuz)
                           </button>
                           <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: '#4f46e5', border: '1px dashed #4f46e5' }} onClick={() => { setBulkSeriesData(p => ({ ...p, subjectName: subject.name })); setIsBulkWizardOpen(true); setBulkWizardTab("series"); }}>
@@ -1489,6 +1490,18 @@ export default function BookContentManager() {
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Soru Sayısı</label>
               <input type="number" className="input-field" value={testFormData.questionCount} onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value)||0}))} style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }} />
+            </div>
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>PDF Linki (İsteğe Bağlı)</label>
+              <input
+                type="url"
+                className="input-field"
+                value={testFormData.pdfUrl || ''}
+                onChange={e => setTestFormData(p => ({...p, pdfUrl: e.target.value}))}
+                placeholder="https://drive.google.com/... veya PDF URL"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
+              />
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>Google Drive paylaşım linki veya direkt PDF linki. Öğrenci bu testi çözerken PDF'yi görebilir.</div>
             </div>
             {book.bookType !== 'open_ended' && (
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>

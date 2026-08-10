@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
-import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
+import PdfViewerPanel from '../components/PdfViewerPanel';
 
 export default function StudentBookDetailsPage() {
   const { bookId } = useParams();
@@ -166,6 +168,7 @@ export default function StudentBookDetailsPage() {
   const [isBulkSettingsModalOpen, setIsBulkSettingsModalOpen] = useState(false);
   const [bulkSettings, setBulkSettings] = useState({}); 
   const [isSavingBulk, setIsSavingBulk] = useState(false);
+  const [showBookPdf, setShowBookPdf] = useState(false);
 
   useEffect(() => {
     if (isBulkSettingsModalOpen) {
@@ -253,6 +256,45 @@ export default function StudentBookDetailsPage() {
   const totalQuestions = overallCorrect + overallWrong + overallBlank;
   const overallSuccessRate = totalQuestions > 0 ? Math.round((overallCorrect / totalQuestions) * 100) : 0;
 
+  const [selectedChartSubject, setSelectedChartSubject] = useState('all');
+
+  const subjectChartData = useMemo(() => {
+    if (selectedChartSubject === 'all') {
+      return subjectProgress.map(subj => {
+        let subjCorrect = 0;
+        let subjWrong = 0;
+        let subjBlank = 0;
+        
+        subj.tests.forEach(test => {
+          if (test.isCompleted && test.bestSub) {
+             subjCorrect += test.bestSub.correctCount || 0;
+             subjWrong += test.bestSub.wrongCount || 0;
+             subjBlank += test.bestSub.blankCount || 0;
+          }
+        });
+        
+        return {
+          name: subj.name,
+          Doğru: subjCorrect,
+          Yanlış: subjWrong,
+          Boş: subjBlank
+        };
+      });
+    } else {
+      const subj = subjectProgress.find(s => String(s.id) === selectedChartSubject);
+      if (!subj) return [];
+      
+      return subj.tests.map(test => {
+        return {
+          name: test.name || `Test ${test.index}`,
+          Doğru: (test.isCompleted && test.bestSub) ? (test.bestSub.correctCount || 0) : 0,
+          Yanlış: (test.isCompleted && test.bestSub) ? (test.bestSub.wrongCount || 0) : 0,
+          Boş: (test.isCompleted && test.bestSub) ? (test.bestSub.blankCount || 0) : 0,
+        }
+      });
+    }
+  }, [subjectProgress, selectedChartSubject]);
+
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1000, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -303,10 +345,26 @@ export default function StudentBookDetailsPage() {
           <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
             {book.publisher}
           </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', margin: '0 0 1rem 0' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {book.title}
+            {book.pdfUrl && (
+              <button
+                onClick={() => setShowBookPdf(p => !p)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '0.3rem 0.8rem', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 800,
+                  border: '1.5px solid', cursor: 'pointer', transition: 'all 0.15s',
+                  background: showBookPdf ? '#1d4ed8' : 'white',
+                  color: showBookPdf ? 'white' : '#1d4ed8',
+                  borderColor: showBookPdf ? '#1d4ed8' : '#93c5fd',
+                  boxShadow: showBookPdf ? '0 2px 8px rgba(29,78,216,0.3)' : 'none',
+                }}
+              >
+                <FileText size={13} />
+                {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
+              </button>
+            )}
           </h1>
-          
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 800 }}>
@@ -346,6 +404,51 @@ export default function StudentBookDetailsPage() {
         </div>
       </div>
 
+      {subjectChartData.length > 0 && (
+        <div className="card glass" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BarChart2 size={20} color="#6366f1" /> {selectedChartSubject === 'all' ? 'Derslere Göre Başarı Dağılımı' : 'Konulara (Testlere) Göre Başarı'}
+            </h3>
+            <select 
+               value={selectedChartSubject} 
+               onChange={(e) => setSelectedChartSubject(e.target.value)}
+               style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="all">Tüm Dersler (Genel Bakış)</option>
+              {subjectProgress.map(s => (
+                <option key={s.id} value={String(s.id)}>{s.name} (Konu Analizi)</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={10} tickFormatter={(val) => val.length > 15 ? val.substring(0, 15) + '...' : val} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
+                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 800, fontSize: '0.85rem' }} />
+                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 700 }} />
+                <Bar dataKey="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="Yanlış" stackId="a" fill="#ef4444" />
+                <Bar dataKey="Boş" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Viewer for entire book */}
+      {book.pdfUrl && showBookPdf && (
+        <div style={{ marginBottom: '2rem' }}>
+          <PdfViewerPanel
+            pdfUrl={book.pdfUrl}
+            title={book.title}
+            defaultOpen={true}
+          />
+        </div>
+      )}
+
       {/* Game Map / Subjects */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {subjectProgress.map(subj => (
@@ -371,11 +474,9 @@ export default function StudentBookDetailsPage() {
                   let borderCol = '#e2e8f0';
 
                   if (test.isCompleted) {
-                    iconColor = '#10b981'; // green
                     bgCol = '#ecfdf5';
                     borderCol = '#34d399';
                   } else if (!test.isLocked) {
-                    iconColor = 'var(--color-primary)'; // blue
                     bgCol = '#eff6ff';
                     borderCol = '#bfdbfe';
                   }
@@ -396,35 +497,35 @@ export default function StudentBookDetailsPage() {
                           </div>
                         </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            {test.isCompleted && test.bestScore !== null && (
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  <Award size={16} /> {test.bestScore}% Başarı
-                                </div>
-                                {test.bestSub && (
-                                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
-                                    <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0} D</span>
-                                    <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0} Y</span>
-                                    <span>{test.bestSub.blankCount || 0} B</span>
-                                  </div>
-                                )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          {test.isCompleted && test.bestScore !== null && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Award size={16} /> {test.bestScore}% Başarı
                               </div>
-                            )}
-                            
-                            {test.isCompleted ? (
-                            <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }} onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}>
-                              Sonucu İncele
-                            </button>
-                          ) : test.isLocked ? (
-                            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              <Lock size={16} /> Kilitli
+                              {test.bestSub && (
+                                <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                                  <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0} D</span>
+                                  <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0} Y</span>
+                                  <span>{test.bestSub.blankCount || 0} B</span>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <button className="btn btn-primary" style={{ padding: '0.4rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => navigate(`/book-quiz/${test.id}`)}>
-                              <PlayCircle size={16} /> Şimdi Çöz
-                            </button>
                           )}
+                          
+                          {test.isCompleted ? (
+                          <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }} onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}>
+                            Sonucu İncele
+                          </button>
+                        ) : test.isLocked ? (
+                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Lock size={16} /> Kilitli
+                          </div>
+                        ) : (
+                          <button className="btn btn-primary" style={{ padding: '0.4rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => navigate(`/book-quiz/${test.id}`)}>
+                            <PlayCircle size={16} /> Şimdi Çöz
+                          </button>
+                        )}
                         </div>
                       </div>
                     </div>

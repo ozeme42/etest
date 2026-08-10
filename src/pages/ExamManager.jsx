@@ -78,13 +78,18 @@ export default function ExamManager() {
   const { questions, addQuestion, deleteQuestion } = useQuestionBank();
   const { addHomework, homeworks } = useHomework();
   const { data: curData } = useCurriculum();
-  const { addTrackedBook, addTrackedBookTest, books, bookTests } = useTrackedBooks();
+  const { addTrackedBook, addTrackedBookTest, updateTrackedBookTest, books, bookTests } = useTrackedBooks();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
   // UX Toggle: Default to List View (showAddForm === false)
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewingExamDetails, setViewingExamDetails] = useState(null);
+  
+  // Edit Mode State for Existing Exams
+  const [isEditingExam, setIsEditingExam] = useState(false);
+  const [editingAnswerKey, setEditingAnswerKey] = useState({});
+  const [inlineInputs, setInlineInputs] = useState({});
 
   // Quick Assign Modal State
   const [assignModalExam, setAssignModalExam] = useState(null);
@@ -95,6 +100,7 @@ export default function ExamManager() {
   const [examType, setExamType] = useState('LGS');
   const [examTitle, setExamTitle] = useState('Özdebir LGS Genel Deneme 1');
   const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
+  const [examPdfUrl, setExamPdfUrl] = useState('');
 
   // Optional Penalty Ratio (3, 4, 0, or custom)
   const [penaltyRatio, setPenaltyRatio] = useState(3);
@@ -127,8 +133,32 @@ export default function ExamManager() {
   const [bulkInputText, setBulkInputText] = useState('');
 
   const physicalExamsDatabase = useMemo(() => {
-    return books.filter(b => b.bookType === 'exam');
-  }, [books]);
+    return books.filter(b => b.bookType === 'exam').map(b => {
+      const testsForBook = bookTests.filter(t => t.bookId === b.id);
+      const builtAnswerKey = {};
+      const subjectArray = [];
+      
+      testsForBook.forEach(t => {
+        const subDef = b.subjects?.find(s => s.id === t.subjectId);
+        const subName = subDef ? subDef.name : t.name.replace(' Testi', '');
+        
+        builtAnswerKey[subName] = [];
+        if (t.answerKey) {
+          for (let i = 1; i <= t.questionCount; i++) {
+            builtAnswerKey[subName].push(t.answerKey[i] || '');
+          }
+        }
+        subjectArray.push({ name: subName, count: t.questionCount, testId: t.id });
+      });
+
+      return {
+        ...b,
+        answerKey: builtAnswerKey,
+        subjects: subjectArray.length > 0 ? subjectArray : b.subjects,
+        totalQuestions: subjectArray.reduce((acc, curr) => acc + curr.count, 0)
+      };
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [books, bookTests]);
 
   // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
@@ -177,8 +207,39 @@ export default function ExamManager() {
     setActiveSubjectIndex(0);
   };
 
+  // Inline input for fast answer key entry
+  const handleInlineInputChange = (subName, val, count) => {
+    let cleaned = val.toUpperCase().replace(/[^A-E \-\*\_]/g, '');
+    setInlineInputs(prev => ({ ...prev, [subName]: cleaned }));
+    
+    const chars = cleaned.split('');
+    setEditingAnswerKey(prev => {
+      const existing = Array(count).fill('');
+      chars.forEach((char, idx) => {
+        if (idx < count && /[A-E]/.test(char)) {
+          existing[idx] = char;
+        }
+      });
+      return { ...prev, [subName]: existing };
+    });
+  };
+
   // Clicking a bubble sets the answer key directly
   const handleOptionClick = (subjectName, qIdx, option) => {
+    if (isEditingExam) {
+      setEditingAnswerKey(prev => {
+        const currentList = [...(prev[subjectName] || [])];
+        currentList[qIdx] = currentList[qIdx] === option ? '' : option;
+        
+        setInlineInputs(inlinePrev => {
+           const newStr = currentList.map(a => a || ' ').join('').trimEnd();
+           return { ...inlinePrev, [subjectName]: newStr };
+        });
+
+        return { ...prev, [subjectName]: currentList };
+      });
+      return;
+    }
     setAnswerKey(prev => {
       const currentList = [...(prev[subjectName] || [])];
       currentList[qIdx] = currentList[qIdx] === option ? '' : option;
@@ -195,6 +256,21 @@ export default function ExamManager() {
   // Apply Bulk Inputs to answer key (partial update supported)
   const handleApplyBulkInput = (e) => {
     e.preventDefault();
+    if (isEditingExam && viewingExamDetails) {
+       const currentSub = viewingExamDetails.subjects[activeSubjectIndex];
+       if (!currentSub || parsedBulkInput.length === 0) return;
+       setEditingAnswerKey(prev => {
+          const existing = [...(prev[currentSub.name] || Array(currentSub.count).fill(''))];
+          parsedBulkInput.forEach((ans, idx) => {
+            if (idx < currentSub.count) existing[idx] = ans;
+          });
+          return { ...prev, [currentSub.name]: existing };
+       });
+       setShowBulkModal(false);
+       setBulkInputText('');
+       return;
+    }
+
     const currentSub = subjects[activeSubjectIndex];
     if (!currentSub || parsedBulkInput.length === 0) return;
     setAnswerKey(prev => {
@@ -281,7 +357,8 @@ export default function ExamManager() {
       publisher: examType,
       subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name })),
       bookType: 'exam',
-      penaltyRatio
+      penaltyRatio,
+      pdfUrl: examPdfUrl.trim() || ''
     });
 
     const testPromises = [];
@@ -308,6 +385,38 @@ export default function ExamManager() {
 
     setShowAddForm(false);
     alert('🎉 Fiziki deneme sisteme "Deneme" olarak eklendi! Ödevler sekmesinden öğrencilerinize atayabilirsiniz.');
+  };
+
+  const handleViewExamDetails = (exam) => {
+    setViewingExamDetails(exam);
+    setIsEditingExam(false);
+    setEditingAnswerKey(exam.answerKey || {});
+    
+    const inlines = {};
+    (exam.subjects || []).forEach(sub => {
+       const ak = exam.answerKey?.[sub.name] || [];
+       inlines[sub.name] = ak.map(a => a || ' ').join('').trimEnd();
+    });
+    setInlineInputs(inlines);
+  };
+
+  const handleSaveExamEdits = async () => {
+    if (!viewingExamDetails) return;
+    const testPromises = [];
+    (viewingExamDetails.subjects || []).forEach(sub => {
+       const ak = {};
+       const srcAnswers = editingAnswerKey[sub.name] || [];
+       srcAnswers.forEach((ans, i) => {
+         if (ans && ans !== '-') ak[i + 1] = ans;
+       });
+       if (sub.testId) {
+         testPromises.push(updateTrackedBookTest(sub.testId, { answerKey: ak }));
+       }
+    });
+    await Promise.all(testPromises);
+    setIsEditingExam(false);
+    setViewingExamDetails(null);
+    alert('✅ Cevap anahtarı başarıyla güncellendi!');
   };
 
   const handleQuickAssign = async () => {
@@ -501,7 +610,7 @@ export default function ExamManager() {
 
                     <div className="flex items-center justify-between pt-1">
                       <button
-                        onClick={() => setViewingExamDetails(m)}
+                        onClick={() => handleViewExamDetails(m)}
                         className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" /> Detaylar
@@ -582,6 +691,18 @@ export default function ExamManager() {
                   onChange={e => setExamDate(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">PDF Linki (İsteğe Bağlı)</label>
+                <input
+                  type="url"
+                  value={examPdfUrl}
+                  onChange={e => setExamPdfUrl(e.target.value)}
+                  placeholder="https://drive.google.com/... veya direkt PDF linki"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Google Drive paylaşım linki veya direkt PDF URL girin. Öğrenciler PDF'yi soru çözerken yanlarında görebilir.</p>
               </div>
 
               <div>
@@ -734,9 +855,18 @@ export default function ExamManager() {
                 </div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{viewingExamDetails.title}</h3>
               </div>
-              <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {!isEditingExam ? (
+                  <button onClick={() => setIsEditingExam(true)} className="p-1.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg flex items-center gap-1 text-xs font-bold transition-colors">
+                    <Edit3 className="w-4 h-4" /> Düzenle
+                  </button>
+                ) : (
+                  <span className="text-xs font-black text-amber-500 animate-pulse">Düzenleme Modu</span>
+                )}
+                <button onClick={() => setViewingExamDetails(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* QUICK SPECS */}
@@ -767,7 +897,7 @@ export default function ExamManager() {
 
               <div className="space-y-2.5">
                 {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
-                  const subAnswers = viewingExamDetails.answerKey?.[sub.name] || [];
+                  const subAnswers = isEditingExam ? (editingAnswerKey[sub.name] || []) : (viewingExamDetails.answerKey?.[sub.name] || []);
                   return (
                     <div key={sIdx} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 space-y-2">
                       <div className="flex items-center justify-between">
@@ -775,9 +905,20 @@ export default function ExamManager() {
                           <span className="w-2 h-2 rounded-full bg-indigo-500" />
                           {sub.name}
                         </span>
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                          {sub.count} Soru
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {isEditingExam && (
+                            <input
+                              type="text"
+                              value={inlineInputs[sub.name] || ''}
+                              onChange={(e) => handleInlineInputChange(sub.name, e.target.value, sub.count)}
+                              placeholder="Cevaplar..."
+                              className="w-48 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-[10px] font-mono uppercase tracking-widest text-indigo-700 dark:text-indigo-300 focus:outline-none focus:border-indigo-500"
+                            />
+                          )}
+                          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                            {sub.count} Soru
+                          </span>
+                        </div>
                       </div>
 
                       {/* Optical Answer Strip */}
@@ -804,23 +945,42 @@ export default function ExamManager() {
             </div>
 
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  const examToAssign = viewingExamDetails;
-                  setViewingExamDetails(null);
-                  setAssignModalExam(examToAssign);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
-              >
-                <Plus className="w-4 h-4" /> Bu Denemeyi Ödev Olarak Ata
-              </button>
+              {!isEditingExam ? (
+                <>
+                  <button
+                    onClick={() => {
+                      const examToAssign = viewingExamDetails;
+                      setViewingExamDetails(null);
+                      setAssignModalExam(examToAssign);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
+                  >
+                    <Plus className="w-4 h-4" /> Bu Denemeyi Ödev Olarak Ata
+                  </button>
 
-              <button 
-                onClick={() => setViewingExamDetails(null)} 
-                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
-              >
-                Kapat
-              </button>
+                  <button 
+                    onClick={() => setViewingExamDetails(null)} 
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
+                  >
+                    Kapat
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setIsEditingExam(false)} 
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-black transition-colors"
+                  >
+                    İptal Et
+                  </button>
+                  <button
+                    onClick={handleSaveExamEdits}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all shadow-md flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Değişiklikleri Kaydet
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -984,7 +1144,8 @@ export default function ExamManager() {
                   type="date"
                   value={assignDueDate}
                   onChange={e => setAssignDueDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onClick={e => e.target.showPicker && e.target.showPicker()}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   required
                 />
               </div>

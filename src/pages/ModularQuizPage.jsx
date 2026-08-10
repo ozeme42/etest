@@ -31,7 +31,7 @@ export default function ModularQuizPage() {
   const { data: curriculumData } = useCurriculum();
   const { submissions, addSubmission, updateSubmission, isSyncing } = useEvaluation();
   const { questions: allBankQuestions } = useQuestionBank();
-  const { bookTests } = useTrackedBooks();
+  const { bookTests, books } = useTrackedBooks();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -49,7 +49,7 @@ export default function ModularQuizPage() {
   const draftSubmission = useMemo(() => {
     if (!submissions || submissions.length === 0) return null;
     return submissions.find(
-      s => String(s.testId) === String(testId) && 
+      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId)) && 
            String(s.studentId) === String(studentId) && 
            (s.status === 'in_progress' || s.status === 'draft')
     );
@@ -59,7 +59,7 @@ export default function ModularQuizPage() {
   const completedSub = useMemo(() => {
     if (!submissions || submissions.length === 0) return null;
     return submissions.find(
-      s => String(s.testId) === String(testId) && 
+      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId)) && 
            String(s.studentId) === String(studentId) && 
            s.status !== 'in_progress' && s.status !== 'draft'
     );
@@ -325,6 +325,7 @@ export default function ModularQuizPage() {
     const submissionData = {
       id: draftSubmission ? draftSubmission.id : newSubId,
       testId: test.id,
+      hwId: String(test.id) !== String(testId) ? testId : null,
       testTitle: test.title || test.name || 'Sınav',
       studentId: studentId,
       studentName: searchParams.get('studentName') || 'Öğrenci',
@@ -408,6 +409,7 @@ export default function ModularQuizPage() {
 
     const draftData = {
       testId: test.id,
+      hwId: String(test.id) !== String(testId) ? testId : null,
       testTitle: test.title || test.name || 'Sınav',
       studentId: studentId,
       studentName: searchParams.get('studentName') || 'Öğrenci',
@@ -611,15 +613,18 @@ export default function ModularQuizPage() {
     test.isMulti
   );
 
+  const bookForTest = books?.find(b => b.id === test?.bookId);
+  const bookPdfUrl = bookForTest?.pdfUrl || '';
+
   if (isMultiSection) {
     if (isPhysical) {
-      return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
     }
-    return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
   }
 
   if (isPhysical) {
-    return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
   }
 
   if (isHtml) {

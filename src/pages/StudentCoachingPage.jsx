@@ -3422,7 +3422,6 @@ export default function StudentCoachingPage() {
               </button>
             </div>
 
-            {/* ⏳ Koç Onayı Bekleyenler */}
             {pendingExams.length > 0 && (
               <div style={{ background: '#fffbeb', border: '2px solid #fde68a', borderRadius: '1.1rem', padding: '1.1rem', marginBottom: '1.25rem' }}>
                 <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#92400e', display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.75rem' }}>
@@ -3496,11 +3495,7 @@ export default function StudentCoachingPage() {
                               <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
                             )}
                             {s.sourceType === 'manual' && (
-                              s.approvalStatus === 'pending' ? (
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme (⏳ Onay Bekliyor)</span>
-                              ) : (
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme (✅ Koç Onaylı)</span>
-                              )
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
                             )}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Tarih: {s.date}</div>

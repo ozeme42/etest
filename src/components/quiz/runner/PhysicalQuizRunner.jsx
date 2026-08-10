@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, Maximize2, X as XIcon } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import ResizablePdfPanel from '../../ResizablePdfPanel';
 
-export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers }) {
+export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers, bookPdfUrl }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const hasPdf = !!(bookPdfUrl);
+  // 'side' | 'float' | 'hidden'
+  const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'hidden' : 'side') : 'hidden');
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
@@ -227,7 +231,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#0f172a', color: '#f8fafc' }}>
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
         display: 'flex', 
@@ -290,6 +294,60 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             )}
           </div>
 
+          {/* PDF Mode Buttons */}
+          {hasPdf && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              {/* Side */}
+              <button
+                onClick={() => setPdfMode('side')}
+                title="Sol panele sabitle"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#3b82f6' : '#334155'}`,
+                  background: pdfMode === 'side' ? '#1d4ed8' : '#0f172a',
+                  color: pdfMode === 'side' ? 'white' : '#93c5fd',
+                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                }}
+              >
+                <PanelLeft size={isMobile ? 13 : 14} />
+                {!isMobile && 'Sol Panel'}
+              </button>
+              {/* Float */}
+              <button
+                onClick={() => setPdfMode('float')}
+                title="Yüzen pencere"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#3b82f6' : '#334155'}`,
+                  background: pdfMode === 'float' ? '#1d4ed8' : '#0f172a',
+                  color: pdfMode === 'float' ? 'white' : '#93c5fd',
+                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                }}
+              >
+                <Maximize2 size={isMobile ? 13 : 14} />
+                {!isMobile && 'Pencere'}
+              </button>
+              {/* Hidden */}
+              <button
+                onClick={() => setPdfMode('hidden')}
+                title="Gizle"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#ef4444' : '#334155'}`,
+                  background: pdfMode === 'hidden' ? '#7f1d1d' : '#0f172a',
+                  color: pdfMode === 'hidden' ? '#fca5a5' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                }}
+              >
+                <XIcon size={isMobile ? 13 : 14} />
+                {!isMobile && 'Gizle'}
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
             style={{
@@ -335,108 +393,112 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         </div>
       </header>
 
-      <div style={{ maxWidth: '900px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
-        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <FileSpreadsheet size={28} />
-          </div>
-          <div>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>Dijital Optik Form Kodlama</h3>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-              Kağıt üzerinde çözdüğünüz deneme sınavının cevaplarını aşağıdaki kabarcıklara işaretleyiniz.
-            </p>
-          </div>
-        </div>
+      {/* MAIN: PDF (side) + Optik Form — full remaining height */}
+      <div
+        data-quiz-layout
+        style={{
+          display: 'flex',
+          flex: 1,
+          overflow: 'hidden',
+          minHeight: 0,
+        }}
+      >
+        {/* LEFT: PDF side panel (rendered inline by ResizablePdfPanel) */}
+        {hasPdf && (
+          <ResizablePdfPanel
+            pdfUrl={bookPdfUrl}
+            title={test.title || test.name || 'Kitap PDF'}
+            mode={pdfMode}
+            onModeChange={setPdfMode}
+          />
+        )}
 
-        {/* Optik Grid Form */}
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-          {Array.from({ length: qCount }).map((_, idx) => {
-            const qNo = idx + 1;
-            const qObj = questions[idx] || {};
-            const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
-            const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
-
-            return (
-              <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
-                  <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
-                  {selectedOpt !== undefined || textVal ? (
-                    <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
-                  ) : (
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
-                  )}
-                </div>
-
-                {isOpenEndedMode ? (
-                  <textarea
-                    value={textVal}
-                    onChange={(e) => handleTextChange(qNo, e.target.value)}
-                    placeholder={`Soru ${qNo} açık uçlu yanıt...`}
-                    rows={2}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      borderRadius: '0.5rem',
-                      background: '#1e293b',
-                      border: '1px solid #334155',
-                      color: '#f8fafc',
-                      fontSize: '0.82rem',
-                      fontFamily: 'inherit'
-                    }}
-                  />
-                ) : (
-                  <div style={{ display: 'flex', gap: '0.4rem' }}>
-                    {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                      const isSelected = selectedOpt === optIdx;
-                      return (
-                        <button
-                          key={opt}
-                          onClick={() => handleOptionSelect(qNo, optIdx)}
-                          style={{
-                            flex: 1,
-                            height: '34px',
-                            borderRadius: '0.5rem',
-                            border: isSelected ? 'none' : '1px solid #334155',
-                            background: isSelected ? '#059669' : '#1e293b',
-                            color: isSelected ? 'white' : '#cbd5e1',
-                            fontWeight: 900,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+        {/* RIGHT: Optik Form — scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FileSpreadsheet size={26} />
               </div>
-            );
-          })}
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem' }}>Dijital Optik Form Kodlama</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                  {hasPdf && pdfMode !== 'hidden' ? 'PDF\u2019i okuyarak cevaplar\u0131 i\u015faretleyin.' : 'Ka\u011f\u0131t \u00fczerinde \u00e7\u00f6zd\u00fc\u011f\u00fcn\u00fcz s\u0131nav\u0131n cevaplar\u0131n\u0131 i\u015faretleyiniz.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Optik Grid Form */}
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+              {Array.from({ length: qCount }).map((_, idx) => {
+                const qNo = idx + 1;
+                const qObj = questions[idx] || {};
+                const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
+                const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
+
+                return (
+                  <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
+                      <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
+                      {selectedOpt !== undefined || textVal ? (
+                        <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
+                      )}
+                    </div>
+
+                    {isOpenEndedMode ? (
+                      <textarea
+                        value={textVal}
+                        onChange={(e) => handleTextChange(qNo, e.target.value)}
+                        placeholder={`Soru ${qNo} açık uçlu yanıt...`}
+                        rows={2}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                      />
+                    ) : (
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
+                          const isSelected = selectedOpt === optIdx;
+                          return (
+                            <button
+                              key={opt}
+                              onClick={() => handleOptionSelect(qNo, optIdx)}
+                              style={{
+                                flex: 1, height: '34px', borderRadius: '0.5rem',
+                                border: isSelected ? 'none' : '1px solid #334155',
+                                background: isSelected ? '#059669' : '#1e293b',
+                                color: isSelected ? 'white' : '#cbd5e1',
+                                fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: '2rem' }}>
+              <button
+                onClick={() => handleSubmit()}
+                style={{
+                  padding: '1rem 3rem', borderRadius: '1rem',
+                  background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+                  border: 'none', color: 'white', fontWeight: 900, fontSize: '1.1rem',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  boxShadow: '0 8px 25px rgba(79, 70, 229, 0.4)'
+                }}
+              >
+                <CheckCircle2 size={22} />
+                S\u0131nav\u0131 Kaydet ve G\u00f6nder
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
-        <button
-          onClick={() => handleSubmit()}
-          style={{
-            padding: '1rem 3rem',
-            borderRadius: '1rem',
-            background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-            border: 'none',
-            color: 'white',
-            fontWeight: 900,
-            fontSize: '1.2rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            boxShadow: '0 8px 25px rgba(79, 70, 229, 0.4)'
-          }}
-        >
-          <CheckCircle2 size={24} /> 
-          Sınavı Kaydet ve Gönder
-        </button>
       </div>
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />

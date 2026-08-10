@@ -5,8 +5,10 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { 
-  ArrowLeft, CheckCircle, Clock, AlertCircle, Send, Check 
+  ArrowLeft, CheckCircle, Clock, AlertCircle, Send, Check,
+  FileText, ChevronDown, ChevronUp, ExternalLink, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
+import PdfViewerPanel from '../components/PdfViewerPanel';
 
 export default function BookQuizRunner() {
   const params = useParams();
@@ -23,11 +25,12 @@ export default function BookQuizRunner() {
   const [studentAnswers, setStudentAnswers] = useState({});
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submissionComplete, setSubmissionComplete] = useState(false);
+  const [showPdf, setShowPdf] = useState(true);
   const isSubmittingRef = useRef(false);
 
   // 1. Find Homework
   const hw = homeworks.find(h => h.id === id);
-  const testId = hw?.tests?.[0]; // physical book tests are linked via hw.tests
+  const testId = hw?.tests?.[0];
   const student = users.find(u => u.id === studentId);
 
   // 2. Find Physical Book and Test definition
@@ -35,9 +38,7 @@ export default function BookQuizRunner() {
   const book = books.find(b => b.id === testDef?.bookId);
 
   useEffect(() => {
-    if (!hw || !student || !testDef || !book) {
-      // In a real app we'd redirect or show error, keeping simple here
-    }
+    if (!hw || !student || !testDef || !book) {}
   }, [hw, student, testDef, book]);
 
   if (!hw || !student || !testDef || !book) {
@@ -55,14 +56,27 @@ export default function BookQuizRunner() {
     }
   }, [existingSubmission, submissionComplete, navigate, book]);
 
+  if (existingSubmission && !submissionComplete) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        Daha önceden çözülmüş sınav. Sonuç ekranına yönlendiriliyorsunuz...
+      </div>
+    );
+  }
+
   const isOpenEnded = book.bookType === 'open_ended';
   const qCount = testDef.questionCount || 0;
-
-  // Options: A, B, C, D, E
   const options = ['A', 'B', 'C', 'D', 'E'];
+  const hasPdf = !!(book.pdfUrl);
+
+  const answeredCount = Object.values(studentAnswers).filter(Boolean).length;
+  const progressPct = qCount > 0 ? Math.round((answeredCount / qCount) * 100) : 0;
 
   const handleSelectOption = (qNum, option) => {
-    setStudentAnswers(prev => ({ ...prev, [qNum]: option }));
+    setStudentAnswers(prev => ({
+      ...prev,
+      [qNum]: prev[qNum] === option ? '' : option // toggle
+    }));
   };
 
   const handleTextChange = (qNum, text) => {
@@ -94,7 +108,7 @@ export default function BookQuizRunner() {
           type: 'acik_uclu',
           userAnswer: userAns,
           correctAnswer: null,
-          isCorrect: null // pending evaluation
+          isCorrect: null
         });
       } else {
         const correctAns = testDef.answerKey?.[qNumStr] || null;
@@ -111,7 +125,7 @@ export default function BookQuizRunner() {
           type: 'coktan_secmeli',
           userAnswer: userAns,
           correctAnswer: correctAns,
-          isCorrect: userAns ? isCorrect : false // count empty as wrong for UI simplicity later, or explicitly empty
+          isCorrect: userAns ? isCorrect : false
         });
       }
     }
@@ -119,7 +133,7 @@ export default function BookQuizRunner() {
     const subStatus = (isOpenEnded && pendingCount > 0) ? 'pending_evaluation' : 'completed';
 
     const submissionData = {
-      testId: hw.id, // Linking to homework ID for matching across dashboards
+      testId: hw.id,
       hwId: hw.id,
       bookTestId: testDef.id,
       testTitle: hw.title,
@@ -140,7 +154,6 @@ export default function BookQuizRunner() {
     setShowFinishModal(false);
     setSubmissionComplete(true);
     
-    // Redirect after brief delay
     setTimeout(() => {
       navigate(`/review/${newSubId}`, { replace: true, state: { from: `/student/books/${book.id}` } });
     }, 2500);
@@ -164,98 +177,229 @@ export default function BookQuizRunner() {
   }
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-background, #f8fafc)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* HEADER */}
-      <div className="card glass" style={{ marginBottom: '2rem', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="btn btn-outline" onClick={() => navigate(`/student/books/${book.id}`)} style={{ padding: '0.5rem', border: 'none', background: 'transparent' }}>
-            <ArrowLeft size={24} />
+      {/* ── STICKY HEADER ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: 'white', borderBottom: '1px solid #e2e8f0',
+        padding: '0.75rem 1.25rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+          <button
+            onClick={() => navigate(`/student/books/${book.id}`)}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: '0.3rem', borderRadius: '0.5rem', color: '#64748b', flexShrink: 0 }}
+          >
+            <ArrowLeft size={20} />
           </button>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-primary)' }}>{hw.title}</h1>
-            <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              Öğrenci: {student.name} | Soru Sayısı: {qCount} | Tip: {isOpenEnded ? 'Açık Uçlu Cevap Kağıdı' : 'Optik Form'}
-            </p>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {book.title}
+            </div>
+            <h1 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60vw' }}>
+              {testDef.name}
+            </h1>
           </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }}>
+          {/* Progress pill */}
+          <div style={{ fontSize: '0.78rem', fontWeight: 800, background: '#f1f5f9', color: '#475569', padding: '0.35rem 0.75rem', borderRadius: '99px', whiteSpace: 'nowrap' }}>
+            {answeredCount}/{qCount} işaretlendi
+          </div>
+
+          {/* PDF toggle button — only if book has pdf */}
+          {hasPdf && (
+            <button
+              onClick={() => setShowPdf(p => !p)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
+                padding: '0.4rem 0.85rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem',
+                border: '1.5px solid', cursor: 'pointer', transition: 'all 0.15s',
+                background: showPdf ? '#1d4ed8' : 'white',
+                color: showPdf ? 'white' : '#1d4ed8',
+                borderColor: showPdf ? '#1d4ed8' : '#93c5fd',
+              }}
+            >
+              {showPdf ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+              <span className="hidden-xs">{showPdf ? 'PDF Gizle' : 'PDF Göster'}</span>
+            </button>
+          )}
+
+          {/* Submit */}
+          <button
+            onClick={handleSubmit}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              padding: '0.5rem 1.25rem', borderRadius: '0.6rem', fontWeight: 900, fontSize: '0.85rem',
+              background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none', cursor: 'pointer',
+              boxShadow: '0 3px 10px rgba(16,185,129,0.35)', transition: 'all 0.15s'
+            }}
+          >
+            <Send size={15} /> Bitir
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ width: '100%', height: 3, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginTop: '0.1rem' }}>
+          <div style={{ width: `${progressPct}%`, height: '100%', background: 'linear-gradient(90deg, #6366f1, #10b981)', borderRadius: 99, transition: 'width 0.3s' }} />
         </div>
       </div>
 
-      <div style={{ background: 'var(--color-surface)', padding: '2rem', borderRadius: 'var(--border-radius-lg)', border: '1px solid rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', color: 'var(--color-primary)' }}>
-          <AlertCircle size={20} />
-          <span>Lütfen fiziki kitaptaki cevaplarınızı bu {isOpenEnded ? 'cevap kağıdına' : 'optik forma'} dikkatlice geçirin.</span>
-        </div>
+      {/* ── MAIN CONTENT: PDF (left) + OPTIK FORM (right) ── */}
+      <div style={{
+        flex: 1,
+        display: 'grid',
+        gridTemplateColumns: hasPdf && showPdf ? 'minmax(0,1.2fr) minmax(280px,0.8fr)' : '1fr',
+        gap: 0,
+        height: 'calc(100vh - 72px)',
+        overflow: 'hidden',
+      }}>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isOpenEnded ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {Array.from({ length: qCount }).map((_, i) => {
-            const qNum = String(i + 1);
-            return (
-              <div key={qNum} style={{ background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: 'var(--border-radius-md)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                  <div style={{ width: '2.5rem', height: '2.5rem', background: 'var(--color-primary)', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', flexShrink: 0 }}>
+        {/* LEFT: PDF Viewer */}
+        {hasPdf && showPdf && (
+          <div style={{
+            height: '100%', overflow: 'hidden',
+            borderRight: '1px solid #e2e8f0',
+            display: 'flex', flexDirection: 'column'
+          }}>
+            <PdfViewerPanel
+              pdfUrl={book.pdfUrl}
+              title={book.title}
+              defaultOpen={true}
+              style={{ height: '100%', borderRadius: 0, border: 'none', flex: 1 }}
+            />
+          </div>
+        )}
+
+        {/* RIGHT: Optik Form */}
+        <div style={{
+          height: '100%', overflowY: 'auto',
+          background: '#f8fafc',
+          padding: '1.25rem',
+        }}>
+          <div style={{
+            fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase',
+            letterSpacing: '0.06em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem'
+          }}>
+            <AlertCircle size={13} />
+            {isOpenEnded ? 'Cevap Kağıdı' : 'Optik Form'} — {qCount} Soru
+          </div>
+
+          {/* OPTIK FORM GRID */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isOpenEnded ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: '0.6rem',
+          }}>
+            {Array.from({ length: qCount }).map((_, i) => {
+              const qNum = String(i + 1);
+              const selected = studentAnswers[qNum] || '';
+              return (
+                <div key={qNum} style={{
+                  background: 'white', borderRadius: '0.65rem',
+                  border: selected ? '1.5px solid #6366f1' : '1px solid #e2e8f0',
+                  padding: '0.65rem 0.85rem',
+                  display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  boxShadow: selected ? '0 2px 8px rgba(99,102,241,0.12)' : 'none',
+                  transition: 'all 0.15s'
+                }}>
+                  {/* Question number bubble */}
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    background: selected ? '#6366f1' : '#f1f5f9',
+                    color: selected ? 'white' : '#94a3b8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: '0.78rem'
+                  }}>
                     {qNum}
                   </div>
-                  <div style={{ flexGrow: 1 }}>
-                    {isOpenEnded ? (
-                      <textarea
-                        className="input-field"
-                        placeholder={`${qNum}. sorunun cevabını buraya yazınız...`}
-                        value={studentAnswers[qNum] || ''}
-                        onChange={(e) => handleTextChange(qNum, e.target.value)}
-                        style={{ width: '100%', minHeight: '120px', padding: '1rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                        {options.map(opt => (
-                          <button
-                            key={opt}
-                            onClick={() => handleSelectOption(qNum, opt)}
-                            style={{
-                              width: '2.5rem', height: '2.5rem', borderRadius: '50%', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s',
-                              border: studentAnswers[qNum] === opt ? '2px solid var(--color-primary)' : '1px solid rgba(0,0,0,0.2)',
-                              background: studentAnswers[qNum] === opt ? 'var(--color-primary)' : 'white',
-                              color: studentAnswers[qNum] === opt ? 'white' : 'var(--color-text)',
-                              boxShadow: studentAnswers[qNum] === opt ? '0 4px 10px rgba(124, 58, 237, 0.3)' : 'none'
-                            }}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
-        <div style={{ marginTop: '3rem', display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="btn btn-primary" onClick={handleSubmit} style={{ padding: '1rem 3rem', fontSize: '1.1rem' }}>
-            <Send size={18} style={{ marginRight: '0.5rem' }} /> Testi Bitir
-          </button>
+                  {isOpenEnded ? (
+                    <textarea
+                      className="input-field"
+                      placeholder={`${qNum}. sorunun cevabı...`}
+                      value={studentAnswers[qNum] || ''}
+                      onChange={(e) => handleTextChange(qNum, e.target.value)}
+                      style={{ flex: 1, minHeight: 90, padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0', fontSize: '0.85rem', resize: 'vertical' }}
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', gap: '0.3rem', flex: 1 }}>
+                      {options.map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => handleSelectOption(qNum, opt)}
+                          style={{
+                            flex: 1, height: 32, borderRadius: '50%',
+                            fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+                            border: selected === opt ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
+                            background: selected === opt ? '#6366f1' : 'white',
+                            color: selected === opt ? 'white' : '#64748b',
+                            transition: 'all 0.12s',
+                            boxShadow: selected === opt ? '0 2px 6px rgba(99,102,241,0.35)' : 'none',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom submit */}
+          <div style={{ marginTop: '2rem', paddingBottom: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleSubmit}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.85rem 2.5rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '1rem',
+                background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
+                cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)', transition: 'all 0.15s'
+              }}
+            >
+              <Send size={18} /> Testi Teslim Et
+            </button>
+          </div>
         </div>
       </div>
 
       {/* FINISH MODAL */}
       {showFinishModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '400px', textAlign: 'center', padding: '2rem', background: 'var(--color-surface)', borderRadius: 'var(--border-radius-lg)', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+          <div className="card glass animate-fade-in" style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2rem' }}>
             <AlertCircle size={48} style={{ color: 'var(--color-secondary)', margin: '0 auto 1rem auto' }} />
-            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--color-primary)' }}>Sınavı Bitiriyorsunuz</h3>
-            <p className="text-muted" style={{ marginBottom: '2rem' }}>
-              Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz? Sınavı bitirdikten sonra cevaplarınızı değiştiremezsiniz.
+            <h3 style={{ margin: '0 0 0.75rem 0', color: 'var(--color-primary)', fontSize: '1.2rem', fontWeight: 900 }}>Sınavı Bitiriyorsunuz</h3>
+            <p className="text-muted" style={{ marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+              Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz?
             </p>
+            <div style={{ background: '#f1f5f9', borderRadius: '0.6rem', padding: '0.75rem', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 800 }}>
+              ✅ {answeredCount} işaretlendi &nbsp;|&nbsp; ⬜ {qCount - answeredCount} boş
+            </div>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-              <button className="btn btn-outline" onClick={() => setShowFinishModal(false)}>Kontrol Etmeye Dön</button>
-              <button className="btn btn-primary" onClick={handleSubmit} style={{ background: 'var(--color-secondary)', borderColor: 'var(--color-secondary)' }}>
-                Evet, Testi Bitir
+              <button className="btn btn-outline" onClick={() => setShowFinishModal(false)}>Kontrol Et</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSubmit}
+                style={{ background: 'var(--color-secondary)', borderColor: 'var(--color-secondary)' }}
+              >
+                Evet, Teslim Et
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Responsive: hide PDF on very small screens by default */}
+      <style>{`
+        @media (max-width: 640px) {
+          .hidden-xs { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }

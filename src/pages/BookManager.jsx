@@ -19,7 +19,7 @@ export default function BookManager() {
   // Book Form States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
-  const [newBook, setNewBook] = useState({ title: "", publisher: "", bookType: "standard" });
+  const [newBook, setNewBook] = useState({ title: "", publisher: "", bookType: "standard", pdfUrl: "" });
 
   // Bulk Import States
   const [importModal, setImportModal] = useState({ isOpen: false, book: null });
@@ -43,9 +43,9 @@ export default function BookManager() {
 
   useEffect(() => {
     if (editingBook) {
-      setNewBook({ title: editingBook.title, publisher: editingBook.publisher, bookType: editingBook.bookType || 'standard' });
+      setNewBook({ title: editingBook.title, publisher: editingBook.publisher, bookType: editingBook.bookType || 'standard', pdfUrl: editingBook.pdfUrl || '' });
     } else {
-      setNewBook({ title: "", publisher: "", bookType: "standard" });
+      setNewBook({ title: "", publisher: "", bookType: "standard", pdfUrl: "" });
     }
   }, [editingBook]);
 
@@ -414,6 +414,21 @@ export default function BookManager() {
                   />
                   <strong>Açık Uçlu Kitap</strong> (Klasik Sorular)
                 </label>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>PDF Linki (İsteğe Bağlı)</label>
+              <input
+                type="url"
+                className="input-field"
+                value={newBook.pdfUrl || ''}
+                onChange={(e) => setNewBook({ ...newBook, pdfUrl: e.target.value })}
+                placeholder="https://drive.google.com/... veya direkt PDF URL"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
+              />
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                📎 Google Drive paylaşım linki veya direkt PDF URL. Öğrenciler testleri çözerken bu PDF'yi görebilir.
               </div>
             </div>
             

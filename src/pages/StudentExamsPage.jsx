@@ -4,11 +4,22 @@ import { useAuth } from '../context/AuthContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
-import { BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X } from 'lucide-react';
+import { useCoaching } from '../context/CoachingContext';
+import { BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, ClipboardList, TrendingUp, Pencil, Trash2, LayoutGrid, List } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 
 // Debug flag - set to true to see matching details in console while diagnosing progress issues
 const DEBUG_PROGRESS = false;
+
+const DEFAULT_SUBJECTS = {
+  'Türkçe': { d: '', y: '', b: '', net: '' },
+  'Matematik': { d: '', y: '', b: '', net: '' },
+  'Fen Bilimleri': { d: '', y: '', b: '', net: '' },
+  'İngilizce': { d: '', y: '', b: '', net: '' },
+  'Sosyal Bilgiler/İnkılap Tarihi': { d: '', y: '', b: '', net: '' },
+  'Din Kültürü ve Ahlak Bilgisi': { d: '', y: '', b: '', net: '' }
+};
 
 export default function StudentExamsPage() {
   const navigate = useNavigate();
@@ -16,6 +27,7 @@ export default function StudentExamsPage() {
   const { homeworks = [], addHomework } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
+  const [isSaving, setIsSaving] = useState(false);
 
   const studentId = currentUser?.id;
   const grade = currentUser?.grade;
@@ -24,7 +36,7 @@ export default function StudentExamsPage() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
-  const [isSaving, setIsSaving] = useState(false);
+
 
   const handleSaveNewBook = async () => {
     if (!newBook.title || !newBook.publisher) return;
@@ -167,7 +179,7 @@ export default function StudentExamsPage() {
         });
 
         if (isHwSolved) {
-          hwTestIdsRaw.forEach(id => bookMap[book.id].allSolvedTestIds.add(String(id)));
+          hwTestIdsRaw.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
         } else {
           matchedTestIds.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
         }
@@ -240,6 +252,277 @@ export default function StudentExamsPage() {
     return Object.values(bookMap);
   }, [bookAssignments, books, studentSubmissions]);
 
+
+  const { mockExams = [], addMockExam, updateMockExam, deleteMockExam } = useCoaching();
+  const [chartMetric, setChartMetric] = useState('Toplam Net');
+  const [viewMode, setViewMode] = useState('table');
+  const [showMockModal, setShowMockModal] = useState(false);
+  const [editingMockId, setEditingMockId] = useState(null);
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [netRule, setNetRule] = useState('4');
+  const [newManualMock, setNewManualMock] = useState({ title: '', date: new Date().toISOString().split('T')[0], subjects: DEFAULT_SUBJECTS });
+
+  const handleOpenMockModal = (mock = null) => {
+    if (mock) {
+      setEditingMockId(mock.id);
+      setNewManualMock({
+        title: mock.title || '',
+        date: mock.date || mock.createdAt?.slice(0, 10) || new Date().toISOString().split('T')[0],
+        subjects: mock.scores || {}
+      });
+    } else {
+      setEditingMockId(null);
+      setNewManualMock({ title: '', date: new Date().toISOString().split('T')[0], subjects: DEFAULT_SUBJECTS });
+    }
+    setShowMockModal(true);
+  };
+
+  const handleDeleteMock = async (e, id) => {
+    e.stopPropagation();
+    if (window.confirm('Bu denemeyi silmek istediğinize emin misiniz?')) {
+      try {
+        await deleteMockExam(id);
+        window.location.reload();
+      } catch (err) { console.error(err); }
+    }
+  };
+
+  const addSubjectToMock = () => {
+    if (!newSubjectName.trim()) return;
+    setNewManualMock(prev => ({ ...prev, subjects: { ...prev.subjects, [newSubjectName.trim()]: { d: '', y: '', b: '', net: '' } } }));
+    setNewSubjectName('');
+  };
+
+  const handleNetRuleChange = (e) => {
+    const newRule = e.target.value;
+    setNetRule(newRule);
+    setNewManualMock(prev => {
+      const updatedSubjects = { ...prev.subjects };
+      Object.keys(updatedSubjects).forEach(subjName => {
+        const d = Number(updatedSubjects[subjName].d) || 0;
+        const y = Number(updatedSubjects[subjName].y) || 0;
+        if (newRule === '0') {
+           updatedSubjects[subjName].net = d;
+        } else {
+           const penalty = Number(newRule);
+           updatedSubjects[subjName].net = penalty > 0 ? (d - (y / penalty)).toFixed(2) : d;
+        }
+      });
+      return { ...prev, subjects: updatedSubjects };
+    });
+  };
+
+  const updateSubjectScore = (subjName, field, value) => {
+    setNewManualMock(prev => {
+      const currentSubject = prev.subjects[subjName] || { d: '', y: '', b: '', net: '' };
+      const updatedSubject = { ...currentSubject, [field]: value };
+      
+      if (field === 'd' || field === 'y') {
+        const d = Number(updatedSubject.d) || 0;
+        const y = Number(updatedSubject.y) || 0;
+        if (netRule === '0') {
+           updatedSubject.net = d;
+        } else {
+           const penalty = Number(netRule);
+           updatedSubject.net = penalty > 0 ? parseFloat((d - (y / penalty)).toFixed(2)) : d;
+        }
+      }
+      return { ...prev, subjects: { ...prev.subjects, [subjName]: updatedSubject } };
+    });
+  };
+
+  const removeSubjectFromMock = (subjName) => {
+    setNewManualMock(prev => {
+      const copy = { ...prev };
+      delete copy.subjects[subjName];
+      return copy;
+    });
+  };
+
+  const totalMockD = Object.values(newManualMock.subjects).reduce((sum, s) => sum + (Number(s.d) || 0), 0);
+  const totalMockY = Object.values(newManualMock.subjects).reduce((sum, s) => sum + (Number(s.y) || 0), 0);
+  const totalMockB = Object.values(newManualMock.subjects).reduce((sum, s) => sum + (Number(s.b) || 0), 0);
+  const totalMockNet = Object.values(newManualMock.subjects).reduce((sum, s) => sum + (Number(s.net) || 0), 0);
+
+  const handleSaveMock = async (e) => {
+    e.preventDefault();
+    if (!newManualMock.title) return;
+    try {
+      if (editingMockId) {
+        await updateMockExam(editingMockId, { title: newManualMock.title, date: newManualMock.date, totalNet: totalMockNet, scores: newManualMock.subjects });
+      } else {
+        await addMockExam({ studentId, title: newManualMock.title, date: newManualMock.date, totalNet: totalMockNet, scores: newManualMock.subjects });
+      }
+      setShowMockModal(false);
+      setEditingMockId(null);
+      setNewManualMock({ title: '', date: new Date().toISOString().split('T')[0], subjects: DEFAULT_SUBJECTS });
+      window.location.reload();
+    } catch(err) { console.error(err); }
+  };
+
+  const studentMockExams = useMemo(() => mockExams.filter(m => String(m.studentId) === String(studentId)), [mockExams, studentId]);
+
+  const combinedExamsList = useMemo(() => {
+    const arr = [];
+    assignedBooks.forEach(b => {
+      const pct = b.totalAssignedTests > 0 ? Math.round((b.totalSolvedTests / b.totalAssignedTests) * 100) : 0;
+      const penaltyRatio = /lgs|bursluluk/i.test(b.title) ? 3 : 4;
+      const net = (b.totalCorrect || 0) - ((b.totalWrong || 0) / penaltyRatio);
+      arr.push({
+        id: b.id,
+        type: 'book',
+        title: b.title,
+        date: b.assignedHomeworks?.[0]?.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+        status: pct >= 100 ? 'Tamamlandı' : `%${pct} İlerleme`,
+        d: b.totalCorrect || 0,
+        y: b.totalWrong || 0,
+        b: b.totalBlank || 0,
+        net: parseFloat(net.toFixed(2)),
+        original: b,
+        isCompleted: pct >= 100,
+        remainingDays: b.remainingDays
+      });
+    });
+    studentMockExams.forEach(m => {
+      const mScores = m.scores || {};
+      const d = Object.values(mScores).reduce((sum, s) => sum + (Number(s.d) || 0), 0);
+      const y = Object.values(mScores).reduce((sum, s) => sum + (Number(s.y) || 0), 0);
+      const b = Object.values(mScores).reduce((sum, s) => sum + (Number(s.b) || 0), 0);
+      arr.push({
+        id: m.id,
+        type: 'mock',
+        title: m.title,
+        date: m.date || m.createdAt?.slice(0, 10),
+        status: 'Manuel Deneme',
+        d, y, b,
+        net: Number(m.totalNet || 0),
+        original: m,
+        isCompleted: true,
+        remainingDays: undefined
+      });
+    });
+    return arr.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [assignedBooks, studentMockExams]);
+
+  // Compute allExamsList by combining mockExams and completed exam books
+  const allExamsList = useMemo(() => {
+    const list = [];
+    
+    // 1. Add mock exams
+    studentMockExams.forEach(mock => {
+      // Sadece onaylanmış olanlar (veya koç atamamışsa hepsi) chart'a yansıyabilir
+      if (mock.approvalStatus === 'rejected') return;
+      
+      const mScores = mock.scores || {};
+      const d = Object.values(mScores).reduce((sum, s) => sum + (Number(s.d) || 0), 0);
+      const y = Object.values(mScores).reduce((sum, s) => sum + (Number(s.y) || 0), 0);
+      const b = Object.values(mScores).reduce((sum, s) => sum + (Number(s.b) || 0), 0);
+      
+      list.push({
+        id: mock.id,
+        title: mock.title,
+        date: mock.date || mock.createdAt?.slice(0, 10),
+        totalCorrect: d,
+        totalWrong: y,
+        totalEmpty: b,
+        totalNet: mock.totalNet,
+        isManualMock: true,
+        scores: mock.scores || {}
+      });
+    });
+
+    // 2. Add completed book assignments (Fiziki Denemeler)
+    assignedBooks.forEach(book => {
+      // Sadece tamamlanmış denemeler
+      const pct = book.totalAssignedTests > 0 ? Math.round((book.totalSolvedTests / book.totalAssignedTests) * 100) : 0;
+      if (pct < 100) return;
+
+      const penaltyRatio = /lgs|bursluluk/i.test(book.title) ? 3 : 4;
+      const net = (book.totalCorrect || 0) - ((book.totalWrong || 0) / penaltyRatio);
+      
+      // Calculate subject-specific nets from the book's subjects and test submissions
+      const bestSubs = [];
+      studentSubmissions.forEach(sub => {
+         const testId = sub.testId || sub.bookTestId || sub.id;
+         if (book.allAssignedTestIds.has(String(testId))) {
+             bestSubs.push(sub);
+         }
+      });
+
+      list.push({
+        id: book.id,
+        title: book.title,
+        date: book.assignedHomeworks?.[0]?.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+        totalCorrect: book.totalCorrect,
+        totalWrong: book.totalWrong,
+        totalEmpty: book.totalBlank,
+        totalNet: parseFloat(net.toFixed(2)),
+        isManualMock: false,
+        bestSubs: bestSubs,
+        subjects: book.subjects
+      });
+    });
+
+    // Sort descending by date
+    return list.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [studentMockExams, assignedBooks, studentSubmissions]);
+
+  // Compute overallStats
+  const overallStats = useMemo(() => {
+    let totalD = 0, totalY = 0, totalB = 0, totalNet = 0;
+    let maxNet = 0;
+    
+    // Subject distribution
+    const subMap = {};
+
+    allExamsList.forEach(exam => {
+       totalD += (exam.totalCorrect || 0);
+       totalY += (exam.totalWrong || 0);
+       totalB += (exam.totalEmpty || 0);
+       totalNet += parseFloat(exam.totalNet || 0);
+       if (parseFloat(exam.totalNet || 0) > maxNet) {
+         maxNet = parseFloat(exam.totalNet || 0);
+       }
+
+       if (exam.isManualMock && exam.scores) {
+         Object.entries(exam.scores).forEach(([sName, sc]) => {
+           if (!subMap[sName]) subMap[sName] = { name: sName, net: 0, count: 0 };
+           subMap[sName].net += parseFloat(sc.net || 0);
+           subMap[sName].count += 1;
+         });
+       } else if (!exam.isManualMock && exam.bestSubs) {
+         const penaltyRatio = /lgs|bursluluk/i.test(exam.title) ? 3 : 4;
+         exam.bestSubs.forEach(sub => {
+            const testId = sub.testId || sub.bookTestId || sub.id;
+            const bookTest = bookTests.find(t => String(t.id) === String(testId));
+            if (bookTest && exam.subjects) {
+              const subject = exam.subjects.find(s => String(s.id) === String(bookTest.subjectId));
+              const subjName = subject ? subject.name : 'Genel';
+              if (!subMap[subjName]) subMap[subjName] = { name: subjName, net: 0, count: 0 };
+              
+              const c = sub.correctCount || 0;
+              const w = sub.wrongCount || 0;
+              const n = c - (w / penaltyRatio);
+              
+              subMap[subjName].net += n;
+              subMap[subjName].count += 1;
+            }
+         });
+       }
+    });
+
+    const totalExams = allExamsList.length;
+
+    return {
+      totalExams,
+      avgNet: totalExams > 0 ? (totalNet / totalExams).toFixed(1) : 0,
+      maxNet: maxNet.toFixed(1),
+      lastExamDate: totalExams > 0 ? allExamsList[0].date : '-',
+      totalD, totalY, totalB,
+      subjects: Object.values(subMap).sort((a,b) => b.net - a.net)
+    };
+  }, [allExamsList, bookTests]);
+
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1200, margin: '0 auto' }}>
       <header style={{ marginBottom: '2.5rem' }}>
@@ -253,16 +536,116 @@ export default function StudentExamsPage() {
             </p>
           </div>
           
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}
-          >
-            <Plus size={20} /> Kendi Denemeni Ekle
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: '#8b5cf6', color: '#8b5cf6', background: 'white', padding: '0.75rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer' }} onClick={() => handleOpenMockModal()}>
+              <ClipboardList size={18} /> Manuel Sonuç Ekle
+            </button>
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}
+            >
+              <Plus size={20} /> Kendi Denemeni Ekle
+            </button>
+          </div>
         </div>
       </header>
 
-      {assignedBooks.length === 0 ? (
+      {/* STATISTICS BANNER */}
+      {allExamsList.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          {[
+            { label: 'Toplam Deneme', value: overallStats.totalExams, color: '#3b82f6', bg: '#eff6ff' },
+            { label: 'Ortalama Net', value: overallStats.avgNet, color: '#10b981', bg: '#ecfdf5' },
+            { label: 'En Yüksek Net', value: overallStats.maxNet, color: '#f59e0b', bg: '#fffbeb' },
+            { label: 'Son Deneme', value: overallStats.lastExamDate, color: '#8b5cf6', bg: '#f5f3ff' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: s.bg, padding: '0.85rem', borderRadius: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
+              <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* TREND CHART */}
+      {allExamsList.length > 0 && (
+        <div className="card glass" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
+            <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <TrendingUp size={24} /> Net Gelişim Grafiği
+            </h2>
+            <select 
+              value={chartMetric} 
+              onChange={(e) => setChartMetric(e.target.value)}
+              style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, color: '#334155', background: 'white', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="Toplam Net">Genel (Toplam Net)</option>
+              {overallStats.subjects.map(s => (
+                <option key={s.name} value={s.name}>{s.name} Net</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ width: '100%', height: 280, marginTop: '1rem' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={[...allExamsList].reverse().map((exam, i) => {
+                const penaltyRatio = /lgs|bursluluk/i.test(exam.title) ? 3 : 4;
+                let net = 0;
+                if (chartMetric === 'Toplam Net') {
+                   net = (exam.totalCorrect || 0) - ((exam.totalWrong || 0) / penaltyRatio);
+                } else {
+                   if (exam.isManualMock) {
+                      if (exam.scores && exam.scores[chartMetric]) {
+                         const sc = exam.scores[chartMetric];
+                         net = sc.net !== undefined && sc.net !== null ? parseFloat(sc.net) : ((sc.correct || 0) - ((sc.wrong || 0) / penaltyRatio));
+                      }
+                   } else {
+                      let c = 0, w = 0;
+                      exam.bestSubs?.forEach(sub => {
+                        const testId = sub.testId || sub.bookTestId || sub.id;
+                        const bookTest = bookTests.find(t => String(t.id) === String(testId));
+                        if (bookTest && exam.subjects) {
+                          const subject = exam.subjects.find(s => String(s.id) === String(bookTest.subjectId));
+                          const subjName = subject ? subject.name : 'Genel';
+                          if (subjName === chartMetric) {
+                            c += sub.correctCount || 0;
+                            w += sub.wrongCount || 0;
+                          }
+                        }
+                      });
+                      net = c - (w / penaltyRatio);
+                   }
+                }
+                
+                const shortName = exam.title.length > 15 ? exam.title.substring(0, 13) + '..' : exam.title;
+                return { name: shortName, Net: parseFloat(net.toFixed(2)), fullName: exam.title, date: exam.date };
+              })}>
+                <defs>
+                  <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 600 }} dx={-10} domain={['dataMin - 2', 'dataMax + 5']} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontSize: '0.85rem', fontWeight: 800, background: 'rgba(255,255,255,0.95)' }}
+                  formatter={(value) => [`${value} Net`, 'Skor']}
+                  labelFormatter={(label, payload) => {
+                    const full = payload?.[0]?.payload?.fullName || label;
+                    const date = payload?.[0]?.payload?.date || '';
+                    return `${full} ${date ? `(${date})` : ''}`;
+                  }}
+                />
+                <Area type="monotone" dataKey="Net" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#colorNet)" activeDot={{ r: 8, fill: '#7c3aed', stroke: '#fff', strokeWidth: 3, boxShadow: '0 0 10px rgba(124,58,237,0.5)' }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+
+      {assignedBooks.length === 0 && studentMockExams.length === 0 ? (
         booksLoading ? (
           <div className="card glass" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
             <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -279,10 +662,87 @@ export default function StudentExamsPage() {
           </div>
         )
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {assignedBooks.map(book => {
-            const pct = book.totalAssignedTests > 0 ? Math.round((book.totalSolvedTests / book.totalAssignedTests) * 100) : 0;
-            const isCompleted = pct >= 100;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <div style={{ background: '#f1f5f9', padding: '0.25rem', borderRadius: '0.5rem', display: 'flex', gap: '0.25rem' }}>
+              <button 
+                onClick={() => setViewMode('table')} 
+                style={{ background: viewMode === 'table' ? 'white' : 'transparent', color: viewMode === 'table' ? '#6366f1' : '#64748b', border: 'none', padding: '0.5rem', borderRadius: '0.4rem', cursor: 'pointer', boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center' }}
+                title="Liste Görünümü"
+              >
+                <List size={20} />
+              </button>
+              <button 
+                onClick={() => setViewMode('grid')} 
+                style={{ background: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? '#6366f1' : '#64748b', border: 'none', padding: '0.5rem', borderRadius: '0.4rem', cursor: 'pointer', boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center' }}
+                title="Kart Görünümü"
+              >
+                <LayoutGrid size={20} />
+              </button>
+            </div>
+          </div>
+          
+          {viewMode === 'table' ? (
+            <div className="card glass" style={{ overflowX: 'auto', padding: '1rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '1rem', color: '#475569', fontWeight: 800, fontSize: '0.9rem' }}>Sınav Adı</th>
+                    <th style={{ padding: '1rem', color: '#475569', fontWeight: 800, fontSize: '0.9rem' }}>Tarih</th>
+                    <th style={{ padding: '1rem', color: '#475569', fontWeight: 800, fontSize: '0.9rem' }}>Tür/Durum</th>
+                    <th style={{ padding: '1rem', color: '#10b981', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center' }}>Doğru</th>
+                    <th style={{ padding: '1rem', color: '#ef4444', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center' }}>Yanlış</th>
+                    <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center' }}>Boş</th>
+                    <th style={{ padding: '1rem', color: '#7c3aed', fontWeight: 900, fontSize: '0.9rem', textAlign: 'center' }}>Toplam Net</th>
+                    <th style={{ padding: '1rem', color: '#475569', fontWeight: 800, fontSize: '0.9rem', textAlign: 'right' }}>İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {combinedExamsList.map((exam, idx) => (
+                    <tr key={`${exam.type}-${exam.id}`} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? 'transparent' : '#f8fafc', transition: 'background 0.2s' }} className="hover-row">
+                      <td style={{ padding: '1rem', fontWeight: 700, color: '#1e293b' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {exam.type === 'mock' ? <ClipboardList size={18} color="#8b5cf6" /> : <BookOpen size={18} color={exam.isCompleted ? '#10b981' : '#f59e0b'} />}
+                          {exam.title}
+                        </div>
+                      </td>
+                      <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{exam.date}</td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 800, background: exam.type === 'mock' ? '#f5f3ff' : (exam.isCompleted ? '#ecfdf5' : '#fffbeb'), color: exam.type === 'mock' ? '#7c3aed' : (exam.isCompleted ? '#10b981' : '#d97706') }}>
+                          {exam.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 800, color: '#059669' }}>{exam.d}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>{exam.y}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 800, color: '#64748b' }}>{exam.b}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 900, color: '#7c3aed', fontSize: '1.1rem' }}>{exam.net}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                        {exam.type === 'book' ? (
+                          <button onClick={() => navigate(`/student/books/${exam.id}`)} style={{ background: '#e0e7ff', color: '#4f46e5', border: 'none', padding: '0.4rem 1rem', borderRadius: '0.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem' }}>
+                            {exam.isCompleted ? 'İncele' : 'Devam Et'}
+                          </button>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <button onClick={(e) => { e.stopPropagation(); handleOpenMockModal(exam.original); }} style={{ background: '#f1f5f9', color: '#64748b', border: 'none', padding: '0.4rem', borderRadius: '0.5rem', cursor: 'pointer' }} title="Düzenle">
+                              <Pencil size={16} />
+                            </button>
+                            <button onClick={(e) => handleDeleteMock(e, exam.id)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.4rem', borderRadius: '0.5rem', cursor: 'pointer' }} title="Sil">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <style>{`.hover-row:hover { background: #f1f5f9 !important; }`}</style>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              {assignedBooks.map(book => {
+                const pct = book.totalAssignedTests > 0 ? Math.round((book.totalSolvedTests / book.totalAssignedTests) * 100) : 0;
+                const isCompleted = pct >= 100;
 
             return (
               <div
@@ -374,9 +834,141 @@ export default function StudentExamsPage() {
               </div>
             );
           })}
+          
+          {/* Render Manual Mock Exams */}
+          {studentMockExams.map(mock => {
+            const mScores = mock.scores || {};
+            const d = Object.values(mScores).reduce((sum, s) => sum + (Number(s.d) || 0), 0);
+            const y = Object.values(mScores).reduce((sum, s) => sum + (Number(s.y) || 0), 0);
+            const b = Object.values(mScores).reduce((sum, s) => sum + (Number(s.b) || 0), 0);
+            
+            return (
+            <div key={mock.id} className="card glass hover-lift" style={{ padding: '1.5rem', border: '1px solid #c7d2fe', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ width: 64, height: 85, background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                  <ClipboardList size={28} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', color: '#1e293b', fontWeight: 800, lineHeight: 1.2 }}>{mock.title}</h3>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={(e) => { e.stopPropagation(); handleOpenMockModal(mock); }} style={{ background: '#f1f5f9', color: '#64748b', border: 'none', padding: '0.4rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Düzenle">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={(e) => handleDeleteMock(e, mock.id)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.4rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Sil">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Tarih: {mock.date || mock.createdAt?.slice(0, 10)}</div>
+                </div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#334155', marginBottom: '0.5rem', textAlign: 'center' }}>
+                  Toplam Net: <span style={{ color: '#7c3aed', fontSize: '1.2rem' }}>{Number(mock.totalNet || 0).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', textAlign: 'center' }}>
+                  <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800 }}>Doğru</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#059669' }}>{d}</div>
+                  </div>
+                  <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #fca5a5' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>Yanlış</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#b91c1c' }}>{y}</div>
+                  </div>
+                  <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>Boş</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#64748b' }}>{b}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            );
+          })}
+            </div>
+          )}
         </div>
       )}
 
+      {/* MANUAL MOCK MODAL */}
+      {showMockModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+          <div className="card glass" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'scaleIn 0.2s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>
+                {editingMockId ? 'Deneme Sonucunu Düzenle' : 'Manuel Deneme Sonucu Ekle'}
+              </h2>
+              <button onClick={() => setShowMockModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={24} /></button>
+            </div>
+            
+            <form onSubmit={handleSaveMock} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#475569', fontWeight: 800, fontSize: '0.85rem' }}>Net Hesaplama Kuralı</label>
+                <select className="input" value={netRule} onChange={handleNetRuleChange}>
+                  <option value="4">4 Yanlış 1 Doğruyu Götürür (YKS/TYT/AYT)</option>
+                  <option value="3">3 Yanlış 1 Doğruyu Götürür (LGS vb.)</option>
+                  <option value="0">Yanlışlar Doğruları Götürmez</option>
+                </select>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Doğru ve yanlışları girdiğinizde netler bu kurala göre otomatik hesaplanacaktır.</div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#475569', fontWeight: 800, fontSize: '0.85rem' }}>Sınav Adı (Örn: Özdebir TYT 1)</label>
+                  <input required type="text" className="input" placeholder="Deneme Adı" value={newManualMock.title} onChange={e => setNewManualMock(prev => ({...prev, title: e.target.value}))} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#475569', fontWeight: 800, fontSize: '0.85rem' }}>Tarih</label>
+                  <input required type="date" className="input" value={newManualMock.date} onChange={e => setNewManualMock(prev => ({...prev, date: e.target.value}))} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#475569', fontWeight: 800, fontSize: '0.85rem' }}>Ders Ekle (Örn: Türkçe, Matematik)</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input type="text" className="input" placeholder="Ders Adı" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubjectToMock(); }}} />
+                  <button type="button" className="btn" onClick={addSubjectToMock}>Ekle</button>
+                </div>
+              </div>
+
+              {Object.keys(newManualMock.subjects).length > 0 && (
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr 1fr 32px', gap: '0.5rem', fontWeight: 800, color: '#475569', fontSize: '0.8rem', textAlign: 'center' }}>
+                    <div style={{ textAlign: 'left' }}>Ders</div>
+                    <div>Doğru</div>
+                    <div>Yanlış</div>
+                    <div>Boş</div>
+                    <div>Net</div>
+                    <div></div>
+                  </div>
+                  {Object.entries(newManualMock.subjects).map(([sName, scores]) => (
+                    <div key={sName} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr 1fr 32px', gap: '0.5rem', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.85rem', wordBreak: 'break-word' }}>{sName}</div>
+                      <input type="number" className="input" style={{ padding: '0.5rem', textAlign: 'center', minWidth: 0 }} placeholder="D" value={scores.d} onChange={e => updateSubjectScore(sName, 'd', e.target.value)} />
+                      <input type="number" className="input" style={{ padding: '0.5rem', textAlign: 'center', minWidth: 0 }} placeholder="Y" value={scores.y} onChange={e => updateSubjectScore(sName, 'y', e.target.value)} />
+                      <input type="number" className="input" style={{ padding: '0.5rem', textAlign: 'center', minWidth: 0 }} placeholder="B" value={scores.b} onChange={e => updateSubjectScore(sName, 'b', e.target.value)} />
+                      <input type="number" className="input" style={{ padding: '0.5rem', textAlign: 'center', minWidth: 0 }} placeholder="N" value={scores.net} onChange={e => updateSubjectScore(sName, 'net', e.target.value)} step="0.25" />
+                      <button type="button" onClick={() => removeSubjectFromMock(sName)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', width: '100%', height: '32px', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} /></button>
+                    </div>
+                  ))}
+                  <div style={{ borderTop: '2px dashed #cbd5e1', paddingTop: '1rem', marginTop: '0.5rem', display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr 1fr 32px', gap: '0.5rem', fontWeight: 900, color: '#0f172a', textAlign: 'center', alignItems: 'center' }}>
+                    <div style={{ textAlign: 'left' }}>TOPLAM</div>
+                    <div style={{ color: '#10b981' }}>{totalMockD}</div>
+                    <div style={{ color: '#ef4444' }}>{totalMockY}</div>
+                    <div style={{ color: '#64748b' }}>{totalMockB}</div>
+                    <div style={{ color: '#8b5cf6', fontSize: '1.2rem' }}>{totalMockNet}</div>
+                    <div></div>
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" className="btn" style={{ width: '100%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                <ClipboardList size={20} /> Sonucu Kaydet ve Gönder
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       {/* NEW BOOK MODAL */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', padding: '1rem' }}>

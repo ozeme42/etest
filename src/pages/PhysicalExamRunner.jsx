@@ -8,8 +8,9 @@ import {
   ArrowLeft, CheckCircle2, AlertCircle, BookOpen, Clock, 
   Send, X, LayoutTemplate, Trophy, Award, BarChart3, ListTree, 
   Sparkles, Target, Zap, Check, HelpCircle, Info, Layers,
-  ChevronRight, ChevronDown, ChevronUp
+  ChevronRight, ChevronDown, ChevronUp, FileText
 } from 'lucide-react';
+import PdfViewerPanel from '../components/PdfViewerPanel';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -38,6 +39,7 @@ export default function PhysicalExamRunner() {
   const homework = homeworks.find(h => h.id === hwId);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
   const isSubmittingRef = useRef(false);
   
   // Student answers state: { "Türkçe": ["A", "B", "", "C", ...], "Matematik": [...] }
@@ -433,12 +435,28 @@ export default function PhysicalExamRunner() {
                 <Clock className="w-3.5 h-3.5 text-amber-500" /> Öğrenci Henüz Göndermedi
               </div>
             ) : !isSubmitted ? (
-              <button 
-                onClick={handleSubmit}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5" /> Gönder
-              </button>
+              <div className="flex items-center gap-2">
+                {homework.pdfUrl && (
+                  <button
+                    onClick={() => setShowPdf(p => !p)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-xs border transition-all cursor-pointer",
+                      showPdf
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                        : "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-50"
+                    )}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    {showPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
+                  </button>
+                )}
+                <button 
+                  onClick={handleSubmit}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs shadow-md shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" /> Gönder
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-black text-xs flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 shadow-xs">
@@ -529,6 +547,16 @@ export default function PhysicalExamRunner() {
 
           </div>
         </div>
+      )}
+
+      {/* PDF VIEWER - collapsible, shown when pdfUrl present */}
+      {homework.pdfUrl && showPdf && (
+        <PdfViewerPanel
+          pdfUrl={homework.pdfUrl}
+          title={homework.title}
+          defaultOpen={true}
+          className="w-full"
+        />
       )}
 
       {/* 3. ALT BÖLÜM: MASAÜSTÜNDE 2 SÜTUN (SOLDA DERS LİSTESİ - SAĞDA OPTİK), MOBİLDE KLASİK VE KOMPAKT */}

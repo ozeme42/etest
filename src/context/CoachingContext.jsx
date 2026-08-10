@@ -275,6 +275,7 @@ export function CoachingProvider({ children }) {
       saveCoachingNote,
       saveCoachingProfile,
       addMockExam,
+      updateMockExam,
       deleteMockExam,
       addCoachingMeeting,
       getCoachedStudentIds,

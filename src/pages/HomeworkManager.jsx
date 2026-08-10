@@ -601,7 +601,7 @@ export default function HomeworkManager() {
                     <button key={p.l} type="button" onClick={() => setDueDatePreset(p.d)} style={C.chipBtn(false)}>{p.l}</button>
                   ))}
                 </div>
-                <input type="date" style={C.input} value={dueDate} onChange={e => setDueDate(e.target.value)} />
+                <input type="date" style={{...C.input, cursor: 'pointer'}} value={dueDate} onChange={e => setDueDate(e.target.value)} onClick={e => e.target.showPicker && e.target.showPicker()} />
               </div>
               <div>
                 <label style={C.label}>Soru Basi Sure (Dakika)</label>

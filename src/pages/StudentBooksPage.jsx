@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
-import { BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X } from 'lucide-react';
+import { BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, Target, CheckCircle2, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 
 // Debug flag - set to true to see matching details in console while diagnosing progress issues
@@ -239,6 +240,25 @@ export default function StudentBooksPage() {
     return Object.values(bookMap);
   }, [bookAssignments, books, studentSubmissions]);
 
+  const overallStats = useMemo(() => {
+    let totalD = 0, totalY = 0, totalB = 0;
+    let totalAssigned = 0, totalSolved = 0;
+    
+    assignedBooks.forEach(b => {
+      totalD += (b.totalCorrect || 0);
+      totalY += (b.totalWrong || 0);
+      totalB += (b.totalBlank || 0);
+      totalAssigned += (b.totalAssignedTests || 0);
+      totalSolved += (b.totalSolvedTests || 0);
+    });
+    
+    const totalQuestions = totalD + totalY + totalB;
+    const successRate = totalQuestions > 0 ? Math.round((totalD / totalQuestions) * 100) : 0;
+    const progressRate = totalAssigned > 0 ? Math.round((totalSolved / totalAssigned) * 100) : 0;
+
+    return { totalD, totalY, totalB, successRate, progressRate, totalAssigned, totalSolved, totalBooks: assignedBooks.length };
+  }, [assignedBooks]);
+
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1200, margin: '0 auto' }}>
       <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -257,6 +277,69 @@ export default function StudentBooksPage() {
           <Plus size={20} /> Kendi Kitabını Ekle
         </button>
       </header>
+
+      {assignedBooks.length > 0 && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '1rem', color: '#10b981' }}>
+                <Target size={28} />
+              </div>
+              <div>
+                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Genel Başarı</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>%{overallStats.successRate}</div>
+              </div>
+            </div>
+            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '1rem', color: '#7c3aed' }}>
+                <CheckCircle2 size={28} />
+              </div>
+              <div>
+                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Toplam Doğru</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>{overallStats.totalD}</div>
+              </div>
+            </div>
+            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '1rem', color: '#3b82f6' }}>
+                <Activity size={28} />
+              </div>
+              <div>
+                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Görev İlerlemesi</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>%{overallStats.progressRate}</div>
+              </div>
+            </div>
+            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '1rem', color: '#d97706' }}>
+                <BookOpen size={28} />
+              </div>
+              <div>
+                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Toplam Kitap</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>{overallStats.totalBooks}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card glass" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
+            <h3 style={{ margin: '0 0 1.5rem 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BarChart2 size={20} color="#6366f1" /> Kitaplara Göre Başarı Dağılımı
+            </h3>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={assignedBooks} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="title" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={10} tickFormatter={(val) => val.length > 20 ? val.substring(0, 20) + '...' : val} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
+                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 800, fontSize: '0.85rem' }} />
+                  <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 700 }} />
+                  <Bar dataKey="totalCorrect" name="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="totalWrong" name="Yanlış" stackId="a" fill="#ef4444" />
+                  <Bar dataKey="totalBlank" name="Boş" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
 
       {assignedBooks.length === 0 ? (
         booksLoading ? (

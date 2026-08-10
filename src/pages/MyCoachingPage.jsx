@@ -14,6 +14,8 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useGoal } from '../context/GoalContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -343,6 +345,7 @@ export default function MyCoachingPage() {
   const { submissions, deleteSubmission } = useEvaluation();
   const { homeworks = [] } = useHomework() || {};
   const { data: curriculumData = [] } = useCurriculum() || {};
+  const { books = [], bookTests = [] } = useTrackedBooks() || {};
 
   const studentId = currentUser?.id;
   const isCoached = useMemo(() => {
@@ -356,6 +359,12 @@ export default function MyCoachingPage() {
 
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState('hedefler');
+  const [expandedExams, setExpandedExams] = useState({});
+  const [chartMetric, setChartMetric] = useState('Toplam Net');
+
+  const toggleExamExpand = (id) => {
+    setExpandedExams(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   /* ── Hedeflerim ── */
   const [goals, setGoals] = useState({
@@ -1023,9 +1032,22 @@ export default function MyCoachingPage() {
   };
 
   const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
-    const normalizeSub = (s, parentHw, defaultType = 'online') => {
-      const title = s.title || s.testTitle || parentHw?.title || 'Sınav / Test';
-      const isTrial = s.isDeneme || s.isExam || parentHw?.isDeneme || /deneme|lgs|yks|tyt|ayt|bursluluk|kurumsal/i.test(title);
+    const normalizeSub = (s, parentObj, defaultType = 'online') => {
+      let title = s.title || s.testTitle || parentObj?.title || parentObj?.name || 'Sınav / Test';
+      
+      let isExamBook = false;
+      let relatedBook = null;
+      if (parentObj && parentObj.bookId) {
+        relatedBook = books.find(b => String(b.id) === String(parentObj.bookId));
+        if (relatedBook && relatedBook.bookType === 'exam') {
+          isExamBook = true;
+          // We don't prepend subject name here anymore because we will group them by the book title
+          title = relatedBook.title; 
+        }
+      }
+
+      // ONLY treat as trial if it's an exam book, or explicitly marked
+      const isTrial = isExamBook || s.isDeneme || parentObj?.isDeneme;
 
       let correct = s.correctCount ?? s.correct ?? s.totalCorrect ?? 0;
       let wrong = s.wrongCount ?? s.wrong ?? s.totalWrong ?? 0;
@@ -1038,10 +1060,8 @@ export default function MyCoachingPage() {
         empty = Math.max(0, s.answers.length - (correct + wrong));
       }
 
-      // Total questions
-      const totalQ = parentHw?.totalQuestions || parentHw?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10;
+      const totalQ = parentObj?.totalQuestions || parentObj?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10;
 
-      // Deduce D/Y/B if score was stored as 0-100 percentage or points without D/Y/B
       if (!correct && !wrong && s.score !== undefined && s.score !== null) {
         const numScore = parseFloat(s.score) || 0;
         if (numScore <= totalQ && numScore > 0) {
@@ -1052,20 +1072,21 @@ export default function MyCoachingPage() {
         empty = Math.max(0, totalQ - (correct + wrong));
       }
 
-      // Net calculation (NEVER use raw score > totalQ as net!)
       let net = 0;
       if (s.net !== undefined && s.net !== null) {
         net = parseFloat(s.net);
       } else if (s.totalNet !== undefined && s.totalNet !== null) {
         net = parseFloat(s.totalNet);
       } else if (correct > 0 || wrong > 0) {
-        net = Math.max(0, correct - (wrong / 4));
+        const penaltyRatio = /lgs|bursluluk/i.test(title) ? 3 : 4;
+        net = correct - (wrong / penaltyRatio);
       } else if (s.score !== undefined && parseFloat(s.score) <= totalQ) {
         net = parseFloat(s.score);
       }
 
       return {
         id: s.id || `sub_${Date.now()}_${Math.random()}`,
+        originalSubmissionId: s.id,
         title,
         date: s.submittedAt?.slice(0, 10) || s.createdAt?.slice(0, 10) || today(),
         totalNet: parseFloat(net.toFixed(2)),
@@ -1074,16 +1095,30 @@ export default function MyCoachingPage() {
         emptyCount: empty,
         sourceType: defaultType,
         approvalStatus: 'approved',
-        isTrial
+        isTrial,
+        isExamBook,
+        parentBookId: relatedBook?.id || null,
+        hwId: s.hwId || parentObj?.id || null,
+        subjectName: parentObj?.name || 'Genel'
       };
     };
 
-    // 1. EvaluationContext Online Sınavlar
+    // 1. EvaluationContext Online Sınavlar ve BookTest Sınavları
     const onlineEval = mySubmissions
-      .filter(s => !s.testId || (homeworks || []).some(h => String(h.id) === String(s.testId)))
+      .filter(s => {
+         if (!s.testId && !s.hwId && !s.bookTestId) return true;
+         const hwMatch = (homeworks || []).some(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId));
+         if (hwMatch) return true;
+         const btMatch = (bookTests || []).some(bt => String(bt.id) === String(s.testId) || String(bt.id) === String(s.bookTestId) || String(bt.id) === String(s.hwId));
+         if (btMatch) return true;
+         return false;
+      })
       .map(s => {
-        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId));
-        return normalizeSub(s, parentHw, 'online');
+        let parentObj = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId));
+        if (!parentObj) {
+          parentObj = (bookTests || []).find(bt => String(bt.id) === String(s.testId) || String(bt.id) === String(s.bookTestId) || String(bt.id) === String(s.hwId));
+        }
+        return normalizeSub(s, parentObj, 'online');
       });
 
     // 2. HomeworkContext Optik / Ödev Sınavları
@@ -1106,10 +1141,10 @@ export default function MyCoachingPage() {
       totalNet: parseFloat(m.totalNet) || 0,
       sourceType: 'manual',
       approvalStatus: m.approvalStatus || (m.createdBy === 'student' ? 'pending' : 'approved'),
-      scores: m.scores,
-      totalCorrect: m.totalCorrect,
-      totalWrong: m.totalWrong,
-      totalEmpty: m.totalEmpty,
+      scores: m.scores || {},
+      totalCorrect: m.totalCorrect || 0,
+      totalWrong: m.totalWrong || 0,
+      totalEmpty: m.totalEmpty || 0,
       isTrial: true
     }));
 
@@ -1122,11 +1157,83 @@ export default function MyCoachingPage() {
       }
     });
 
-    const trials = all.filter(x => x.isTrial).sort((a, b) => new Date(b.date) - new Date(a.date));
-    const homeworksOnly = all.filter(x => !x.isTrial).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const trials = [];
+    const homeworksOnly = [];
+    const groupedExams = {}; // key: hwId || (parentBookId + date)
+
+    all.forEach(item => {
+      if (item.sourceType === 'manual') {
+        trials.push(item);
+      } else if (item.isExamBook) {
+        // We use parentBookId as the primary grouping key because homework IDs can vary
+        const groupKey = `${item.parentBookId}_${item.date}`;
+        if (!groupedExams[groupKey]) {
+          const groupScores = {};
+          if (item.parentBookId) {
+             const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(item.parentBookId));
+             testsForBook.forEach(bt => {
+                groupScores[bt.name] = { d: 0, y: 0, b: bt.questionCount || 0, net: 0 };
+             });
+          }
+
+          groupedExams[groupKey] = {
+            id: `grp_${groupKey}`,
+            title: item.title,
+            date: item.date,
+            totalNet: 0,
+            totalCorrect: 0,
+            totalWrong: 0,
+            totalEmpty: 0,
+            sourceType: item.sourceType,
+            approvalStatus: item.approvalStatus,
+            isTrial: true,
+            scores: groupScores,
+            submissions: []
+          };
+        }
+        
+        const group = groupedExams[groupKey];
+        const subj = item.subjectName || 'Genel';
+        
+        group.scores[subj] = {
+          d: item.correctCount || 0,
+          y: item.wrongCount || 0,
+          b: item.emptyCount || 0,
+          net: item.totalNet || 0
+        };
+
+        if (item.originalSubmissionId) {
+          group.submissions.push(item.originalSubmissionId);
+        }
+      } else {
+        if (item.isTrial) {
+          trials.push(item);
+        } else {
+          homeworksOnly.push(item);
+        }
+      }
+    });
+
+    Object.values(groupedExams).forEach(grp => {
+      let tNet = 0, tCorrect = 0, tWrong = 0, tEmpty = 0;
+      Object.values(grp.scores).forEach(sc => {
+         tNet += sc.net || 0;
+         tCorrect += sc.d || 0;
+         tWrong += sc.y || 0;
+         tEmpty += sc.b || 0;
+      });
+      grp.totalNet = parseFloat(tNet.toFixed(2));
+      grp.totalCorrect = tCorrect;
+      grp.totalWrong = tWrong;
+      grp.totalEmpty = tEmpty;
+      trials.push(grp);
+    });
+
+    trials.sort((a, b) => new Date(b.date) - new Date(a.date));
+    homeworksOnly.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return { generalTrialExams: trials, otherHomeworkSubmissions: homeworksOnly };
-  }, [mySubmissions, homeworks, studentMockExams, studentId]);
+  }, [mySubmissions, homeworks, studentMockExams, studentId, books, bookTests]);
 
   const pendingExams = useMemo(() => {
     return studentMockExams.filter(m => m.approvalStatus === 'pending' || (m.createdBy === 'student' && m.approvalStatus !== 'approved'));
@@ -3470,7 +3577,7 @@ export default function MyCoachingPage() {
         {/* ═══ DENEME SONUÇLARIM ═══ */}
         {activeTab === 'denemeler' && (
           <div>
-            <Tip>Çözdüğün online sınavlar buraya otomatik yansır. Dışarıda girdiğin denemeleri de yukarıdaki buton ile ekleyip koçuna onaya gönderebilirsin!</Tip>
+            <Tip>Çözdüğün online sınavlar buraya otomatik yansır. Dışarıda girdiğin denemeleri de yukarıdaki buton ile ekleyebilirsin!</Tip>
 
             {/* Top Action Bar with Add Button */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem 1.1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,1)', flexWrap: 'wrap', gap: 10 }}>
@@ -3483,37 +3590,8 @@ export default function MyCoachingPage() {
               </button>
             </div>
 
-            {/* ⏳ Koç Onayı Bekleyenler */}
-            {pendingExams.length > 0 && (
-              <div style={{ background: '#fffbeb', border: '2px solid #fde68a', borderRadius: '1.1rem', padding: '1.1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#92400e', display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.75rem' }}>
-                  <span>⏳</span> Koç Onayı Bekleyen Manuel Denemeler ({pendingExams.length})
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {pendingExams.map(m => (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '0.75rem', border: '1px solid #fef08a' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>{m.title}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-                          {m.date} · Net: <strong style={{ color: '#7c3aed' }}>{m.totalNet}</strong>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.6rem', borderRadius: 99, border: '1px solid #fde68a' }}>
-                          ⏳ Koç Onayı Bekliyor
-                        </span>
-                        <button type="button" onClick={() => deleteMockExam(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* 🏆 GENEL DENEME SINAVLARI */}
-            {generalTrialExams.length === 0 && pendingExams.length === 0 && (
+            {generalTrialExams.length === 0 && (
               <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem', fontWeight: 700 }}>
                 <BarChart3 size={40} color="#e2e8f0" style={{ margin: '0 auto 1rem' }} />
                 Henüz çözülmüş veya eklenmiş Genel Deneme Sınavı yok.
@@ -3525,6 +3603,52 @@ export default function MyCoachingPage() {
                 <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>🏆</span> Genel Testler ({generalTrialExams.length})
                 </div>
+
+                {/* Gelişim Grafiği */}
+                {generalTrialExams.length > 0 && (
+                  <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1.25rem', border: '1px solid rgba(255,255,255,1)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <TrendingUp size={18} style={{ color: '#7c3aed' }} /> Net Gelişim Grafiği
+                      </div>
+                      <select 
+                        value={chartMetric} 
+                        onChange={(e) => setChartMetric(e.target.value)}
+                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, color: '#334155', background: 'white', cursor: 'pointer', outline: 'none' }}
+                      >
+                        <option value="Toplam Net">Genel (Toplam Net)</option>
+                        {Array.from(new Set(generalTrialExams.flatMap(e => Object.keys(e.scores || {})))).map(s => (
+                          <option key={s} value={s}>{s} Net</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ width: '100%', height: 220 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={[...generalTrialExams].reverse().map((s, i) => {
+                           let net = 0;
+                           if (chartMetric === 'Toplam Net') {
+                              net = s.totalNet;
+                           } else {
+                              if (s.scores && s.scores[chartMetric]) {
+                                 net = s.scores[chartMetric].net !== undefined ? parseFloat(s.scores[chartMetric].net) : 0;
+                              }
+                           }
+                           return { name: `D${i + 1}`, Net: parseFloat(Number(net).toFixed(2)), fullName: s.title, date: s.date };
+                        })}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} domain={['dataMin - 5', 'dataMax + 5']} />
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '0.8rem', fontWeight: 700 }}
+                            formatter={(value) => [`${value} Net`, 'Sonuç']}
+                            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
+                          />
+                          <Line type="monotone" dataKey="Net" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4, fill: '#7c3aed', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, fill: '#6d28d9' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
 
                 {/* Özet istatistik */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -3545,7 +3669,10 @@ export default function MyCoachingPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {generalTrialExams.map((s, i) => (
                     <div key={s.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0.85rem 1rem', background: i === 0 ? '#f5f3ff' : '#f8fafc', borderRadius: '0.85rem', border: i === 0 ? '1.5px solid #ddd6fe' : '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div 
+                        onClick={() => toggleExamExpand(s.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      >
                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#7c3aed' : '#e2e8f0', color: i === 0 ? 'white' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem', flexShrink: 0 }}>{i + 1}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -3557,34 +3684,64 @@ export default function MyCoachingPage() {
                               <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
                             )}
                             {s.sourceType === 'manual' && (
-                              s.approvalStatus === 'pending' ? (
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme (⏳ Onay Bekliyor)</span>
-                              ) : (
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme (✅ Koç Onaylı)</span>
-                              )
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
                             )}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Tarih: {s.date}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 6, fontSize: '0.75rem', fontWeight: 800, marginRight: 8, background: 'rgba(255,255,255,0.6)', padding: '0.2rem 0.6rem', borderRadius: 20 }}>
+                             <span style={{ color: '#10b981' }}>{s.totalCorrect || 0}D</span>
+                             <span style={{ color: '#ef4444' }}>{s.totalWrong || 0}Y</span>
+                             <span style={{ color: '#94a3b8' }}>{s.totalEmpty || 0}B</span>
+                          </div>
                           <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#7c3aed' }}>{s.totalNet}</span>
                           <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>net</span>
-                          <button type="button" onClick={() => s.sourceType === 'online' ? deleteSubmission(s.id) : deleteMockExam(s.id)} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
+                          <ChevronDown size={18} style={{ color: '#94a3b8', transform: expandedExams[s.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginLeft: 4 }} />
+                          <button type="button" onClick={(e) => {
+                            e.stopPropagation();
+                            if (!window.confirm("Bu denemeyi silmek istediğinize emin misiniz?")) return;
+                            if (s.sourceType === 'manual') {
+                              deleteMockExam(s.id);
+                            } else if (s.submissions && s.submissions.length > 0) {
+                              s.submissions.forEach(subId => deleteSubmission(subId));
+                            } else {
+                              deleteSubmission(s.id);
+                            }
+                          }} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
                             <Trash2 size={15} />
                           </button>
                         </div>
                       </div>
 
-                      {/* Ders bazlı fiziki deneme detayları */}
-                      {s.scores && Object.keys(s.scores).length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, pt: 4, borderTop: '1px border-dashed #e2e8f0' }}>
-                          {Object.entries(s.scores).map(([subName, sc]) => (
-                            <div key={subName} style={{ fontSize: '0.7rem', fontWeight: 700, background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,1)', color: '#334155', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <span style={{ color: '#64748b', fontWeight: 800 }}>{subName}:</span>
-                              <span style={{ color: '#7c3aed', fontWeight: 900 }}>{sc.net} Net</span>
-                              <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>({sc.correct || 0}D {sc.wrong || 0}Y {sc.empty || 0}B)</span>
-                            </div>
-                          ))}
+                      {/* Ders bazlı detay tablosu */}
+                      {expandedExams[s.id] && s.scores && Object.keys(s.scores).length > 0 && (
+                        <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', marginBottom: '0.5rem' }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: '400px' }}>
+                              <thead>
+                                <tr style={{ background: 'rgba(255, 255, 255, 0.5)', color: '#64748b' }}>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0' }}>Ders</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Doğru (D)</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Yanlış (Y)</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Boş (B)</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Net</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(s.scores).map(([subName, sc], idx) => (
+                                  <tr key={subName} style={{ background: idx % 2 === 0 ? 'rgba(255,255,255,0.4)' : 'transparent', borderBottom: '1px solid #e2e8f0' }}>
+                                    <td style={{ padding: '0.5rem', fontWeight: 700, color: '#334155' }}>{subName}</td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>{sc.d || 0}</td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{sc.y || 0}</td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>{sc.b || 0}</td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#7c3aed', fontWeight: 900 }}>{Number(sc.net || 0).toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -3834,7 +3991,7 @@ export default function MyCoachingPage() {
                       <span style={{ fontSize: '1.2rem' }}>📝</span>
                       <div>
                         <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#0f172a' }}>Yeni Deneme Sonucu Ekle</h3>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sonuçlarınız kaydolduktan sonra koç öğretmeninizin onayına sunulur.</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sonuçlarınız anında sisteme kaydedilecektir.</p>
                       </div>
                     </div>
                     <button onClick={() => setShowMockModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
@@ -3958,7 +4115,7 @@ export default function MyCoachingPage() {
                         Vazgeç
                       </button>
                       <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.4rem', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(124,58,237,0.3)' }}>
-                        <Plus size={16} /> Kaydet ve Koç Onayına Gönder
+                        <Plus size={16} /> Kaydet
                       </button>
                     </div>
 
