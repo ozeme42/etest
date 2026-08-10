@@ -3,7 +3,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
-import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users, GraduationCap, ShieldCheck } from 'lucide-react';
+import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users, GraduationCap, ShieldCheck, FileJson } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
 import './AdminDashboard.css';
 
@@ -56,13 +56,15 @@ export default function AdminDashboard() {
 }
 
 function CurriculumManager() {
-  const { data, addGrade, addSubject, addUnit, addTopic, deleteItem } = useCurriculum();
+  const { data, addGrade, addSubject, addUnit, addTopic, deleteItem, bulkAddCurriculum } = useCurriculum();
   
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
 
   const [newItemName, setNewItemName] = useState('');
+  const [jsonModal, setJsonModal] = useState(false);
+  const [jsonText, setJsonText] = useState('');
 
   const handleAdd = (type, parentId) => {
     if (!newItemName.trim()) return;
@@ -85,8 +87,36 @@ function CurriculumManager() {
   const filteredUnits = data.units.filter(u => u.subjectId === selectedSubject);
   const filteredTopics = data.topics.filter(t => t.unitId === selectedUnit);
 
+  const handleJsonImport = async () => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      if (Array.isArray(parsed)) {
+        await bulkAddCurriculum(parsed);
+        setJsonModal(false);
+        setJsonText('');
+        alert('Müfredat başarıyla eklendi!');
+      } else {
+        alert('Geçersiz JSON formatı. En dışta bir dizi (array) olmalıdır.');
+      }
+    } catch (e) {
+      alert('JSON parse hatası: ' + e.message);
+    }
+  };
+
   return (
-    <div className="admin-grid">
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold text-slate-800">Müfredat Hiyerarşisi</h3>
+        <button
+          onClick={() => setJsonModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all shadow-sm border border-slate-200"
+        >
+          <FileJson className="w-4 h-4" />
+          <span className="font-medium text-sm">Toplu JSON Ekle</span>
+        </button>
+      </div>
+      
+      <div className="admin-grid">
       {/* GRADES */}
       <div className="admin-column card glass">
         <h3 className="column-title"><FolderTree size={18} /> Sınıflar</h3>
@@ -195,6 +225,47 @@ function CurriculumManager() {
           <p className="text-muted text-center p-3">Lütfen önce bir ünite seçin.</p>
         )}
       </div>
+
+      {jsonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Toplu JSON Müfredat Ekle</h3>
+                <p className="text-sm text-slate-500 mt-1">Sınıf, Ders, Ünite ve Konu hiyerarşisini JSON formatında yapıştırın.</p>
+              </div>
+              <button onClick={() => setJsonModal(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 flex-1 overflow-y-auto">
+              <textarea
+                className="w-full h-64 p-4 font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
+                placeholder="Buraya JSON yapıştırın..."
+                value={jsonText}
+                onChange={(e) => setJsonText(e.target.value)}
+              />
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => setJsonModal(false)}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleJsonImport}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium shadow-sm"
+              >
+                İçe Aktar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }

@@ -104,14 +104,66 @@ export function CurriculumProvider({ children }) {
   const deleteItem = async (type, id) => {
     setData(prev => {
       const newData = { ...prev };
-      if (newData[type]) {
-        newData[type] = newData[type].filter(item => item.id !== id);
-      }
+      newData[type] = (newData[type] || []).filter(item => item.id !== id);
       return newData;
     });
 
     if (type === 'grades') await dbDeleteGrade(id);
-    else if (type === 'subjects') await dbDeleteSubject(id);
+    if (type === 'subjects') await dbDeleteSubject(id);
+  };
+
+  const bulkAddCurriculum = async (jsonData) => {
+    if (!Array.isArray(jsonData)) return;
+
+    const newGrades = [];
+    const newSubjects = [];
+    const newUnits = [];
+    const newTopics = [];
+
+    jsonData.forEach(g => {
+      if (!g.grade) return;
+      const gId = generateUniqueId('g');
+      newGrades.push({ id: gId, name: g.grade.trim() });
+
+      if (Array.isArray(g.subjects)) {
+        g.subjects.forEach(s => {
+          if (!s.name) return;
+          const sId = generateUniqueId('s');
+          newSubjects.push({ id: sId, gradeId: gId, name: s.name.trim() });
+
+          if (Array.isArray(s.units)) {
+            s.units.forEach(u => {
+              if (!u.name) return;
+              const uId = generateUniqueId('u');
+              newUnits.push({ id: uId, subjectId: sId, name: u.name.trim() });
+
+              if (Array.isArray(u.topics)) {
+                u.topics.forEach(t => {
+                  const tName = typeof t === 'string' ? t : t.name;
+                  if (!tName) return;
+                  const tId = generateUniqueId('t');
+                  newTopics.push({ id: tId, unitId: uId, name: tName.trim() });
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    setData(prev => ({
+      ...prev,
+      grades: [...(prev.grades || []), ...newGrades],
+      subjects: [...(prev.subjects || []), ...newSubjects],
+      units: [...(prev.units || []), ...newUnits],
+      topics: [...(prev.topics || []), ...newTopics]
+    }));
+
+    // Perform DB insertions in background
+    for (const g of newGrades) await dbAddGrade(g);
+    for (const s of newSubjects) await dbAddSubject(s);
+    for (const u of newUnits) await dbAddUnit(u);
+    for (const t of newTopics) await dbAddTopic(t);
   };
 
   return (
@@ -123,7 +175,8 @@ export function CurriculumProvider({ children }) {
       addTopic,
       addTest,
       updateTest,
-      deleteItem
+      deleteItem,
+      bulkAddCurriculum
     }}>
       {children}
     </CurriculumContext.Provider>
