@@ -2,13 +2,14 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { getEmbedUrl } from './PdfViewerPanel';
 import {
   FileText, X, Maximize2, Minimize2, ExternalLink,
-  GripVertical, PanelLeft, PanelRight, Layers
+  GripVertical, PanelLeft, PanelRight, PanelTop, Layers
 } from 'lucide-react';
 
 /**
  * ResizablePdfPanel
  * Modes:
  *   'side'   – docked left panel (fills height, inline with quiz)
+ *   'top'    – docked top panel (fills width, inline with quiz)
  *   'float'  – draggable + resizable floating window
  *   'hidden' – completely hidden, only toggle button in header
  *
@@ -32,8 +33,9 @@ export default function ResizablePdfPanel({
   const [floatPos, setFloatPos] = useState({ x: 24, y: 80 });
   const [floatSize, setFloatSize] = useState({ w: 560, h: 520 });
 
-  // ── Dock width (side mode) ────────────────────────────────────
+  // ── Dock dimensions (side and bottom mode) ────────────────────
   const [dockWidth, setDockWidth] = useState(defaultWidth);
+  const [dockHeight, setDockHeight] = useState('50%');
 
   // ── Drag state (floating move) ────────────────────────────────
   const dragRef = useRef(null);
@@ -148,6 +150,26 @@ export default function ResizablePdfPanel({
     window.addEventListener('mouseup', onUp);
   }, [dockWidth]);
 
+  // ── Top Dock divider resize ─────────────────────────────────
+  const onTopDividerMouseDown = useCallback((e) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const parentH = e.currentTarget.closest('[data-quiz-layout]')?.getBoundingClientRect().height || window.innerHeight;
+    const startDockPx = (parseFloat(dockHeight) / 100) * parentH;
+
+    const onMove = (ev) => {
+      // e.clientY goes DOWN when making top dock taller, so delta is ev.clientY - startY
+      const newPx = Math.max(150, Math.min(parentH - 150, startDockPx + ev.clientY - startY));
+      setDockHeight(`${((newPx / parentH) * 100).toFixed(1)}%`);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [dockHeight]);
+
   if (!pdfUrl) return null;
 
   // ──────────────────────────────────────────────────────────────
@@ -201,6 +223,7 @@ export default function ResizablePdfPanel({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
             <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
+            <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
             <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
             <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
           </div>
@@ -272,6 +295,7 @@ export default function ResizablePdfPanel({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
               <ModeBtn title="Pencere Yap (Sürüklenebilir)" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
               <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
               <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
@@ -300,6 +324,87 @@ export default function ResizablePdfPanel({
             zIndex: 2,
           }}
           title="Genişliği ayarla"
+        >
+          <div style={{
+            position: 'absolute', inset: '0 2px', background: '#334155',
+            borderRadius: 3,
+            transition: 'background 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = '#3b82f6'}
+            onMouseLeave={e => e.currentTarget.style.background = '#334155'}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // TOP (DOCKED) MODE
+  // ──────────────────────────────────────────────────────────────
+  if (mode === 'top') {
+    return (
+      <>
+        <div
+          style={{
+            height: dockHeight,
+            minHeight: 150,
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#0f172a',
+            borderBottom: '1px solid #334155',
+            flexShrink: 0,
+            overflow: 'hidden',
+            width: '100%'
+          }}
+        >
+          {/* Dock header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0.45rem 0.75rem',
+            background: '#1e293b',
+            borderBottom: '1px solid #334155',
+            flexShrink: 0,
+            gap: 6,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <FileText size={13} color="#94a3b8" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {title}
+              </span>
+              <span style={{ fontSize: '0.6rem', background: '#334155', color: '#94a3b8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
+              <ModeBtn title="Pencere Yap (Sürüklenebilir)" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
+              <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+              <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
+            </div>
+          </div>
+
+          {/* PDF iframe */}
+          <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+            <iframe
+              src={embedUrl}
+              title={title}
+              allow="autoplay"
+              style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
+            />
+          </div>
+        </div>
+
+        {/* Drag divider to resize dock height */}
+        <div
+          data-dock-divider
+          onMouseDown={onTopDividerMouseDown}
+          style={{
+            height: 6, flexShrink: 0, cursor: 'row-resize',
+            background: 'transparent',
+            position: 'relative',
+            zIndex: 2,
+            width: '100%'
+          }}
+          title="Yüksekliği ayarla"
         >
           <div style={{
             position: 'absolute', inset: '0 2px', background: '#334155',

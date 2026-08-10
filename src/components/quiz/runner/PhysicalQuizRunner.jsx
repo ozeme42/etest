@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, Maximize2, X as XIcon } from 'lucide-react';
+import { Pencil, CheckCircle2, FileSpreadsheet, Clock, ArrowLeft, FileText, PanelLeft, PanelTop, Maximize2, X as XIcon, EyeOff, Eye } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import ResizablePdfPanel from '../../ResizablePdfPanel';
 
 export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers, bookPdfUrl }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const hasPdf = !!(bookPdfUrl);
-  // 'side' | 'float' | 'hidden'
+  // 'side' | 'top' | 'float' | 'hidden'
   const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'hidden' : 'side') : 'hidden');
+  const [showOptikForm, setShowOptikForm] = useState(true);
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
@@ -313,6 +314,22 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 <PanelLeft size={isMobile ? 13 : 14} />
                 {!isMobile && 'Sol Panel'}
               </button>
+              {/* Top */}
+              <button
+                onClick={() => setPdfMode('top')}
+                title="Üst panele sabitle"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#3b82f6' : '#334155'}`,
+                  background: pdfMode === 'top' ? '#1d4ed8' : '#0f172a',
+                  color: pdfMode === 'top' ? 'white' : '#93c5fd',
+                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                }}
+              >
+                <PanelTop size={isMobile ? 13 : 14} />
+                {!isMobile && 'Üst Panel'}
+              </button>
               {/* Float */}
               <button
                 onClick={() => setPdfMode('float')}
@@ -347,6 +364,27 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               </button>
             </div>
           )}
+
+          <button
+            onClick={() => setShowOptikForm(!showOptikForm)}
+            style={{
+              padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
+              borderRadius: '0.75rem',
+              background: !showOptikForm ? '#eab308' : '#0f172a',
+              border: '1px solid #334155',
+              color: !showOptikForm ? 'white' : '#e2e8f0',
+              fontWeight: 800,
+              fontSize: isMobile ? '0.75rem' : '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}
+            title={showOptikForm ? "Optik Gizle" : "Optik Göster"}
+          >
+            {showOptikForm ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
+            {!isMobile && (showOptikForm ? "Optik Gizle" : "Optik Göster")}
+          </button>
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
@@ -393,17 +431,18 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         </div>
       </header>
 
-      {/* MAIN: PDF (side) + Optik Form — full remaining height */}
+      {/* MAIN: PDF (side/top) + Optik Form — full remaining height */}
       <div
         data-quiz-layout
         style={{
           display: 'flex',
+          flexDirection: pdfMode === 'top' ? 'column' : 'row',
           flex: 1,
           overflow: 'hidden',
           minHeight: 0,
         }}
       >
-        {/* LEFT: PDF side panel (rendered inline by ResizablePdfPanel) */}
+        {/* LEFT/TOP: PDF panel (rendered inline by ResizablePdfPanel) */}
         {hasPdf && (
           <ResizablePdfPanel
             pdfUrl={bookPdfUrl}
@@ -413,10 +452,11 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           />
         )}
 
-        {/* RIGHT: Optik Form — scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {/* RIGHT/BOTTOM: Optik Form — scrollable */}
+        {showOptikForm && (
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <FileSpreadsheet size={26} />
               </div>
@@ -494,11 +534,12 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 }}
               >
                 <CheckCircle2 size={22} />
-                S\u0131nav\u0131 Kaydet ve G\u00f6nder
+                Sınavı Kaydet ve Gönder
               </button>
             </div>
           </div>
         </div>
+        )}
       </div>
 
       <DrawingCanvas isOpen={isDrawingOpen} onClose={() => setIsDrawingOpen(false)} />
