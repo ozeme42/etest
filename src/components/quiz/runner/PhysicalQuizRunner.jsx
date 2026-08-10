@@ -13,53 +13,53 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
+    const initAns = {};
+    // 1. First load from Supabase (draftAnswers)
     if (draftAnswers && draftAnswers.length > 0) {
-      const initAns = {};
       draftAnswers.forEach(a => {
         if (a.userAnswer !== null && a.userAnswer !== undefined) {
           initAns[a.questionNo] = a.userAnswer;
           initAns[String(a.questionNo)] = a.userAnswer;
         }
       });
-      return initAns;
     }
+    // 2. Then override with localStorage if it has newer/unsynced data
     try {
       const saved = localStorage.getItem(`${draftKey}_ans`);
-      if (!saved) return {};
-      const parsed = JSON.parse(saved);
-      const normalized = {};
-      Object.entries(parsed).forEach(([k, v]) => {
-        normalized[k] = v;
-        normalized[Number(k)] = v;
-        normalized[String(k)] = v;
-      });
-      return normalized;
-    } catch { return {}; }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        Object.entries(parsed).forEach(([k, v]) => {
+          initAns[k] = v;
+          initAns[Number(k)] = v;
+          initAns[String(k)] = v;
+        });
+      }
+    } catch {}
+    return initAns;
   });
 
   const [openEndedText, setOpenEndedText] = useState(() => {
+    const initTxt = {};
     if (draftAnswers && draftAnswers.length > 0) {
-      const initTxt = {};
       draftAnswers.forEach(a => {
         if (a.userAnswerText) {
           initTxt[a.questionNo] = a.userAnswerText;
           initTxt[String(a.questionNo)] = a.userAnswerText;
         }
       });
-      return initTxt;
     }
     try {
       const saved = localStorage.getItem(`${draftKey}_txt`);
-      if (!saved) return {};
-      const parsed = JSON.parse(saved);
-      const normalized = {};
-      Object.entries(parsed).forEach(([k, v]) => {
-        normalized[k] = v;
-        normalized[Number(k)] = v;
-        normalized[String(k)] = v;
-      });
-      return normalized;
-    } catch { return {}; }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        Object.entries(parsed).forEach(([k, v]) => {
+          initTxt[k] = v;
+          initTxt[Number(k)] = v;
+          initTxt[String(k)] = v;
+        });
+      }
+    } catch {}
+    return initTxt;
   });
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
@@ -128,7 +128,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         });
       }
       onAutoSave(formattedAnswers);
-    }, 2000);
+    }, 500);
     setSaveTimeout(timeoutId);
   };
 
