@@ -12,6 +12,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
@@ -75,8 +76,9 @@ export default function PhysicalExamManager() {
   const { users } = useUser();
   const { currentUser } = useAuth();
   const { questions, addQuestion, deleteQuestion } = useQuestionBank();
-  const { addHomework } = useHomework();
+  const { addHomework, homeworks } = useHomework();
   const { data: curData } = useCurriculum();
+  const { addTrackedBook, addTrackedBookTest, books, bookTests } = useTrackedBooks();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
@@ -124,10 +126,9 @@ export default function PhysicalExamManager() {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkInputText, setBulkInputText] = useState('');
 
-  // Fetch existing physical exams from Question Bank
   const physicalExamsDatabase = useMemo(() => {
-    return questions.filter(q => q.contentType === 'physicalExam');
-  }, [questions]);
+    return books.filter(b => b.bookType === 'exam');
+  }, [books]);
 
   // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
@@ -271,22 +272,42 @@ export default function PhysicalExamManager() {
     return { subjectStats, totalFilled, totalQuestions };
   }, [answerKey, subjects]);
 
-  // Save Physical Mock Exam to Question Bank
+  // Save Physical Mock Exam to Book Tracking System
   const handleSaveExam = async () => {
     if (!examTitle.trim()) return;
-    const newExamDefinition = {
+    
+    const createdBook = await addTrackedBook({
       title: examTitle.trim(),
-      contentType: 'physicalExam',
-      subject: 'Genel Testler',
-      examType,
-      penaltyRatio,
-      subjects, // We need to store subjects info for the runner
-      totalQuestions: evaluationResults.totalQuestions,
-      answerKey
-    };
-    await addQuestion(newExamDefinition);
+      publisher: examType,
+      subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name })),
+      bookType: 'exam',
+      penaltyRatio
+    });
+
+    const testPromises = [];
+    subjects.forEach((subject, idx) => {
+       const subId = createdBook.subjects[idx].id;
+       const ak = {};
+       const srcAnswers = answerKey[subject.name] || [];
+       srcAnswers.forEach((ans, i) => {
+         if (ans) ak[i + 1] = ans;
+       });
+
+       testPromises.push(
+          addTrackedBookTest(createdBook.id, {
+             subjectId: subId,
+             name: `${subject.name} Testi`,
+             questionCount: subject.count,
+             isOpenEnded: false,
+             answerKey: ak
+          })
+       );
+    });
+    
+    await Promise.all(testPromises);
+
     setShowAddForm(false);
-    alert('🎉 Fiziki deneme Soru Bankası havuzuna eklendi! Ödev olarak atayabilirsiniz.');
+    alert('🎉 Fiziki deneme sisteme "Deneme" olarak eklendi! Ödevler sekmesinden öğrencilerinize atayabilirsiniz.');
   };
 
   const handleQuickAssign = async () => {
@@ -294,21 +315,17 @@ export default function PhysicalExamManager() {
       alert("Lütfen tarih ve atanacak kişi/sınıf seçin.");
       return;
     }
+    const testsForExam = bookTests.filter(t => t.bookId === assignModalExam.id).map(t => t.id);
+
     const hwData = {
       title: assignModalExam.title,
       dueDate: assignDueDate,
-      timePerQuestion: 2,
-      totalQuestions: assignModalExam.totalQuestions,
-      subject: assignModalExam.subject || 'Genel Testler',
+      isBookAssignment: true,
+      bookId: assignModalExam.id,
       targetType: assignTargetMode,
       targetIds: assignTargets,
-      questionIds: [assignModalExam.id],
-      assignedBy: currentUser?.id,
-      type: 'physicalExam',
-      answerKey: assignModalExam.answerKey,
-      subjects: assignModalExam.subjects,
-      penaltyRatio: assignModalExam.penaltyRatio,
-      examType: assignModalExam.examType
+      tests: testsForExam,
+      assignedBy: currentUser?.id
     };
     await addHomework(hwData);
     setAssignModalExam(null);
@@ -455,11 +472,11 @@ export default function PhysicalExamManager() {
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md">
-                          {m.examType || 'LGS'} Sınavı
+                          {m.publisher || 'LGS'} Sınavı
                         </span>
                         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug mt-1 line-clamp-2">{m.title}</h3>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3 h-3" /> {m.totalQuestions} Soru
+                          <Calendar className="w-3 h-3" /> {(m.subjects || []).length} Ders
                         </p>
                       </div>
 
@@ -473,12 +490,11 @@ export default function PhysicalExamManager() {
                       {(m.subjects || []).slice(0, 3).map((s, sIdx) => (
                         <div key={sIdx} className="bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50">
                           <span className="text-[9px] text-slate-400 block font-black truncate">{s.name}</span>
-                          <span className="text-indigo-600 dark:text-indigo-400">{s.count} Soru</span>
                         </div>
                       ))}
                       {(!m.subjects || m.subjects.length === 0) && (
                         <div className="col-span-3 bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-100 dark:border-slate-700/50 text-[10px] text-slate-400">
-                          Standart Ders Dağılımı ({m.totalQuestions} Soru)
+                          Standart Ders Dağılımı
                         </div>
                       )}
                     </div>

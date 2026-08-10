@@ -10,7 +10,7 @@ import { toUUID } from '../services/supabaseService';
 // Debug flag - set to true to see matching details in console while diagnosing progress issues
 const DEBUG_PROGRESS = false;
 
-export default function StudentBooksPage() {
+export default function StudentExamsPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { homeworks = [], addHomework } = useHomework();
@@ -41,7 +41,8 @@ export default function StudentBooksPage() {
       const createdBook = await addTrackedBook({
         title: newBook.title,
         publisher: newBook.publisher,
-        subjects: bookSubjects
+        subjects: bookSubjects,
+        bookType: 'exam'
       });
 
       const testPromises = [];
@@ -109,7 +110,7 @@ export default function StudentBooksPage() {
     const bookMap = {};
 
     bookAssignments.forEach(hw => {
-      const book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
+      const book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType === 'exam');
       if (!book) return;
 
       if (!bookMap[book.id]) {
@@ -241,28 +242,31 @@ export default function StudentBooksPage() {
 
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1200, margin: '0 auto' }}>
-      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 0.5rem 0' }}>
-            <Map size={36} /> Kitaplarım ve İlerlemem
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', margin: 0 }}>
-            Sana atanan kitapları oyun haritası gibi adım adım çöz, başarı oranını artır!
-          </p>
+      <header style={{ marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <BookOpen size={28} /> Denemelerim
+            </h1>
+            <p className="text-muted" style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem' }}>
+              Sana atanan veya kendi eklediğin fiziki deneme sınavları ve ilerleme haritan.
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}
+          >
+            <Plus size={20} /> Kendi Denemeni Ekle
+          </button>
         </div>
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}
-        >
-          <Plus size={20} /> Kendi Kitabını Ekle
-        </button>
       </header>
 
       {assignedBooks.length === 0 ? (
         booksLoading ? (
           <div className="card glass" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
             <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Kitaplar Yükleniyor...</h3>
+            <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Denemeler Yükleniyor...</h3>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (
@@ -270,8 +274,8 @@ export default function StudentBooksPage() {
             <div style={{ background: '#f1f5f9', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#94a3b8' }}>
               <BookOpen size={40} />
             </div>
-            <h2 style={{ color: '#475569', margin: '0 0 0.5rem 0' }}>Henüz Sana Atanmış Bir Kitap Yok</h2>
-            <p style={{ color: '#64748b', margin: 0 }}>Öğretmenlerin sana bir kitap atadığında burada görünecek.</p>
+            <h2 style={{ color: '#475569', margin: '0 0 0.5rem 0' }}>Henüz Sana Atanmış Bir Deneme Yok</h2>
+            <p style={{ color: '#64748b', margin: 0 }}>Öğretmenlerin sana bir deneme atadığında burada görünecek.</p>
           </div>
         )
       ) : (
@@ -365,7 +369,7 @@ export default function StudentBooksPage() {
                   }}
                   onClick={(e) => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
                 >
-                  {isCompleted ? 'Haritayı Görüntüle' : 'Kitaba Devam Et'} <ArrowRight size={18} />
+                  {isCompleted ? 'Haritayı Görüntüle' : 'Denemeye Devam Et'} <ArrowRight size={18} />
                 </button>
               </div>
             );
@@ -378,18 +382,18 @@ export default function StudentBooksPage() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
           <div className="card glass" style={{ width: '100%', maxWidth: '450px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Kendi Kitabını Ekle</h2>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Kendi Denemeni Ekle</h2>
               <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={24} /></button>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Kitap Adı</label>
-                <input type="text" value={newBook.title} onChange={e => setNewBook(prev => ({...prev, title: e.target.value}))} placeholder="Örn: TYT Matematik Soru Bankası" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Deneme Adı</label>
+                <input type="text" value={newBook.title} onChange={e => setNewBook(prev => ({...prev, title: e.target.value}))} placeholder="Örn: 1. Türkiye Geneli Denemesi" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Yayınevi</label>
-                <input type="text" value={newBook.publisher} onChange={e => setNewBook(prev => ({...prev, publisher: e.target.value}))} placeholder="Örn: 3D Yayınları" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Yayın / Deneme Türü</label>
+                <input type="text" value={newBook.publisher} onChange={e => setNewBook(prev => ({...prev, publisher: e.target.value}))} placeholder="Örn: Özdebir TYT" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.4rem' }}>

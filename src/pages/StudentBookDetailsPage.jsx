@@ -223,12 +223,12 @@ export default function StudentBookDetailsPage() {
       return (
         <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
           <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Kitap Haritası Yükleniyor...</h3>
+          <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Harita Yükleniyor...</h3>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
     }
-    return <div className="container" style={{ padding: '2rem' }}>Kitap bulunamadı.</div>;
+    return <div className="container" style={{ padding: '2rem' }}>İçerik bulunamadı.</div>;
   }
 
   let overallCompleted = 0;
@@ -258,10 +258,10 @@ export default function StudentBookDetailsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <button 
           className="btn btn-outline" 
-          onClick={() => navigate('/student/books')}
+          onClick={() => navigate(book?.bookType === 'exam' ? '/student/exams' : '/student/books')}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none' }}
         >
-          <ArrowLeft size={18} /> Kitaplarıma Dön
+          <ArrowLeft size={18} /> {book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön'}
         </button>
 
         {bookData.isSelfAdded && (

@@ -26,6 +26,7 @@ import StudyPlanDetail from './pages/StudyPlanDetail';
 import StatisticsDashboard from './pages/StatisticsDashboard';
 import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
 import StudentResultsPage from './pages/StudentResultsPage';
+import StudentExamsPage from './pages/StudentExamsPage';
 import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
 import StudentCoachingPage from './pages/StudentCoachingPage';
 import MyCoachingPage from './pages/MyCoachingPage';
@@ -102,6 +103,9 @@ function Sidebar() {
               </NavLink>
               <NavLink to="/student/books" className="nav-link" onClick={closeSidebar}>
                 <BookOpen size={20} /> Kitaplarım
+              </NavLink>
+              <NavLink to="/student/exams" className="nav-link" onClick={closeSidebar}>
+                <ClipboardCheck size={20} /> Denemelerim
               </NavLink>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
                 <ListTree size={20} /> Sonuçlarım
@@ -222,6 +226,8 @@ function AppContent() {
           <Route path="/student" element={<StudentDashboard />} />
           <Route path="/student/books" element={<StudentBooksPage />} />
           <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
+          <Route path="/student/exams" element={<StudentExamsPage />} />
+          <Route path="/student/exams/:bookId" element={<StudentBookDetailsPage />} />
           <Route path="/homeworks" element={<HomeworkManager />} />
           <Route path="/evaluations" element={<EvaluationManager />} />
           <Route path="/questions" element={<QuestionBank />} />
