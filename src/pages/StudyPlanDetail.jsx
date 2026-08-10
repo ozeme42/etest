@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function StudyPlanDetail() {
-  const { planId } = useParams();
+  const { id: planId } = useParams();
   const navigate = useNavigate();
   const { studyPlans, updateStudyPlan, addStudyAssignment } = useStudyPlan();
   const { users } = useUser();
