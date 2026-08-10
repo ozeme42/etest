@@ -624,12 +624,20 @@ export default function ExamManager() {
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <button
-                        onClick={() => handleViewExamDetails(m)}
-                        className="text-xs font-bold text-indigo-600  hover:underline flex items-center gap-1"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> Detaylar
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => navigate(`/exam-analysis/${m.id}`)}
+                          className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"
+                        >
+                          <BarChart3 className="w-3.5 h-3.5" /> Analiz
+                        </button>
+                        <button
+                          onClick={() => handleViewExamDetails(m)}
+                          className="text-xs font-bold text-indigo-600  hover:underline flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Detaylar
+                        </button>
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <button
