@@ -581,9 +581,12 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
       {/* ─────────────────────────────────────────────────────────────
           FLOATING ACTION BUTTON TO SHOW OPTIK FORM WHEN HIDDEN
           ───────────────────────────────────────────────────────────── */}
-      {!showOptikForm && (
+      {(!showOptikForm || pdfMode === 'float') && (
         <button
-          onClick={() => setShowOptikForm(true)}
+          onClick={() => {
+            setShowOptikForm(true);
+            if (pdfMode === 'float') setPdfMode(isMobile ? 'top' : 'side');
+          }}
           style={{
             position: 'fixed',
             bottom: '2rem',

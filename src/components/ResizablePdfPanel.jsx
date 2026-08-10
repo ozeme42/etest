@@ -217,42 +217,30 @@ export default function ResizablePdfPanel({
   if (mode === 'float') {
     return (
       <div
-        ref={dragRef}
         style={{
           position: 'fixed',
-          left: floatPos.x,
-          top: floatPos.y,
-          width: floatSize.w,
-          height: floatSize.h,
-          zIndex: 9999,
+          inset: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9998,
           background: '#0f172a',
-          border: '1.5px solid #334155',
-          borderRadius: '0.85rem',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          minWidth: 280,
-          minHeight: 200,
-          userSelect: 'none',
         }}
       >
-        {/* Float header – drag handle */}
+        {/* Fullscreen header */}
         <div
-          onMouseDown={onDragMouseDown}
-          onTouchStart={onDragTouchStart}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0.45rem 0.75rem',
             background: '#1e293b',
             borderBottom: '1px solid #334155',
-            cursor: 'grab',
             flexShrink: 0,
             gap: 6,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-            <GripVertical size={14} color="#475569" style={{ flexShrink: 0 }} />
             <FileText size={13} color="#94a3b8" style={{ flexShrink: 0 }} />
             <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title}
@@ -261,14 +249,13 @@ export default function ResizablePdfPanel({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
-            <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
+            <ModeBtn title="Küçült (Sol Panele)" onClick={() => changeMode('side')} icon={<Minimize2 size={12} />} />
+            <ModeBtn title="Küçült (Üst Panele)" onClick={() => changeMode('top')} icon={<Minimize2 size={12} />} />
             <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
             <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
           </div>
         </div>
 
-        {/* PDF iframe */}
         <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
           <iframe
             src={embedUrl}
@@ -276,23 +263,6 @@ export default function ResizablePdfPanel({
             allow="autoplay"
             style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
           />
-        </div>
-
-        {/* Resize handle – bottom-right corner */}
-        <div
-          onMouseDown={onResizeMouseDown}
-          onTouchStart={onResizeTouchStart}
-          style={{
-            position: 'absolute', right: 0, bottom: 0,
-            width: 20, height: 20,
-            cursor: 'nwse-resize',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          title="Boyutu ayarla"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M1 11L11 1M5 11L11 5M9 11L11 9" stroke="#475569" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
         </div>
       </div>
     );
@@ -335,7 +305,7 @@ export default function ResizablePdfPanel({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
-              <ModeBtn title="Pencere Yap (Sürüklenebilir)" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
+              <ModeBtn title="Tam Ekran Yap" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
               <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
               <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
             </div>
@@ -419,7 +389,7 @@ export default function ResizablePdfPanel({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
-              <ModeBtn title="Pencere Yap (Sürüklenebilir)" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
+              <ModeBtn title="Tam Ekran Yap" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
               <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
               <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
             </div>
