@@ -13,6 +13,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useNavigate } from 'react-router-dom';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
@@ -79,6 +80,7 @@ export default function ExamManager() {
   const { addHomework, homeworks } = useHomework();
   const { data: curData } = useCurriculum();
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
+  const navigate = useNavigate();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
 
