@@ -139,12 +139,6 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, glow, isMobile }) 
   );
 }
 
-/*  // Study Plans logic
-  const { studyAssignments, studyPlans } = useStudyPlan();
-  const myStudyAssignments = useMemo(() => {
-    return (studyAssignments || []).filter(a => a.studentId === selectedStudent?.id);
-  }, [studyAssignments, selectedStudent]);
-
   // Homework LogicCard ─────────────────────────────────────────────── */
 function HomeworkCard({ task, selectedStudent, isMobile }) {
   const navigate = useNavigate();
@@ -344,7 +338,7 @@ export default function StudentDashboard() {
   const { homeworks } = useHomework();
   const { submissions } = useEvaluation();
   const { users } = useUser();
-  const { studyAssignments, updateStudyAssignment } = useStudyPlan();
+  const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
@@ -360,6 +354,10 @@ export default function StudentDashboard() {
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  const myStudyAssignments = useMemo(() => {
+    return (studyAssignments || []).filter(a => String(a.studentId) === String(selectedStudent?.id));
+  }, [studyAssignments, selectedStudent]);
 
   const coachingNote = getCoachingNoteForStudent(selectedStudent?.id);
   const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);

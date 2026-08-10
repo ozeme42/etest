@@ -75,13 +75,23 @@ export function StudyPlanProvider({ children }) {
       ...assignmentData
     };
     setStudyAssignments(prev => [...prev, newAssignment]);
-    await dbAddStudyAssignment(newAssignment);
+
+    const payload = { ...newAssignment };
+    if (payload.completedTopics) {
+      payload.topic = JSON.stringify(payload.completedTopics);
+    }
+    await dbAddStudyAssignment(payload);
     return newAssignment;
   };
 
   const updateStudyAssignment = async (id, data) => {
     setStudyAssignments(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
-    await dbUpdateStudyAssignment(id, data);
+    
+    const dbData = { ...data };
+    if (dbData.completedTopics) {
+      dbData.topic = JSON.stringify(dbData.completedTopics);
+    }
+    await dbUpdateStudyAssignment(id, dbData);
   };
 
   return (

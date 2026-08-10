@@ -1005,18 +1005,18 @@ export async function dbGetStudyPlans() {
       createdAt: p.created_at
     }));
 
-    const assignments = (aRes.data || []).map(a => ({
-      id: String(a.id),
-      studentId: a.student_id,
-      studyPlanId: a.study_plan_id,
-      subject: a.subject,
-      topic: a.topic,
-      dueDate: a.due_date,
-      status: a.status || 'assigned',
-      durationMinutes: a.duration_minutes || 30,
-      completedAt: a.completed_at,
-      createdAt: a.created_at
-    }));
+    const assignments = (aRes.data || []).map(a => {
+      let completedTopics = [];
+      try { completedTopics = JSON.parse(a.topic || '[]'); } catch(e){}
+      return {
+        id: String(a.id),
+        studentId: a.student_id,
+        studyPlanId: a.study_plan_id,
+        completedTopics,
+        status: a.status || 'assigned',
+        createdAt: a.created_at
+      };
+    });
 
     return { plans, assignments };
   } catch (err) {
@@ -1061,11 +1061,9 @@ export async function dbAddStudyAssignment(a) {
       id: String(a.id || `sa_${Date.now()}`),
       student_id: String(a.studentId),
       study_plan_id: a.studyPlanId ? String(a.studyPlanId) : null,
-      subject: a.subject,
-      topic: a.topic,
-      due_date: a.dueDate,
-      status: a.status || 'assigned',
-      duration_minutes: a.durationMinutes || 30
+      subject: a.subject || 'Plan Assignment',
+      topic: a.topic || '[]',
+      status: a.status || 'assigned'
     };
     const { data, error } = await supabase.from('study_assignments').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
@@ -1081,7 +1079,7 @@ export async function dbUpdateStudyAssignment(aId, updates) {
   try {
     const payload = {};
     if (updates.status !== undefined) payload.status = updates.status;
-    if (updates.completedAt !== undefined) payload.completed_at = updates.completedAt;
+    if (updates.topic !== undefined) payload.topic = updates.topic;
 
     const { data, error } = await supabase.from('study_assignments').update(payload).eq('id', String(aId)).select();
     if (error) throw error;
