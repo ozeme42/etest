@@ -26,6 +26,7 @@ export default function ResizablePdfPanel({
   mode = 'side',
   onModeChange,
   defaultWidth = '48%',
+  isFullScreen = false
 }) {
   const embedUrl = getEmbedUrl(pdfUrl);
 
@@ -150,6 +151,25 @@ export default function ResizablePdfPanel({
     window.addEventListener('mouseup', onUp);
   }, [dockWidth]);
 
+  const onDockDividerTouchStart = useCallback((e) => {
+    const touch = e.touches[0];
+    const startX = touch.clientX;
+    const parentW = e.currentTarget.closest('[data-quiz-layout]')?.getBoundingClientRect().width || window.innerWidth;
+    const startDockPx = (parseFloat(dockWidth) / 100) * parentW;
+
+    const onMove = (ev) => {
+      const t = ev.touches[0];
+      const newPx = Math.max(200, Math.min(parentW - 300, startDockPx + t.clientX - startX));
+      setDockWidth(`${((newPx / parentW) * 100).toFixed(1)}%`);
+    };
+    const onUp = () => {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+  }, [dockWidth]);
+
   // ── Top Dock divider resize ─────────────────────────────────
   const onTopDividerMouseDown = useCallback((e) => {
     e.preventDefault();
@@ -168,6 +188,25 @@ export default function ResizablePdfPanel({
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+  }, [dockHeight]);
+
+  const onTopDividerTouchStart = useCallback((e) => {
+    const touch = e.touches[0];
+    const startY = touch.clientY;
+    const parentH = e.currentTarget.closest('[data-quiz-layout]')?.getBoundingClientRect().height || window.innerHeight;
+    const startDockPx = (parseFloat(dockHeight) / 100) * parentH;
+
+    const onMove = (ev) => {
+      const t = ev.touches[0];
+      const newPx = Math.max(150, Math.min(parentH - 150, startDockPx + t.clientY - startY));
+      setDockHeight(`${((newPx / parentH) * 100).toFixed(1)}%`);
+    };
+    const onUp = () => {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   }, [dockHeight]);
 
   if (!pdfUrl) return null;
@@ -267,8 +306,8 @@ export default function ResizablePdfPanel({
       <>
         <div
           style={{
-            width: dockWidth,
-            minWidth: 200,
+            width: isFullScreen ? '100%' : dockWidth,
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             background: '#0f172a',
@@ -314,26 +353,30 @@ export default function ResizablePdfPanel({
         </div>
 
         {/* Drag divider to resize dock width */}
-        <div
-          data-dock-divider
-          onMouseDown={onDockDividerMouseDown}
-          style={{
-            width: 6, flexShrink: 0, cursor: 'col-resize',
-            background: 'transparent',
-            position: 'relative',
-            zIndex: 2,
-          }}
-          title="Genişliği ayarla"
-        >
-          <div style={{
-            position: 'absolute', inset: '0 2px', background: '#334155',
-            borderRadius: 3,
-            transition: 'background 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = '#3b82f6'}
-            onMouseLeave={e => e.currentTarget.style.background = '#334155'}
-          />
-        </div>
+        {!isFullScreen && (
+          <div
+            data-dock-divider
+            onMouseDown={onDockDividerMouseDown}
+            onTouchStart={onDockDividerTouchStart}
+            style={{
+              width: 6, flexShrink: 0, cursor: 'col-resize',
+              background: 'transparent',
+              position: 'relative',
+              zIndex: 2,
+              height: '100%'
+            }}
+            title="Genişliği ayarla"
+          >
+            <div style={{
+              position: 'absolute', inset: '2px 0', background: '#334155',
+              borderRadius: 3,
+              transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = '#3b82f6'}
+              onMouseLeave={e => e.currentTarget.style.background = '#334155'}
+            />
+          </div>
+        )}
       </>
     );
   }
@@ -346,7 +389,7 @@ export default function ResizablePdfPanel({
       <>
         <div
           style={{
-            height: dockHeight,
+            height: isFullScreen ? '100%' : dockHeight,
             minHeight: 150,
             display: 'flex',
             flexDirection: 'column',
@@ -393,28 +436,36 @@ export default function ResizablePdfPanel({
           </div>
         </div>
 
-        {/* Drag divider to resize dock height */}
-        <div
-          data-dock-divider
-          onMouseDown={onTopDividerMouseDown}
-          style={{
-            height: 6, flexShrink: 0, cursor: 'row-resize',
-            background: 'transparent',
-            position: 'relative',
-            zIndex: 2,
-            width: '100%'
-          }}
-          title="Yüksekliği ayarla"
-        >
-          <div style={{
-            position: 'absolute', inset: '0 2px', background: '#334155',
-            borderRadius: 3,
-            transition: 'background 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = '#3b82f6'}
-            onMouseLeave={e => e.currentTarget.style.background = '#334155'}
-          />
-        </div>
+        {!isFullScreen && (
+          <div
+            data-dock-divider
+            onMouseDown={onTopDividerMouseDown}
+            onTouchStart={onTopDividerTouchStart}
+            style={{
+              height: 16, flexShrink: 0, cursor: 'row-resize',
+              background: '#f8fafc',
+              position: 'relative',
+              zIndex: 2,
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}
+            title="Yüksekliği ayarla"
+          >
+            <div style={{
+              width: 40,
+              height: 4,
+              background: '#cbd5e1',
+              borderRadius: 2,
+              transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = '#94a3b8'}
+              onMouseLeave={e => e.currentTarget.style.background = '#cbd5e1'}
+            />
+          </div>
+        )}
       </>
     );
   }

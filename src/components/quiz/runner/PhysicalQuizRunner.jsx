@@ -451,6 +451,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             title={test.title || test.name || 'Kitap PDF'}
             mode={pdfMode}
             onModeChange={setPdfMode}
+            isFullScreen={!showOptikForm}
           />
         )}
 
@@ -577,6 +578,35 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           </div>
         </div>
       )}
+      {/* ─────────────────────────────────────────────────────────────
+          FLOATING ACTION BUTTON TO SHOW OPTIK FORM WHEN HIDDEN
+          ───────────────────────────────────────────────────────────── */}
+      {!showOptikForm && (
+        <button
+          onClick={() => setShowOptikForm(true)}
+          style={{
+            position: 'fixed',
+            bottom: '2rem',
+            right: '1.5rem',
+            width: '3.5rem',
+            height: '3.5rem',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 30px rgba(16,185,129,0.5)',
+            border: 'none',
+            zIndex: 9999,
+            cursor: 'pointer'
+          }}
+          title="Optik Formu Aç"
+        >
+          <FileSpreadsheet size={24} />
+        </button>
+      )}
+
     </div>
   );
 }
