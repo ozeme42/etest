@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
+import { useCurriculum } from '../context/CurriculumContext';
+import { isHomeworkForStudent } from '../utils/testResolver';
 import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
@@ -25,6 +27,8 @@ export default function StudentBookDetailsPage() {
   // Find the book
   const book = useMemo(() => books.find(b => String(b.id) === String(bookId)), [books, bookId]);
 
+  const { data: curData } = useCurriculum();
+
   // Find all test IDs assigned to this student for this book
   const bookData = useMemo(() => {
     const ids = new Set();
@@ -32,12 +36,7 @@ export default function StudentBookDetailsPage() {
 
     const bookAssignments = homeworks.filter(hw => {
       if (!hw.isBookAssignment || String(hw.bookId) !== String(bookId)) return false;
-      if (hw.targetType === 'student' && hw.targetIds?.includes(studentId)) return true;
-      if ((hw.targetType === 'class' || hw.targetType === 'grade') && 
-          (hw.targetIds?.includes(grade) || hw.targetIds?.includes(gradeId) || hw.targetIds?.includes(className))) {
-        return true;
-      }
-      return false;
+      return isHomeworkForStudent(hw, currentUser, curData?.grades);
     });
 
     let isSelfAdded = false;

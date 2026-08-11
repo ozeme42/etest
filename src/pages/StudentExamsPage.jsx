@@ -5,6 +5,8 @@ import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useCurriculum } from '../context/CurriculumContext';
+import { isHomeworkForStudent } from '../utils/testResolver';
 import {
   BookOpen, ArrowRight, Star, Plus, X, ClipboardList, TrendingUp,
   Pencil, Trash2, LayoutGrid, List, Trophy, Target, Activity,
@@ -214,14 +216,13 @@ export default function StudentExamsPage() {
     finally { setIsSaving(false); }
   };
 
+  const { data: curData } = useCurriculum();
+
   /* ── Data derivations (same logic as before, untouched) ─── */
   const bookAssignments = useMemo(() => homeworks.filter(hw => {
     if (!hw.isBookAssignment) return false;
-    if (hw.targetType === 'student' && hw.targetIds?.includes(studentId)) return true;
-    if ((hw.targetType === 'class' || hw.targetType === 'grade') &&
-      (hw.targetIds?.includes(grade) || hw.targetIds?.includes(gradeId) || hw.targetIds?.includes(className))) return true;
-    return false;
-  }), [homeworks, studentId, grade, gradeId, className]);
+    return isHomeworkForStudent(hw, currentUser, curData?.grades);
+  }), [homeworks, currentUser, curData?.grades]);
 
   const studentSubmissions = useMemo(() => submissions.filter(s =>
     String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft'

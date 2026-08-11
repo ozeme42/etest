@@ -20,6 +20,7 @@ import { useSchedule } from '../context/ScheduleContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
+import { isHomeworkForStudent } from '../utils/testResolver';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
@@ -411,31 +412,11 @@ export default function StudentDashboard() {
   const tests = useMemo(() => {
     if (!selectedStudent) return [];
 
-    const studentIdentifiers = [
-      selectedStudent.id,
-      selectedStudent.gradeId,
-      selectedStudent.grade,
-      selectedStudent.className,
-      selectedStudent.gradeName
-    ].filter(Boolean);
+    const gradesList = data?.grades || [];
 
     return homeworks.filter(hw => {
       if (hw.isBookAssignment) return false;
-      
-      if (hw.targetType === 'student') {
-        return hw.targetIds?.includes(selectedStudent.id);
-      }
-
-      if (hw.targetType === 'grade' || hw.targetType === 'class') {
-        if (!hw.targetIds || !Array.isArray(hw.targetIds) || hw.targetIds.length === 0) return true;
-        return hw.targetIds.some(tid => studentIdentifiers.includes(tid));
-      }
-
-      if (Array.isArray(hw.targetIds) && hw.targetIds.length > 0) {
-        return hw.targetIds.some(tid => studentIdentifiers.includes(tid));
-      }
-
-      return true;
+      return isHomeworkForStudent(hw, selectedStudent, gradesList);
     }).map(hw => {
       const sub = (hw.submissions || []).find(s => s.studentId === selectedStudent.id) ||
         submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && s.studentId === selectedStudent.id);

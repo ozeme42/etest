@@ -193,3 +193,61 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
   return finalQuestions;
 }
 
+/**
+ * Checks if a homework assignment applies to the given student.
+ * Handles individual student IDs, grade IDs, class IDs, and grade names robustly.
+ */
+export function isHomeworkForStudent(hw, student, grades = []) {
+  if (!hw || !student) return false;
+  const studentId = String(student.id || student.studentId || '');
+  const targetIds = Array.isArray(hw.targetIds) ? hw.targetIds.map(String) : [];
+
+  // 1. Direct student target
+  if (hw.targetType === 'student') {
+    return targetIds.includes(studentId);
+  }
+
+  // 2. Class / Grade target
+  if (hw.targetType === 'grade' || hw.targetType === 'class' || !hw.targetType) {
+    if (targetIds.length === 0) return true; // General assignment to everyone
+
+    // Gather all possible identifiers for the student
+    const studentIdentifiers = new Set([
+      studentId,
+      String(student.gradeId || ''),
+      String(student.classId || ''),
+      String(student.grade || ''),
+      String(student.className || '')
+    ]);
+
+    // Also add grade names/IDs from grades list matching student's grade
+    if (grades && Array.isArray(grades)) {
+      grades.forEach(g => {
+        const gId = String(g.id);
+        const gName = String(g.name || '');
+        if (studentIdentifiers.has(gId) || (gName && studentIdentifiers.has(gName))) {
+          studentIdentifiers.add(gId);
+          if (gName) studentIdentifiers.add(gName);
+        }
+      });
+    }
+
+    // Remove empty string
+    studentIdentifiers.delete('');
+
+    // Check if any targetId matches student's identifiers
+    return targetIds.some(tid => {
+      if (studentIdentifiers.has(tid)) return true;
+      const matchedGrade = grades.find(g => String(g.id) === tid || String(g.name) === tid);
+      if (matchedGrade) {
+        if (studentIdentifiers.has(String(matchedGrade.id)) || (matchedGrade.name && studentIdentifiers.has(String(matchedGrade.name)))) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  return targetIds.includes(studentId);
+}
+
