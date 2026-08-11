@@ -59,6 +59,34 @@ export const DrawingOverlay = forwardRef(({ className, style, disabled = false, 
         return () => observer.disconnect();
     }, [initCanvas]);
 
+    // Prevent mobile Safari/Chrome scrolling while drawing is active (!disabled)
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || disabled) return;
+
+        const preventScroll = (e) => {
+            if (!disabled && e.cancelable) {
+                e.preventDefault();
+            }
+        };
+
+        canvas.addEventListener('touchstart', preventScroll, { passive: false });
+        canvas.addEventListener('touchmove', preventScroll, { passive: false });
+
+        // Window capture phase to intercept before parent scroll containers receive the touchmove
+        window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+        window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
+        document.body.classList.add('global-draw-lock');
+
+        return () => {
+            canvas.removeEventListener('touchstart', preventScroll);
+            canvas.removeEventListener('touchmove', preventScroll);
+            window.removeEventListener('touchmove', preventScroll, { capture: true });
+            window.removeEventListener('wheel', preventScroll, { capture: true });
+            document.body.classList.remove('global-draw-lock');
+        };
+    }, [disabled]);
+
     useEffect(() => {
         if (contextRef.current) {
             if (tool === 'eraser') {
