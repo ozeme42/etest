@@ -34,6 +34,8 @@ export default function StudyPlanDetail() {
   const [bulkTopicModal, setBulkTopicModal] = useState({ isOpen: false, unitId: null });
   const [assignModal, setAssignModal] = useState(false);
   const [jsonModal, setJsonModal] = useState(false);
+  const [bulkMode, setBulkMode] = useState('text'); // 'text' or 'json'
+  const [bulkText, setBulkText] = useState('');
 
   // Form states
   const [unitForm, setUnitForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
@@ -184,29 +186,86 @@ export default function StudyPlanDetail() {
     );
   };
 
-  // JSON Actions
-  const handleJsonImport = () => {
-    if (!jsonText.trim()) return;
-    try {
-      const parsed = JSON.parse(jsonText);
-      if (Array.isArray(parsed)) {
-        const newSubjects = [...subjects, ...parsed.map(unit => ({
-          ...unit,
-          id: unit.id || `sub_${Math.random().toString(36).substring(2, 9)}`,
-          topics: (unit.topics || []).map(t => ({
-            ...t,
-            id: t.id || `top_${Math.random().toString(36).substring(2, 9)}`
-          }))
-        }))];
-        updateStudyPlan(plan.id, { subjects: newSubjects });
-        setJsonModal(false);
-        setJsonText('');
-      } else {
-        alert('Geçersiz JSON formatı. Bir dizi (array) olmalıdır.');
+  // Bulk Import Actions
+  const parseBulkText = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const units = [];
+    let currentUnit = null;
+
+    lines.forEach(line => {
+      if (line.includes('>')) {
+        const parts = line.split('>').map(p => p.trim());
+        const uName = parts[0];
+        const tName = parts.slice(1).join('>').trim();
+        let uObj = units.find(u => u.name.toLowerCase() === uName.toLowerCase());
+        if (!uObj) {
+          uObj = { id: `sub_${Math.random().toString(36).substring(2, 9)}`, name: uName, topics: [] };
+          units.push(uObj);
+        }
+        if (tName) {
+          uObj.topics.push({ id: `top_${Math.random().toString(36).substring(2, 9)}`, name: tName });
+        }
+        return;
       }
-    } catch (e) {
-      alert('JSON parse hatası: ' + e.message);
+
+      const isBullet = line.startsWith('-') || line.startsWith('*') || line.startsWith('•');
+      const cleanLine = line.replace(/^[-*•\d+\.\s]+/, '').trim();
+
+      if (line.endsWith(':') || line.toLowerCase().startsWith('ünite') || (!isBullet && !currentUnit)) {
+        const unitName = cleanLine.replace(/:$/, '').trim() || line.trim();
+        currentUnit = { id: `sub_${Math.random().toString(36).substring(2, 9)}`, name: unitName, topics: [] };
+        units.push(currentUnit);
+      } else if (cleanLine) {
+        if (!currentUnit) {
+          currentUnit = { id: `sub_${Math.random().toString(36).substring(2, 9)}`, name: 'Genel Ünite', topics: [] };
+          units.push(currentUnit);
+        }
+        currentUnit.topics.push({ id: `top_${Math.random().toString(36).substring(2, 9)}`, name: cleanLine });
+      }
+    });
+
+    return units;
+  };
+
+  const handleBulkImport = () => {
+    let importedSubjects = [];
+    if (bulkMode === 'text') {
+      if (!bulkText.trim()) return;
+      importedSubjects = parseBulkText(bulkText);
+    } else {
+      if (!jsonText.trim()) return;
+      try {
+        const parsed = JSON.parse(jsonText);
+        if (Array.isArray(parsed)) {
+          importedSubjects = parsed.map(unit => ({
+            ...unit,
+            id: unit.id || `sub_${Math.random().toString(36).substring(2, 9)}`,
+            topics: (unit.topics || []).map(t => typeof t === 'string' ? { id: `top_${Math.random().toString(36).substring(2, 9)}`, name: t } : {
+              ...t,
+              id: t.id || `top_${Math.random().toString(36).substring(2, 9)}`
+            })
+          }));
+        } else {
+          alert('Geçersiz JSON formatı. Bir liste (dizi) olmalıdır.');
+          return;
+        }
+      } catch (e) {
+        alert('JSON parse hatası: ' + e.message);
+        return;
+      }
     }
+
+    if (importedSubjects.length === 0) {
+      alert('Hiç ünite veya konu korunamadı. Girişi kontrol edin.');
+      return;
+    }
+
+    const newSubjects = [...subjects, ...importedSubjects];
+    updateStudyPlan(plan.id, { subjects: newSubjects });
+    setJsonModal(false);
+    setBulkText('');
+    setJsonText('');
+    alert(`${importedSubjects.length} ünite ve konuları başarıyla eklendi!`);
   };
 
   const students = users?.filter(u => u.role === 'student') || [];
@@ -237,8 +296,8 @@ export default function StudyPlanDetail() {
               onClick={() => setJsonModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all shadow-sm border border-slate-200"
             >
-              <FileJson className="w-4 h-4" />
-              <span className="font-medium text-sm">Toplu JSON Ekle</span>
+              <ListPlus className="w-4 h-4 text-blue-600" />
+              <span className="font-semibold text-sm">Toplu Ünite & Konu Ekle</span>
             </button>
             <button
               onClick={() => setAssignModal(true)}
@@ -637,41 +696,106 @@ export default function StudyPlanDetail() {
         </div>
       )}
 
-      {/* JSON Modal */}
+      {/* Toplu Ünite & Konu Ekle Modal */}
       {jsonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-100">
+            {/* Header */}
+            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
-                <h3 className="text-xl font-bold text-slate-800">Toplu JSON Ekle</h3>
-                <p className="text-sm text-slate-500 mt-1">Ünite ve konu dizisini JSON formatında yapıştırın</p>
+                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <ListPlus className="w-6 h-6 text-blue-600" /> Toplu Ünite & Konu Ekle
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Düz metin yapıştırarak veya JSON ile tek seferde tüm müfredatı girin</p>
               </div>
-              <button onClick={() => setJsonModal(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-full">
+              <button onClick={() => setJsonModal(false)} className="p-2 text-slate-400 hover:text-slate-600 bg-white rounded-full border border-slate-200 shadow-sm">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
-            <div className="p-6 flex-1 overflow-y-auto">
-              <textarea
-                className="w-full h-64 p-4 font-mono text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
-                placeholder={'[\n  {\n    "name": "Yeni Ünite",\n    "dueDate": "2026-10-10",\n    "topics": [\n      { "name": "Konu 1" }\n    ]\n  }\n]'}
-                value={jsonText}
-                onChange={(e) => setJsonText(e.target.value)}
-              />
+
+            {/* Mode Switcher */}
+            <div className="px-6 pt-4 flex items-center justify-between gap-4">
+              <div className="flex bg-slate-100 p-1 rounded-2xl w-full max-w-md border border-slate-200/80">
+                <button
+                  onClick={() => setBulkMode('text')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${bulkMode === 'text' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  📝 Düz Metin İle Ekle (Çok Pratik)
+                </button>
+                <button
+                  onClick={() => setBulkMode('json')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${bulkMode === 'json' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {'{ }'} JSON İle Ekle (Gelişmiş)
+                </button>
+              </div>
+
+              {bulkMode === 'text' ? (
+                <button
+                  type="button"
+                  onClick={() => setBulkText(`1. Ünite: Doğal Sayılar\n- Doğal Sayılarla İşlemler\n- Üslü Nicelikler\n- İşlem Önceliği\n\n2. Ünite: Çarpanlar ve Katlar\n- Asal Sayılar\n- Ortak Bölgenler ve Katlar`)}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-xl whitespace-nowrap border border-blue-200/60"
+                >
+                  ⚡ Örnek Şablon Yükle
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setJsonText(`[\n  {\n    "name": "1. Ünite: Doğal Sayılar",\n    "topics": [\n      { "name": "Doğal Sayılarla İşlemler" },\n      { "name": "Üslü Nicelikler" }\n    ]\n  }\n]`)}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-xl whitespace-nowrap border border-blue-200/60"
+                >
+                  ⚡ Örnek JSON Yükle
+                </button>
+              )}
             </div>
 
+            {/* Modal Body */}
+            <div className="p-6 flex-1 overflow-y-auto space-y-3">
+              {bulkMode === 'text' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Ünite ve Konu Listesini Aşağıya Yapıştırın:
+                  </label>
+                  <textarea
+                    className="w-full h-64 p-4 font-mono text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
+                    placeholder={`1. Ünite: Üslü İfadeler\n- Üslü Nicelikler\n- Üslü Sayılarda Çarpma\n\n2. Ünite: Kareköklü İfadeler\n- Tam Kare Sayılar\n- Karekök Alma\n\n(veya Ünite > Konu formatında yapıştırabilirsiniz)`}
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                  />
+                  <div className="text-xs text-slate-500 mt-2 space-y-1">
+                    <p className="font-semibold text-slate-700">💡 İpucu Formatlar:</p>
+                    <p>• <span className="font-mono">Ünite İsmi:</span> yazdıktan sonra tire (<span className="font-mono">-</span>) veya yıldız (<span className="font-mono">*</span>) ile altındaki konuları yazabilirsiniz.</p>
+                    <p>• Veya <span className="font-mono">Ünite Adı &gt; Konu Adı</span> şeklinde her satıra bir konu yazabilirsiniz.</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    JSON Kodunu Yapıştırın:
+                  </label>
+                  <textarea
+                    className="w-full h-64 p-4 font-mono text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-none"
+                    placeholder={'[\n  {\n    "name": "1. Ünite: Üslü Sayılar",\n    "dueDate": "2026-10-15",\n    "topics": [\n      { "name": "Konu 1", "dueDate": "2026-10-12" }\n    ]\n  }\n]'}
+                    value={jsonText}
+                    onChange={(e) => setJsonText(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
               <button
                 onClick={() => setJsonModal(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium"
+                className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-bold text-sm"
               >
                 İptal
               </button>
               <button
-                onClick={handleJsonImport}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium shadow-sm"
+                onClick={handleBulkImport}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-colors font-bold text-sm shadow-md shadow-blue-500/20"
               >
-                İçe Aktar
+                İçeriği Aktar & Ekle
               </button>
             </div>
           </div>
