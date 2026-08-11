@@ -26,6 +26,7 @@ export default function BookQuizRunner() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [showPdf, setShowPdf] = useState(true);
+  const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const isSubmittingRef = useRef(false);
 
@@ -261,52 +262,75 @@ export default function BookQuizRunner() {
       <style>{`
         .book-quiz-main-container {
           display: flex !important;
-          flex-direction: column !important;
+          flex-direction: row !important;
           height: calc(100vh - 72px) !important;
           overflow: hidden !important;
           width: 100vw !important;
           max-width: 100vw !important;
+          position: relative !important;
         }
         .book-quiz-pdf-area {
-          width: 100% !important;
-          height: 52% !important;
+          flex: 1 !important;
+          height: 100% !important;
           overflow: hidden !important;
-          border-bottom: 3px solid #cbd5e1 !important;
-          border-right: none !important;
+          border-right: 1px solid #e2e8f0 !important;
           display: flex !important;
           flex-direction: column !important;
         }
-        .book-quiz-optic-area {
-          width: 100% !important;
-          height: 48% !important;
+        .book-quiz-optic-area-desktop {
+          width: 380px !important;
+          height: 100% !important;
           overflow-y: auto !important;
           background: #f8fafc !important;
-          padding: 0.85rem !important;
+          padding: 1.25rem !important;
           box-sizing: border-box !important;
+          border-left: 1px solid #e2e8f0 !important;
         }
-        @media (min-width: 769px) {
+        .mobile-optic-fab-btn {
+          display: none !important;
+        }
+        @keyframes bqSlideUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @media (max-width: 768px) {
           .book-quiz-main-container {
-            flex-direction: row !important;
+            flex-direction: column !important;
           }
           .book-quiz-pdf-area {
-            width: 60% !important;
+            width: 100% !important;
             height: 100% !important;
-            border-right: 1px solid #e2e8f0 !important;
-            border-bottom: none !important;
+            border-right: none !important;
           }
-          .book-quiz-optic-area {
-            width: 40% !important;
-            height: 100% !important;
-            padding: 1.25rem !important;
+          .book-quiz-optic-area-desktop {
+            display: none !important;
+          }
+          .mobile-optic-fab-btn {
+            display: flex !important;
+            position: fixed !important;
+            bottom: 1.5rem !important;
+            right: 1.25rem !important;
+            z-index: 1000 !important;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 99px !important;
+            padding: 0.75rem 1.25rem !important;
+            font-weight: 900 !important;
+            font-size: 0.85rem !important;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45) !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            cursor: pointer !important;
           }
         }
       `}</style>
 
-      {/* ── MAIN CONTENT: PDF (top) + OPTIK FORM (bottom) ── */}
+      {/* ── MAIN CONTENT ── */}
       <div className="book-quiz-main-container">
 
-        {/* TOP: PDF Viewer */}
-        {hasPdf && showPdf && (
+        {/* PDF Viewer (100% Full Height on Mobile) */}
+        {hasPdf && (
           <div className="book-quiz-pdf-area">
             <PdfViewerPanel
               pdfUrl={book.pdfUrl}
@@ -317,8 +341,8 @@ export default function BookQuizRunner() {
           </div>
         )}
 
-        {/* BOTTOM: Optik Form */}
-        <div className="book-quiz-optic-area">
+        {/* Desktop Optik Form Column */}
+        <div className="book-quiz-optic-area-desktop">
           <div style={{
             fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase',
             letterSpacing: '0.06em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem'
@@ -327,13 +351,11 @@ export default function BookQuizRunner() {
             {isOpenEnded ? 'Cevap Kağıdı' : 'Optik Form'} — {qCount} Soru
           </div>
 
-          {/* OPTIK FORM GRID */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: isOpenEnded ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
             gap: '0.6rem',
             width: '100%',
-            maxWidth: '100%',
             boxSizing: 'border-box'
           }}>
             {Array.from({ length: qCount }).map((_, i) => {
@@ -348,7 +370,6 @@ export default function BookQuizRunner() {
                   boxShadow: selected ? '0 2px 8px rgba(99,102,241,0.12)' : 'none',
                   transition: 'all 0.15s'
                 }}>
-                  {/* Question number bubble */}
                   <div style={{
                     width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                     background: selected ? '#6366f1' : '#f1f5f9',
@@ -391,15 +412,13 @@ export default function BookQuizRunner() {
                 </div>
               );
             })}
-          </div>
-
-          {/* Bottom submit */}
-          <div style={{ marginTop: '2rem', paddingBottom: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Desktop submit button */}
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={handleSubmit}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.85rem 2.5rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '1rem',
+                padding: '0.75rem 2rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.95rem',
                 background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none',
                 cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)', transition: 'all 0.15s'
               }}
@@ -408,6 +427,138 @@ export default function BookQuizRunner() {
             </button>
           </div>
         </div>
+
+        {/* Floating Action Button (Mobile Only) */}
+        <button
+          onClick={() => setShowMobileOpticModal(true)}
+          className="mobile-optic-fab-btn"
+        >
+          <FileText size={18} />
+          <span>📝 Optik Form ({answeredCount}/{qCount})</span>
+        </button>
+
+        {/* Mobile Optic Modal Popup (Bottom Sheet) */}
+        {showMobileOpticModal && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
+          }} onClick={() => setShowMobileOpticModal(false)}>
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '1.5rem 1.5rem 0 0',
+              maxHeight: '85vh',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 -10px 35px rgba(0,0,0,0.3)',
+              animation: 'bqSlideUp 0.25s ease-out'
+            }} onClick={e => e.stopPropagation()}>
+
+              {/* Modal Header */}
+              <div style={{
+                padding: '1rem 1.25rem',
+                background: 'white',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+                    📝 Optik Cevap Anahtarı
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                    {answeredCount}/{qCount} soru işaretlendi
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowMobileOpticModal(false)}
+                  style={{
+                    background: '#f1f5f9', border: 'none', borderRadius: '50%',
+                    width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: '#64748b'
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body: Optical Form */}
+              <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isOpenEnded ? '1fr' : '1fr',
+                  gap: '0.65rem'
+                }}>
+                  {Array.from({ length: qCount }).map((_, i) => {
+                    const qNum = String(i + 1);
+                    const selected = studentAnswers[qNum] || '';
+                    return (
+                      <div key={qNum} style={{
+                        background: 'white', borderRadius: '0.75rem',
+                        border: selected ? '2px solid #6366f1' : '1px solid #e2e8f0',
+                        padding: '0.75rem 1rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+                        boxShadow: selected ? '0 4px 12px rgba(99,102,241,0.12)' : 'none'
+                      }}>
+                        <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#475569', minWidth: 55 }}>
+                          Soru {qNum}
+                        </span>
+
+                        {isOpenEnded ? (
+                          <textarea
+                            className="input-field"
+                            placeholder={`${qNum}. sorunun cevabı...`}
+                            value={studentAnswers[qNum] || ''}
+                            onChange={(e) => handleTextChange(qNum, e.target.value)}
+                            style={{ flex: 1, minHeight: 70, padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
+                          />
+                        ) : (
+                          <div style={{ display: 'flex', gap: '0.4rem', flex: 1, maxWidth: 260 }}>
+                            {options.map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => handleSelectOption(qNum, opt)}
+                                style={{
+                                  flex: 1, height: 38, borderRadius: '50%',
+                                  fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                                  border: selected === opt ? '2px solid #6366f1' : '1.5px solid #cbd5e1',
+                                  background: selected === opt ? '#6366f1' : 'white',
+                                  color: selected === opt ? 'white' : '#475569',
+                                  transition: 'all 0.12s',
+                                  boxShadow: selected === opt ? '0 3px 8px rgba(99,102,241,0.4)' : 'none',
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{ padding: '0.85rem 1.25rem', background: 'white', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  onClick={() => setShowMobileOpticModal(false)}
+                  style={{
+                    width: '100%', padding: '0.8rem', borderRadius: '0.85rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: 'white', border: 'none', fontWeight: 900, fontSize: '0.92rem',
+                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                  }}
+                >
+                  <Check size={18} />
+                  <span>Cevapları Onayla & PDF'e Dön</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* FINISH MODAL */}
