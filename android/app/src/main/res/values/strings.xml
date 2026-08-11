@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">E-Test Platform</string>
+    <string name="title_activity_main">E-Test Platform</string>
+    <string name="package_name">com.etest.app</string>
+    <string name="custom_url_scheme">com.etest.app</string>
+</resources>

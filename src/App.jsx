@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { initNativeApp } from './services/nativeMobileService';
+import MobileBottomNav from './components/MobileBottomNav';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree
@@ -212,9 +214,14 @@ function Sidebar() {
 
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/'];
   const shouldHideSidebar = !currentUser || hideSidebarRoutes.some(route => location.pathname.startsWith(route));
+
+  useEffect(() => {
+    initNativeApp(navigate);
+  }, []);
 
   return (
     <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''}`}>
@@ -255,6 +262,8 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      
+      {!shouldHideSidebar && <MobileBottomNav />}
     </div>
   );
 }

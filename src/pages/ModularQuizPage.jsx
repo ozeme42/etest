@@ -6,7 +6,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
-import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen } from 'lucide-react';
+import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
@@ -616,28 +616,69 @@ export default function ModularQuizPage() {
   const bookForTest = books?.find(b => b.id === test?.bookId);
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 
-  if (isMultiSection) {
-    if (isPhysical) {
-      return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+  const renderRunner = () => {
+    if (isMultiSection) {
+      if (isPhysical) {
+        return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+      }
+      return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
     }
-    return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
-  }
 
-  if (isPhysical) {
-    return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
-  }
+    if (isPhysical) {
+      return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+    }
 
-  if (isHtml) {
-    return <HtmlQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
-  }
+    if (isHtml) {
+      return <HtmlQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    }
 
-  if (isPdf) {
-    return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
-  }
+    if (isPdf) {
+      return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    }
 
-  if (isImageTest) {
-    return <ImageQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
-  }
+    if (isImageTest) {
+      return <ImageQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    }
 
-  return <StandardQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    return <StandardQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a' }}>
+      <div style={{
+        padding: '0.4rem 1rem',
+        background: '#0f172a',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        display: 'flex',
+        alignItems: 'center',
+        zIndex: 50
+      }}>
+        <button 
+          onClick={() => navigate(-1)}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: 'none',
+            color: '#94a3b8',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: '600',
+            transition: 'all 0.2s'
+          }}
+          className="hover:bg-slate-800 hover:text-white"
+        >
+          <ArrowLeft size={16} />
+          Çıkış Yap
+        </button>
+      </div>
+      
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {renderRunner()}
+      </div>
+    </div>
+  );
 }
