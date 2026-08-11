@@ -1011,6 +1011,7 @@ export async function dbGetStudyPlans() {
       return {
         id: String(a.id),
         studentId: a.student_id,
+        planId: a.study_plan_id,
         studyPlanId: a.study_plan_id,
         completedTopics,
         status: a.status || 'assigned',

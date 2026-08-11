@@ -13,8 +13,8 @@ export default function StudentStudyPlanView() {
   const navigate = useNavigate();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
 
-  const assignment = studyAssignments.find(a => a.id === assignmentId);
-  const plan = studyPlans.find(p => p.id === assignment?.planId);
+  const assignment = studyAssignments.find(a => String(a.id) === String(assignmentId));
+  const plan = studyPlans.find(p => String(p.id) === String(assignment?.planId || assignment?.studyPlanId));
 
   const completedTopics = useMemo(() => new Set(assignment?.completedTopics || []), [assignment]);
 
