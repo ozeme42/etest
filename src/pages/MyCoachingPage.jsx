@@ -2871,44 +2871,80 @@ export default function MyCoachingPage() {
                         <div style={{ color: '#d97706', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz günlük hedef veya sayaç eklenmedi.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          {/* Sayısal Sayaçlar */}
+                          {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
                           {dCounters.map(cg => {
                             const current = cg.current || 0;
                             const target = cg.target || 100;
                             const pct = Math.min(100, Math.round((current / target) * 100));
                             const isCompleted = current >= target;
+                            const unitName = (cg.unit || 'Soru').trim();
+                            const icon = unitName.toLowerCase().includes('soru') ? '🎯'
+                                       : unitName.toLowerCase().includes('sayfa') ? '📚'
+                                       : unitName.toLowerCase().includes('saat') ? '⏱️'
+                                       : unitName.toLowerCase().includes('net') ? '📈' : '⚡';
 
                             return (
-                              <div key={cg.id} style={{ background: 'white', borderRadius: 12, padding: '0.75rem 0.9rem', border: isCompleted ? '1.5px solid #10b981' : '1px solid #fcd34d', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ fontSize: '0.65rem', background: '#fffbe3', color: '#b45309', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, border: '1px solid #fef3c7' }}>
-                                      📊 SAYAÇ
-                                    </span>
-                                    <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1e293b' }}>{cg.title}</span>
+                              <div
+                                key={cg.id}
+                                style={{
+                                  background: isCompleted
+                                    ? 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
+                                    : 'linear-gradient(135deg, #ffffff 0%, #fffdf5 100%)',
+                                  borderRadius: 16,
+                                  padding: '0.9rem 1.1rem',
+                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid #fcd34d',
+                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(245,158,11,0.06)',
+                                  display: 'flex', flexDirection: 'column', gap: '0.65rem'
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? '#d1fae5' : '#fef3c7', color: isCompleted ? '#047857' : '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                      {icon}
+                                    </div>
+                                    <div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
+                                        {isCompleted && (
+                                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>☀️ Günlük Hedef · {unitName}</div>
+                                    </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <form onSubmit={e => { e.preventDefault(); handleGroupProgressSubmit(cg.unit, customAddInputs[cg.id]); }} style={{ display: 'flex', gap: 4 }}>
-                                      <input
-                                        type="number"
-                                        placeholder={`+ ${cg.unit}`}
-                                        value={customAddInputs[cg.id] || ''}
-                                        onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))}
-                                        style={{ width: 85, padding: '0.25rem 0.45rem', borderRadius: 6, border: '1px solid #d97706', fontSize: '0.75rem', fontWeight: 800 }}
-                                      />
-                                      <button type="submit" style={{ background: '#d97706', color: 'white', border: 'none', borderRadius: 6, padding: '0.25rem 0.55rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
-                                    </form>
-
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: isCompleted ? '#059669' : '#b45309', minWidth: 90, textAlign: 'right' }}>
-                                      {current}/{target} {cg.unit} (%{pct})
-                                    </span>
-                                    <button onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                    <button onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }} title="Sil"><Trash2 size={13} /></button>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e293b' }}>
+                                        {current} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? '#d1fae5' : '#fef3c7', color: isCompleted ? '#047857' : '#b45309', border: isCompleted ? '1px solid #a7f3d0' : '1px solid #fde68a' }}>
+                                      %{pct}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} title="Sıfırla"><RotateCcw size={13} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                    </div>
                                   </div>
                                 </div>
-                                <div style={{ width: '100%', height: 6, background: '#fef3c7', borderRadius: 99, overflow: 'hidden' }}>
-                                  <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : '#f59e0b', borderRadius: 99, transition: 'width 0.35s' }} />
+
+                                <div style={{ width: '100%', height: 8, background: '#fef3c7', borderRadius: 99, overflow: 'hidden' }}>
+                                  <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    {[10, 20, 50].map(step => (
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: '#ffffff', color: '#b45309', border: '1px solid #fde68a', cursor: 'pointer' }}>
+                                        +{step} {unitName}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <button type="submit" style={{ background: '#d97706', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
+                                  </form>
                                 </div>
                               </div>
                             );
@@ -2941,44 +2977,80 @@ export default function MyCoachingPage() {
                         <div style={{ color: '#7e22ce', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz haftalık hedef veya sayaç eklenmedi.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          {/* Sayısal Sayaçlar */}
+                          {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
                           {wCounters.map(cg => {
                             const current = cg.current || 0;
                             const target = cg.target || 100;
                             const pct = Math.min(100, Math.round((current / target) * 100));
                             const isCompleted = current >= target;
+                            const unitName = (cg.unit || 'Soru').trim();
+                            const icon = unitName.toLowerCase().includes('soru') ? '🎯'
+                                       : unitName.toLowerCase().includes('sayfa') ? '📚'
+                                       : unitName.toLowerCase().includes('saat') ? '⏱️'
+                                       : unitName.toLowerCase().includes('net') ? '📈' : '⚡';
 
                             return (
-                              <div key={cg.id} style={{ background: 'white', borderRadius: 12, padding: '0.75rem 0.9rem', border: isCompleted ? '1.5px solid #10b981' : '1px solid #c084fc', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ fontSize: '0.65rem', background: '#faf5ff', color: '#6b21a8', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, border: '1px solid #e9d5ff' }}>
-                                      📊 SAYAÇ
-                                    </span>
-                                    <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1e293b' }}>{cg.title}</span>
+                              <div
+                                key={cg.id}
+                                style={{
+                                  background: isCompleted
+                                    ? 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
+                                    : 'linear-gradient(135deg, #ffffff 0%, #faf5ff 100%)',
+                                  borderRadius: 16,
+                                  padding: '0.9rem 1.1rem',
+                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid #c084fc',
+                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(124,58,237,0.06)',
+                                  display: 'flex', flexDirection: 'column', gap: '0.65rem'
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? '#d1fae5' : '#f3e8ff', color: isCompleted ? '#047857' : '#6b21a8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                      {icon}
+                                    </div>
+                                    <div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
+                                        {isCompleted && (
+                                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>⚡ Haftalık Hedef · {unitName}</div>
+                                    </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <form onSubmit={e => { e.preventDefault(); handleGroupProgressSubmit(cg.unit, customAddInputs[cg.id]); }} style={{ display: 'flex', gap: 4 }}>
-                                      <input
-                                        type="number"
-                                        placeholder={`+ ${cg.unit}`}
-                                        value={customAddInputs[cg.id] || ''}
-                                        onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))}
-                                        style={{ width: 85, padding: '0.25rem 0.45rem', borderRadius: 6, border: '1px solid #7c3aed', fontSize: '0.75rem', fontWeight: 800 }}
-                                      />
-                                      <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, padding: '0.25rem 0.55rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
-                                    </form>
-
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: isCompleted ? '#059669' : '#6b21a8', minWidth: 90, textAlign: 'right' }}>
-                                      {current}/{target} {cg.unit} (%{pct})
-                                    </span>
-                                    <button onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                    <button onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }} title="Sil"><Trash2 size={13} /></button>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e293b' }}>
+                                        {current} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? '#d1fae5' : '#f3e8ff', color: isCompleted ? '#047857' : '#6b21a8', border: isCompleted ? '1px solid #a7f3d0' : '1px solid #e9d5ff' }}>
+                                      %{pct}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} title="Sıfırla"><RotateCcw size={13} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                    </div>
                                   </div>
                                 </div>
-                                <div style={{ width: '100%', height: 6, background: '#e9d5ff', borderRadius: 99, overflow: 'hidden' }}>
-                                  <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : '#7c3aed', borderRadius: 99, transition: 'width 0.35s' }} />
+
+                                <div style={{ width: '100%', height: 8, background: '#e9d5ff', borderRadius: 99, overflow: 'hidden' }}>
+                                  <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    {[10, 20, 50].map(step => (
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: '#ffffff', color: '#6b21a8', border: '1px solid #e9d5ff', cursor: 'pointer' }}>
+                                        +{step} {unitName}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
+                                  </form>
                                 </div>
                               </div>
                             );
@@ -3011,44 +3083,80 @@ export default function MyCoachingPage() {
                         <div style={{ color: '#1d4ed8', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz aylık hedef veya sayaç eklenmedi.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                          {/* Sayısal Sayaçlar */}
+                          {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
                           {mCounters.map(cg => {
                             const current = cg.current || 0;
                             const target = cg.target || 100;
                             const pct = Math.min(100, Math.round((current / target) * 100));
                             const isCompleted = current >= target;
+                            const unitName = (cg.unit || 'Soru').trim();
+                            const icon = unitName.toLowerCase().includes('soru') ? '🎯'
+                                       : unitName.toLowerCase().includes('sayfa') ? '📚'
+                                       : unitName.toLowerCase().includes('saat') ? '⏱️'
+                                       : unitName.toLowerCase().includes('net') ? '📈' : '⚡';
 
                             return (
-                              <div key={cg.id} style={{ background: 'white', borderRadius: 12, padding: '0.75rem 0.9rem', border: isCompleted ? '1.5px solid #10b981' : '1px solid #93c5fd', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ fontSize: '0.65rem', background: '#f0f9ff', color: '#1e40af', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, border: '1px solid #dbeafe' }}>
-                                      📊 SAYAÇ
-                                    </span>
-                                    <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1e293b' }}>{cg.title}</span>
+                              <div
+                                key={cg.id}
+                                style={{
+                                  background: isCompleted
+                                    ? 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
+                                    : 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
+                                  borderRadius: 16,
+                                  padding: '0.9rem 1.1rem',
+                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid #93c5fd',
+                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(37,99,235,0.06)',
+                                  display: 'flex', flexDirection: 'column', gap: '0.65rem'
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? '#d1fae5' : '#dbeafe', color: isCompleted ? '#047857' : '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                      {icon}
+                                    </div>
+                                    <div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
+                                        {isCompleted && (
+                                          <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>📅 Aylık Hedef · {unitName}</div>
+                                    </div>
                                   </div>
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <form onSubmit={e => { e.preventDefault(); handleGroupProgressSubmit(cg.unit, customAddInputs[cg.id]); }} style={{ display: 'flex', gap: 4 }}>
-                                      <input
-                                        type="number"
-                                        placeholder={`+ ${cg.unit}`}
-                                        value={customAddInputs[cg.id] || ''}
-                                        onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))}
-                                        style={{ width: 85, padding: '0.25rem 0.45rem', borderRadius: 6, border: '1px solid #2563eb', fontSize: '0.75rem', fontWeight: 800 }}
-                                      />
-                                      <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '0.25rem 0.55rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
-                                    </form>
-
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e40af', minWidth: 90, textAlign: 'right' }}>
-                                      {current}/{target} {cg.unit} (%{pct})
-                                    </span>
-                                    <button onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                    <button onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1' }} title="Sil"><Trash2 size={13} /></button>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e293b' }}>
+                                        {current} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? '#d1fae5' : '#dbeafe', color: isCompleted ? '#047857' : '#1e40af', border: isCompleted ? '1px solid #a7f3d0' : '1px solid #bfdbfe' }}>
+                                      %{pct}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} title="Sıfırla"><RotateCcw size={13} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                    </div>
                                   </div>
                                 </div>
-                                <div style={{ width: '100%', height: 6, background: '#dbeafe', borderRadius: 99, overflow: 'hidden' }}>
-                                  <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : '#2563eb', borderRadius: 99, transition: 'width 0.35s' }} />
+
+                                <div style={{ width: '100%', height: 8, background: '#dbeafe', borderRadius: 99, overflow: 'hidden' }}>
+                                  <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    {[10, 20, 50].map(step => (
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: '#ffffff', color: '#1e40af', border: '1px solid #bfdbfe', cursor: 'pointer' }}>
+                                        +{step} {unitName}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
+                                  </form>
                                 </div>
                               </div>
                             );
