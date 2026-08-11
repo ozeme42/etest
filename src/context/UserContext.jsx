@@ -19,19 +19,26 @@ export function UserProvider({ children }) {
       if (dbUsersList && dbUsersList.length > 0) {
         setUsers(prev => {
           const merged = dbUsersList.map(dbU => {
-            const localU = prev.find(l => l.id === dbU.id || (l.email && dbU.email && l.email.toLowerCase() === dbU.email.toLowerCase()));
+            const localU = prev.find(l => 
+              String(l.id) === String(dbU.id) || 
+              (l.email && dbU.email && l.email.toLowerCase() === dbU.email.toLowerCase())
+            );
             return {
               ...localU,
               ...dbU,
-              teacherId: dbU.teacherId !== undefined && dbU.teacherId !== null ? dbU.teacherId : (localU?.teacherId || null),
+              // Permanently preserve class/grade and teacher info if dbU has default/null values
+              gradeId: (dbU.gradeId && dbU.gradeId !== 'g1') ? dbU.gradeId : (localU?.gradeId || dbU.gradeId || 'g1'),
+              classId: dbU.classId || localU?.classId || null,
+              className: dbU.className || localU?.className || null,
+              grade: dbU.grade || localU?.grade || null,
+              teacherId: (dbU.teacherId !== undefined && dbU.teacherId !== null) ? dbU.teacherId : (localU?.teacherId || null),
               password: dbU.password || localU?.password || null,
-              gradeId: dbU.gradeId || localU?.gradeId || 'g1'
             };
           });
 
           // Preserve any locally created users not present in Supabase
           prev.forEach(localU => {
-            if (!merged.some(m => m.id === localU.id || (m.email && localU.email && m.email.toLowerCase() === localU.email.toLowerCase()))) {
+            if (!merged.some(m => String(m.id) === String(localU.id) || (m.email && localU.email && m.email.toLowerCase() === localU.email.toLowerCase()))) {
               merged.push(localU);
             }
           });
@@ -45,17 +52,22 @@ export function UserProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('eTestUsers', JSON.stringify(users));
+    if (users && users.length > 0) {
+      localStorage.setItem('eTestUsers', JSON.stringify(users));
+    }
   }, [users]);
 
   const addUser = async (userData) => {
     const newUser = {
       id: userData.id || `u_${Date.now()}`,
+      gradeId: userData.gradeId || userData.grade || userData.classId || 'g1',
       ...userData
     };
     setUsers(prev => {
-      const exists = prev.some(u => u.email === newUser.email);
-      const newList = exists ? prev.map(u => u.email === newUser.email ? { ...u, ...newUser } : u) : [...prev, newUser];
+      const exists = prev.some(u => String(u.id) === String(newUser.id) || (u.email && newUser.email && u.email.toLowerCase() === newUser.email.toLowerCase()));
+      const newList = exists 
+        ? prev.map(u => (String(u.id) === String(newUser.id) || (u.email && newUser.email && u.email.toLowerCase() === newUser.email.toLowerCase())) ? { ...u, ...newUser } : u) 
+        : [...prev, newUser];
       localStorage.setItem('eTestUsers', JSON.stringify(newList));
       return newList;
     });
@@ -70,7 +82,7 @@ export function UserProvider({ children }) {
     let updatedUserObj = null;
     setUsers(prev => {
       const newList = prev.map(u => {
-        if (u.id === id) {
+        if (String(u.id) === String(id)) {
           updatedUserObj = { ...u, ...updatedData };
           return updatedUserObj;
         }
@@ -86,7 +98,11 @@ export function UserProvider({ children }) {
   };
 
   const deleteUser = async (id) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
+    setUsers(prev => {
+      const newList = prev.filter(u => String(u.id) !== String(id));
+      localStorage.setItem('eTestUsers', JSON.stringify(newList));
+      return newList;
+    });
     await dbDeleteUser(id);
   };
 
@@ -104,7 +120,7 @@ export function UserProvider({ children }) {
       email: inputEmail,
       password: studentData.password || '123456',
       role: 'student',
-      gradeId: studentData.gradeId || 'g1',
+      gradeId: studentData.gradeId || studentData.grade || studentData.classId || 'g1',
       teacherId: teacherId,
       isApproved: true,
       createdAt: new Date().toISOString(),

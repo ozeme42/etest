@@ -35,9 +35,12 @@ export async function dbGetUsers() {
       email: u.email,
       name: u.name,
       role: u.role,
-      gradeId: u.grade_id,
-      teacherId: u.teacher_id,
-      password: u.password,
+      gradeId: u.grade_id || u.gradeId || u.class_id || 'g1',
+      classId: u.class_id || u.classId || u.grade_id || null,
+      className: u.class_name || u.className || null,
+      grade: u.grade || null,
+      teacherId: u.teacher_id || u.teacherId || null,
+      password: u.password || null,
       isApproved: u.is_approved !== undefined ? Boolean(u.is_approved) : (u.role === 'teacher' ? false : true),
       createdAt: u.created_at
     }));
@@ -59,7 +62,7 @@ export async function dbAddUser(user) {
       email: user.email,
       name: user.name,
       role: user.role || 'student',
-      grade_id: user.gradeId || 'g1',
+      grade_id: user.gradeId || user.grade || user.classId || 'g1',
       teacher_id: user.teacherId || null,
       password: user.password || null,
       is_approved: isApprovedVal
@@ -73,6 +76,7 @@ export async function dbAddUser(user) {
       const fallbackPayload = { ...payload };
       if (error.message && error.message.includes('is_approved')) delete fallbackPayload.is_approved;
       if (error.message && error.message.includes('teacher_id')) delete fallbackPayload.teacher_id;
+      if (error.message && error.message.includes('grade_id')) delete fallbackPayload.grade_id;
       if (error.message && error.message.includes('password')) delete fallbackPayload.password;
       
       const fallbackRes = await supabase.from('users').upsert([fallbackPayload], { onConflict: 'id' }).select();
