@@ -829,64 +829,6 @@ export default function StudentDashboard() {
         )}
       </div>
 
-      {/* ════════════════ COACHING: ACADEMIC GOALS ════════════════ */}
-      {hasCoach && coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
-        const isGradeTracking = coachingProfile?.examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
-        return (
-          <div style={{ ...S.section }} className="sd-section">
-            <div style={S.sectionTitle}><span style={{ fontSize:14 }}>🏛️</span> Koçluk Hedeflerim</div>
-            <div style={{ ...S.card, padding:'1rem 1.1rem', background:'linear-gradient(135deg,#f0fdf4,#dcfce7)', border:'1.5px solid #86efac' }}>
-              {coachingProfile.examGoalType && <div style={{ fontSize:'0.65rem', background:'#16a34a', color:'white', fontWeight:900, padding:'0.2rem 0.6rem', borderRadius:99, display:'inline-block', marginBottom:8 }}>{coachingProfile.examGoalType}</div>}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(130px,1fr))', gap:'0.65rem' }}>
-                {!isGradeTracking ? (<>
-                  {coachingProfile.targetSchool && <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Hedef Okul</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#0f172a', marginTop:2 }}>{coachingProfile.targetSchool}</div></div>}
-                  {coachingProfile.targetScore && <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Puan Hedefi</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#0f172a', marginTop:2 }}>{coachingProfile.targetScore}</div></div>}
-                  {coachingProfile.targetNet > 0 && <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Net Hedefi</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#16a34a', marginTop:2 }}>{coachingProfile.targetNet} Net</div></div>}
-                </>) : (
-                  <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Hedef Belge</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#16a34a', marginTop:2 }}>{coachingProfile.gradeTarget || 'Takdir Belgesi'}</div></div>
-                )}
-              </div>
-              {(() => {
-                const mG = renderGoalList(coachingProfile.monthlyGoals);
-                const wG = renderGoalList(coachingProfile.weeklyGoals);
-                const dG = renderGoalList(coachingProfile.dailyGoals);
-                if (!mG && !wG && !dG) return null;
-                return (
-                  <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem', marginTop:'0.75rem' }}>
-                    {mG && <div style={{ background:'rgba(255,255,255,0.6)', borderRadius:10, padding:'0.6rem 0.75rem' }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#16a34a', textTransform:'uppercase', marginBottom:2, display:'flex', alignItems:'center', gap:4 }}><Calendar size={10} /> Aylık Strateji</div><div style={{ fontSize:'0.82rem', color:'#14532d', fontWeight:700 }}>{mG}</div></div>}
-                    {wG && <div style={{ background:'rgba(255,251,235,0.7)', borderRadius:10, padding:'0.6rem 0.75rem', border:'1px solid #fde68a' }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#d97706', textTransform:'uppercase', marginBottom:2, display:'flex', alignItems:'center', gap:4 }}><Zap size={10} /> Haftalık Hedef</div><div style={{ fontSize:'0.82rem', color:'#78350f', fontWeight:700 }}>{wG}</div></div>}
-                    {dG && <div style={{ background:'rgba(255,241,242,0.7)', borderRadius:10, padding:'0.6rem 0.75rem', border:'1px solid #fecaca' }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#dc2626', textTransform:'uppercase', marginBottom:2, display:'flex', alignItems:'center', gap:4 }}><Flame size={10} /> Günlük Rutin</div><div style={{ fontSize:'0.82rem', color:'#7f1d1d', fontWeight:700 }}>{dG}</div></div>}
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ════════════════ COACH NOTE ════════════════ */}
-      {((coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting) && (
-        <div style={S.section} className="sd-section">
-          <div style={S.sectionTitle}><span style={{ fontSize:14 }}>👨‍🏫</span> Koçumdan Notlar</div>
-          <div style={{ ...S.card, padding:'1rem 1.1rem', background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1.5px solid #ddd6fe' }}>
-            {upcomingMeeting && <div style={{ fontSize:'0.65rem', background:'#7c3aed', color:'white', fontWeight:800, padding:'0.2rem 0.65rem', borderRadius:99, display:'inline-block', marginBottom:8 }}>📅 {upcomingMeeting.nextMeetingDate}</div>}
-            {coachingNote?.weeklyFocus && <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#5b21b6', marginBottom:6, borderLeft:'3px solid #8b5cf6', paddingLeft:8 }}>🎯 {coachingNote.weeklyFocus}</div>}
-            {coachingNote?.note && <p style={{ margin:'0 0 8px', fontSize:'0.82rem', color:'#4c1d95', lineHeight:1.5, fontWeight:600, fontStyle:'italic' }}>"{coachingNote.note}"</p>}
-            {coachingNote?.goals && coachingNote.goals.length > 0 && (
-              <div style={{ display:'flex', flexDirection:'column', gap:5, marginTop:8 }}>
-                {coachingNote.goals.map(g => (
-                  <div key={g.id} style={{ display:'flex', alignItems:'center', gap:7, fontSize:'0.8rem', color: g.done ? '#94a3b8' : '#3b0764', fontWeight:700 }}>
-                    <div style={{ width:16, height:16, borderRadius:4, background: g.done ? '#22c55e' : '#8b5cf6', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      {g.done && <Check size={11} />}
-                    </div>
-                    <span style={{ textDecoration: g.done ? 'line-through' : 'none' }}>{g.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ════════════════ GOALS ════════════════ */}
       <div style={S.section} className="sd-section">
