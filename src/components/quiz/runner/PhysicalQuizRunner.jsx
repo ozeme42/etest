@@ -10,8 +10,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const hasPdf = !!(bookPdfUrl);
   const navigate = useNavigate();
   // 'side' | 'top' | 'float' | 'hidden'
-  const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
-  const [showOptikForm, setShowOptikForm] = useState(true);
+  const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
+  const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'hidden' : 'side') : 'hidden');
+  const [showOptikForm, setShowOptikForm] = useState(!isMobile);
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
@@ -593,14 +594,159 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           </div>
         </div>
       )}
-      {/* ─────────────────────────────────────────────────────────────
-          FLOATING ACTION BUTTON TO SHOW OPTIK FORM WHEN HIDDEN
-          ───────────────────────────────────────────────────────────── */}
-      {(!showOptikForm || pdfMode === 'float') && (
+      {/* Mobile Floating Action Button */}
+      {isMobile && (
+        <button
+          onClick={() => setShowMobileOpticModal(true)}
+          style={{
+            position: 'fixed',
+            bottom: '1.5rem',
+            right: '1.25rem',
+            zIndex: 9999,
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '99px',
+            padding: '0.75rem 1.25rem',
+            fontWeight: 900,
+            fontSize: '0.85rem',
+            boxShadow: '0 8px 24px rgba(16,185,129,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          <FileSpreadsheet size={18} />
+          <span>📝 Optik Form ({Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '').length}/{qCount})</span>
+        </button>
+      )}
+
+      {/* Mobile Bottom-Sheet Modal Popup */}
+      {isMobile && showMobileOpticModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
+        }} onClick={() => setShowMobileOpticModal(false)}>
+          <div style={{
+            background: '#0f172a',
+            color: '#f8fafc',
+            borderRadius: '1.5rem 1.5rem 0 0',
+            maxHeight: '85vh',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 -10px 35px rgba(0,0,0,0.5)',
+            borderTop: '1px solid #334155'
+          }} onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div style={{
+              padding: '1rem 1.25rem',
+              background: '#1e293b',
+              borderBottom: '1px solid #334155',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc' }}>
+                  📝 Optik Cevap Anahtarı
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                  {Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '').length}/{qCount} soru işaretlendi
+                </p>
+              </div>
+              <button
+                onClick={() => setShowMobileOpticModal(false)}
+                style={{
+                  background: '#334155', border: 'none', borderRadius: '50%',
+                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: '#cbd5e1'
+                }}
+              >
+                <XIcon size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, background: '#0f172a' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {Array.from({ length: qCount }).map((_, idx) => {
+                  const qNo = idx + 1;
+                  const qObj = questions[idx] || {};
+                  const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
+                  const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
+
+                  return (
+                    <div key={qNo} style={{ background: '#1e293b', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: selectedOpt !== undefined || textVal ? '1.5px solid #10b981' : '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#f8fafc', minWidth: 60 }}>
+                        Soru {qNo}
+                      </span>
+
+                      {isOpenEndedMode ? (
+                        <textarea
+                          placeholder={`${qNo}. sorunun cevabı...`}
+                          value={textVal}
+                          onChange={(e) => setOpenEndedText(prev => ({ ...prev, [qNo]: e.target.value }))}
+                          style={{ flex: 1, minHeight: 60, padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #334155', background: '#0f172a', color: 'white', fontSize: '0.85rem' }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.4rem', flex: 1, maxWidth: 260 }}>
+                          {['A', 'B', 'C', 'D', 'E'].slice(0, Number(test.optionCount || test.optionsCount || 5)).map((opt, optIdx) => {
+                            const isSelected = selectedOpt === optIdx || selectedOpt === opt;
+                            return (
+                              <button
+                                key={opt}
+                                onClick={() => handleOptionClick(qNo, optIdx)}
+                                style={{
+                                  flex: 1, height: 38, borderRadius: '50%',
+                                  fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                                  border: isSelected ? '2px solid #10b981' : '1.5px solid #475569',
+                                  background: isSelected ? '#10b981' : '#0f172a',
+                                  color: isSelected ? 'white' : '#cbd5e1',
+                                  transition: 'all 0.12s',
+                                  boxShadow: isSelected ? '0 3px 8px rgba(16,185,129,0.4)' : 'none',
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '0.85rem 1.25rem', background: '#1e293b', borderTop: '1px solid #334155' }}>
+              <button
+                onClick={() => setShowMobileOpticModal(false)}
+                style={{
+                  width: '100%', padding: '0.8rem', borderRadius: '0.85rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: 'white', border: 'none', fontWeight: 900, fontSize: '0.92rem',
+                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                }}
+              >
+                <CheckCircle2 size={18} />
+                <span>Cevapları Onayla ve PDF'e Dön</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Floating Action Button */}
+      {!isMobile && (!showOptikForm || pdfMode === 'float') && (
         <button
           onClick={() => {
             setShowOptikForm(true);
-            if (pdfMode === 'float') setPdfMode(isMobile ? 'top' : 'side');
+            if (pdfMode === 'float') setPdfMode('side');
           }}
           style={{
             position: 'fixed',
