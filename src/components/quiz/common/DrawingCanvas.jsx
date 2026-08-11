@@ -34,6 +34,37 @@ export default function DrawingCanvas({ isOpen, onClose }) {
     return () => window.removeEventListener('resize', handleResize);
   }, [isOpen]);
 
+  // Prevent mobile browser scrolling whenever DrawingCanvas is open and active
+  useEffect(() => {
+    if (!isOpen || isMinimized) return;
+    const canvas = canvasRef.current;
+
+    const preventScroll = (e) => {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    if (canvas) {
+      canvas.addEventListener('touchstart', preventScroll, { passive: false });
+      canvas.addEventListener('touchmove', preventScroll, { passive: false });
+    }
+
+    window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+    window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
+    document.body.classList.add('global-draw-lock');
+
+    return () => {
+      if (canvas) {
+        canvas.removeEventListener('touchstart', preventScroll);
+        canvas.removeEventListener('touchmove', preventScroll);
+      }
+      window.removeEventListener('touchmove', preventScroll, { capture: true });
+      window.removeEventListener('wheel', preventScroll, { capture: true });
+      document.body.classList.remove('global-draw-lock');
+    };
+  }, [isOpen, isMinimized]);
+
   const saveState = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -85,6 +116,9 @@ export default function DrawingCanvas({ isOpen, onClose }) {
 
   const startDrawing = (e) => {
     if (isMinimized) return;
+    if (e.cancelable && e.type.startsWith('touch')) {
+      e.preventDefault();
+    }
     setIsDrawing(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -96,6 +130,9 @@ export default function DrawingCanvas({ isOpen, onClose }) {
 
   const draw = (e) => {
     if (!isDrawing || isMinimized) return;
+    if (e.cancelable && e.type.startsWith('touch')) {
+      e.preventDefault();
+    }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -139,6 +176,7 @@ export default function DrawingCanvas({ isOpen, onClose }) {
           width: '100%',
           height: '100%',
           pointerEvents: isMinimized ? 'none' : 'auto',
+          touchAction: 'none',
           cursor: tool === 'eraser' ? 'cell' : 'crosshair'
         }}
       />
