@@ -31,7 +31,16 @@ const MOTIVATION_QUOTES = [
   { quote: "Disiplin, ne istediğin ile en çok ne istediğin arasındaki seçimdir.", author: "Abraham Lincoln", category: "Odak" },
   { quote: "Zafer, 'vazgeçmeyenlerindir'. Yapabileceğinin en iyisini yap!", author: "Mustafa Kemal Atatürk", category: "İnanç" },
   { quote: "Zorluklar, başarının değerini artıran süslerdir.", author: "Molière", category: "Mücadele" },
-  { quote: "Büyük işler, bir anda değil, küçük şeylerin bir araya getirilmesiyle yapılır.", author: "Vincent van Gogh", category: "Süreklilik" }
+  { quote: "Büyük işler, bir anda değil, küçük şeylerin bir araya getirilmesiyle yapılır.", author: "Vincent van Gogh", category: "Disiplin" },
+  { quote: "Sınırlarını zorlamayan biri, potansiyelinin ne olduğunu asla öğrenemez.", author: "Kobe Bryant", category: "Özgüven" },
+  { quote: "Ter dökülmeyen zafer, zafer değildir.", author: "Anonim", category: "Disiplin" },
+  { quote: "Şans, hazırlıklı zihinleri sever.", author: "Louis Pasteur", category: "Zeka" },
+  { quote: "Yorulabilirsin, ama vazgeçemezsin. Zirve seni bekliyor!", author: "Koçluk Mottosu", category: "İnanç" },
+  { quote: "Rüyalarınızı gerçekleştirmenin en iyi yolu uyanmaktır.", author: "Paul Valéry", category: "Eylem" },
+  { quote: "Hata yapmaktan korkmayın; hiç denememiş olmaktan korkun.", author: "Albert Einstein", category: "Özgüven" },
+  { quote: "Rüzgar ne kadar sert eserse esin, sağlam ağaç köklerinden kopmaz.", author: "Konfüçyüs", category: "Mücadele" },
+  { quote: "Hedefine odaklan, gürültüyü kapat ve sadece işini yap!", author: "Anonim", category: "Odak" },
+  { quote: "Sınavı kazandıran zeka değil, bıkmadan gösterilen sürekliliktir.", author: "YKS / LGS Derece Mottosu", category: "Disiplin" }
 ];
 
 export function getCurrentWeekKey() {
@@ -406,6 +415,10 @@ export default function StudentCoachingPage() {
     coachNotes: ''
   });
   const [quoteIdx, setQuoteIdx] = useState(0);
+  const [selectedQuoteCategory, setSelectedQuoteCategory] = useState('Tümü');
+  const [dailyQuestDone, setDailyQuestDone] = useState(() => {
+    return localStorage.getItem('dailyQuestDone_' + today()) === 'true';
+  });
 
   const handleGroupProgressSubmit = (unitKey, amountVal) => {
     const amount = parseFloat(amountVal) || 0;
@@ -3295,153 +3308,324 @@ export default function StudentCoachingPage() {
 
         {/* ═══ MOTİVASYON & ÇALIŞMA STRATEJİLERİ ═══ */}
         {activeTab === 'motivasyon' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <Tip>
-              ⭐ <b>Motivasyon & Başarı Panosu</b>: İnancını yüksek tut, koçluk tavsiyelerini incele ve kendi hedeflerini motive edici sözlerle destekle!
-            </Tip>
+          (() => {
+            // Canlı Metrik ve Seviye Hesaplama
+            const totalSolved = (goals.counterGoals || []).reduce((acc, c) => acc + (c.current || 0), 0);
+            const totalCompletedGoals =
+              (goals.dailyGoals || []).filter(g => g.done).length +
+              (goals.weeklyGoals || []).filter(g => g.done).length +
+              (goals.monthlyGoals || []).filter(g => g.done).length +
+              (goals.counterGoals || []).filter(c => (c.current || 0) >= (c.target || 1)).length;
 
-            {/* 1. Günün İlham Verici Sözü (Rotating Quotes Banner) */}
-            {(() => {
-              const currentQ = MOTIVATION_QUOTES[quoteIdx % MOTIVATION_QUOTES.length];
+            const xp = (totalSolved * 2) + (totalCompletedGoals * 25) + (dailyQuestDone ? 50 : 0);
+            let level = 1;
+            let levelTitle = "🌱 Çaylak Öğrenci";
+            let nextThreshold = 200;
+            let prevThreshold = 0;
 
-              return (
+            if (xp >= 1000) { level = 5; levelTitle = "👑 Zirve Efsanesi"; nextThreshold = 2000; prevThreshold = 1000; }
+            else if (xp >= 500) { level = 4; levelTitle = "🧠 Odak Şampiyonu"; nextThreshold = 1000; prevThreshold = 500; }
+            else if (xp >= 250) { level = 3; levelTitle = "🎯 Soru Avcısı"; nextThreshold = 500; prevThreshold = 250; }
+            else if (xp >= 100) { level = 2; levelTitle = "⚡ Disiplin Çırağı"; nextThreshold = 250; prevThreshold = 100; }
+
+            const levelProgressPct = Math.min(100, Math.round(((xp - prevThreshold) / (nextThreshold - prevThreshold)) * 100));
+
+            const filteredQuotes = selectedQuoteCategory === 'Tümü'
+              ? MOTIVATION_QUOTES
+              : MOTIVATION_QUOTES.filter(q => q.category === selectedQuoteCategory);
+
+            const currentQ = filteredQuotes[quoteIdx % filteredQuotes.length] || MOTIVATION_QUOTES[0];
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <Tip>
+                  🚀 <b>Motivasyon & Zafer Merkezi</b>: Canlı seviyeni takip et, günün zafer görevini tamamla ve ilham verici stratejilerle zihnini zirveye taşı!
+                </Tip>
+
+                {/* 1. SEVİYE & SERİ HEADER PANOSU */}
                 <div style={{
-                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%)',
-                  borderRadius: '1rem', padding: '1.4rem 1.6rem', color: 'white',
-                  boxShadow: '0 8px 25px rgba(124, 58, 237, 0.3)', position: 'relative', overflow: 'hidden'
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311b92 100%)',
+                  borderRadius: 24, padding: '1.5rem 1.75rem', color: 'white',
+                  boxShadow: '0 12px 35px rgba(15, 23, 42, 0.25)', position: 'relative', overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.1)'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Sparkles size={20} color="#fef08a" />
-                      <span style={{ fontSize: '0.78rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.2)', padding: '0.15rem 0.6rem', borderRadius: 99, backdropFilter: 'blur(4px)' }}>
-                        Günün İlham Sözü · {currentQ.category}
-                      </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        width: 52, height: 52, borderRadius: 16,
+                        background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.6rem', boxShadow: '0 6px 20px rgba(99, 102, 241, 0.4)',
+                        border: '2px solid rgba(255,255,255,0.3)'
+                      }}>
+                        🏆
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '1.25rem', fontWeight: 900 }}>
+                            Level {level}: {levelTitle}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', background: '#f59e0b', color: '#78350f', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900 }}>
+                            {xp} XP
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: 700, marginTop: 2 }}>
+                          Sonraki Seviyeye: <b style={{ color: '#a7f3d0' }}>{Math.max(0, nextThreshold - xp)} XP</b> Kaldı · {totalCompletedGoals} Hedef Tamamlandı
+                        </div>
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setQuoteIdx((quoteIdx + 1) % MOTIVATION_QUOTES.length)}
-                      style={{
-                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                        borderRadius: '0.6rem', padding: '0.35rem 0.75rem', color: 'white',
-                        fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', backdropFilter: 'blur(6px)'
-                      }}
-                    >
-                      🎲 Başka Söz Göster
-                    </button>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, padding: '0.5rem 0.9rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>🔥 Kesintisiz Seri</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f59e0b', marginTop: 1 }}>7 Gün Seride</div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, padding: '0.5rem 0.9rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>🎯 Çözülen Soru</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#38bdf8', marginTop: 1 }}>{totalSolved} Soru</div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.5, fontStyle: 'italic', marginBottom: '0.75rem' }}>
-                    "{currentQ.quote}"
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.85rem', fontWeight: 800, opacity: 0.9 }}>
-                    — {currentQ.author}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* 2. Koçtan Derece Yaptıran Çalışma Önerileri & Stratejiler */}
-            <Card emoji="💡" title="Koçtan Derece Yaptıran Çalışma Önerileri & Stratejiler">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.3rem' }}>🧠</span>
-                    <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>1. Aktif Hatırlama (Active Recall)</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
-                    Sadece altını çizerek okuma! Bir konuyu okuduktan sonra kitabı kapatıp kendi cümlelerinle bir kâğıda yaz veya anlat.
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                      <span>Seviye İlerlemesi (%{levelProgressPct})</span>
+                      <span>{xp} / {nextThreshold} XP</span>
+                    </div>
+                    <div style={{ width: '100%', height: 10, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${levelProgressPct}%`, height: '100%',
+                        background: 'linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)',
+                        borderRadius: 99, transition: 'width 0.5s ease'
+                      }} />
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.3rem' }}>⏱️</span>
-                    <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>2. Pomodoro & Odaklanma</span>
+                {/* 2. DİNAMİK CANLI KOÇ DEĞERLENDİRMESİ */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                  borderRadius: 20, padding: '1.25rem 1.5rem', border: '1.5px solid #a7f3d0',
+                  boxShadow: '0 4px 20px rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', gap: 14
+                }}>
+                  <div style={{ width: 46, height: 46, borderRadius: 14, background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
+                    💡
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
-                    25 dakika kesintisiz odaklan + 5 dakika mola. 4 blok sonrası 20 dakikalık uzun mola ver. Zihnin asla yorulmaz!
-                  </div>
-                </div>
-
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.3rem' }}>✍️</span>
-                    <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>3. Yanlış Defteri (Fener Defteri)</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
-                    Sınavı kazandıran doğru yaptıkların değil, yanlışlarından öğrendiklerindir. Yanlış sorularını bir not defterinde biriktir!
-                  </div>
-                </div>
-
-                <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.3rem' }}>📱</span>
-                    <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>4. Dijital Detoks & Sessiz Alan</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
-                    Çalışırken telefonunu başka bir odaya koy veya sessize al. Bildirimler olmadan odaklanma kaliten 2 katına çıkar!
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Akıllı Koç Değerlendirmesi & Canlı Tavsiye
+                    </div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#064e3b', marginTop: 2, lineHeight: 1.4 }}>
+                      {totalCompletedGoals > 3
+                        ? "🚀 Muazzam bir ivme yakaladın! Hedeflerini tek tek tamamlıyorsun. Bu disiplin seni istediğin liseye/üniversiteye taşıyacak!"
+                        : totalSolved > 50
+                        ? "⚡ Soru sayaçlarındaki harika ilerleme dikkat çekiyor! Yanlış yaptığın soruların üzerine gitmeyi unutma."
+                        : "🌱 Başarı büyük adımlarla değil, bugün atacağın küçük bir adımla başlar. Hemen 20 soru çözerek motoru çalıştır!"}
+                    </div>
                   </div>
                 </div>
 
+                {/* 3. GÜNÜN MİNİ ZAFER MÜCADELESİ */}
+                <div style={{
+                  background: dailyQuestDone ? '#f0fdf4' : '#fffbeb',
+                  borderRadius: 20, padding: '1.25rem 1.5rem',
+                  border: dailyQuestDone ? '1.5px solid #86efac' : '1.5px solid #fde68a',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: '1.8rem' }}>{dailyQuestDone ? '🎉' : '🎯'}</div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: dailyQuestDone ? '#166534' : '#92400e', textTransform: 'uppercase' }}>
+                        Günün Mini Zafer Görevi
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: dailyQuestDone ? '#14532d' : '#78350f', marginTop: 2 }}>
+                        {dailyQuestDone ? "Harika! Bugünün Zafer Görevini Tamamladın (+50 XP Kazandın!)" : "Bugün 1 Konu Tekrarı Yap veya En Az 30 Soru Çöz!"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !dailyQuestDone;
+                      setDailyQuestDone(nextVal);
+                      localStorage.setItem('dailyQuestDone_' + today(), nextVal ? 'true' : 'false');
+                    }}
+                    style={{
+                      background: dailyQuestDone ? '#10b981' : '#f59e0b',
+                      color: 'white', border: 'none', borderRadius: 12,
+                      padding: '0.65rem 1.25rem', fontWeight: 900, fontSize: '0.85rem',
+                      cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      display: 'flex', alignItems: 'center', gap: 6
+                    }}
+                  >
+                    {dailyQuestDone ? '✓ Görev Tamamlandı (+50 XP)' : '🚀 Görevi Tamamladım (+50 XP)'}
+                  </button>
+                </div>
+
+                {/* 4. İLHAM KÜTÜPHANESİ & KATEGORİK SÖZ KARTI */}
+                <div style={{
+                  background: 'white', borderRadius: 24, padding: '1.5rem', border: '1px solid #e2e8f0',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1.1rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Sparkles size={22} color="#7c3aed" />
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Günün İlham Verici Sözü & Kütüphanesi</h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {['Tümü', 'Disiplin', 'Eylem', 'Zafer', 'Odak', 'İnanç', 'Özgüven'].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => { setSelectedQuoteCategory(cat); setQuoteIdx(0); }}
+                          style={{
+                            padding: '0.28rem 0.65rem', borderRadius: 8, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                            background: selectedQuoteCategory === cat ? '#7c3aed' : '#f1f5f9',
+                            color: selectedQuoteCategory === cat ? 'white' : '#475569',
+                            border: selectedQuoteCategory === cat ? 'none' : '1px solid #cbd5e1'
+                          }}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%)',
+                    borderRadius: 20, padding: '1.5rem 1.75rem', color: 'white',
+                    boxShadow: '0 8px 25px rgba(124, 58, 237, 0.25)', position: 'relative', overflow: 'hidden'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.7rem', borderRadius: 99, backdropFilter: 'blur(4px)' }}>
+                        🏷️ {currentQ.category}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuoteIdx((quoteIdx + 1) % filteredQuotes.length)}
+                        style={{
+                          background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                          borderRadius: 10, padding: '0.35rem 0.85rem', color: 'white',
+                          fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(6px)'
+                        }}
+                      >
+                        🎲 Sonraki Söz ({quoteIdx + 1}/{filteredQuotes.length})
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.5, fontStyle: 'italic', marginBottom: '0.85rem' }}>
+                      "{currentQ.quote}"
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.9rem', fontWeight: 800, opacity: 0.9 }}>
+                      — {currentQ.author}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. KOÇTAN STRATEJİK TAVSİYELER */}
+                <Card emoji="💡" title="Koçtan Derece Yaptıran Çalışma Önerileri & Stratejiler">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.3rem' }}>🧠</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>1. Aktif Hatırlama (Active Recall)</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                        Sadece altını çizerek okuma! Bir konuyu okuduktan sonra kitabı kapatıp kendi cümlelerinle bir kâğıda yaz veya anlat.
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.3rem' }}>⏱️</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>2. Pomodoro & Odaklanma</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                        25 dakika kesintisiz odaklan + 5 dakika mola. 4 blok sonrası 20 dakikalık uzun mola ver. Zihnin asla yorulmaz!
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.3rem' }}>✍️</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>3. Yanlış Defteri (Fener Defteri)</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                        Sınavı kazandıran doğru yaptıkların değil, yanlışlarından öğrendiklerindir. Yanlış sorularını bir not defterinde biriktir!
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.3rem' }}>📱</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>4. Dijital Detoks & Sessiz Alan</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                        Çalışırken telefonunu başka bir odaya koy veya sessize al. Bildirimler olmadan odaklanma kaliten 2 katına çıkar!
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* 6. KİŞİSEL MOTİVASYON VE ZAFER DEFTERİ */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                  <Card emoji="⭐" title="Benim Haftalık Mottom">
+                    <textarea
+                      style={{ ...ta, background: '#fffbeb', borderColor: '#fde68a', minHeight: 75, fontWeight: 700, color: '#92400e' }}
+                      value={motivation.weekQuote}
+                      onChange={e => setMotivation(p => ({ ...p, weekQuote: e.target.value }))}
+                      placeholder="Bu hafta seni ayağa kaldıracak kişisel cümleni yaz..."
+                    />
+                  </Card>
+
+                  <Card emoji="🏆" title="Bu Hafta Başardıklarım & Zaferlerim">
+                    <textarea
+                      style={{ ...ta, background: '#f0fdf4', borderColor: '#bbf7d0', minHeight: 75, fontWeight: 700, color: '#166534' }}
+                      value={motivation.achievements}
+                      onChange={e => setMotivation(p => ({ ...p, achievements: e.target.value }))}
+                      placeholder="Çözdüğün zor sorular, tamamladığın konular... Her başarını buraya yaz ve kendini kutla! 🎉"
+                    />
+                  </Card>
+
+                  <Card emoji="💌" title="Sınav Günü Kendime Not">
+                    <textarea
+                      style={{ ...ta, background: '#f0f4ff', borderColor: '#c7d2fe', minHeight: 75, fontWeight: 700, color: '#3730a3' }}
+                      value={motivation.selfNote}
+                      onChange={e => setMotivation(p => ({ ...p, selfNote: e.target.value }))}
+                      placeholder="Sınav günü masaya oturduğunda zihninde ne olmalı? Kendine güven mesajını yaz..."
+                    />
+                  </Card>
+
+                  <Card emoji="🎁" title="Hedef Ödül Sistemim">
+                    <textarea
+                      style={{ ...ta, background: '#fdf2f8', borderColor: '#f0abfc', minHeight: 75, fontWeight: 700, color: '#831843' }}
+                      value={motivation.rewardSystem}
+                      onChange={e => setMotivation(p => ({ ...p, rewardSystem: e.target.value }))}
+                      placeholder="Hedeflerimi tamamlarsam kendime hediyem: Örn: 500 Soru = Sinema Bileti 🎬"
+                    />
+                  </Card>
+                </div>
+
+                {/* Kaydet Butonu */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={handleSave}
+                    style={{
+                      padding: '0.65rem 1.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                      color: 'white', border: 'none', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                    }}
+                  >
+                    <Save size={18} /> Motivasyon Notlarımı Kaydet
+                  </button>
+                </div>
               </div>
-            </Card>
-
-            {/* 3. Kişisel Motivasyon & Not Kartları */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-              <Card emoji="⭐" title="Benim Haftalık Mottom">
-                <textarea
-                  style={{ ...ta, background: '#fffbeb', borderColor: '#fde68a', minHeight: 70, fontWeight: 700, color: '#92400e' }}
-                  value={motivation.weekQuote}
-                  onChange={e => setMotivation(p => ({ ...p, weekQuote: e.target.value }))}
-                  placeholder="Bu hafta seni ayağa kaldıracak kişisel cümleni yaz..."
-                />
-              </Card>
-
-              <Card emoji="🏆" title="Bu Hafta Başardıklarım & Zaferlerim">
-                <textarea
-                  style={{ ...ta, background: '#f0fdf4', borderColor: '#bbf7d0', minHeight: 70, fontWeight: 700, color: '#166534' }}
-                  value={motivation.achievements}
-                  onChange={e => setMotivation(p => ({ ...p, achievements: e.target.value }))}
-                  placeholder="Çözdüğün zor sorular, tamamladığın konular... Her başarını buraya yaz ve kendini kutla! 🎉"
-                />
-              </Card>
-
-              <Card emoji="💌" title="Sınav Günü Kendime Not">
-                <textarea
-                  style={{ ...ta, background: '#f0f4ff', borderColor: '#c7d2fe', minHeight: 70, fontWeight: 700, color: '#3730a3' }}
-                  value={motivation.selfNote}
-                  onChange={e => setMotivation(p => ({ ...p, selfNote: e.target.value }))}
-                  placeholder="Sınav günü masaya oturduğunda zihninde ne olmalı? Kendine güven mesajını yaz..."
-                />
-              </Card>
-
-              <Card emoji="🎁" title="Hedef Ödül Sistemim">
-                <textarea
-                  style={{ ...ta, background: '#fdf2f8', borderColor: '#f0abfc', minHeight: 70, fontWeight: 700, color: '#831843' }}
-                  value={motivation.rewardSystem}
-                  onChange={e => setMotivation(p => ({ ...p, rewardSystem: e.target.value }))}
-                  placeholder="Hedeflerimi tamamlarsam kendime hediyem: Örn: 500 Soru = Sinema Bileti 🎬"
-                />
-              </Card>
-            </div>
-
-            {/* Kaydet Butonu */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: '0.65rem 1.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                  color: 'white', border: 'none', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)', display: 'flex', alignItems: 'center', gap: '0.5rem'
-                }}
-              >
-                <Save size={18} /> Motivasyon Notlarımı Kaydet
-              </button>
-            </div>
-          </div>
+            );
+          })()
         )}
 
         {/* ═══ ALIŞKANLIKLARIM (ZİNCİRİ KIRMA SEKMESİ) ═══ */}
