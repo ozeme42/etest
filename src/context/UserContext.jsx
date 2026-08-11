@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetUsers, dbAddUser, dbDeleteUser } from '../services/supabaseService';
+import { safeSetItem } from '../utils/storageUtils';
 
 const UserContext = createContext();
 
@@ -43,7 +44,7 @@ export function UserProvider({ children }) {
             }
           });
 
-          localStorage.setItem('eTestUsers', JSON.stringify(merged));
+          safeSetItem('eTestUsers', JSON.stringify(merged));
           return merged;
         });
       }
@@ -53,7 +54,7 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     if (users && users.length > 0) {
-      localStorage.setItem('eTestUsers', JSON.stringify(users));
+      safeSetItem('eTestUsers', JSON.stringify(users));
     }
   }, [users]);
 

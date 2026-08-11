@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { safeSetItem } from '../utils/storageUtils';
 import {
   dbGetCoachingData,
   dbSaveCoachingNote,
@@ -92,23 +93,23 @@ export function CoachingProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('eTestCoachingLinks', JSON.stringify(coachingLinks));
+    safeSetItem('eTestCoachingLinks', JSON.stringify(coachingLinks));
   }, [coachingLinks]);
 
   useEffect(() => {
-    localStorage.setItem('eTestCoachingNotes', JSON.stringify(coachingNotes));
+    safeSetItem('eTestCoachingNotes', JSON.stringify(coachingNotes));
   }, [coachingNotes]);
 
   useEffect(() => {
-    localStorage.setItem('eTestMockExams', JSON.stringify(mockExams));
+    safeSetItem('eTestMockExams', JSON.stringify(mockExams));
   }, [mockExams]);
 
   useEffect(() => {
-    localStorage.setItem('eTestCoachingMeetings', JSON.stringify(coachingMeetings));
+    safeSetItem('eTestCoachingMeetings', JSON.stringify(coachingMeetings));
   }, [coachingMeetings]);
 
   useEffect(() => {
-    localStorage.setItem('eTestCoachingProfiles', JSON.stringify(coachingProfiles));
+    safeSetItem('eTestCoachingProfiles', JSON.stringify(coachingProfiles));
   }, [coachingProfiles]);
 
   const toggleCoachedStudent = async (teacherId, studentId) => {
