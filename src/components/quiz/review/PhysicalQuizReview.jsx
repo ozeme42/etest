@@ -178,41 +178,47 @@ export default function PhysicalQuizReview({ submission, test, questions }) {
                 ) : (
                   /* 5 OPTICAL BUBBLES IN COLOR */
                   <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.2rem' }}>
-                    {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                      const isUserMarked = userAnsIndex === optIdx;
-                      const isAnswerKey = correctAnsIndex === optIdx;
+                    {(() => {
+                      const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
+                        ? qObj.options
+                        : (test.optionCount === 4 || test.optionsCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
+                          ? ['A', 'B', 'C', 'D']
+                          : ['A', 'B', 'C', 'D', 'E'];
+                      return optionsList.map((opt, optIdx) => {
+                        const isUserMarked = userAnsIndex === optIdx;
+                        const isAnswerKey = correctAnsIndex === optIdx;
 
-                      let bg = '#1e293b';
-                      let color = '#94a3b8';
-                      let border = '1px solid #334155';
-                      let labelText = opt;
+                        let bg = '#1e293b';
+                        let color = '#94a3b8';
+                        let border = '1px solid #334155';
+                        let labelText = opt;
 
-                      if (isUserMarked && isAnswerKey) {
-                        // 🟢 Student marked correctly!
-                        bg = '#10b981';
-                        color = '#ffffff';
-                        border = '2px solid #059669';
-                        labelText = '✓ ' + opt;
-                      } else if (isUserMarked && !isAnswerKey) {
-                        // 🔴 Student marked wrong!
-                        bg = '#ef4444';
-                        color = '#ffffff';
-                        border = '2px solid #dc2626';
-                        labelText = '✕ ' + opt;
-                      } else if (!isUserMarked && isAnswerKey) {
-                        // 🟢 Correct Answer Key (missed or left blank)
-                        bg = 'rgba(16, 185, 129, 0.15)';
-                        color = '#34d399';
-                        border = '2px solid #10b981';
-                        labelText = opt + ' ★';
-                      }
+                        if (isUserMarked && isAnswerKey) {
+                          // 🟢 Student marked correctly!
+                          bg = '#10b981';
+                          color = '#ffffff';
+                          border = '2px solid #059669';
+                          labelText = '✓ ' + opt;
+                        } else if (isUserMarked && !isAnswerKey) {
+                          // 🔴 Student marked wrong!
+                          bg = '#ef4444';
+                          color = '#ffffff';
+                          border = '2px solid #dc2626';
+                          labelText = '✕ ' + opt;
+                        } else if (!isUserMarked && isAnswerKey) {
+                          // 🟢 Correct Answer Key (missed or left blank)
+                          bg = 'rgba(16, 185, 129, 0.15)';
+                          color = '#34d399';
+                          border = '2px solid #10b981';
+                          labelText = opt + ' ★';
+                        }
 
-                      return (
-                        <div
-                          key={opt}
-                          style={{
-                            flex: 1,
-                            height: '34px',
+                        return (
+                          <div
+                            key={opt}
+                            style={{
+                              flex: 1,
+                              height: '34px',
                             borderRadius: '0.5rem',
                             background: bg,
                             color: color,
@@ -229,7 +235,8 @@ export default function PhysicalQuizReview({ submission, test, questions }) {
                           {labelText}
                         </div>
                       );
-                    })}
+                    });
+                  })()}
                   </div>
                 )}
               </div>

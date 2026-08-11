@@ -508,24 +508,31 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                       />
                     ) : (
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                          const isSelected = selectedOpt === optIdx;
-                          return (
-                            <button
-                              key={opt}
-                              onClick={() => handleOptionSelect(qNo, optIdx)}
-                              style={{
-                                flex: 1, height: '34px', borderRadius: '0.5rem',
-                                border: isSelected ? 'none' : '1px solid #334155',
-                                background: isSelected ? '#059669' : '#1e293b',
-                                color: isSelected ? 'white' : '#cbd5e1',
-                                fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
+                        {(() => {
+                          const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
+                            ? qObj.options
+                            : (test.optionCount === 4 || test.optionsCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
+                              ? ['A', 'B', 'C', 'D']
+                              : ['A', 'B', 'C', 'D', 'E'];
+                          return optionsList.map((opt, optIdx) => {
+                            const isSelected = selectedOpt === optIdx;
+                            return (
+                              <button
+                                key={opt}
+                                onClick={() => handleOptionSelect(qNo, optIdx)}
+                                style={{
+                                  flex: 1, height: '34px', borderRadius: '0.5rem',
+                                  border: isSelected ? 'none' : '1px solid #334155',
+                                  background: isSelected ? '#059669' : '#1e293b',
+                                  color: isSelected ? 'white' : '#cbd5e1',
+                                  fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          });
+                        })()}
                       </div>
                     )}
                   </div>
