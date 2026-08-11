@@ -8,6 +8,7 @@ import {
   dbAddUnit,
   dbAddTopic
 } from '../services/supabaseService';
+import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 
 const CurriculumContext = createContext();
 
@@ -28,33 +29,44 @@ const MOCK_IDS = new Set(['g1', 'g2', 's1', 's2', 'u1', 't1']);
 const generateUniqueId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
 export function CurriculumProvider({ children }) {
-  const [data, setData] = useState(() => {
-    const saved = localStorage.getItem('eTestCurriculum');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)),
-        subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)),
-        units: (parsed.units || []).filter(u => !MOCK_IDS.has(u.id)),
-        topics: (parsed.topics || []).filter(t => !MOCK_IDS.has(t.id)),
-        tests: (parsed.tests || []).filter(t => !MOCK_IDS.has(t.id))
-      };
-    }
-    return INITIAL_DATA;
-  });
+  const [data, setData] = useState(INITIAL_DATA);
 
   useEffect(() => {
-    async function syncCurriculumFromSupabase() {
+    async function initCurriculum() {
+      // 1. Try to load from IndexedDB cache for fast initial render
+      try {
+        const saved = await idbGetPayload('eTestCurriculum_Cache');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setData(prev => {
+            // Only use cache if data hasn't been fetched from DB yet
+            if (prev.grades.length > 0) return prev;
+            return {
+              grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)),
+              subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)),
+              units: (parsed.units || []).filter(u => !MOCK_IDS.has(u.id)),
+              topics: (parsed.topics || []).filter(t => !MOCK_IDS.has(t.id)),
+              tests: (parsed.tests || []).filter(t => !MOCK_IDS.has(t.id))
+            };
+          });
+        }
+      } catch (err) {
+        console.warn('IDB cache load failed', err);
+      }
+
+      // 2. Fetch latest from Supabase
       const dbCurData = await dbGetCurriculum();
       if (dbCurData && dbCurData.grades.length > 0) {
         setData(dbCurData);
       }
     }
-    syncCurriculumFromSupabase();
+    initCurriculum();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('eTestCurriculum', JSON.stringify(data));
+    if (data.grades.length > 0) {
+      idbSetPayload('eTestCurriculum_Cache', JSON.stringify(data)).catch(e => console.warn('IDB save failed:', e));
+    }
   }, [data]);
 
   const addGrade = async (name) => {
