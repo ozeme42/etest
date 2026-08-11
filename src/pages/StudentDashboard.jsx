@@ -548,16 +548,29 @@ export default function StudentDashboard() {
   const today = new Date();
   const todayStr = today.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const programStartDateStr = useMemo(() => {
-    const rawDate = selectedStudent?.programStartDate || selectedStudent?.createdAt || selectedStudent?.startDate || myRoadmaps[0]?.assignment?.createdAt;
-    if (rawDate) {
-      const d = new Date(rawDate);
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+  const todayProgramDayName = useMemo(() => {
+    const daysMap = [
+      { key: 'Paz', long: 'Pazar' },
+      { key: 'Pzt', long: 'Pazartesi' },
+      { key: 'Sal', long: 'Salı' },
+      { key: 'Çrş', long: 'Çarşamba' },
+      { key: 'Prş', long: 'Perşembe' },
+      { key: 'Cum', long: 'Cuma' },
+      { key: 'Cts', long: 'Cumartesi' }
+    ];
+    const now = new Date();
+    const currentDayObj = daysMap[now.getDay()];
+    
+    const rawProg = coachingProfile?.weeklyProgram;
+    if (Array.isArray(rawProg)) {
+      const todayProg = rawProg.find(r => r.day === currentDayObj.key);
+      const count = todayProg?.items?.length || 0;
+      if (count > 0) {
+        return `📌 Program: ${currentDayObj.long} (${count} Ders)`;
       }
     }
-    return '1 Eylül 2024';
-  }, [selectedStudent, myRoadmaps]);
+    return `📌 Program: ${currentDayObj.long}`;
+  }, [coachingProfile]);
 
   const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
   const overdueCount = stats.overdueCount;
@@ -658,14 +671,16 @@ export default function StudentDashboard() {
               <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight:900, color:'white', margin:0, lineHeight:1.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                 {selectedStudent?.name || 'Öğrenci'}
               </h1>
-              {/* Dates Row: Today + Compact Program Start Date */}
+              {/* Dates Row: Today + Compact Program Day Badge */}
               <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)' }}>
                   <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>📅 {todayStr}</span>
                 </div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)' }}>
-                  <span style={{ fontSize: '0.62rem', color: '#fef08a', fontWeight: 800 }}>🚀 Başlangıç: {programStartDateStr}</span>
-                </div>
+                <Link to="/my-program" style={{ textDecoration: 'none' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)', cursor: 'pointer' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#fef08a', fontWeight: 800 }}>{todayProgramDayName}</span>
+                  </div>
+                </Link>
               </div>
             </div>
           </div>
