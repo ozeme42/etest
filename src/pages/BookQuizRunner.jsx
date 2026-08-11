@@ -26,6 +26,7 @@ export default function BookQuizRunner() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [showPdf, setShowPdf] = useState(true);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const isSubmittingRef = useRef(false);
 
   // 1. Find Homework
@@ -248,21 +249,23 @@ export default function BookQuizRunner() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT: PDF (left) + OPTIK FORM (right) ── */}
+      {/* ── MAIN CONTENT: PDF (top/left) + OPTIK FORM (bottom/right) ── */}
       <div style={{
         flex: 1,
-        display: 'grid',
-        gridTemplateColumns: hasPdf && showPdf ? 'minmax(0,1.2fr) minmax(280px,0.8fr)' : '1fr',
-        gap: 0,
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         height: 'calc(100vh - 72px)',
         overflow: 'hidden',
       }}>
 
-        {/* LEFT: PDF Viewer */}
+        {/* TOP / LEFT: PDF Viewer */}
         {hasPdf && showPdf && (
           <div style={{
-            height: '100%', overflow: 'hidden',
-            borderRight: '1px solid #e2e8f0',
+            height: isMobile ? '55%' : '100%',
+            width: isMobile ? '100%' : '60%',
+            overflow: 'hidden',
+            borderRight: isMobile ? 'none' : '1px solid #e2e8f0',
+            borderBottom: isMobile ? '1px solid #e2e8f0' : 'none',
             display: 'flex', flexDirection: 'column'
           }}>
             <PdfViewerPanel
@@ -274,11 +277,13 @@ export default function BookQuizRunner() {
           </div>
         )}
 
-        {/* RIGHT: Optik Form */}
+        {/* BOTTOM / RIGHT: Optik Form */}
         <div style={{
-          height: '100%', overflowY: 'auto',
+          height: isMobile && hasPdf && showPdf ? '45%' : '100%',
+          width: isMobile ? '100%' : (hasPdf && showPdf ? '40%' : '100%'),
+          overflowY: 'auto',
           background: '#f8fafc',
-          padding: '1.25rem',
+          padding: isMobile ? '0.85rem' : '1.25rem',
         }}>
           <div style={{
             fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase',

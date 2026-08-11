@@ -39,7 +39,7 @@ export default function PhysicalExamRunner() {
   const homework = homeworks.find(h => h.id === hwId);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
   const [showMobileStats, setShowMobileStats] = useState(false);
-  const [showPdf, setShowPdf] = useState(false);
+  const [showPdf, setShowPdf] = useState(() => Boolean(homework?.pdfUrl));
   const isSubmittingRef = useRef(false);
   
   // Student answers state: { "Türkçe": ["A", "B", "", "C", ...], "Matematik": [...] }
