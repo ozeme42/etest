@@ -22,6 +22,20 @@
   overflow: hidden;
 }
 
+body.global-draw-lock {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+  -webkit-overflow-scrolling: auto !important;
+}
+
+body.global-draw-lock * {
+  overscroll-behavior: none !important;
+}
+
 .quiz-container.fullscreen-mode .quiz-header {
   display: none; /* Hide header in fullscreen */
 }

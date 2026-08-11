@@ -140,37 +140,21 @@ export default function DrawingOverlay({ children }) {
   // The absolute nuclear option to prevent ALL scrolling on iOS/Android
   useEffect(() => {
     const preventGlobalScroll = (e) => {
-      if (isDrawingMode) {
-        // Prevent default only if we are touching inside the DrawingOverlay, or globally to be safe
-        if (e.cancelable) {
-          e.preventDefault();
-        }
+      if (isDrawingMode && e.cancelable) {
+        e.preventDefault();
       }
     };
 
     if (isDrawingMode) {
-      // 1. Lock the body scroll strictly via CSS
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-      document.documentElement.style.overflow = 'hidden';
-      document.documentElement.style.touchAction = 'none';
-
-      // 2. Intercept all touchmoves at the document level
+      document.body.classList.add('global-draw-lock');
       document.addEventListener('touchmove', preventGlobalScroll, { passive: false });
     } else {
-      // Release locks
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.touchAction = '';
+      document.body.classList.remove('global-draw-lock');
       document.removeEventListener('touchmove', preventGlobalScroll);
     }
 
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.touchAction = '';
+      document.body.classList.remove('global-draw-lock');
       document.removeEventListener('touchmove', preventGlobalScroll);
     };
   }, [isDrawingMode]);
