@@ -223,7 +223,13 @@ export function EvaluationProvider({ children }) {
       });
     }
 
-    setSubmissions(prev => [...prev, newSub]);
+    setSubmissions(prev => {
+      const nextSubs = [...prev, newSub];
+      try {
+        localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
+      } catch (e) {}
+      return nextSubs;
+    });
     await dbSaveSubmission(newSub);
     return newSub.id;
   };
@@ -307,6 +313,9 @@ export function EvaluationProvider({ children }) {
         return sub;
       });
       if (target) {
+        try {
+          localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
+        } catch (e) {}
         dbSaveSubmission(target);
       }
       return nextSubs;

@@ -131,7 +131,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         });
       }
       onAutoSave(formattedAnswers);
-    }, 500);
+    }, 30);
     setSaveTimeout(timeoutId);
   };
 
@@ -171,6 +171,10 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         [qNo]: optIdx,
         [String(qNo)]: optIdx
       };
+      try {
+        localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated));
+        if (test.id) localStorage.setItem(`draft_quiz_${test.id}_ans`, JSON.stringify(updated));
+      } catch (e) {}
       triggerAutoSave(updated, openEndedText);
       return updated;
     });
@@ -183,6 +187,10 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         [qNo]: val,
         [String(qNo)]: val
       };
+      try {
+        localStorage.setItem(`${draftKey}_txt`, JSON.stringify(updated));
+        if (test.id) localStorage.setItem(`draft_quiz_${test.id}_txt`, JSON.stringify(updated));
+      } catch (e) {}
       triggerAutoSave(answers, updated);
       return updated;
     });
