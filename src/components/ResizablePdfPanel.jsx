@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { getEmbedUrl } from './PdfViewerPanel';
 import {
   FileText, X, Maximize2, Minimize2, ExternalLink,
-  GripVertical, PanelLeft, PanelRight, PanelTop, Layers
+  GripVertical, PanelLeft, PanelRight, PanelTop, Layers, Pencil
 } from 'lucide-react';
 
 /**
@@ -26,7 +26,9 @@ export default function ResizablePdfPanel({
   mode = 'side',
   onModeChange,
   defaultWidth = '48%',
-  isFullScreen = false
+  isFullScreen = false,
+  onToggleDrawing,
+  isDrawingOpen = false
 }) {
   const embedUrl = getEmbedUrl(pdfUrl);
 
@@ -249,6 +251,21 @@ export default function ResizablePdfPanel({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            {onToggleDrawing && (
+              <button
+                onClick={onToggleDrawing}
+                title={isDrawingOpen ? "Çizim Modunu Kapat" : "Çizim Yap"}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '0.35rem 0.65rem', borderRadius: '0.5rem',
+                  background: isDrawingOpen ? '#eab308' : '#3b82f6',
+                  color: 'white', border: 'none', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
+                }}
+              >
+                <Pencil size={12} />
+                <span>{isDrawingOpen ? 'Çizimi Kapat' : 'Çizim Yap'}</span>
+              </button>
+            )}
             <ModeBtn title="Küçült (Sol Panele)" onClick={() => changeMode('side')} icon={<Minimize2 size={12} />} />
             <ModeBtn title="Küçült (Üst Panele)" onClick={() => changeMode('top')} icon={<Minimize2 size={12} />} />
             <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
@@ -304,6 +321,21 @@ export default function ResizablePdfPanel({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {onToggleDrawing && (
+                <button
+                  onClick={onToggleDrawing}
+                  title={isDrawingOpen ? "Çizim Modunu Kapat" : "Çizim Yap"}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.35rem 0.65rem', borderRadius: '0.5rem',
+                    background: isDrawingOpen ? '#eab308' : '#3b82f6',
+                    color: 'white', border: 'none', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
+                  }}
+                >
+                  <Pencil size={12} />
+                  <span>{isDrawingOpen ? 'Çizimi Kapat' : 'Çizim Yap'}</span>
+                </button>
+              )}
               <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
               <ModeBtn title="Tam Ekran Yap" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
               <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />

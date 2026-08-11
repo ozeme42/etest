@@ -469,6 +469,8 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             mode={pdfMode}
             onModeChange={setPdfMode}
             isFullScreen={isMobile || !showOptikForm}
+            onToggleDrawing={() => setIsDrawingOpen(p => !p)}
+            isDrawingOpen={isDrawingOpen}
           />
         )}
 
@@ -602,7 +604,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           </div>
         </div>
       )}
-      {/* Mobile Floating Action Button */}
+      {/* Mobile Floating Action Button (Icon Only) */}
       {isMobile && (
         <button
           onClick={() => setShowMobileOpticModal(true)}
@@ -614,19 +616,18 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             background: 'linear-gradient(135deg, #10b981, #059669)',
             color: 'white',
             border: 'none',
-            borderRadius: '99px',
-            padding: '0.75rem 1.25rem',
-            fontWeight: 900,
-            fontSize: '0.85rem',
-            boxShadow: '0 8px 24px rgba(16,185,129,0.45)',
+            borderRadius: '50%',
+            width: '3.5rem',
+            height: '3.5rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(16,185,129,0.5)',
             cursor: 'pointer'
           }}
+          title="Optik Formu Aç"
         >
-          <FileSpreadsheet size={18} />
-          <span>📝 Optik Form ({Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '').length}/{qCount})</span>
+          <FileSpreadsheet size={24} />
         </button>
       )}
 
