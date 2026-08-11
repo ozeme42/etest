@@ -189,7 +189,12 @@ export default function HomeworkManager() {
   const getTargetLabel = (hw) => {
     if (hw.targetType === 'grade' || hw.targetType === 'class') {
       const names = (curData?.grades || []).filter(g => (hw.targetIds || []).includes(g.id) || (hw.targetIds || []).includes(g.name)).map(g => g.name);
-      if (names.length) return names.join(', ');
+      if (names.length > 0) return names.join(', ');
+      
+      // If it's a raw system ID that no longer exists in DB, show "Silinmiş Sınıf"
+      const hasRawId = Array.isArray(hw.targetIds) && hw.targetIds.some(id => id.startsWith('g_') || id.startsWith('c_'));
+      if (hasRawId) return 'Silinmiş Sınıf';
+      
       if (Array.isArray(hw.targetIds) && hw.targetIds.length > 0) return hw.targetIds.join(', ');
       return 'Tüm Sınıflar';
     }
