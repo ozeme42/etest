@@ -14,7 +14,9 @@ import {
   Calendar,
   FileJson,
   X,
-  ListPlus
+  ListPlus,
+  Sparkles,
+  Hash
 } from 'lucide-react';
 
 export default function StudyPlanDetail() {
@@ -164,6 +166,38 @@ export default function StudyPlanDetail() {
     const newSubjects = subjects.map(s => {
       if (s.id === unitId) {
         return { ...s, topics: (s.topics || []).filter(t => t.id !== topicId) };
+      }
+      return s;
+    });
+    updateStudyPlan(plan.id, { subjects: newSubjects });
+  };
+
+  const handleAutoNumberDays = (targetUnitId = null) => {
+    let dayCounter = 1;
+    const newSubjects = subjects.map(unit => {
+      if (targetUnitId && unit.id !== targetUnitId) return unit;
+      const newTopics = (unit.topics || []).map(t => {
+        const updated = { ...t, day: String(dayCounter) };
+        dayCounter++;
+        return updated;
+      });
+      return { ...unit, topics: newTopics };
+    });
+
+    updateStudyPlan(plan.id, { subjects: newSubjects });
+    alert(`Konular Gün 1'den Gün ${dayCounter - 1}'e kadar sırayla otomatik numaralandırıldı! ✨`);
+  };
+
+  const handleSetTopicDay = (unitId, topicId, newDayStr) => {
+    const newSubjects = subjects.map(s => {
+      if (s.id === unitId) {
+        const newTopics = (s.topics || []).map(t => {
+          if (t.id === topicId) {
+            return { ...t, day: newDayStr };
+          }
+          return t;
+        });
+        return { ...s, topics: newTopics };
       }
       return s;
     });
@@ -345,7 +379,17 @@ export default function StudyPlanDetail() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {subjects.length > 0 && (
+              <button
+                onClick={() => handleAutoNumberDays()}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-all shadow-sm border border-indigo-200/80 font-semibold text-sm"
+                title="Tüm konulara sırayla Gün 1, Gün 2, Gün 3... atar"
+              >
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span>Günleri Otomatik Sırala (1..N)</span>
+              </button>
+            )}
             <button
               onClick={() => setJsonModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all shadow-sm border border-slate-200"
@@ -506,7 +550,33 @@ export default function StudyPlanDetail() {
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 self-end sm:self-auto">
+                              <div className="flex items-center gap-2 self-end sm:self-auto">
+                                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs">
+                                  <button
+                                    onClick={() => {
+                                      const cur = parseInt(String(topic.day || '1').replace(/\D/g, ''), 10) || 1;
+                                      handleSetTopicDay(unit.id, topic.id, String(Math.max(1, cur - 1)));
+                                    }}
+                                    className="w-5 h-5 flex items-center justify-center font-bold text-slate-500 hover:bg-white rounded-md transition-all"
+                                    title="Günü Azalt"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="px-1 font-black text-indigo-700 text-xs whitespace-nowrap">
+                                    {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`) : '+ Gün'}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const cur = parseInt(String(topic.day || '0').replace(/\D/g, ''), 10) || 0;
+                                      handleSetTopicDay(unit.id, topic.id, String(cur + 1));
+                                    }}
+                                    className="w-5 h-5 flex items-center justify-center font-bold text-slate-500 hover:bg-white rounded-md transition-all"
+                                    title="Günü Artır"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+
                                 <button 
                                   onClick={() => openTopicModal(unit.id, topic)}
                                   className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
