@@ -761,14 +761,48 @@ export default function StudentDashboard() {
         <div style={S.sectionTitle}>
           <span style={{ fontSize:14 }}>⚡</span> Hızlı Erişim
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '0.75rem' }}>
           {quickTiles.map((t, i) => (
-            <button key={i} onClick={() => navigate(t.to)} className="sd-tile"
-              style={{ background:t.g, borderRadius:20, padding: isMobile ? '1rem' : '1.25rem', display:'flex', flexDirection:'column', gap:'0.5rem', border:'none', cursor:'pointer', textAlign:'left', boxShadow:'0 6px 20px rgba(0,0,0,0.12)', animation:`sdFadeUp 0.4s ease ${i*0.08}s both` }}>
-              <div style={{ fontSize: isMobile ? '1.75rem' : '2rem', lineHeight:1 }}>{t.icon}</div>
-              <div>
-                <div style={{ fontSize: isMobile ? '0.88rem' : '0.95rem', fontWeight:800, color:'white', lineHeight:1.2 }}>{t.label}</div>
-                <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.75)', fontWeight:600, marginTop:2 }}>{t.sub}</div>
+            <button
+              key={i}
+              onClick={() => navigate(t.to)}
+              className="sd-tile"
+              style={{
+                background: t.g,
+                borderRadius: 20,
+                padding: isMobile ? '0.85rem' : '1.1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
+                animation: `sdFadeUp 0.4s ease ${i * 0.08}s both`
+              }}
+            >
+              <div style={{
+                fontSize: isMobile ? '1.35rem' : '1.65rem',
+                lineHeight: 1,
+                flexShrink: 0,
+                background: 'rgba(255,255,255,0.2)',
+                width: isMobile ? 40 : 46,
+                height: isMobile ? 40 : 46,
+                borderRadius: 14,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backdropFilter: 'blur(6px)'
+              }}>
+                {t.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 900, color: 'white', lineHeight: 1.2 }}>
+                  {t.label}
+                </div>
+                <div style={{ fontSize: '0.64rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.sub}
+                </div>
               </div>
             </button>
           ))}
