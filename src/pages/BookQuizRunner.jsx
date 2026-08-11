@@ -552,7 +552,7 @@ export default function BookQuizRunner() {
                   }}
                 >
                   <Check size={18} />
-                  <span>Cevapları Onayla & PDF'e Dön</span>
+                  <span>Cevapları Onayla ve PDF'e Dön</span>
                 </button>
               </div>
             </div>
@@ -571,7 +571,7 @@ export default function BookQuizRunner() {
               Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz?
             </p>
             <div style={{ background: '#f1f5f9', borderRadius: '0.6rem', padding: '0.75rem', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 800 }}>
-              ✅ {answeredCount} işaretlendi &nbsp;|&nbsp; ⬜ {qCount - answeredCount} boş
+              ✅ {answeredCount} işaretlendi | ⬜ {qCount - answeredCount} boş
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
               <button className="btn btn-outline" onClick={() => setShowFinishModal(false)}>Kontrol Et</button>
