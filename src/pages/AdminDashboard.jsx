@@ -301,30 +301,57 @@ function UserManager() {
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUserId(user.id);
+      const matchedGrade = curData?.grades?.find(g => 
+        String(g.id) === String(user.gradeId) || 
+        g.name === user.gradeId || 
+        String(g.id) === String(user.classId) || 
+        g.name === user.grade
+      );
       setFormData({
         name: user.name || '',
         email: user.email || '',
         password: user.password || '123456',
         role: user.role || 'student',
-        gradeId: user.gradeId || '',
+        gradeId: matchedGrade ? matchedGrade.id : (user.gradeId || curData?.grades?.[0]?.id || ''),
         teacherId: user.teacherId || '',
         isApproved: user.isApproved !== undefined ? user.isApproved : true
       });
     } else {
       setEditingUserId(null);
-      setFormData({ name: '', email: '', password: '123456', role: 'student', gradeId: '', teacherId: '', isApproved: true });
+      setFormData({ 
+        name: '', 
+        email: '', 
+        password: '123456', 
+        role: 'student', 
+        gradeId: curData?.grades?.[0]?.id || '', 
+        teacherId: '', 
+        isApproved: true 
+      });
     }
     setShowModal(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!formData.name) return;
+
+    const selectedGradeId = formData.gradeId || curData?.grades?.[0]?.id || 'g1';
+    const gradeObj = curData?.grades?.find(g => String(g.id) === String(selectedGradeId) || g.name === selectedGradeId);
+    const gradeName = gradeObj ? gradeObj.name : selectedGradeId;
+
+    const userPayload = {
+      ...formData,
+      gradeId: selectedGradeId,
+      classId: selectedGradeId,
+      grade: gradeName
+    };
+
     if (editingUserId) {
-      updateUser(editingUserId, formData);
-      await dbAddUser({ id: editingUserId, ...formData });
+      await updateUser(editingUserId, userPayload);
+      await dbAddUser({ id: editingUserId, ...userPayload });
     } else {
-      const newUser = await addUser(formData);
-      if (newUser) await dbAddUser(newUser);
+      const newUser = await addUser(userPayload);
+      if (newUser) await dbAddUser({ ...newUser, ...userPayload });
     }
     setShowModal(false);
   };

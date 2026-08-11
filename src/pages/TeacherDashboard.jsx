@@ -109,7 +109,13 @@ export default function TeacherDashboard() {
     setEditStudentName(student.name || '');
     setEditStudentEmail(student.email || '');
     setEditStudentPassword(student.password || '123456');
-    setEditStudentGrade(student.gradeId || data?.grades?.[0]?.id || 'g1');
+    const matchedGrade = data?.grades?.find(g => 
+      String(g.id) === String(student.gradeId) || 
+      g.name === student.gradeId || 
+      String(g.id) === String(student.classId) || 
+      g.name === student.grade
+    );
+    setEditStudentGrade(matchedGrade ? matchedGrade.id : (student.gradeId || data?.grades?.[0]?.id || 'g1'));
   };
 
   const [showModal, setShowModal]         = useState(false);
@@ -1003,11 +1009,16 @@ export default function TeacherDashboard() {
               let cleanEmail = editStudentEmail.trim().toLowerCase();
               if (!cleanEmail) cleanEmail = editingStudent.email;
 
+              const gObj = data?.grades?.find(g => String(g.id) === String(editStudentGrade));
+              const gName = gObj ? gObj.name : editStudentGrade;
+
               await updateUser(editingStudent.id, {
                 name: editStudentName,
                 email: cleanEmail,
                 password: editStudentPassword || '123456',
-                gradeId: editStudentGrade
+                gradeId: editStudentGrade,
+                classId: editStudentGrade,
+                grade: gName
               });
 
               setEditingStudent(null);
