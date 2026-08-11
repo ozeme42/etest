@@ -687,31 +687,39 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                         <textarea
                           placeholder={`${qNo}. sorunun cevabı...`}
                           value={textVal}
-                          onChange={(e) => setOpenEndedText(prev => ({ ...prev, [qNo]: e.target.value }))}
+                          onChange={(e) => handleTextChange(qNo, e.target.value)}
                           style={{ flex: 1, minHeight: 60, padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #334155', background: '#0f172a', color: 'white', fontSize: '0.85rem' }}
                         />
                       ) : (
                         <div style={{ display: 'flex', gap: '0.4rem', flex: 1, maxWidth: 260 }}>
-                          {['A', 'B', 'C', 'D', 'E'].slice(0, Number(test.optionCount || test.optionsCount || 5)).map((opt, optIdx) => {
-                            const isSelected = selectedOpt === optIdx || selectedOpt === opt;
-                            return (
-                              <button
-                                key={opt}
-                                onClick={() => handleOptionClick(qNo, optIdx)}
-                                style={{
-                                  flex: 1, height: 38, borderRadius: '50%',
-                                  fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
-                                  border: isSelected ? '2px solid #10b981' : '1.5px solid #475569',
-                                  background: isSelected ? '#10b981' : '#0f172a',
-                                  color: isSelected ? 'white' : '#cbd5e1',
-                                  transition: 'all 0.12s',
-                                  boxShadow: isSelected ? '0 3px 8px rgba(16,185,129,0.4)' : 'none',
-                                }}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
+                          {(() => {
+                            const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
+                              ? qObj.options
+                              : (test.optionCount === 4 || test.optionsCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
+                                ? ['A', 'B', 'C', 'D']
+                                : ['A', 'B', 'C', 'D', 'E'];
+                            return optionsList.map((opt, optIdx) => {
+                              const isSelected = selectedOpt === optIdx;
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => handleOptionSelect(qNo, optIdx)}
+                                  style={{
+                                    flex: 1, height: 38, borderRadius: '50%',
+                                    fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                                    border: isSelected ? '2px solid #10b981' : '1.5px solid #475569',
+                                    background: isSelected ? '#10b981' : '#0f172a',
+                                    color: isSelected ? 'white' : '#cbd5e1',
+                                    transition: 'all 0.12s',
+                                    boxShadow: isSelected ? '0 3px 8px rgba(16,185,129,0.4)' : 'none',
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            });
+                          })()}
                         </div>
                       )}
                     </div>
