@@ -653,12 +653,49 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Right: success donut */}
-          <div style={{ ...S.glassChip, padding: isMobile ? '0.75rem' : '1rem', textAlign:'center', flexShrink:0, minWidth: isMobile ? 78 : 90 }}>
-            <div style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight:900, color:'white', lineHeight:1 }}>{successPct}<span style={{ fontSize:'0.65rem', fontWeight:700 }}>%</span></div>
-            <div style={{ fontSize:'0.55rem', color:'rgba(255,255,255,0.7)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Başarı</div>
-            <div style={{ marginTop:6, width:'100%', height:4, background:'rgba(255,255,255,0.2)', borderRadius:99 }}>
-              <div style={{ height:'100%', width:`${Math.min(successPct,100)}%`, background:'#22c55e', borderRadius:99 }} />
+          {/* Right: Ultra Premium Glassmorphic Circular Progress Badge */}
+          <div style={{
+            position: 'relative',
+            width: isMobile ? 74 : 90,
+            height: isMobile ? 74 : 90,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.28), rgba(255,255,255,0.08))',
+            backdropFilter: 'blur(16px)',
+            border: '1.5px solid rgba(255,255,255,0.4)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            {/* SVG Circular Progress Ring */}
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.18)"
+                strokeWidth="2.8"
+              />
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke={successPct >= 70 ? '#4ade80' : successPct >= 50 ? '#fbbf24' : '#f87171'}
+                strokeWidth="3.2"
+                strokeDasharray={`${Math.min(successPct, 100)}, 100`}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dasharray 1.2s ease-in-out' }}
+              />
+            </svg>
+
+            {/* Inner Content */}
+            <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
+              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                %{successPct}
+              </div>
+              <div style={{ fontSize: '0.52rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>
+                Başarı
+              </div>
             </div>
           </div>
         </div>
