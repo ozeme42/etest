@@ -385,13 +385,19 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           )}
 
           <button
-            onClick={() => setShowOptikForm(!showOptikForm)}
+            onClick={() => {
+              const nextState = !showOptikForm;
+              setShowOptikForm(nextState);
+              if (nextState && isMobile) {
+                setPdfMode('top'); // On mobile, show optic form directly under PDF!
+              }
+            }}
             style={{
-              padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
+              padding: isMobile ? '0.4rem 0.65rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: !showOptikForm ? '#eab308' : '#0f172a',
-              border: '1px solid #334155',
-              color: !showOptikForm ? 'white' : '#e2e8f0',
+              background: showOptikForm ? '#059669' : '#0f172a',
+              border: `1.5px solid ${showOptikForm ? '#10b981' : '#334155'}`,
+              color: 'white',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -399,10 +405,10 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               alignItems: 'center',
               gap: '0.4rem'
             }}
-            title={showOptikForm ? "Optik Gizle" : "Optik Göster"}
+            title={showOptikForm ? "Optik Gizle (Yüzen İkona Geç)" : "Optik Ekranda Göster"}
           >
             {showOptikForm ? <EyeOff size={isMobile ? 14 : 16} /> : <Eye size={isMobile ? 14 : 16} />}
-            {!isMobile && (showOptikForm ? "Optik Gizle" : "Optik Göster")}
+            <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
           </button>
 
           <button
@@ -468,14 +474,14 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             title={test.title || test.name || 'Kitap PDF'}
             mode={pdfMode}
             onModeChange={setPdfMode}
-            isFullScreen={isMobile || !showOptikForm}
+            isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}
           />
         )}
 
-        {/* RIGHT/BOTTOM: Optik Form — scrollable (Desktop Only) */}
-        {!isMobile && showOptikForm && (
+        {/* RIGHT/BOTTOM: Optik Form — scrollable */}
+        {showOptikForm && (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -604,8 +610,8 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           </div>
         </div>
       )}
-      {/* Mobile Floating Action Button (Icon Only) */}
-      {isMobile && (
+      {/* Mobile Floating Action Button (Only shown when inline optic form is hidden) */}
+      {isMobile && !showOptikForm && (
         <button
           onClick={() => setShowMobileOpticModal(true)}
           style={{
