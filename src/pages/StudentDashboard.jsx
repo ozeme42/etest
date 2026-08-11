@@ -359,6 +359,15 @@ export default function StudentDashboard() {
     return (studyAssignments || []).filter(a => String(a.studentId) === String(selectedStudent?.id));
   }, [studyAssignments, selectedStudent]);
 
+  const myRoadmaps = useMemo(() => {
+    return (myStudyAssignments || []).map(assignment => {
+      const targetPlanId = assignment.planId || assignment.studyPlanId;
+      const plan = (studyPlans || []).find(p => String(p.id) === String(targetPlanId));
+      if (!plan) return null;
+      return { assignment, plan };
+    }).filter(Boolean);
+  }, [myStudyAssignments, studyPlans]);
+
   const coachingNote = getCoachingNoteForStudent(selectedStudent?.id);
   const coachingProfile = getCoachingProfileForStudent(selectedStudent?.id);
   const studentMeetings = getMeetingsForStudent(selectedStudent?.id);
@@ -707,17 +716,14 @@ export default function StudentDashboard() {
       </div>
 
       {/* ════════════════ STUDY PLANS ════════════════ */}
-      {myStudyAssignments.length > 0 && (
+      {myRoadmaps.length > 0 && (
         <div style={S.section} className="sd-section">
           <div style={S.sectionTitle}>
             <span style={{ fontSize:14 }}>🗺️</span> Yol Haritalarım
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
-            {myStudyAssignments.map(assignment => {
-              const targetPlanId = assignment.planId || assignment.studyPlanId;
-              const plan = studyPlans.find(p => String(p.id) === String(targetPlanId));
-              const title = plan?.title || assignment.planTitle || assignment.title || assignment.subject || 'Çalışma Planı Yol Haritası';
-              const total = plan?.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
+            {myRoadmaps.map(({ assignment, plan }) => {
+              const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
               const done = assignment.completedTopics?.length || 0;
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
               return (
@@ -727,12 +733,12 @@ export default function StudentDashboard() {
                     <Target size={20} color="white" />
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#0f172a', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{title}</div>
+                    <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#0f172a', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
                     <div style={{ height:6, background:'#f1f5f9', borderRadius:99, overflow:'hidden', marginBottom:3 }}>
                       <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 1s' }} />
                     </div>
                     <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:700, color:'#94a3b8' }}>
-                      <span>{done}/{total > 0 ? total : '—'} konu</span>
+                      <span>{done}/{total} konu</span>
                       <span style={{ color:'#6366f1' }}>%{pct}</span>
                     </div>
                   </div>

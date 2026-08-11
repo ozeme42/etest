@@ -171,7 +171,7 @@ export default function StudyPlanDetail() {
   // Assign Actions
   const handleAssign = () => {
     selectedStudents.forEach(studentId => {
-      addStudyAssignment({ studentId, planId: plan.id, completedTopics: [] });
+      addStudyAssignment({ studentId, planId: plan.id, studyPlanId: plan.id, completedTopics: [] });
     });
     setAssignModal(false);
     setSelectedStudents([]);
