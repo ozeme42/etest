@@ -412,6 +412,7 @@ export default function BookQuizRunner() {
                 </div>
               );
             })}
+          </div>
           {/* Desktop submit button */}
           <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button
