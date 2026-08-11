@@ -1978,12 +1978,25 @@ const getAnswerKeyCount = (answerKey) => {
               </div>
             </div>
             <div className="filter-grid">
-              <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)}>
-                <option value="all">Tüm Sınıflar (Genel)</option>
-                {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
+              
+              {/* Sınıf Dropdown: Sadece 'Tüm İçerikler'den gelindiyse (activeGradeId null) göster */}
+              {!activeGradeId && (
+                <select value={selectedGrade} onChange={e => { setSelectedGrade(e.target.value); setSelectedSubject('all'); setSelectedUnit('all'); setSelectedTopic('all'); }}>
+                  <option value="all">Tüm Sınıflar (Genel)</option>
+                  {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+              )}
 
-              {activeSubjectId !== 'all_subjects' && (
+              {/* Ders Dropdown: Sadece 'Tüm Dersler'den veya 'Tüm İçerikler'den gelindiyse (activeSubjectId all_subjects) göster */}
+              {activeSubjectId === 'all_subjects' && (
+                <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setSelectedUnit('all'); setSelectedTopic('all'); }}>
+                  <option value="all">Tüm Dersler (Genel)</option>
+                  {filteredSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
+
+              {/* Ünite ve Konu Dropdown'ları: Yalnızca bir ders seçiliyse göster (Karttan ya da Dropdown'dan) */}
+              {(activeSubjectId !== 'all_subjects' || (selectedSubject && selectedSubject !== 'all')) && (
                 <>
                   <select value={selectedUnit} onChange={e => { setSelectedUnit(e.target.value); setSelectedTopic('all'); }}>
                     <option value="all">Tüm Üniteler (Genel)</option>
