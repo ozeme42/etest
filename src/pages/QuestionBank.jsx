@@ -2824,16 +2824,56 @@ const getAnswerKeyCount = (answerKey) => {
                           <h4 style={{ margin: 0, fontWeight: 900, color: '#1e293b', fontSize: '1.05rem' }}>🔘 Cevap Anahtarı Tablosu ve Soru Sayısı</h4>
                           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Paketteki her sorunun doğru şıkkını tek tek veya toplu olarak girin.</p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'white', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }}>
-                          <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#334155' }}>Toplam Soru Sayısı:</label>
-                          <input 
-                            type="number" 
-                            min="1" 
-                            max="100" 
-                            value={formData.questionCount} 
-                            onChange={e => setFormData({...formData, questionCount: parseInt(e.target.value, 10) || 1})}
-                            style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #4f46e5', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem' }}
-                          />
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                          {/* Option Count Selector (4 Şık A-D vs 5 Şık A-E) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'white', padding: '0.3rem 0.6rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginRight: '0.15rem' }}>Şık Sayısı:</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, options: ['', '', '', ''] }))}
+                              style={{
+                                padding: '0.25rem 0.55rem',
+                                borderRadius: '0.5rem',
+                                border: (formData.options?.length || 4) === 4 ? '2px solid #059669' : '1px solid #cbd5e1',
+                                background: (formData.options?.length || 4) === 4 ? '#ecfdf5' : '#f8fafc',
+                                color: (formData.options?.length || 4) === 4 ? '#047857' : '#64748b',
+                                fontWeight: 900,
+                                fontSize: '0.75rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🏫 4 Şık (A-D)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, options: ['', '', '', '', ''] }))}
+                              style={{
+                                padding: '0.25rem 0.55rem',
+                                borderRadius: '0.5rem',
+                                border: (formData.options?.length || 4) === 5 ? '2px solid #8b5cf6' : '1px solid #cbd5e1',
+                                background: (formData.options?.length || 4) === 5 ? '#f5f3ff' : '#f8fafc',
+                                color: (formData.options?.length || 4) === 5 ? '#6d28d9' : '#64748b',
+                                fontWeight: 900,
+                                fontSize: '0.75rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🏛️ 5 Şık (A-E)
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'white', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }}>
+                            <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#334155' }}>Toplam Soru Sayısı:</label>
+                            <input 
+                              type="number" 
+                              min="1" 
+                              max="100" 
+                              value={formData.questionCount} 
+                              onChange={e => setFormData({...formData, questionCount: parseInt(e.target.value, 10) || 1})}
+                              style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #4f46e5', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem' }}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -2841,15 +2881,18 @@ const getAnswerKeyCount = (answerKey) => {
                       <div style={{ maxHeight: '340px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem', padding: '0.25rem' }}>
                         {Array.from({ length: formData.questionCount }).map((_, idx) => {
                           const selectedOpt = opticAnswers[idx];
+                          const currentOptionCount = (formData.options && formData.options.length) ? formData.options.length : (isHighSchoolGrade(selectedGrade || activeGradeId) ? 5 : 4);
+                          const currentBubbleLetters = currentOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+
                           return (
                             <div key={idx} style={{ background: 'white', padding: '0.65rem 1rem', borderRadius: '0.85rem', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                               <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
                                 Soru {idx + 1}
                               </div>
 
-                              {/* Optic Bubbles A B C D E */}
+                              {/* Optic Bubbles A-D or A-E */}
                               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
+                                {currentBubbleLetters.map((letter, optIdx) => {
                                   const isSelected = selectedOpt === optIdx;
                                   return (
                                     <button
