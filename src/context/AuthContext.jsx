@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useUser } from './UserContext';
 import { dbAddUser } from '../services/supabaseService';
+import { safeSetItem } from '../utils/storageUtils';
 
 const AuthContext = createContext();
 
@@ -45,9 +46,9 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('eTestAuthUser', JSON.stringify(currentUser));
+      safeSetItem('eTestAuthUser', JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem('eTestAuthUser');
+      try { localStorage.removeItem('eTestAuthUser'); } catch {}
     }
   }, [currentUser]);
 
