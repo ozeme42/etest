@@ -108,9 +108,9 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
 
   // Dedicated Mobile Solver States
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
-  const [mobileTab, setMobileTab] = useState('doc'); // 'doc', 'optic', 'scratch', 'split'
+  const [mobileTab, setMobileTab] = useState('split'); // 'split' by default so optical form opens at the bottom!
   const [showMobileOpticDrawer, setShowMobileOpticDrawer] = useState(false);
-  const [mobileSplitRatio, setMobileSplitRatio] = useState(50); // top section % height in mobile split view
+  const [mobileSplitRatio, setMobileSplitRatio] = useState(55); // top section % height in mobile split view
 
   // Grace period for initial context data load
   const [initLoading, setInitLoading] = useState(true);
