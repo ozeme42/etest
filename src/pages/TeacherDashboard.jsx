@@ -581,20 +581,32 @@ export default function TeacherDashboard() {
                               </div>
                             </td>
                             <td className="py-3 px-4">
-                              <select
-                                value={student.gradeId || ''}
-                                onChange={async (e) => {
-                                  const gId = e.target.value;
-                                  const gName = data.grades.find(g => String(g.id) === String(gId))?.name;
-                                  await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName });
-                                }}
-                                className="px-2.5 py-1 rounded-xl font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-xs focus:outline-none cursor-pointer"
-                              >
-                                <option value="">— Sınıf Seçiniz</option>
-                                {data.grades.map(g => (
-                                  <option key={g.id} value={g.id}>{g.name}</option>
-                                ))}
-                              </select>
+                              {(() => {
+                                const studentGradeObj = data?.grades?.find(g => 
+                                  String(g.id) === String(student.gradeId) || 
+                                  g.name === student.gradeId || 
+                                  String(g.id) === String(student.classId) || 
+                                  g.name === student.grade ||
+                                  g.name === student.className
+                                );
+                                const currentGradeVal = studentGradeObj ? studentGradeObj.id : (student.gradeId || '');
+                                return (
+                                  <select
+                                    value={currentGradeVal}
+                                    onChange={async (e) => {
+                                      const gId = e.target.value;
+                                      const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name;
+                                      await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
+                                    }}
+                                    className="px-2.5 py-1 rounded-xl font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-xs focus:outline-none cursor-pointer"
+                                  >
+                                    <option value="">— Sınıf Seçiniz</option>
+                                    {data.grades.map(g => (
+                                      <option key={g.id} value={g.id}>{g.name}</option>
+                                    ))}
+                                  </select>
+                                );
+                              })()}
                             </td>
                             <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-semibold">{student.email}</td>
                             <td className="py-3 px-4">
