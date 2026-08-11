@@ -4,7 +4,7 @@ import { initNativeApp } from './services/nativeMobileService';
 import MobileBottomNav from './components/MobileBottomNav';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
-  Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree
+  Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar
 } from 'lucide-react';
 
 import Landing from './pages/Landing';
@@ -36,6 +36,7 @@ import MyCoachingPage from './pages/MyCoachingPage';
 import ExamManager from './pages/ExamManager';
 import ExamAnalysisPage from './pages/ExamAnalysisPage';
 import PhysicalExamRunner from './pages/PhysicalExamRunner';
+import StudentProgramPage from './pages/StudentProgramPage';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
@@ -125,10 +126,13 @@ function Sidebar() {
                 <ClipboardCheck size={20} /> Denemelerim
               </NavLink>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-                <ListTree size={20} /> Sonuçlarım
+                <Award size={20} /> Sonuçlarım
               </NavLink>
               <NavLink to="/wrong-answers" className="nav-link" onClick={closeSidebar}>
-                <AlertCircle size={20} /> Yanlışlarım
+                <AlertTriangle size={20} /> Hatalarım
+              </NavLink>
+              <NavLink to="/my-program" className="nav-link" onClick={closeSidebar}>
+                <Calendar size={20} /> Programım
               </NavLink>
               <NavLink to="/goals" className="nav-link" onClick={closeSidebar}>
                 <Target size={20} /> Hedefler & Program
@@ -238,6 +242,7 @@ function AppContent() {
           <Route path="/goals" element={<GoalsAndSchedulePage />} />
           <Route path="/student-results" element={<StudentResultsPage />} />
           <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
+          <Route path="/my-program" element={<StudentProgramPage />} />
           <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
           <Route path="/my-coaching" element={<MyCoachingPage />} />
           <Route path="/physical-exam" element={<ExamManager />} />

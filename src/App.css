@@ -48,7 +48,7 @@
   border-right: 1px solid rgba(0, 0, 0, 0.05);
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
-  z-index: 50;
+  z-index: 9999;
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }
@@ -133,7 +133,7 @@
   bottom: 0;
   background: rgba(0,0,0,0.4);
   backdrop-filter: blur(4px);
-  z-index: 45;
+  z-index: 9998;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -146,6 +146,10 @@
   
   .mobile-header {
     display: flex;
+  }
+  
+  .app-container:not(.no-sidebar) .main-content {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 85px);
   }
   
   .sidebar {

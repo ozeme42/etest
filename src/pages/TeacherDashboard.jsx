@@ -15,13 +15,13 @@ import { useCoaching } from '../context/CoachingContext';
 
 /* ── Subject Themes ── */
 const subjectThemes = {
-  'Matematik': { bg: 'bg-blue-50/80 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800/50', accent: 'bg-blue-500' },
-  'Fen Bilimleri': { bg: 'bg-teal-50/80 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800/50', accent: 'bg-teal-500' },
-  'Türkçe': { bg: 'bg-orange-50/80 dark:bg-orange-950/30', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800/50', accent: 'bg-orange-500' },
-  'Sosyal Bilgiler': { bg: 'bg-purple-50/80 dark:bg-purple-950/30', text: 'text-purple-700 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-800/50', accent: 'bg-purple-500' },
-  'İngilizce': { bg: 'bg-rose-50/80 dark:bg-rose-950/30', text: 'text-rose-700 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-800/50', accent: 'bg-rose-500' },
+  'Matematik': { bg: 'bg-blue-50/80', text: 'text-blue-700', border: 'border-blue-200', accent: 'bg-blue-500' },
+  'Fen Bilimleri': { bg: 'bg-teal-50/80', text: 'text-teal-700', border: 'border-teal-200', accent: 'bg-teal-500' },
+  'Türkçe': { bg: 'bg-orange-50/80', text: 'text-orange-700', border: 'border-orange-200', accent: 'bg-orange-500' },
+  'Sosyal Bilgiler': { bg: 'bg-purple-50/80', text: 'text-purple-700', border: 'border-purple-200', accent: 'bg-purple-500' },
+  'İngilizce': { bg: 'bg-rose-50/80', text: 'text-rose-700', border: 'border-rose-200', accent: 'bg-rose-500' },
 };
-const getSubTheme = (sub) => subjectThemes[sub] || { bg: 'bg-slate-50 dark:bg-slate-900/30', text: 'text-slate-700 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-700', accent: 'bg-slate-500' };
+const getSubTheme = (sub) => subjectThemes[sub] || { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', accent: 'bg-slate-500' };
 
 /* ── Compact Stat Card Component ── */
 function StatCard({ icon: Icon, label, value, grad }) {
@@ -46,22 +46,22 @@ function TestCard({ test, onEdit }) {
       <div className={`h-1 w-full absolute top-0 left-0 ${theme.accent}`} />
       <div>
         <div className="flex items-start justify-between gap-2 mb-2 pt-1">
-          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border ${theme.border} ${theme.text}`}>
+          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white border ${theme.border} ${theme.text}`}>
             {test.subject}
           </span>
           <button
             onClick={() => onEdit(test)}
-            className="p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shadow-sm"
+            className="p-1.5 rounded-lg bg-white/80 border border-slate-200 text-slate-600 hover:text-indigo-600:text-indigo-400 transition-colors shadow-sm"
             title="Testi Düzenle"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
         </div>
-        <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug line-clamp-2 mb-3">
+        <h3 className="font-bold text-sm text-slate-800 leading-snug line-clamp-2 mb-3">
           {test.title}
         </h3>
       </div>
-      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200/60">
         <span className="flex items-center gap-1 font-semibold">
           <FileText className="w-3.5 h-3.5 text-indigo-500" /> {test.questions || 0} Soru
         </span>
@@ -238,18 +238,18 @@ export default function TeacherDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0B1120] dark:via-[#0d1528] dark:to-[#0B1120] font-sans text-slate-800 dark:text-slate-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 font-sans text-slate-800">
       
       {/* ── STICKY GLASS HEADER ── */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#0d1528]/80 backdrop-blur-2xl border-b border-slate-200/60 dark:border-slate-800/60">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-200/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block">Öğretmen Paneli</span>
-              <h1 className="text-base font-black text-slate-900 dark:text-white leading-none mt-0.5">
+              <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest block">Öğretmen Paneli</span>
+              <h1 className="text-base font-black text-slate-900 leading-none mt-0.5">
                 {currentUser?.name || 'Öğretmen'}
               </h1>
             </div>
@@ -346,7 +346,7 @@ export default function TeacherDashboard() {
         </section>
 
         {/* ── NAVIGATION TABS ── */}
-        <section className="border-b border-slate-200 dark:border-slate-800 pb-2">
+        <section className="border-b border-slate-200 pb-2">
           <div className="flex items-center gap-2 overflow-x-auto max-w-full" style={{ scrollbarWidth: 'none' }}>
             {tabs.map(t => {
               const Icon = t.icon;
@@ -358,13 +358,13 @@ export default function TeacherDashboard() {
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all whitespace-nowrap shrink-0 ${
                     active
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-2 ring-indigo-600/50"
-                      : "bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                      : "bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-100:bg-slate-700/50"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{t.label}</span>
                   {t.badge !== undefined && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"}`}>
                       {t.badge}
                     </span>
                   )}
@@ -379,12 +379,12 @@ export default function TeacherDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Recent Tests Card */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-indigo-500" /> Son Testler
                 </h3>
-                <button onClick={() => setTab('tests')} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline">
+                <button onClick={() => setTab('tests')} className="text-xs font-bold text-indigo-600 flex items-center gap-1 hover:underline">
                   Tümünü Gör <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -397,7 +397,7 @@ export default function TeacherDashboard() {
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className={`w-2.5 h-2.5 rounded-full ${theme.accent} shrink-0`} />
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">{test.title}</p>
+                          <p className="font-bold text-sm text-slate-800 truncate">{test.title}</p>
                           <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
                             <span>{test.questions} soru</span>
                             <span>•</span>
@@ -405,7 +405,7 @@ export default function TeacherDashboard() {
                           </p>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border ${theme.border} ${theme.text} shrink-0`}>
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl bg-white border ${theme.border} ${theme.text} shrink-0`}>
                         {test.subject}
                       </span>
                     </div>
@@ -418,9 +418,9 @@ export default function TeacherDashboard() {
             </div>
 
             {/* Recent Submissions */}
-            <div className="bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-500" /> Son Aktiviteler
                 </h3>
               </div>
@@ -432,15 +432,15 @@ export default function TeacherDashboard() {
                   const score   = sub.score !== undefined ? `${sub.score}%` : '—';
                   const good    = parseInt(score) >= 70;
                   return (
-                    <div key={sub.id || i} className={`flex items-center justify-between gap-3 p-3 rounded-2xl border ${good ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50' : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/50'}`}>
+                    <div key={sub.id || i} className={`flex items-center justify-between gap-3 p-3 rounded-2xl border ${good ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'}`}>
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-white shrink-0 ${good ? 'bg-emerald-500' : 'bg-rose-500'}`}>
                         {(student?.name || 'Ö').charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">{student?.name || 'Öğrenci'}</p>
+                        <p className="font-bold text-xs text-slate-800 truncate">{student?.name || 'Öğrenci'}</p>
                         <p className="text-[10px] text-slate-400 truncate mt-0.5">{test?.title || 'Test'}</p>
                       </div>
-                      <span className={`font-black text-xs shrink-0 px-2 py-0.5 rounded-lg ${good ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'}`}>
+                      <span className={`font-black text-xs shrink-0 px-2 py-0.5 rounded-lg ${good ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                         {score}
                       </span>
                     </div>
@@ -453,19 +453,25 @@ export default function TeacherDashboard() {
             </div>
 
             {/* Grade Distribution */}
-            <div className="lg:col-span-3 bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-4">
-              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+              <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-blue-500" /> Sınıf Bazında Öğrenci Dağılımı
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {data.grades.map(grade => {
-                  const count = students.filter(s => String(s.gradeId) === String(grade.id) || s.gradeId === grade.name).length;
+                  const count = students.filter(s => 
+                    String(s.gradeId) === String(grade.id) || 
+                    s.gradeId === grade.name ||
+                    String(s.classId) === String(grade.id) ||
+                    s.grade === grade.name ||
+                    s.className === grade.name
+                  ).length;
                   const pct   = students.length ? Math.round((count / students.length) * 100) : 0;
                   return (
-                    <div key={grade.id} className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 text-center">
-                      <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{count}</p>
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-0.5">{grade.name}</p>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-3 overflow-hidden">
+                    <div key={grade.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center">
+                      <p className="text-2xl font-black text-indigo-600">{count}</p>
+                      <p className="text-xs font-bold text-slate-700 mt-0.5">{grade.name}</p>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 mt-3 overflow-hidden">
                         <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-[10px] text-slate-400 font-bold block mt-1">%{pct}</span>
@@ -481,7 +487,7 @@ export default function TeacherDashboard() {
         {/* ── TAB 2: TESTS ── */}
         {tab === 'tests' && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -489,13 +495,13 @@ export default function TeacherDashboard() {
                   placeholder="Test başlığı ile ara..."
                   value={searchQ}
                   onChange={e => setSearchQ(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <select
                 value={filterSub}
                 onChange={e => setFilterSub(e.target.value)}
-                className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Tüm Dersler</option>
                 {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
@@ -503,9 +509,9 @@ export default function TeacherDashboard() {
             </div>
 
             {visibleTests.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800/60 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700/60 p-12 text-center">
-                <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">Arama kriterlerine uygun test bulunamadı.</p>
+              <div className="bg-white rounded-3xl border-2 border-dashed border-slate-200 p-12 text-center">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500 text-sm font-semibold">Arama kriterlerine uygun test bulunamadı.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -518,10 +524,10 @@ export default function TeacherDashboard() {
         {/* ── TAB 3: STUDENTS ── */}
         {tab === 'students' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between bg-white dark:bg-slate-800/60 p-4 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
-              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="flex items-center justify-between bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+              <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-500" /> Sınıfım
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
                   {students.length} Öğrenci
                 </span>
               </h3>
@@ -537,9 +543,9 @@ export default function TeacherDashboard() {
             </div>
 
             {students.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800/60 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700/60 p-12 text-center">
-                <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">Henüz sınıfınıza öğrenci eklemediniz.</p>
+              <div className="bg-white rounded-3xl border-2 border-dashed border-slate-200 p-12 text-center">
+                <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500 text-sm font-semibold">Henüz sınıfınıza öğrenci eklemediniz.</p>
                 <button
                   onClick={() => setShowAddStudentModal(true)}
                   className="mt-3 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs inline-flex items-center gap-1.5"
@@ -550,10 +556,10 @@ export default function TeacherDashboard() {
             ) : (
               <>
                 {/* Desktop Table View */}
-                <div className="hidden md:block bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 overflow-hidden shadow-sm">
+                <div className="hidden md:block bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700/60 text-slate-400 font-black uppercase tracking-wider">
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-black uppercase tracking-wider">
                         <th className="py-3.5 px-4">Öğrenci</th>
                         <th className="py-3.5 px-4">Sınıfı</th>
                         <th className="py-3.5 px-4">E-posta / Kullanıcı Adı</th>
@@ -563,21 +569,21 @@ export default function TeacherDashboard() {
                         <th className="py-3.5 px-4 text-right">İşlemler</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    <tbody className="divide-y divide-slate-100">
                       {students.map((student, i) => {
-                        const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId);
+                        const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId || String(g.id) === String(student.classId) || g.name === student.grade || g.name === student.className);
                         const solved = submissions.filter(s => s.studentId === student.id).length;
                         const isCoached = coachedIds.includes(student.id);
                         const avatarColors = ['bg-indigo-500','bg-blue-500','bg-emerald-500','bg-orange-500','bg-purple-500','bg-rose-500'];
                         const av = avatarColors[i % avatarColors.length];
                         return (
-                          <tr key={student.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors">
+                          <tr key={student.id} className="hover:bg-slate-50/80:bg-slate-900/40 transition-colors">
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full ${av} text-white font-black flex items-center justify-center text-xs shrink-0`}>
                                   {student.name?.charAt(0) || 'Ö'}
                                 </div>
-                                <span className="font-bold text-slate-800 dark:text-slate-100">{student.name}</span>
+                                <span className="font-bold text-slate-800">{student.name}</span>
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -598,7 +604,7 @@ export default function TeacherDashboard() {
                                       const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name;
                                       await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
                                     }}
-                                    className="px-2.5 py-1 rounded-xl font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 text-xs focus:outline-none cursor-pointer"
+                                    className="px-2.5 py-1 rounded-xl font-bold bg-blue-50 text-blue-600 border border-blue-200 text-xs focus:outline-none cursor-pointer"
                                   >
                                     <option value="">— Sınıf Seçiniz</option>
                                     {data.grades.map(g => (
@@ -608,16 +614,16 @@ export default function TeacherDashboard() {
                                 );
                               })()}
                             </td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-slate-300 font-semibold">{student.email}</td>
+                            <td className="py-3 px-4 text-slate-600 font-semibold">{student.email}</td>
                             <td className="py-3 px-4">
-                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 font-mono font-black text-[11px]">
+                              <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 font-mono font-black text-[11px]">
                                 🔑 {student.password || '123456'}
                               </span>
                             </td>
-                            <td className="py-3 px-4 font-black text-slate-700 dark:text-slate-200">{solved}</td>
+                            <td className="py-3 px-4 font-black text-slate-700">{solved}</td>
                             <td className="py-3 px-4">
                               {isCoached ? (
-                                <span className="px-2.5 py-0.5 rounded-full font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 text-[10px]">
+                                <span className="px-2.5 py-0.5 rounded-full font-bold bg-purple-50 text-purple-600 border border-purple-200 text-[10px]">
                                   🎯 Koçluk Takibinde
                                 </span>
                               ) : (
@@ -627,7 +633,7 @@ export default function TeacherDashboard() {
                             <td className="py-3 px-4 text-right">
                               <button
                                 onClick={() => openEditStudentModal(student)}
-                                className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-indigo-600 hover:text-white font-bold transition-colors inline-flex items-center gap-1"
+                                className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 hover:bg-indigo-600 hover:text-white font-bold transition-colors inline-flex items-center gap-1"
                               >
                                 <Edit2 className="w-3 h-3" /> Düzenle
                               </button>
@@ -642,42 +648,42 @@ export default function TeacherDashboard() {
                 {/* Mobile Cards View */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
                   {students.map((student, i) => {
-                    const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId);
+                    const grade  = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId || String(g.id) === String(student.classId) || g.name === student.grade || g.name === student.className);
                     const solved = submissions.filter(s => s.studentId === student.id).length;
                     const isCoached = coachedIds.includes(student.id);
                     const avatarColors = ['bg-indigo-500','bg-blue-500','bg-emerald-500','bg-orange-500','bg-purple-500','bg-rose-500'];
                     const av = avatarColors[i % avatarColors.length];
                     return (
-                      <div key={student.id} className="bg-white dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-4 space-y-3 shadow-sm">
+                      <div key={student.id} className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-full ${av} text-white font-black flex items-center justify-center text-sm shrink-0`}>
                               {student.name?.charAt(0) || 'Ö'}
                             </div>
                             <div>
-                              <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{student.name}</h4>
-                              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                              <h4 className="font-bold text-sm text-slate-900 leading-tight">{student.name}</h4>
+                              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
                                 {grade?.name || 'Sınıf Belirtilmemiş'}
                               </span>
                             </div>
                           </div>
                           <button
                             onClick={() => openEditStudentModal(student)}
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200"
+                            className="p-2 rounded-xl bg-slate-100 text-slate-600"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1 text-xs">
-                          <p className="text-slate-500 dark:text-slate-400 truncate">📧 {student.email}</p>
-                          <p className="font-mono font-bold text-amber-600 dark:text-amber-400">🔑 Şifre: {student.password || '123456'}</p>
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1 text-xs">
+                          <p className="text-slate-500 truncate">📧 {student.email}</p>
+                          <p className="font-mono font-bold text-amber-600">🔑 Şifre: {student.password || '123456'}</p>
                         </div>
 
                         <div className="flex items-center justify-between text-xs pt-1">
-                          <span className="font-semibold text-slate-500 dark:text-slate-400">Çözülen Sınav: <strong className="text-slate-800 dark:text-slate-100">{solved}</strong></span>
+                          <span className="font-semibold text-slate-500">Çözülen Sınav: <strong className="text-slate-800">{solved}</strong></span>
                           {isCoached && (
-                            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
                               🎯 Koçlukta
                             </span>
                           )}
@@ -694,11 +700,11 @@ export default function TeacherDashboard() {
         {/* ── TAB 4: COACHING ── */}
         {tab === 'coaching' && (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-1">
-              <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+              <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
                 <Target className="w-4 h-4 text-purple-500" /> Koçluk Sistemi Takibi
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500">
                 Bireysel koçluk takibine almak istediğiniz öğrencileri seçin ve detaylı yol haritasını görüntüleyin.
               </p>
             </div>
@@ -707,14 +713,14 @@ export default function TeacherDashboard() {
               {students.map(std => {
                 const isCoached = coachedIds.includes(std.id);
                 return (
-                  <div key={std.id} className="bg-white dark:bg-slate-800/60 rounded-3xl border border-slate-200 dark:border-slate-700/60 p-4 space-y-3 shadow-sm flex flex-col justify-between">
+                  <div key={std.id} className="bg-white rounded-3xl border border-slate-200 p-4 space-y-3 shadow-sm flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-black text-sm text-slate-900 dark:text-white">{std.name}</h4>
+                        <h4 className="font-black text-sm text-slate-900">{std.name}</h4>
                         <button
                           onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', std.id)}
                           className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
-                            isCoached ? "bg-purple-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                            isCoached ? "bg-purple-600 text-white" : "bg-slate-100 text-slate-600"
                           }`}
                         >
                           {isCoached ? '✓ Koçlukta' : '+ Eklemeler'}
@@ -724,7 +730,7 @@ export default function TeacherDashboard() {
                     </div>
 
                     <Link to={`/coaching/${std.id}`} className="w-full">
-                      <button className="w-full py-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-bold text-xs hover:bg-purple-600 hover:text-white transition-colors flex items-center justify-center gap-1">
+                      <button className="w-full py-2 rounded-xl bg-purple-50 text-purple-600 font-bold text-xs hover:bg-purple-600 hover:text-white transition-colors flex items-center justify-center gap-1">
                         Yol Haritası & Detaylar <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </Link>
@@ -740,47 +746,47 @@ export default function TeacherDashboard() {
       {/* ── ADD TEST MODAL ── */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-indigo-500" />
                 {editingTestId ? 'Testi Düzenle' : 'Yeni Test Oluştur'}
               </h3>
-              <button onClick={resetForm} className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600">
+              <button onClick={resetForm} className="p-1.5 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Test Adı *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Test Adı *</label>
                 <input
                   type="text"
                   required
                   placeholder="Örn: 8. Sınıf Üslü Sayılar Tarama Testi"
                   value={testName}
                   onChange={e => setTestName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Soru Başı Süre (dk)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Soru Başı Süre (dk)</label>
                   <input
                     type="number"
                     min="1"
                     value={timePerQ}
                     onChange={e => setTimePerQ(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sınıf</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Sınıf</label>
                   <select
                     value={selGrade}
                     onChange={e => { setSelGrade(e.target.value); setSelSubject(''); setSelUnit(''); setSelTopic(''); setSelQIds([]); }}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Sınıf Seçiniz</option>
                     <option value="all">Tüm Sınıflar</option>
@@ -791,11 +797,11 @@ export default function TeacherDashboard() {
 
               {selGrade && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ders</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Ders</label>
                   <select
                     value={selSubject}
                     onChange={e => { setSelSubject(e.target.value); setSelUnit(''); setSelTopic(''); setSelQIds([]); }}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Ders Seçiniz</option>
                     <option value="all">Tüm Dersler</option>
@@ -806,11 +812,11 @@ export default function TeacherDashboard() {
 
               {selSubject && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ünite</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Ünite</label>
                   <select
                     value={selUnit}
                     onChange={e => { setSelUnit(e.target.value); setSelTopic(''); setSelQIds([]); }}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Ünite Seçiniz</option>
                     <option value="all">Tüm Üniteler</option>
@@ -821,11 +827,11 @@ export default function TeacherDashboard() {
 
               {selUnit && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Konu</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Konu</label>
                   <select
                     value={selTopic}
                     onChange={e => { setSelTopic(e.target.value); setSelQIds([]); }}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Konu Seçiniz</option>
                     <option value="all">Tüm Konular</option>
@@ -835,9 +841,9 @@ export default function TeacherDashboard() {
               )}
 
               {catId && (
-                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Soru Havuzu ({poolQs.length} Soru)</span>
+                    <span className="font-bold text-slate-700">Soru Havuzu ({poolQs.length} Soru)</span>
                     <button
                       type="button"
                       onClick={() => setSelQIds(selQIds.length === poolQs.length ? [] : poolQs.map(q => q.id))}
@@ -850,18 +856,18 @@ export default function TeacherDashboard() {
                   {poolQs.length === 0 ? (
                     <p className="text-xs text-slate-400 py-4 text-center">Bu kategoride henüz soru eklenmemiş.</p>
                   ) : (
-                    <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200">
                       {poolQs.map(q => {
                         const checked = selQIds.includes(q.id);
                         return (
-                          <label key={q.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 cursor-pointer text-xs">
+                          <label key={q.id} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white:bg-slate-700 cursor-pointer text-xs">
                             <input
                               type="checkbox"
                               checked={checked}
                               onChange={() => toggleQ(q.id)}
                               className="rounded text-indigo-600 focus:ring-indigo-500"
                             />
-                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1">{q.title || q.name || 'Soru'}</span>
+                            <span className="font-semibold text-slate-800 truncate flex-1">{q.title || q.name || 'Soru'}</span>
                           </label>
                         );
                       })}
@@ -874,7 +880,7 @@ export default function TeacherDashboard() {
                 type="submit"
                 disabled={selQIds.length === 0}
                 className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg transition-all ${
-                  selQIds.length === 0 ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/25 active:scale-95'
+                  selQIds.length === 0 ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/25 active:scale-95'
                 }`}
               >
                 {editingTestId ? 'Testi Güncelle' : `Testi Oluştur (${selQIds.length} Soru)`}
@@ -887,12 +893,12 @@ export default function TeacherDashboard() {
       {/* ── ADD STUDENT MODAL ── */}
       {showAddStudentModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-emerald-500" /> Sınıfıma Öğrenci Ekle
               </h3>
-              <button onClick={() => setShowAddStudentModal(false)} className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowAddStudentModal(false)} className="p-1.5 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -902,8 +908,8 @@ export default function TeacherDashboard() {
               const unassignedSystemStudents = (users || []).filter(u => u.role === 'student' && !u.teacherId);
               if (unassignedSystemStudents.length === 0) return null;
               return (
-                <div className="bg-blue-50 dark:bg-blue-950/40 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800/50 space-y-2">
-                  <label className="block text-xs font-black text-blue-700 dark:text-blue-300">
+                <div className="bg-blue-50 p-3.5 rounded-2xl border border-blue-200 space-y-2">
+                  <label className="block text-xs font-black text-blue-700">
                     💡 VEYA Sistemdeki Sahipsiz Öğrencilerden Seç & Bağla:
                   </label>
                   <select
@@ -917,7 +923,7 @@ export default function TeacherDashboard() {
                         alert(`🎉 ${selectedStd.name} öğrencisi başarıyla sınıfınıza bağlandı!`);
                       }
                     }}
-                    className="w-full p-2.5 rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 text-xs font-bold text-blue-700 dark:text-blue-300 focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-blue-300 bg-white text-xs font-bold text-blue-700 focus:outline-none"
                   >
                     <option value="">Sınıfıma Eklenecek Öğrenciyi Seçin...</option>
                     {unassignedSystemStudents.map(s => (
@@ -944,43 +950,43 @@ export default function TeacherDashboard() {
               alert("🎉 Öğrenci başarıyla sınıfınıza eklendi ve giriş hesabı oluşturuldu!");
             }} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Öğrenci Adı Soyadı *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Öğrenci Adı Soyadı *</label>
                 <input
                   type="text"
                   required
                   placeholder="Örn: Ahmet Yılmaz"
                   value={newStudentName}
                   onChange={e => setNewStudentName(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">E-posta / Kullanıcı Adı (Opsiyonel)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">E-posta / Kullanıcı Adı (Opsiyonel)</label>
                 <input
                   type="text"
                   placeholder="Örn: ahmet veya ahmet@gmail.com"
                   value={newStudentEmail}
                   onChange={e => setNewStudentEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Giriş Şifresi *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Giriş Şifresi *</label>
                 <input
                   type="text"
                   required
                   placeholder="Örn: 123456"
                   value={newStudentPassword}
                   onChange={e => setNewStudentPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-mono font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-amber-300 bg-amber-50/60 text-amber-700 font-mono font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sınıf Seviyesi</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Sınıf Seviyesi</label>
                 <select
                   value={newStudentGrade}
                   onChange={e => setNewStudentGrade(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   {data.grades.map(g => (
                     <option key={g.id} value={g.id}>{g.name}</option>
@@ -989,7 +995,7 @@ export default function TeacherDashboard() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddStudentModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <button type="button" onClick={() => setShowAddStudentModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600">
                   İptal
                 </button>
                 <button type="submit" className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black shadow-md hover:bg-emerald-500 transition-colors">
@@ -1004,12 +1010,12 @@ export default function TeacherDashboard() {
       {/* ── EDIT STUDENT MODAL ── */}
       {editingStudent && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-indigo-500" /> Öğrenci Bilgilerini Düzenle
               </h3>
-              <button onClick={() => setEditingStudent(null)} className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600">
+              <button onClick={() => setEditingStudent(null)} className="p-1.5 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1037,43 +1043,43 @@ export default function TeacherDashboard() {
               alert("🎉 Öğrenci bilgileri ve şifresi başarıyla güncellendi!");
             }} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Öğrenci Adı Soyadı *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Öğrenci Adı Soyadı *</label>
                 <input
                   type="text"
                   required
                   placeholder="Örn: Ahmet Yılmaz"
                   value={editStudentName}
                   onChange={e => setEditStudentName(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">E-posta / Kullanıcı Adı</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">E-posta / Kullanıcı Adı</label>
                 <input
                   type="text"
                   placeholder="Örn: ahmet veya ahmet@gmail.com"
                   value={editStudentEmail}
                   onChange={e => setEditStudentEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Giriş Şifresi *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Giriş Şifresi *</label>
                 <input
                   type="text"
                   required
                   placeholder="Örn: 123456"
                   value={editStudentPassword}
                   onChange={e => setEditStudentPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 font-mono font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-amber-300 bg-amber-50/60 text-amber-700 font-mono font-black text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sınıf Seviyesi</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Sınıf Seviyesi</label>
                 <select
                   value={editStudentGrade}
                   onChange={e => setEditStudentGrade(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {data.grades.map(g => (
                     <option key={g.id} value={g.id}>{g.name}</option>
@@ -1082,7 +1088,7 @@ export default function TeacherDashboard() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setEditingStudent(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <button type="button" onClick={() => setEditingStudent(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600">
                   İptal
                 </button>
                 <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-black shadow-md hover:bg-indigo-500 transition-colors">
