@@ -78,7 +78,7 @@ function Sidebar() {
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
         <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(99,102,241,0.12)', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1px solid rgba(99,102,241,0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.12)', padding: '0.65rem 0.65rem', borderRadius: '0.85rem', border: '1px solid rgba(99,102,241,0.25)' }}>
               <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
                 {currentUser.name?.charAt(0).toUpperCase()}
               </div>
@@ -86,6 +86,19 @@ function Sidebar() {
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
                 <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#a5b4fc', textTransform: 'uppercase', tracking: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
               </div>
+              <button 
+                onClick={() => { logout(); closeSidebar(); navigate('/'); }}
+                title="Oturumu Kapat"
+                style={{ 
+                  width: '2rem', height: '2rem', borderRadius: '50%', 
+                  background: 'rgba(244,63,94,0.15)', border: 'none', 
+                  color: '#f43f5e', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
+                }}
+                className="hover:scale-105 active:scale-95"
+              >
+                <LogOut size={16} />
+              </button>
             </div>
           ) : (
             <Link to="/login" onClick={closeSidebar} style={{ textDecoration: 'none' }}>
@@ -179,34 +192,6 @@ function Sidebar() {
           )}
         </div>
 
-        {/* LOGOUT BUTTON AT THE VERY BOTTOM FOR LOGGED IN USERS */}
-        {currentUser && (
-          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,23,42,0.4)' }}>
-            <button
-              onClick={() => { logout(); closeSidebar(); navigate('/'); }}
-              style={{
-                width: '100%',
-                padding: '0.65rem 1rem',
-                borderRadius: '0.85rem',
-                background: 'rgba(244,63,94,0.12)',
-                border: '1px solid rgba(244,63,94,0.25)',
-                color: '#f43f5e',
-                fontWeight: 900,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.background = 'rgba(244,63,94,0.25)'}
-              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(244,63,94,0.12)'}
-            >
-              <LogOut size={16} /> Oturumu Kapat (Çıkış Yap)
-            </button>
-          </div>
-        )}
       </nav>
     </>
   );

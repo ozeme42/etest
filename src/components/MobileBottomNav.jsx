@@ -17,16 +17,16 @@ export default function MobileBottomNav() {
     { label: 'Ana Sayfa', path: '/student', icon: Home },
     { label: 'Ödevlerim', path: '/student/exams', icon: ClipboardList },
     { label: 'Kitaplarım', path: '/student/books', icon: BookOpen },
-    { label: 'Hatalarım', path: '/student/wrong-answers', icon: CheckSquare },
+    { label: 'Hatalarım', path: '/wrong-answers', icon: CheckSquare },
     { label: 'Sonuçlarım', path: '/student-results', icon: BarChart3 },
   ];
 
   const teacherTabs = [
     { label: 'Ana Sayfa', path: '/teacher', icon: Home },
-    { label: 'Ödevler', path: '/homework-manager', icon: ClipboardList },
-    { label: 'Soru Bankası', path: '/question-bank', icon: Layers },
-    { label: 'Kitap/İçerik', path: '/book-content-manager', icon: BookOpen },
-    { label: 'Denemeler', path: '/exam-manager', icon: Award },
+    { label: 'Ödevler', path: '/homeworks', icon: ClipboardList },
+    { label: 'Soru Bankası', path: '/questions', icon: Layers },
+    { label: 'Kitaplar', path: '/books', icon: BookOpen },
+    { label: 'Denemeler', path: '/physical-exam', icon: Award },
   ];
 
   const tabs = role === 'student' ? studentTabs : teacherTabs;
