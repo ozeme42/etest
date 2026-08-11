@@ -834,60 +834,189 @@ export default function StudentDashboard() {
               const dueToday = isToday(dueDate);
               const daysDiff = differenceInDays(dueDate, new Date());
 
+              const subjectIcons = {
+                'Matematik': '📐',
+                'Türkçe': '📚',
+                'Fen Bilimleri': '🔬',
+                'Sosyal Bilgiler': '🌍',
+                'İnkılap Tarihi': '🏛️',
+                'İngilizce': '🇬🇧',
+                'Din Kültürü': '🌙'
+              };
+              const subIcon = subjectIcons[task.subject] || '📝';
+
               return (
-                <div key={task.id} style={{ ...S.card, display:'flex', overflow:'visible', position:'relative', cursor:'pointer' }} className="sd-hw-card"
+                <div
+                  key={task.id}
+                  className="sd-hw-card"
                   onClick={() => {
                     let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
                     if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
                     else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
                     navigate(path);
-                  }}>
-                  {/* Left color stripe */}
-                  <div style={{ width:5, background:conf.color, borderRadius:'20px 0 0 20px', flexShrink:0, minHeight:80 }} />
+                  }}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: 20,
+                    padding: isMobile ? '1rem' : '1.25rem',
+                    boxShadow: overdue
+                      ? '0 10px 28px rgba(239, 68, 68, 0.12)'
+                      : dueToday
+                      ? '0 10px 28px rgba(245, 158, 11, 0.12)'
+                      : '0 8px 24px rgba(0, 0, 0, 0.06)',
+                    border: overdue
+                      ? '1.5px solid rgba(239, 68, 68, 0.3)'
+                      : dueToday
+                      ? '1.5px solid rgba(245, 158, 11, 0.3)'
+                      : '1.5px solid rgba(226, 232, 240, 0.8)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'all 0.22s ease'
+                  }}
+                >
+                  {/* Glowing Urgency Bar Top Accent */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0,
+                    height: 4,
+                    background: overdue
+                      ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+                      : dueToday
+                      ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                      : `linear-gradient(90deg, ${conf.color}, #6366f1)`
+                  }} />
 
-                  <div style={{ flex:1, padding:'0.85rem 0.9rem 0.85rem 0.75rem', display:'flex', flexDirection:'column', gap:5 }}>
-                    {/* Top row: subject + urgency */}
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
-                      <span style={{ fontSize:'0.62rem', fontWeight:800, color:conf.badge, background:conf.bg, border:`1px solid ${conf.border}`, padding:'0.18rem 0.55rem', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em', flexShrink:0 }}>
-                        {task.subject}
-                      </span>
-                      {overdue ? (
-                        <span style={{ fontSize:'0.6rem', fontWeight:900, background:'#fee2e2', color:'#b91c1c', padding:'0.15rem 0.55rem', borderRadius:99, border:'1px solid #fca5a5', display:'flex', alignItems:'center', gap:3 }}>
-                          <Flame size={10} fill="#ef4444" color="#ef4444" /> {differenceInDays(new Date(), dueDate)}g Gecikti
-                        </span>
-                      ) : dueToday ? (
-                        <span style={{ fontSize:'0.6rem', fontWeight:900, background:'#fef3c7', color:'#b45309', padding:'0.15rem 0.55rem', borderRadius:99, border:'1px solid #fde68a', display:'flex', alignItems:'center', gap:3 }}>
-                          <Zap size={10} fill="#f59e0b" color="#f59e0b" /> Bugün Son
-                        </span>
-                      ) : (
-                        <span style={{ fontSize:'0.6rem', fontWeight:800, background:'#dcfce7', color:'#15803d', padding:'0.15rem 0.55rem', borderRadius:99, border:'1px solid #86efac', display:'flex', alignItems:'center', gap:3 }}>
-                          <Clock size={10} color="#16a34a" /> {daysDiff+1}g
-                        </span>
-                      )}
+                  {/* Header Row: Subject Badge + Urgency Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: conf.bg,
+                      border: `1.5px solid ${conf.border}`,
+                      borderRadius: 99,
+                      padding: '0.25rem 0.7rem',
+                      fontWeight: 800,
+                      fontSize: '0.7rem',
+                      color: conf.badge
+                    }}>
+                      <span>{subIcon}</span>
+                      <span>{task.subject}</span>
                     </div>
 
-                    {/* Title */}
-                    <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#0f172a', lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
-                      {task.title}
-                    </div>
-
-                    {/* Footer: meta + button */}
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:2 }}>
-                      <div style={{ display:'flex', gap:8 }}>
-                        <span style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}>
-                          <Calendar size={10} /> {task.dueDateStr}
-                        </span>
-                        <span style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}>
-                          <BookOpen size={10} /> {task.questionCount || 0} soru
-                        </span>
+                    {overdue ? (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: 99,
+                        padding: '0.22rem 0.65rem',
+                        fontWeight: 900,
+                        fontSize: '0.65rem',
+                        color: '#dc2626'
+                      }}>
+                        <Flame size={12} fill="#ef4444" color="#ef4444" />
+                        <span>{differenceInDays(new Date(), dueDate)}g Gecikti</span>
                       </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`; if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`; else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`; navigate(path); }}
-                        className="sd-btn"
-                        style={{ background:conf.color, color:'white', border:'none', borderRadius:10, padding:'0.4rem 0.85rem', fontSize:'0.72rem', fontWeight:800, cursor:'pointer', boxShadow:`0 4px 10px ${conf.color}40`, display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap', flexShrink:0 }}>
-                        <PlayCircle size={13} /> Çöz
-                      </button>
+                    ) : dueToday ? (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(245, 158, 11, 0.15)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        borderRadius: 99,
+                        padding: '0.22rem 0.65rem',
+                        fontWeight: 900,
+                        fontSize: '0.65rem',
+                        color: '#b45309'
+                      }}>
+                        <Zap size={12} fill="#f59e0b" color="#f59e0b" />
+                        <span>Bugün Son</span>
+                      </div>
+                    ) : (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 99,
+                        padding: '0.22rem 0.65rem',
+                        fontWeight: 900,
+                        fontSize: '0.65rem',
+                        color: '#059669'
+                      }}>
+                        <Clock size={12} color="#10b981" />
+                        <span>{daysDiff + 1} Gün Kaldı</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Task Title */}
+                  <div style={{
+                    fontWeight: 900,
+                    fontSize: isMobile ? '0.95rem' : '1.05rem',
+                    color: '#0f172a',
+                    lineHeight: 1.35
+                  }}>
+                    {task.title}
+                  </div>
+
+                  {/* Footer Row: Meta Pills + Action Button */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    paddingTop: 4,
+                    borderTop: '1px solid #f1f5f9'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Calendar size={13} color="#94a3b8" /> {task.dueDateStr}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <BookOpen size={13} color="#94a3b8" /> {task.questionCount || 0} Soru
+                      </span>
                     </div>
+
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
+                        if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
+                        else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
+                        navigate(path);
+                      }}
+                      className="sd-btn"
+                      style={{
+                        background: `linear-gradient(135deg, ${conf.color}, #4f46e5)`,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 14,
+                        padding: isMobile ? '0.5rem 1rem' : '0.6rem 1.25rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        boxShadow: `0 6px 16px ${conf.color}44`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                      }}
+                    >
+                      <PlayCircle size={15} />
+                      <span>Hemen Çöz</span>
+                      <ChevronRight size={14} />
+                    </button>
                   </div>
                 </div>
               );
