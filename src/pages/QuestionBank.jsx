@@ -626,7 +626,7 @@ export default function QuestionBank() {
           subtitle,
           gradeName: gradeObj?.name,
           unitName: unitObj?.name,
-          topicName: topicObj?.name,
+        topicName: topicObj?.name,
           items: []
         };
       }
@@ -635,6 +635,21 @@ export default function QuestionBank() {
 
     return Object.values(groups);
   }, [filteredQuestions, curData]);
+
+  const isHighSchoolGrade = (gId) => {
+    const targetGId = gId || selectedGrade || activeGradeId;
+    if (!targetGId || targetGId === 'all') return false;
+    const gObj = curData?.grades?.find(g => String(g.id) === String(targetGId) || g.name === targetGId);
+    const gName = String(gObj ? gObj.name : targetGId).toLowerCase();
+    return gName.includes('9') || gName.includes('10') || gName.includes('11') || gName.includes('12') || 
+      gName.includes('lise') || gName.includes('yks') || gName.includes('tyt') || gName.includes('ayt') || gName.includes('mezun');
+  };
+
+  const getDefaultOptionsForGrade = (gId) => {
+    return isHighSchoolGrade(gId) 
+      ? ['', '', '', '', ''] 
+      : ['', '', '', ''];
+  };
 
   const resetForm = () => {
     setEditingQuestionId(null);
@@ -655,13 +670,15 @@ export default function QuestionBank() {
       setSelectedGrade('all');
     }
 
+    const initialOpts = getDefaultOptionsForGrade(activeGradeId || selectedGrade);
+
     setFormData({
       title: '',
       type: 'coktan_secmeli',
       contentType: 'text',
       contentPayload: '',
       questionText: '',
-      options: ['', '', '', ''],
+      options: initialOpts,
       correctAnswer: 0,
       questionCount: 1,
       bulkAnswerKey: ''
@@ -1023,7 +1040,7 @@ export default function QuestionBank() {
             contentType: 'gorsel',
             contentPayload: u,
             type: formData.type || 'coktan_secmeli',
-            options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
+            options: isAcikUclu ? [] : (isHighSchoolGrade(foundGradeId || activeGradeId) ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']),
             correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
           };
         });
@@ -1101,7 +1118,7 @@ export default function QuestionBank() {
             contentType: 'gorsel',
             contentPayload: u,
             type: formData.type || 'coktan_secmeli',
-            options: isAcikUclu ? [] : ['A', 'B', 'C', 'D', 'E'],
+            options: isAcikUclu ? [] : (isHighSchoolGrade(foundGradeId || activeGradeId) ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']),
             correctAnswer: imageAnswers[idx] !== undefined ? imageAnswers[idx] : 0
           };
         });
@@ -2723,9 +2740,27 @@ const getAnswerKeyCount = (answerKey) => {
 
                     {formData.type === 'coktan_secmeli' && (
                       <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
-                        <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'block' }}>
-                          🔘 Soru Şıkları ve Doğru Cevap Seçimi:
-                        </label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>
+                            🔘 Soru Şıkları ve Doğru Cevap Seçimi:
+                          </label>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, options: p.options.length === 4 ? p.options : ['', '', '', ''], correctAnswer: Math.min(p.correctAnswer, 3) }))}
+                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 4 ? '2px solid #059669' : '1px solid #cbd5e1', background: formData.options.length === 4 ? '#ecfdf5' : 'white', color: formData.options.length === 4 ? '#047857' : '#64748b', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                              🏫 Ortaokul (4 Şık A-D)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, options: p.options.length === 5 ? p.options : ['', '', '', '', ''] }))}
+                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 5 ? '2px solid #8b5cf6' : '1px solid #cbd5e1', background: formData.options.length === 5 ? '#f5f3ff' : 'white', color: formData.options.length === 5 ? '#6d28d9' : '#64748b', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                              🏛️ Lise (5 Şık A-E)
+                            </button>
+                          </div>
+                        </div>
                         <div className="options-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
                           {formData.options.map((opt, idx) => {
                             const isSelected = formData.correctAnswer === idx;
