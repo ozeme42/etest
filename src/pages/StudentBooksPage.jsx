@@ -4,12 +4,60 @@ import { useAuth } from '../context/AuthContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
-import { BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, Target, CheckCircle2, Activity } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  BookOpen, Map, ArrowRight, BarChart2, Star, Plus, X, Target,
+  CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
+  ChevronRight, BookMarked, Search, Filter, RotateCcw, Award
+} from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Legend, RadialBarChart, RadialBar, Cell
+} from 'recharts';
 import { toUUID } from '../services/supabaseService';
 
-// Debug flag - set to true to see matching details in console while diagnosing progress issues
 const DEBUG_PROGRESS = false;
+
+/* ── Colour palette for book covers ─── */
+const BOOK_PALETTES = [
+  { from: '#6366f1', to: '#818cf8', shadow: 'rgba(99,102,241,0.35)' },
+  { from: '#10b981', to: '#34d399', shadow: 'rgba(16,185,129,0.35)' },
+  { from: '#f59e0b', to: '#fbbf24', shadow: 'rgba(245,158,11,0.35)' },
+  { from: '#ef4444', to: '#f87171', shadow: 'rgba(239,68,68,0.35)' },
+  { from: '#8b5cf6', to: '#a78bfa', shadow: 'rgba(139,92,246,0.35)' },
+  { from: '#0ea5e9', to: '#38bdf8', shadow: 'rgba(14,165,233,0.35)' },
+  { from: '#ec4899', to: '#f472b6', shadow: 'rgba(236,72,153,0.35)' },
+  { from: '#14b8a6', to: '#2dd4bf', shadow: 'rgba(20,184,166,0.35)' },
+];
+const palette = (idx) => BOOK_PALETTES[idx % BOOK_PALETTES.length];
+
+/* ── Stat Card ─── */
+function StatCard({ icon, label, value, color, bg, sub }) {
+  return (
+    <div style={{ background: 'white', borderRadius: 20, padding: '1.1rem 1.3rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ width: 48, height: 48, borderRadius: 16, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {React.cloneElement(icon, { size: 22, color })}
+      </div>
+      <div>
+        <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginTop: 2 }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, marginTop: 1 }}>{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Circular progress ─── */
+function CircularProgress({ pct, size = 64, stroke = 6, color }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+    </svg>
+  );
+}
 
 export default function StudentBooksPage() {
   const navigate = useNavigate();
@@ -26,86 +74,60 @@ export default function StudentBooksPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
   const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('progress'); // 'progress' | 'title' | 'recent'
+  const [showChart, setShowChart] = useState(true);
 
   const handleSaveNewBook = async () => {
     if (!newBook.title || !newBook.publisher) return;
     setIsSaving(true);
     try {
       const bookSubjects = newBook.subjects
-         .filter(s => s.name.trim() !== '' && s.testCount > 0)
-         .map(s => ({ id: s.id, name: s.name }));
-         
-      if (bookSubjects.length === 0) {
-        bookSubjects.push({ id: 'genel', name: 'Genel' });
-      }
+        .filter(s => s.name.trim() !== '' && s.testCount > 0)
+        .map(s => ({ id: s.id, name: s.name }));
+      if (bookSubjects.length === 0) bookSubjects.push({ id: 'genel', name: 'Genel' });
 
-      const createdBook = await addTrackedBook({
-        title: newBook.title,
-        publisher: newBook.publisher,
-        subjects: bookSubjects
-      });
-
+      const createdBook = await addTrackedBook({ title: newBook.title, publisher: newBook.publisher, subjects: bookSubjects });
       const testPromises = [];
       const testIds = [];
-      
+
       newBook.subjects.forEach(subject => {
         if (subject.name.trim() === '' || subject.testCount <= 0) return;
-        
         for (let i = 1; i <= subject.testCount; i++) {
           testPromises.push(
-            addTrackedBookTest(createdBook.id, {
-              subjectId: subject.id,
-              name: `Test ${i}`,
-              questionCount: subject.questionsPerTest,
-              isOpenEnded: false
-            }).then(test => testIds.push(test.id))
+            addTrackedBookTest(createdBook.id, { subjectId: subject.id, name: `Test ${i}`, questionCount: subject.questionsPerTest, isOpenEnded: false })
+              .then(test => testIds.push(test.id))
           );
         }
       });
-      
-      await Promise.all(testPromises);
 
+      await Promise.all(testPromises);
       await addHomework({
         title: `${newBook.title} (Kendi Eklediğim)`,
-        isBookAssignment: true,
-        bookId: createdBook.id,
-        targetType: 'student',
-        targetIds: [studentId],
-        tests: testIds
+        isBookAssignment: true, bookId: createdBook.id,
+        targetType: 'student', targetIds: [studentId], tests: testIds
       });
 
       setIsAddModalOpen(false);
       setNewBook({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
-    } catch (e) {
-      console.error('Failed to add book', e);
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (e) { console.error('Failed to add book', e); }
+    finally { setIsSaving(false); }
   };
 
-  // Filter book assignments
   const bookAssignments = useMemo(() => {
     return homeworks.filter(hw => {
       if (!hw.isBookAssignment) return false;
       if (hw.targetType === 'student' && hw.targetIds?.includes(studentId)) return true;
       if ((hw.targetType === 'class' || hw.targetType === 'grade') &&
-          (hw.targetIds?.includes(grade) || hw.targetIds?.includes(gradeId) || hw.targetIds?.includes(className))) {
-        return true;
-      }
+        (hw.targetIds?.includes(grade) || hw.targetIds?.includes(gradeId) || hw.targetIds?.includes(className))) return true;
       return false;
     });
   }, [homeworks, studentId, grade, gradeId, className]);
 
-  // Pre-filter this student's non-draft/non-in-progress submissions once
-  const studentSubmissions = useMemo(() => {
-    return submissions.filter(s =>
-      String(s.studentId) === String(studentId) &&
-      s.status !== 'in_progress' &&
-      s.status !== 'draft'
-    );
-  }, [submissions, studentId]);
+  const studentSubmissions = useMemo(() =>
+    submissions.filter(s => String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft')
+    , [submissions, studentId]);
 
-  // Group by bookId
   const assignedBooks = useMemo(() => {
     const bookMap = {};
 
@@ -114,36 +136,24 @@ export default function StudentBooksPage() {
       if (!book) return;
 
       if (!bookMap[book.id]) {
-        bookMap[book.id] = {
-          ...book,
-          assignedHomeworks: [],
-          allAssignedTestIds: new Set(),
-          allSolvedTestIds: new Set(),
-        };
+        bookMap[book.id] = { ...book, assignedHomeworks: [], allAssignedTestIds: new Set(), allSolvedTestIds: new Set() };
       }
 
       bookMap[book.id].assignedHomeworks.push(hw);
 
-      // ---- Build a normalized set of every possible ID form for this homework's tests ----
       let hwTestIdsRaw = hw.tests || [];
-      if (hw.title && hw.title.includes('(Tüm Kitap Görevi)')) {
-         const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(book.id));
-         hwTestIdsRaw = allBookTests.map(bt => bt.id);
+      if (hw.title?.includes('(Tüm Kitap Görevi)')) {
+        hwTestIdsRaw = bookTests.filter(bt => String(bt.bookId) === String(book.id)).map(bt => bt.id);
       }
       hwTestIdsRaw.forEach(id => bookMap[book.id].allAssignedTestIds.add(String(id)));
 
-      // Also allow matching directly on the homework id itself (some flows store
-      // submissions against the homework, not the individual test)
       const hwIdSet = new Set([String(hw.id)]);
       const hwUUID = toUUID(hw.id);
       if (hwUUID) hwIdSet.add(String(hwUUID));
 
       studentSubmissions.forEach(s => {
-        // Normalize every possible id field on the submission, both raw and UUID form
         const candidateFields = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          candidateFields.push(...s.bookTestIds);
-        }
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
 
         let isHwSolved = false;
         const matchedTestIds = new Set();
@@ -152,388 +162,428 @@ export default function StudentBooksPage() {
           if (field === undefined || field === null) return;
           const raw = String(field);
           const uuid = toUUID(field);
-
-          if (hwIdSet.has(raw) || (uuid && hwIdSet.has(String(uuid)))) {
-            isHwSolved = true;
-          }
-
+          if (hwIdSet.has(raw) || (uuid && hwIdSet.has(String(uuid)))) isHwSolved = true;
           hwTestIdsRaw.forEach(id => {
             const strId = String(id);
             const uuidId = toUUID(id);
-            if (strId === raw || (uuid && String(uuidId) === String(uuid))) {
-              matchedTestIds.add(strId);
-            }
+            if (strId === raw || (uuid && String(uuidId) === String(uuid))) matchedTestIds.add(strId);
           });
         });
 
-        if (isHwSolved) {
-          hwTestIdsRaw.forEach(id => bookMap[book.id].allSolvedTestIds.add(String(id)));
-        } else {
-          matchedTestIds.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
-        }
+        if (isHwSolved) hwTestIdsRaw.forEach(id => bookMap[book.id].allSolvedTestIds.add(String(id)));
+        else matchedTestIds.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
       });
 
-
-      // Calculate earliest due date among unfinished assignments
       if (hw.dueDate) {
         const dueDate = new Date(hw.dueDate);
-        if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) {
-          bookMap[book.id].targetDueDate = dueDate;
-        }
+        if (!bookMap[book.id].targetDueDate || dueDate > bookMap[book.id].targetDueDate) bookMap[book.id].targetDueDate = dueDate;
       }
     });
 
     Object.values(bookMap).forEach(b => {
       b.totalAssignedTests = b.allAssignedTestIds.size;
-      b.totalSolvedTests = b.allSolvedTestIds.size;
-      
-      // Guard against solved count exceeding assigned count due to overlapping homeworks
-      if (b.totalSolvedTests > b.totalAssignedTests) {
-        b.totalSolvedTests = b.totalAssignedTests;
-      }
+      b.totalSolvedTests = Math.min(b.allSolvedTestIds.size, b.allAssignedTestIds.size);
       if (b.targetDueDate) {
         const diff = b.targetDueDate.getTime() - new Date().getTime();
         b.remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
       }
 
-      // Calculate best submission stats
-      let totalCorrect = 0;
-      let totalWrong = 0;
-      let totalBlank = 0;
-      
       const bestSubsByKey = {};
-      
       studentSubmissions.forEach(s => {
         const candidateFields = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
-        
-        let belongsToThisBook = false;
+        let belongs = false;
         candidateFields.forEach(field => {
-           if (!field) return;
-           const raw = String(field);
-           if (b.allAssignedTestIds.has(raw)) belongsToThisBook = true;
-           b.assignedHomeworks.forEach(hw => {
-              if (String(hw.id) === raw || String(toUUID(hw.id)) === raw) belongsToThisBook = true;
-           });
+          if (!field) return;
+          if (b.allAssignedTestIds.has(String(field))) belongs = true;
+          b.assignedHomeworks.forEach(hw => {
+            if (String(hw.id) === String(field) || String(toUUID(hw.id)) === String(field)) belongs = true;
+          });
         });
-        
-        if (belongsToThisBook) {
-           const key = String(s.testId || s.bookTestId || s.id);
-           const existing = bestSubsByKey[key];
-           if (!existing || (s.score > existing.score) || (s.score === existing.score && new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0))) {
-             bestSubsByKey[key] = s;
-           }
+        if (belongs) {
+          const key = String(s.testId || s.bookTestId || s.id);
+          const ex = bestSubsByKey[key];
+          if (!ex || s.score > ex.score || (s.score === ex.score && new Date(s.submittedAt || 0) > new Date(ex.submittedAt || 0))) bestSubsByKey[key] = s;
         }
       });
-      
+
+      let totalCorrect = 0, totalWrong = 0, totalBlank = 0;
       Object.values(bestSubsByKey).forEach(sub => {
-         totalCorrect += sub.correctCount || 0;
-         totalWrong += sub.wrongCount || 0;
-         totalBlank += sub.blankCount || 0;
+        totalCorrect += sub.correctCount || 0;
+        totalWrong += sub.wrongCount || 0;
+        totalBlank += sub.blankCount || 0;
       });
-      
       b.totalCorrect = totalCorrect;
       b.totalWrong = totalWrong;
       b.totalBlank = totalBlank;
+      b.successRate = (totalCorrect + totalWrong + totalBlank) > 0
+        ? Math.round((totalCorrect / (totalCorrect + totalWrong + totalBlank)) * 100) : 0;
+      b.progressPct = b.totalAssignedTests > 0
+        ? Math.round((b.totalSolvedTests / b.totalAssignedTests) * 100) : 0;
     });
 
     return Object.values(bookMap);
-  }, [bookAssignments, books, studentSubmissions]);
+  }, [bookAssignments, books, studentSubmissions, bookTests]);
 
   const overallStats = useMemo(() => {
-    let totalD = 0, totalY = 0, totalB = 0;
-    let totalAssigned = 0, totalSolved = 0;
-    
+    let totalD = 0, totalY = 0, totalB = 0, totalAssigned = 0, totalSolved = 0;
     assignedBooks.forEach(b => {
-      totalD += (b.totalCorrect || 0);
-      totalY += (b.totalWrong || 0);
-      totalB += (b.totalBlank || 0);
-      totalAssigned += (b.totalAssignedTests || 0);
-      totalSolved += (b.totalSolvedTests || 0);
+      totalD += b.totalCorrect || 0;
+      totalY += b.totalWrong || 0;
+      totalB += b.totalBlank || 0;
+      totalAssigned += b.totalAssignedTests || 0;
+      totalSolved += b.totalSolvedTests || 0;
     });
-    
-    const totalQuestions = totalD + totalY + totalB;
-    const successRate = totalQuestions > 0 ? Math.round((totalD / totalQuestions) * 100) : 0;
-    const progressRate = totalAssigned > 0 ? Math.round((totalSolved / totalAssigned) * 100) : 0;
-
-    return { totalD, totalY, totalB, successRate, progressRate, totalAssigned, totalSolved, totalBooks: assignedBooks.length };
+    const totalQ = totalD + totalY + totalB;
+    return {
+      totalD, totalY, totalB,
+      successRate: totalQ > 0 ? Math.round((totalD / totalQ) * 100) : 0,
+      progressRate: totalAssigned > 0 ? Math.round((totalSolved / totalAssigned) * 100) : 0,
+      totalAssigned, totalSolved,
+      totalBooks: assignedBooks.length,
+      completedBooks: assignedBooks.filter(b => b.progressPct >= 100).length,
+    };
   }, [assignedBooks]);
 
+  /* ── filter + sort ─── */
+  const displayedBooks = useMemo(() => {
+    let list = assignedBooks.filter(b => b.title?.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (sortBy === 'progress') list = [...list].sort((a, b) => b.progressPct - a.progressPct);
+    else if (sortBy === 'title') list = [...list].sort((a, b) => a.title?.localeCompare(b.title));
+    else if (sortBy === 'success') list = [...list].sort((a, b) => b.successRate - a.successRate);
+    return list;
+  }, [assignedBooks, searchQuery, sortBy]);
+
+  /* ── Bar chart data ─── */
+  const chartData = useMemo(() =>
+    assignedBooks.map(b => ({
+      name: b.title?.length > 18 ? b.title.slice(0, 16) + '…' : b.title,
+      Doğru: b.totalCorrect,
+      Yanlış: b.totalWrong,
+      Boş: b.totalBlank,
+    }))
+    , [assignedBooks]);
+
+  /* ════════════════════════
+     RENDER
+  ════════════════════════ */
   return (
-    <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1200, margin: '0 auto' }}>
-      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 0.5rem 0' }}>
-            <Map size={36} /> Kitaplarım ve İlerlemem
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem', margin: 0 }}>
-            Sana atanan kitapları oyun haritası gibi adım adım çöz, başarı oranını artır!
-          </p>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)', padding: '1.5rem 1rem', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 28 }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
+              <Map size={14} color="#6366f1" />
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#6366f1' }}>KİTAP HARİTASI</span>
+            </div>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+              Kitaplarım ve İlerlemem
+            </h1>
+            <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '0.95rem', fontWeight: 600 }}>
+              Atanan kitapları adım adım çöz, başarı oranını izle ve büyü! 🚀
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 6px 20px rgba(16,185,129,0.3)', transition: 'transform 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+          >
+            <Plus size={18} /> Kendi Kitabını Ekle
+          </button>
         </div>
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}
-        >
-          <Plus size={20} /> Kendi Kitabını Ekle
-        </button>
-      </header>
 
-      {assignedBooks.length > 0 && (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '1rem', color: '#10b981' }}>
-                <Target size={28} />
-              </div>
-              <div>
-                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Genel Başarı</div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>%{overallStats.successRate}</div>
-              </div>
+        {/* ── STAT CARDS ── */}
+        {assignedBooks.length > 0 && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+              <StatCard icon={<BookOpen />} label="Toplam Kitap" value={overallStats.totalBooks} color="#6366f1" bg="#eef2ff" sub={`${overallStats.completedBooks} tamamlandı`} />
+              <StatCard icon={<Target />}   label="Genel Başarı" value={`%${overallStats.successRate}`} color="#10b981" bg="#f0fdf4" sub={`${overallStats.totalD} doğru`} />
+              <StatCard icon={<Activity />} label="Test İlerlemesi" value={`%${overallStats.progressRate}`} color="#0ea5e9" bg="#f0f9ff" sub={`${overallStats.totalSolved}/${overallStats.totalAssigned} test`} />
+              <StatCard icon={<CheckCircle2 />} label="Tamamlanan" value={overallStats.totalSolved} color="#8b5cf6" bg="#f5f3ff" sub="test çözüldü" />
+              <StatCard icon={<Trophy />} label="Toplam Doğru" value={overallStats.totalD} color="#f59e0b" bg="#fffbeb" />
+              <StatCard icon={<Zap />} label="Toplam Yanlış" value={overallStats.totalY} color="#ef4444" bg="#fef2f2" />
             </div>
-            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '1rem', color: '#7c3aed' }}>
-                <CheckCircle2 size={28} />
-              </div>
-              <div>
-                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Toplam Doğru</div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>{overallStats.totalD}</div>
-              </div>
-            </div>
-            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '1rem', color: '#3b82f6' }}>
-                <Activity size={28} />
-              </div>
-              <div>
-                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Görev İlerlemesi</div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>%{overallStats.progressRate}</div>
-              </div>
-            </div>
-            <div className="card glass hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '1rem', color: '#d97706' }}>
-                <BookOpen size={28} />
-              </div>
-              <div>
-                <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>Toplam Kitap</div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a' }}>{overallStats.totalBooks}</div>
-              </div>
-            </div>
-          </div>
 
-          <div className="card glass" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
-            <h3 style={{ margin: '0 0 1.5rem 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <BarChart2 size={20} color="#6366f1" /> Kitaplara Göre Başarı Dağılımı
-            </h3>
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <BarChart data={assignedBooks} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="title" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={10} tickFormatter={(val) => val.length > 20 ? val.substring(0, 20) + '...' : val} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
-                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 800, fontSize: '0.85rem' }} />
-                  <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 700 }} />
-                  <Bar dataKey="totalCorrect" name="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="totalWrong" name="Yanlış" stackId="a" fill="#ef4444" />
-                  <Bar dataKey="totalBlank" name="Boş" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </>
-      )}
-
-      {assignedBooks.length === 0 ? (
-        booksLoading ? (
-          <div className="card glass" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-            <div style={{ display: 'inline-block', width: 40, height: 40, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            <h3 style={{ marginTop: '1rem', color: '#64748b' }}>Kitaplar Yükleniyor...</h3>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
-        ) : (
-          <div className="card glass" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-            <div style={{ background: '#f1f5f9', width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#94a3b8' }}>
-              <BookOpen size={40} />
-            </div>
-            <h2 style={{ color: '#475569', margin: '0 0 0.5rem 0' }}>Henüz Sana Atanmış Bir Kitap Yok</h2>
-            <p style={{ color: '#64748b', margin: 0 }}>Öğretmenlerin sana bir kitap atadığında burada görünecek.</p>
-          </div>
-        )
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {assignedBooks.map(book => {
-            const pct = book.totalAssignedTests > 0 ? Math.round((book.totalSolvedTests / book.totalAssignedTests) * 100) : 0;
-            const isCompleted = pct >= 100;
-
-            return (
-              <div
-                key={book.id}
-                className="card glass hover-lift"
-                style={{
-                  padding: '1.5rem',
-                  cursor: 'pointer',
-                  border: isCompleted ? '2px solid #10b981' : '1px solid rgba(0,0,0,0.08)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onClick={() => navigate(`/student/books/${book.id}`)}
+            {/* ── CHART PANEL ── */}
+            <div style={{ background: 'white', borderRadius: 22, border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 22, overflow: 'hidden' }}>
+              <button
+                onClick={() => setShowChart(c => !c)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.4rem', background: 'none', border: 'none', cursor: 'pointer', borderBottom: showChart ? '1px solid #f1f5f9' : 'none' }}
               >
-                {isCompleted ? (
-                  <div style={{ position: 'absolute', top: 0, right: 0, background: '#10b981', color: 'white', padding: '0.4rem 1rem', borderBottomLeftRadius: '0.75rem', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Star size={14} fill="white" /> TAMAMLANDI
-                  </div>
-                ) : book.remainingDays !== undefined ? (
-                  <div style={{ position: 'absolute', top: 0, right: 0, background: book.remainingDays < 7 ? '#ef4444' : '#f59e0b', color: 'white', padding: '0.4rem 1rem', borderBottomLeftRadius: '0.75rem', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    Kalan Süre: {book.remainingDays} Gün
-                  </div>
-                ) : null}
-
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.25rem' }}>
-                  <div style={{ width: 64, height: 85, background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                    <BookOpen size={28} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', color: '#1e293b', fontWeight: 800, lineHeight: 1.2 }}>
-                      {book.title}
-                    </h3>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{book.publisher}</div>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>
+                  <BarChart2 size={18} color="#6366f1" /> Kitaplara Göre Soru Dağılımı
                 </div>
-
-                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 800 }}>
-                    <span style={{ color: '#475569' }}>İlerleme Durumu</span>
-                    <span style={{ color: isCompleted ? '#10b981' : 'var(--color-primary)' }}>% {pct}</span>
-                  </div>
-                  <div style={{ background: '#e2e8f0', height: 8, borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, background: isCompleted ? '#10b981' : 'linear-gradient(90deg, var(--color-primary), var(--color-primary-light))', height: '100%', transition: 'width 0.5s ease' }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
-                    <span>Çözülen: {book.totalSolvedTests}</span>
-                    <span>Toplam: {book.totalAssignedTests} Test</span>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginTop: '0.75rem', textAlign: 'center' }}>
-                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 800 }}>Doğru</div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#059669' }}>{book.totalCorrect}</div>
-                     </div>
-                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>Yanlış</div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#b91c1c' }}>{book.totalWrong}</div>
-                     </div>
-                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 800 }}>Boş</div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#64748b' }}>{book.totalBlank}</div>
-                     </div>
-                     <div style={{ background: 'white', padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 800 }}>Başarı</div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#4f46e5' }}>
-                          %{(book.totalCorrect + book.totalWrong + book.totalBlank) > 0 ? Math.round((book.totalCorrect / (book.totalCorrect + book.totalWrong + book.totalBlank)) * 100) : 0}
-                        </div>
-                     </div>
-                  </div>
+                <ChevronRight size={18} color="#94a3b8" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+              {showChart && (
+                <div style={{ padding: '0 1rem 1rem' }}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={chartData} margin={{ top: 14, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
+                      <Tooltip
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.12)', fontWeight: 800, fontSize: '0.82rem' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: 10, fontSize: '0.8rem', fontWeight: 800 }} />
+                      <Bar dataKey="Doğru"  fill="#10b981" stackId="a" radius={[0, 0, 6, 6]} />
+                      <Bar dataKey="Yanlış" fill="#ef4444" stackId="a" />
+                      <Bar dataKey="Boş"    fill="#94a3b8" stackId="a" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-
-                <button
-                  className="btn"
-                  style={{
-                    width: '100%',
-                    background: isCompleted ? '#f1f5f9' : 'var(--color-primary)',
-                    color: isCompleted ? '#475569' : 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    border: 'none',
-                    fontWeight: 800
-                  }}
-                  onClick={(e) => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                >
-                  {isCompleted ? 'Haritayı Görüntüle' : 'Kitaba Devam Et'} <ArrowRight size={18} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* NEW BOOK MODAL */}
-      {isAddModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
-          <div className="card glass" style={{ width: '100%', maxWidth: '450px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'scaleIn 0.2s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Kendi Kitabını Ekle</h2>
-              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={24} /></button>
+              )}
             </div>
-            
+          </>
+        )}
+
+        {/* ── SEARCH + SORT ── */}
+        {assignedBooks.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: '1 1 220px' }}>
+              <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Kitap ara..."
+                style={{ width: '100%', paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, borderRadius: 13, border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, background: 'white', outline: 'none', color: '#0f172a', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 6, background: 'white', padding: 5, borderRadius: 13, border: '1.5px solid #e2e8f0' }}>
+              {[
+                { key: 'progress', label: '📊 İlerleme' },
+                { key: 'success',  label: '🏆 Başarı' },
+                { key: 'title',    label: '🔤 A-Z' },
+              ].map(s => (
+                <button key={s.key} onClick={() => setSortBy(s.key)} style={{ padding: '0.35rem 0.75rem', borderRadius: 9, border: 'none', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', background: sortBy === s.key ? '#6366f1' : 'transparent', color: sortBy === s.key ? 'white' : '#64748b', whiteSpace: 'nowrap' }}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{displayedBooks.length} kitap</span>
+          </div>
+        )}
+
+        {/* ── BOOK GRID ── */}
+        {assignedBooks.length === 0 ? (
+          booksLoading ? (
+            <div style={{ background: 'white', borderRadius: 22, padding: '4rem 2rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: 44, height: 44, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
+              <div style={{ fontWeight: 800, color: '#64748b' }}>Kitaplar yükleniyor…</div>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : (
+            <div style={{ background: 'white', borderRadius: 22, padding: '5rem 2rem', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+              <div style={{ width: 90, height: 90, background: 'linear-gradient(135deg, #eef2ff, #c7d2fe)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <BookOpen size={40} color="#6366f1" />
+              </div>
+              <h2 style={{ margin: '0 0 8px', color: '#1e293b', fontWeight: 900 }}>Henüz Atanmış Kitap Yok</h2>
+              <p style={{ color: '#64748b', margin: '0 0 20px', fontSize: '0.9rem' }}>Öğretmenin sana bir kitap atadığında burada görünecek.</p>
+              <button onClick={() => setIsAddModalOpen(true)} style={{ padding: '0.75rem 1.6rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Plus size={16} /> Kendi Kitabını Ekle
+              </button>
+            </div>
+          )
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 18 }}>
+            {displayedBooks.map((book, bookIdx) => {
+              const pal = palette(bookIdx);
+              const isCompleted = book.progressPct >= 100;
+              const pct = book.progressPct;
+              const urgentDue = book.remainingDays !== undefined && book.remainingDays <= 3;
+
+              return (
+                <div
+                  key={book.id}
+                  onClick={() => navigate(`/student/books/${book.id}`)}
+                  style={{ background: 'white', borderRadius: 22, border: `2px solid ${isCompleted ? '#10b981' : '#e2e8f0'}`, padding: '1.4rem', cursor: 'pointer', position: 'relative', overflow: 'hidden', boxShadow: isCompleted ? '0 6px 24px rgba(16,185,129,0.15)' : '0 2px 12px rgba(0,0,0,0.05)', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 12px 32px ${pal.shadow}`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = isCompleted ? '0 6px 24px rgba(16,185,129,0.15)' : '0 2px 12px rgba(0,0,0,0.05)'; }}
+                >
+                  {/* Top accent line */}
+                  <div style={{ height: 4, background: `linear-gradient(90deg, ${pal.from}, ${pal.to})`, position: 'absolute', top: 0, left: 0, right: 0 }} />
+
+                  {/* Badge */}
+                  {isCompleted ? (
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#10b981', color: 'white', padding: '0.25rem 0.7rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={11} fill="white" /> TAMAMLANDI
+                    </div>
+                  ) : urgentDue ? (
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#ef4444', color: 'white', padding: '0.25rem 0.7rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
+                      ⚡ {book.remainingDays} gün kaldı
+                    </div>
+                  ) : book.remainingDays !== undefined ? (
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#f59e0b', color: 'white', padding: '0.25rem 0.7rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
+                      <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />{book.remainingDays} gün
+                    </div>
+                  ) : null}
+
+                  {/* Book cover + title */}
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16, marginTop: 8 }}>
+                    <div style={{ width: 58, height: 80, borderRadius: 10, background: `linear-gradient(160deg, ${pal.from}, ${pal.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 16px ${pal.shadow}`, flexShrink: 0 }}>
+                      <BookMarked size={26} color="rgba(255,255,255,0.9)" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                      <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', lineHeight: 1.25, marginBottom: 4, paddingRight: book.remainingDays !== undefined || isCompleted ? 80 : 0 }}>
+                        {book.title}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{book.publisher}</div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                        {(book.subjects || []).slice(0, 3).map((s, i) => (
+                          <span key={i} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 7, padding: '0.18rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>{s.name}</span>
+                        ))}
+                        {(book.subjects || []).length > 3 && (
+                          <span style={{ background: '#f1f5f9', color: '#94a3b8', borderRadius: 7, padding: '0.18rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>+{(book.subjects || []).length - 3}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress section */}
+                  <div style={{ background: '#f8fafc', borderRadius: 16, padding: '1rem', marginBottom: 14, border: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Test İlerlemesi</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', marginTop: 2 }}>{book.totalSolvedTests} / {book.totalAssignedTests} test</div>
+                      </div>
+                      <div style={{ position: 'relative', width: 56, height: 56 }}>
+                        <CircularProgress pct={pct} size={56} stroke={5} color={isCompleted ? '#10b981' : pal.from} />
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 900, color: isCompleted ? '#10b981' : pal.from }}>
+                          %{pct}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`, borderRadius: 99, transition: 'width 0.7s ease' }} />
+                    </div>
+                  </div>
+
+                  {/* D/Y/B mini stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+                    {[
+                      { label: 'Doğru',  value: book.totalCorrect, color: '#059669', bg: '#f0fdf4', border: '#bbf7d0' },
+                      { label: 'Yanlış', value: book.totalWrong,   color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' },
+                      { label: 'Boş',    value: book.totalBlank,   color: '#475569', bg: '#f8fafc', border: '#e2e8f0' },
+                      { label: 'Başarı', value: `%${book.successRate}`, color: pal.from, bg: '#f8fafc', border: '#e2e8f0' },
+                    ].map((s, i) => (
+                      <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, padding: '0.4rem 0.3rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.62rem', color: s.color, fontWeight: 900, textTransform: 'uppercase' }}>{s.label}</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: s.color }}>{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA button */}
+                  <button
+                    onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
+                    style={{ width: '100%', padding: '0.7rem', background: isCompleted ? 'white' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`, color: isCompleted ? '#475569' : 'white', border: isCompleted ? '1.5px solid #e2e8f0' : 'none', borderRadius: 12, fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}` }}
+                  >
+                    {isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'} <ArrowRight size={16} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* bottom space */}
+        <div style={{ height: '2.5rem' }} />
+      </div>
+
+      {/* ══════════════════════
+          ADD BOOK MODAL
+      ══════════════════════ */}
+      {isAddModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: 24, width: '100%', maxWidth: 480, padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', animation: 'scaleIn 0.2s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>Kendi Kitabını Ekle</h2>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Çalışmak istediğin kitabı kaydet ve ilerlemeni takip et</p>
+              </div>
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+                <X size={18} />
+              </button>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { label: 'Kitap Adı', key: 'title', placeholder: 'Örn: TYT Matematik Soru Bankası' },
+                { label: 'Yayınevi', key: 'publisher', placeholder: 'Örn: 3D Yayınları' },
+              ].map(field => (
+                <div key={field.key}>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: '#374151' }}>{field.label}</label>
+                  <input
+                    type="text"
+                    value={newBook[field.key]}
+                    onChange={e => setNewBook(p => ({ ...p, [field.key]: e.target.value }))}
+                    placeholder={field.placeholder}
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 12, border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 700, outline: 'none', color: '#0f172a', boxSizing: 'border-box' }}
+                  />
+                </div>
+              ))}
+
               <div>
-                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Kitap Adı</label>
-                <input type="text" value={newBook.title} onChange={e => setNewBook(prev => ({...prev, title: e.target.value}))} placeholder="Örn: TYT Matematik Soru Bankası" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>Yayınevi</label>
-                <input type="text" value={newBook.publisher} onChange={e => setNewBook(prev => ({...prev, publisher: e.target.value}))} placeholder="Örn: 3D Yayınları" style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.95rem' }} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.4rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#374151', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f1f5f9' }}>
                   Dersler / Bölümler
                 </label>
-                {newBook.subjects.map((subj, index) => (
-                  <div key={subj.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 2 }}>
-                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: '#64748b' }}>Ders Adı</label>}
-                      <input type="text" value={subj.name} onChange={e => {
-                        const newSubs = [...newBook.subjects];
-                        newSubs[index].name = e.target.value;
-                        setNewBook({...newBook, subjects: newSubs});
-                      }} placeholder="Örn: Matematik" style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: '#64748b' }}>Test Sayısı</label>}
-                      <input type="number" min="1" value={subj.testCount} onChange={e => {
-                        const newSubs = [...newBook.subjects];
-                        newSubs[index].testCount = Number(e.target.value);
-                        setNewBook({...newBook, subjects: newSubs});
-                      }} style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: '#64748b' }}>Soru (Ort.)</label>}
-                      <input type="number" min="1" value={subj.questionsPerTest} onChange={e => {
-                        const newSubs = [...newBook.subjects];
-                        newSubs[index].questionsPerTest = Number(e.target.value);
-                        setNewBook({...newBook, subjects: newSubs});
-                      }} style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      {index === 0 && <label style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.75rem', color: 'transparent' }}>X</label>}
-                      <button onClick={() => {
-                        const newSubs = newBook.subjects.filter((_, i) => i !== index);
-                        setNewBook({...newBook, subjects: newSubs});
-                      }} style={{ padding: '0.6rem', background: newBook.subjects.length > 1 ? '#fee2e2' : '#f1f5f9', color: newBook.subjects.length > 1 ? '#ef4444' : '#cbd5e1', border: 'none', borderRadius: '0.5rem', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', marginTop: index === 0 ? '0' : '0' }} disabled={newBook.subjects.length <= 1}>
-                        <X size={16} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {newBook.subjects.map((subj, idx) => (
+                    <div key={subj.id} style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                      <input
+                        type="text" value={subj.name} placeholder={`Ders ${idx + 1}`}
+                        onChange={e => { const s = [...newBook.subjects]; s[idx].name = e.target.value; setNewBook({ ...newBook, subjects: s }); }}
+                        style={{ flex: 2, padding: '0.6rem 0.75rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
+                      />
+                      <input
+                        type="number" min="1" value={subj.testCount} title="Test Sayısı"
+                        onChange={e => { const s = [...newBook.subjects]; s[idx].testCount = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
+                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center' }}
+                      />
+                      <input
+                        type="number" min="1" value={subj.questionsPerTest} title="Test başına soru"
+                        onChange={e => { const s = [...newBook.subjects]; s[idx].questionsPerTest = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
+                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center' }}
+                      />
+                      <button
+                        onClick={() => { const s = newBook.subjects.filter((_, i) => i !== idx); setNewBook({ ...newBook, subjects: s }); }}
+                        disabled={newBook.subjects.length <= 1}
+                        style={{ width: 34, height: 34, borderRadius: 9, border: 'none', background: newBook.subjects.length > 1 ? '#fee2e2' : '#f1f5f9', color: newBook.subjects.length > 1 ? '#ef4444' : '#cbd5e1', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                      >
+                        <X size={14} />
                       </button>
                     </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 4, fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>
+                    <span style={{ flex: 2 }}>Ders Adı</span>
+                    <span style={{ width: 62, textAlign: 'center' }}>Test Sayısı</span>
+                    <span style={{ width: 62, textAlign: 'center' }}>Soru/Test</span>
+                    <span style={{ width: 34 }} />
                   </div>
-                ))}
-                
-                <button 
-                  onClick={() => setNewBook(prev => ({...prev, subjects: [...prev.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
-                  style={{ padding: '0.5rem', background: '#f8fafc', color: '#3b82f6', border: '1px dashed #bfdbfe', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginTop: '0.25rem' }}
-                >
-                  <Plus size={16} /> Yeni Ders Ekle
-                </button>
+                  <button
+                    onClick={() => setNewBook(p => ({ ...p, subjects: [...p.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
+                    style={{ padding: '0.55rem', background: '#f0f9ff', color: '#0ea5e9', border: '1.5px dashed #bae6fd', borderRadius: 10, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}
+                  >
+                    <Plus size={14} /> Yeni Ders Ekle
+                  </button>
+                </div>
               </div>
             </div>
 
-            <button 
-              onClick={handleSaveNewBook} 
+            <button
+              onClick={handleSaveNewBook}
               disabled={isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)}
-              style={{ width: '100%', padding: '1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 800, fontSize: '1rem', cursor: (isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)) ? 'not-allowed' : 'pointer', opacity: (isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)) ? 0.7 : 1, marginTop: '0.5rem' }}
+              style={{ padding: '0.9rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.95rem', cursor: (isSaving || !newBook.title || !newBook.publisher) ? 'not-allowed' : 'pointer', opacity: (isSaving || !newBook.title || !newBook.publisher) ? 0.65 : 1 }}
             >
-              {isSaving ? 'Harita Oluşturuluyor...' : 'Kitabı Haritama Ekle'}
+              {isSaving ? '⏳ Harita Oluşturuluyor…' : '🗺️ Kitabı Haritama Ekle'}
             </button>
           </div>
-          <style>{`@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+          <style>{`@keyframes scaleIn { from { transform: scale(0.93) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }`}</style>
         </div>
       )}
     </div>
