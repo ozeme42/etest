@@ -672,7 +672,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* ════════════════ STAT CHIPS (5-Column Responsive Grid - 100% Mobile Fit) ════════════════ */}
-      <div style={{ padding: isMobile ? '0 0.5rem' : '0 1.5rem', marginTop: -12, marginBottom: '1.25rem', position: 'relative', zIndex: 10 }}>
+      <div style={{ padding: isMobile ? '0 0.5rem' : '0 1.5rem', marginTop: isMobile ? 12 : -12, marginBottom: '1.25rem', position: 'relative', zIndex: 10 }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
