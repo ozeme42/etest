@@ -162,7 +162,48 @@ export default function DrawingCanvas({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000000, pointerEvents: 'none' }}>
+      <style>{`
+        .drawing-toolbar-bar {
+          position: fixed;
+          bottom: 1.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          pointer-events: auto;
+          background: rgba(15, 23, 42, 0.94);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(255,255,255,0.18);
+          border-radius: 1.25rem;
+          padding: 0.5rem 0.85rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+          color: white;
+          user-select: none;
+          max-width: 96vw;
+          box-sizing: border-box;
+          z-index: 1000000;
+        }
+        @media (max-width: 640px) {
+          .drawing-toolbar-bar {
+            bottom: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            border-radius: 1rem;
+            max-width: 98vw;
+          }
+          .drawing-color-palette {
+            gap: 0.25rem !important;
+          }
+          .drawing-color-dot {
+            width: 18px !important;
+            height: 18px !important;
+          }
+        }
+      `}</style>
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
@@ -181,27 +222,8 @@ export default function DrawingCanvas({ isOpen, onClose }) {
         }}
       />
 
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '1.5rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          pointerEvents: 'auto',
-          background: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: '1.25rem',
-          padding: '0.6rem 1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-          color: 'white',
-          userSelect: 'none'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <div className="drawing-toolbar-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
           <button
             onClick={() => setTool('pencil')}
             title="Kalem"
