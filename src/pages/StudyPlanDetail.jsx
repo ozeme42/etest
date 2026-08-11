@@ -39,7 +39,7 @@ export default function StudyPlanDetail() {
 
   // Form states
   const [unitForm, setUnitForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
-  const [topicForm, setTopicForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
+  const [topicForm, setTopicForm] = useState({ name: '', day: '', dueDate: '', resourceUrl: '' });
   const [bulkTopicText, setBulkTopicText] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [jsonText, setJsonText] = useState('');
@@ -93,7 +93,7 @@ export default function StudyPlanDetail() {
 
   // Topic Actions
   const openTopicModal = (unitId, topic = null) => {
-    setTopicForm(topic ? { name: topic.name, dueDate: topic.dueDate || '', resourceUrl: topic.resourceUrl || '' } : { name: '', dueDate: '', resourceUrl: '' });
+    setTopicForm(topic ? { name: topic.name || '', day: topic.day || '', dueDate: topic.dueDate || '', resourceUrl: topic.resourceUrl || '' } : { name: '', day: '', dueDate: '', resourceUrl: '' });
     setTopicModal({ isOpen: true, unitId, topic });
   };
 
@@ -478,7 +478,14 @@ export default function StudyPlanDetail() {
                           {unit.topics.map(topic => (
                             <div key={topic.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-slate-200 transition-colors">
                               <div className="flex flex-col">
-                                <span className="font-medium text-slate-700">{topic.name}</span>
+                                <div className="flex items-center gap-2">
+                                  {topic.day && (
+                                    <span className="px-2 py-0.5 rounded-md text-xs font-black bg-indigo-50 text-indigo-600 border border-indigo-100 shrink-0">
+                                      {topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`}
+                                    </span>
+                                  )}
+                                  <span className="font-medium text-slate-700">{topic.name}</span>
+                                </div>
                                 <div className="flex flex-wrap gap-3 mt-1.5">
                                   {topic.dueDate && (
                                     <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
@@ -605,6 +612,16 @@ export default function StudyPlanDetail() {
                     onChange={(e) => setTopicForm({...topicForm, name: e.target.value})}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     placeholder="Örn: Pozitif Tam Sayıların Üsleri"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Gün Numarası / Etiketi (İsteğe bağlı)</label>
+                  <input
+                    type="text"
+                    value={topicForm.day || ''}
+                    onChange={(e) => setTopicForm({...topicForm, day: e.target.value})}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700"
+                    placeholder="Örn: 1 veya Gün 1"
                   />
                 </div>
                 <div>

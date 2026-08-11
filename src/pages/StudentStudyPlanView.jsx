@@ -174,7 +174,7 @@ export default function StudentStudyPlanView() {
                                 isCurrent ? "text-indigo-600" :
                                 "text-slate-500"
                               )}>
-                                Adım {tIdx + 1}
+                                {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`) : `Adım ${tIdx + 1}`}
                               </span>
                               {isCurrent && (
                                 <span className="px-2 py-0.5 bg-indigo-500 text-white text-[9px] font-black uppercase tracking-wider rounded">
