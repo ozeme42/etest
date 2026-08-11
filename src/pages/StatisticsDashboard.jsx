@@ -71,12 +71,13 @@ export default function StatisticsDashboard() {
   const finalSubjectData = useMemo(() => {
     const grouped = {};
     studyAssignments.forEach(a => {
-      if (!grouped[a.subject]) {
-        grouped[a.subject] = { subject: a.subject, Atanan: 0, Tamamlanan: 0 };
+      const s = a.subject || 'Belirtilmemiş';
+      if (!grouped[s]) {
+        grouped[s] = { subject: s, Atanan: 0, Tamamlanan: 0 };
       }
-      grouped[a.subject].Atanan += 1;
+      grouped[s].Atanan += 1;
       if (a.status === 'completed') {
-        grouped[a.subject].Tamamlanan += 1;
+        grouped[s].Tamamlanan += 1;
       }
     });
     return Object.values(grouped);
@@ -86,13 +87,14 @@ export default function StatisticsDashboard() {
   const finalTopicData = useMemo(() => {
     const grouped = {};
     studyAssignments.forEach(a => {
-      const label = a.topic.length > 12 ? a.topic.substring(0, 12) + '...' : a.topic;
-      if (!grouped[a.topic]) {
-        grouped[a.topic] = { topic: label, fullTopic: a.topic, Atanan: 0, Tamamlanan: 0 };
+      const t = a.topic || 'Belirtilmemiş';
+      const label = t.length > 12 ? t.substring(0, 12) + '...' : t;
+      if (!grouped[t]) {
+        grouped[t] = { topic: label, fullTopic: t, Atanan: 0, Tamamlanan: 0 };
       }
-      grouped[a.topic].Atanan += 1;
+      grouped[t].Atanan += 1;
       if (a.status === 'completed') {
-        grouped[a.topic].Tamamlanan += 1;
+        grouped[t].Tamamlanan += 1;
       }
     });
     return Object.values(grouped).sort((a, b) => b.Atanan - a.Atanan).slice(0, 8);
