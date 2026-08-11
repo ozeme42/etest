@@ -178,14 +178,23 @@ export default function BookQuizRunner() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-background, #f8fafc)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      minHeight: '100vh',
+      maxWidth: '100vw',
+      width: '100%',
+      overflowX: 'hidden',
+      background: 'var(--color-background, #f8fafc)',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
       
       {/* ── STICKY HEADER ── */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: 'white', borderBottom: '1px solid #e2e8f0',
-        padding: '0.75rem 1.25rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
+        padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.25rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem',
+        width: '100%', maxWidth: '100vw', boxSizing: 'border-box', overflow: 'hidden',
         boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
@@ -296,8 +305,11 @@ export default function BookQuizRunner() {
           {/* OPTIK FORM GRID */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isOpenEnded ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
+            gridTemplateColumns: isOpenEnded ? '1fr' : (isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))'),
             gap: '0.6rem',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }}>
             {Array.from({ length: qCount }).map((_, i) => {
               const qNum = String(i + 1);
