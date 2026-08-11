@@ -193,6 +193,56 @@ export default function StudyPlanDetail() {
     let currentUnit = null;
 
     lines.forEach(line => {
+      // 1. Skip table headers like "Gün İçerik Sayfa"
+      const lower = line.toLowerCase();
+      if ((lower.includes('gün') && lower.includes('içerik')) || /^gün\s*içerik/i.test(line)) {
+        return;
+      }
+
+      // 2. Unit Line Check (e.g. "1. Ünite – Okuma Kültürü / Doğal Sayılar (s. 5-28)")
+      const isUnitLine = (
+        /^\d+[\.\s]*ünite/i.test(line) ||
+        /^ünite\s*\d+/i.test(line) ||
+        (line.toLowerCase().includes('ünite') && !line.includes('\t') && !line.includes('•')) ||
+        (line.endsWith(':') && !line.includes('http'))
+      );
+
+      if (isUnitLine) {
+        const unitName = line.replace(/:$/, '').trim();
+        currentUnit = {
+          id: `sub_${Math.random().toString(36).substring(2, 9)}`,
+          name: unitName,
+          topics: []
+        };
+        units.push(currentUnit);
+        return;
+      }
+
+      // 3. Tabbed or multi-column schedule lines (e.g. "1\tParagraf İnceleme...\t5-14")
+      const tabParts = line.split(/\t+|\s{3,}/).map(p => p.trim()).filter(Boolean);
+      if (tabParts.length >= 2 && (/^\d+$/.test(tabParts[0]) || /^gün\s*\d+/i.test(tabParts[0]))) {
+        const dayStr = tabParts[0].toLowerCase().startsWith('gün') ? tabParts[0] : `Gün ${tabParts[0]}`;
+        const content = tabParts[1];
+        const pageInfo = tabParts[2] ? ` (s. ${tabParts[2]})` : '';
+        const topicName = `${dayStr}: ${content}${pageInfo}`;
+
+        if (!currentUnit) {
+          currentUnit = {
+            id: `sub_${Math.random().toString(36).substring(2, 9)}`,
+            name: '1. Ünite',
+            topics: []
+          };
+          units.push(currentUnit);
+        }
+
+        currentUnit.topics.push({
+          id: `top_${Math.random().toString(36).substring(2, 9)}`,
+          name: topicName
+        });
+        return;
+      }
+
+      // 4. Greater-than format: "Ünite Adı > Konu Adı"
       if (line.includes('>')) {
         const parts = line.split('>').map(p => p.trim());
         const uName = parts[0];
@@ -208,19 +258,23 @@ export default function StudyPlanDetail() {
         return;
       }
 
+      // 5. Standard bullet or text line
       const isBullet = line.startsWith('-') || line.startsWith('*') || line.startsWith('•');
       const cleanLine = line.replace(/^[-*•\d+\.\s]+/, '').trim();
 
-      if (line.endsWith(':') || line.toLowerCase().startsWith('ünite') || (!isBullet && !currentUnit)) {
-        const unitName = cleanLine.replace(/:$/, '').trim() || line.trim();
-        currentUnit = { id: `sub_${Math.random().toString(36).substring(2, 9)}`, name: unitName, topics: [] };
-        units.push(currentUnit);
-      } else if (cleanLine) {
+      if (cleanLine) {
         if (!currentUnit) {
-          currentUnit = { id: `sub_${Math.random().toString(36).substring(2, 9)}`, name: 'Genel Ünite', topics: [] };
+          currentUnit = {
+            id: `sub_${Math.random().toString(36).substring(2, 9)}`,
+            name: 'Genel Ünite',
+            topics: []
+          };
           units.push(currentUnit);
         }
-        currentUnit.topics.push({ id: `top_${Math.random().toString(36).substring(2, 9)}`, name: cleanLine });
+        currentUnit.topics.push({
+          id: `top_${Math.random().toString(36).substring(2, 9)}`,
+          name: isBullet ? cleanLine : line
+        });
       }
     });
 
