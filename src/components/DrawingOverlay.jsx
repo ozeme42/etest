@@ -137,6 +137,29 @@ export default function DrawingOverlay({ children }) {
     return () => document.removeEventListener('fullscreenchange', handleFs);
   }, []);
 
+  // Prevent mobile Safari/Chrome from scrolling when drawing on canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const preventScroll = (e) => {
+      if (isDrawingMode) {
+        e.preventDefault();
+      }
+    };
+
+    // React's onPointerMove is passive, so we MUST use native addEventListener with { passive: false }
+    canvas.addEventListener('touchstart', preventScroll, { passive: false });
+    canvas.addEventListener('touchmove', preventScroll, { passive: false });
+    canvas.addEventListener('touchend', preventScroll, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', preventScroll);
+      canvas.removeEventListener('touchmove', preventScroll);
+      canvas.removeEventListener('touchend', preventScroll);
+    };
+  }, [isDrawingMode]);
+
   return (
     <div 
       ref={wrapperRef} 
