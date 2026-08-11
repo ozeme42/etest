@@ -412,7 +412,7 @@ export default function StudentDashboard() {
   const tests = useMemo(() => {
     if (!selectedStudent) return [];
 
-    const gradesList = data?.grades || [];
+    const gradesList = curData?.grades || [];
 
     return homeworks.filter(hw => {
       if (hw.isBookAssignment) return false;
@@ -428,7 +428,7 @@ export default function StudentDashboard() {
         submissionId: sub?.id
       };
     });
-  }, [homeworks, selectedStudent, submissions]);
+  }, [homeworks, selectedStudent, submissions, curData]);
 
   const assignments = useMemo(() => {
     if (!selectedStudent) return [];
