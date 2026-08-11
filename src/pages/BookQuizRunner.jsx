@@ -258,25 +258,56 @@ export default function BookQuizRunner() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT: PDF (top/left) + OPTIK FORM (bottom/right) ── */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        height: 'calc(100vh - 72px)',
-        overflow: 'hidden',
-      }}>
+      <style>{`
+        .book-quiz-main-container {
+          display: flex !important;
+          flex-direction: column !important;
+          height: calc(100vh - 72px) !important;
+          overflow: hidden !important;
+          width: 100vw !important;
+          max-width: 100vw !important;
+        }
+        .book-quiz-pdf-area {
+          width: 100% !important;
+          height: 52% !important;
+          overflow: hidden !important;
+          border-bottom: 3px solid #cbd5e1 !important;
+          border-right: none !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        .book-quiz-optic-area {
+          width: 100% !important;
+          height: 48% !important;
+          overflow-y: auto !important;
+          background: #f8fafc !important;
+          padding: 0.85rem !important;
+          box-sizing: border-box !important;
+        }
+        @media (min-width: 769px) {
+          .book-quiz-main-container {
+            flex-direction: row !important;
+          }
+          .book-quiz-pdf-area {
+            width: 60% !important;
+            height: 100% !important;
+            border-right: 1px solid #e2e8f0 !important;
+            border-bottom: none !important;
+          }
+          .book-quiz-optic-area {
+            width: 40% !important;
+            height: 100% !important;
+            padding: 1.25rem !important;
+          }
+        }
+      `}</style>
 
-        {/* TOP / LEFT: PDF Viewer */}
+      {/* ── MAIN CONTENT: PDF (top) + OPTIK FORM (bottom) ── */}
+      <div className="book-quiz-main-container">
+
+        {/* TOP: PDF Viewer */}
         {hasPdf && showPdf && (
-          <div style={{
-            height: isMobile ? '55%' : '100%',
-            width: isMobile ? '100%' : '60%',
-            overflow: 'hidden',
-            borderRight: isMobile ? 'none' : '1px solid #e2e8f0',
-            borderBottom: isMobile ? '1px solid #e2e8f0' : 'none',
-            display: 'flex', flexDirection: 'column'
-          }}>
+          <div className="book-quiz-pdf-area">
             <PdfViewerPanel
               pdfUrl={book.pdfUrl}
               title={book.title}
@@ -286,14 +317,8 @@ export default function BookQuizRunner() {
           </div>
         )}
 
-        {/* BOTTOM / RIGHT: Optik Form */}
-        <div style={{
-          height: isMobile && hasPdf && showPdf ? '45%' : '100%',
-          width: isMobile ? '100%' : (hasPdf && showPdf ? '40%' : '100%'),
-          overflowY: 'auto',
-          background: '#f8fafc',
-          padding: isMobile ? '0.85rem' : '1.25rem',
-        }}>
+        {/* BOTTOM: Optik Form */}
+        <div className="book-quiz-optic-area">
           <div style={{
             fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase',
             letterSpacing: '0.06em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem'
@@ -305,7 +330,7 @@ export default function BookQuizRunner() {
           {/* OPTIK FORM GRID */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isOpenEnded ? '1fr' : (isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))'),
+            gridTemplateColumns: isOpenEnded ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
             gap: '0.6rem',
             width: '100%',
             maxWidth: '100%',
