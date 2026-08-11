@@ -137,26 +137,41 @@ export default function DrawingOverlay({ children }) {
     return () => document.removeEventListener('fullscreenchange', handleFs);
   }, []);
 
-  // Prevent mobile Safari/Chrome from scrolling when drawing on canvas
+  // The absolute nuclear option to prevent ALL scrolling on iOS/Android
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const preventScroll = (e) => {
+    const preventGlobalScroll = (e) => {
       if (isDrawingMode) {
-        e.preventDefault();
+        // Prevent default only if we are touching inside the DrawingOverlay, or globally to be safe
+        if (e.cancelable) {
+          e.preventDefault();
+        }
       }
     };
 
-    // React's onPointerMove is passive, so we MUST use native addEventListener with { passive: false }
-    canvas.addEventListener('touchstart', preventScroll, { passive: false });
-    canvas.addEventListener('touchmove', preventScroll, { passive: false });
-    canvas.addEventListener('touchend', preventScroll, { passive: false });
+    if (isDrawingMode) {
+      // 1. Lock the body scroll strictly via CSS
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.touchAction = 'none';
+
+      // 2. Intercept all touchmoves at the document level
+      document.addEventListener('touchmove', preventGlobalScroll, { passive: false });
+    } else {
+      // Release locks
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.touchAction = '';
+      document.removeEventListener('touchmove', preventGlobalScroll);
+    }
 
     return () => {
-      canvas.removeEventListener('touchstart', preventScroll);
-      canvas.removeEventListener('touchmove', preventScroll);
-      canvas.removeEventListener('touchend', preventScroll);
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.touchAction = '';
+      document.removeEventListener('touchmove', preventGlobalScroll);
     };
   }, [isDrawingMode]);
 
