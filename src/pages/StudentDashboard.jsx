@@ -547,6 +547,18 @@ export default function StudentDashboard() {
   /* ─── Derived values ─── */
   const today = new Date();
   const todayStr = today.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const programStartDateStr = useMemo(() => {
+    const rawDate = selectedStudent?.programStartDate || selectedStudent?.createdAt || selectedStudent?.startDate || myRoadmaps[0]?.assignment?.createdAt;
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    }
+    return '1 Eylül 2024';
+  }, [selectedStudent, myRoadmaps]);
+
   const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
   const overdueCount = stats.overdueCount;
   const pendingCount = stats.pendingCount;
@@ -646,9 +658,14 @@ export default function StudentDashboard() {
               <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight:900, color:'white', margin:0, lineHeight:1.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                 {selectedStudent?.name || 'Öğrenci'}
               </h1>
-              {gradeLabel && <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.7)', fontWeight:600, marginTop:2 }}>{gradeLabel}</div>}
-              <div style={{ marginTop:6, display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.15)', borderRadius:99, padding:'0.2rem 0.6rem', backdropFilter:'blur(8px)' }}>
-                <span style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.9)', fontWeight:700 }}>📅 {todayStr}</span>
+              {/* Dates Row: Today + Compact Program Start Date */}
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)' }}>
+                  <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>📅 {todayStr}</span>
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)' }}>
+                  <span style={{ fontSize: '0.62rem', color: '#fef08a', fontWeight: 800 }}>🚀 Başlangıç: {programStartDateStr}</span>
+                </div>
               </div>
             </div>
           </div>
