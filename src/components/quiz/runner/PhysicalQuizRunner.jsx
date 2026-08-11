@@ -460,12 +460,12 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             title={test.title || test.name || 'Kitap PDF'}
             mode={pdfMode}
             onModeChange={setPdfMode}
-            isFullScreen={!showOptikForm}
+            isFullScreen={isMobile || !showOptikForm}
           />
         )}
 
-        {/* RIGHT/BOTTOM: Optik Form — scrollable */}
-        {showOptikForm && (
+        {/* RIGHT/BOTTOM: Optik Form — scrollable (Desktop Only) */}
+        {!isMobile && showOptikForm && (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
