@@ -331,8 +331,22 @@ function ProgressBar({ value, color = '#6366f1', bg = '#eff6ff', height = 8 }) {
 /* ─── Main ─────────────────────────────────────────────────────── */
 const avatarColors = ['#6366f1', '#3b82f6', '#10b981', '#f97316', '#a855f7', '#f43f5e'];
 
+const DASHBOARD_QUOTES = [
+  { quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", author: "Robert Collier", category: "Disiplin" },
+  { quote: "Gelecek, bugün ne yaptığına bağlıdır. Yarın değil, tam da şimdi!", author: "Mahatma Gandhi", category: "Eylem" },
+  { quote: "Zirveye tırmanmak yorucudur ama oradaki manzara her şeye değer.", author: "Anonim", category: "Zafer" },
+  { quote: "Disiplin, ne istediğin ile en çok ne istediğin arasındaki seçimdir.", author: "Abraham Lincoln", category: "Odak" },
+  { quote: "Zafer, 'vazgeçmeyenlerindir'. Yapabileceğinin en iyisini yap!", author: "Mustafa Kemal Atatürk", category: "İnanç" },
+  { quote: "Zorluklar, başarının değerini artıran süslerdir.", author: "Molière", category: "Mücadele" },
+  { quote: "Sınırlarını zorlamayan biri, potansiyelinin ne olduğunu asla öğrenemez.", author: "Kobe Bryant", category: "Özgüven" },
+  { quote: "Sınavı kazandıran zeka değil, bıkmadan gösterilen sürekliliktir.", author: "Koçluk Mottosu", category: "Disiplin" },
+  { quote: "Rüzgar ne kadar sert eserse esin, sağlam ağaç köklerinden kopmaz.", author: "Konfüçyüs", category: "Mücadele" },
+  { quote: "Başarı, her gün biraz daha iyi olmakla gelir! 💪", author: "Günün Mottosu", category: "Gelişim" }
+];
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
   const { homeworks } = useHomework();
@@ -941,28 +955,81 @@ export default function StudentDashboard() {
       {/* ════════════════ MOTIVATION + RESULTS ════════════════ */}
       <div style={{ ...S.section, display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:'0.75rem' }} className="sd-section">
         {/* Motivation */}
-        <div style={{ background:'linear-gradient(135deg,#fef3c7,#fde68a)', borderRadius:20, padding:'1rem 1.1rem', flex:1, boxShadow:'0 4px 16px rgba(245,158,11,0.12)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-            <Flame size={20} color="#f59e0b" />
-            <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#92400e' }}>Motivasyon!</div>
-          </div>
-          <div style={{ fontSize:'0.78rem', color:'#78350f', lineHeight:1.6, fontStyle:'italic', borderLeft:'2px solid #f59e0b', paddingLeft:8 }}>
-            "Başarı, her gün biraz daha iyi olmakla gelir! 💪"
-          </div>
-          <div style={{ marginTop:10, display:'flex', gap:4 }}>
-            {['P','S','Ç','P','C','C','P'].map((d, i) => {
-              const done = i < 4;
-              return (
-                <div key={i} style={{ flex:1, textAlign:'center' }}>
-                  <div style={{ fontSize:'0.52rem', fontWeight:700, color:'#92400e', marginBottom:2 }}>{d}</div>
-                  <div style={{ width:'100%', aspectRatio:1, borderRadius:4, background: done ? '#f59e0b' : 'rgba(245,158,11,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    {done && <Star size={7} color="white" fill="white" />}
+        {(() => {
+          const currentDashQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
+          const dayLetters = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
+          const currentDayIdx = (new Date().getDay() + 6) % 7;
+
+          return (
+            <div style={{
+              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%)',
+              borderRadius: 20, padding: '1rem 1.15rem', flex: 1,
+              boxShadow: '0 6px 20px rgba(245,158,11,0.15)', border: '1px solid #fcd34d',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 10
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Flame size={20} color="#d97706" />
+                    <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#92400e' }}>Günün Motivasyonu!</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDashQuoteIdx(p => p + 1)}
+                    style={{
+                      background: 'rgba(255,255,255,0.7)', border: '1px solid #fde68a',
+                      borderRadius: 8, padding: '0.2rem 0.5rem', color: '#b45309',
+                      fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                    }}
+                    title="Yeni Söz Göster"
+                  >
+                    <RefreshCw size={11} /> Sözü Değiştir
+                  </button>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: '#78350f', lineHeight: 1.5, fontWeight: 700, fontStyle: 'italic', borderLeft: '3px solid #f59e0b', paddingLeft: 8, margin: '4px 0 6px' }}>
+                  "{currentDashQuote.quote}"
+                  <div style={{ fontSize: '0.68rem', fontStyle: 'normal', fontWeight: 900, color: '#b45309', marginTop: 2, textAlign: 'right' }}>
+                    — {currentDashQuote.author}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#92400e', textTransform: 'uppercase' }}>Haftalık İlerleme Serisi</span>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/my-coaching')}
+                    style={{ background: 'none', border: 'none', color: '#b45309', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
+                  >
+                    Zafer Merkezini Aç <ArrowRight size={11} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {dayLetters.map((d, i) => {
+                    const isPassedOrToday = i <= currentDayIdx;
+                    const isTodayActive = i === currentDayIdx;
+                    return (
+                      <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isTodayActive ? '#78350f' : '#b45309', marginBottom: 2 }}>{d}</div>
+                        <div style={{
+                          width: '100%', aspectRatio: 1, borderRadius: 5,
+                          background: isTodayActive ? '#f59e0b' : isPassedOrToday ? '#fbbf24' : 'rgba(245,158,11,0.25)',
+                          border: isTodayActive ? '1.5px solid #d97706' : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          {isPassedOrToday && <Star size={9} color="white" fill="white" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Results CTA */}
         <button onClick={() => navigate('/student-results')} className="sd-btn"
