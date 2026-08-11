@@ -25,15 +25,31 @@ export default function StudentProgramPage() {
     [studentId, getCoachingProfileForStudent]
   );
 
-  const [weeklyProgram, setWeeklyProgram] = useState(() => normalizeWeeklyProgram(existingProfile.weeklyProgram));
-  const [topicPool, setTopicPool] = useState(() => existingProfile.topicPool || []);
+  const [weeklyProgram, setWeeklyProgramState] = useState(() => normalizeWeeklyProgram(existingProfile.weeklyProgram));
+  const [topicPool, setTopicPoolState] = useState(() => existingProfile.topicPool || []);
   const [saved, setSaved] = useState(false);
+
+  const setWeeklyProgram = async (newProgramOrFn) => {
+    const nextProg = typeof newProgramOrFn === 'function' ? newProgramOrFn(weeklyProgram) : newProgramOrFn;
+    setWeeklyProgramState(nextProg);
+    await saveCoachingProfile({ ...existingProfile, studentId, weeklyProgram: nextProg, topicPool });
+  };
+
+  const setTopicPool = async (newPoolOrFn) => {
+    const nextPool = typeof newPoolOrFn === 'function' ? newPoolOrFn(topicPool) : newPoolOrFn;
+    setTopicPoolState(nextPool);
+    await saveCoachingProfile({ ...existingProfile, studentId, weeklyProgram, topicPool: nextPool });
+  };
 
   const weekRange = getWeekDateRange();
 
   useEffect(() => {
-    if (existingProfile.weeklyProgram) setWeeklyProgram(normalizeWeeklyProgram(existingProfile.weeklyProgram));
-    if (existingProfile.topicPool) setTopicPool(existingProfile.topicPool);
+    if (existingProfile.weeklyProgram && existingProfile.weeklyProgram.length > 0) {
+      setWeeklyProgramState(normalizeWeeklyProgram(existingProfile.weeklyProgram));
+    }
+    if (existingProfile.topicPool && existingProfile.topicPool.length > 0) {
+      setTopicPoolState(existingProfile.topicPool);
+    }
   }, [existingProfile.id]);
 
   const handleSave = async () => {

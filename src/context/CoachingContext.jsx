@@ -153,12 +153,16 @@ export function CoachingProvider({ children }) {
     };
     setCoachingProfiles(prev => {
       const idx = prev.findIndex(p => String(p.studentId) === String(profileData.studentId));
+      let copy = [...prev];
       if (idx >= 0) {
-        const copy = [...prev];
         copy[idx] = { ...copy[idx], ...newProfile };
-        return copy;
+      } else {
+        copy = [newProfile, ...copy];
       }
-      return [newProfile, ...prev];
+      try {
+        localStorage.setItem('etest_coaching_profiles', JSON.stringify(copy));
+      } catch (e) {}
+      return copy;
     });
     await dbSaveCoachingProfile(newProfile);
     return newProfile;
