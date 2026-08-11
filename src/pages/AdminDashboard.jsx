@@ -426,7 +426,26 @@ function UserManager() {
                   <td>
                     <span className={`role-badge role-${user.role}`}>{getRoleLabel(user.role)}</span>
                   </td>
-                  <td>{user.role === 'student' ? getGradeName(user.gradeId) : '-'}</td>
+                  <td>
+                    {user.role === 'student' ? (
+                      <select
+                        value={user.gradeId || ''}
+                        onChange={async (e) => {
+                          const newGradeId = e.target.value;
+                          const gradeName = getGradeName(newGradeId);
+                          const updated = { ...user, gradeId: newGradeId, classId: newGradeId, grade: gradeName };
+                          await updateUser(user.id, updated);
+                          await dbAddUser(updated);
+                        }}
+                        style={{ padding: '0.3rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: user.gradeId ? '#eff6ff' : '#fffef0', color: user.gradeId ? '#1d4ed8' : '#b45309', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        <option value="">— Sınıf Seçin</option>
+                        {curData.grades.map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                    ) : '-'}
+                  </td>
                   <td style={{ fontSize: '0.85rem' }}>
                     {user.role === 'student' ? (
                       <select
