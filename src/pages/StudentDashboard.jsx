@@ -540,44 +540,82 @@ export default function StudentDashboard() {
   const gradeLabel = curData?.grades?.find(g => g.id === selectedStudent?.gradeId)?.name || '';
   const avatarColor = avatarColors[studentMembers.findIndex(s => s.id === selectedStudent?.id) % avatarColors.length] || '#6366f1';
 
-  /* ── Render ── */
+  /* ─── Derived values ─── */
   const today = new Date();
   const todayStr = today.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
+  const overdueCount = stats.overdueCount;
+  const pendingCount = stats.pendingCount;
+  const successPct = Math.round(stats.successRate);
+  const progressPct = Math.floor(stats.completedRate);
+
+  /* ─── STYLES ─── */
+  const S = {
+    page: { minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" },
+    hero: {
+      background: 'linear-gradient(135deg, #3730a3 0%, #6d28d9 50%, #a21caf 100%)',
+      padding: isMobile ? '1.5rem 1rem 3.5rem' : '2rem 2rem 4rem',
+      position: 'relative', overflow: 'hidden'
+    },
+    section: { padding: isMobile ? '0 0.875rem' : '0 1.5rem', marginBottom: '1.5rem' },
+    sectionTitle: { fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 },
+    card: { background: '#ffffff', borderRadius: 20, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' },
+    glassChip: { background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 99 },
+  };
+
+  /* ─── Stat chips ─── */
+  const statChips = [
+    { label: 'Toplam', value: tests.length, color: '#6366f1', bg: '#eef2ff' },
+    { label: 'Tamamlandı', value: completedCount, color: '#16a34a', bg: '#dcfce7' },
+    { label: 'Bekliyor', value: pendingCount, color: '#ea580c', bg: '#ffedd5' },
+    { label: 'Gecikti', value: overdueCount, color: '#dc2626', bg: '#fee2e2' },
+  ];
+
+  /* ─── Quick action tiles ─── */
+  const quickTiles = [
+    { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)' },
+    { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)' },
+    { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)' },
+    { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)' },
+  ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(145deg,#eef2ff 0%,#f8fafc 40%,#fdf4ff 100%)', fontFamily: 'inherit' }}>
+    <div style={S.page}>
 
       <style>{`
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes shimmer { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
-        @keyframes pulse-ring { 0% { transform:scale(0.95); opacity:0.7; } 50% { transform:scale(1.05); opacity:1; } 100% { transform:scale(0.95); opacity:0.7; } }
-        .sd-card { transition: all 0.22s cubic-bezier(.4,0,.2,1); }
-        .sd-card:hover { transform: translateY(-3px); box-shadow: 0 20px 48px rgba(99,102,241,0.12) !important; }
-        .sd-hw-card { transition: all 0.22s cubic-bezier(.4,0,.2,1); }
-        .sd-hw-card:hover { transform: translateY(-2px); }
-        .sd-quick:hover { filter: brightness(1.07); transform: scale(1.02) translateY(-2px); }
-        .sd-quick { transition: all 0.18s ease; }
-        .sd-fade { animation: fadeInUp 0.5s ease both; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        * { box-sizing: border-box; }
+        @keyframes sdFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes sdPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.06); } }
+        @keyframes sdShimmer { 0%,100% { opacity:0.6; } 50% { opacity:1; } }
+        @keyframes sdSpin { to { transform:rotate(360deg); } }
+        .sd-tile { transition: transform 0.18s, box-shadow 0.18s; }
+        .sd-tile:active { transform: scale(0.96); }
+        .sd-btn { transition: all 0.18s; }
+        .sd-btn:active { transform: scale(0.97); }
+        .sd-chip { transition: transform 0.2s; }
+        .sd-chip:hover { transform: translateY(-2px); }
+        .sd-hw-card { transition: all 0.2s; }
+        .sd-hw-card:active { transform: scale(0.98); }
+        .sd-section { animation: sdFadeUp 0.4s ease both; }
       `}</style>
 
-      {/* ═══════════════════ HERO BANNER ═══════════════════ */}
-      <div style={{ background: 'linear-gradient(135deg,#4338ca 0%,#6d28d9 45%,#9333ea 80%,#c026d3 100%)', padding: isMobile ? '1.5rem 1rem 2rem' : '2rem 2.5rem 3rem', position: 'relative', overflow: 'hidden' }}>
-        
-        {/* Decorative blobs */}
-        <div style={{ position:'absolute', top:-80, right:-80, width:280, height:280, background:'rgba(255,255,255,0.07)', borderRadius:'50%', filter:'blur(40px)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:-60, left:60, width:200, height:200, background:'rgba(255,255,255,0.05)', borderRadius:'50%', filter:'blur(30px)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top:'20%', left:'40%', width:120, height:120, background:'rgba(255,255,255,0.04)', borderRadius:'50%', filter:'blur(20px)', pointerEvents:'none' }} />
+      {/* ════════════════ HERO ════════════════ */}
+      <div style={S.hero}>
+        {/* bg orbs */}
+        <div style={{ position:'absolute', top:-60, right:-60, width:220, height:220, background:'rgba(255,255,255,0.07)', borderRadius:'50%', filter:'blur(40px)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:-40, left:20, width:160, height:160, background:'rgba(255,255,255,0.05)', borderRadius:'50%', filter:'blur(30px)', pointerEvents:'none' }} />
 
         {/* Student switcher */}
         {studentMembers.length > 1 && (
-          <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:8, marginBottom:16, scrollbarWidth:'none', position:'relative', zIndex:2 }}>
+          <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:8, marginBottom:12, scrollbarWidth:'none' }}>
             {studentMembers.map((s, i) => {
               const active = selectedStudent?.id === s.id;
               const col = avatarColors[i % avatarColors.length];
               return (
-                <button key={s.id} onClick={() => setSelectedStudent(s)}
-                  style={{ display:'flex', alignItems:'center', gap:6, padding:'0.35rem 0.85rem', borderRadius:99, border:`2px solid ${active ? 'white' : 'rgba(255,255,255,0.3)'}`, background: active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)', color:'white', fontWeight:800, fontSize:'0.78rem', cursor:'pointer', transition:'all 0.18s', flexShrink:0, backdropFilter:'blur(8px)' }}>
-                  <div style={{ width:18, height:18, borderRadius:'50%', background:col, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.6rem', fontWeight:900, color:'white' }}>{s.name.charAt(0)}</div>
+                <button key={s.id} onClick={() => setSelectedStudent(s)} className="sd-btn"
+                  style={{ display:'flex', alignItems:'center', gap:5, padding:'0.3rem 0.75rem', borderRadius:99, border:`1.5px solid ${active ? 'white' : 'rgba(255,255,255,0.35)'}`, background: active ? 'rgba(255,255,255,0.25)' : 'transparent', color:'white', fontWeight:700, fontSize:'0.75rem', cursor:'pointer', whiteSpace:'nowrap', backdropFilter:'blur(8px)' }}>
+                  <div style={{ width:16, height:16, borderRadius:'50%', background:col, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:900, color:'white', flexShrink:0 }}>{s.name.charAt(0)}</div>
                   {s.name}
                 </button>
               );
@@ -585,432 +623,447 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Main hero row */}
-        <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '1rem' : '1.5rem', position:'relative', zIndex:2, flexWrap:'wrap' }}>
-          
-          {/* Avatar */}
-          <div style={{ position:'relative', flexShrink:0 }}>
-            <div style={{ width: isMobile ? 64 : 80, height: isMobile ? 64 : 80, borderRadius:'50%', background: avatarColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.6rem' : '2rem', fontWeight:900, color:'white', boxShadow:`0 0 0 4px rgba(255,255,255,0.25), 0 8px 24px rgba(0,0,0,0.2)`, animation:'pulse-ring 3s ease infinite' }}>
-              {selectedStudent?.name?.charAt(0) || 'Ö'}
+        {/* Hero main row */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, position:'relative', zIndex:2 }}>
+
+          {/* Left: avatar + info */}
+          <div style={{ display:'flex', alignItems:'center', gap:14, flex:1, minWidth:0 }}>
+            {/* Avatar */}
+            <div style={{ position:'relative', flexShrink:0 }}>
+              <div style={{ width: isMobile ? 60 : 72, height: isMobile ? 60 : 72, borderRadius:'50%', background: avatarColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight:900, color:'white', border:'3px solid rgba(255,255,255,0.4)', boxShadow:'0 6px 20px rgba(0,0,0,0.25)', animation:'sdPulse 4s ease infinite' }}>
+                {selectedStudent?.name?.charAt(0) || 'Ö'}
+              </div>
+              <div style={{ position:'absolute', bottom:2, right:2, width:14, height:14, borderRadius:'50%', background:'#22c55e', border:'2px solid white' }} />
             </div>
-            <div style={{ position:'absolute', bottom:2, right:2, width:18, height:18, borderRadius:'50%', background:'#22c55e', border:'2.5px solid white', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }} />
+
+            {/* Name + date */}
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.7)', fontWeight:700, marginBottom:2 }}>Hoş Geldin 👋</div>
+              <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight:900, color:'white', margin:0, lineHeight:1.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {selectedStudent?.name || 'Öğrenci'}
+              </h1>
+              {gradeLabel && <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.7)', fontWeight:600, marginTop:2 }}>{gradeLabel}</div>}
+              <div style={{ marginTop:6, display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.15)', borderRadius:99, padding:'0.2rem 0.6rem', backdropFilter:'blur(8px)' }}>
+                <span style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.9)', fontWeight:700 }}>📅 {todayStr}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Name + grade */}
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.15)', borderRadius:99, padding:'0.22rem 0.75rem', marginBottom:6, backdropFilter:'blur(8px)' }}>
-              <Sparkles size={12} color="#fbbf24" />
-              <span style={{ fontSize:'0.65rem', fontWeight:800, color:'rgba(255,255,255,0.95)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Hoş Geldin 👋 • {todayStr}</span>
+          {/* Right: success donut */}
+          <div style={{ ...S.glassChip, padding: isMobile ? '0.75rem' : '1rem', textAlign:'center', flexShrink:0, minWidth: isMobile ? 78 : 90 }}>
+            <div style={{ fontSize: isMobile ? '1.6rem' : '2rem', fontWeight:900, color:'white', lineHeight:1 }}>{successPct}<span style={{ fontSize:'0.65rem', fontWeight:700 }}>%</span></div>
+            <div style={{ fontSize:'0.55rem', color:'rgba(255,255,255,0.7)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Başarı</div>
+            <div style={{ marginTop:6, width:'100%', height:4, background:'rgba(255,255,255,0.2)', borderRadius:99 }}>
+              <div style={{ height:'100%', width:`${Math.min(successPct,100)}%`, background:'#22c55e', borderRadius:99 }} />
             </div>
-            <h1 style={{ fontSize: isMobile ? '1.55rem' : '2.1rem', fontWeight:900, color:'white', margin:0, lineHeight:1.1, textShadow:'0 2px 12px rgba(0,0,0,0.15)' }}>
-              {selectedStudent?.name || 'Öğrenci'}
-            </h1>
-            {gradeLabel && <p style={{ color:'rgba(255,255,255,0.75)', fontSize:'0.88rem', marginTop:4, fontWeight:700 }}>{gradeLabel} · Öğrenci Paneli</p>}
-          </div>
-
-          {/* Success ring */}
-          <div style={{ background:'rgba(255,255,255,0.15)', backdropFilter:'blur(16px)', border:'1.5px solid rgba(255,255,255,0.3)', borderRadius:'1.25rem', padding: isMobile ? '0.85rem 1.25rem' : '1rem 1.5rem', textAlign:'center', flexShrink:0, width: isMobile ? '100%' : 'auto', marginTop: isMobile ? 4 : 0, boxShadow:'inset 0 1px 0 rgba(255,255,255,0.2)' }}>
-            <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.75)', fontWeight:800, textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:4 }}>Genel Başarı</div>
-            <div style={{ fontSize: isMobile ? '1.85rem' : '2.4rem', fontWeight:900, color:'white', lineHeight:1, textShadow:'0 2px 12px rgba(0,0,0,0.2)' }}>%{Math.round(stats.successRate)}</div>
-            <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.6)', marginTop:4 }}>{tests.filter(t => t.status === 'Sonuçlandı').length} sınav tamamlandı</div>
           </div>
         </div>
 
-        {/* Bottom wave shape */}
-        <div style={{ position:'absolute', bottom:-1, left:0, right:0, height:32, overflow:'hidden' }}>
-          <svg viewBox="0 0 1440 32" preserveAspectRatio="none" style={{ width:'100%', height:'100%', display:'block' }}>
-            <path d="M0,32 C360,0 1080,0 1440,32 L1440,32 L0,32 Z" fill={isMobile ? '#f8fafc' : '#eef2ff'} opacity="0.9" />
+        {/* White wave at bottom */}
+        <div style={{ position:'absolute', bottom:-2, left:0, right:0, lineHeight:0 }}>
+          <svg viewBox="0 0 390 40" preserveAspectRatio="none" style={{ width:'100%', height:40, display:'block' }}>
+            <path d="M0,40 C100,10 280,10 390,40 L390,40 L0,40 Z" fill="#f1f5f9" />
           </svg>
         </div>
       </div>
 
-      {/* ═══════════════════ MAIN CONTENT ═══════════════════ */}
-      <div style={{ width:'100%', padding: isMobile ? '1rem 0.75rem' : 'clamp(1rem,2.5vw,1.75rem)', boxSizing:'border-box', maxWidth:1400, margin:'0 auto' }}>
-
-        {/* ── STAT CARDS ── */}
-        <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(5, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? '0.4rem' : '0.85rem', marginBottom: isMobile ? '1rem' : '1.5rem' }} className="sd-fade">
-          {[
-            { icon: ClipboardList, label:'Toplam Ödev', value: tests.length, sub:'atandı', color:'#6366f1', bg:'linear-gradient(135deg,#eef2ff,#e0e7ff)', border:'#c7d2fe' },
-            { icon: CheckCircle2, label:'Tamamlanan', value: tests.filter(t=>t.status==='Sonuçlandı').length, sub:'sınav', color:'#16a34a', bg:'linear-gradient(135deg,#f0fdf4,#dcfce7)', border:'#86efac' },
-            { icon: Flame, label:'Bekleyen', value: stats.pendingCount, sub:'ödev', color:'#ea580c', bg:'linear-gradient(135deg,#fff7ed,#ffedd5)', border:'#fdba74' },
-            { icon: AlertCircle, label:'Gecikmiş', value: stats.overdueCount, sub:'ödev', color:'#dc2626', bg:'linear-gradient(135deg,#fff1f2,#fee2e2)', border:'#fca5a5' },
-            { icon: TrendingUp, label:'Tamamlanma', value:`%${Math.floor(stats.completedRate)}`, sub:'oran', color:'#9333ea', bg:'linear-gradient(135deg,#faf5ff,#f3e8ff)', border:'#d8b4fe' },
-          ].map((s, i) => (
-            <div key={i} style={{ background:'white', border:`1.5px solid ${s.border}`, borderRadius: isMobile ? '0.75rem' : '1.1rem', padding: isMobile ? '0.5rem 0.25rem' : '1rem 1.1rem', display:'flex', flexDirection: isMobile ? 'column' : 'row', alignItems:'center', gap: isMobile ? 2 : '0.75rem', boxShadow:`0 4px 16px ${s.color}14`, transition:'all 0.2s' }} className="sd-card">
-              <div style={{ width: isMobile ? 28 : 44, height: isMobile ? 28 : 44, borderRadius: isMobile ? '0.5rem' : '0.85rem', background:s.bg, border:`1.5px solid ${s.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <s.icon size={isMobile ? 13 : 20} color={s.color} />
-              </div>
-              <div style={{ textAlign: isMobile ? 'center' : 'left', minWidth:0 }}>
-                <div style={{ fontSize: isMobile ? '0.58rem' : '0.68rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em' }}>{isMobile ? s.label.split(' ').pop() : s.label}</div>
-                <div style={{ fontSize: isMobile ? '1.05rem' : '1.5rem', fontWeight:900, color:'#0f172a', lineHeight:1.1, marginTop:1 }}>{s.value}</div>
-                {!isMobile && <div style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:600 }}>{s.sub}</div>}
-              </div>
+      {/* ════════════════ STAT CHIPS (scrollable) ════════════════ */}
+      <div style={{ padding: isMobile ? '0 0.875rem' : '0 1.5rem', marginTop: -12, marginBottom:'1.25rem', position:'relative', zIndex:10 }}>
+        <div style={{ display:'flex', gap:'0.6rem', overflowX:'auto', paddingBottom:4, scrollbarWidth:'none' }}>
+          {statChips.map((c, i) => (
+            <div key={i} className="sd-chip" style={{ background:'white', borderRadius:14, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', gap:2, flexShrink:0, minWidth:75, border:`2px solid ${c.bg}`, animation:`sdFadeUp 0.4s ease ${i * 0.07}s both` }}>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight:900, color:c.color, lineHeight:1 }}>{c.value}</div>
+              <div style={{ fontSize:'0.6rem', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', lineHeight:1.2 }}>{c.label}</div>
             </div>
           ))}
-        </div>
-
-        {/* ── OVERALL PROGRESS BAR ── */}
-        <div style={{ background:'white', border:'1.5px solid #e0e7ff', borderRadius:'1.25rem', padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.5rem', marginBottom:'1.5rem', boxShadow:'0 4px 20px rgba(99,102,241,0.06)' }} className="sd-fade">
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-            <span style={{ fontWeight:800, fontSize:'0.85rem', color:'#1e293b', display:'flex', alignItems:'center', gap:7 }}>
-              <Trophy size={16} color="#f59e0b" /> Genel İlerleme
-            </span>
-            <span style={{ fontWeight:900, fontSize:'0.95rem', color:'#6366f1' }}>%{Math.floor(stats.completedRate)}</span>
-          </div>
-          <div style={{ background:'#f1f5f9', borderRadius:99, height:10, overflow:'hidden' }}>
-            <div style={{ height:'100%', width:`${Math.min(stats.completedRate,100)}%`, background:'linear-gradient(90deg,#6366f1,#a855f7,#ec4899)', borderRadius:99, transition:'width 1.2s cubic-bezier(.4,0,.2,1)', boxShadow:'0 2px 8px rgba(99,102,241,0.35)' }} />
-          </div>
-          <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
-            <span style={{ fontSize:'0.68rem', color:'#94a3b8', fontWeight:600 }}>{tests.filter(t=>t.status==='Sonuçlandı').length} tamamlandı</span>
-            <span style={{ fontSize:'0.68rem', color:'#94a3b8', fontWeight:600 }}>{tests.length} toplam</span>
-          </div>
-        </div>
-
-        {/* ── QUICK ACCESS BANNER: Kitaplarım ── */}
-        <div onClick={() => navigate('/student/books')} className="sd-card"
-          style={{ background:'linear-gradient(135deg,#f8fafc,#f1f5f9)', border:'2px solid #e2e8f0', borderRadius:'1.25rem', padding: isMobile ? '0.85rem 1rem' : '1rem 1.5rem', marginBottom:'1.5rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', boxShadow:'0 4px 12px rgba(0,0,0,0.04)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
-            <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', padding:'0.75rem', borderRadius:'0.85rem', boxShadow:'0 4px 12px rgba(79,70,229,0.3)' }}>
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <h3 style={{ margin:'0 0 0.2rem 0', fontSize: isMobile ? '0.95rem' : '1.05rem', color:'#1e293b', fontWeight:900 }}>📚 Kitaplarım ve İlerlemem</h3>
-              <p style={{ margin:0, fontSize:'0.8rem', color:'#64748b' }}>Atanan kitapları adım adım çöz ve ilerlemeni takip et!</p>
+          {/* Progress chip */}
+          <div className="sd-chip" style={{ background:'white', borderRadius:14, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', gap:4, flexShrink:0, minWidth:90, border:'2px solid #f3e8ff', animation:'sdFadeUp 0.4s ease 0.28s both' }}>
+            <div style={{ fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight:900, color:'#9333ea', lineHeight:1 }}>%{progressPct}</div>
+            <div style={{ fontSize:'0.6rem', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', lineHeight:1.2 }}>Tamamlanma</div>
+            <div style={{ width:'100%', height:3, background:'#f3e8ff', borderRadius:99 }}>
+              <div style={{ height:'100%', width:`${progressPct}%`, background:'#9333ea', borderRadius:99, transition:'width 1s' }} />
             </div>
           </div>
-          <div style={{ background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', width:38, height:38, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px rgba(99,102,241,0.3)' }}>
-            <ArrowRight size={18} />
-          </div>
         </div>
+      </div>
 
-        {/* ── STUDY PLANS (Yol Haritası) ── */}
-        {myStudyAssignments.length > 0 && (
-          <div style={{ marginBottom:'1.5rem' }}>
-            <h2 style={{ fontSize:'0.78rem', fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
-              <Target size={14} color="#6366f1" /> Sana Atanan Yol Haritaları
-            </h2>
-            <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
-              {myStudyAssignments.map(assignment => {
-                const plan = studyPlans.find(p => p.id === assignment.planId);
-                if (!plan) return null;
-                const totalTopics = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
-                const completedCount = assignment.completedTopics?.length || 0;
-                const pct = totalTopics > 0 ? (completedCount / totalTopics) * 100 : 0;
-                return (
-                  <div key={assignment.id} onClick={() => navigate(`/student/study-plan/${assignment.id}`)} className="sd-card"
-                    style={{ background:'white', border:'1.5px solid #e0e7ff', borderRadius:'1.25rem', padding:'1rem 1.25rem', cursor:'pointer', display:'flex', flexDirection:'column', gap:'0.75rem', boxShadow:'0 4px 12px rgba(99,102,241,0.05)' }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-                        <div style={{ width:38, height:38, borderRadius:'0.75rem', background:'linear-gradient(135deg,#eef2ff,#e0e7ff)', color:'#4f46e5', display:'flex', alignItems:'center', justifyContent:'center', border:'1.5px solid #c7d2fe' }}>
-                          <Target size={18} />
-                        </div>
-                        <div>
-                          <h4 style={{ margin:0, fontSize:'0.92rem', fontWeight:900, color:'#1e293b' }}>{plan.title}</h4>
-                          <span style={{ fontSize:'0.68rem', fontWeight:700, color:'#64748b' }}>Adım Adım Çalışma Planı · {completedCount}/{totalTopics} konu</span>
-                        </div>
-                      </div>
-                      <ChevronRight size={18} color="#94a3b8" />
+      {/* ════════════════ QUICK TILES ════════════════ */}
+      <div style={S.section} className="sd-section">
+        <div style={S.sectionTitle}>
+          <span style={{ fontSize:14 }}>⚡</span> Hızlı Erişim
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.75rem' }}>
+          {quickTiles.map((t, i) => (
+            <button key={i} onClick={() => navigate(t.to)} className="sd-tile"
+              style={{ background:t.g, borderRadius:20, padding: isMobile ? '1rem' : '1.25rem', display:'flex', flexDirection:'column', gap:'0.5rem', border:'none', cursor:'pointer', textAlign:'left', boxShadow:'0 6px 20px rgba(0,0,0,0.12)', animation:`sdFadeUp 0.4s ease ${i*0.08}s both` }}>
+              <div style={{ fontSize: isMobile ? '1.75rem' : '2rem', lineHeight:1 }}>{t.icon}</div>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.88rem' : '0.95rem', fontWeight:800, color:'white', lineHeight:1.2 }}>{t.label}</div>
+                <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.75)', fontWeight:600, marginTop:2 }}>{t.sub}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ════════════════ STUDY PLANS ════════════════ */}
+      {myStudyAssignments.length > 0 && (
+        <div style={S.section} className="sd-section">
+          <div style={S.sectionTitle}>
+            <span style={{ fontSize:14 }}>🗺️</span> Yol Haritalarım
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+            {myStudyAssignments.map(assignment => {
+              const plan = studyPlans.find(p => p.id === assignment.planId);
+              if (!plan) return null;
+              const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
+              const done = assignment.completedTopics?.length || 0;
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              return (
+                <div key={assignment.id} onClick={() => navigate(`/student/study-plan/${assignment.id}`)} className="sd-hw-card"
+                  style={{ ...S.card, padding:'1rem 1.1rem', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.85rem' }}>
+                  <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Target size={20} color="white" />
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#0f172a', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
+                    <div style={{ height:6, background:'#f1f5f9', borderRadius:99, overflow:'hidden', marginBottom:3 }}>
+                      <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 1s' }} />
                     </div>
-                    <div>
-                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.7rem', fontWeight:800, marginBottom:5 }}>
-                        <span style={{ color:'#64748b' }}>İlerleme</span>
-                        <span style={{ color:'#4f46e5', fontWeight:900 }}>%{Math.round(pct)}</span>
-                      </div>
-                      <div style={{ height:8, background:'#f1f5f9', borderRadius:99, overflow:'hidden' }}>
-                        <div style={{ height:'100%', background:'linear-gradient(90deg,#6366f1,#a855f7)', width:`${pct}%`, borderRadius:99, transition:'width 1s ease', boxShadow:'0 2px 6px rgba(99,102,241,0.25)' }} />
-                      </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:700, color:'#94a3b8' }}>
+                      <span>{done}/{total} konu</span>
+                      <span style={{ color:'#6366f1' }}>%{pct}</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                  <ChevronRight size={16} color="#cbd5e1" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════ PENDING HOMEWORKS ════════════════ */}
+      <div style={{ ...S.section, marginBottom:'1.25rem' }} className="sd-section">
+        <div style={S.sectionTitle}>
+          <span style={{ fontSize:14 }}>📋</span> Bekleyen Ödevler
+          {pendingCount > 0 && (
+            <span style={{ background:'#ef4444', color:'white', borderRadius:99, padding:'0.1rem 0.55rem', fontSize:'0.65rem', fontWeight:900, marginLeft:4, animation:'sdShimmer 2s infinite' }}>{pendingCount}</span>
+          )}
+        </div>
+
+        {pendingTasks.length === 0 ? (
+          <div style={{ ...S.card, padding:'2.5rem 1rem', textAlign:'center' }}>
+            <div style={{ fontSize:'2.5rem', marginBottom:8 }}>🎉</div>
+            <div style={{ fontWeight:800, color:'#0f172a', fontSize:'0.95rem', marginBottom:4 }}>Tüm ödevler tamamlandı!</div>
+            <div style={{ fontSize:'0.78rem', color:'#94a3b8' }}>Harika iş çıkardın!</div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:'0.7rem' }}>
+            {pendingTasks.map(task => {
+              const conf = getSubConf(getThemeKey(task.subject));
+              const dueDate = task.dueDateObj;
+              const overdue = isPast(dueDate) && !isToday(dueDate);
+              const dueToday = isToday(dueDate);
+              const daysDiff = differenceInDays(dueDate, new Date());
+
+              return (
+                <div key={task.id} style={{ ...S.card, display:'flex', overflow:'visible', position:'relative', cursor:'pointer' }} className="sd-hw-card"
+                  onClick={() => {
+                    let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
+                    if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
+                    else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
+                    navigate(path);
+                  }}>
+                  {/* Left color stripe */}
+                  <div style={{ width:5, background:conf.color, borderRadius:'20px 0 0 20px', flexShrink:0, minHeight:80 }} />
+
+                  <div style={{ flex:1, padding:'0.85rem 0.9rem 0.85rem 0.75rem', display:'flex', flexDirection:'column', gap:5 }}>
+                    {/* Top row: subject + urgency */}
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
+                      <span style={{ fontSize:'0.62rem', fontWeight:800, color:conf.badge, background:conf.bg, border:`1px solid ${conf.border}`, padding:'0.18rem 0.55rem', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em', flexShrink:0 }}>
+                        {task.subject}
+                      </span>
+                      {overdue ? (
+                        <span style={{ fontSize:'0.6rem', fontWeight:900, background:'#fee2e2', color:'#b91c1c', padding:'0.15rem 0.55rem', borderRadius:99, border:'1px solid #fca5a5', display:'flex', alignItems:'center', gap:3 }}>
+                          <Flame size={10} fill="#ef4444" color="#ef4444" /> {differenceInDays(new Date(), dueDate)}g Gecikti
+                        </span>
+                      ) : dueToday ? (
+                        <span style={{ fontSize:'0.6rem', fontWeight:900, background:'#fef3c7', color:'#b45309', padding:'0.15rem 0.55rem', borderRadius:99, border:'1px solid #fde68a', display:'flex', alignItems:'center', gap:3 }}>
+                          <Zap size={10} fill="#f59e0b" color="#f59e0b" /> Bugün Son
+                        </span>
+                      ) : (
+                        <span style={{ fontSize:'0.6rem', fontWeight:800, background:'#dcfce7', color:'#15803d', padding:'0.15rem 0.55rem', borderRadius:99, border:'1px solid #86efac', display:'flex', alignItems:'center', gap:3 }}>
+                          <Clock size={10} color="#16a34a" /> {daysDiff+1}g
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Title */}
+                    <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#0f172a', lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                      {task.title}
+                    </div>
+
+                    {/* Footer: meta + button */}
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:2 }}>
+                      <div style={{ display:'flex', gap:8 }}>
+                        <span style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}>
+                          <Calendar size={10} /> {task.dueDateStr}
+                        </span>
+                        <span style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}>
+                          <BookOpen size={10} /> {task.questionCount || 0} soru
+                        </span>
+                      </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`; if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`; else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`; navigate(path); }}
+                        className="sd-btn"
+                        style={{ background:conf.color, color:'white', border:'none', borderRadius:10, padding:'0.4rem 0.85rem', fontSize:'0.72rem', fontWeight:800, cursor:'pointer', boxShadow:`0 4px 10px ${conf.color}40`, display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap', flexShrink:0 }}>
+                        <PlayCircle size={13} /> Çöz
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
+      </div>
 
-        {/* ── COACHING CARDS ── */}
-        {hasCoach && coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
-          const isGradeTracking = coachingProfile?.examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
-          return (
-            <div style={{ background:'linear-gradient(135deg,#f0fdf4,#dcfce7)', border:'2px solid #86efac', borderRadius:'1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom:'1.5rem', boxShadow:'0 4px 20px rgba(22,163,74,0.08)' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:6 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <GraduationCap size={22} color="#16a34a" />
-                  <span style={{ fontSize:'0.82rem', fontWeight:900, color:'#15803d', textTransform:'uppercase', letterSpacing:'0.08em' }}>🏛️ Koçluk Akademik & Stratejik Hedefler</span>
-                </div>
-                {coachingProfile.examGoalType && (<span style={{ fontSize:'0.72rem', background:'#16a34a', color:'white', fontWeight:900, padding:'0.25rem 0.75rem', borderRadius:99 }}>{coachingProfile.examGoalType}</span>)}
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap:'0.75rem', marginBottom:'0.75rem' }}>
-                {isGradeTracking ? (<>
-                  <div style={{ background:'rgba(255,255,255,0.7)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #bbf7d0' }}>
-                    <div style={{ fontSize:'0.62rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>🏅 Hedef Belge</div>
-                    <div style={{ fontSize:'0.95rem', fontWeight:900, color:'#16a34a', marginTop:2 }}>{coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takdir Belgesi'}</div>
-                  </div>
-                </>) : (<>
-                  {coachingProfile.targetSchool && <div style={{ background:'rgba(255,255,255,0.7)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #bbf7d0' }}><div style={{ fontSize:'0.62rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>🎯 Hedef Okul</div><div style={{ fontSize:'0.95rem', fontWeight:900, color:'#0f172a', marginTop:2 }}>{coachingProfile.targetSchool}</div></div>}
-                  {coachingProfile.targetScore && <div style={{ background:'rgba(255,255,255,0.7)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #bbf7d0' }}><div style={{ fontSize:'0.62rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>🏆 Puan Hedefi</div><div style={{ fontSize:'0.95rem', fontWeight:900, color:'#0f172a', marginTop:2 }}>{coachingProfile.targetScore} Puan</div></div>}
-                  {coachingProfile.targetNet > 0 && <div style={{ background:'rgba(255,255,255,0.7)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #bbf7d0' }}><div style={{ fontSize:'0.62rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>📈 Net Hedefi</div><div style={{ fontSize:'0.95rem', fontWeight:900, color:'#16a34a', marginTop:2 }}>{coachingProfile.targetNet} Net</div></div>}
-                </>)}
+      {/* ════════════════ COACHING: ACADEMIC GOALS ════════════════ */}
+      {hasCoach && coachingProfile && (coachingProfile.targetSchool || coachingProfile.targetNet || coachingProfile.monthlyGoals || coachingProfile.weeklyGoals || coachingProfile.dailyGoals || coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget) && (() => {
+        const isGradeTracking = coachingProfile?.examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
+        return (
+          <div style={{ ...S.section }} className="sd-section">
+            <div style={S.sectionTitle}><span style={{ fontSize:14 }}>🏛️</span> Koçluk Hedeflerim</div>
+            <div style={{ ...S.card, padding:'1rem 1.1rem', background:'linear-gradient(135deg,#f0fdf4,#dcfce7)', border:'1.5px solid #86efac' }}>
+              {coachingProfile.examGoalType && <div style={{ fontSize:'0.65rem', background:'#16a34a', color:'white', fontWeight:900, padding:'0.2rem 0.6rem', borderRadius:99, display:'inline-block', marginBottom:8 }}>{coachingProfile.examGoalType}</div>}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(130px,1fr))', gap:'0.65rem' }}>
+                {!isGradeTracking ? (<>
+                  {coachingProfile.targetSchool && <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Hedef Okul</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#0f172a', marginTop:2 }}>{coachingProfile.targetSchool}</div></div>}
+                  {coachingProfile.targetScore && <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Puan Hedefi</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#0f172a', marginTop:2 }}>{coachingProfile.targetScore}</div></div>}
+                  {coachingProfile.targetNet > 0 && <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Net Hedefi</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#16a34a', marginTop:2 }}>{coachingProfile.targetNet} Net</div></div>}
+                </>) : (
+                  <div style={{ background:'rgba(255,255,255,0.7)', padding:'0.6rem 0.75rem', borderRadius:12 }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#15803d', textTransform:'uppercase' }}>Hedef Belge</div><div style={{ fontSize:'0.85rem', fontWeight:900, color:'#16a34a', marginTop:2 }}>{coachingProfile.gradeTarget || 'Takdir Belgesi'}</div></div>
+                )}
               </div>
               {(() => {
-                const mGoalsStr = renderGoalList(coachingProfile.monthlyGoals);
-                const wGoalsStr = renderGoalList(coachingProfile.weeklyGoals);
-                const dGoalsStr = renderGoalList(coachingProfile.dailyGoals);
-                if (!mGoalsStr && !wGoalsStr && !dGoalsStr) return null;
+                const mG = renderGoalList(coachingProfile.monthlyGoals);
+                const wG = renderGoalList(coachingProfile.weeklyGoals);
+                const dG = renderGoalList(coachingProfile.dailyGoals);
+                if (!mG && !wG && !dG) return null;
                 return (
-                  <div style={{ display:'flex', flexDirection:'column', gap:'0.65rem' }}>
-                    {mGoalsStr && <div style={{ background:'rgba(255,255,255,0.7)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #bbf7d0' }}><div style={{ fontSize:'0.65rem', fontWeight:900, color:'#16a34a', textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'center', gap:5, marginBottom:3 }}><Calendar size={12} /> AYLIK STRATEJİ</div><div style={{ fontSize:'0.88rem', color:'#14532d', fontWeight:700, lineHeight:1.5 }}>{mGoalsStr}</div></div>}
-                    {wGoalsStr && <div style={{ background:'rgba(255,251,235,0.8)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #fde68a' }}><div style={{ fontSize:'0.65rem', fontWeight:900, color:'#d97706', textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'center', gap:5, marginBottom:3 }}><Zap size={12} /> HAFTALIK HEDEF</div><div style={{ fontSize:'0.88rem', color:'#78350f', fontWeight:700, lineHeight:1.5 }}>{wGoalsStr}</div></div>}
-                    {dGoalsStr && <div style={{ background:'rgba(255,241,242,0.8)', backdropFilter:'blur(12px)', padding:'0.75rem 1rem', borderRadius:'0.85rem', border:'1.5px solid #fecaca' }}><div style={{ fontSize:'0.65rem', fontWeight:900, color:'#dc2626', textTransform:'uppercase', letterSpacing:'0.06em', display:'flex', alignItems:'center', gap:5, marginBottom:3 }}><Flame size={12} /> GÜNLÜK RUTİN</div><div style={{ fontSize:'0.88rem', color:'#7f1d1d', fontWeight:700, lineHeight:1.5 }}>{dGoalsStr}</div></div>}
+                  <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem', marginTop:'0.75rem' }}>
+                    {mG && <div style={{ background:'rgba(255,255,255,0.6)', borderRadius:10, padding:'0.6rem 0.75rem' }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#16a34a', textTransform:'uppercase', marginBottom:2, display:'flex', alignItems:'center', gap:4 }}><Calendar size={10} /> Aylık Strateji</div><div style={{ fontSize:'0.82rem', color:'#14532d', fontWeight:700 }}>{mG}</div></div>}
+                    {wG && <div style={{ background:'rgba(255,251,235,0.7)', borderRadius:10, padding:'0.6rem 0.75rem', border:'1px solid #fde68a' }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#d97706', textTransform:'uppercase', marginBottom:2, display:'flex', alignItems:'center', gap:4 }}><Zap size={10} /> Haftalık Hedef</div><div style={{ fontSize:'0.82rem', color:'#78350f', fontWeight:700 }}>{wG}</div></div>}
+                    {dG && <div style={{ background:'rgba(255,241,242,0.7)', borderRadius:10, padding:'0.6rem 0.75rem', border:'1px solid #fecaca' }}><div style={{ fontSize:'0.6rem', fontWeight:900, color:'#dc2626', textTransform:'uppercase', marginBottom:2, display:'flex', alignItems:'center', gap:4 }}><Flame size={10} /> Günlük Rutin</div><div style={{ fontSize:'0.82rem', color:'#7f1d1d', fontWeight:700 }}>{dG}</div></div>}
                   </div>
                 );
               })()}
             </div>
-          );
-        })()}
+          </div>
+        );
+      })()}
 
-        {/* ── COACH NOTE ── */}
-        {((coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting) && (
-          <div style={{ background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1.5px solid #ddd6fe', borderRadius:'1.25rem', padding: isMobile ? '1rem' : '1.25rem 1.5rem', marginBottom:'1.5rem', boxShadow:'0 4px 20px rgba(124,58,237,0.08)' }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, flexWrap:'wrap', gap:6 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <Target size={18} color="#7c3aed" />
-                <span style={{ fontSize:'0.82rem', fontWeight:900, color:'#6d28d9', textTransform:'uppercase', letterSpacing:'0.08em' }}>👨‍🏫 Koçunuzdan Tavsiye & Rehberlik</span>
-              </div>
-              {upcomingMeeting && <span style={{ fontSize:'0.72rem', background:'#7c3aed', color:'white', fontWeight:800, padding:'0.25rem 0.65rem', borderRadius:99 }}>📅 Gelecek: {upcomingMeeting.nextMeetingDate}</span>}
-            </div>
-            {coachingNote?.weeklyFocus && <div style={{ background:'rgba(255,255,255,0.7)', backdropFilter:'blur(12px)', borderRadius:'0.75rem', padding:'0.6rem 0.9rem', marginBottom:8, border:'1px solid #c4b5fd', fontWeight:800, fontSize:'0.85rem', color:'#5b21b6' }}>🎯 Haftalık Odak: {coachingNote.weeklyFocus}</div>}
-            {coachingNote?.note && <p style={{ margin:'0 0 8px', fontSize:'0.85rem', color:'#4c1d95', lineHeight:1.5, fontWeight:600 }}>"{coachingNote.note}"</p>}
+      {/* ════════════════ COACH NOTE ════════════════ */}
+      {((coachingNote && (coachingNote.note || coachingNote.weeklyFocus || (coachingNote.goals && coachingNote.goals.length > 0))) || upcomingMeeting) && (
+        <div style={S.section} className="sd-section">
+          <div style={S.sectionTitle}><span style={{ fontSize:14 }}>👨‍🏫</span> Koçumdan Notlar</div>
+          <div style={{ ...S.card, padding:'1rem 1.1rem', background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1.5px solid #ddd6fe' }}>
+            {upcomingMeeting && <div style={{ fontSize:'0.65rem', background:'#7c3aed', color:'white', fontWeight:800, padding:'0.2rem 0.65rem', borderRadius:99, display:'inline-block', marginBottom:8 }}>📅 {upcomingMeeting.nextMeetingDate}</div>}
+            {coachingNote?.weeklyFocus && <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#5b21b6', marginBottom:6, borderLeft:'3px solid #8b5cf6', paddingLeft:8 }}>🎯 {coachingNote.weeklyFocus}</div>}
+            {coachingNote?.note && <p style={{ margin:'0 0 8px', fontSize:'0.82rem', color:'#4c1d95', lineHeight:1.5, fontWeight:600, fontStyle:'italic' }}>"{coachingNote.note}"</p>}
             {coachingNote?.goals && coachingNote.goals.length > 0 && (
-              <div style={{ display:'flex', flexDirection:'column', gap:4, marginTop:8 }}>
-                <div style={{ fontSize:'0.7rem', fontWeight:800, color:'#6d28d9', textTransform:'uppercase', marginBottom:3 }}>Haftalık Koçluk Hedefleriniz:</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:5, marginTop:8 }}>
                 {coachingNote.goals.map(g => (
-                  <div key={g.id} style={{ display:'flex', alignItems:'center', gap:6, fontSize:'0.82rem', color: g.done ? '#94a3b8' : '#3b0764', fontWeight:700 }}>
-                    <div style={{ width:16, height:16, borderRadius:4, background: g.done ? '#22c55e' : '#8b5cf6', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.6rem', flexShrink:0 }}>{g.done && <Check size={12} />}</div>
+                  <div key={g.id} style={{ display:'flex', alignItems:'center', gap:7, fontSize:'0.8rem', color: g.done ? '#94a3b8' : '#3b0764', fontWeight:700 }}>
+                    <div style={{ width:16, height:16, borderRadius:4, background: g.done ? '#22c55e' : '#8b5cf6', color:'white', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      {g.done && <Check size={11} />}
+                    </div>
                     <span style={{ textDecoration: g.done ? 'line-through' : 'none' }}>{g.text}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── MAIN 2-COLUMN GRID ── */}
-        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 310px', gap:'1.5rem', alignItems:'start' }}>
-
-          {/* ════ LEFT COLUMN ════ */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
-
-            {/* ── Quick Access ── */}
-            <div>
-              <h2 style={{ fontSize:'0.78rem', fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
-                <Zap size={14} color="#f59e0b" fill="#f59e0b" /> Hızlı Erişim
-              </h2>
-              <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:'0.75rem' }}>
-                {[
-                  { icon:BarChart3, label:'Sonuçlarım', sub:'Karne & grafikler', to:'/student-results', gradient:'linear-gradient(135deg,#4f46e5,#7c3aed)', shadow:'rgba(99,102,241,0.3)' },
-                  { icon:AlertCircle, label:'Yanlışlarım', sub:'Hata havuzu', to:'/wrong-answers', gradient:'linear-gradient(135deg,#e11d48,#db2777)', shadow:'rgba(225,29,72,0.3)' },
-                  { icon:Target, label:'Hedeflerim', sub:'Hedef & program', to:'/goals', gradient:'linear-gradient(135deg,#ea580c,#dc2626)', shadow:'rgba(234,88,12,0.3)' },
-                  { icon:CalendarDays, label:'Haftalık Plan', sub:'Çalışma saatleri', to:'/goals', gradient:'linear-gradient(135deg,#059669,#0891b2)', shadow:'rgba(5,150,105,0.3)' },
-                ].map((q, i) => (
-                  <button key={i} onClick={() => navigate(q.to)} className="sd-quick"
-                    style={{ background:q.gradient, borderRadius:'1.1rem', padding:'1rem', display:'flex', flexDirection:'column', gap:'0.6rem', border:'none', cursor:'pointer', boxShadow:`0 6px 20px ${q.shadow}`, textAlign:'left' }}>
-                    <div style={{ width:38, height:38, borderRadius:'0.75rem', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)' }}>
-                      <q.icon size={18} color="white" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize:'0.85rem', fontWeight:800, color:'white', lineHeight:1.2 }}>{q.label}</div>
-                      <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.75)', fontWeight:600, marginTop:2 }}>{q.sub}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Pending Homework Cards ── */}
-            <div>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-                <h2 style={{ fontSize:'0.78rem', fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.1em', display:'flex', alignItems:'center', gap:6, margin:0 }}>
-                  <BookOpen size={14} color="#6366f1" /> Bekleyen Ödevler
-                  {stats.pendingCount > 0 && <span style={{ background:'#ef4444', color:'white', borderRadius:99, padding:'0.1rem 0.55rem', fontSize:'0.65rem', fontWeight:900, animation:'shimmer 2s infinite' }}>{stats.pendingCount}</span>}
-                </h2>
-              </div>
-              {pendingTasks.length === 0 ? (
-                <div style={{ background:'white', border:'2px dashed #e2e8f0', borderRadius:'1.25rem', padding: isMobile ? '2rem 1rem' : '3rem', textAlign:'center' }}>
-                  <div style={{ fontSize:'3rem', marginBottom:8 }}>🎉</div>
-                  <div style={{ fontWeight:900, color:'#0f172a', fontSize:'1.05rem', marginBottom:4 }}>Harika! Tüm ödevler tamamlandı.</div>
-                  <div style={{ fontSize:'0.82rem', color:'#94a3b8' }}>Bekleyen göreviniz bulunmuyor.</div>
-                </div>
-              ) : (
-                <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap:'0.9rem' }}>
-                  {pendingTasks.map(task => (
-                    <HomeworkCard key={task.id} task={task} selectedStudent={selectedStudent} isMobile={isMobile} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ── Completed Exams ── */}
-            {tests.filter(t => t.status === 'Sonuçlandı').length > 0 && (
-              <div>
-                <h2 style={{ fontSize:'0.78rem', fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
-                  <CheckCircle2 size={14} color="#22c55e" /> Tamamlanan Sınavlar
-                </h2>
-                <div style={{ background:'white', border:'1.5px solid #e2e8f0', borderRadius:'1.25rem', overflow:'hidden', boxShadow:'0 4px 16px rgba(0,0,0,0.04)' }}>
-                  {tests.filter(t => t.status === 'Sonuçlandı').slice(0, 6).map((test, i, arr) => {
-                    const conf = getSubConf(getThemeKey(getCategoryName(test)));
-                    const score = test.correctAnswers || 0;
-                    const good = score >= 70;
-                    return (
-                      <div key={test.id} style={{ display:'flex', alignItems:'center', gap:'0.85rem', padding:'0.85rem 1.1rem', borderBottom: i < arr.length-1 ? '1px solid #f8fafc' : 'none', transition:'background 0.15s', flexWrap: isMobile ? 'wrap' : 'nowrap' }}
-                        onMouseEnter={e => e.currentTarget.style.background='#f8fafc'}
-                        onMouseLeave={e => e.currentTarget.style.background='white'}>
-                        <div style={{ width:36, height:36, borderRadius:'0.65rem', background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                          <conf.icon size={16} color={conf.color} />
-                        </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontWeight:700, fontSize:'0.84rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
-                          <div style={{ fontSize:'0.68rem', color:'#94a3b8', fontWeight:600 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
-                        </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', flexShrink:0 }}>
-                          <div style={{ textAlign:'right' }}>
-                            <div style={{ fontWeight:900, fontSize:'0.98rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
-                            <div style={{ width:50, marginTop:3 }}>
-                              <ProgressBar value={score} color={good ? '#22c55e' : '#ef4444'} bg={good ? '#f0fdf4' : '#fff1f2'} height={4} />
-                            </div>
-                          </div>
-                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                            <button onClick={() => { if (test.type === 'physicalExam') { navigate(`/physical-exam/${test.id}?studentId=${selectedStudent.id}`); } else if (test.submissionId) { navigate(`/review/${test.submissionId}`); } else { navigate(`/quiz/${test.id}?studentId=${selectedStudent.id}`); } }}
-                              style={{ padding:'0.35rem 0.65rem', borderRadius:'0.5rem', background:'#f8fafc', color:'#475569', border:'1px solid #e2e8f0', cursor:'pointer', fontSize:'0.72rem', fontWeight:800, display:'flex', alignItems:'center', gap:3 }}>
-                              <Eye size={12} /> İncele
-                            </button>
-                            {(currentUser?.role === 'teacher' || currentUser?.role === 'admin' || currentUser?.role === 'coordinator') && (
-                              <button onClick={() => { const p = test.type === 'physicalExam' ? `/physical-exam/${test.id}?studentId=${selectedStudent.id}&retake=true` : test.sourceType === 'trackedBook' ? `/book-quiz/${test.id}?studentId=${selectedStudent.id}&retake=true` : `/quiz/${test.id}?studentId=${selectedStudent.id}&retake=true`; navigate(p); }}
-                                style={{ padding:'0.35rem 0.65rem', borderRadius:'0.5rem', background:'#eef2ff', color:'#4f46e5', border:'1px solid #c7d2fe', cursor:'pointer', fontSize:'0.72rem', fontWeight:800, display:'flex', alignItems:'center', gap:3 }}>
-                                <RotateCcw size={12} /> Tekrar
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+      {/* ════════════════ GOALS ════════════════ */}
+      <div style={S.section} className="sd-section">
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={S.sectionTitle}>
+            <span style={{ fontSize:14 }}>🎯</span> Hedeflerim ({studentGoals.length})
           </div>
+          <button onClick={() => setShowGoalModal(true)} className="sd-btn"
+            style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:800, color:'#6366f1', background:'#eef2ff', border:'none', borderRadius:10, padding:'0.35rem 0.75rem', cursor:'pointer' }}>
+            <Plus size={12} /> Ekle
+          </button>
+        </div>
 
-          {/* ════ RIGHT SIDEBAR ════ */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-
-            {/* Goals Card */}
-            <div style={{ background:'white', border:'1.5px solid #e2e8f0', borderRadius:'1.25rem', padding:'1.1rem 1.25rem', boxShadow:'0 4px 16px rgba(0,0,0,0.04)' }} className="sd-card">
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-                <span style={{ fontSize:'0.82rem', fontWeight:800, color:'#0f172a', display:'flex', alignItems:'center', gap:5 }}><Target size={15} color="#f43f5e" /> Hedeflerim ({studentGoals.length})</span>
-                <button onClick={() => setShowGoalModal(true)} style={{ display:'flex', alignItems:'center', gap:3, fontSize:'0.72rem', fontWeight:800, color:'#6366f1', background:'#eff6ff', border:'1px solid #c7d2fe', borderRadius:'0.5rem', padding:'0.3rem 0.7rem', cursor:'pointer' }}>
-                  <Plus size={12} /> Ekle
-                </button>
-              </div>
-              {studentGoals.length === 0 ? (
-                <div style={{ textAlign:'center', padding:'1.5rem', color:'#94a3b8', fontSize:'0.82rem' }}>
-                  <div style={{ fontSize:'1.75rem', marginBottom:6 }}>🎯</div>
-                  Henüz hedef eklenmedi.<br />
-                  <button onClick={() => setShowGoalModal(true)} style={{ marginTop:8, color:'#6366f1', fontWeight:700, fontSize:'0.78rem', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>İlk hedefini ekle</button>
+        {studentGoals.length === 0 ? (
+          <div style={{ ...S.card, padding:'1.75rem 1rem', textAlign:'center' }}>
+            <div style={{ fontSize:'2rem', marginBottom:6 }}>🎯</div>
+            <div style={{ fontWeight:700, color:'#64748b', fontSize:'0.85rem', marginBottom:6 }}>Henüz hedef yok</div>
+            <button onClick={() => setShowGoalModal(true)} className="sd-btn"
+              style={{ background:'#eef2ff', color:'#6366f1', border:'none', borderRadius:10, padding:'0.5rem 1rem', fontWeight:800, fontSize:'0.8rem', cursor:'pointer' }}>
+              İlk hedefini ekle →
+            </button>
+          </div>
+        ) : (
+          <div style={{ ...S.card, overflow:'hidden' }}>
+            {studentGoals.slice(0, 4).map((g, i, arr) => {
+              const pct = Math.min(100, Math.round(((g.current || 0) / (g.target || 1)) * 100));
+              const done = pct >= 100;
+              return (
+                <div key={g.id} style={{ padding:'0.85rem 1rem', borderBottom: i < arr.length-1 ? '1px solid #f8fafc' : 'none' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:700, fontSize:'0.84rem', color:'#0f172a', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.title}</div>
+                      <div style={{ display:'flex', gap:4 }}>
+                        <span style={{ fontSize:'0.58rem', fontWeight:800, background:'#eff6ff', color:'#2563eb', padding:'0.1rem 0.4rem', borderRadius:99 }}>{g.period}</span>
+                        <span style={{ fontSize:'0.58rem', fontWeight:800, background:'#fef3c7', color:'#b45309', padding:'0.1rem 0.4rem', borderRadius:99 }}>{g.type}</span>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                      <span style={{ fontSize:'0.78rem', fontWeight:900, color: done ? '#16a34a' : '#6366f1' }}>%{pct}</span>
+                      <button onClick={() => deleteGoal(g.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#cbd5e1', padding:2, display:'flex' }}><X size={13} /></button>
+                    </div>
+                  </div>
+                  <div style={{ height:5, background:'#f1f5f9', borderRadius:99, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:`${pct}%`, background: done ? '#22c55e' : 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 0.8s' }} />
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.62rem', color:'#94a3b8', fontWeight:600, marginTop:3 }}>
+                    <span>{g.current || 0} / {g.target} {g.type}</span>
+                    {done && <span style={{ color:'#16a34a', fontWeight:800 }}>✓ Tamamlandı</span>}
+                  </div>
                 </div>
-              ) : (
-                <div style={{ display:'flex', flexDirection:'column', gap:'0.6rem' }}>
-                  {studentGoals.slice(0, 5).map(g => (
-                    <GoalMini key={g.id} goal={g} onDelete={deleteGoal} onUpdateProgress={updateGoalProgress} onNavigate={navigate} />
-                  ))}
-                  {studentGoals.length > 5 && (
-                    <button onClick={() => navigate('/goals')} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:4, padding:'0.55rem', borderRadius:'0.65rem', background:'#f8fafc', border:'1px solid #e2e8f0', color:'#6366f1', fontSize:'0.75rem', fontWeight:800, cursor:'pointer' }}>
-                      +{studentGoals.length-5} daha <ArrowRight size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-              <button onClick={() => navigate('/goals')} style={{ width:'100%', marginTop:12, padding:'0.65rem', borderRadius:'0.85rem', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', fontWeight:800, fontSize:'0.78rem', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, boxShadow:'0 4px 12px rgba(99,102,241,0.25)' }}>
+              );
+            })}
+            <div style={{ padding:'0.75rem 1rem', background:'#fafafa', borderTop:'1px solid #f1f5f9' }}>
+              <button onClick={() => navigate('/goals')} className="sd-btn"
+                style={{ width:'100%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', border:'none', borderRadius:12, padding:'0.65rem', fontWeight:800, fontSize:'0.8rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, boxShadow:'0 4px 12px rgba(99,102,241,0.25)' }}>
                 Tüm Hedefler <ChevronRight size={14} />
               </button>
             </div>
-
-            {/* Motivation Card */}
-            <div style={{ background:'linear-gradient(135deg,#fef3c7,#fde68a)', border:'1.5px solid #fcd34d', borderRadius:'1.25rem', padding:'1.1rem 1.25rem', boxShadow:'0 4px 16px rgba(245,158,11,0.12)' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                <div style={{ width:40, height:40, borderRadius:'0.75rem', background:'rgba(245,158,11,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <Flame size={22} color="#f59e0b" />
-                </div>
-                <div>
-                  <div style={{ fontWeight:900, fontSize:'0.92rem', color:'#92400e' }}>Motivasyon!</div>
-                  <div style={{ fontSize:'0.68rem', color:'#b45309', fontWeight:600 }}>Başarıya giden yol...</div>
-                </div>
-              </div>
-              <div style={{ fontSize:'0.82rem', color:'#78350f', lineHeight:1.65, fontStyle:'italic', borderLeft:'3px solid #f59e0b', paddingLeft:'0.75rem' }}>
-                "Başarı, her gün biraz daha iyi olmakla gelir. Bugün bir adım daha at! 💪"
-              </div>
-              <div style={{ marginTop:12, display:'flex', gap:5 }}>
-                {['P','S','Ç','P','C','C','P'].map((d, i) => {
-                  const done = i < 4;
-                  return (
-                    <div key={i} style={{ flex:1, textAlign:'center' }}>
-                      <div style={{ fontSize:'0.55rem', fontWeight:700, color:'#92400e', marginBottom:3 }}>{d}</div>
-                      <div style={{ width:'100%', aspectRatio:1, borderRadius:'0.4rem', background: done ? '#f59e0b' : 'rgba(245,158,11,0.3)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow: done ? '0 2px 6px rgba(245,158,11,0.3)' : 'none' }}>
-                        {done && <Star size={8} color="white" fill="white" />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Results Button */}
-            <button onClick={() => navigate('/student-results')}
-              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.9rem 1.1rem', background:'white', border:'1.5px solid #e2e8f0', borderRadius:'1.1rem', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.04)', transition:'all 0.2s', width:'100%' }}
-              className="sd-card"
-              onMouseEnter={e => { e.currentTarget.style.borderColor='#6366f1'; e.currentTarget.style.background='#eef2ff'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor='#e2e8f0'; e.currentTarget.style.background='white'; }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ width:38, height:38, borderRadius:'0.75rem', background:'linear-gradient(135deg,#eef2ff,#e0e7ff)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <BarChart3 size={18} color="#6366f1" />
-                </div>
-                <div style={{ textAlign:'left' }}>
-                  <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#0f172a' }}>Detaylı Karne</div>
-                  <div style={{ fontSize:'0.68rem', color:'#94a3b8', fontWeight:600 }}>Grafik & analizler</div>
-                </div>
-              </div>
-              <ChevronRight size={18} color="#6366f1" />
-            </button>
-
           </div>
-        </div>
+        )}
       </div>
 
-      {/* ═══════════════════ GOAL MODAL ═══════════════════ */}
+      {/* ════════════════ COMPLETED EXAMS ════════════════ */}
+      {completedCount > 0 && (
+        <div style={S.section} className="sd-section">
+          <div style={S.sectionTitle}><span style={{ fontSize:14 }}>✅</span> Tamamlanan Sınavlar ({completedCount})</div>
+          <div style={S.card}>
+            {tests.filter(t => t.status === 'Sonuçlandı').slice(0, 5).map((test, i, arr) => {
+              const conf = getSubConf(getThemeKey(getCategoryName(test)));
+              const score = test.correctAnswers || 0;
+              const good = score >= 70;
+              return (
+                <div key={test.id} style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'0.8rem 1rem', borderBottom: i < arr.length-1 ? '1px solid #f8fafc' : 'none' }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <conf.icon size={15} color={conf.color} />
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:'0.82rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
+                    <div style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:600 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontWeight:900, fontSize:'0.9rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
+                      <div style={{ width:40, marginTop:2 }}>
+                        <div style={{ height:3, background: good ? '#dcfce7' : '#fee2e2', borderRadius:99 }}>
+                          <div style={{ height:'100%', width:`${score}%`, background: good ? '#22c55e' : '#ef4444', borderRadius:99 }} />
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => { if (test.type === 'physicalExam') { navigate(`/physical-exam/${test.id}?studentId=${selectedStudent.id}`); } else if (test.submissionId) { navigate(`/review/${test.submissionId}`); } else { navigate(`/quiz/${test.id}?studentId=${selectedStudent.id}`); } }}
+                      className="sd-btn"
+                      style={{ padding:'0.35rem', borderRadius:8, background:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', display:'flex', alignItems:'center' }}>
+                      <Eye size={13} color="#475569" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════ MOTIVATION + RESULTS ════════════════ */}
+      <div style={{ ...S.section, display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:'0.75rem' }} className="sd-section">
+        {/* Motivation */}
+        <div style={{ background:'linear-gradient(135deg,#fef3c7,#fde68a)', borderRadius:20, padding:'1rem 1.1rem', flex:1, boxShadow:'0 4px 16px rgba(245,158,11,0.12)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+            <Flame size={20} color="#f59e0b" />
+            <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#92400e' }}>Motivasyon!</div>
+          </div>
+          <div style={{ fontSize:'0.78rem', color:'#78350f', lineHeight:1.6, fontStyle:'italic', borderLeft:'2px solid #f59e0b', paddingLeft:8 }}>
+            "Başarı, her gün biraz daha iyi olmakla gelir! 💪"
+          </div>
+          <div style={{ marginTop:10, display:'flex', gap:4 }}>
+            {['P','S','Ç','P','C','C','P'].map((d, i) => {
+              const done = i < 4;
+              return (
+                <div key={i} style={{ flex:1, textAlign:'center' }}>
+                  <div style={{ fontSize:'0.52rem', fontWeight:700, color:'#92400e', marginBottom:2 }}>{d}</div>
+                  <div style={{ width:'100%', aspectRatio:1, borderRadius:4, background: done ? '#f59e0b' : 'rgba(245,158,11,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {done && <Star size={7} color="white" fill="white" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Results CTA */}
+        <button onClick={() => navigate('/student-results')} className="sd-btn"
+          style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius:20, padding:'1rem 1.1rem', border:'none', cursor:'pointer', display:'flex', flexDirection: isMobile ? 'row' : 'column', alignItems:'center', gap:'0.75rem', boxShadow:'0 6px 20px rgba(99,102,241,0.25)', flex: isMobile ? 1 : undefined, textAlign:'left' }}>
+          <div style={{ width:44, height:44, borderRadius:14, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <BarChart3 size={22} color="white" />
+          </div>
+          <div>
+            <div style={{ fontWeight:800, fontSize:'0.9rem', color:'white' }}>Detaylı Karne</div>
+            <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.75)', fontWeight:600, marginTop:2 }}>Grafik & performans analizi</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Bottom padding for mobile nav */}
+      <div style={{ height: isMobile ? '5rem' : '2rem' }} />
+
+      {/* ════════════════ GOAL MODAL ════════════════ */}
       {showGoalModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.55)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'1rem' }}>
-          <div style={{ background:'white', borderRadius:'1.75rem', padding:'1.75rem', width:'100%', maxWidth:460, boxShadow:'0 32px 80px rgba(0,0,0,0.2)', animation:'fadeInUp 0.3s ease' }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.6)', backdropFilter:'blur(8px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
+          <div style={{ background:'white', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.5rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.25)', animation:'sdFadeUp 0.3s ease' }}>
+            {/* Drag handle for mobile */}
+            {isMobile && <div style={{ width:40, height:4, background:'#e2e8f0', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
-              <h2 style={{ fontWeight:900, fontSize:'1.1rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'none', borderRadius:'0.65rem', padding:'0.5rem', cursor:'pointer', display:'flex' }}><X size={16} color="#64748b" /></button>
+              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
+              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'none', borderRadius:10, padding:'0.5rem', cursor:'pointer', display:'flex' }}><X size={16} color="#64748b" /></button>
             </div>
-            <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.9rem' }}>
-              <input placeholder="Hedef başlığı..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))} style={{ ...{padding:'0.65rem 0.9rem', borderRadius:'0.65rem', border:'1.5px solid #e2e8f0', fontFamily:'inherit', background:'#f8fafc', color:'#0f172a', fontSize:'0.88rem', outline:'none', width:'100%', boxSizing:'border-box'} }} required />
+            <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+              <input placeholder="Hedef başlığı..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
+                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%', boxSizing:'border-box' }} required />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
-                <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))} style={{ padding:'0.65rem 0.9rem', borderRadius:'0.65rem', border:'1.5px solid #e2e8f0', fontFamily:'inherit', background:'#f8fafc', color:'#0f172a', fontSize:'0.88rem', outline:'none', width:'100%', boxSizing:'border-box' }}>
+                <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
+                  style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.88rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
                   {['Soru','Sayfa','Dakika'].map(v => <option key={v}>{v}</option>)}
                 </select>
-                <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))} style={{ padding:'0.65rem 0.9rem', borderRadius:'0.65rem', border:'1.5px solid #e2e8f0', fontFamily:'inherit', background:'#f8fafc', color:'#0f172a', fontSize:'0.88rem', outline:'none', width:'100%', boxSizing:'border-box' }}>
+                <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
+                  style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.88rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
                   {['Günlük','Haftalık','Aylık'].map(v => <option key={v}>{v}</option>)}
                 </select>
               </div>
-              <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))} style={{ padding:'0.65rem 0.9rem', borderRadius:'0.65rem', border:'1.5px solid #e2e8f0', fontFamily:'inherit', background:'#f8fafc', color:'#0f172a', fontSize:'0.88rem', outline:'none', width:'100%', boxSizing:'border-box' }} required />
-              <button type="submit" style={{ padding:'0.85rem', borderRadius:'0.85rem', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(99,102,241,0.35)' }}>
-                Hedef Kaydet
+              <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))}
+                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%', boxSizing:'border-box' }} required />
+              <button type="submit" className="sd-btn"
+                style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(99,102,241,0.35)' }}>
+                Hedef Kaydet ✓
               </button>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }
