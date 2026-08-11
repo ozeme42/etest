@@ -548,7 +548,7 @@ export default function StudentDashboard() {
   const today = new Date();
   const todayStr = today.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const todayProgramDayName = useMemo(() => {
+  const todayProgramInfo = useMemo(() => {
     const daysMap = [
       { key: 'Paz', long: 'Pazar' },
       { key: 'Pzt', long: 'Pazartesi' },
@@ -562,15 +562,35 @@ export default function StudentDashboard() {
     const currentDayObj = daysMap[now.getDay()];
     
     const rawProg = coachingProfile?.weeklyProgram;
+    let items = [];
     if (Array.isArray(rawProg)) {
       const todayProg = rawProg.find(r => r.day === currentDayObj.key);
-      const count = todayProg?.items?.length || 0;
-      if (count > 0) {
-        return `📌 Program: ${currentDayObj.long} (${count} Ders)`;
-      }
+      items = todayProg?.items || [];
     }
-    return `📌 Program: ${currentDayObj.long}`;
+    return {
+      dayName: currentDayObj.long,
+      dayKey: currentDayObj.key,
+      items
+    };
   }, [coachingProfile]);
+
+  const handleToggleTodayTask = async (taskId) => {
+    if (!coachingProfile || !coachingProfile.weeklyProgram) return;
+    const updatedWeeklyProgram = coachingProfile.weeklyProgram.map(dayRow => {
+      if (dayRow.day === todayProgramInfo.dayKey) {
+        return {
+          ...dayRow,
+          items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: !item.done } : item)
+        };
+      }
+      return dayRow;
+    });
+    await saveCoachingProfile({
+      ...coachingProfile,
+      studentId: selectedStudent?.id,
+      weeklyProgram: updatedWeeklyProgram
+    });
+  };
 
   const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
   const overdueCount = stats.overdueCount;
@@ -671,16 +691,11 @@ export default function StudentDashboard() {
               <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight:900, color:'white', margin:0, lineHeight:1.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                 {selectedStudent?.name || 'Öğrenci'}
               </h1>
-              {/* Dates Row: Today + Compact Program Day Badge */}
+              {/* Dates Row: Today */}
               <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)' }}>
                   <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>📅 {todayStr}</span>
                 </div>
-                <Link to="/my-program" style={{ textDecoration: 'none' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)', cursor: 'pointer' }}>
-                    <span style={{ fontSize: '0.62rem', color: '#fef08a', fontWeight: 800 }}>{todayProgramDayName}</span>
-                  </div>
-                </Link>
               </div>
             </div>
           </div>
@@ -839,6 +854,152 @@ export default function StudentDashboard() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ════════════════ TODAY'S PROGRAM & TASKS (Günün Programı) ════════════════ */}
+      <div style={S.section} className="sd-section">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={S.sectionTitle}>
+            <span style={{ fontSize: 16 }}>🗓️</span> Günün Programı ({todayProgramInfo.dayName})
+            {todayProgramInfo.items.length > 0 && (
+              <span style={{
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: 'white',
+                borderRadius: 99,
+                padding: '0.12rem 0.6rem',
+                fontSize: '0.65rem',
+                fontWeight: 900,
+                marginLeft: 4
+              }}>
+                {todayProgramInfo.items.filter(i => i.done).length}/{todayProgramInfo.items.length} Tamamlandı
+              </span>
+            )}
+          </div>
+
+          <Link to="/my-program" style={{ textDecoration: 'none', fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 3 }}>
+            Tüm Program <ChevronRight size={14} />
+          </Link>
+        </div>
+
+        {todayProgramInfo.items.length === 0 ? (
+          <div style={{
+            background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
+            borderRadius: 20,
+            padding: '1.5rem 1.25rem',
+            border: '1.5px dashed #cbd5e1',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <div style={{ fontSize: '2rem' }}>✨</div>
+            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>
+              Bugün ({todayProgramInfo.dayName}) için tanımlı ders görevi yok
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+              Ders eklemek veya haftalık programını düzenlemek için aşağıdaki butona tıkla.
+            </div>
+            <Link to="/my-program" style={{
+              marginTop: 6,
+              textDecoration: 'none',
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              color: 'white',
+              borderRadius: 14,
+              padding: '0.5rem 1.25rem',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)'
+            }}>
+              📅 Programıma Git & Ders Ekle
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {todayProgramInfo.items.map((item, idx) => {
+              const taskIcons = {
+                konu: '📖',
+                soru: '✏️',
+                tekrar: '🔄',
+                kitap: '📚',
+                deneme: '📊',
+                diger: '✨'
+              };
+              const icon = taskIcons[item.taskType] || '📌';
+              return (
+                <div
+                  key={item.id || idx}
+                  onClick={() => handleToggleTodayTask(item.id)}
+                  style={{
+                    background: item.done ? '#f8fafc' : '#ffffff',
+                    borderRadius: 16,
+                    padding: '0.85rem 1.1rem',
+                    border: item.done ? '1.5px solid #e2e8f0' : '1.5px solid #e0e7ff',
+                    boxShadow: item.done ? 'none' : '0 4px 16px rgba(99,102,241,0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    cursor: 'pointer',
+                    opacity: item.done ? 0.75 : 1,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    {/* Checkbox */}
+                    <div style={{
+                      width: 22, height: 22,
+                      borderRadius: 7,
+                      border: item.done ? 'none' : '2px solid #cbd5e1',
+                      background: item.done ? '#16a34a' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                      transition: 'all 0.2s'
+                    }}>
+                      {item.done && <Check size={14} color="white" strokeWidth={3} />}
+                    </div>
+
+                    {/* Task Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: item.done ? '#64748b' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
+                          {icon} {item.subject || item.bookName || 'Ders Görevi'}
+                        </span>
+                        {item.hours && (
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#6366f1', background: '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                            ⏱️ {item.hours} sa
+                          </span>
+                        )}
+                        {item.questionCount && (
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0891b2', background: '#ecfeff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                            ✏️ {item.questionCount} soru
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.topic || item.note || item.bookName || 'Günün ders çalışması'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Indicator Pill */}
+                  <div style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 900,
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: 99,
+                    background: item.done ? '#dcfce7' : '#eef2ff',
+                    color: item.done ? '#15803d' : '#4f46e5',
+                    flexShrink: 0
+                  }}>
+                    {item.done ? 'Tamamlandı ✓' : 'Tamamla'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ════════════════ STUDY PLANS ════════════════ */}
