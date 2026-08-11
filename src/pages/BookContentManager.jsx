@@ -1632,7 +1632,14 @@ export default function BookContentManager() {
                 {/* CLASS LIST */}
                 {assignTargetMode === "class" && availableClasses.map(cls => {
                   const isChecked = assignSelectedTargetIds.includes(cls.id);
-                  const classStudentsCount = students.filter(s => s.gradeId === cls.id || s.grade === cls.id || s.className === cls.id).length;
+                  const classStudentsCount = students.filter(s => 
+                    String(s.gradeId) === String(cls.id) || 
+                    s.gradeId === cls.name || 
+                    String(s.classId) === String(cls.id) || 
+                    s.grade === cls.id || 
+                    s.grade === cls.name || 
+                    s.className === cls.name
+                  ).length;
 
                   return (
                     <label key={cls.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: isChecked ? '#e0e7ff' : 'white', borderRadius: '0.5rem', border: `1px solid ${isChecked ? '#6366f1' : '#e2e8f0'}`, cursor: 'pointer', transition: 'all 0.15s' }}>

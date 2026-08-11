@@ -162,7 +162,15 @@ export default function HomeworkManager() {
     else setSelectedQuestionIds(prev => Array.from(new Set([...prev, ...fIds])));
   };
 
-  const filteredStudents = students.filter(s => studentGradeFilter === 'all' || s.gradeId === studentGradeFilter);
+  const isStudentInGrade = (s, gObjOrId) => {
+    if (!s || !gObjOrId) return false;
+    const gId = typeof gObjOrId === 'object' ? gObjOrId.id : gObjOrId;
+    const gName = typeof gObjOrId === 'object' ? gObjOrId.name : curData?.grades?.find(g => String(g.id) === String(gId) || g.name === gId)?.name;
+    const matches = [s.gradeId, s.classId, s.grade, s.className];
+    return matches.some(m => m && (String(m) === String(gId) || (gName && String(m).toLowerCase() === String(gName).toLowerCase())));
+  };
+
+  const filteredStudents = students.filter(s => studentGradeFilter === 'all' || isStudentInGrade(s, studentGradeFilter));
 
   const handleSelectAllTargets = () => {
     if (targetMode === 'grade') {
@@ -176,7 +184,7 @@ export default function HomeworkManager() {
 
   const getHomeworkStats = (hw) => {
     const ids = (hw.targetType === 'grade' || hw.targetType === 'class')
-      ? students.filter(s => (hw.targetIds || []).some(tid => s.gradeId === tid || s.grade === tid || s.className === tid)).map(s => s.id)
+      ? students.filter(s => (hw.targetIds || []).some(tid => isStudentInGrade(s, tid))).map(s => s.id)
       : (hw.targetIds || []);
     const total = ids.length;
     const completed = ids.filter(stId => !!(
@@ -647,7 +655,7 @@ export default function HomeworkManager() {
                         <div style={{ width: 34, height: 34, borderRadius: '0.6rem', background: isSel ? 'linear-gradient(135deg,#059669,#047857)' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><GraduationCap size={16} color={isSel ? '#fff' : '#94a3b8'} /></div>
                         <div>
                           <div style={{ fontWeight: 900, fontSize: '0.82rem', color: isSel ? '#15803d' : '#1e293b' }}>{g.name}</div>
-                          <div style={{ fontSize: '0.67rem', color: '#94a3b8' }}>{students.filter(s => s.gradeId === g.id).length} ogrenci</div>
+                          <div style={{ fontSize: '0.67rem', color: '#94a3b8' }}>{students.filter(s => isStudentInGrade(s, g)).length} ogrenci</div>
                         </div>
                         {isSel && <CheckCircle size={15} color="#059669" style={{ marginLeft: 'auto', flexShrink: 0 }} />}
                       </div>
@@ -668,7 +676,7 @@ export default function HomeworkManager() {
                           <div style={{ width: 32, height: 32, borderRadius: '50%', background: isSel ? 'linear-gradient(135deg,#059669,#047857)' : '#e2e8f0', color: isSel ? '#fff' : '#94a3b8', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.name.charAt(0)}</div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontWeight: 800, fontSize: '0.8rem', color: isSel ? '#15803d' : '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>{curData.grades.find(g => g.id === s.gradeId)?.name}</div>
+                            <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>{curData.grades.find(g => isStudentInGrade(s, g))?.name || s.grade || s.gradeId || 'Sınıf Belirtilmemiş'}</div>
                           </div>
                           {isSel && <CheckCircle size={13} color="#059669" />}
                         </div>
