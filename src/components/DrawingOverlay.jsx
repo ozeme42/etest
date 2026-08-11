@@ -147,15 +147,19 @@ export default function DrawingOverlay({ children }) {
 
     if (isDrawingMode) {
       document.body.classList.add('global-draw-lock');
-      document.addEventListener('touchmove', preventGlobalScroll, { passive: false });
+      // Use window and capture: true to intercept the event before ANY child element gets it!
+      window.addEventListener('touchmove', preventGlobalScroll, { passive: false, capture: true });
+      window.addEventListener('wheel', preventGlobalScroll, { passive: false, capture: true });
     } else {
       document.body.classList.remove('global-draw-lock');
-      document.removeEventListener('touchmove', preventGlobalScroll);
+      window.removeEventListener('touchmove', preventGlobalScroll, { capture: true });
+      window.removeEventListener('wheel', preventGlobalScroll, { capture: true });
     }
 
     return () => {
       document.body.classList.remove('global-draw-lock');
-      document.removeEventListener('touchmove', preventGlobalScroll);
+      window.removeEventListener('touchmove', preventGlobalScroll, { capture: true });
+      window.removeEventListener('wheel', preventGlobalScroll, { capture: true });
     };
   }, [isDrawingMode]);
 
