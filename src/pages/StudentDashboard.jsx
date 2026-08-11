@@ -671,22 +671,50 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ════════════════ STAT CHIPS (scrollable) ════════════════ */}
-      <div style={{ padding: isMobile ? '0 0.875rem' : '0 1.5rem', marginTop: -12, marginBottom:'1.25rem', position:'relative', zIndex:10 }}>
-        <div style={{ display:'flex', gap:'0.6rem', overflowX:'auto', paddingBottom:4, scrollbarWidth:'none' }}>
+      {/* ════════════════ STAT CHIPS (5-Column Responsive Grid - 100% Mobile Fit) ════════════════ */}
+      <div style={{ padding: isMobile ? '0 0.5rem' : '0 1.5rem', marginTop: -12, marginBottom: '1.25rem', position: 'relative', zIndex: 10 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: isMobile ? 4 : 10,
+          width: '100%'
+        }}>
           {statChips.map((c, i) => (
-            <div key={i} className="sd-chip" style={{ background:'white', borderRadius:14, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', gap:2, flexShrink:0, minWidth:75, border:`2px solid ${c.bg}`, animation:`sdFadeUp 0.4s ease ${i * 0.07}s both` }}>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight:900, color:c.color, lineHeight:1 }}>{c.value}</div>
-              <div style={{ fontSize:'0.6rem', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', lineHeight:1.2 }}>{c.label}</div>
+            <div key={i} className="sd-chip" style={{
+              background: 'white',
+              borderRadius: isMobile ? 12 : 16,
+              padding: isMobile ? '0.55rem 0.2rem' : '0.75rem 1rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              border: `1.5px solid ${c.bg}`,
+              animation: `sdFadeUp 0.4s ease ${i * 0.05}s both`,
+              minWidth: 0
+            }}>
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: c.color, lineHeight: 1 }}>{c.value}</div>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.01em', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{c.label}</div>
             </div>
           ))}
           {/* Progress chip */}
-          <div className="sd-chip" style={{ background:'white', borderRadius:14, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', gap:4, flexShrink:0, minWidth:90, border:'2px solid #f3e8ff', animation:'sdFadeUp 0.4s ease 0.28s both' }}>
-            <div style={{ fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight:900, color:'#9333ea', lineHeight:1 }}>%{progressPct}</div>
-            <div style={{ fontSize:'0.6rem', fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', lineHeight:1.2 }}>Tamamlanma</div>
-            <div style={{ width:'100%', height:3, background:'#f3e8ff', borderRadius:99 }}>
-              <div style={{ height:'100%', width:`${progressPct}%`, background:'#9333ea', borderRadius:99, transition:'width 1s' }} />
-            </div>
+          <div className="sd-chip" style={{
+            background: 'white',
+            borderRadius: isMobile ? 12 : 16,
+            padding: isMobile ? '0.55rem 0.2rem' : '0.75rem 1rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            border: '1.5px solid #f3e8ff',
+            animation: 'sdFadeUp 0.4s ease 0.25s both',
+            minWidth: 0
+          }}>
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: '#9333ea', lineHeight: 1 }}>%{progressPct}</div>
+            <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.01em', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>Tamamlanma</div>
           </div>
         </div>
       </div>
