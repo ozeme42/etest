@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Check, ChevronDown, ChevronRight, CheckCircle2, X, BookOpen, Clock, GraduationCap } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
+import { useHomework } from '../context/HomeworkContext';
+import { useAuth } from '../context/AuthContext';
+import { useEvaluation } from '../context/EvaluationContext';
+import { isHomeworkForStudent } from '../utils/testResolver';
 
 /* ─── Constants ─── */
 export const DAYS = [
@@ -694,6 +698,103 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const [addingToDay, setAddingToDay] = useState(null);
   const todayKey = getTodayKey();
 
+  const hwContext = useHomework();
+  const authContext = useAuth();
+  const evalContext = useEvaluation();
+  const currContext = useCurriculum();
+
+  const allHomeworks = hwContext?.homeworks || [];
+  const currentUser = authContext?.currentUser;
+  const submissions = evalContext?.submissions || [];
+  const curData = currContext?.curriculumData;
+
+  const processedWeeklyProgram = useMemo(() => {
+    if (!weeklyProgram || !Array.isArray(weeklyProgram)) return [];
+    if (!currentUser || !allHomeworks.length) return weeklyProgram;
+
+    const studentId = currentUser.id;
+    const studentGrades = curData?.grades || [];
+
+    const studentHomeworks = allHomeworks.filter(hw => {
+      if (hw.isBookAssignment) return false;
+      return isHomeworkForStudent(hw, currentUser, studentGrades);
+    }).map(hw => {
+      const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
+        submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
+      return {
+        ...hw,
+        isDone: !!sub
+      };
+    });
+
+    if (!studentHomeworks.length) return weeklyProgram;
+
+    const now = new Date();
+    const currentDayIdx = now.getDay();
+    const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
+    const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff);
+
+    const dayDateMap = {};
+    DAYS.forEach((dMeta, idx) => {
+      const d = new Date(mondayDate);
+      d.setDate(mondayDate.getDate() + idx);
+      const ymd = d.toISOString().split('T')[0];
+      dayDateMap[dMeta.key] = {
+        ymd,
+        time: new Date(ymd).getTime()
+      };
+    });
+
+    return weeklyProgram.map(dayObj => {
+      const dayInfo = dayDateMap[dayObj.day];
+      if (!dayInfo) return dayObj;
+
+      const manualItems = dayObj.items || [];
+      const autoHwItems = [];
+
+      studentHomeworks.forEach(hw => {
+        const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
+        const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+        const startTime = startYMD ? new Date(startYMD).getTime() : null;
+
+        const rawDue = hw.dueDate || hw.assignedDueDate;
+        const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
+        const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+        let isForThisDay = false;
+        if (dueTime && startTime) {
+          isForThisDay = dayInfo.time >= startTime && dayInfo.time <= dueTime;
+        } else if (dueTime) {
+          isForThisDay = dayInfo.ymd === dueYMD || (dayInfo.time <= dueTime && dayInfo.time >= dueTime - 6 * 86400000);
+        } else if (startTime) {
+          isForThisDay = dayInfo.time === startTime;
+        }
+
+        if (isForThisDay) {
+          const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
+          if (!exists) {
+            autoHwItems.push({
+              id: `auto_hw_${hw.id}_${dayObj.day}`,
+              hwId: hw.id,
+              isAutoHomework: true,
+              taskType: 'ödev',
+              subject: hw.subject || 'Atanan Ödev',
+              topic: hw.title || hw.name || 'Ödev Görevi',
+              questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
+              time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+              done: hw.isDone
+            });
+          }
+        }
+      });
+
+      return {
+        ...dayObj,
+        items: [...autoHwItems, ...manualItems]
+      };
+    });
+  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData]);
+
   const handleToggle = useCallback((dayKey, itemId) => {
     setWeeklyProgram(prev => prev.map(d =>
       d.day === dayKey
@@ -714,8 +815,8 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
     ));
   }, [addingToDay, setWeeklyProgram]);
 
-  const totalItems = (weeklyProgram || []).reduce((a, d) => a + (d.items?.length || 0), 0);
-  const doneItems = (weeklyProgram || []).reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
+  const totalItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.length || 0), 0);
+  const doneItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
   const pct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
   return (
@@ -759,7 +860,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
             }
           `}</style>
           <div className="weekly-grid">
-            {(weeklyProgram || []).map((dayObj, i) => {
+            {(processedWeeklyProgram || []).map((dayObj, i) => {
               const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
               return (
                 <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
