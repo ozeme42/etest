@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Check, ChevronDown, ChevronRight, CheckCircle2, X, BookOpen, Clock, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -281,7 +281,9 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onAddCli
       <div style={{ padding: '0.75rem 1rem 0.6rem', borderBottom: '1px solid #f1f5f9', background: isToday ? 'linear-gradient(135deg, #eef2ff, #f5f3ff)' : '#fafafa' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: isToday ? '#4f46e5' : '#0f172a' }}>{dayMeta.key}</div>
+            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: isToday ? '#4f46e5' : '#0f172a' }}>
+              {dayObj.dateLabel ? `${dayObj.dateLabel}` : dayMeta.key}
+            </div>
             <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', marginTop: 1 }}>{dayMeta.long}</div>
           </div>
           {isToday && <span style={{ background: '#6366f1', color: 'white', fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '99px' }}>BUGÜN</span>}
@@ -696,6 +698,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
 export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPool, setTopicPool }) {
   const [programTab, setProgramTab] = useState('haftalik');
   const [addingToDay, setAddingToDay] = useState(null);
+  const [weekOffset, setWeekOffset] = useState(0);
   const todayKey = getTodayKey();
 
   const hwContext = useHomework();
@@ -708,9 +711,63 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const submissions = evalContext?.submissions || [];
   const curData = currContext?.curriculumData;
 
+  const weekInfo = useMemo(() => {
+    const MONTHS_TR = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    
+    const now = new Date();
+    const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + weekOffset * 7);
+
+    const currentDayIdx = baseDate.getDay();
+    const mondayDiff = baseDate.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
+    const mondayDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), mondayDiff);
+
+    const sundayDate = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + 6);
+
+    const monMonthStr = MONTHS_TR[mondayDate.getMonth()];
+    const sunMonthStr = MONTHS_TR[sundayDate.getMonth()];
+    const yearStr = sundayDate.getFullYear();
+
+    let monthTitle = '';
+    if (monMonthStr === sunMonthStr) {
+      monthTitle = `${monMonthStr} ${yearStr}`;
+    } else {
+      monthTitle = `${monMonthStr} - ${sunMonthStr} ${yearStr}`;
+    }
+
+    const rangeStr = `${mondayDate.getDate()} ${monMonthStr.slice(0, 3)} – ${sundayDate.getDate()} ${sunMonthStr.slice(0, 3)} ${yearStr}`;
+
+    return {
+      mondayDate,
+      sundayDate,
+      monthTitle,
+      rangeStr
+    };
+  }, [weekOffset]);
+
   const processedWeeklyProgram = useMemo(() => {
     if (!weeklyProgram || !Array.isArray(weeklyProgram)) return [];
-    if (!currentUser || !allHomeworks.length) return weeklyProgram;
+
+    const mondayDate = weekInfo.mondayDate;
+    const dayDateMap = {};
+    DAYS.forEach((dMeta, idx) => {
+      const d = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + idx);
+      const ymd = d.toISOString().split('T')[0];
+      dayDateMap[dMeta.key] = {
+        ymd,
+        time: new Date(ymd).getTime(),
+        dateLabel: `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}`
+      };
+    });
+
+    if (!currentUser || !allHomeworks.length) {
+      return weeklyProgram.map(dayObj => ({
+        ...dayObj,
+        dateLabel: dayDateMap[dayObj.day]?.dateLabel || ''
+      }));
+    }
 
     const studentId = currentUser.id;
     const studentGrades = curData?.grades || [];
@@ -724,24 +781,6 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       return {
         ...hw,
         isDone: !!sub
-      };
-    });
-
-    if (!studentHomeworks.length) return weeklyProgram;
-
-    const now = new Date();
-    const currentDayIdx = now.getDay();
-    const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
-    const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff);
-
-    const dayDateMap = {};
-    DAYS.forEach((dMeta, idx) => {
-      const d = new Date(mondayDate);
-      d.setDate(mondayDate.getDate() + idx);
-      const ymd = d.toISOString().split('T')[0];
-      dayDateMap[dMeta.key] = {
-        ymd,
-        time: new Date(ymd).getTime()
       };
     });
 
@@ -790,10 +829,11 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
       return {
         ...dayObj,
+        dateLabel: dayInfo.dateLabel,
         items: [...autoHwItems, ...manualItems]
       };
     });
-  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData]);
+  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo]);
 
   const handleToggle = useCallback((dayKey, itemId) => {
     setWeeklyProgram(prev => prev.map(d =>
@@ -846,6 +886,74 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       {/* Weekly Program */}
       {programTab === 'haftalik' && (
         <div>
+          {/* Week Navigation & Month Banner */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '1rem',
+            padding: '0.75rem 1.1rem',
+            marginBottom: '1.25rem',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setWeekOffset(w => w - 1)}
+                style={{
+                  padding: '0.45rem 0.8rem', borderRadius: '0.65rem',
+                  background: '#f1f5f9', border: '1px solid #cbd5e1',
+                  color: '#334155', fontWeight: 800, fontSize: '0.8rem',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                }}
+                title="Önceki Hafta"
+              >
+                <ChevronLeft size={16} /> Önceki Hafta
+              </button>
+
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => setWeekOffset(0)}
+                  style={{
+                    padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    color: 'white', border: 'none', fontWeight: 900, fontSize: '0.8rem',
+                    cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
+                  }}
+                >
+                  📍 Bu Hafta (Bugün)
+                </button>
+              )}
+
+              <button
+                onClick={() => setWeekOffset(w => w + 1)}
+                style={{
+                  padding: '0.45rem 0.8rem', borderRadius: '0.65rem',
+                  background: '#f1f5f9', border: '1px solid #cbd5e1',
+                  color: '#334155', fontWeight: 800, fontSize: '0.8rem',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                }}
+                title="Sonraki Hafta"
+              >
+                Sonraki Hafta <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Calendar size={20} color="#4f46e5" />
+                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>
+                  {weekInfo.monthTitle}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, background: '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid #e2e8f0' }}>
+                📅 {weekInfo.rangeStr}
+              </span>
+            </div>
+          </div>
           <style>{`
             .weekly-grid {
               display: grid;
