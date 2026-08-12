@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -1065,9 +1065,59 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
   const monthDoneTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.filter(i => i.done).length, 0);
 
   return (
-    <div>
+    <div className="printable-monthly-area">
+      {/* Print Specific CSS */}
+      <style>{`
+        .print-only-header { display: none; }
+        @media print {
+          @page { size: A4; margin: 12mm; }
+          body { background: white !important; color: #000 !important; font-family: sans-serif !important; }
+          /* Hide non-printable UI elements */
+          nav, header, footer, .no-print, button, select, input, .weekly-grid { display: none !important; }
+          .printable-monthly-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .print-only-header {
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+          }
+          .print-day-card {
+            page-break-inside: avoid !important;
+            border: 1px solid #cbd5e1 !important;
+            border-left: 4px solid #4f46e5 !important;
+            box-shadow: none !important;
+            background: white !important;
+            margin-bottom: 10px !important;
+          }
+        }
+      `}</style>
+
+      {/* Print Only Header */}
+      <div className="print-only-header">
+        <div>
+          <h1 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>E-TEST DERS TAKİP VE KOÇLUK PLATFORMU</h1>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#4f46e5', margin: '4px 0 0' }}>Öğrenci Aylık Ders Çalışma Programı — {monthInfo.monthTitle}</h2>
+          <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 4 }}>
+            Öğrenci: <strong>{currentUser?.name || currentUser?.username || 'Öğrenci'}</strong>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#64748b' }}>
+          <div>Yazdırma Tarihi: {new Date().toLocaleDateString('tr-TR')}</div>
+          <div style={{ fontWeight: 800, color: '#16a34a', marginTop: 2 }}>{monthDoneTasks}/{monthTotalTasks} Görev Tamamlandı</div>
+        </div>
+      </div>
+
       {/* Month Navigation & Stats Banner */}
-      <div style={{
+      <div className="no-print" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -1120,7 +1170,7 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Calendar size={22} color="#4f46e5" />
             <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
@@ -1128,7 +1178,7 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <button
               onClick={() => setOnlyWithTasks(v => !v)}
               style={{
@@ -1143,6 +1193,27 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
               }}
             >
               {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+            </button>
+
+            <button
+              onClick={() => window.print()}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '99px',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                border: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+              }}
+              title="Aylık Programı Yazdır veya PDF olarak kaydet"
+            >
+              <Printer size={14} /> 🖨️ Yazdır / PDF İndir
             </button>
 
             <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid #86efac' }}>
