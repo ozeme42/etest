@@ -969,10 +969,15 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                            {item.time && (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#4f46e5', background: '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-                                🕐 {item.time}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                            {(item.startTime || item.endTime || item.time || item.saat) && (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#4f46e5', background: '#eef2ff', border: '1px solid #c7d2fe', padding: '0.15rem 0.5rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                              </span>
+                            )}
+                            {item.hours && (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#6366f1', background: '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                                ⏱️ {item.hours} sa
                               </span>
                             )}
                             {item.questionCount && (
