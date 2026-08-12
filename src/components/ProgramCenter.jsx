@@ -1656,13 +1656,30 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
           <style>{`
             .weekly-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-              gap: 0.85rem;
+              grid-template-columns: repeat(12, 1fr);
+              gap: 0.9rem;
+            }
+            .weekly-grid > div:nth-child(-n+4) {
+              grid-column: span 3;
+            }
+            .weekly-grid > div:nth-child(n+5) {
+              grid-column: span 4;
+            }
+            @media (max-width: 992px) {
+              .weekly-grid {
+                grid-template-columns: repeat(2, 1fr);
+              }
+              .weekly-grid > div:nth-child(n) {
+                grid-column: span 1;
+              }
             }
             @media (max-width: 640px) {
               .weekly-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
+              }
+              .weekly-grid > div:nth-child(n) {
+                grid-column: span 1;
               }
             }
           `}</style>
