@@ -49,10 +49,24 @@ export function getTodayKey() {
   return DAYS[map[d.getDay()]]?.key || 'Pzt';
 }
 
+export function getLocalYMD(dInput) {
+  if (!dInput) return '';
+  if (typeof dInput === 'string') {
+    const match = dInput.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  const dt = new Date(dInput);
+  if (isNaN(dt.getTime())) return '';
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function getMondayYMD(dStr) {
   if (!dStr) return null;
-  const str = typeof dStr === 'string' ? dStr : (dStr.toISOString ? dStr.toISOString() : String(dStr));
-  const parts = str.split('T')[0].split('-');
+  const ymd = getLocalYMD(dStr);
+  const parts = ymd.split('-');
   if (parts.length < 3) return null;
   const y = parseInt(parts[0], 10);
   const m = parseInt(parts[1], 10) - 1;
@@ -765,7 +779,7 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
     const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
     const daysList = [];
 
-    const todayYMD = new Date().toISOString().split('T')[0];
+    const todayYMD = getLocalYMD(new Date());
 
     const studentId = currentUser?.id;
     const studentGrades = curData?.grades || [];
@@ -784,7 +798,7 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateObj = new Date(year, monthIdx, day);
-      const ymd = dateObj.toISOString().split('T')[0];
+      const ymd = getLocalYMD(dateObj);
       const dayOfWeekIdx = dateObj.getDay();
       const dayKey = DAYS_SHORT[dayOfWeekIdx];
       const isToday = ymd === todayYMD;
@@ -1127,10 +1141,10 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
     const dayDateMap = {};
     DAYS.forEach((dMeta, idx) => {
       const d = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + idx);
-      const ymd = d.toISOString().split('T')[0];
+      const ymd = getLocalYMD(d);
       dayDateMap[dMeta.key] = {
         ymd,
-        time: new Date(ymd).getTime(),
+        time: d.getTime(),
         dateLabel: `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}`
       };
     });
