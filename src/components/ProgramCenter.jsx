@@ -694,6 +694,317 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
   );
 }
 
+/* ─── MonthlyListPanel Component ─── */
+export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, submissions, curData }) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [onlyWithTasks, setOnlyWithTasks] = useState(false);
+
+  const MONTHS_TR = [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+  ];
+  const DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+
+  const monthInfo = useMemo(() => {
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const year = targetDate.getFullYear();
+    const monthIdx = targetDate.getMonth();
+    const monthName = MONTHS_TR[monthIdx];
+
+    const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+    const daysList = [];
+
+    const todayYMD = new Date().toISOString().split('T')[0];
+
+    const studentId = currentUser?.id;
+    const studentGrades = curData?.grades || [];
+
+    const studentHomeworks = (allHomeworks || []).filter(hw => {
+      if (hw.isBookAssignment) return false;
+      return isHomeworkForStudent(hw, currentUser, studentGrades);
+    }).map(hw => {
+      const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
+        (submissions || []).find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
+      return {
+        ...hw,
+        isDone: !!sub
+      };
+    });
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateObj = new Date(year, monthIdx, day);
+      const ymd = dateObj.toISOString().split('T')[0];
+      const dayOfWeekIdx = dateObj.getDay();
+      const dayKey = DAYS_SHORT[dayOfWeekIdx];
+      const isToday = ymd === todayYMD;
+
+      const dayProg = (weeklyProgram || []).find(r => r.day === dayKey);
+      const manualItems = dayProg?.items || [];
+
+      const dateTime = dateObj.getTime();
+      const autoHwItems = [];
+
+      studentHomeworks.forEach(hw => {
+        const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
+        const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+        const startTime = startYMD ? new Date(startYMD).getTime() : null;
+
+        const rawDue = hw.dueDate || hw.assignedDueDate;
+        const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
+        const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+        let isForThisDay = false;
+        if (dueTime && startTime) {
+          isForThisDay = dateTime >= startTime && dateTime <= dueTime;
+        } else if (dueTime) {
+          isForThisDay = ymd === dueYMD || (dateTime <= dueTime && dateTime >= dueTime - 6 * 86400000);
+        } else if (startTime) {
+          isForThisDay = dateTime === startTime;
+        }
+
+        if (isForThisDay) {
+          const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id);
+          if (!exists) {
+            autoHwItems.push({
+              id: `monthly_auto_hw_${hw.id}_${ymd}`,
+              hwId: hw.id,
+              isAutoHomework: true,
+              taskType: 'ödev',
+              subject: hw.subject || 'Atanan Ödev',
+              topic: hw.title || hw.name || 'Ödev Görevi',
+              questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
+              time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+              done: hw.isDone
+            });
+          }
+        }
+      });
+
+      const dayItems = [...autoHwItems, ...manualItems];
+
+      daysList.push({
+        day,
+        dateObj,
+        ymd,
+        dayKey,
+        dayName: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][dayOfWeekIdx],
+        isToday,
+        items: dayItems
+      });
+    }
+
+    return {
+      year,
+      monthName,
+      monthTitle: `${monthName} ${year}`,
+      daysList
+    };
+  }, [monthOffset, weeklyProgram, allHomeworks, currentUser, submissions, curData]);
+
+  const filteredDays = useMemo(() => {
+    if (!onlyWithTasks) return monthInfo.daysList;
+    return monthInfo.daysList.filter(d => d.items.length > 0);
+  }, [monthInfo, onlyWithTasks]);
+
+  const monthTotalTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.length, 0);
+  const monthDoneTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.filter(i => i.done).length, 0);
+
+  return (
+    <div>
+      {/* Month Navigation & Stats Banner */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: '1rem',
+        padding: '0.85rem 1.25rem',
+        marginBottom: '1.25rem',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+        flexWrap: 'wrap',
+        gap: '0.85rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setMonthOffset(m => m - 1)}
+            style={{
+              padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+              background: '#f1f5f9', border: '1px solid #cbd5e1',
+              color: '#334155', fontWeight: 800, fontSize: '0.8rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+            }}
+          >
+            <ChevronLeft size={16} /> Önceki Ay
+          </button>
+
+          {monthOffset !== 0 && (
+            <button
+              onClick={() => setMonthOffset(0)}
+              style={{
+                padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                color: 'white', border: 'none', fontWeight: 900, fontSize: '0.8rem',
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
+              }}
+            >
+              📍 Bu Ay ({new Date().toLocaleDateString('tr-TR', { month: 'long' })})
+            </button>
+          )}
+
+          <button
+            onClick={() => setMonthOffset(m => m + 1)}
+            style={{
+              padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+              background: '#f1f5f9', border: '1px solid #cbd5e1',
+              color: '#334155', fontWeight: 800, fontSize: '0.8rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+            }}
+          >
+            Sonraki Ay <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Calendar size={22} color="#4f46e5" />
+            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+              📆 {monthInfo.monthTitle}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setOnlyWithTasks(v => !v)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '99px',
+                background: onlyWithTasks ? '#eef2ff' : '#f8fafc',
+                border: onlyWithTasks ? '1.5px solid #6366f1' : '1.5px solid #e2e8f0',
+                color: onlyWithTasks ? '#4f46e5' : '#64748b',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                cursor: 'pointer'
+              }}
+            >
+              {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+            </button>
+
+            <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 800, background: '#f0fdf4', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid #86efac' }}>
+              {monthDoneTasks}/{monthTotalTasks} Tamamlandı
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Days Agenda List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {filteredDays.map(d => {
+          const taskIcons = { konu: '📖', soru: '✏️', tekrar: '🔄', kitap: '📚', deneme: '📊', ödev: '📝', diger: '✨' };
+          return (
+            <div
+              key={d.ymd}
+              style={{
+                background: d.isToday ? 'linear-gradient(135deg, #ffffff, #f5f3ff)' : '#ffffff',
+                border: d.isToday ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
+                borderRadius: '1rem',
+                padding: '0.85rem 1.1rem',
+                boxShadow: d.isToday ? '0 4px 16px rgba(99,102,241,0.1)' : '0 2px 8px rgba(0,0,0,0.02)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '1rem',
+                flexWrap: 'wrap'
+              }}
+            >
+              {/* Date Box */}
+              <div style={{
+                minWidth: 70,
+                textAlign: 'center',
+                padding: '0.4rem 0.6rem',
+                borderRadius: '0.75rem',
+                background: d.isToday ? '#4f46e5' : '#f8fafc',
+                color: d.isToday ? 'white' : '#1e293b',
+                border: d.isToday ? 'none' : '1px solid #e2e8f0',
+                flexShrink: 0
+              }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.9, marginTop: 2 }}>{d.dayName}</div>
+                {d.isToday && <div style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(255,255,255,0.25)', padding: '1px 4px', borderRadius: 4, marginTop: 3 }}>BUGÜN</div>}
+              </div>
+
+              {/* Items List */}
+              <div style={{ flex: 1, minWidth: 200 }}>
+                {d.items.length === 0 ? (
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, fontStyle: 'italic', paddingTop: 6 }}>
+                    Programlanan ders görevi yok
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    {d.items.map((item, idx) => {
+                      const icon = taskIcons[item.taskType] || '📌';
+                      return (
+                        <div
+                          key={item.id || idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: item.done ? '#f8fafc' : item.isAutoHomework ? '#f0fdf4' : '#fafafa',
+                            border: item.done ? '1px solid #e2e8f0' : item.isAutoHomework ? '1px solid #bbf7d0' : '1px solid #f1f5f9',
+                            borderRadius: '0.65rem',
+                            padding: '0.45rem 0.75rem',
+                            gap: '0.75rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                            <span style={{ fontSize: '0.9rem' }}>{icon}</span>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: item.done ? '#64748b' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
+                                {item.subject || item.topic || 'Ders Çalışması'}
+                              </div>
+                              {item.topic && item.subject && (
+                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{item.topic}</div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                            {item.time && (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#4f46e5', background: '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                                🕐 {item.time}
+                              </span>
+                            )}
+                            {item.questionCount && (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0891b2', background: '#ecfeff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                                ✏️ {item.questionCount} soru
+                              </span>
+                            )}
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              padding: '0.15rem 0.55rem',
+                              borderRadius: 99,
+                              background: item.done ? '#dcfce7' : '#f1f5f9',
+                              color: item.done ? '#15803d' : '#64748b'
+                            }}>
+                              {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ─── ProgramCenter (Main shared component) ─── */
 export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPool, setTopicPool }) {
   const [programTab, setProgramTab] = useState('haftalik');
@@ -865,6 +1176,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid #e8ecf0', marginBottom: '1.25rem' }}>
         {[
           { id: 'haftalik', label: '📅 Haftalık Program' },
+          { id: 'aylik', label: '📆 Aylık Görünüm' },
           { id: 'konular', label: '📚 Konu Havuzu' },
         ].map(tab => (
           <button key={tab.id} onClick={() => setProgramTab(tab.id)}
@@ -988,6 +1300,17 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
             </div>
           )}
         </div>
+      )}
+
+      {/* Monthly List View */}
+      {programTab === 'aylik' && (
+        <MonthlyListPanel
+          weeklyProgram={weeklyProgram}
+          allHomeworks={allHomeworks}
+          currentUser={currentUser}
+          submissions={submissions}
+          curData={curData}
+        />
       )}
 
       {/* Topic Pool */}
