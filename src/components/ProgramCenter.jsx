@@ -41,6 +41,16 @@ export const TASK_TYPES = [
   { id: 'diger',  label: 'Diğer',           icon: '✨', color: '#64748b', bg: '#f8fafc' },
 ];
 
+export const DAY_THEMES = {
+  'Pzt': { gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: '#f5f3ff', border: '#c7d2fe', text: '#4f46e5', badgeBg: '#4f46e5' },
+  'Sal': { gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', lightBg: '#ecfeff', border: '#a5f3fc', text: '#0891b2', badgeBg: '#0891b2' },
+  'Çrş': { gradient: 'linear-gradient(135deg, #059669, #10b981)', lightBg: '#ecfdf5', border: '#a7f3d0', text: '#059669', badgeBg: '#059669' },
+  'Prş': { gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', lightBg: '#fffbeb', border: '#fde68a', text: '#d97706', badgeBg: '#d97706' },
+  'Cum': { gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', lightBg: '#faf5ff', border: '#ddd6fe', text: '#7c3aed', badgeBg: '#7c3aed' },
+  'Cts': { gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', lightBg: '#fff1f2', border: '#fecdd3', text: '#e11d48', badgeBg: '#e11d48' },
+  'Paz': { gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', lightBg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', badgeBg: '#2563eb' },
+};
+
 export const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 export function getTodayKey() {
@@ -408,61 +418,103 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
   const done = items.filter(i => i.done).length;
   const total = items.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
 
   return (
-    <div style={{ background: 'white', borderRadius: '1rem', border: isToday ? '2px solid #6366f1' : '1.5px solid #e8ecf0', boxShadow: isToday ? '0 0 0 4px rgba(99,102,241,0.1), 0 4px 20px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.04)', overflow: 'hidden', minWidth: 0, position: 'relative' }}>
-      {/* Day Header */}
-      <div style={{ padding: '0.75rem 1rem 0.6rem', borderBottom: '1px solid #f1f5f9', background: isToday ? 'linear-gradient(135deg, #eef2ff, #f5f3ff)' : '#fafafa' }}>
+    <div style={{
+      background: 'white',
+      borderRadius: '1.1rem',
+      border: isToday ? '2.5px solid #6366f1' : `1.5px solid ${theme.border}`,
+      boxShadow: isToday ? '0 8px 30px rgba(99,102,241,0.22), 0 0 0 3px rgba(99,102,241,0.1)' : '0 4px 16px rgba(0,0,0,0.03)',
+      overflow: 'hidden',
+      minWidth: 0,
+      position: 'relative',
+      transition: 'all 0.2s ease'
+    }}>
+      {/* Day Header with Vibrant Gradient */}
+      <div style={{
+        padding: '0.8rem 1rem 0.65rem',
+        background: isToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
+        color: 'white'
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: isToday ? '#4f46e5' : '#0f172a' }}>
+            <div style={{ fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.01em', color: 'white' }}>
               {dayObj.dateLabel ? `${dayObj.dateLabel}` : dayMeta.key}
             </div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', marginTop: 1 }}>{dayMeta.long}</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.9, marginTop: 1 }}>{dayMeta.long}</div>
           </div>
-          {isToday && <span style={{ background: '#6366f1', color: 'white', fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '99px' }}>BUGÜN</span>}
+          {isToday && (
+            <span style={{
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: 'white',
+              fontSize: '0.62rem',
+              fontWeight: 900,
+              padding: '3px 9px',
+              borderRadius: '99px',
+              boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
+              letterSpacing: '0.05em'
+            }}>
+              BUGÜN
+            </span>
+          )}
         </div>
         {total > 0 && (
           <div style={{ marginTop: '0.55rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b' }}>{done}/{total}</span>
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: pct === 100 ? '#16a34a' : '#6366f1' }}>%{pct}</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.95 }}>{done}/{total} Tamamlandı</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 900 }}>%{pct}</span>
             </div>
-            <div style={{ height: 4, background: '#e8ecf0', borderRadius: 99 }}>
-              <div style={{ height: 4, borderRadius: 99, width: `${pct}%`, background: pct === 100 ? 'linear-gradient(90deg,#22c55e,#16a34a)' : 'linear-gradient(90deg,#6366f1,#7c3aed)', transition: 'width 0.4s ease' }} />
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: 4, borderRadius: 99, width: `${pct}%`, background: pct === 100 ? '#4ade80' : 'white', transition: 'width 0.4s ease' }} />
             </div>
           </div>
         )}
       </div>
 
       {/* Items */}
-      <div style={{ padding: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: 60 }}>
+      <div style={{ padding: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 65, background: '#fafafc' }}>
         {items.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '1rem 0', color: '#cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}>Henüz ders yok</div>
+          <div style={{ textAlign: 'center', padding: '1.25rem 0', color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600, fontStyle: 'italic' }}>
+            Henüz ders yok
+          </div>
         )}
         {items.map(item => {
           const tt = TASK_TYPES.find(t => t.id === item.taskType);
+          const accentColor = item.done ? '#22c55e' : (tt?.color || theme.accent);
           return (
             <div key={item.id}
-              style={{ background: item.done ? '#f0fdf4' : '#f8fafc', border: item.done ? '1px solid #bbf7d0' : '1px solid #e8ecf0', borderRadius: '0.6rem', padding: '0.5rem 0.65rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.15s' }}
+              style={{
+                background: item.done ? '#f0fdf4' : 'white',
+                border: item.done ? '1px solid #bbf7d0' : '1px solid #e8ecf0',
+                borderLeft: `4px solid ${accentColor}`,
+                borderRadius: '0.65rem',
+                padding: '0.55rem 0.65rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                boxShadow: item.done ? 'none' : '0 2px 6px rgba(0,0,0,0.02)',
+                transition: 'all 0.15s ease'
+              }}
               onClick={() => onToggle(dayObj.day, item.id)}>
               {/* Icon */}
-              <div style={{ width: 22, height: 22, borderRadius: 5, flexShrink: 0, marginTop: 1, background: item.done ? '#22c55e' : (tt?.bg || 'white'), border: item.done ? 'none' : `1.5px solid ${tt?.color || '#cbd5e1'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', transition: 'all 0.15s' }}>
+              <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1, background: item.done ? '#22c55e' : (tt?.bg || '#f1f5f9'), border: item.done ? 'none' : `1px solid ${tt?.color || '#cbd5e1'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
                 {item.done ? <Check size={12} color="white" strokeWidth={3} /> : (tt?.icon || '📝')}
               </div>
 
               {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 {item.taskType && (
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: tt?.color || '#64748b', background: tt?.bg || '#f8fafc', display: 'inline-block', padding: '1px 6px', borderRadius: '99px', marginBottom: 2 }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: tt?.color || '#64748b', background: tt?.bg || '#f8fafc', display: 'inline-block', padding: '1px 7px', borderRadius: '99px', marginBottom: 2, border: `1px solid ${tt?.color}22` }}>
                     {tt?.label}
                   </div>
                 )}
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: item.done ? '#166534' : '#374151', textDecoration: item.done ? 'line-through' : 'none' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? '#166534' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
                   {item.bookName || item.subject}
                 </div>
                 {item.topic && (
-                  <div style={{ fontSize: '0.7rem', color: item.done ? '#4ade80' : '#64748b', fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: '0.7rem', color: item.done ? '#22c55e' : '#475569', fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.topic}
                   </div>
                 )}
@@ -474,10 +526,10 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                   </div>
                 )}
                 {(item.questionCount || item.hours || item.note) && (
-                  <div style={{ fontSize: '0.67rem', color: '#94a3b8', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                    {item.questionCount && <span>✏️ {item.questionCount}</span>}
+                  <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                    {item.questionCount && <span style={{ color: '#0891b2', fontWeight: 700 }}>✏️ {item.questionCount}</span>}
                     {item.hours && <span><Clock size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {item.hours}</span>}
-                    {item.note && <span style={{ color: '#a78bfa' }}>· {item.note}</span>}
+                    {item.note && <span style={{ color: '#8b5cf6' }}>· {item.note}</span>}
                   </div>
                 )}
               </div>
@@ -1104,47 +1156,56 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {filteredDays.map(d => {
           const taskIcons = { konu: '📖', soru: '✏️', tekrar: '🔄', kitap: '📚', deneme: '📊', ödev: '📝', diger: '✨' };
+          const theme = DAY_THEMES[d.dayKey] || DAY_THEMES['Pzt'];
           return (
             <div
               key={d.ymd}
               style={{
                 background: d.isToday ? 'linear-gradient(135deg, #ffffff, #f5f3ff)' : '#ffffff',
-                border: d.isToday ? '2px solid #6366f1' : '1.5px solid #e2e8f0',
+                border: d.isToday ? '2px solid #6366f1' : `1.5px solid ${theme.border}`,
+                borderLeft: `5px solid ${d.isToday ? '#6366f1' : theme.text}`,
                 borderRadius: '1rem',
                 padding: '0.85rem 1.1rem',
-                boxShadow: d.isToday ? '0 4px 16px rgba(99,102,241,0.1)' : '0 2px 8px rgba(0,0,0,0.02)',
+                boxShadow: d.isToday ? '0 6px 20px rgba(99,102,241,0.15)' : '0 2px 10px rgba(0,0,0,0.03)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '1rem',
-                flexWrap: 'wrap'
+                flexWrap: 'wrap',
+                transition: 'all 0.15s ease'
               }}
             >
-              {/* Date Box */}
+              {/* Date Box with Day Theme Gradient */}
               <div style={{
-                minWidth: 70,
+                minWidth: 72,
                 textAlign: 'center',
-                padding: '0.4rem 0.6rem',
-                borderRadius: '0.75rem',
-                background: d.isToday ? '#4f46e5' : '#f8fafc',
-                color: d.isToday ? 'white' : '#1e293b',
-                border: d.isToday ? 'none' : '1px solid #e2e8f0',
+                padding: '0.5rem 0.65rem',
+                borderRadius: '0.8rem',
+                background: d.isToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
+                color: 'white',
+                boxShadow: d.isToday ? '0 4px 14px rgba(79,70,229,0.35)' : '0 2px 8px rgba(0,0,0,0.1)',
                 flexShrink: 0
               }}>
-                <div style={{ fontSize: '1.15rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.9, marginTop: 2 }}>{d.dayName}</div>
-                {d.isToday && <div style={{ fontSize: '0.55rem', fontWeight: 900, background: 'rgba(255,255,255,0.25)', padding: '1px 4px', borderRadius: 4, marginTop: 3 }}>BUGÜN</div>}
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.95, marginTop: 2 }}>{d.dayName}</div>
+                {d.isToday && (
+                  <div style={{ fontSize: '0.55rem', fontWeight: 900, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '1px 5px', borderRadius: 4, marginTop: 3 }}>
+                    BUGÜN
+                  </div>
+                )}
               </div>
 
               {/* Items List */}
               <div style={{ flex: 1, minWidth: 200 }}>
                 {d.items.length === 0 ? (
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, fontStyle: 'italic', paddingTop: 6 }}>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, fontStyle: 'italic', paddingTop: 8 }}>
                     Programlanan ders görevi yok
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {d.items.map((item, idx) => {
                       const icon = taskIcons[item.taskType] || '📌';
+                      const tt = TASK_TYPES.find(t => t.id === item.taskType);
+                      const itemAccent = item.done ? '#22c55e' : (tt?.color || theme.text);
                       return (
                         <div
                           key={item.id || idx}
@@ -1152,21 +1213,23 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            background: item.done ? '#f8fafc' : item.isAutoHomework ? '#f0fdf4' : '#fafafa',
-                            border: item.done ? '1px solid #e2e8f0' : item.isAutoHomework ? '1px solid #bbf7d0' : '1px solid #f1f5f9',
+                            background: item.done ? '#f0fdf4' : 'white',
+                            border: item.done ? '1px solid #bbf7d0' : '1px solid #e8ecf0',
+                            borderLeft: `4px solid ${itemAccent}`,
                             borderRadius: '0.65rem',
-                            padding: '0.45rem 0.75rem',
-                            gap: '0.75rem'
+                            padding: '0.5rem 0.75rem',
+                            gap: '0.75rem',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                            <span style={{ fontSize: '0.9rem' }}>{icon}</span>
+                            <span style={{ fontSize: '0.95rem' }}>{icon}</span>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: item.done ? '#64748b' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? '#166534' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
                                 {item.subject || item.topic || 'Ders Çalışması'}
                               </div>
                               {item.topic && item.subject && (
-                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>{item.topic}</div>
+                                <div style={{ fontSize: '0.7rem', color: item.done ? '#22c55e' : '#475569', fontWeight: 600, marginTop: 1 }}>{item.topic}</div>
                               )}
                             </div>
                           </div>
@@ -1197,6 +1260,15 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
                             }}>
                               {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
                             </span>
+                            {!item.isAutoHomework && onEditClick && (
+                              <button onClick={() => onEditClick(d.dayKey, item)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2, display: 'flex', borderRadius: 4 }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#6366f1'}
+                                onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                                title="Görevi Düzenle">
+                                <Edit3 size={14} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
