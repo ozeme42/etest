@@ -115,7 +115,10 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
   const [note, setNote] = useState(initialItem?.note || '');
   const [startTime, setStartTime] = useState(initialItem?.startTime || '');
   const [endTime, setEndTime] = useState(initialItem?.endTime || '');
-  const [isRecurring, setIsRecurring] = useState(initialItem?.isRecurring !== undefined ? initialItem.isRecurring : true);
+
+  const initialRepeatMode = initialItem?.repeatType || (initialItem?.isDaily ? 'daily' : (initialItem?.isRecurring === false ? 'none' : 'weekly'));
+  const [repeatType, setRepeatType] = useState(initialRepeatMode);
+  const [repeatEndDate, setRepeatEndDate] = useState(initialItem?.repeatEndDate || '');
 
   const selectedType = TASK_TYPES.find(t => t.id === taskType);
 
@@ -137,6 +140,10 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
 
   const handleSave = () => {
     if (!canAdd) return;
+
+    const isRecurring = repeatType !== 'none';
+    const isDaily = repeatType === 'daily';
+
     const itemData = {
       id: initialItem?.id || uid(),
       taskType,
@@ -149,7 +156,10 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
       startTime,
       endTime,
       isRecurring,
-      createdYMD: initialItem?.createdYMD || new Date().toISOString().split('T')[0],
+      repeatType,
+      isDaily,
+      repeatEndDate: repeatEndDate || null,
+      createdYMD: initialItem?.createdYMD || getLocalYMD(new Date()),
       done: initialItem?.done || false,
     };
 
@@ -276,16 +286,78 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
                 style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1.5px solid #e2e8f0', borderRadius: '0.65rem', fontSize: '0.88rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
 
-            {/* Recurring */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.65rem', background: '#f8fafc', borderRadius: '0.65rem', cursor: 'pointer', border: '1px solid #f1f5f9' }}
-              onClick={() => setIsRecurring(!isRecurring)}>
-              <div style={{ width: 20, height: 20, borderRadius: 5, border: isRecurring ? 'none' : '2px solid #cbd5e1', background: isRecurring ? '#6366f1' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {isRecurring && <Check size={12} color="white" strokeWidth={3} />}
+            {/* Tekrar Seçenekleri & Bitiş Tarihi */}
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '0.5rem' }}>
+                TEKRAR DÜZENİ
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', marginBottom: '0.75rem' }}>
+                {[
+                  { id: 'weekly', label: '📅 Her Hafta', desc: 'Sadece bu gün' },
+                  { id: 'daily', label: '🔁 Her Gün', desc: 'Haftanın 7 günü' },
+                  { id: 'none', label: '🚫 Tek Sefer', desc: 'Sadece bu hafta' },
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setRepeatType(mode.id)}
+                    style={{
+                      padding: '0.5rem 0.35rem',
+                      border: repeatType === mode.id ? '2px solid #6366f1' : '1px solid #cbd5e1',
+                      borderRadius: '0.6rem',
+                      background: repeatType === mode.id ? '#eef2ff' : 'white',
+                      color: repeatType === mode.id ? '#4f46e5' : '#475569',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.76rem', fontWeight: 800 }}>{mode.label}</div>
+                    <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginTop: 1 }}>{mode.desc}</div>
+                  </button>
+                ))}
               </div>
-              <div>
-                <div style={{ fontSize: '0.83rem', fontWeight: 700, color: '#374151' }}>Her hafta tekrar et</div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>Haftalık programınıza otomatik eklenir</div>
-              </div>
+
+              {/* Bitiş Tarihi (Opsiyonel) */}
+              {repeatType !== 'none' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#475569' }}>
+                      BİTİŞ TARİHİ (İsteğe Bağlı)
+                    </label>
+                    {repeatEndDate && (
+                      <button
+                        type="button"
+                        onClick={() => setRepeatEndDate('')}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        Temizle
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    value={repeatEndDate}
+                    onChange={e => setRepeatEndDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.55rem 0.75rem',
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: '0.6rem',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      background: 'white',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
+                    Belirlenen tarihten sonra görev takvimden otomatik kaldırılır.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -796,6 +868,15 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
       };
     });
 
+    const allDailyItems = [];
+    (weeklyProgram || []).forEach(dObj => {
+      (dObj.items || []).forEach(item => {
+        if ((item.repeatType === 'daily' || item.isDaily) && !allDailyItems.some(i => i.id === item.id)) {
+          allDailyItems.push(item);
+        }
+      });
+    });
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dateObj = new Date(year, monthIdx, day);
       const ymd = getLocalYMD(dateObj);
@@ -805,12 +886,22 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
 
       const dayProg = (weeklyProgram || []).find(r => r.day === dayKey);
       const rawManualItems = dayProg?.items || [];
-      const manualItems = rawManualItems.filter(item => {
-        if (item.isRecurring === false) {
-          const itemCreatedYMD = item.createdYMD || new Date().toISOString().split('T')[0];
+      let manualItems = rawManualItems.filter(item => {
+        if (item.createdYMD && ymd < item.createdYMD) return false;
+        if (item.repeatEndDate && ymd > item.repeatEndDate) return false;
+        if (item.repeatType === 'none' || item.isRecurring === false) {
+          const itemCreatedYMD = item.createdYMD || getLocalYMD(new Date());
           return isSameWeek(ymd, itemCreatedYMD);
         }
         return true;
+      });
+
+      allDailyItems.forEach(dItem => {
+        if (dItem.createdYMD && ymd < dItem.createdYMD) return;
+        if (dItem.repeatEndDate && ymd > dItem.repeatEndDate) return;
+        if (!manualItems.some(i => i.id === dItem.id)) {
+          manualItems.push(dItem);
+        }
       });
 
       const dateTime = dateObj.getTime();
@@ -1171,17 +1262,36 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       };
     });
 
+    const allDailyItems = [];
+    (weeklyProgram || []).forEach(dObj => {
+      (dObj.items || []).forEach(item => {
+        if ((item.repeatType === 'daily' || item.isDaily) && !allDailyItems.some(i => i.id === item.id)) {
+          allDailyItems.push(item);
+        }
+      });
+    });
+
     return weeklyProgram.map(dayObj => {
       const dayInfo = dayDateMap[dayObj.day];
       if (!dayInfo) return dayObj;
 
       const rawManualItems = dayObj.items || [];
-      const manualItems = rawManualItems.filter(item => {
-        if (item.isRecurring === false) {
-          const itemCreatedYMD = item.createdYMD || new Date().toISOString().split('T')[0];
+      let manualItems = rawManualItems.filter(item => {
+        if (item.createdYMD && dayInfo.ymd < item.createdYMD) return false;
+        if (item.repeatEndDate && dayInfo.ymd > item.repeatEndDate) return false;
+        if (item.repeatType === 'none' || item.isRecurring === false) {
+          const itemCreatedYMD = item.createdYMD || getLocalYMD(new Date());
           return isSameWeek(dayInfo.ymd, itemCreatedYMD);
         }
         return true;
+      });
+
+      allDailyItems.forEach(dItem => {
+        if (dItem.createdYMD && dayInfo.ymd < dItem.createdYMD) return;
+        if (dItem.repeatEndDate && dayInfo.ymd > dItem.repeatEndDate) return;
+        if (!manualItems.some(i => i.id === dItem.id)) {
+          manualItems.push(dItem);
+        }
       });
       const autoHwItems = [];
 
