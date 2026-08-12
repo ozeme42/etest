@@ -562,17 +562,62 @@ export default function StudentDashboard() {
     const currentDayObj = daysMap[now.getDay()];
     
     const rawProg = coachingProfile?.weeklyProgram;
-    let items = [];
+    let manualItems = [];
     if (Array.isArray(rawProg)) {
       const todayProg = rawProg.find(r => r.day === currentDayObj.key);
-      items = todayProg?.items || [];
+      manualItems = todayProg?.items || [];
     }
+
+    // Auto-populate active homeworks based on start date & due date
+    const autoHwItems = [];
+    const todayYMD = now.toISOString().split('T')[0];
+    const todayTime = new Date(todayYMD).getTime();
+
+    (tests || []).forEach(t => {
+      const rawStart = t.startDate || t.assignedAt || t.createdAt;
+      const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+      const startTime = startYMD ? new Date(startYMD).getTime() : null;
+
+      const rawDue = t.dueDate || t.assignedDueDate;
+      const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
+      const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+      let isForToday = false;
+      if (dueTime && startTime) {
+        isForToday = todayTime >= startTime && todayTime <= dueTime;
+      } else if (dueTime) {
+        isForToday = todayTime <= dueTime;
+      } else if (startTime) {
+        isForToday = todayTime === startTime;
+      } else {
+        isForToday = true;
+      }
+
+      if (isForToday) {
+        const isDone = t.status === 'Sonuçlandı' || t.status === 'Tamamlandı';
+        const existsInManual = manualItems.some(m => m.id === `hw_${t.id}` || m.hwId === t.id);
+        if (!existsInManual) {
+          autoHwItems.push({
+            id: `auto_hw_${t.id}`,
+            hwId: t.id,
+            isAutoHomework: true,
+            taskType: 'ödev',
+            subject: t.subject || 'Atanan Ödev',
+            topic: t.title || t.name || 'Ödev Görevi',
+            questionCount: t.questionCount ? `${t.questionCount}` : null,
+            time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+            done: isDone
+          });
+        }
+      }
+    });
+
     return {
       dayName: currentDayObj.long,
       dayKey: currentDayObj.key,
-      items
+      items: [...autoHwItems, ...manualItems]
     };
-  }, [coachingProfile]);
+  }, [coachingProfile, tests]);
 
   const handleToggleTodayTask = async (taskId) => {
     if (!coachingProfile || !coachingProfile.weeklyProgram) return;
