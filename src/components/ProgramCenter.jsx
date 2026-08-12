@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -62,17 +62,17 @@ export function normalizeWeeklyProgram(raw) {
 }
 
 /* ─── AddItemModal ─── */
-export function AddItemModal({ dayKey, onAdd, onClose, topicPool }) {
-  const [taskType, setTaskType] = useState('konu');
-  const [subject, setSubject] = useState('');
-  const [topic, setTopic] = useState('');
-  const [hours, setHours] = useState('');
-  const [questionCount, setQuestionCount] = useState('');
-  const [bookName, setBookName] = useState('');
-  const [note, setNote] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [isRecurring, setIsRecurring] = useState(true);
+export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topicPool }) {
+  const [taskType, setTaskType] = useState(initialItem?.taskType || 'konu');
+  const [subject, setSubject] = useState(initialItem?.subject || '');
+  const [topic, setTopic] = useState(initialItem?.topic || '');
+  const [hours, setHours] = useState(initialItem?.hours || '');
+  const [questionCount, setQuestionCount] = useState(initialItem?.questionCount || '');
+  const [bookName, setBookName] = useState(initialItem?.bookName || '');
+  const [note, setNote] = useState(initialItem?.note || '');
+  const [startTime, setStartTime] = useState(initialItem?.startTime || '');
+  const [endTime, setEndTime] = useState(initialItem?.endTime || '');
+  const [isRecurring, setIsRecurring] = useState(initialItem?.isRecurring !== undefined ? initialItem.isRecurring : true);
 
   const selectedType = TASK_TYPES.find(t => t.id === taskType);
 
@@ -92,10 +92,10 @@ export function AddItemModal({ dayKey, onAdd, onClose, topicPool }) {
     return subject.trim().length > 0;
   })();
 
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!canAdd) return;
-    onAdd({
-      id: uid(),
+    const itemData = {
+      id: initialItem?.id || uid(),
       taskType,
       subject: subject.trim(),
       topic: topic.trim(),
@@ -106,8 +106,14 @@ export function AddItemModal({ dayKey, onAdd, onClose, topicPool }) {
       startTime,
       endTime,
       isRecurring,
-      done: false,
-    });
+      done: initialItem?.done || false,
+    };
+
+    if (initialItem && onEdit) {
+      onEdit(itemData);
+    } else if (onAdd) {
+      onAdd(itemData);
+    }
     onClose();
   };
 
@@ -119,7 +125,7 @@ export function AddItemModal({ dayKey, onAdd, onClose, topicPool }) {
         {/* Header */}
         <div style={{ padding: '1.25rem 1.5rem 1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 1, borderRadius: '1.25rem 1.25rem 0 0' }}>
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Görev Ekle</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{initialItem ? 'Görevi Düzenle' : 'Görev Ekle'}</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{DAYS.find(d => d.key === dayKey)?.long}</div>
           </div>
           <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
@@ -257,9 +263,9 @@ export function AddItemModal({ dayKey, onAdd, onClose, topicPool }) {
 
           <div style={{ display: 'flex', gap: '0.65rem', marginTop: '1.1rem' }}>
             <button onClick={onClose} style={{ flex: 1, padding: '0.7rem', background: '#f1f5f9', border: 'none', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', color: '#64748b', fontFamily: 'inherit' }}>İptal</button>
-            <button onClick={handleAdd} disabled={!canAdd}
+            <button onClick={handleSave} disabled={!canAdd}
               style={{ flex: 2, padding: '0.7rem', background: canAdd ? `linear-gradient(135deg, ${selectedType?.color}, #7c3aed)` : '#e2e8f0', border: 'none', borderRadius: '0.75rem', fontWeight: 800, fontSize: '0.85rem', cursor: canAdd ? 'pointer' : 'not-allowed', color: canAdd ? 'white' : '#94a3b8', boxShadow: canAdd ? `0 4px 12px ${selectedType?.color}44` : 'none', fontFamily: 'inherit', transition: 'all 0.2s' }}>
-              {selectedType?.icon} Görev Ekle
+              {initialItem ? '✏️ Değişiklikleri Kaydet' : `${selectedType?.icon} Görev Ekle`}
             </button>
           </div>
         </div>
@@ -269,7 +275,7 @@ export function AddItemModal({ dayKey, onAdd, onClose, topicPool }) {
 }
 
 /* ─── DayCard ─── */
-export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onAddClick }) {
+export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditClick, onAddClick }) {
   const items = dayObj.items || [];
   const done = items.filter(i => i.done).length;
   const total = items.length;
@@ -348,13 +354,27 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onAddCli
                 )}
               </div>
 
-              {/* Delete */}
-              <button onClick={e => { e.stopPropagation(); onDelete(dayObj.day, item.id); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0', padding: 2, flexShrink: 0, display: 'flex', borderRadius: 4 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                onMouseLeave={e => e.currentTarget.style.color = '#e2e8f0'}>
-                <Trash2 size={12} />
-              </button>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                {!item.isAutoHomework && onEditClick && (
+                  <button onClick={() => onEditClick(dayObj.day, item)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2, display: 'flex', borderRadius: 4 }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#6366f1'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                    title="Görevi Düzenle">
+                    <Edit3 size={12} />
+                  </button>
+                )}
+                {!item.isAutoHomework && (
+                  <button onClick={() => onDelete(dayObj.day, item.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                    title="Görevi Sil">
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
@@ -1151,6 +1171,8 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
     });
   }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo]);
 
+  const [editingItem, setEditingItem] = useState(null); // { dayKey, item }
+
   const handleToggle = useCallback((dayKey, itemId) => {
     setWeeklyProgram(prev => prev.map(d =>
       d.day === dayKey
@@ -1170,6 +1192,17 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       d.day === addingToDay ? { ...d, items: [...d.items, newItem] } : d
     ));
   }, [addingToDay, setWeeklyProgram]);
+
+  const handleEditItem = useCallback((updatedItem) => {
+    if (!editingItem) return;
+    const targetDayKey = editingItem.dayKey;
+    setWeeklyProgram(prev => prev.map(d =>
+      d.day === targetDayKey
+        ? { ...d, items: d.items.map(item => item.id === updatedItem.id ? updatedItem : item) }
+        : d
+    ));
+    setEditingItem(null);
+  }, [editingItem, setWeeklyProgram]);
 
   const totalItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.length || 0), 0);
   const doneItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
@@ -1291,6 +1324,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                 <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
                   isToday={dayObj.day === todayKey}
                   onToggle={handleToggle} onDelete={handleDelete}
+                  onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
                   onAddClick={d => setAddingToDay(d)} />
               );
             })}
@@ -1315,6 +1349,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
           currentUser={currentUser}
           submissions={submissions}
           curData={curData}
+          onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
         />
       )}
 
@@ -1323,9 +1358,16 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
         <TopicPoolPanel topicPool={topicPool} setTopicPool={setTopicPool} />
       )}
 
-      {/* Add Modal */}
-      {addingToDay && (
-        <AddItemModal dayKey={addingToDay} onAdd={handleAddItem} onClose={() => setAddingToDay(null)} topicPool={topicPool} />
+      {/* Add / Edit Modal */}
+      {(addingToDay || editingItem) && (
+        <AddItemModal
+          dayKey={addingToDay || editingItem?.dayKey}
+          initialItem={editingItem?.item}
+          onAdd={handleAddItem}
+          onEdit={handleEditItem}
+          onClose={() => { setAddingToDay(null); setEditingItem(null); }}
+          topicPool={topicPool}
+        />
       )}
     </div>
   );
