@@ -49,20 +49,32 @@ export function getTodayKey() {
   return DAYS[map[d.getDay()]]?.key || 'Pzt';
 }
 
+export function getMondayYMD(dStr) {
+  if (!dStr) return null;
+  const str = typeof dStr === 'string' ? dStr : (dStr.toISOString ? dStr.toISOString() : String(dStr));
+  const parts = str.split('T')[0].split('-');
+  if (parts.length < 3) return null;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+
+  const dt = new Date(y, m, d);
+  const day = dt.getDay();
+  const diff = dt.getDate() - (day === 0 ? 6 : day - 1);
+  const monday = new Date(y, m, diff);
+
+  const monY = monday.getFullYear();
+  const monM = String(monday.getMonth() + 1).padStart(2, '0');
+  const monD = String(monday.getDate()).padStart(2, '0');
+  return `${monY}-${monM}-${monD}`;
+}
+
 export function isSameWeek(d1, d2) {
   if (!d1 || !d2) return true;
-  const dt1 = new Date(d1);
-  const dt2 = new Date(d2);
-  if (isNaN(dt1.getTime()) || isNaN(dt2.getTime())) return true;
-
-  const day1 = dt1.getDay();
-  const diff1 = dt1.getDate() - (day1 === 0 ? 6 : day1 - 1);
-  const mon1 = new Date(dt1.getFullYear(), dt1.getMonth(), diff1).toISOString().split('T')[0];
-
-  const day2 = dt2.getDay();
-  const diff2 = dt2.getDate() - (day2 === 0 ? 6 : day2 - 1);
-  const mon2 = new Date(dt2.getFullYear(), dt2.getMonth(), diff2).toISOString().split('T')[0];
-
+  const mon1 = getMondayYMD(d1);
+  const mon2 = getMondayYMD(d2);
+  if (!mon1 || !mon2) return true;
   return mon1 === mon2;
 }
 
@@ -781,9 +793,8 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
       const rawManualItems = dayProg?.items || [];
       const manualItems = rawManualItems.filter(item => {
         if (item.isRecurring === false) {
-          if (item.createdYMD) {
-            return isSameWeek(ymd, item.createdYMD);
-          }
+          const itemCreatedYMD = item.createdYMD || new Date().toISOString().split('T')[0];
+          return isSameWeek(ymd, itemCreatedYMD);
         }
         return true;
       });
@@ -1153,9 +1164,8 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       const rawManualItems = dayObj.items || [];
       const manualItems = rawManualItems.filter(item => {
         if (item.isRecurring === false) {
-          if (item.createdYMD) {
-            return isSameWeek(dayInfo.ymd, item.createdYMD);
-          }
+          const itemCreatedYMD = item.createdYMD || new Date().toISOString().split('T')[0];
+          return isSameWeek(dayInfo.ymd, itemCreatedYMD);
         }
         return true;
       });
