@@ -49,6 +49,23 @@ export function getTodayKey() {
   return DAYS[map[d.getDay()]]?.key || 'Pzt';
 }
 
+export function isSameWeek(d1, d2) {
+  if (!d1 || !d2) return true;
+  const dt1 = new Date(d1);
+  const dt2 = new Date(d2);
+  if (isNaN(dt1.getTime()) || isNaN(dt2.getTime())) return true;
+
+  const day1 = dt1.getDay();
+  const diff1 = dt1.getDate() - (day1 === 0 ? 6 : day1 - 1);
+  const mon1 = new Date(dt1.getFullYear(), dt1.getMonth(), diff1).toISOString().split('T')[0];
+
+  const day2 = dt2.getDay();
+  const diff2 = dt2.getDate() - (day2 === 0 ? 6 : day2 - 1);
+  const mon2 = new Date(dt2.getFullYear(), dt2.getMonth(), diff2).toISOString().split('T')[0];
+
+  return mon1 === mon2;
+}
+
 export function normalizeWeeklyProgram(raw) {
   if (!Array.isArray(raw) || raw.length === 0) {
     return DAYS.map(d => ({ day: d.key, items: [] }));
@@ -106,6 +123,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
       startTime,
       endTime,
       isRecurring,
+      createdYMD: initialItem?.createdYMD || new Date().toISOString().split('T')[0],
       done: initialItem?.done || false,
     };
 
@@ -760,7 +778,15 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
       const isToday = ymd === todayYMD;
 
       const dayProg = (weeklyProgram || []).find(r => r.day === dayKey);
-      const manualItems = dayProg?.items || [];
+      const rawManualItems = dayProg?.items || [];
+      const manualItems = rawManualItems.filter(item => {
+        if (item.isRecurring === false) {
+          if (item.createdYMD) {
+            return isSameWeek(ymd, item.createdYMD);
+          }
+        }
+        return true;
+      });
 
       const dateTime = dateObj.getTime();
       const autoHwItems = [];
@@ -1124,7 +1150,15 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       const dayInfo = dayDateMap[dayObj.day];
       if (!dayInfo) return dayObj;
 
-      const manualItems = dayObj.items || [];
+      const rawManualItems = dayObj.items || [];
+      const manualItems = rawManualItems.filter(item => {
+        if (item.isRecurring === false) {
+          if (item.createdYMD) {
+            return isSameWeek(dayInfo.ymd, item.createdYMD);
+          }
+        }
+        return true;
+      });
       const autoHwItems = [];
 
       studentHomeworks.forEach(hw => {
