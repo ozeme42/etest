@@ -106,6 +106,7 @@ export function normalizeWeeklyProgram(raw) {
 
 /* ─── AddItemModal ─── */
 export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topicPool }) {
+  const [selectedDayKey, setSelectedDayKey] = useState(dayKey || getTodayKey());
   const [taskType, setTaskType] = useState(initialItem?.taskType || 'konu');
   const [subject, setSubject] = useState(initialItem?.subject || '');
   const [topic, setTopic] = useState(initialItem?.topic || '');
@@ -163,10 +164,10 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
       done: initialItem?.done || false,
     };
 
-    if (initialItem && onEdit) {
-      onEdit(itemData);
+    if (initialItem?.id && onEdit) {
+      onEdit(itemData, selectedDayKey);
     } else if (onAdd) {
-      onAdd(itemData);
+      onAdd(itemData, selectedDayKey);
     }
     onClose();
   };
@@ -179,8 +180,19 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
         {/* Header */}
         <div style={{ padding: '1.25rem 1.5rem 1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 1, borderRadius: '1.25rem 1.25rem 0 0' }}>
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{initialItem ? 'Görevi Düzenle' : 'Görev Ekle'}</div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{DAYS.find(d => d.key === dayKey)?.long}</div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{initialItem?.id ? 'Görevi Düzenle' : 'Görev Ekle'}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#64748b' }}>Hangi Gün:</span>
+              <select
+                value={selectedDayKey}
+                onChange={e => setSelectedDayKey(e.target.value)}
+                style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', border: '1.5px solid #cbd5e1', borderRadius: '0.55rem', padding: '2px 8px', background: '#f8fafc', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}
+              >
+                {DAYS.map(d => (
+                  <option key={d.key} value={d.key}>{d.long}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
             <X size={18} />
@@ -538,7 +550,7 @@ const TOPIC_TEMPLATES = {
 };
 
 /* ─── TopicPoolPanel ─── */
-export function TopicPoolPanel({ topicPool, setTopicPool }) {
+export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic }) {
   const { data: curriculumData = [] } = useCurriculum() || {};
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedCurriculumPreview, setSelectedCurriculumPreview] = useState(null);
@@ -784,16 +796,44 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
                     {subject.topics.map(topic => {
                       const sc = STATUS_COLORS[topic.status] || STATUS_COLORS['Başlanmadı'];
                       return (
-                        <div key={topic.id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0.65rem', background: '#f8fafc', borderRadius: '0.6rem', border: '1px solid #f1f5f9' }}>
-                          <div style={{ flex: 1, fontSize: '0.83rem', fontWeight: 700, color: '#374151' }}>{topic.name}</div>
+                        <div key={topic.id} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.65rem', background: '#f8fafc', borderRadius: '0.6rem', border: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: 110, fontSize: '0.83rem', fontWeight: 700, color: '#374151' }}>{topic.name}</div>
+                          
+                          {/* Quick Assign Action Chips */}
+                          {onAssignTopic && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                              <button
+                                title="Konu Çalışması Olarak Programa Ekle"
+                                onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'konu' }); }}
+                                style={{ padding: '3px 7px', border: '1px solid #c7d2fe', borderRadius: '0.4rem', background: '#eef2ff', color: '#4f46e5', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                              >
+                                📖 Çalış
+                              </button>
+                              <button
+                                title="Soru Çözümü Olarak Programa Ekle"
+                                onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'soru' }); }}
+                                style={{ padding: '3px 7px', border: '1px solid #fed7aa', borderRadius: '0.4rem', background: '#fff7ed', color: '#ea580c', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                              >
+                                ✏️ Soru
+                              </button>
+                              <button
+                                title="Tekrar Olarak Programa Ekle"
+                                onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'tekrar' }); }}
+                                style={{ padding: '3px 7px', border: '1px solid #bbf7d0', borderRadius: '0.4rem', background: '#f0fdf4', color: '#16a34a', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                              >
+                                🔄 Tekrar
+                              </button>
+                            </div>
+                          )}
+
                           <select value={topic.status} onChange={e => updateTopicStatus(subject.id, topic.id, e.target.value)} onClick={e => e.stopPropagation()}
-                            style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 6px', border: `1.5px solid ${sc.border}`, borderRadius: '0.4rem', background: sc.bg, color: sc.text, outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                            style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 6px', border: `1.5px solid ${sc.border}`, borderRadius: '0.4rem', background: sc.bg, color: sc.text, outline: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
                             {TOPIC_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                           <button onClick={() => deleteTopic(subject.id, topic.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0', padding: 2, display: 'flex', borderRadius: 4 }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4, flexShrink: 0 }}
                             onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#e2e8f0'}>
+                            onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -1340,6 +1380,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo]);
 
   const [editingItem, setEditingItem] = useState(null); // { dayKey, item }
+  const [assigningTopic, setAssigningTopic] = useState(null); // { subject, topic, taskType }
 
   const handleToggle = useCallback((dayKey, itemId) => {
     setWeeklyProgram(prev => prev.map(d =>
@@ -1355,20 +1396,39 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
     ));
   }, [setWeeklyProgram]);
 
-  const handleAddItem = useCallback((newItem) => {
+  const handleAddItem = useCallback((newItem, targetDayKey) => {
+    const dayToUse = targetDayKey || addingToDay || getTodayKey();
     setWeeklyProgram(prev => prev.map(d =>
-      d.day === addingToDay ? { ...d, items: [...d.items, newItem] } : d
+      d.day === dayToUse ? { ...d, items: [...d.items, newItem] } : d
     ));
+    setAddingToDay(null);
+    setAssigningTopic(null);
   }, [addingToDay, setWeeklyProgram]);
 
-  const handleEditItem = useCallback((updatedItem) => {
+  const handleEditItem = useCallback((updatedItem, targetDayKey) => {
     if (!editingItem) return;
-    const targetDayKey = editingItem.dayKey;
-    setWeeklyProgram(prev => prev.map(d =>
-      d.day === targetDayKey
-        ? { ...d, items: d.items.map(item => item.id === updatedItem.id ? updatedItem : item) }
-        : d
-    ));
+    const currentDayKey = editingItem.dayKey;
+    const newDayKey = targetDayKey || currentDayKey;
+
+    setWeeklyProgram(prev => {
+      if (currentDayKey === newDayKey) {
+        return prev.map(d =>
+          d.day === currentDayKey
+            ? { ...d, items: d.items.map(item => item.id === updatedItem.id ? updatedItem : item) }
+            : d
+        );
+      } else {
+        return prev.map(d => {
+          if (d.day === currentDayKey) {
+            return { ...d, items: d.items.filter(item => item.id !== updatedItem.id) };
+          }
+          if (d.day === newDayKey) {
+            return { ...d, items: [...d.items, updatedItem] };
+          }
+          return d;
+        });
+      }
+    });
     setEditingItem(null);
   }, [editingItem, setWeeklyProgram]);
 
@@ -1572,17 +1632,23 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
       {/* Topic Pool */}
       {programTab === 'konular' && (
-        <TopicPoolPanel topicPool={topicPool} setTopicPool={setTopicPool} />
+        <TopicPoolPanel
+          topicPool={topicPool}
+          setTopicPool={setTopicPool}
+          onAssignTopic={({ subjectName, topicName, taskType }) => {
+            setAssigningTopic({ subject: subjectName, topic: topicName, taskType });
+          }}
+        />
       )}
 
-      {/* Add / Edit Modal */}
-      {(addingToDay || editingItem) && (
+      {/* Add / Edit / Assign Modal */}
+      {(addingToDay || editingItem || assigningTopic) && (
         <AddItemModal
-          dayKey={addingToDay || editingItem?.dayKey}
-          initialItem={editingItem?.item}
+          dayKey={addingToDay || editingItem?.dayKey || getTodayKey()}
+          initialItem={editingItem?.item || (assigningTopic ? { subject: assigningTopic.subject, topic: assigningTopic.topic, taskType: assigningTopic.taskType } : null)}
           onAdd={handleAddItem}
           onEdit={handleEditItem}
-          onClose={() => { setAddingToDay(null); setEditingItem(null); }}
+          onClose={() => { setAddingToDay(null); setEditingItem(null); setAssigningTopic(null); }}
           topicPool={topicPool}
         />
       )}
