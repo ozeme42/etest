@@ -1254,26 +1254,19 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
-      {/* Tabs Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '2px solid #e8ecf0',
-        marginBottom: '1.25rem',
-        gap: '0.5rem',
-        flexWrap: 'wrap'
-      }}>
+      {/* Tabs Header Container */}
+      <div style={{ marginBottom: '1.25rem' }}>
         {/* Scrollable Tabs */}
         <div style={{
           display: 'flex',
+          alignItems: 'center',
+          borderBottom: '2px solid #e8ecf0',
           gap: '0.25rem',
           overflowX: 'auto',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
-          flex: 1,
-          minWidth: 0
+          paddingBottom: 2
         }}>
           {[
             { id: 'haftalik', label: '📅 Haftalık Program' },
@@ -1301,24 +1294,34 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
           ))}
         </div>
 
-        {/* Progress Chip */}
+        {/* Progress Bar & Badge (Underneath the Tabs) */}
         {totalItems > 0 && (
           <div style={{
+            marginTop: '0.65rem',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            padding: '0.35rem 0.65rem',
-            background: '#f8fafc',
-            borderRadius: '99px',
+            justifyContent: 'space-between',
+            gap: 8,
+            padding: '0.45rem 0.85rem',
+            background: '#ffffff',
+            borderRadius: '0.75rem',
             border: '1px solid #e2e8f0',
-            flexShrink: 0,
-            marginBottom: 4
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            flexWrap: 'wrap'
           }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>{doneItems}/{totalItems}</div>
-            <div style={{ width: 50, height: 5, background: '#e8ecf0', borderRadius: 99 }}>
-              <div style={{ height: 5, borderRadius: 99, width: `${pct}%`, background: pct === 100 ? '#22c55e' : '#6366f1', transition: 'width 0.3s' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569' }}>Haftalık İlerleme:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#6366f1' }}>{doneItems}/{totalItems} Tamamlandı</span>
             </div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: pct === 100 ? '#16a34a' : '#6366f1' }}>%{pct}</div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 140, maxWidth: 220, marginLeft: 'auto' }}>
+              <div style={{ flex: 1, height: 6, background: '#e8ecf0', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: pct === 100 ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #6366f1, #7c3aed)', transition: 'width 0.3s' }} />
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: pct === 100 ? '#16a34a' : '#6366f1', minWidth: 32, textAlign: 'right' }}>
+                %{pct}
+              </span>
+            </div>
           </div>
         )}
       </div>
