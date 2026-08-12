@@ -961,10 +961,15 @@ export default function StudentDashboard() {
 
                     {/* Task Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.78rem', fontWeight: 900, color: item.done ? '#64748b' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
                           {icon} {item.subject || item.bookName || 'Ders Görevi'}
                         </span>
+                        {(item.startTime || item.endTime || item.time || item.saat) && (
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#4f46e5', background: '#eef2ff', border: '1px solid #c7d2fe', padding: '0.15rem 0.5rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                          </span>
+                        )}
                         {item.hours && (
                           <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#6366f1', background: '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
                             ⏱️ {item.hours} sa

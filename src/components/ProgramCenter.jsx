@@ -399,6 +399,8 @@ const TOPIC_TEMPLATES = {
 export function TopicPoolPanel({ topicPool, setTopicPool }) {
   const { data: curriculumData = [] } = useCurriculum() || {};
   const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedCurriculumPreview, setSelectedCurriculumPreview] = useState(null);
+  const [selectedSubjectsForImport, setSelectedSubjectsForImport] = useState(new Set());
   
   const loadTemplate = (tplKey) => {
     if (!window.confirm(`Mevcut tüm dersleriniz silinecek ve ${tplKey} şablonu yüklenecek. Emin misiniz?`)) return;
@@ -411,7 +413,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
     })));
   };
 
-  const loadGradeCurriculum = (gradeId) => {
+  const previewGradeCurriculum = (gradeId) => {
     if (!curriculumData) return;
     const gradeObj = (curriculumData.grades || []).find(g => g.id === gradeId);
     if (!gradeObj) return;
@@ -422,29 +424,47 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
       return;
     }
 
+    const colors = ['#6366f1', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#ec4899'];
+    const preview = gradeSubjects.map((sub, idx) => {
+      const unitsForSub = (curriculumData.units || []).filter(u => u.subjectId === sub.id);
+      const unitIds = new Set(unitsForSub.map(u => u.id));
+      const topicsForSub = (curriculumData.topics || []).filter(t => t.subjectId === sub.id || unitIds.has(t.unitId));
+      const topicNames = topicsForSub.map(t => t.name).filter(bool => bool);
+      
+      return {
+        id: sub.id,
+        name: sub.name,
+        color: colors[idx % colors.length],
+        topics: topicNames
+      };
+    });
+
+    setSelectedCurriculumPreview({ grade: gradeObj, subjects: preview });
+    setSelectedSubjectsForImport(new Set(preview.map(s => s.id)));
+  };
+
+  const confirmCurriculumImport = () => {
+    if (!selectedCurriculumPreview || selectedSubjectsForImport.size === 0) return;
+    
     setTopicPool(prev => {
-      const next = [...prev];
-      gradeSubjects.forEach((sub, idx) => {
-        const unitsForSub = (curriculumData.units || []).filter(u => u.subjectId === sub.id);
-        const unitIds = new Set(unitsForSub.map(u => u.id));
-        
-        const topicsForSub = (curriculumData.topics || []).filter(t => t.subjectId === sub.id || unitIds.has(t.unitId));
-        const topicNames = topicsForSub.map(t => t.name).filter(bool => bool);
-
-        const colors = ['#6366f1', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626', '#ec4899'];
-        const color = colors[idx % colors.length];
+      const next = [...(prev || [])];
+      const subjectsToImport = selectedCurriculumPreview.subjects.filter(s => selectedSubjectsForImport.has(s.id));
+      
+      subjectsToImport.forEach(sub => {
         const existing = next.find(s => s.name.toLowerCase() === sub.name.toLowerCase());
-
         if (existing) {
           const existingNames = new Set(existing.topics.map(t => t.name));
-          const newTopics = topicNames.filter(n => !existingNames.has(n)).map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' }));
+          const newTopics = sub.topics.filter(n => !existingNames.has(n)).map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' }));
           existing.topics = [...existing.topics, ...newTopics];
         } else {
-          next.push({ id: uid(), name: sub.name, color, topics: topicNames.map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' })) });
+          next.push({ id: uid(), name: sub.name, color: sub.color, topics: sub.topics.map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' })) });
         }
       });
       return next;
     });
+
+    setSelectedCurriculumPreview(null);
+    setShowTemplates(false);
   };
   const [expandedSubjects, setExpandedSubjects] = useState({});
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -486,7 +506,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
     <div>
       {/* Şablon Yükleme Alanı */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-        <button onClick={() => setShowTemplates(p => !p)}
+        <button onClick={() => { setShowTemplates(p => !p); setSelectedCurriculumPreview(null); }}
           style={{ background: 'rgba(255, 255, 255, 0.5)', color: '#6366f1', border: '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.4rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
           📚 Şablon Yükle {showTemplates ? '▲' : '▼'}
         </button>
@@ -494,32 +514,83 @@ export function TopicPoolPanel({ topicPool, setTopicPool }) {
 
       {showTemplates && (
         <div style={{ background: 'white', borderRadius: '1rem', border: '1.5px solid #e8ecf0', padding: '1rem', marginBottom: '1rem' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155', marginBottom: 12 }}>✨ Hazır Şablon & Kayıtlı Müfredatlardan Yükle</div>
-          
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 8 }}>📌 Sınav Hazırlık Şablonları:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
-                <button key={tplKey} onClick={() => loadTemplate(tplKey)}
-                  style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.6rem', padding: '0.45rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Plus size={14} /> {tplKey} Şablonu
-                </button>
-              ))}
-            </div>
-          </div>
+          {selectedCurriculumPreview ? (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155' }}>
+                  🏫 {selectedCurriculumPreview.grade.name} Müfredatı
+                </div>
+                <button onClick={() => setSelectedCurriculumPreview(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex' }}><X size={16}/></button>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 10 }}>Havuza eklemek istediğiniz dersleri seçin:</div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 12 }}>
+                {selectedCurriculumPreview.subjects.map(sub => {
+                  const isSelected = selectedSubjectsForImport.has(sub.id);
+                  return (
+                    <div key={sub.id} 
+                      onClick={() => {
+                        const next = new Set(selectedSubjectsForImport);
+                        if (isSelected) next.delete(sub.id);
+                        else next.add(sub.id);
+                        setSelectedSubjectsForImport(next);
+                      }}
+                      style={{ padding: '0.5rem', border: isSelected ? `1.5px solid ${sub.color}` : '1.5px solid #e2e8f0', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: isSelected ? `${sub.color}15` : 'white' }}>
+                      <div style={{ width: 14, height: 14, borderRadius: 3, border: `1px solid ${isSelected ? sub.color : '#cbd5e1'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? sub.color : 'white', flexShrink: 0 }}>
+                        {isSelected && <Check size={10} color="white" />}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isSelected ? sub.color : '#475569', lineHeight: 1.2 }}>{sub.name} <span style={{fontSize: '0.65rem', opacity: 0.7}}>({sub.topics.length})</span></div>
+                    </div>
+                  );
+                })}
+              </div>
 
-          {curriculumData?.grades && curriculumData.grades.length > 0 && (
-            <div style={{ paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 8 }}>🏫 Kayıtlı Sınıf Müfredatından Yükle:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {curriculumData.grades.map(grade => (
-                  <button key={grade.id} onClick={() => loadGradeCurriculum(grade.id)}
-                    style={{ background: 'linear-gradient(135deg,#059669,#10b981)', color: 'white', border: 'none', borderRadius: '0.6rem', padding: '0.45rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <GraduationCap size={14} /> {grade.name}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => {
+                  if (selectedSubjectsForImport.size === selectedCurriculumPreview.subjects.length) {
+                    setSelectedSubjectsForImport(new Set());
+                  } else {
+                    setSelectedSubjectsForImport(new Set(selectedCurriculumPreview.subjects.map(s => s.id)));
+                  }
+                }} style={{ padding: '0.45rem 0.8rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', background: 'white', color: '#475569', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                  {selectedSubjectsForImport.size === selectedCurriculumPreview.subjects.length ? 'Tümünü Kaldır' : 'Tümünü Seç'}
+                </button>
+                <button onClick={confirmCurriculumImport} disabled={selectedSubjectsForImport.size === 0}
+                  style={{ flex: 1, padding: '0.45rem 0.8rem', borderRadius: '0.6rem', border: 'none', background: selectedSubjectsForImport.size > 0 ? '#10b981' : '#94a3b8', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: selectedSubjectsForImport.size > 0 ? 'pointer' : 'not-allowed' }}>
+                  Seçilenleri Ekle ({selectedSubjectsForImport.size})
+                </button>
               </div>
             </div>
+          ) : (
+            <>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155', marginBottom: 12 }}>✨ Hazır Şablon & Kayıtlı Müfredatlardan Yükle</div>
+              
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 8 }}>📌 Sınav Hazırlık Şablonları:</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
+                    <button key={tplKey} onClick={() => loadTemplate(tplKey)}
+                      style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.6rem', padding: '0.45rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Plus size={14} /> {tplKey} Şablonu
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {curriculumData?.grades && curriculumData.grades.length > 0 && (
+                <div style={{ paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: 8 }}>🏫 Kayıtlı Sınıf Müfredatından Yükle:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {curriculumData.grades.map(grade => (
+                      <button key={grade.id} onClick={() => previewGradeCurriculum(grade.id)}
+                        style={{ background: 'linear-gradient(135deg,#059669,#10b981)', color: 'white', border: 'none', borderRadius: '0.6rem', padding: '0.45rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <GraduationCap size={14} /> {grade.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
