@@ -1254,25 +1254,71 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid #e8ecf0', marginBottom: '1.25rem' }}>
-        {[
-          { id: 'haftalik', label: '📅 Haftalık Program' },
-          { id: 'aylik', label: '📆 Aylık Görünüm' },
-          { id: 'konular', label: '📚 Konu Havuzu' },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setProgramTab(tab.id)}
-            style={{ padding: '0.75rem 1.1rem', border: 'none', borderBottom: programTab === tab.id ? '3px solid #6366f1' : '3px solid transparent', background: 'transparent', fontWeight: programTab === tab.id ? 800 : 600, fontSize: '0.85rem', color: programTab === tab.id ? '#4f46e5' : '#64748b', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s', fontFamily: 'inherit', marginBottom: -2 }}>
-            {tab.label}
-          </button>
-        ))}
+      {/* Tabs Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '2px solid #e8ecf0',
+        marginBottom: '1.25rem',
+        gap: '0.5rem',
+        flexWrap: 'wrap'
+      }}>
+        {/* Scrollable Tabs */}
+        <div style={{
+          display: 'flex',
+          gap: '0.25rem',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
+          flex: 1,
+          minWidth: 0
+        }}>
+          {[
+            { id: 'haftalik', label: '📅 Haftalık Program' },
+            { id: 'aylik', label: '📆 Aylık Görünüm' },
+            { id: 'konular', label: '📚 Konu Havuzu' },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setProgramTab(tab.id)}
+              style={{
+                padding: '0.65rem 0.85rem',
+                border: 'none',
+                borderBottom: programTab === tab.id ? '3px solid #6366f1' : '3px solid transparent',
+                background: 'transparent',
+                fontWeight: programTab === tab.id ? 800 : 600,
+                fontSize: '0.82rem',
+                color: programTab === tab.id ? '#4f46e5' : '#64748b',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s',
+                fontFamily: 'inherit',
+                marginBottom: -2,
+                flexShrink: 0
+              }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Progress Chip */}
         {totalItems > 0 && (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '0 0.5rem' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>{doneItems}/{totalItems}</div>
-            <div style={{ width: 60, height: 5, background: '#e8ecf0', borderRadius: 99 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '0.35rem 0.65rem',
+            background: '#f8fafc',
+            borderRadius: '99px',
+            border: '1px solid #e2e8f0',
+            flexShrink: 0,
+            marginBottom: 4
+          }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>{doneItems}/{totalItems}</div>
+            <div style={{ width: 50, height: 5, background: '#e8ecf0', borderRadius: 99 }}>
               <div style={{ height: 5, borderRadius: 99, width: `${pct}%`, background: pct === 100 ? '#22c55e' : '#6366f1', transition: 'width 0.3s' }} />
             </div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: pct === 100 ? '#16a34a' : '#6366f1' }}>%{pct}</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: pct === 100 ? '#16a34a' : '#6366f1' }}>%{pct}</div>
           </div>
         )}
       </div>
