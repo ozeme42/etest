@@ -7,14 +7,12 @@ export function safeSetItem(key, value) {
     localStorage.setItem(key, value);
     return true;
   } catch (err) {
-    console.warn(`[LocalStorage] QuotaExceededError while writing key "${key}":`, err?.message);
-    
     try {
       cleanupLocalStorage();
       localStorage.setItem(key, value);
       return true;
     } catch (retryErr) {
-      console.error(`[LocalStorage] Could not write "${key}" even after cleanup:`, retryErr?.message);
+      // Storage full, fallback safely without error spam
       return false;
     }
   }

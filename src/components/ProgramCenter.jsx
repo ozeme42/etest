@@ -923,7 +923,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic }) {
 }
 
 /* ─── MonthlyListPanel Component ─── */
-export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, submissions, curData }) {
+export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, submissions, curData, onEditClick }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
 
