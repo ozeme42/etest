@@ -6,7 +6,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import PdfViewerPanel from '../components/PdfViewerPanel';
@@ -18,6 +18,21 @@ export default function StudentBookDetailsPage() {
   const { homeworks = [], isLoading: hwLoading } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
+  const [openSubjects, setOpenSubjects] = useState({});
+
+  const toggleSubject = (subjId) => {
+    setOpenSubjects(prev => ({ ...prev, [subjId]: !prev[subjId] }));
+  };
+
+  const expandAllSubjects = () => {
+    const all = {};
+    subjectProgress.forEach(s => { all[s.id] = true; });
+    setOpenSubjects(all);
+  };
+
+  const collapseAllSubjects = () => {
+    setOpenSubjects({});
+  };
 
   const studentId = currentUser?.id;
   const grade = currentUser?.grade;
@@ -449,93 +464,136 @@ export default function StudentBookDetailsPage() {
       )}
 
       {/* Game Map / Subjects */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        {subjectProgress.map(subj => (
-          <div key={subj.id} className="card glass" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Layers size={22} color="var(--color-primary)" /> {subj.name}
-              </h2>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b', background: '#f1f5f9', padding: '0.4rem 0.8rem', borderRadius: '99px' }}>
-                {subj.completedCount} / {subj.totalCount} Tamamlandı
-              </div>
-            </div>
-
-            <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
-              {/* Vertical line connecting tests */}
-              <div style={{ position: 'absolute', top: 10, bottom: 10, left: '2rem', width: 2, background: '#e2e8f0', zIndex: 0 }} />
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
-                {subj.tests.map(test => {
-                  const Icon = test.isCompleted ? CheckCircle2 : (test.isLocked ? Lock : PlayCircle);
-                  let iconColor = '#94a3b8'; // default locked
-                  let bgCol = '#f8fafc';
-                  let borderCol = '#e2e8f0';
-
-                  if (test.isCompleted) {
-                    bgCol = '#ecfdf5';
-                    borderCol = '#34d399';
-                  } else if (!test.isLocked) {
-                    bgCol = '#eff6ff';
-                    borderCol = '#bfdbfe';
-                  }
-
-                  return (
-                    <div key={test.id} style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: test.isCompleted ? '#10b981' : (test.isLocked ? '#e2e8f0' : 'var(--color-primary)'), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', flexShrink: 0, boxShadow: !test.isLocked && !test.isCompleted ? '0 0 0 4px rgba(99,102,241,0.2)' : 'none' }}>
-                        {test.index}
-                      </div>
-                      
-                      <div style={{ flex: 1, background: bgCol, border: `1px solid ${borderCol}`, borderRadius: '0.85rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', opacity: test.isLocked ? 0.7 : 1 }}>
-                        <div>
-                          <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 800, color: test.isLocked ? '#64748b' : '#1e293b' }}>
-                            {test.name}
-                          </h3>
-                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                            {test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          {test.isCompleted && test.bestScore !== null && (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <Award size={16} /> {test.bestScore}% Başarı
-                              </div>
-                              {test.bestSub && (
-                                <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
-                                  <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0} D</span>
-                                  <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0} Y</span>
-                                  <span>{test.bestSub.blankCount || 0} B</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          {test.isCompleted ? (
-                          <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }} onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}>
-                            Sonucu İncele
-                          </button>
-                        ) : test.isLocked ? (
-                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <Lock size={16} /> Kilitli
-                          </div>
-                        ) : (
-                          <button className="btn btn-primary" style={{ padding: '0.4rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => navigate(`/book-quiz/${test.id}`)}>
-                            <PlayCircle size={16} /> Şimdi Çöz
-                          </button>
-                        )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {subjectProgress.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>
+              📚 Ders Listesi ({subjectProgress.length} Ders)
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                onClick={expandAllSubjects}
+                style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Tümünü Aç
+              </button>
+              <span style={{ color: '#cbd5e1' }}>|</span>
+              <button
+                onClick={collapseAllSubjects}
+                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Tümünü Kapat
+              </button>
             </div>
           </div>
-        ))}
+        )}
 
+        {subjectProgress.map(subj => {
+          const isOpen = !!openSubjects[subj.id];
+          return (
+            <div key={subj.id} className="card glass" style={{ padding: '1.25rem 1.5rem', borderRadius: '1rem', transition: 'all 0.2s' }}>
+              <div
+                onClick={() => toggleSubject(subj.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}
+              >
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '0.55rem', background: '#eef2ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Layers size={18} />
+                  </div>
+                  {subj.name}
+                </h2>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: subj.pct === 100 ? '#16a34a' : '#64748b', background: subj.pct === 100 ? '#f0fdf4' : '#f1f5f9', padding: '0.35rem 0.85rem', borderRadius: '99px', border: subj.pct === 100 ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
+                    {subj.completedCount} / {subj.totalCount} Tamamlandı (%{subj.pct})
+                  </div>
+                  <div style={{ background: '#f1f5f9', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                    {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                  </div>
+                </div>
+              </div>
+
+              {isOpen && (
+                <div style={{ position: 'relative', paddingLeft: '1.5rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
+                  {/* Vertical line connecting tests */}
+                  <div style={{ position: 'absolute', top: 20, bottom: 10, left: '2rem', width: 2, background: '#e2e8f0', zIndex: 0 }} />
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
+                    {subj.tests.map(test => {
+                      const Icon = test.isCompleted ? CheckCircle2 : (test.isLocked ? Lock : PlayCircle);
+                      let bgCol = '#f8fafc';
+                      let borderCol = '#e2e8f0';
+
+                      if (test.isCompleted) {
+                        bgCol = '#ecfdf5';
+                        borderCol = '#34d399';
+                      } else if (!test.isLocked) {
+                        bgCol = '#eff6ff';
+                        borderCol = '#bfdbfe';
+                      }
+
+                      return (
+                        <div key={test.id} style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: test.isCompleted ? '#10b981' : (test.isLocked ? '#e2e8f0' : 'var(--color-primary)'), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', flexShrink: 0, boxShadow: !test.isLocked && !test.isCompleted ? '0 0 0 4px rgba(99,102,241,0.2)' : 'none' }}>
+                            {test.index}
+                          </div>
+                          
+                          <div style={{ flex: 1, background: bgCol, border: `1px solid ${borderCol}`, borderRadius: '0.85rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', opacity: test.isLocked ? 0.7 : 1 }}>
+                            <div>
+                              <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 800, color: test.isLocked ? '#64748b' : '#1e293b' }}>
+                                {test.name}
+                              </h3>
+                              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                {test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              {test.isCompleted && test.bestScore !== null && (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Award size={16} /> {test.bestScore}% Başarı
+                                  </div>
+                                  {test.bestSub && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                                      <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0} D</span>
+                                      <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0} Y</span>
+                                      <span>{test.bestSub.blankCount || 0} B</span>
+                                    </div>
+                                  )}
+                                </div>
+                              {test.isCompleted ? (
+                                <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }} onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}>
+                                  Sonucu İncele
+                                </button>
+                              ) : test.isLocked ? (
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <Lock size={16} /> Kilitli
+                                </div>
+                              ) : (
+                                <button className="btn btn-primary" style={{ padding: '0.4rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => navigate(`/book-quiz/${test.id}`)}>
+                                  <PlayCircle size={16} /> Şimdi Çöz
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {subjectProgress.length === 0 && (
           <div className="card glass" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
