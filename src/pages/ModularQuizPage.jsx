@@ -65,6 +65,21 @@ export default function ModularQuizPage() {
     );
   }, [submissions, testId, studentId]);
 
+  const bookForTest = useMemo(() => {
+    if (!test) return null;
+    const bId = test.bookId || (test.tests && Array.isArray(test.tests) && test.tests.length > 0 && bookTests?.find(bt => String(bt.id) === String(test.tests[0]))?.bookId);
+    return books?.find(b => String(b.id) === String(bId));
+  }, [test, books, bookTests]);
+
+  const effectiveTest = useMemo(() => {
+    if (!test) return null;
+    return {
+      ...test,
+      book: bookForTest,
+      optionCount: test.optionCount || test.optionsCount || bookForTest?.optionCount
+    };
+  }, [test, bookForTest]);
+
   useEffect(() => {
     if (completedSub && !submissionResult) {
       navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
@@ -612,21 +627,6 @@ export default function ModularQuizPage() {
     test.isBulk ||
     test.isMulti
   );
-
-  const bookForTest = useMemo(() => {
-    if (!test) return null;
-    const bId = test.bookId || (test.tests && Array.isArray(test.tests) && test.tests.length > 0 && bookTests?.find(bt => String(bt.id) === String(test.tests[0]))?.bookId);
-    return books?.find(b => String(b.id) === String(bId));
-  }, [test, books, bookTests]);
-
-  const effectiveTest = useMemo(() => {
-    if (!test) return null;
-    return {
-      ...test,
-      book: bookForTest,
-      optionCount: test.optionCount || test.optionsCount || bookForTest?.optionCount
-    };
-  }, [test, bookForTest]);
 
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 

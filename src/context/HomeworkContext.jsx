@@ -32,10 +32,10 @@ export function HomeworkProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    let sanitized = [];
     try {
-      sanitized = homeworks.map(hw => {
+      const sanitized = homeworks.map(hw => {
         const copy = { ...hw };
+        delete copy.submissions; // Submissions are persisted in EvaluationContext
         if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
           copy.contentPayload = '[STORED_IN_INDEXEDDB]';
         }
@@ -61,12 +61,13 @@ export function HomeworkProvider({ children }) {
     } catch (err) {
       if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
         try {
-          // Keep only the latest 10 homeworks to fit in quota
-          const trimmed = sanitized.slice(-10);
-          localStorage.setItem('eTestHomeworks', JSON.stringify(trimmed));
-          console.warn('[HomeworkContext] localStorage quota exceeded, trimmed to 10 latest homeworks.');
+          // Minimal payload without heavy nested lists
+          const minimal = homeworks.map(h => ({
+            id: h.id, title: h.title, dueDate: h.dueDate, targetType: h.targetType, targetIds: h.targetIds, bookId: h.bookId, tests: h.tests, optionCount: h.optionCount
+          }));
+          localStorage.setItem('eTestHomeworks', JSON.stringify(minimal.slice(-20)));
         } catch (e2) {
-          console.warn('[HomeworkContext] Quota exceeded even after trimming:', e2);
+          console.warn('[HomeworkContext] Quota exceeded even after minimal save:', e2);
         }
       } else {
         console.warn('[HomeworkContext] Error saving to localStorage:', err);

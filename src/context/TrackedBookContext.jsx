@@ -55,6 +55,7 @@ export function TrackedBookProvider({ children }) {
     try {
       const sanitizedTests = bookTests.map(test => {
         const copy = { ...test };
+        delete copy.submissions;
         if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
           copy.contentPayload = '[STORED_IN_INDEXEDDB]';
         }
@@ -68,7 +69,18 @@ export function TrackedBookProvider({ children }) {
       });
       localStorage.setItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
     } catch (e) {
-      console.warn('TrackedBookContext: localStorage quota exceeded for bookTests', e);
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        try {
+          const minimalTests = bookTests.map(t => ({
+            id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, optionCount: t.optionCount
+          }));
+          localStorage.setItem('eTestTrackedBookTests', JSON.stringify(minimalTests));
+        } catch (e2) {
+          console.warn('TrackedBookContext: localStorage quota exceeded even after minimal save', e2);
+        }
+      } else {
+        console.warn('TrackedBookContext: localStorage quota exceeded for bookTests', e);
+      }
     }
   }, [bookTests]);
 
