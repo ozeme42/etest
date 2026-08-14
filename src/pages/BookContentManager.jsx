@@ -24,6 +24,13 @@ function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
   return answerKey;
 }
 
+function sortTestsNaturally(testsArray) {
+  if (!Array.isArray(testsArray)) return [];
+  return [...testsArray].sort((a, b) => {
+    return (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' });
+  });
+}
+
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -816,7 +823,7 @@ export default function BookContentManager() {
           {book.subjects && book.subjects.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {book.subjects.map(subject => {
-                const directTests = tests.filter(t => String(t.subjectId) === String(subject.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id)));
+                const directTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subject.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id))));
                 const topicsList = subject.topics || [];
                 const isExpanded = !collapsedSubjects[subject.id];
 
@@ -895,7 +902,7 @@ export default function BookContentManager() {
 
                         {/* Topics List (when Ders > Konu > Test structure) */}
                         {topicsList.map(topic => {
-                          const topicTests = tests.filter(t => String(t.topicId) === String(topic.id));
+                          const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
                           const isTopicExpanded = !collapsedTopics[topic.id];
 
                           return (
@@ -1967,7 +1974,7 @@ export default function BookContentManager() {
 
                         let testCounter = 0;
                         book.subjects?.forEach(subj => {
-                          const subjTests = tests.filter(t => String(t.subjectId) === String(subj.id));
+                          const subjTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id)));
                           subjTests.forEach(t => {
                             if (testCounter > 0) {
                               currDate.setDate(currDate.getDate() + autoIntervalDays);
@@ -1995,7 +2002,7 @@ export default function BookContentManager() {
                 </h4>
 
                 {book.subjects?.map(subj => {
-                  const subjTests = tests.filter(t => String(t.subjectId) === String(subj.id));
+                  const subjTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subj.id)));
                   if (subjTests.length === 0) return null;
 
                   return (

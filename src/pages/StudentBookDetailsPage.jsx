@@ -102,7 +102,7 @@ export default function StudentBookDetailsPage() {
       // Filter only those assigned to the student
       const assignedSubjTests = allSubjectTests
         .filter(t => assignedTestIds.has(String(t.id)))
-        .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true }));
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
       
       if (assignedSubjTests.length === 0) return null;
 
