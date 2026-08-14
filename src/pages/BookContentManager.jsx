@@ -103,6 +103,7 @@ export default function BookContentManager() {
   const [assignCustomTitle, setAssignCustomTitle] = useState("");
   const [assignAsBook, setAssignAsBook] = useState(false);
   const [assignDueDateDays, setAssignDueDateDays] = useState(7);
+  const [assignExactDueDate, setAssignExactDueDate] = useState("");
 
   // Mistake Filter States
   const [mistakeFilterSubject, setMistakeFilterSubject] = useState("all");
@@ -594,8 +595,13 @@ export default function BookContentManager() {
     const selectedTestObjs = tests.filter(t => selectedTests.includes(t.id));
     const totalQCount = selectedTestObjs.reduce((acc, t) => acc + (t.questionCount || 20), 0);
 
-    const dueDueDate = new Date();
-    dueDueDate.setDate(dueDueDate.getDate() + (assignDueDateDays || 7));
+    let dueDueDate = new Date();
+    if (assignExactDueDate) {
+      dueDueDate = new Date(assignExactDueDate);
+      dueDueDate.setHours(23, 59, 59, 999);
+    } else {
+      dueDueDate.setDate(dueDueDate.getDate() + (assignDueDateDays || 7));
+    }
 
     addHomework({
       title: assignCustomTitle || `${book.title} - ${selectedTests.length} Test`,
@@ -616,6 +622,7 @@ export default function BookContentManager() {
     setSelectedTests([]);
     setAssignSelectedTargetIds([]);
     setAssignAsBook(false);
+    setAssignExactDueDate("");
   };
 
   const handleAssignEntireBook = () => {
@@ -1706,32 +1713,62 @@ export default function BookContentManager() {
               </div>
             </div>
 
-            {/* Due Date Days Selector */}
+            {/* Due Date Selector (Hazır Günler veya Özel Takvim Tarihi) */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Ödev Süresi (Gün)</label>
-              <select
-                className="input-field"
-                value={assignDueDateDays}
-                onChange={(e) => setAssignDueDateDays(parseInt(e.target.value) || 7)}
-                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
-              >
-                {!assignAsBook && (
-                  <>
-                    <option value={3}>3 Gün</option>
-                    <option value={5}>5 Gün</option>
-                  </>
-                )}
-                <option value={7}>1 Hafta (7 Gün)</option>
-                <option value={14}>2 Hafta (14 Gün)</option>
-                <option value={30}>1 Ay (30 Gün)</option>
-                {assignAsBook && (
-                  <>
-                    <option value={60}>2 Ay (60 Gün)</option>
-                    <option value={90}>Dönem Sonu (90 Gün)</option>
-                    <option value={180}>Yıl Sonu (180 Gün)</option>
-                  </>
-                )}
-              </select>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>
+                Ödev / Bitirme Tarihi veya Süresi
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>Hazır Gün Seçin:</label>
+                  <select
+                    className="input-field"
+                    value={assignDueDateDays}
+                    onChange={(e) => {
+                      setAssignDueDateDays(parseInt(e.target.value) || 7);
+                      setAssignExactDueDate("");
+                    }}
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
+                  >
+                    {!assignAsBook && (
+                      <>
+                        <option value={3}>3 Gün</option>
+                        <option value={5}>5 Gün</option>
+                      </>
+                    )}
+                    <option value={7}>1 Hafta (7 Gün)</option>
+                    <option value={14}>2 Hafta (14 Gün)</option>
+                    <option value={30}>1 Ay (30 Gün)</option>
+                    {assignAsBook && (
+                      <>
+                        <option value={60}>2 Ay (60 Gün)</option>
+                        <option value={90}>Dönem Sonu (90 Gün)</option>
+                        <option value={180}>Yıl Sonu (180 Gün)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>Veya Takvimden Seçin:</label>
+                  <input
+                    type="date"
+                    className="input-field"
+                    value={assignExactDueDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setAssignExactDueDate(e.target.value)}
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
+                  />
+                </div>
+              </div>
+              {assignExactDueDate ? (
+                <p style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 700, marginTop: '0.35rem' }}>
+                  🗓️ Seçilen Bitirme Tarihi: {new Date(assignExactDueDate).toLocaleDateString('tr-TR')}
+                </p>
+              ) : (
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                  Hedef Bitirme Tarihi: {new Date(Date.now() + (assignDueDateDays || 7) * 86400000).toLocaleDateString('tr-TR')}
+                </p>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
