@@ -1163,7 +1163,7 @@ export default function StudentDashboard() {
                         flexShrink: 0
                       }}
                     >
-                      <PlayCircle size={13} /> Sonuç Gir
+                      <PlayCircle size={13} /> Çöz
                     </button>
                   ) : (
                     <div style={{

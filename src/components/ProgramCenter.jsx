@@ -564,9 +564,9 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                       boxShadow: '0 2px 6px rgba(79,70,229,0.25)',
                       transition: 'all 0.15s ease'
                     }}
-                    title="Test Sonucunu Gir / Sınavı Çöz"
+                    title="Sınavı Çöz"
                   >
-                    <PlayCircle size={11} /> Sonuç Gir
+                    <PlayCircle size={11} /> Çöz
                   </button>
                 )}
                 {!item.isAutoHomework && onEditClick && (
