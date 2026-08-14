@@ -29,7 +29,9 @@ export default function BookContentManager() {
   const navigate = useNavigate();
   const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
   const { submissions, deleteSubmissionsByTestId } = useEvaluation();
-  const { homeworks: allHomeworks, addHomework, deleteHomework } = useHomework();
+  const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework } = useHomework();
+  const [editDateHw, setEditDateHw] = useState(null);
+  const [editDateValue, setEditDateValue] = useState('');
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
@@ -1110,6 +1112,19 @@ export default function BookContentManager() {
                           </div>
 
                           <button 
+                            onClick={() => {
+                              setEditDateHw(hw);
+                              setEditDateValue(hw.dueDate ? hw.dueDate.split('T')[0] : '');
+                            }}
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#4f46e5', borderColor: '#c7d2fe' }}
+                            title="Bitirme Tarihini Güncelle / Süre Uzas"
+                          >
+                            <Calendar size={15} />
+                            Tarih Değiştir
+                          </button>
+
+                          <button 
                             onClick={() => toggleHwDetails(hw.id)}
                             className="btn btn-outline"
                             style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
@@ -1803,6 +1818,67 @@ export default function BookContentManager() {
               <button className="btn btn-outline" onClick={() => setIsAssignDialogOpen(false)}>İptal</button>
               <button className="btn btn-primary" onClick={handleAssignSelectedTestsSubmit} style={{ padding: '0.6rem 1.5rem', fontWeight: 900 }}>
                 Ödevi {assignTargetMode === 'class' ? 'Sınıfa' : 'Öğrenciye'} Ata
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📅 EDIT ASSIGNED HOMEWORK DUE DATE MODAL */}
+      {editDateHw && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '480px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.15rem' }}>
+                <Calendar size={20} /> Bitirme Tarihini Değiştir / Süre Uzat
+              </h3>
+              <button onClick={() => setEditDateHw(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '1.25rem', background: '#f8fafc', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>{editDateHw.title}</div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                Mevcut Son Tarih: {editDateHw.dueDate ? new Date(editDateHw.dueDate).toLocaleDateString('tr-TR') : 'Yok'}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>Yeni Bitirme Tarihi Seçin:</label>
+              <input
+                type="date"
+                className="input-field"
+                value={editDateValue}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setEditDateValue(e.target.value)}
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }}
+              />
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.65rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', alignSelf: 'center', fontWeight: 700 }}>Hızlı Uzat:</span>
+                <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 7); setEditDateValue(d.toISOString().split('T')[0]); }} className="btn btn-outline" style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 700 }}>+7 Gün</button>
+                <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 14); setEditDateValue(d.toISOString().split('T')[0]); }} className="btn btn-outline" style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 700 }}>+14 Gün</button>
+                <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 30); setEditDateValue(d.toISOString().split('T')[0]); }} className="btn btn-outline" style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 700 }}>+30 Gün (1 Ay)</button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button className="btn btn-outline" onClick={() => setEditDateHw(null)}>İptal</button>
+              <button 
+                className="btn btn-primary"
+                onClick={async () => {
+                  if (!editDateValue) return;
+                  const newDueDate = new Date(editDateValue);
+                  newDueDate.setHours(23, 59, 59, 999);
+                  if (typeof updateHomework === 'function') {
+                    await updateHomework(editDateHw.id, { dueDate: newDueDate.toISOString() });
+                  }
+                  showToast('Ödev bitirme tarihi başarıyla güncellendi!');
+                  setEditDateHw(null);
+                }}
+                style={{ padding: '0.6rem 1.4rem', fontWeight: 900 }}
+              >
+                Yeni Tarihi Kaydet
               </button>
             </div>
           </div>
