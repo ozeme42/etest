@@ -1874,7 +1874,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
               return (
                 <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
-                  isToday={dayObj.day === todayKey}
+                  isToday={weekOffset === 0 && dayObj.day === todayKey}
                   onToggle={handleToggle} onDelete={handleDelete}
                   onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
                   onAddClick={d => setAddingToDay(d)}
