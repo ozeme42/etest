@@ -156,6 +156,12 @@ export default function StudentBookDetailsPage() {
            }
         }
 
+        let testDueDate = null;
+        const matchingHw = homeworks.find(hw => hw.isBookAssignment && String(hw.bookId) === String(bookId) && hw.testDueDates?.[t.id]);
+        if (matchingHw?.testDueDates?.[t.id]) {
+          testDueDate = matchingHw.testDueDates[t.id];
+        }
+
         return {
           ...t,
           index: index + 1,
@@ -163,6 +169,7 @@ export default function StudentBookDetailsPage() {
           isLocked,
           bestScore,
           bestSub,
+          testDueDate,
           latestSubId: isCompleted ? (solvedSubs.length > 0 ? solvedSubs[solvedSubs.length - 1].id : (hwSub ? hwSub.id : null)) : null
         };
       });
@@ -525,8 +532,21 @@ export default function StudentBookDetailsPage() {
                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a', textDecoration: test.isCompleted ? 'none' : 'none' }}>
                             {test.name}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
-                            {test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span>{test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru</span>
+                            {test.testDueDate && (
+                              <span style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eef2ff'),
+                                color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
+                                border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
+                              }}>
+                                📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                              </span>
+                            )}
                           </div>
                         </div>
 

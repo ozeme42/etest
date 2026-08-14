@@ -32,6 +32,10 @@ export default function BookContentManager() {
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
   const [editDateValue, setEditDateValue] = useState('');
+  const [scheduleModalHw, setScheduleModalHw] = useState(null);
+  const [scheduleDates, setScheduleDates] = useState({});
+  const [autoStartDate, setAutoStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [autoIntervalDays, setAutoIntervalDays] = useState(2);
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
@@ -1118,10 +1122,24 @@ export default function BookContentManager() {
                             }}
                             className="btn btn-outline"
                             style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#4f46e5', borderColor: '#c7d2fe' }}
-                            title="Bitirme Tarihini Güncelle / Süre Uzas"
+                            title="Tüm Kitap İçin Bitirme Tarihini Güncelle"
                           >
                             <Calendar size={15} />
-                            Tarih Değiştir
+                            Genel Tarih
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              setScheduleModalHw(hw);
+                              setScheduleDates(hw.testDueDates || {});
+                              setAutoStartDate(new Date().toISOString().split('T')[0]);
+                            }}
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#0284c7', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                            title="Kitap İçindeki Her Teste Özel Tek Tek Tarih Belirle"
+                          >
+                            <Clock size={15} />
+                            İçerik Tarihlerini Planla
                           </button>
 
                           <button 
@@ -1881,6 +1899,165 @@ export default function BookContentManager() {
                 Yeni Tarihi Kaydet
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🗓️ DETAILED PER-TEST SCHEDULER MODAL FOR ASSIGNED BOOK */}
+      {scheduleModalHw && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '780px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            
+            {/* Modal Header */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
+                  <Clock size={22} style={{ color: '#0284c7' }} /> İçerik Test Tarihlerini Planla
+                </h3>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+                  {scheduleModalHw.title} — Kitaptaki her test için tek tek bitirme tarihi belirleyin veya otomatik dağıtın.
+                </p>
+              </div>
+              <button onClick={() => setScheduleModalHw(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Quick Auto Distribute Box */}
+              <div style={{ background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: '1.5px solid #7dd3fc', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Zap size={18} /> Otomatik Tarih Dağıtıcı (Hızlı Planlama)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#0369a1', fontWeight: 700, marginBottom: '0.25rem' }}>Başlangıç Tarihi:</label>
+                    <input
+                      type="date"
+                      className="input-field"
+                      value={autoStartDate}
+                      onChange={(e) => setAutoStartDate(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #7dd3fc', fontWeight: 700, fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#0369a1', fontWeight: 700, marginBottom: '0.25rem' }}>Test Sıklığı (Aralık):</label>
+                    <select
+                      className="input-field"
+                      value={autoIntervalDays}
+                      onChange={(e) => setAutoIntervalDays(Number(e.target.value))}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #7dd3fc', fontWeight: 700, fontSize: '0.85rem' }}
+                    >
+                      <option value={1}>Her Gün 1 Test (+1 Gün)</option>
+                      <option value={2}>2 Günde 1 Test (+2 Gün - Önerilen)</option>
+                      <option value={3}>3 Günde 1 Test (+3 Gün)</option>
+                      <option value={4}>4 Günde 1 Test (+4 Gün)</option>
+                      <option value={7}>Haftada 1 Test (+7 Gün)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!autoStartDate) return;
+                        const datesMap = {};
+                        let currDate = new Date(autoStartDate);
+
+                        let testCounter = 0;
+                        book.subjects?.forEach(subj => {
+                          const subjTests = tests.filter(t => String(t.subjectId) === String(subj.id));
+                          subjTests.forEach(t => {
+                            if (testCounter > 0) {
+                              currDate.setDate(currDate.getDate() + autoIntervalDays);
+                            }
+                            datesMap[t.id] = currDate.toISOString().split('T')[0];
+                            testCounter++;
+                          });
+                        });
+                        setScheduleDates(datesMap);
+                        showToast(`${testCounter} teste sırayla otomatik tarihler atandı! ✨`);
+                      }}
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '0.55rem', fontWeight: 900, fontSize: '0.82rem', background: '#0284c7', border: 'none', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    >
+                      <Zap size={15} /> Otomatik Tarihleri Dağıt
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-Test Date Settings List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '0.4rem' }}>
+                  Kitap İçindekiler Yapısı & Test Bazlı Tarihler
+                </h4>
+
+                {book.subjects?.map(subj => {
+                  const subjTests = tests.filter(t => String(t.subjectId) === String(subj.id));
+                  if (subjTests.length === 0) return null;
+
+                  return (
+                    <div key={subj.id} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.98rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Layers size={16} color="#6366f1" /> {subj.name} ({subjTests.length} Test)
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
+                        {subjTests.map(t => {
+                          const testVal = scheduleDates[t.id] || '';
+
+                          return (
+                            <div key={t.id} style={{ background: 'white', padding: '0.65rem 0.85rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {t.name}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                  {t.questionCount || 20} Soru
+                                </div>
+                              </div>
+                              <input
+                                type="date"
+                                className="input-field"
+                                value={testVal}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setScheduleDates(p => ({ ...p, [t.id]: v }));
+                                }}
+                                style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button className="btn btn-outline" onClick={() => setScheduleModalHw(null)}>İptal</button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  if (typeof updateHomework === 'function') {
+                    await updateHomework(scheduleModalHw.id, {
+                      testDueDates: scheduleDates
+                    });
+                  }
+                  showToast('Test bazlı bitirme tarihleri başarıyla kaydedildi! 🎉');
+                  setScheduleModalHw(null);
+                }}
+                style={{ padding: '0.6rem 1.6rem', fontWeight: 900, background: '#0284c7', border: 'none' }}
+              >
+                Tüm Test Tarihlerini Kaydet
+              </button>
+            </div>
+
           </div>
         </div>
       )}
