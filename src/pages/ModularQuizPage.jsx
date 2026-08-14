@@ -613,34 +613,48 @@ export default function ModularQuizPage() {
     test.isMulti
   );
 
-  const bookForTest = books?.find(b => b.id === test?.bookId);
+  const bookForTest = useMemo(() => {
+    if (!test) return null;
+    const bId = test.bookId || (test.tests && Array.isArray(test.tests) && test.tests.length > 0 && bookTests?.find(bt => String(bt.id) === String(test.tests[0]))?.bookId);
+    return books?.find(b => String(b.id) === String(bId));
+  }, [test, books, bookTests]);
+
+  const effectiveTest = useMemo(() => {
+    if (!test) return null;
+    return {
+      ...test,
+      book: bookForTest,
+      optionCount: test.optionCount || test.optionsCount || bookForTest?.optionCount
+    };
+  }, [test, bookForTest]);
+
   const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
 
   const renderRunner = () => {
     if (isMultiSection) {
       if (isPhysical) {
-        return <BulkHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+        return <BulkHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
       }
-      return <MultiHomeworkRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+      return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
     }
 
     if (isPhysical) {
-      return <PhysicalQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
+      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
     }
 
     if (isHtml) {
-      return <HtmlQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <HtmlQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
     }
 
     if (isPdf) {
-      return <PdfQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <PdfQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
     }
 
     if (isImageTest) {
-      return <ImageQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+      return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
     }
 
-    return <StandardQuizRunner test={test} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   };
 
   return (

@@ -263,8 +263,17 @@ function RightOptikPanel({
                 />
               ) : (
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
-                  {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                    const isSelected = userAns === optIdx;
+                  {(() => {
+                    const isFourOptions = (
+                      test?.optionCount === 4 ||
+                      test?.optionsCount === 4 ||
+                      test?.book?.optionCount === 4 ||
+                      test?.examType === 'LGS' ||
+                      String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                    );
+                    const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                    return optList.map((opt, optIdx) => {
+                      const isSelected = userAns === optIdx;
                     
                     let correctAns = (userAnsObj && userAnsObj.correctAnswer !== undefined && userAnsObj.correctAnswer !== null) 
                       ? userAnsObj.correctAnswer 
@@ -322,8 +331,9 @@ function RightOptikPanel({
                       >
                         {opt}
                       </button>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -1647,8 +1657,17 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         {/* SINGLE LINE HORIZONTAL ABCDE BUTTONS */}
                         {!isQOpenEnded ? (
                           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                              const isSelected = selectedOpt === optIdx;
+                            {(() => {
+                              const isFourOptions = (
+                                test?.optionCount === 4 ||
+                                test?.optionsCount === 4 ||
+                                test?.book?.optionCount === 4 ||
+                                test?.examType === 'LGS' ||
+                                String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                              );
+                              const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                              return optList.map((opt, optIdx) => {
+                                const isSelected = selectedOpt === optIdx;
                               const isCorrectOpt = correctAns !== null && correctAns !== undefined && correctAns === optIdx;
 
                               let bg = '#0f172a';
@@ -1689,7 +1708,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                   {opt}
                                 </button>
                               );
-                            })}
+                              });
+                            })()}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1812,7 +1832,16 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
                   const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-                  const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0) ? qObj.options : ['A', 'B', 'C', 'D', 'E'];
+                  const isFourOpts = (
+                    test?.optionCount === 4 ||
+                    test?.optionsCount === 4 ||
+                    test?.book?.optionCount === 4 ||
+                    test?.examType === 'LGS' ||
+                    String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                  );
+                  const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
+                    ? (isFourOpts && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
+                    : (isFourOpts ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
 
                   const userAnsObj = activeSecState.answers?.[qNo];
                   const selectedOpt = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;

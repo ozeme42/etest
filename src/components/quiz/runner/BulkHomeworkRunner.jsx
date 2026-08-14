@@ -530,12 +530,21 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                   />
                 ) : (
                   <div style={{ display: 'flex', gap: '0.4rem' }}>
-                    {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                      const isSelected = selectedOpt === optIdx;
-                      return (
-                        <button
-                          key={opt}
-                          onClick={() => handleOptionSelect(currentSectionIdx, qNo, optIdx)}
+                    {(() => {
+                      const isFourOptions = (
+                        test?.optionCount === 4 ||
+                        test?.optionsCount === 4 ||
+                        test?.book?.optionCount === 4 ||
+                        test?.examType === 'LGS' ||
+                        String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                      );
+                      const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                      return optionsList.map((opt, optIdx) => {
+                        const isSelected = selectedOpt === optIdx;
+                        return (
+                          <button
+                            key={opt}
+                            onClick={() => handleOptionSelect(currentSectionIdx, qNo, optIdx)}
                           style={{
                             flex: 1,
                             height: '34px',
@@ -552,7 +561,8 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                           {opt}
                         </button>
                       );
-                    })}
+                      });
+                    })()}
                   </div>
                 )}
               </div>

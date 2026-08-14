@@ -526,11 +526,16 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                     ) : (
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
                         {(() => {
+                          const isFourOptions = (
+                            test.optionCount === 4 ||
+                            test.optionsCount === 4 ||
+                            test.book?.optionCount === 4 ||
+                            test.examType === 'LGS' ||
+                            String(test.grade || test.book?.grade || '').match(/^[5-8]/)
+                          );
                           const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
-                            ? qObj.options
-                            : (test.optionCount === 4 || test.optionsCount === 4 || test.book?.optionCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
-                              ? ['A', 'B', 'C', 'D']
-                              : ['A', 'B', 'C', 'D', 'E'];
+                            ? (isFourOptions && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
+                            : (isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
                           return optionsList.map((opt, optIdx) => {
                             const isSelected = selectedOpt === optIdx;
                             return (
@@ -708,11 +713,16 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                       ) : (
                         <div style={{ display: 'flex', gap: '0.4rem', flex: 1, maxWidth: 260 }}>
                           {(() => {
+                            const isFourOptions = (
+                              test.optionCount === 4 ||
+                              test.optionsCount === 4 ||
+                              test.book?.optionCount === 4 ||
+                              test.examType === 'LGS' ||
+                              String(test.grade || test.book?.grade || '').match(/^[5-8]/)
+                            );
                             const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
-                              ? qObj.options
-                              : (test.optionCount === 4 || test.optionsCount === 4 || test.book?.optionCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
-                                ? ['A', 'B', 'C', 'D']
-                                : ['A', 'B', 'C', 'D', 'E'];
+                              ? (isFourOptions && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
+                              : (isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
                             return optionsList.map((opt, optIdx) => {
                               const isSelected = selectedOpt === optIdx;
                               return (
