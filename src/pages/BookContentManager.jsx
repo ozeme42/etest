@@ -26,8 +26,9 @@ function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
 
 function sortTestsNaturally(testsArray) {
   if (!Array.isArray(testsArray)) return [];
-  // Preserve exact order as created/saved in the book
-  return testsArray;
+  return [...testsArray].sort((a, b) => {
+    return (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' });
+  });
 }
 
 export default function BookContentManager() {

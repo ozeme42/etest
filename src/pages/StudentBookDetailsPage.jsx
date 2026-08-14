@@ -110,9 +110,10 @@ export default function StudentBookDetailsPage() {
       // Find all tests in this subject
       const allSubjectTests = bookTests.filter(t => String(t.subjectId) === String(subject.id));
       
-      // Filter only those assigned to the student (preserving original saved book order)
+      // Filter only those assigned to the student (sorted naturally by test name and number)
       const assignedSubjTests = allSubjectTests
-        .filter(t => assignedTestIds.has(String(t.id)));
+        .filter(t => assignedTestIds.has(String(t.id)))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
       
       if (assignedSubjTests.length === 0) return null;
 
@@ -188,7 +189,9 @@ export default function StudentBookDetailsPage() {
       
       const topicsList = subject.topics || [];
       const topicsWithTests = topicsList.map(topic => {
-        const topicTests = testsWithStatus.filter(t => String(t.topicId) === String(topic.id));
+        const topicTests = testsWithStatus
+          .filter(t => String(t.topicId) === String(topic.id))
+          .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
         return {
           ...topic,
           tests: topicTests,
@@ -197,7 +200,9 @@ export default function StudentBookDetailsPage() {
         };
       }).filter(top => top.tests.length > 0);
 
-      const directTests = testsWithStatus.filter(t => !t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id) || !topicsList.some(top => String(top.id) === String(t.topicId)));
+      const directTests = testsWithStatus
+        .filter(t => !t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id) || !topicsList.some(top => String(top.id) === String(t.topicId)))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
 
       return {
         ...subject,
