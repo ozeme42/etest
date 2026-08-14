@@ -570,6 +570,7 @@ export default function StudentBookDetailsPage() {
                                     </div>
                                   )}
                                 </div>
+                              )}
                               {test.isCompleted ? (
                                 <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }} onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}>
                                   Sonucu İncele
