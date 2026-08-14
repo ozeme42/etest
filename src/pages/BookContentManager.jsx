@@ -45,6 +45,7 @@ export default function BookContentManager() {
   const [autoIntervalDays, setAutoIntervalDays] = useState(2);
   const [scheduleSelectedTestIds, setScheduleSelectedTestIds] = useState([]);
   const [bulkApplyDate, setBulkApplyDate] = useState('');
+  const [scheduleCollapsedSubj, setScheduleCollapsedSubj] = useState({});
   const { users } = useUser();
   const { data: curData } = useCurriculum() || {};
   
@@ -1144,6 +1145,9 @@ export default function BookContentManager() {
                               setAutoStartDate(new Date().toISOString().split('T')[0]);
                               setScheduleSelectedTestIds([]);
                               setBulkApplyDate('');
+                              const initialCollapsed = {};
+                              book?.subjects?.forEach(s => { initialCollapsed[s.id] = true; });
+                              setScheduleCollapsedSubj(initialCollapsed);
                             }}
                             className="btn btn-outline"
                             style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#0284c7', borderColor: '#bae6fd', background: '#f0f9ff' }}
@@ -2049,25 +2053,51 @@ export default function BookContentManager() {
 
               {/* Per-Test Date Settings List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '0.4rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 800 }}>
                     Kitap İçindekiler Yapısı & Test Bazlı Tarihler
                   </h4>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const allTestIds = tests.map(t => t.id);
-                      if (scheduleSelectedTestIds.length === allTestIds.length) {
-                        setScheduleSelectedTestIds([]);
-                      } else {
-                        setScheduleSelectedTestIds(allTestIds);
-                      }
-                    }}
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '0.3rem 0.7rem', fontWeight: 800 }}
-                  >
-                    {scheduleSelectedTestIds.length === tests.length ? '✅ Tüm Kitabı Kaldır' : '☑️ Tüm Kitabı Seç'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allOpen = {};
+                        book.subjects?.forEach(s => { allOpen[s.id] = false; });
+                        setScheduleCollapsedSubj(allOpen);
+                      }}
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 700 }}
+                    >
+                      📂 Tümünü Aç
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allClosed = {};
+                        book.subjects?.forEach(s => { allClosed[s.id] = true; });
+                        setScheduleCollapsedSubj(allClosed);
+                      }}
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 700 }}
+                    >
+                      📁 Tümünü Kapat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allTestIds = tests.map(t => t.id);
+                        if (scheduleSelectedTestIds.length === allTestIds.length) {
+                          setScheduleSelectedTestIds([]);
+                        } else {
+                          setScheduleSelectedTestIds(allTestIds);
+                        }
+                      }}
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.78rem', padding: '0.3rem 0.7rem', fontWeight: 800 }}
+                    >
+                      {scheduleSelectedTestIds.length === tests.length ? '✅ Tüm Kitabı Kaldır' : '☑️ Tüm Kitabı Seç'}
+                    </button>
+                  </div>
                 </div>
 
                 {book.subjects?.map(subj => {
@@ -2075,69 +2105,87 @@ export default function BookContentManager() {
                   if (subjTests.length === 0) return null;
 
                   const allSubjSelected = subjTests.every(t => scheduleSelectedTestIds.includes(t.id));
+                  const isExpanded = !scheduleCollapsedSubj[subj.id];
 
                   return (
-                    <div key={subj.id} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.98rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Layers size={16} color="#6366f1" /> {subj.name} ({subjTests.length} Test)
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const subjTestIds = subjTests.map(t => t.id);
-                            if (allSubjSelected) {
-                              setScheduleSelectedTestIds(prev => prev.filter(id => !subjTestIds.includes(id)));
-                            } else {
-                              setScheduleSelectedTestIds(prev => Array.from(new Set([...prev, ...subjTestIds])));
-                            }
-                          }}
-                          className="btn btn-outline"
-                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', fontWeight: 800, background: 'white' }}
+                    <div key={subj.id} style={{ border: '1px solid rgba(0,0,0,0.1)', borderRadius: '0.75rem', overflow: 'hidden', background: '#f8fafc' }}>
+                      {/* Subject Header (Collapsible) */}
+                      <div style={{ background: 'rgba(124, 58, 237, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: isExpanded ? '1px solid rgba(0,0,0,0.1)' : 'none' }}>
+                        <div 
+                          onClick={() => setScheduleCollapsedSubj(p => ({ ...p, [subj.id]: !p[subj.id] }))}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}
                         >
-                          {allSubjSelected ? '✅ Tüm Dersi Kaldır' : '☑️ Tüm Dersi Seç'}
-                        </button>
+                          {isExpanded ? <ChevronDown size={20} style={{ color: 'var(--color-primary)' }} /> : <ChevronRight size={20} style={{ color: 'var(--color-primary)' }} />}
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800 }}>
+                            <Layers size={18} /> {subj.name}
+                          </h4>
+                          <span style={{ fontSize: '0.78rem', color: '#64748b', background: 'rgba(0,0,0,0.05)', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 700, marginLeft: '0.5rem' }}>
+                            {subjTests.length} Test
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const subjTestIds = subjTests.map(t => t.id);
+                              if (allSubjSelected) {
+                                setScheduleSelectedTestIds(prev => prev.filter(id => !subjTestIds.includes(id)));
+                              } else {
+                                setScheduleSelectedTestIds(prev => Array.from(new Set([...prev, ...subjTestIds])));
+                              }
+                            }}
+                            className="btn btn-outline"
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', fontWeight: 800, background: 'white' }}
+                          >
+                            {allSubjSelected ? '✅ Tüm Dersi Kaldır' : '☑️ Tüm Dersi Seç'}
+                          </button>
+                        </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
-                        {subjTests.map(t => {
-                          const testVal = scheduleDates[t.id] || '';
-                          const isSelected = scheduleSelectedTestIds.includes(t.id);
+                      {/* Subject Test Grid (Expanded Only) */}
+                      {isExpanded && (
+                        <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
+                          {subjTests.map(t => {
+                            const testVal = scheduleDates[t.id] || '';
+                            const isSelected = scheduleSelectedTestIds.includes(t.id);
 
-                          return (
-                            <div key={t.id} style={{ background: isSelected ? '#e0e7ff' : 'white', padding: '0.65rem 0.85rem', borderRadius: '0.5rem', border: `1px solid ${isSelected ? '#6366f1' : '#cbd5e1'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', transition: 'all 0.15s' }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => {
-                                  setScheduleSelectedTestIds(prev =>
-                                    prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
-                                  );
-                                }}
-                                style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#4f46e5' }}
-                              />
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {t.name}
+                            return (
+                              <div key={t.id} style={{ background: isSelected ? '#e0e7ff' : 'white', padding: '0.65rem 0.85rem', borderRadius: '0.5rem', border: `1px solid ${isSelected ? '#6366f1' : '#cbd5e1'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', transition: 'all 0.15s' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    setScheduleSelectedTestIds(prev =>
+                                      prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
+                                    );
+                                  }}
+                                  style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#4f46e5' }}
+                                />
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {t.name}
+                                  </div>
+                                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                    {t.questionCount || 20} Soru
+                                  </div>
                                 </div>
-                                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                                  {t.questionCount || 20} Soru
-                                </div>
+                                <input
+                                  type="date"
+                                  className="input-field"
+                                  value={testVal}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setScheduleDates(p => ({ ...p, [t.id]: v }));
+                                  }}
+                                  style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }}
+                                />
                               </div>
-                              <input
-                                type="date"
-                                className="input-field"
-                                value={testVal}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  setScheduleDates(p => ({ ...p, [t.id]: v }));
-                                }}
-                                style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
