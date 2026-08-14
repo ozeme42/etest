@@ -155,22 +155,23 @@ export default function StudentBookDetailsPage() {
           bestSub = hwSub;
         }
 
-        // Is it locked? (Locked if it's NOT completed AND we already found an earlier unfinished test)
-        let isLocked = false;
-        
-        if (!isCompleted) {
-           if (hasFoundFirstUnfinished) {
-             isLocked = true;
-           } else {
-             // This is the first unfinished test, so it's unlocked!
-             hasFoundFirstUnfinished = true;
-           }
-        }
-
         let testDueDate = null;
         const matchingHw = homeworks.find(hw => hw.isBookAssignment && String(hw.bookId) === String(bookId) && hw.testDueDates?.[t.id]);
         if (matchingHw?.testDueDates?.[t.id]) {
           testDueDate = matchingHw.testDueDates[t.id];
+        }
+
+        // Lock logic: Tests with an assigned date (testDueDate) are UNLOCKED for students.
+        // Sequential progression lock applies only to tests without assigned dates.
+        let isLocked = false;
+        if (!isCompleted) {
+          if (testDueDate) {
+            isLocked = false;
+          } else if (hasFoundFirstUnfinished) {
+            isLocked = true;
+          } else {
+            hasFoundFirstUnfinished = true;
+          }
         }
 
         return {
