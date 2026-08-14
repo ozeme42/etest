@@ -417,11 +417,17 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
 
 /* ─── DayCard ─── */
 export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditClick, onAddClick, onOpenResult }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const items = dayObj.items || [];
   const done = items.filter(i => i.done).length;
   const total = items.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
+
+  const MAX_VISIBLE = 3;
+  const shouldCollapse = items.length > MAX_VISIBLE;
+  const visibleItems = (shouldCollapse && !isExpanded) ? items.slice(0, MAX_VISIBLE) : items;
+  const hiddenCount = items.length - MAX_VISIBLE;
 
   return (
     <div style={{
@@ -447,20 +453,34 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
             </div>
             <div style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.9, marginTop: 1 }}>{dayMeta.long}</div>
           </div>
-          {isToday && (
-            <span style={{
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              color: 'white',
-              fontSize: '0.62rem',
-              fontWeight: 900,
-              padding: '3px 9px',
-              borderRadius: '99px',
-              boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
-              letterSpacing: '0.05em'
-            }}>
-              BUGÜN
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {shouldCollapse && (
+              <span style={{
+                background: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                fontSize: '0.58rem',
+                fontWeight: 800,
+                padding: '2px 7px',
+                borderRadius: '99px'
+              }}>
+                Toplu ({total})
+              </span>
+            )}
+            {isToday && (
+              <span style={{
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: 'white',
+                fontSize: '0.62rem',
+                fontWeight: 900,
+                padding: '3px 9px',
+                borderRadius: '99px',
+                boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
+                letterSpacing: '0.05em'
+              }}>
+                BUGÜN
+              </span>
+            )}
+          </div>
         </div>
         {total > 0 && (
           <div style={{ marginTop: '0.55rem' }}>
@@ -482,10 +502,10 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
             Henüz ders yok
           </div>
         )}
-        {items.map(item => {
+        {visibleItems.map(item => {
           const tt = TASK_TYPES.find(t => t.id === item.taskType);
           const accentColor = item.done ? '#22c55e' : (tt?.color || theme.accent);
-          const isQuizTask = item.isAutoHomework || item.testId || item.hwId || (item.id && String(item.id).startsWith('hw_'));
+          const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
 
           return (
             <div key={item.id}
@@ -592,6 +612,40 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
             </div>
           );
         })}
+
+        {shouldCollapse && (
+          <button
+            onClick={() => setIsExpanded(prev => !prev)}
+            style={{
+              width: '100%',
+              padding: '0.45rem 0.65rem',
+              borderRadius: '0.65rem',
+              background: isExpanded ? '#f1f5f9' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
+              border: isExpanded ? '1px solid #cbd5e1' : '1.5px solid #c7d2fe',
+              color: '#4f46e5',
+              fontWeight: 800,
+              fontSize: '0.72rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              marginTop: '0.2rem',
+              transition: 'all 0.15s ease',
+              boxShadow: isExpanded ? 'none' : '0 2px 8px rgba(99,102,241,0.12)'
+            }}
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp size={14} /> Daha Az Göster
+              </>
+            ) : (
+              <>
+                <ChevronDown size={14} /> ➕ {hiddenCount} Görev Daha (Toplu Görünüm)
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Add Button */}
