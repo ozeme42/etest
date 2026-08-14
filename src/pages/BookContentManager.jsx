@@ -646,6 +646,27 @@ export default function BookContentManager() {
     setIsAssignDialogOpen(true);
   };
 
+  const handleAssignTopic = (topic) => {
+    const topicTests = tests.filter(t => String(t.topicId) === String(topic.id));
+    if (topicTests.length === 0) {
+      showToast("Bu konuya ait test bulunmamaktadır.", "error");
+      return;
+    }
+    setSelectedTests(topicTests.map(t => t.id));
+    setAssignCustomTitle(`${book.title} - ${topic.name} (Görev)`);
+    setAssignAsBook(false);
+    setAssignDueDateDays(14);
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleAssignSingleTest = (test) => {
+    setSelectedTests([test.id]);
+    setAssignCustomTitle(`${book.title} - ${test.name}`);
+    setAssignAsBook(false);
+    setAssignDueDateDays(7);
+    setIsAssignDialogOpen(true);
+  };
+
   const handleDeleteHomeworkItem = (hwId) => {
     if (window.confirm("Bu ödevi ve ilgili kayıtları silmek istediğinize emin misiniz?")) {
       if (typeof deleteHomework === 'function') deleteHomework(hwId);
@@ -850,6 +871,9 @@ export default function BookContentManager() {
                                     </div>
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: '#4f46e5' }} onClick={() => handleAssignSingleTest(test)} title="Bu Teste Bitirme Tarihi / Ödev Ata">
+                                      <Calendar size={14} />
+                                    </button>
                                     <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {}, pdfUrl: test.pdfUrl || '' }); setIsTestDialogOpen(true); }}>
                                       <Edit size={14} />
                                     </button>
@@ -881,6 +905,7 @@ export default function BookContentManager() {
                                   </h4>
                                   <span style={{ marginLeft: '1rem', fontSize: '0.8rem', background: 'rgba(0,0,0,0.05)', padding: '0.1rem 0.5rem', borderRadius: '1rem' }}>{topicTests.length} Test</span>
                                 </div>
+                                <button onClick={() => handleAssignTopic(topic)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: '#4f46e5' }} title="Bu Konudaki Testlere Bitirme Tarihi / Ödev Ata"><Calendar size={15} /></button>
                                 <button onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setNewTopicName(topic.name); setIsTopicDialogOpen(true); }} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }}><Edit size={14} /></button>
                                 <button onClick={() => handleDeleteTopic(subject.id, topic.id)} className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }}><Trash2 size={14} /></button>
                               </div>
@@ -910,6 +935,9 @@ export default function BookContentManager() {
                                             </div>
                                           </div>
                                           <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: '#4f46e5' }} onClick={() => handleAssignSingleTest(test)} title="Bu Teste Bitirme Tarihi / Ödev Ata">
+                                              <Calendar size={14} />
+                                            </button>
                                             <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {}, pdfUrl: test.pdfUrl || '' }); setIsTestDialogOpen(true); }}>
                                               <Edit size={14} />
                                             </button>
