@@ -73,8 +73,9 @@ export default function StudentBooksPage() {
   const gradeId = currentUser?.gradeId;
   const className = currentUser?.className;
 
+  const defaultOptionCount = (grade && String(grade).match(/^[5-8]/)) ? 4 : 5;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
+  const [newBook, setNewBook] = useState({ title: '', publisher: '', optionCount: defaultOptionCount, subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('progress'); // 'progress' | 'title' | 'recent'
@@ -89,7 +90,12 @@ export default function StudentBooksPage() {
         .map(s => ({ id: s.id, name: s.name }));
       if (bookSubjects.length === 0) bookSubjects.push({ id: 'genel', name: 'Genel' });
 
-      const createdBook = await addTrackedBook({ title: newBook.title, publisher: newBook.publisher, subjects: bookSubjects });
+      const createdBook = await addTrackedBook({
+        title: newBook.title,
+        publisher: newBook.publisher,
+        optionCount: newBook.optionCount || defaultOptionCount,
+        subjects: bookSubjects
+      });
       const testPromises = [];
       const testIds = [];
 
@@ -528,6 +534,38 @@ export default function StudentBooksPage() {
                   />
                 </div>
               ))}
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: '#374151' }}>
+                  Optik Form Seçenek Sayısı (Seviye)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 4 ? '#6366f1' : '#e2e8f0'}`, background: newBook.optionCount === 4 ? '#eef2ff' : 'white', cursor: 'pointer' }}>
+                    <input
+                      type="radio" name="studentBookOptionCount" value={4}
+                      checked={newBook.optionCount === 4}
+                      onChange={() => setNewBook(p => ({ ...p, optionCount: 4 }))}
+                      style={{ accentColor: '#6366f1' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>4 Seçenek (A-D)</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Ortaokul / LGS</div>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 5 ? '#6366f1' : '#e2e8f0'}`, background: newBook.optionCount === 5 ? '#eef2ff' : 'white', cursor: 'pointer' }}>
+                    <input
+                      type="radio" name="studentBookOptionCount" value={5}
+                      checked={newBook.optionCount === 5}
+                      onChange={() => setNewBook(p => ({ ...p, optionCount: 5 }))}
+                      style={{ accentColor: '#6366f1' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>5 Seçenek (A-E)</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Lise / YKS</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#374151', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f1f5f9' }}>

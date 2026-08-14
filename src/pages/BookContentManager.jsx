@@ -9,12 +9,13 @@ import {
   ArrowLeft, BookMarked, Layers, FileText, CheckCircle, 
   ChevronDown, ChevronRight, Plus, Edit, Trash2, 
   ListX, Send, XCircle, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
-  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen
+  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings
 } from 'lucide-react';
 
-function parseAnswerKeyString(str, questionCount = 20) {
+function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
   if (!str || typeof str !== 'string') return {};
-  const cleaned = str.replace(/[^A-Ea-e]/g, '').toUpperCase();
+  const cleanRegex = optionCount === 4 ? /[^A-Da-d]/g : /[^A-Ea-e]/g;
+  const cleaned = str.replace(cleanRegex, '').toUpperCase();
   const answerKey = {};
   const maxQ = questionCount || cleaned.length || 20;
   for (let i = 0; i < Math.min(cleaned.length, maxQ); i++) {
@@ -35,6 +36,10 @@ export default function BookContentManager() {
   const book = books.find(b => b.id === id);
   const tests = useMemo(() => bookTests.filter(t => t.bookId === id), [bookTests, id]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+
+  // Book Settings Dialog State
+  const [isBookSettingsDialogOpen, setIsBookSettingsDialogOpen] = useState(false);
+  const [bookSettingsForm, setBookSettingsForm] = useState({ title: '', publisher: '', optionCount: 5, pdfUrl: '' });
 
   // Extract classes from curriculum & students
   const availableClasses = useMemo(() => {
@@ -701,10 +706,18 @@ export default function BookContentManager() {
           </div>
           <div>
             <h1 style={{ fontSize: '1.8rem', margin: 0, color: 'var(--color-primary)' }}>{book.title}</h1>
-            <p className="text-muted" style={{ margin: 0 }}>İçerik & Ödev Takip Yönetimi - {book.publisher}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+              <span className="text-muted" style={{ fontSize: '0.9rem' }}>İçerik & Ödev Takip Yönetimi - {book.publisher}</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#eef2ff', color: '#4f46e5', padding: '2px 8px', borderRadius: 99, border: '1px solid #c7d2fe' }}>
+                {book.optionCount === 4 ? '🎯 4 Seçenekli Optik (Ortaokul A-D)' : '🎯 5 Seçenekli Optik (Lise A-E)'}
+              </span>
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-outline" onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800 }}>
+            <Settings size={18} /> Kitap Ayarları
+          </button>
           <button className="btn btn-secondary" onClick={handleAssignEntireBook} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800 }}>
             <BookOpen size={18} /> Tüm Kitabı Ata
           </button>
@@ -1725,6 +1738,100 @@ export default function BookContentManager() {
               <button className="btn btn-outline" onClick={() => setIsAssignDialogOpen(false)}>İptal</button>
               <button className="btn btn-primary" onClick={handleAssignSelectedTestsSubmit} style={{ padding: '0.6rem 1.5rem', fontWeight: 900 }}>
                 Ödevi {assignTargetMode === 'class' ? 'Sınıfa' : 'Öğrenciye'} Ata
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* BOOK SETTINGS MODAL */}
+      {isBookSettingsDialogOpen && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '520px', textAlign: 'left' }}>
+            <h2 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Settings /> Kitap Ayarlarını Düzenle
+            </h2>
+            <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>Kitap başlığı, yayınevi, seviye ve optik seçenek sayısını güncelleyin.</p>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Kitap Adı</label>
+              <input
+                type="text"
+                className="input-field"
+                value={bookSettingsForm.title}
+                onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, title: e.target.value })}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Yayınevi</label>
+              <input
+                type="text"
+                className="input-field"
+                value={bookSettingsForm.publisher}
+                onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, publisher: e.target.value })}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Optik Form Seçenek Sayısı (Seviye)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem', border: `1.5px solid ${bookSettingsForm.optionCount === 4 ? 'var(--color-primary)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 'var(--border-radius-sm)', cursor: 'pointer', background: bookSettingsForm.optionCount === 4 ? 'rgba(124, 58, 237, 0.05)' : 'white' }}>
+                  <input
+                    type="radio"
+                    name="bookSettingOptionCount"
+                    value={4}
+                    checked={bookSettingsForm.optionCount === 4}
+                    onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 4 })}
+                    style={{ accentColor: 'var(--color-primary)' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>4 Seçenekli (A-D)</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Ortaokul / LGS</div>
+                  </div>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem', border: `1.5px solid ${bookSettingsForm.optionCount === 5 ? 'var(--color-primary)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 'var(--border-radius-sm)', cursor: 'pointer', background: bookSettingsForm.optionCount === 5 ? 'rgba(124, 58, 237, 0.05)' : 'white' }}>
+                  <input
+                    type="radio"
+                    name="bookSettingOptionCount"
+                    value={5}
+                    checked={bookSettingsForm.optionCount === 5}
+                    onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 5 })}
+                    style={{ accentColor: 'var(--color-primary)' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>5 Seçenekli (A-E)</div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Lise / YKS</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>PDF Linki (İsteğe Bağlı)</label>
+              <input
+                type="url"
+                className="input-field"
+                value={bookSettingsForm.pdfUrl || ''}
+                onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, pdfUrl: e.target.value })}
+                placeholder="https://drive.google.com/... veya direkt PDF URL"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button className="btn btn-outline" onClick={() => setIsBookSettingsDialogOpen(false)}>İptal</button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  updateTrackedBook(book.id, bookSettingsForm);
+                  setIsBookSettingsDialogOpen(false);
+                  showToast("Kitap ayarları başarıyla güncellendi.");
+                }}
+                style={{ padding: '0.6rem 1.5rem', fontWeight: 900 }}
+              >
+                Kaydet
               </button>
             </div>
           </div>

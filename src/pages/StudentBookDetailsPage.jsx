@@ -366,8 +366,13 @@ export default function StudentBookDetailsPage() {
             </div>
 
             <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-                {book.publisher}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {book.publisher}
+                </span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.3)' }}>
+                  {book.optionCount === 4 ? '🎯 4 Seçenekli Optik (Ortaokul A-D)' : '🎯 5 Seçenekli Optik (Lise A-E)'}
+                </span>
               </div>
               <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
                 {book.title}
@@ -604,12 +609,16 @@ export default function StudentBookDetailsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       {subj.tests.map(t => {
                         const testData = bulkSettings[t.id] || { questionCount: 20, answerKeyString: '' };
+                        const isFour = book?.optionCount === 4;
+                        const cleanRegex = isFour ? /[^A-Da-d]/g : /[^A-Ea-e]/g;
+                        const cleanedLen = testData.answerKeyString.replace(cleanRegex, '').length;
+
                         return (
                           <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
                             <div style={{ flex: 1, minWidth: '150px' }}>
                               <div style={{ fontWeight: 800, color: '#334155', marginBottom: '0.25rem' }}>{t.name}</div>
                               <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                Girilen Cevap: <strong style={{ color: testData.answerKeyString.replace(/[^A-Ea-e]/g, '').length === testData.questionCount ? '#10b981' : '#ef4444' }}>{testData.answerKeyString.replace(/[^A-Ea-e]/g, '').length}</strong> / {testData.questionCount}
+                                Girilen Cevap: <strong style={{ color: cleanedLen === testData.questionCount ? '#10b981' : '#ef4444' }}>{cleanedLen}</strong> / {testData.questionCount}
                               </div>
                             </div>
                             
@@ -628,10 +637,12 @@ export default function StudentBookDetailsPage() {
                             </div>
 
                             <div style={{ flex: 3 }}>
-                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>Hızlı Cevap Anahtarı Girişi (A,B,C,D,E)</label>
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>
+                                Cevap Anahtarı ({isFour ? 'A,B,C,D - Ortaokul' : 'A,B,C,D,E - Lise'})
+                              </label>
                               <input 
                                 type="text" 
-                                placeholder="Örn: ABCDEADCBA..." 
+                                placeholder={isFour ? "Örn: ABCDABCD..." : "Örn: ABCDEADCBA..."} 
                                 value={testData.answerKeyString}
                                 onChange={e => {
                                   const raw = e.target.value.toUpperCase();
@@ -642,7 +653,7 @@ export default function StudentBookDetailsPage() {
                                 }}
                                 style={{ 
                                   width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', 
-                                  border: `1px solid ${testData.answerKeyString.replace(/[^A-Ea-e]/g, '').length > testData.questionCount ? '#ef4444' : '#cbd5e1'}`, 
+                                  border: `1px solid ${cleanedLen > testData.questionCount ? '#ef4444' : '#cbd5e1'}`, 
                                   fontWeight: 800, letterSpacing: '0.25em', fontFamily: 'monospace' 
                                 }} 
                               />

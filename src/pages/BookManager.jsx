@@ -19,7 +19,7 @@ export default function BookManager() {
   // Book Form States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
-  const [newBook, setNewBook] = useState({ title: "", publisher: "", bookType: "standard", pdfUrl: "" });
+  const [newBook, setNewBook] = useState({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "" });
 
   // Bulk Import States
   const [importModal, setImportModal] = useState({ isOpen: false, book: null });
@@ -43,9 +43,15 @@ export default function BookManager() {
 
   useEffect(() => {
     if (editingBook) {
-      setNewBook({ title: editingBook.title, publisher: editingBook.publisher, bookType: editingBook.bookType || 'standard', pdfUrl: editingBook.pdfUrl || '' });
+      setNewBook({
+        title: editingBook.title,
+        publisher: editingBook.publisher,
+        bookType: editingBook.bookType || 'standard',
+        optionCount: editingBook.optionCount || 5,
+        pdfUrl: editingBook.pdfUrl || ''
+      });
     } else {
-      setNewBook({ title: "", publisher: "", bookType: "standard", pdfUrl: "" });
+      setNewBook({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "" });
     }
   }, [editingBook]);
 
@@ -416,6 +422,42 @@ export default function BookManager() {
                 </label>
               </div>
             </div>
+
+            {newBook.bookType !== 'open_ended' && (
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>Optik Form Seçenek Sayısı (Seviye)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 4 ? 'var(--color-primary)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 'var(--border-radius-sm)', cursor: 'pointer', background: newBook.optionCount === 4 ? 'rgba(124, 58, 237, 0.05)' : 'white' }}>
+                    <input
+                      type="radio"
+                      name="optionCount"
+                      value={4}
+                      checked={newBook.optionCount === 4}
+                      onChange={() => setNewBook({ ...newBook, optionCount: 4 })}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>4 Seçenekli (A-D)</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Ortaokul / LGS</div>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 5 ? 'var(--color-primary)' : 'rgba(0,0,0,0.1)'}`, borderRadius: 'var(--border-radius-sm)', cursor: 'pointer', background: newBook.optionCount === 5 ? 'rgba(124, 58, 237, 0.05)' : 'white' }}>
+                    <input
+                      type="radio"
+                      name="optionCount"
+                      value={5}
+                      checked={newBook.optionCount === 5}
+                      onChange={() => setNewBook({ ...newBook, optionCount: 5 })}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>5 Seçenekli (A-E)</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Lise / YKS</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>PDF Linki (İsteğe Bağlı)</label>

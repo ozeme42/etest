@@ -181,7 +181,7 @@ export default function PhysicalQuizReview({ submission, test, questions }) {
                     {(() => {
                       const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
                         ? qObj.options
-                        : (test.optionCount === 4 || test.optionsCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
+                        : (test.optionCount === 4 || test.optionsCount === 4 || test.book?.optionCount === 4 || test.examType === 'LGS' || String(test.grade || '').match(/^[5-8]/))
                           ? ['A', 'B', 'C', 'D']
                           : ['A', 'B', 'C', 'D', 'E'];
                       return optionsList.map((opt, optIdx) => {
