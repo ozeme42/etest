@@ -264,12 +264,15 @@ function RightOptikPanel({
               ) : (
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
                   {(() => {
-                    const isFourOptions = (
-                      test?.optionCount === 4 ||
-                      test?.optionsCount === 4 ||
-                      test?.book?.optionCount === 4 ||
+                    const isFourOptions = Boolean(
+                      Number(test?.optionCount) === 4 ||
+                      Number(test?.optionsCount) === 4 ||
+                      Number(test?.book?.optionCount) === 4 ||
+                      String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
                       test?.examType === 'LGS' ||
-                      String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                      test?.book?.publisher === 'LGS' ||
+                      String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                      String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
                     );
                     const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                     return optList.map((opt, optIdx) => {
@@ -1658,12 +1661,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         {!isQOpenEnded ? (
                           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                             {(() => {
-                              const isFourOptions = (
-                                test?.optionCount === 4 ||
-                                test?.optionsCount === 4 ||
-                                test?.book?.optionCount === 4 ||
+                              const isFourOptions = Boolean(
+                                Number(test?.optionCount) === 4 ||
+                                Number(test?.optionsCount) === 4 ||
+                                Number(test?.book?.optionCount) === 4 ||
+                                String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
                                 test?.examType === 'LGS' ||
-                                String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                                test?.book?.publisher === 'LGS' ||
+                                String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                                String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
                               );
                               const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                               return optList.map((opt, optIdx) => {
@@ -1832,12 +1838,15 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                     : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
                   const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
 
-                  const isFourOpts = (
-                    test?.optionCount === 4 ||
-                    test?.optionsCount === 4 ||
-                    test?.book?.optionCount === 4 ||
+                  const isFourOpts = Boolean(
+                    Number(test?.optionCount) === 4 ||
+                    Number(test?.optionsCount) === 4 ||
+                    Number(test?.book?.optionCount) === 4 ||
+                    String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
                     test?.examType === 'LGS' ||
-                    String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                    test?.book?.publisher === 'LGS' ||
+                    String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                    String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
                   );
                   const options = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
                     ? (isFourOpts && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)

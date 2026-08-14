@@ -516,12 +516,24 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
                     />
                   ) : (
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                        const isSelected = selectedOpt === optIdx;
-                        return (
-                          <button
-                            key={opt}
-                            onClick={() => handleOptionSelect(qNo, optIdx)}
+                      {(() => {
+                        const isFourOptions = Boolean(
+                          Number(test?.optionCount) === 4 ||
+                          Number(test?.optionsCount) === 4 ||
+                          Number(test?.book?.optionCount) === 4 ||
+                          String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
+                          test?.examType === 'LGS' ||
+                          test?.book?.publisher === 'LGS' ||
+                          String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                          String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
+                        );
+                        const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                        return optList.map((opt, optIdx) => {
+                          const isSelected = selectedOpt === optIdx;
+                          return (
+                            <button
+                              key={opt}
+                              onClick={() => handleOptionSelect(qNo, optIdx)}
                             style={{
                               flex: 1,
                               height: '36px',
@@ -542,8 +554,9 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
                             {opt}
                           </button>
                         );
-                      })}
-                    </div>
+                      });
+                    })()}
+                  </div>
                   )}
                 </div>
               );

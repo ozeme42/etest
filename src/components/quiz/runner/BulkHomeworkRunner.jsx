@@ -531,12 +531,15 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                 ) : (
                   <div style={{ display: 'flex', gap: '0.4rem' }}>
                     {(() => {
-                      const isFourOptions = (
-                        test?.optionCount === 4 ||
-                        test?.optionsCount === 4 ||
-                        test?.book?.optionCount === 4 ||
+                      const isFourOptions = Boolean(
+                        Number(test?.optionCount) === 4 ||
+                        Number(test?.optionsCount) === 4 ||
+                        Number(test?.book?.optionCount) === 4 ||
+                        String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
                         test?.examType === 'LGS' ||
-                        String(test?.grade || test?.book?.grade || '').match(/^[5-8]/)
+                        test?.book?.publisher === 'LGS' ||
+                        String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                        String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
                       );
                       const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
                       return optionsList.map((opt, optIdx) => {

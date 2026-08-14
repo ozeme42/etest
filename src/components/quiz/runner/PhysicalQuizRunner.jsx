@@ -526,12 +526,15 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                     ) : (
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
                         {(() => {
-                          const isFourOptions = (
-                            test.optionCount === 4 ||
-                            test.optionsCount === 4 ||
-                            test.book?.optionCount === 4 ||
-                            test.examType === 'LGS' ||
-                            String(test.grade || test.book?.grade || '').match(/^[5-8]/)
+                          const isFourOptions = Boolean(
+                            Number(test?.optionCount) === 4 ||
+                            Number(test?.optionsCount) === 4 ||
+                            Number(test?.book?.optionCount) === 4 ||
+                            String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
+                            test?.examType === 'LGS' ||
+                            test?.book?.publisher === 'LGS' ||
+                            String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                            String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
                           );
                           const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
                             ? (isFourOptions && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
@@ -713,12 +716,15 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                       ) : (
                         <div style={{ display: 'flex', gap: '0.4rem', flex: 1, maxWidth: 260 }}>
                           {(() => {
-                            const isFourOptions = (
-                              test.optionCount === 4 ||
-                              test.optionsCount === 4 ||
-                              test.book?.optionCount === 4 ||
-                              test.examType === 'LGS' ||
-                              String(test.grade || test.book?.grade || '').match(/^[5-8]/)
+                            const isFourOptions = Boolean(
+                              Number(test?.optionCount) === 4 ||
+                              Number(test?.optionsCount) === 4 ||
+                              Number(test?.book?.optionCount) === 4 ||
+                              String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
+                              test?.examType === 'LGS' ||
+                              test?.book?.publisher === 'LGS' ||
+                              String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                              String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
                             );
                             const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
                               ? (isFourOptions && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)

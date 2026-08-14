@@ -571,12 +571,24 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                   Doğru Şıkkı Seçiniz:
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                  {['A', 'B', 'C', 'D', 'E'].map((opt, optIdx) => {
-                    const isSelected = currentAnsObj.userAnswer === optIdx;
-                    return (
-                      <button
-                        key={opt}
-                        onClick={() => handleOptionSelect(optIdx)}
+                  {(() => {
+                    const isFourOptions = Boolean(
+                      Number(test?.optionCount) === 4 ||
+                      Number(test?.optionsCount) === 4 ||
+                      Number(test?.book?.optionCount) === 4 ||
+                      String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
+                      test?.examType === 'LGS' ||
+                      test?.book?.publisher === 'LGS' ||
+                      String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
+                      String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
+                    );
+                    const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                    return optList.map((opt, optIdx) => {
+                      const isSelected = currentAnsObj.userAnswer === optIdx;
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => handleOptionSelect(optIdx)}
                         style={{
                           width: '42px',
                           height: '42px',
@@ -597,8 +609,9 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                         {opt}
                       </button>
                     );
-                  })}
-                </div>
+                  });
+                })()}
+              </div>
               </div>
             )}
           </div>
