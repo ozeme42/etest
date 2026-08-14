@@ -6,6 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useStudyPlan } from '../context/StudyPlanContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 
 /* ─── Constants ─── */
@@ -1409,9 +1410,18 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const bookTests = trackedBooksContext?.bookTests || [];
   const books = trackedBooksContext?.books || [];
 
+  const studyPlanContext = useStudyPlan();
+  const studyPlans = studyPlanContext?.studyPlans || [];
+  const studyAssignments = studyPlanContext?.studyAssignments || [];
+
   const handleOpenTaskResult = useCallback((item) => {
     if (!item) return;
     const sId = currentUser?.id;
+
+    if (item.roadmapAssignmentId) {
+      navigate(`/student/study-plan/${item.roadmapAssignmentId}`);
+      return;
+    }
 
     if (item.testId) {
       navigate(`/book-quiz/${item.testId}${sId ? `?studentId=${sId}` : ''}`);
@@ -1488,7 +1498,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       };
     });
 
-    if (!currentUser || !allHomeworks.length) {
+    if (!currentUser) {
       return weeklyProgram.map(dayObj => ({
         ...dayObj,
         dateLabel: dayDateMap[dayObj.day]?.dateLabel || ''
@@ -1498,7 +1508,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
     const studentId = currentUser.id;
     const studentGrades = curData?.grades || [];
 
-    const studentHomeworks = allHomeworks.filter(hw => {
+    const studentHomeworks = (allHomeworks || []).filter(hw => {
       return isHomeworkForStudent(hw, currentUser, studentGrades);
     });
 
@@ -1535,8 +1545,8 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       });
       const autoHwItems = [];
 
+      // A) Homeworks & Book Assignments
       studentHomeworks.forEach(hw => {
-        // A) Book Assignment with per-test dates (testDueDates)
         if (hw.isBookAssignment && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           const bookObj = books.find(b => String(b.id) === String(hw.bookId));
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
@@ -1586,7 +1596,6 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
           return;
         }
 
-        // B) Standard Homework or overall Book Assignment due date
         const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
         const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
         const startTime = startYMD ? new Date(startYMD).getTime() : null;
@@ -1629,13 +1638,72 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
         }
       });
 
+      // B) Roadmap / Study Plan items with target dates (dueDate)
+      const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
+      studentAssignments.forEach(assignment => {
+        const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+        if (!plan) return;
+
+        const completedTopicsSet = new Set(assignment.completedTopics || []);
+
+        (plan.subjects || []).forEach(subject => {
+          if (subject.dueDate) {
+            const sYMD = subject.dueDate.split('T')[0];
+            if (dayInfo.ymd === sYMD) {
+              const isCompleted = completedTopicsSet.has(subject.id);
+              if (!isCompleted) {
+                const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`);
+                if (!exists) {
+                  autoHwItems.push({
+                    id: `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`,
+                    roadmapAssignmentId: assignment.id,
+                    isAutoHomework: true,
+                    isRoadmapTask: true,
+                    taskType: 'konu',
+                    subject: `${plan.title} • ${subject.name}`,
+                    topic: subject.name,
+                    time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+                    done: false
+                  });
+                }
+              }
+            }
+          }
+
+          (subject.topics || []).forEach(topic => {
+            if (topic.dueDate) {
+              const tYMD = topic.dueDate.split('T')[0];
+              if (dayInfo.ymd === tYMD) {
+                const isCompleted = completedTopicsSet.has(topic.id);
+                if (!isCompleted) {
+                  const exists = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`);
+                  if (!exists) {
+                    autoHwItems.push({
+                      id: `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`,
+                      roadmapAssignmentId: assignment.id,
+                      isAutoHomework: true,
+                      isRoadmapTask: true,
+                      taskType: 'konu',
+                      subject: `${plan.title} • ${subject.name}`,
+                      topic: topic.name,
+                      time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                      done: false
+                    });
+                  }
+                }
+              }
+            }
+          });
+        });
+      });
+
       return {
         ...dayObj,
         dateLabel: dayInfo.dateLabel,
         items: [...autoHwItems, ...manualItems]
       };
     });
-  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo, bookTests, books]);
+  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo, bookTests, books, studyPlans, studyAssignments]);
 
   const [editingItem, setEditingItem] = useState(null); // { dayKey, item }
   const [assigningTopic, setAssigningTopic] = useState(null); // { subject, topic, taskType }

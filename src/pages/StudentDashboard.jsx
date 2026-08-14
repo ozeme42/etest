@@ -698,12 +698,71 @@ export default function StudentDashboard() {
       }
     });
 
+    // C) Roadmap / Study Plan assigned items with target dates (dueDate)
+    const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
+    studentAssignments.forEach(assignment => {
+      const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+      if (!plan) return;
+
+      const completedTopicsSet = new Set(assignment.completedTopics || []);
+
+      (plan.subjects || []).forEach(subject => {
+        if (subject.dueDate) {
+          const sYMD = subject.dueDate.split('T')[0];
+          if (todayYMD === sYMD) {
+            const isCompleted = completedTopicsSet.has(subject.id);
+            if (!isCompleted) {
+              const existsInManual = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}`);
+              if (!existsInManual) {
+                autoHwItems.push({
+                  id: `roadmap_sub_${assignment.id}_${subject.id}`,
+                  roadmapAssignmentId: assignment.id,
+                  isAutoHomework: true,
+                  isRoadmapTask: true,
+                  taskType: 'konu',
+                  subject: `${plan.title} • ${subject.name}`,
+                  topic: subject.name,
+                  time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+                  done: false
+                });
+              }
+            }
+          }
+        }
+
+        (subject.topics || []).forEach(topic => {
+          if (topic.dueDate) {
+            const tYMD = topic.dueDate.split('T')[0];
+            if (todayYMD === tYMD) {
+              const isCompleted = completedTopicsSet.has(topic.id);
+              if (!isCompleted) {
+                const existsInManual = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}`);
+                if (!existsInManual) {
+                  autoHwItems.push({
+                    id: `roadmap_top_${assignment.id}_${topic.id}`,
+                    roadmapAssignmentId: assignment.id,
+                    isAutoHomework: true,
+                    isRoadmapTask: true,
+                    taskType: 'konu',
+                    subject: `${plan.title} • ${subject.name}`,
+                    topic: topic.name,
+                    time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                    done: false
+                  });
+                }
+              }
+            }
+          }
+        });
+      });
+    });
+
     return {
       dayName: currentDayObj.long,
       dayKey: currentDayObj.key,
       items: [...autoHwItems, ...manualItems]
     };
-  }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests]);
+  }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, studyAssignments, studyPlans]);
 
   const handleToggleTodayTask = async (taskId) => {
     if (!coachingProfile || !coachingProfile.weeklyProgram) return;
@@ -1057,9 +1116,13 @@ export default function StudentDashboard() {
                 diger: '✨'
               };
               const icon = taskIcons[item.taskType] || '📌';
-              const isQuizTask = item.isAutoHomework || item.testId || item.hwId;
+              const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId;
 
               const handleTaskClick = () => {
+                if (item.roadmapAssignmentId) {
+                  navigate(`/student/study-plan/${item.roadmapAssignmentId}`);
+                  return;
+                }
                 if (item.testId) {
                   navigate(`/book-quiz/${item.testId}?studentId=${selectedStudent.id}`);
                   return;
