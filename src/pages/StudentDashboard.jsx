@@ -630,6 +630,9 @@ export default function StudentDashboard() {
               (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))))
             );
 
+            // Exclude solved/completed tests so they disappear from today's program view
+            if (isSolved) return;
+
             const existsInManual = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}`);
             if (!existsInManual) {
               autoHwItems.push({
@@ -642,7 +645,7 @@ export default function StudentDashboard() {
                 topic: displaySub,
                 questionCount: `${qCount} soru`,
                 time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                done: isSolved
+                done: false
               });
             }
           }
@@ -675,6 +678,9 @@ export default function StudentDashboard() {
           submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
         const isDone = !!sub;
 
+        // Exclude completed standard homeworks so they disappear from today's program view
+        if (isDone) return;
+
         const existsInManual = manualItems.some(m => m.id === `auto_hw_${hw.id}` || m.hwId === hw.id);
         if (!existsInManual) {
           autoHwItems.push({
@@ -686,7 +692,7 @@ export default function StudentDashboard() {
             topic: hw.title || hw.name || 'Ödev Görevi',
             questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
             time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-            done: isDone
+            done: false
           });
         }
       }
@@ -1051,10 +1057,31 @@ export default function StudentDashboard() {
                 diger: '✨'
               };
               const icon = taskIcons[item.taskType] || '📌';
+              const isQuizTask = item.isAutoHomework || item.testId || item.hwId;
+
+              const handleTaskClick = () => {
+                if (item.testId) {
+                  navigate(`/book-quiz/${item.testId}?studentId=${selectedStudent.id}`);
+                  return;
+                }
+                if (item.hwId) {
+                  const hwObj = (homeworks || []).find(h => String(h.id) === String(item.hwId));
+                  if (hwObj?.type === 'physicalExam') {
+                    navigate(`/physical-exam/${item.hwId}?studentId=${selectedStudent.id}`);
+                  } else if (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0) {
+                    navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
+                  } else {
+                    navigate(`/quiz/${item.hwId}?studentId=${selectedStudent.id}`);
+                  }
+                  return;
+                }
+                handleToggleTodayTask(item.id);
+              };
+
               return (
                 <div
                   key={item.id || idx}
-                  onClick={() => handleToggleTodayTask(item.id)}
+                  onClick={handleTaskClick}
                   style={{
                     background: item.done ? '#f8fafc' : '#ffffff',
                     borderRadius: 16,
@@ -1113,18 +1140,44 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  {/* Status Indicator Pill */}
-                  <div style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 900,
-                    padding: '0.25rem 0.65rem',
-                    borderRadius: 99,
-                    background: item.done ? '#dcfce7' : '#eef2ff',
-                    color: item.done ? '#15803d' : '#4f46e5',
-                    flexShrink: 0
-                  }}>
-                    {item.done ? 'Tamamlandı ✓' : 'Tamamla'}
-                  </div>
+                  {/* Status Indicator Pill / Action Button */}
+                  {isQuizTask ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTaskClick();
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 99,
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        boxShadow: '0 3px 10px rgba(79,70,229,0.3)',
+                        flexShrink: 0
+                      }}
+                    >
+                      <PlayCircle size={13} /> Sonuç Gir
+                    </button>
+                  ) : (
+                    <div style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 900,
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: 99,
+                      background: item.done ? '#dcfce7' : '#eef2ff',
+                      color: item.done ? '#15803d' : '#4f46e5',
+                      flexShrink: 0
+                    }}>
+                      {item.done ? 'Tamamlandı ✓' : 'Tamamla'}
+                    </div>
+                  )}
                 </div>
               );
             })}

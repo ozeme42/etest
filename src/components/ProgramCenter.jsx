@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, PlayCircle } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -414,7 +415,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
 }
 
 /* ─── DayCard ─── */
-export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditClick, onAddClick }) {
+export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditClick, onAddClick, onOpenResult }) {
   const items = dayObj.items || [];
   const done = items.filter(i => i.done).length;
   const total = items.length;
@@ -483,6 +484,8 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
         {items.map(item => {
           const tt = TASK_TYPES.find(t => t.id === item.taskType);
           const accentColor = item.done ? '#22c55e' : (tt?.color || theme.accent);
+          const isQuizTask = item.isAutoHomework || item.testId || item.hwId || (item.id && String(item.id).startsWith('hw_'));
+
           return (
             <div key={item.id}
               style={{
@@ -498,7 +501,13 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                 boxShadow: item.done ? 'none' : '0 2px 6px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease'
               }}
-              onClick={() => onToggle(dayObj.day, item.id)}>
+              onClick={() => {
+                if (isQuizTask && onOpenResult) {
+                  onOpenResult(item);
+                } else {
+                  onToggle(dayObj.day, item.id);
+                }
+              }}>
               {/* Icon */}
               <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1, background: item.done ? '#22c55e' : (tt?.bg || '#f1f5f9'), border: item.done ? 'none' : `1px solid ${tt?.color || '#cbd5e1'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
                 {item.done ? <Check size={12} color="white" strokeWidth={3} /> : (tt?.icon || '📝')}
@@ -536,7 +545,30 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                {isQuizTask && onOpenResult && (
+                  <button
+                    onClick={() => onOpenResult(item)}
+                    style={{
+                      background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      padding: '0.22rem 0.55rem',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      boxShadow: '0 2px 6px rgba(79,70,229,0.25)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Test Sonucunu Gir / Sınavı Çöz"
+                  >
+                    <PlayCircle size={11} /> Sonuç Gir
+                  </button>
+                )}
                 {!item.isAutoHomework && onEditClick && (
                   <button onClick={() => onEditClick(dayObj.day, item)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2, display: 'flex', borderRadius: 4 }}
@@ -1362,6 +1394,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const todayKey = getTodayKey();
+  const navigate = useNavigate();
 
   const hwContext = useHomework();
   const authContext = useAuth();
@@ -1375,6 +1408,34 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const curData = currContext?.curriculumData;
   const bookTests = trackedBooksContext?.bookTests || [];
   const books = trackedBooksContext?.books || [];
+
+  const handleOpenTaskResult = useCallback((item) => {
+    if (!item) return;
+    const sId = currentUser?.id;
+
+    if (item.testId) {
+      navigate(`/book-quiz/${item.testId}${sId ? `?studentId=${sId}` : ''}`);
+      return;
+    }
+
+    if (item.hwId) {
+      const hwObj = (allHomeworks || []).find(h => String(h.id) === String(item.hwId));
+      if (hwObj?.type === 'physicalExam') {
+        navigate(`/physical-exam/${item.hwId}${sId ? `?studentId=${sId}` : ''}`);
+      } else if (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0) {
+        navigate(`/book-quiz/${hwObj.tests[0]}${sId ? `?studentId=${sId}` : ''}`);
+      } else {
+        navigate(`/quiz/${item.hwId}${sId ? `?studentId=${sId}` : ''}`);
+      }
+      return;
+    }
+
+    if (item.id && String(item.id).startsWith('hw_')) {
+      const cleanId = String(item.id).replace('hw_', '');
+      navigate(`/quiz/${cleanId}${sId ? `?studentId=${sId}` : ''}`);
+      return;
+    }
+  }, [navigate, currentUser, allHomeworks]);
 
   const weekInfo = useMemo(() => {
     const MONTHS_TR = [
@@ -1502,6 +1563,9 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                 (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))))
               );
 
+              // Exclude solved/completed tests so they disappear from the program view
+              if (isSolved) return;
+
               const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
               if (!exists) {
                 autoHwItems.push({
@@ -1514,7 +1578,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                   topic: displaySub,
                   questionCount: `${qCount} soru`,
                   time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                  done: isSolved
+                  done: false
                 });
               }
             }
@@ -1545,6 +1609,9 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
             submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
           const isDone = !!sub;
 
+          // Exclude completed standard homeworks so they disappear from the program view
+          if (isDone) return;
+
           const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
           if (!exists) {
             autoHwItems.push({
@@ -1556,7 +1623,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               topic: hw.title || hw.name || 'Ödev Görevi',
               questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
               time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-              done: isDone
+              done: false
             });
           }
         }
@@ -1810,7 +1877,8 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                   isToday={dayObj.day === todayKey}
                   onToggle={handleToggle} onDelete={handleDelete}
                   onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
-                  onAddClick={d => setAddingToDay(d)} />
+                  onAddClick={d => setAddingToDay(d)}
+                  onOpenResult={handleOpenTaskResult} />
               );
             })}
           </div>
