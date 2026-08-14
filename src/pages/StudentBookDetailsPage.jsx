@@ -19,19 +19,30 @@ export default function StudentBookDetailsPage() {
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
   const [openSubjects, setOpenSubjects] = useState({});
+  const [openTopics, setOpenTopics] = useState({});
 
   const toggleSubject = (subjId) => {
     setOpenSubjects(prev => ({ ...prev, [subjId]: !prev[subjId] }));
   };
 
+  const toggleTopic = (topicId) => {
+    setOpenTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
+  };
+
   const expandAllSubjects = () => {
-    const all = {};
-    subjectProgress.forEach(s => { all[s.id] = true; });
-    setOpenSubjects(all);
+    const allS = {};
+    const allT = {};
+    subjectProgress.forEach(s => {
+      allS[s.id] = true;
+      (s.topics || []).forEach(t => { allT[t.id] = true; });
+    });
+    setOpenSubjects(allS);
+    setOpenTopics(allT);
   };
 
   const collapseAllSubjects = () => {
     setOpenSubjects({});
+    setOpenTopics({});
   };
 
   const studentId = currentUser?.id;
@@ -176,9 +187,24 @@ export default function StudentBookDetailsPage() {
 
       const completedCount = testsWithStatus.filter(t => t.isCompleted).length;
       
+      const topicsList = subject.topics || [];
+      const topicsWithTests = topicsList.map(topic => {
+        const topicTests = testsWithStatus.filter(t => String(t.topicId) === String(topic.id));
+        return {
+          ...topic,
+          tests: topicTests,
+          completedCount: topicTests.filter(t => t.isCompleted).length,
+          totalCount: topicTests.length
+        };
+      }).filter(top => top.tests.length > 0);
+
+      const directTests = testsWithStatus.filter(t => !t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id) || !topicsList.some(top => String(top.id) === String(t.topicId)));
+
       return {
         ...subject,
         tests: testsWithStatus,
+        topics: topicsWithTests,
+        directTests,
         completedCount,
         totalCount: testsWithStatus.length,
         pct: Math.round((completedCount / testsWithStatus.length) * 100)
@@ -516,81 +542,274 @@ export default function StudentBookDetailsPage() {
               </div>
 
               {isOpen && (
-                <div style={{ padding: '0.85rem', background: '#fafbff', borderTop: `2px solid ${sc.accent}22`, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {subj.tests.map(test => {
-                    let stateBg = '#f8fafc', stateBorder = '#e2e8f0', stateAccent = '#94a3b8';
-                    if (test.isCompleted) { stateBg = '#f0fdf4'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
-                    else if (!test.isLocked) { stateBg = '#fafafe'; stateBorder = sc.accent + '33'; stateAccent = sc.accent; }
-
-                    return (
-                      <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#e2e8f0' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0, boxShadow: test.isLocked ? 'none' : '0 2px 8px rgba(0,0,0,0.18)' }}>
-                          {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                <div style={{ padding: '0.85rem', background: '#fafbff', borderTop: `2px solid ${sc.accent}22`, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  
+                  {/* Direct Tests */}
+                  {subj.directTests && subj.directTests.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      {subj.topics && subj.topics.length > 0 && (
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
+                          <FileText size={14} color={sc.accent} /> Direkt Testler
                         </div>
+                      )}
+                      {subj.directTests.map(test => {
+                        let stateBg = '#f8fafc', stateBorder = '#e2e8f0', stateAccent = '#94a3b8';
+                        if (test.isCompleted) { stateBg = '#f0fdf4'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                        else if (!test.isLocked) { stateBg = '#fafafe'; stateBorder = sc.accent + '33'; stateAccent = sc.accent; }
 
-                        <div style={{ flex: 1, minWidth: 140 }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a', textDecoration: test.isCompleted ? 'none' : 'none' }}>
-                            {test.name}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span>{test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru</span>
-                            {test.testDueDate && (
-                              <span style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                padding: '2px 7px',
-                                borderRadius: '6px',
-                                background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eef2ff'),
-                                color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
-                                border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
-                              }}>
-                                📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
-                              </span>
+                        return (
+                          <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#e2e8f0' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0, boxShadow: test.isLocked ? 'none' : '0 2px 8px rgba(0,0,0,0.18)' }}>
+                              {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 140 }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a' }}>
+                                {test.name}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <span>{test.questionCount || 20} Soru</span>
+                                {test.testDueDate && (
+                                  <span style={{
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    padding: '2px 7px',
+                                    borderRadius: '6px',
+                                    background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eef2ff'),
+                                    color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
+                                    border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
+                                  }}>
+                                    📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {test.isCompleted && test.bestScore !== null && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Award size={12} /> %{test.bestScore}
+                                </span>
+                                {test.bestSub && (
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '99px' }}>
+                                    <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0}D</span>{' '}
+                                    <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
+                                    <span>{test.bestSub.blankCount || 0}B</span>
+                                  </span>
+                                )}
+                              </div>
                             )}
-                          </div>
-                        </div>
 
-                        {test.isCompleted && test.bestScore !== null && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Award size={12} /> %{test.bestScore}
-                            </span>
-                            {test.bestSub && (
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '99px' }}>
-                                <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0}D</span>{' '}
-                                <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
-                                <span>{test.bestSub.blankCount || 0}B</span>
+                            <div style={{ flexShrink: 0 }}>
+                              {test.isCompleted ? (
+                                <button
+                                  className="sbdp-btn-solve"
+                                  style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
+                                  onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
+                                >
+                                  Sonucu İncele
+                                </button>
+                              ) : test.isLocked ? (
+                                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Lock size={14} /> Kilitli
+                                </span>
+                              ) : (
+                                <button
+                                  className="sbdp-btn-solve"
+                                  style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                  onClick={() => navigate(`/book-quiz/${test.id}`)}
+                                >
+                                  <PlayCircle size={14} /> Şimdi Çöz
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Topics / Units List */}
+                  {subj.topics && subj.topics.length > 0 ? (
+                    subj.topics.map(topic => {
+                      const isTopicOpen = openTopics[topic.id] !== false;
+
+                      return (
+                        <div key={topic.id} style={{ borderRadius: '0.85rem', border: '1px solid #e2e8f0', overflow: 'hidden', background: 'white' }}>
+                          <div
+                            onClick={() => toggleTopic(topic.id)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', cursor: 'pointer', background: isTopicOpen ? sc.light : '#f8fafc', borderBottom: isTopicOpen ? '1px solid #e2e8f0' : 'none', flexWrap: 'wrap', gap: '0.5rem' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                              <FileText size={16} color={sc.accent} />
+                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1e293b' }}>{topic.name}</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: sc.accent, background: 'white', padding: '2px 8px', borderRadius: 99, border: `1px solid ${sc.accent}33` }}>
+                                {topic.completedCount}/{topic.totalCount} Test
                               </span>
-                            )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+                              {isTopicOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </div>
                           </div>
-                        )}
 
-                        <div style={{ flexShrink: 0 }}>
-                          {test.isCompleted ? (
-                            <button
-                              className="sbdp-btn-solve"
-                              style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
-                              onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
-                            >
-                              Sonucu İncele
-                            </button>
-                          ) : test.isLocked ? (
-                            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Lock size={14} /> Kilitli
-                            </span>
-                          ) : (
-                            <button
-                              className="sbdp-btn-solve"
-                              style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                              onClick={() => navigate(`/book-quiz/${test.id}`)}
-                            >
-                              <PlayCircle size={14} /> Şimdi Çöz
-                            </button>
+                          {isTopicOpen && (
+                            <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', background: '#fafbff' }}>
+                              {topic.tests.map(test => {
+                                let stateBg = '#f8fafc', stateBorder = '#e2e8f0', stateAccent = '#94a3b8';
+                                if (test.isCompleted) { stateBg = '#f0fdf4'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                                else if (!test.isLocked) { stateBg = '#fafafe'; stateBorder = sc.accent + '33'; stateAccent = sc.accent; }
+
+                                return (
+                                  <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#e2e8f0' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0, boxShadow: test.isLocked ? 'none' : '0 2px 8px rgba(0,0,0,0.18)' }}>
+                                      {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                                    </div>
+
+                                    <div style={{ flex: 1, minWidth: 140 }}>
+                                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a' }}>
+                                        {test.name}
+                                      </div>
+                                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <span>{test.questionCount || 20} Soru</span>
+                                        {test.testDueDate && (
+                                          <span style={{
+                                            fontSize: '0.7rem',
+                                            fontWeight: 800,
+                                            padding: '2px 7px',
+                                            borderRadius: '6px',
+                                            background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eef2ff'),
+                                            color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
+                                            border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
+                                          }}>
+                                            📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {test.isCompleted && test.bestScore !== null && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <Award size={12} /> %{test.bestScore}
+                                        </span>
+                                        {test.bestSub && (
+                                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '99px' }}>
+                                            <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0}D</span>{' '}
+                                            <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
+                                            <span>{test.bestSub.blankCount || 0}B</span>
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    <div style={{ flexShrink: 0 }}>
+                                      {test.isCompleted ? (
+                                        <button
+                                          className="sbdp-btn-solve"
+                                          style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
+                                          onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
+                                        >
+                                          Sonucu İncele
+                                        </button>
+                                      ) : test.isLocked ? (
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <Lock size={14} /> Kilitli
+                                        </span>
+                                      ) : (
+                                        <button
+                                          className="sbdp-btn-solve"
+                                          style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                          onClick={() => navigate(`/book-quiz/${test.id}`)}
+                                        >
+                                          <PlayCircle size={14} /> Şimdi Çöz
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    subj.tests.map(test => {
+                      let stateBg = '#f8fafc', stateBorder = '#e2e8f0', stateAccent = '#94a3b8';
+                      if (test.isCompleted) { stateBg = '#f0fdf4'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                      else if (!test.isLocked) { stateBg = '#fafafe'; stateBorder = sc.accent + '33'; stateAccent = sc.accent; }
+
+                      return (
+                        <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#e2e8f0' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0, boxShadow: test.isLocked ? 'none' : '0 2px 8px rgba(0,0,0,0.18)' }}>
+                            {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 140 }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a' }}>
+                              {test.name}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span>{test.questionCount || 20} Soru</span>
+                              {test.testDueDate && (
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  padding: '2px 7px',
+                                  borderRadius: '6px',
+                                  background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eef2ff'),
+                                  color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
+                                  border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
+                                }}>
+                                  📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {test.isCompleted && test.bestScore !== null && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Award size={12} /> %{test.bestScore}
+                              </span>
+                              {test.bestSub && (
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '99px' }}>
+                                  <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0}D</span>{' '}
+                                  <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
+                                  <span>{test.bestSub.blankCount || 0}B</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          <div style={{ flexShrink: 0 }}>
+                            {test.isCompleted ? (
+                              <button
+                                className="sbdp-btn-solve"
+                                style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
+                                onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
+                              >
+                                Sonucu İncele
+                              </button>
+                            ) : test.isLocked ? (
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Lock size={14} /> Kilitli
+                              </span>
+                            ) : (
+                              <button
+                                className="sbdp-btn-solve"
+                                style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                onClick={() => navigate(`/book-quiz/${test.id}`)}
+                              >
+                                <PlayCircle size={14} /> Şimdi Çöz
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+
                 </div>
               )}
             </div>
