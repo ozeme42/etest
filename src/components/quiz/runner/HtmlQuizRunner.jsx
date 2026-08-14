@@ -517,17 +517,20 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
                   ) : (
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
                       {(() => {
-                        const isFourOptions = Boolean(
-                          Number(test?.optionCount) === 4 ||
-                          Number(test?.optionsCount) === 4 ||
-                          Number(test?.book?.optionCount) === 4 ||
-                          String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('4') ||
-                          test?.examType === 'LGS' ||
-                          test?.book?.publisher === 'LGS' ||
-                          String(test?.grade || test?.book?.grade || '').match(/^[5-8]/) ||
-                          String(test?.title || test?.book?.title || '').match(/lgs|5\s*sınıf|6\s*sınıf|7\s*sınıf|8\s*sınıf|ortaokul/i)
+                        const isExplicitFive = Boolean(
+                          Number(test?.optionCount) === 5 ||
+                          Number(test?.optionsCount) === 5 ||
+                          Number(test?.book?.optionCount) === 5 ||
+                          String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
+                          test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
+                          test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
+                          Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
+                          Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
                         );
-                        const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
+                        const isFourOpts = !isExplicitFive;
+                        const optList = (q?.options && Array.isArray(q.options) && q.options.length > 0)
+                          ? (isFourOpts && q.options.length > 4 ? q.options.slice(0, 4) : q.options)
+                          : (isFourOpts ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
                         return optList.map((opt, optIdx) => {
                           const isSelected = selectedOpt === optIdx;
                           return (
