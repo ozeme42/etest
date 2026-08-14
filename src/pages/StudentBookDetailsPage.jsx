@@ -310,139 +310,130 @@ export default function StudentBookDetailsPage() {
   }, [subjectProgress, selectedChartSubject]);
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem', maxWidth: 1000, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <button 
-          className="btn btn-outline" 
-          onClick={() => navigate(book?.bookType === 'exam' ? '/student/exams' : '/student/books')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none' }}
-        >
-          <ArrowLeft size={18} /> {book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön'}
-        </button>
+    <div style={{ padding: '1.5rem 1rem', maxWidth: 1000, margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <style>{`
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .sbdp-anim { animation: fadeSlideUp 0.3s ease both; }
+        .sbdp-subject-card { transition: box-shadow 0.2s, transform 0.2s; }
+        .sbdp-subject-card:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.13) !important; transform: translateY(-2px); }
+        .sbdp-test-row { transition: background 0.15s, box-shadow 0.15s; }
+        .sbdp-test-row:hover { background: #f1f5f9 !important; }
+        .sbdp-btn-solve { transition: box-shadow 0.15s, transform 0.15s; }
+        .sbdp-btn-solve:hover { box-shadow: 0 4px 16px rgba(99,102,241,0.35) !important; transform: translateY(-1px); }
+      `}</style>
 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <button
+          onClick={() => navigate(book?.bookType === 'exam' ? '/student/exams' : '/student/books')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '0.65rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: '#334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+        >
+          <ArrowLeft size={16} /> {book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön'}
+        </button>
         {bookData.isSelfAdded && (
-          <button 
-            className="btn hover-lift" 
+          <button
             onClick={() => setIsBulkSettingsModalOpen(true)}
-            style={{ background: '#3b82f6', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, padding: '0.6rem 1.2rem', borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', border: 'none', borderRadius: '0.65rem', padding: '0.5rem 1.1rem', fontWeight: 900, fontSize: '0.85rem', color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}
           >
-            <Settings size={18} /> Hızlı Cevap Anahtarı Gir
+            <Settings size={16} /> Cevap Anahtarı Gir
           </button>
         )}
       </div>
 
-      {/* Smart Pacing Guide */}
       {overallPct < 100 && bookData.remainingDays !== null && (
-        <div style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '2px solid #86efac', borderRadius: '1rem', padding: '1.25rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.08)' }}>
-          <div style={{ background: '#16a34a', color: 'white', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Target size={24} />
+        <div className="sbdp-anim" style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '2px solid #86efac', borderRadius: '1rem', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 12px rgba(22,163,74,0.08)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: 'white', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 10px rgba(22,163,74,0.3)' }}>
+            <Target size={20} />
           </div>
           <div>
-            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: '#15803d', fontWeight: 900 }}>Akıllı Tempo Önerisi</h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#16a34a', fontWeight: 600 }}>
-              {bookData.remainingDays === 0 ? (
-                "Süren doldu! Testleri bir an önce tamamlamalısın."
-              ) : (
-                `Hedefe ${bookData.remainingDays} gün kaldı. Zamanında bitirmek için haftada ortalama ${Math.max(1, Math.ceil(((overallTotal - overallCompleted) / bookData.remainingDays) * 7))} test çözmelisin.`
-              )}
-            </p>
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#15803d', marginBottom: 2 }}>Akıllı Tempo Önerisi</div>
+            <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>
+              {bookData.remainingDays === 0
+                ? 'Süren doldu! Testleri bir an önce tamamlamalısın.'
+                : `Hedefe ${bookData.remainingDays} gün kaldı. Haftada ortalama ${Math.max(1, Math.ceil(((overallTotal - overallCompleted) / bookData.remainingDays) * 7))} test çözmelisin.`}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Book Header */}
-      <div className="card glass" style={{ padding: '2rem', marginBottom: '2rem', display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ width: 100, height: 140, background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 20px rgba(0,0,0,0.15)', flexShrink: 0 }}>
-          <BookOpen size={48} />
+      <div className="sbdp-anim" style={{ borderRadius: '1.25rem', overflow: 'hidden', marginBottom: '1.75rem', boxShadow: '0 12px 40px rgba(79,70,229,0.15)' }}>
+        <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%)', padding: '2rem 2rem 1.25rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -50, right: 80, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap', position: 'relative' }}>
+            <div style={{ width: 90, height: 120, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+              <BookOpen size={44} />
+            </div>
+
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+                {book.publisher}
+              </div>
+              <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
+                {book.title}
+                {book.pdfUrl && (
+                  <button
+                    onClick={() => setShowBookPdf(p => !p)}
+                    style={{ marginLeft: 10, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 800, border: '1.5px solid rgba(255,255,255,0.5)', background: showBookPdf ? 'white' : 'rgba(255,255,255,0.15)', color: showBookPdf ? '#4f46e5' : 'white', cursor: 'pointer' }}
+                  >
+                    <FileText size={12} /> {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
+                  </button>
+                )}
+              </h1>
+
+              <div style={{ maxWidth: 420 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)' }}>Genel İlerleme</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallPct === 100 ? '#4ade80' : 'white' }}>%{overallPct}</span>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.2)', height: 8, borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ width: `${overallPct}%`, height: '100%', background: overallPct === 100 ? 'linear-gradient(90deg,#4ade80,#22c55e)' : 'linear-gradient(90deg,#e0e7ff,white)', borderRadius: 99, transition: 'width 0.6s ease', boxShadow: '0 0 12px rgba(255,255,255,0.4)' }} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div style={{ flex: 1, minWidth: 250 }}>
-          <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-            {book.publisher}
-          </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#1e293b', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {book.title}
-            {book.pdfUrl && (
-              <button
-                onClick={() => setShowBookPdf(p => !p)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '0.3rem 0.8rem', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 800,
-                  border: '1.5px solid', cursor: 'pointer', transition: 'all 0.15s',
-                  background: showBookPdf ? '#1d4ed8' : 'white',
-                  color: showBookPdf ? 'white' : '#1d4ed8',
-                  borderColor: showBookPdf ? '#1d4ed8' : '#93c5fd',
-                  boxShadow: showBookPdf ? '0 2px 8px rgba(29,78,216,0.3)' : 'none',
-                }}
-              >
-                <FileText size={13} />
-                {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
-              </button>
-            )}
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 800 }}>
-                <span style={{ color: '#475569' }}>Genel İlerleme</span>
-                <span style={{ color: overallPct === 100 ? '#10b981' : 'var(--color-primary)' }}>% {overallPct}</span>
-              </div>
-              <div style={{ background: '#e2e8f0', height: 10, borderRadius: 99, overflow: 'hidden' }}>
-                <div style={{ width: `${overallPct}%`, background: overallPct === 100 ? '#10b981' : 'linear-gradient(90deg, var(--color-primary), var(--color-primary-light))', height: '100%', transition: 'width 0.5s ease' }} />
-              </div>
+
+        <div style={{ background: 'white', display: 'flex', flexWrap: 'wrap', gap: 0, borderTop: '3px solid #4f46e5' }}>
+          {[
+            { label: 'Test', value: `${overallCompleted}/${overallTotal}`, color: '#4f46e5', bg: '#eef2ff', icon: '📋' },
+            { label: 'Doğru', value: overallCorrect, color: '#059669', bg: '#f0fdf4', icon: '✅' },
+            { label: 'Yanlış', value: overallWrong, color: '#dc2626', bg: '#fff1f2', icon: '❌' },
+            { label: 'Boş', value: overallBlank, color: '#94a3b8', bg: '#f8fafc', icon: '⬜' },
+            { label: 'Başarı', value: `%${overallSuccessRate}`, color: '#7c3aed', bg: '#faf5ff', icon: '🎯' },
+          ].map((s, i) => (
+            <div key={i} style={{ flex: '1 1 80px', padding: '0.9rem 0.5rem', textAlign: 'center', borderRight: i < 4 ? '1px solid #f1f5f9' : 'none', background: s.bg }}>
+              <div style={{ fontSize: '1rem', marginBottom: 2 }}>{s.icon}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
             </div>
-            
-            <div style={{ display: 'flex', gap: '1.5rem', background: '#f8fafc', padding: '0.75rem 1.25rem', borderRadius: '0.75rem', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Çözülen</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e293b' }}>{overallCompleted} / {overallTotal}</div>
-              </div>
-              <div style={{ width: '1px', background: '#e2e8f0', margin: '0 0.25rem' }}></div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>Doğru</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#059669' }}>{overallCorrect}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>Yanlış</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#b91c1c' }}>{overallWrong}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>Boş</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#64748b' }}>{overallBlank}</div>
-              </div>
-              <div style={{ width: '1px', background: '#e2e8f0', margin: '0 0.25rem' }}></div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 700 }}>Genel Başarı</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#4f46e5' }}>%{overallSuccessRate}</div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {subjectChartData.length > 0 && (
-        <div className="card glass" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <BarChart2 size={20} color="#6366f1" /> {selectedChartSubject === 'all' ? 'Derslere Göre Başarı Dağılımı' : 'Konulara (Testlere) Göre Başarı'}
+        <div className="sbdp-anim" style={{ background: 'white', borderRadius: '1.1rem', border: '1.5px solid #e2e8f0', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <BarChart2 size={18} color="#6366f1" /> {selectedChartSubject === 'all' ? 'Derslere Göre Başarı Dağılımı' : 'Testlere Göre Başarı'}
             </h3>
-            <select 
-               value={selectedChartSubject} 
-               onChange={(e) => setSelectedChartSubject(e.target.value)}
-               style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
+            <select
+              value={selectedChartSubject}
+              onChange={e => setSelectedChartSubject(e.target.value)}
+              style={{ padding: '0.4rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
             >
-              <option value="all">Tüm Dersler (Genel Bakış)</option>
-              {subjectProgress.map(s => (
-                <option key={s.id} value={String(s.id)}>{s.name} (Konu Analizi)</option>
-              ))}
+              <option value="all">Tüm Dersler</option>
+              {subjectProgress.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
             </select>
           </div>
-          <div style={{ width: '100%', height: 300 }}>
+          <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer>
               <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={10} tickFormatter={(val) => val.length > 15 ? val.substring(0, 15) + '...' : val} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={10} tickFormatter={v => v.length > 14 ? v.substring(0, 14) + '…' : v} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontWeight: 800, fontSize: '0.85rem' }} />
-                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 700 }} />
+                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px rgba(0,0,0,0.1)', fontWeight: 800, fontSize: '0.83rem' }} />
+                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.82rem', fontWeight: 700 }} />
                 <Bar dataKey="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="Yanlış" stackId="a" fill="#ef4444" />
                 <Bar dataKey="Boş" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
@@ -452,144 +443,129 @@ export default function StudentBookDetailsPage() {
         </div>
       )}
 
-      {/* PDF Viewer for entire book */}
       {book.pdfUrl && showBookPdf && (
         <div style={{ marginBottom: '2rem' }}>
-          <PdfViewerPanel
-            pdfUrl={book.pdfUrl}
-            title={book.title}
-            defaultOpen={true}
-          />
+          <PdfViewerPanel pdfUrl={book.pdfUrl} title={book.title} defaultOpen={true} />
         </div>
       )}
 
-      {/* Game Map / Subjects */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {subjectProgress.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b' }}>
-              📚 Ders Listesi ({subjectProgress.length} Ders)
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                onClick={expandAllSubjects}
-                style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
-              >
-                Tümünü Aç
-              </button>
-              <span style={{ color: '#cbd5e1' }}>|</span>
-              <button
-                onClick={collapseAllSubjects}
-                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
-              >
-                Tümünü Kapat
-              </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>📚 Ders Listesi</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#eef2ff', color: '#4f46e5', padding: '2px 8px', borderRadius: '99px' }}>{subjectProgress.length} Ders</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={expandAllSubjects} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>Tümünü Aç</button>
+              <span style={{ color: '#cbd5e1', fontSize: '0.8rem' }}>|</span>
+              <button onClick={collapseAllSubjects} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>Kapat</button>
             </div>
           </div>
         )}
 
-        {subjectProgress.map(subj => {
+        {subjectProgress.map((subj, subjIdx) => {
           const isOpen = !!openSubjects[subj.id];
+          const subjectColors = [
+            { from: '#4f46e5', to: '#7c3aed', light: '#eef2ff', accent: '#4f46e5' },
+            { from: '#0891b2', to: '#0e7490', light: '#ecfeff', accent: '#0891b2' },
+            { from: '#059669', to: '#047857', light: '#ecfdf5', accent: '#059669' },
+            { from: '#d97706', to: '#b45309', light: '#fffbeb', accent: '#d97706' },
+            { from: '#7c3aed', to: '#6d28d9', light: '#f5f3ff', accent: '#7c3aed' },
+            { from: '#e11d48', to: '#be123c', light: '#fff1f2', accent: '#e11d48' },
+            { from: '#2563eb', to: '#1d4ed8', light: '#eff6ff', accent: '#2563eb' },
+          ];
+          const sc = subjectColors[subjIdx % subjectColors.length];
+
           return (
-            <div key={subj.id} className="card glass" style={{ padding: '1.25rem 1.5rem', borderRadius: '1rem', transition: 'all 0.2s' }}>
+            <div key={subj.id} className="sbdp-subject-card" style={{ borderRadius: '1.1rem', overflow: 'hidden', border: `1.5px solid ${isOpen ? sc.accent + '44' : '#e2e8f0'}`, boxShadow: isOpen ? `0 4px 20px ${sc.accent}18` : '0 2px 8px rgba(0,0,0,0.03)', background: 'white' }}>
               <div
                 onClick={() => toggleSubject(subj.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  flexWrap: 'wrap',
-                  gap: '1rem'
-                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', userSelect: 'none', background: isOpen ? `linear-gradient(135deg, ${sc.from}, ${sc.to})` : 'white', transition: 'background 0.25s', flexWrap: 'wrap', gap: '0.75rem' }}
               >
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '0.55rem', background: '#eef2ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '0.6rem', background: isOpen ? 'rgba(255,255,255,0.2)' : sc.light, color: isOpen ? 'white' : sc.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: isOpen ? '1.5px solid rgba(255,255,255,0.3)' : `1.5px solid ${sc.accent}33` }}>
                     <Layers size={18} />
                   </div>
-                  {subj.name}
-                </h2>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: isOpen ? 'white' : '#0f172a' }}>{subj.name}</span>
+                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: subj.pct === 100 ? '#16a34a' : '#64748b', background: subj.pct === 100 ? '#f0fdf4' : '#f1f5f9', padding: '0.35rem 0.85rem', borderRadius: '99px', border: subj.pct === 100 ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
-                    {subj.completedCount} / {subj.totalCount} Tamamlandı (%{subj.pct})
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isOpen ? 'rgba(255,255,255,0.18)' : sc.light, padding: '0.3rem 0.75rem', borderRadius: '99px', border: isOpen ? '1px solid rgba(255,255,255,0.3)' : `1px solid ${sc.accent}22` }}>
+                    <div style={{ width: 60, height: 5, background: isOpen ? 'rgba(255,255,255,0.3)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ width: `${subj.pct}%`, height: '100%', background: isOpen ? 'white' : `linear-gradient(90deg, ${sc.from}, ${sc.to})`, borderRadius: 99 }} />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isOpen ? 'white' : sc.accent, whiteSpace: 'nowrap' }}>{subj.completedCount}/{subj.totalCount}</span>
                   </div>
-                  <div style={{ background: '#f1f5f9', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                    {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: isOpen ? 'rgba(255,255,255,0.2)' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isOpen ? 'white' : '#64748b', flexShrink: 0 }}>
+                    {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </div>
                 </div>
               </div>
 
               {isOpen && (
-                <div style={{ position: 'relative', paddingLeft: '1.5rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
-                  {/* Vertical line connecting tests */}
-                  <div style={{ position: 'absolute', top: 20, bottom: 10, left: '2rem', width: 2, background: '#e2e8f0', zIndex: 0 }} />
+                <div style={{ padding: '0.85rem', background: '#fafbff', borderTop: `2px solid ${sc.accent}22`, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {subj.tests.map(test => {
+                    let stateBg = '#f8fafc', stateBorder = '#e2e8f0', stateAccent = '#94a3b8';
+                    if (test.isCompleted) { stateBg = '#f0fdf4'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                    else if (!test.isLocked) { stateBg = '#fafafe'; stateBorder = sc.accent + '33'; stateAccent = sc.accent; }
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
-                    {subj.tests.map(test => {
-                      const Icon = test.isCompleted ? CheckCircle2 : (test.isLocked ? Lock : PlayCircle);
-                      let bgCol = '#f8fafc';
-                      let borderCol = '#e2e8f0';
+                    return (
+                      <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#e2e8f0' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0, boxShadow: test.isLocked ? 'none' : '0 2px 8px rgba(0,0,0,0.18)' }}>
+                          {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                        </div>
 
-                      if (test.isCompleted) {
-                        bgCol = '#ecfdf5';
-                        borderCol = '#34d399';
-                      } else if (!test.isLocked) {
-                        bgCol = '#eff6ff';
-                        borderCol = '#bfdbfe';
-                      }
-
-                      return (
-                        <div key={test.id} style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: test.isCompleted ? '#10b981' : (test.isLocked ? '#e2e8f0' : 'var(--color-primary)'), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', flexShrink: 0, boxShadow: !test.isLocked && !test.isCompleted ? '0 0 0 4px rgba(99,102,241,0.2)' : 'none' }}>
-                            {test.index}
+                        <div style={{ flex: 1, minWidth: 140 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a', textDecoration: test.isCompleted ? 'none' : 'none' }}>
+                            {test.name}
                           </div>
-                          
-                          <div style={{ flex: 1, background: bgCol, border: `1px solid ${borderCol}`, borderRadius: '0.85rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', opacity: test.isLocked ? 0.7 : 1 }}>
-                            <div>
-                              <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: 800, color: test.isLocked ? '#64748b' : '#1e293b' }}>
-                                {test.name}
-                              </h3>
-                              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                {test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              {test.isCompleted && test.bestScore !== null && (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
-                                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    <Award size={16} /> {test.bestScore}% Başarı
-                                  </div>
-                                  {test.bestSub && (
-                                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
-                                      <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0} D</span>
-                                      <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0} Y</span>
-                                      <span>{test.bestSub.blankCount || 0} B</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              {test.isCompleted ? (
-                                <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: '#10b981', color: '#10b981' }} onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}>
-                                  Sonucu İncele
-                                </button>
-                              ) : test.isLocked ? (
-                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                  <Lock size={16} /> Kilitli
-                                </div>
-                              ) : (
-                                <button className="btn btn-primary" style={{ padding: '0.4rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => navigate(`/book-quiz/${test.id}`)}>
-                                  <PlayCircle size={16} /> Şimdi Çöz
-                                </button>
-                              )}
-                            </div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                            {test.topicName || 'Genel Test'} • {test.questionCount || 20} Soru
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        {test.isCompleted && test.bestScore !== null && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#059669', background: '#dcfce7', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Award size={12} /> %{test.bestScore}
+                            </span>
+                            {test.bestSub && (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '99px' }}>
+                                <span style={{ color: '#10b981' }}>{test.bestSub.correctCount || 0}D</span>{' '}
+                                <span style={{ color: '#ef4444' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
+                                <span>{test.bestSub.blankCount || 0}B</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        <div style={{ flexShrink: 0 }}>
+                          {test.isCompleted ? (
+                            <button
+                              className="sbdp-btn-solve"
+                              style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
+                              onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
+                            >
+                              Sonucu İncele
+                            </button>
+                          ) : test.isLocked ? (
+                            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Lock size={14} /> Kilitli
+                            </span>
+                          ) : (
+                            <button
+                              className="sbdp-btn-solve"
+                              style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                              onClick={() => navigate(`/book-quiz/${test.id}`)}
+                            >
+                              <PlayCircle size={14} /> Şimdi Çöz
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -597,8 +573,8 @@ export default function StudentBookDetailsPage() {
         })}
 
         {subjectProgress.length === 0 && (
-          <div className="card glass" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-            {hwLoading || booksLoading ? 'Atanmış görevler yükleniyor...' : 'Bu kitaba ait atanmış görev bulunamadı.'}
+          <div style={{ textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '1.1rem', border: '1.5px dashed #e2e8f0', color: '#94a3b8' }}>
+            {hwLoading || booksLoading ? 'Atanmış görevler yükleniyor…' : 'Bu kitaba ait atanmış görev bulunamadı.'}
           </div>
         )}
       </div>
