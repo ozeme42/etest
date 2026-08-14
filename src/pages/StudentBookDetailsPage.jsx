@@ -110,10 +110,9 @@ export default function StudentBookDetailsPage() {
       // Find all tests in this subject
       const allSubjectTests = bookTests.filter(t => String(t.subjectId) === String(subject.id));
       
-      // Filter only those assigned to the student
+      // Filter only those assigned to the student (preserving original saved book order)
       const assignedSubjTests = allSubjectTests
-        .filter(t => assignedTestIds.has(String(t.id)))
-        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
+        .filter(t => assignedTestIds.has(String(t.id)));
       
       if (assignedSubjTests.length === 0) return null;
 
@@ -632,7 +631,7 @@ export default function StudentBookDetailsPage() {
                   {/* Topics / Units List */}
                   {subj.topics && subj.topics.length > 0 ? (
                     subj.topics.map(topic => {
-                      const isTopicOpen = openTopics[topic.id] !== false;
+                      const isTopicOpen = !!openTopics[topic.id];
 
                       return (
                         <div key={topic.id} style={{ borderRadius: '0.85rem', border: '1px solid #e2e8f0', overflow: 'hidden', background: 'white' }}>
