@@ -1478,7 +1478,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
         // A) Book Assignment with per-test dates (testDueDates)
         if (hw.isBookAssignment && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-          const bookTitle = hw.title || bookObj?.title || 'Kitap Ödevi';
+          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
@@ -1487,6 +1487,14 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               const tObj = bookTests.find(b => String(b.id) === String(testId));
               const testName = tObj?.name || 'Test';
               const qCount = tObj?.questionCount || 20;
+
+              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
+              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
+              const topicName = topicObj?.name || tObj?.topicName || '';
+
+              const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
+              const displaySub = `${cleanBookTitle} — ${testName}`;
 
               const isSolved = submissions.some(s =>
                 String(s.studentId) === String(studentId) &&
@@ -1502,8 +1510,8 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                   testId: testId,
                   isAutoHomework: true,
                   taskType: 'kitap',
-                  subject: hw.subject || bookTitle,
-                  topic: `${bookTitle} — ${testName}`,
+                  subject: displayHeader,
+                  topic: displaySub,
                   questionCount: `${qCount} soru`,
                   time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
                   done: isSolved

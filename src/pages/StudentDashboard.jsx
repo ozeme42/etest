@@ -421,13 +421,19 @@ export default function StudentDashboard() {
     }).flatMap(hw => {
       if (hw.isBookAssignment && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
         const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
         return Object.entries(hw.testDueDates).map(([testId, tDateStr]) => {
           const testObj = bookTests.find(b => String(b.id) === String(testId));
           const sub = submissions.find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId)))));
+          const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
+          const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+
           return {
             ...hw,
             id: `bt_${hw.id}_${testId}`,
-            title: `${hw.title || bookObj?.title || 'Kitap Ödevi'} — ${testObj?.name || 'Test'}`,
+            subject: subjectName,
+            title: `${cleanBookTitle} — ${testObj?.name || 'Test'}`,
             dueDate: tDateStr,
             status: sub ? 'Sonuçlandı' : 'Atandı',
             questionCount: testObj?.questionCount || 20,
@@ -600,7 +606,7 @@ export default function StudentDashboard() {
       // A) Book Assignment with testDueDates
       if (hw.isBookAssignment && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
         const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-        const bookTitle = hw.title || bookObj?.title || 'Kitap Ödevi';
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
         Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
           if (!tDateStr) return;
@@ -609,6 +615,14 @@ export default function StudentDashboard() {
             const tObj = bookTests.find(b => String(b.id) === String(testId));
             const testName = tObj?.name || 'Test';
             const qCount = tObj?.questionCount || 20;
+
+            const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
+            const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+            const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
+            const topicName = topicObj?.name || tObj?.topicName || '';
+
+            const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
+            const displaySub = `${cleanBookTitle} — ${testName}`;
 
             const isSolved = submissions.some(s =>
               String(s.studentId) === String(studentId) &&
@@ -624,8 +638,8 @@ export default function StudentDashboard() {
                 testId: testId,
                 isAutoHomework: true,
                 taskType: 'kitap',
-                subject: hw.subject || bookTitle,
-                topic: `${bookTitle} — ${testName}`,
+                subject: displayHeader,
+                topic: displaySub,
                 questionCount: `${qCount} soru`,
                 time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
                 done: isSolved
