@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
@@ -21,6 +21,7 @@ export default function ModularQuizReviewPage() {
   const targetId = params.submissionId || params.testId || params.id;
 
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const studentId = searchParams.get('studentId');
   const navigate = useNavigate();
 
@@ -465,10 +466,17 @@ export default function ModularQuizReviewPage() {
   );
 
   const handleCloseReview = () => {
-    if (searchParams.get('from') === 'teacher' || searchParams.get('teacher')) {
+    if (location.state?.from) {
+      navigate(location.state.from, { replace: true });
+      return;
+    }
+    const fromParam = searchParams.get('from');
+    if (fromParam === 'teacher' || fromParam === 'evaluation' || searchParams.get('teacher')) {
       navigate('/evaluation', { replace: true });
+    } else if (fromParam) {
+      navigate(fromParam, { replace: true });
     } else {
-      navigate('/student', { replace: true });
+      navigate('/student-results', { replace: true });
     }
   };
 

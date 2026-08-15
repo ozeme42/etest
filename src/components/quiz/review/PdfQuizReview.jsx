@@ -15,10 +15,14 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       onClose();
       return;
     }
+    if (location.state?.from) {
+      navigate(location.state.from, { replace: true });
+      return;
+    }
     if (location.state?.fromTeacher || location.state?.isTeacher) {
       navigate('/evaluation', { replace: true });
     } else {
-      navigate('/student', { replace: true });
+      navigate('/student-results', { replace: true });
     }
   };
 
