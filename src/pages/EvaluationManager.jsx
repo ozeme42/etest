@@ -77,6 +77,15 @@ function isItemOpenEnded(item, ans) {
   return false;
 }
 
+// Helper to validate whether a payload string is a valid non-placeholder string
+function isValidPayloadString(str) {
+  if (typeof str !== 'string') return false;
+  const s = str.trim();
+  if (s.length === 0) return false;
+  if (s === '[STORED_IN_INDEXEDDB]' || s === '[LOCALSTORAGE_CACHE]') return false;
+  return true;
+}
+
 // ─── SIMPLE & CLEAR EVALUATION MODAL (SADE VE AKILLI DEĞERLENDİRME EKRANI) ────
 function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curriculumData, bookTests, books, onClose, onSaveSuccess }) {
   const { updateSubmission } = useEvaluation();
@@ -89,7 +98,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
   // 'focused_oe' (Sadece Puanlanacak Açık Uçlular) vs 'full_exam' (Tüm Sınavı İncele)
   const [viewTab, setViewTab] = useState('focused_oe');
-  const [showTopMedia, setShowTopMedia] = useState(true); // Doküman açık gelsin (tek olarak)
+  const [showTopMedia, setShowTopMedia] = useState(true);
 
   // Local Grading States
   const [questionScores, setQuestionScores] = useState({});
@@ -106,18 +115,23 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     async function loadTestData() {
       setLoading(true);
 
-      let foundHw = homeworks?.find(h =>
+      let foundHw = (homeworks || []).find(h =>
         String(h.id) === targetId ||
         String(h.id) === normTargetId ||
         String(h.testId) === targetId ||
         (h.submissions && h.submissions.some(s => String(s.id) === String(submission.id)))
       );
 
-      let foundBankQ = allBankQuestions?.find(q =>
+      let foundBankQ = (allBankQuestions || []).find(q =>
         String(q.id) === targetId ||
         String(q.id) === normTargetId ||
         String(q.questionId) === targetId ||
         String(q.id) === String(foundHw?.questionId || foundHw?.testId)
+      );
+
+      let titleMatchBankQ = (allBankQuestions || []).find(q =>
+        submission.testTitle && q.title &&
+        String(q.title).toLowerCase().trim() === String(submission.testTitle).toLowerCase().trim()
       );
 
       let foundBookTest = (bookTests || []).find(bt =>
@@ -131,23 +145,65 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         String(t.id) === normTargetId
       );
 
-      let resolved = foundHw || foundBankQ || foundBookTest || foundCurTest || null;
+      let resolved = foundHw || foundBankQ || titleMatchBankQ || foundBookTest || foundCurTest || null;
 
-      let contentPayload = submission.contentPayload || resolved?.contentPayload || null;
-      let pdfPayload = submission.pdfPayload || resolved?.pdfPayload || null;
-      let htmlPayload = submission.htmlPayload || resolved?.htmlPayload || null;
+      let contentPayload = isValidPayloadString(submission.contentPayload) ? submission.contentPayload : (isValidPayloadString(resolved?.contentPayload) ? resolved.contentPayload : null);
+      let pdfPayload = isValidPayloadString(submission.pdfPayload) ? submission.pdfPayload : (isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null);
+      let htmlPayload = isValidPayloadString(submission.htmlPayload) ? submission.htmlPayload : (isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null);
 
-      if (!contentPayload || contentPayload === '[STORED_IN_INDEXEDDB]') {
-        const candidateIds = [targetId, normTargetId, submission.id, submission.testId, resolved?.id].filter(Boolean);
-        for (const cid of candidateIds) {
-          const val = await idbGetPayload(cid);
-          if (val && val !== '[STORED_IN_INDEXEDDB]') {
-            contentPayload = val;
-            if (val.startsWith('data:application/pdf') || val.includes('.pdf')) pdfPayload = val;
-            else if (val.includes('<html') || val.startsWith('<!DOCTYPE')) htmlPayload = val;
-            break;
-          }
+      // Deep IndexedDB candidate lookup
+      if (!contentPayload && !pdfPayload && !htmlPayload) {
+        const rawCandidateIds = [
+          targetId,
+          normTargetId,
+          submission.id,
+          submission.testId,
+          submission.homeworkId,
+          submission.questionId,
+          resolved?.id,
+          resolved?.questionId,
+          resolved?.testId,
+          foundHw?.id,
+          foundHw?.questionId,
+          foundBankQ?.id,
+          titleMatchBankQ?.id
+        ];
+
+        const expandedIds = new Set();
+        rawCandidateIds.filter(Boolean).forEach(id => {
+          const str = String(id);
+          const clean = str.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+          expandedIds.add(str);
+          expandedIds.add(clean);
+          expandedIds.add(`q_${clean}`);
+          expandedIds.add(`hw_${clean}`);
+          expandedIds.add(`test_${clean}`);
+          expandedIds.add(`q${clean}`);
+          expandedIds.add(`hw${clean}`);
+        });
+
+        for (const cid of expandedIds) {
+          try {
+            const val = await idbGetPayload(cid);
+            if (isValidPayloadString(val)) {
+              contentPayload = val;
+              if (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF')) {
+                pdfPayload = val;
+              } else if (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html')) {
+                htmlPayload = val;
+              }
+              break;
+            }
+          } catch (e) {}
         }
+      }
+
+      // If contentPayload has PDF or HTML markers, propagate them
+      if (contentPayload && !pdfPayload && (contentPayload.startsWith('data:application/pdf') || contentPayload.includes('.pdf') || contentPayload.startsWith('%PDF'))) {
+        pdfPayload = contentPayload;
+      }
+      if (contentPayload && !htmlPayload && (contentPayload.includes('<html') || contentPayload.startsWith('<!DOCTYPE') || contentPayload.startsWith('data:text/html'))) {
+        htmlPayload = contentPayload;
       }
 
       // Check sections for multi-section tests
@@ -161,10 +217,11 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         for (let i = 0; i < sections.length; i++) {
           const sec = sections[i];
           const secQId = typeof sec === 'object' ? (sec.questionId || sec.id) : sec;
-          const secBankQ = allBankQuestions?.find(q => String(q.id) === String(secQId));
-          let secPayload = sec?.contentPayload || secBankQ?.contentPayload || null;
-          if (!secPayload || secPayload === '[STORED_IN_INDEXEDDB]') {
+          const secBankQ = (allBankQuestions || []).find(q => String(q.id) === String(secQId));
+          let secPayload = isValidPayloadString(sec?.contentPayload) ? sec.contentPayload : (isValidPayloadString(secBankQ?.contentPayload) ? secBankQ.contentPayload : null);
+          if (!secPayload) {
             secPayload = await idbGetPayload(secQId);
+            if (!isValidPayloadString(secPayload)) secPayload = null;
           }
 
           const secResolvedQs = secBankQ ? resolveTestQuestions(secBankQ, allBankQuestions) : [];
@@ -173,8 +230,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
           // Exact question count for this section
           const secCount = resolveExactQuestionCount(sec, secBankQ, secBankQ, secResolvedQs, secImages);
 
-          const secPdf = secBankQ?.pdfPayload || (typeof secPayload === 'string' && secPayload.startsWith('data:application/pdf') ? secPayload : null);
-          const secHtml = secBankQ?.htmlPayload || (typeof secPayload === 'string' && secPayload.includes('<html') ? secPayload : null);
+          const secPdf = (isValidPayloadString(secBankQ?.pdfPayload) ? secBankQ.pdfPayload : null) || (secPayload && (secPayload.startsWith('data:application/pdf') || secPayload.includes('.pdf')) ? secPayload : null) || pdfPayload;
+          const secHtml = (isValidPayloadString(secBankQ?.htmlPayload) ? secBankQ.htmlPayload : null) || (secPayload && secPayload.includes('<html') ? secPayload : null) || htmlPayload;
           const isSecOE = isItemOpenEnded(secBankQ) || isItemOpenEnded(sec);
 
           // Generate each question of this section
@@ -194,8 +251,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
               sectionId: secQId,
               title: existingQ.title || existingQ.name || existingQ.questionText || `${sec?.title || `${i+1}. Bölüm`} — Soru ${qIdx + 1}`,
               questionText: existingQ.questionText || (secCount === 1 ? (secBankQ?.questionText || sec?.title) : `Soru ${qIdx + 1}`),
-              pdfPayload: secPdf || pdfPayload,
-              htmlPayload: secHtml || htmlPayload,
+              pdfPayload: secPdf,
+              htmlPayload: secHtml,
               imageUrl: qImg,
               imageUrls: secImages,
               isOpenEnded: isSecOE || isItemOpenEnded(existingQ),
@@ -258,7 +315,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
       const finalTestObj = {
         ...(resolved || {}),
         id: targetId,
-        title: submission.testTitle || resolved?.title || resolved?.name || 'Sınav İnceleesi',
+        title: submission.testTitle || resolved?.title || resolved?.name || 'Sınav İncelemesi',
         contentType: submission.contentType || resolved?.contentType || (pdfPayload ? 'pdf' : (htmlPayload ? 'html' : 'standard')),
         sourceFormat: submission.sourceFormat || resolved?.sourceFormat || 'standard',
         contentPayload,
@@ -299,12 +356,33 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     return () => { isMounted = false; };
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
-  // Global Media available for whole test (PDF or HTML)
+  // Global Media available for whole test (Only true if actual payload string exists)
   const globalMedia = useMemo(() => {
-    const hasPdf = Boolean(test?.pdfPayload || test?.pdfUrl || (test?.sections && test.sections.some(s => s.bankQ?.pdfPayload || s.contentPayload?.startsWith('data:application/pdf'))));
-    const hasHtml = Boolean(test?.htmlPayload || (test?.sections && test.sections.some(s => s.bankQ?.htmlPayload || s.contentPayload?.includes('<html'))));
-    const pdfSrc = test?.pdfPayload || test?.pdfUrl || (test?.sections?.find(s => s.bankQ?.pdfPayload || s.contentPayload?.startsWith('data:application/pdf'))?.contentPayload);
-    const htmlSrc = test?.htmlPayload || (test?.sections?.find(s => s.bankQ?.htmlPayload || s.contentPayload?.includes('<html'))?.contentPayload);
+    const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF'));
+    const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html'));
+
+    let pdfSrc = null;
+    if (isPdfStr(test?.pdfPayload)) pdfSrc = test.pdfPayload;
+    else if (isPdfStr(test?.contentPayload)) pdfSrc = test.contentPayload;
+    else if (test?.pdfUrl) pdfSrc = test.pdfUrl;
+    else if (Array.isArray(test?.sections)) {
+      const secMatch = test.sections.find(s => isPdfStr(s.bankQ?.pdfPayload) || isPdfStr(s.contentPayload));
+      if (secMatch) pdfSrc = secMatch.bankQ?.pdfPayload || secMatch.contentPayload;
+    }
+
+    let htmlSrc = null;
+    if (!pdfSrc) {
+      if (isHtmlStr(test?.htmlPayload)) htmlSrc = test.htmlPayload;
+      else if (isHtmlStr(test?.contentPayload)) htmlSrc = test.contentPayload;
+      else if (Array.isArray(test?.sections)) {
+        const secMatch = test.sections.find(s => isHtmlStr(s.bankQ?.htmlPayload) || isHtmlStr(s.contentPayload));
+        if (secMatch) htmlSrc = secMatch.bankQ?.htmlPayload || secMatch.contentPayload;
+      }
+    }
+
+    const hasPdf = Boolean(pdfSrc);
+    const hasHtml = Boolean(htmlSrc);
+
     return { hasPdf, hasHtml, pdfSrc, htmlSrc };
   }, [test]);
 
@@ -602,7 +680,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         {viewTab === 'focused_oe' ? (
           <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.25rem 1rem 5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
-            {/* SINGLE DEDICATED PDF / HTML DOCUMENT VIEWER AT THE TOP (TEK DOKÜMAN EKRANI) */}
+            {/* SINGLE DEDICATED PDF / HTML DOCUMENT VIEWER AT THE TOP (SADECE GERÇEK PAYLOAD VARSA GÖSTERİLİR) */}
             {(globalMedia.hasPdf || globalMedia.hasHtml) && (
               <div style={{ background: '#131c2e', border: '1.5px solid #334155', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
                 <div
