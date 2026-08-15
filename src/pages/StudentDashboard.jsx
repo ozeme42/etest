@@ -605,11 +605,20 @@ export default function StudentDashboard() {
     // Calculate global success rate from unified submissions for 100% consistency with other pages
     const baseSubs = (submissions || []).filter(s => {
       if (!selectedStudent || String(s.studentId) !== String(selectedStudent.id)) return false;
-      const isHwSub = Boolean(s.hwId || s.homeworkId || s.isHomework || String(s.testId || '').startsWith('hw_') || String(s.id || '').startsWith('hw_'));
-      if (isHwSub) {
-        const hwId = s.hwId || s.homeworkId || s.testId || s.id;
-        const exists = (homeworks || []).some(h => String(h.id) === String(hwId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.testId));
-        if (!exists) return false;
+      const targetId = String(s.homeworkId || s.hwId || s.testId || s.id || '');
+      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+      const isBookSub = Boolean(s.bookTestId || s.bookId || (bookTests || []).some(bt => String(bt.id) === targetId || String(bt.id) === normTargetId));
+      const isCurTest = Boolean((curData?.tests || []).some(t => String(t.id) === targetId || String(t.id) === normTargetId));
+
+      if (!isBookSub && !isCurTest) {
+        const hwExists = (homeworks || []).some(h => 
+          String(h.id) === targetId || 
+          String(h.id) === normTargetId || 
+          String(h.id) === String(s.hwId) || 
+          String(h.id) === String(s.testId) ||
+          (h.submissions && h.submissions.some(sub => String(sub.id) === String(s.id)))
+        );
+        if (!hwExists) return false;
       }
       return true;
     });

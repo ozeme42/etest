@@ -1074,9 +1074,26 @@ export default function EvaluationManager() {
     const map = new Map();
 
     (allSubmissions || []).forEach(sub => {
-      if (sub && sub.id) {
-        map.set(String(sub.id), sub);
+      if (!sub || !sub.id) return;
+      const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.id || '');
+      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+      
+      const isBookSub = Boolean(sub.bookTestId || sub.bookId || (bookTests || []).some(bt => String(bt.id) === targetId || String(bt.id) === normTargetId));
+      const isCurTest = Boolean((curriculumData?.tests || []).some(t => String(t.id) === targetId || String(t.id) === normTargetId));
+
+      // Eğer kitap veya müfredat testi değilse, bu bir öğretmen ödevidir. Aktif ödevlerde yoksa listeleme!
+      if (!isBookSub && !isCurTest) {
+        const hwExists = (homeworks || []).some(h =>
+          String(h.id) === targetId ||
+          String(h.id) === normTargetId ||
+          String(h.id) === String(sub.hwId) ||
+          String(h.id) === String(sub.homeworkId) ||
+          (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
+        );
+        if (!hwExists) return; // Silinmiş ödev
       }
+
+      map.set(String(sub.id), sub);
     });
 
     (homeworks || []).forEach(hw => {
@@ -1098,7 +1115,7 @@ export default function EvaluationManager() {
     });
 
     return Array.from(map.values());
-  }, [allSubmissions, homeworks]);
+  }, [allSubmissions, homeworks, bookTests, curriculumData]);
 
   // 2. ENRICH EACH SUBMISSION
   const enrichedSubmissions = useMemo(() => {
