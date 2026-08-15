@@ -285,21 +285,14 @@ export default function StudentBookDetailsPage() {
     }
     return (
       <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-        <h3 style={{ color: '#1e293b', fontWeight: 800, marginBottom: '0.5rem' }}>İçerik bulunamadı</h3>
-        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Aradığınız kitap veya test haritası bulunamadı veya kaldırılmış olabilir.</p>
+        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📚</div>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', margin: '0 0 0.5rem 0' }}>İçerik Bulunamadı</h3>
+        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Aradığınız kitap veya test haritası bulunamadı veya silinmiş olabilir.</p>
         <button
           onClick={() => navigate('/student')}
-          style={{
-            padding: '0.65rem 1.4rem',
-            borderRadius: '0.75rem',
-            border: 'none',
-            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-            color: 'white',
-            fontWeight: 800,
-            cursor: 'pointer'
-          }}
+          style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
         >
-          Öğrenci Paneline Dön
+          <ArrowLeft size={16} /> Öğrenci Paneline Dön
         </button>
       </div>
     );

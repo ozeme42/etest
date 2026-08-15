@@ -5,7 +5,11 @@ import { safeSetItem } from '../utils/storageUtils';
 const UserContext = createContext();
 
 export function useUser() {
-  return useContext(UserContext);
+  const context = useContext(UserContext);
+  if (!context) {
+    return { users: [], addUser: async () => {}, updateUser: async () => {}, deleteUser: async () => {}, addStudentForTeacher: async () => {} };
+  }
+  return context;
 }
 
 export function UserProvider({ children }) {

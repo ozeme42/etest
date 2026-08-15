@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudyPlan } from '../context/StudyPlanContext';
+import { useAuth } from '../context/AuthContext';
 import { Plus, Edit, Trash2, ArrowLeft, Target, ChevronRight, Layers, FileText, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -9,14 +10,28 @@ function cn(...inputs) { return twMerge(clsx(inputs)); }
 
 export default function StudyPlanManager() {
   const navigate = useNavigate();
-  const { studyPlans, addStudyPlan, deleteStudyPlan } = useStudyPlan();
+  const { currentUser } = useAuth();
+  const { studyPlans: allStudyPlans, addStudyPlan, deleteStudyPlan } = useStudyPlan();
+
+  const isTeacher = currentUser?.role === 'teacher';
+
+  const studyPlans = useMemo(() => {
+    const plans = allStudyPlans || [];
+    if (!isTeacher || !currentUser?.id) return plans;
+    return plans.filter(p => p.createdBy === currentUser.id || p.teacherId === currentUser.id);
+  }, [allStudyPlans, isTeacher, currentUser]);
   
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
-    const plan = await addStudyPlan({ title: newTitle.trim(), subjects: [] });
+    const plan = await addStudyPlan({
+      title: newTitle.trim(),
+      subjects: [],
+      createdBy: currentUser?.id,
+      teacherId: currentUser?.id
+    });
     setIsAdding(false);
     setNewTitle('');
     navigate(`/study-plans/${plan.id}`);

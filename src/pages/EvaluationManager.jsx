@@ -139,187 +139,177 @@ function EmbeddedQuizReview({ activeSubmission, allBankQuestions, homeworks, idb
 }
 
 // ─── Collapsible Media Viewer for PDF / HTML / Image in Teacher Evaluation ───
-// ─── Collapsible Media Viewer for PDF / HTML / Image in Teacher Evaluation ───
 function CollapsibleMediaViewer({ activeSubmission, allBankQuestions, homeworks }) {
   const [isOpen, setIsOpen] = useState(true);
-  const [resolvedPayload, setResolvedPayload] = useState(null);
-  const [mediaType, setMediaType] = useState(null); // 'pdf' | 'html' | 'image' | null
-  const [imageUrls, setImageUrls] = useState([]);
+  const [activeTabIdx, setActiveTabIdx] = useState(0);
+  const [mediaItems, setMediaItems] = useState([]); // Array of { id, title, type: 'pdf'|'html'|'image', payload, urls }
 
   useEffect(() => {
-    if (!activeSubmission) return;
-
-    const targetId = String(activeSubmission.testId || activeSubmission.homeworkId || activeSubmission.questionId || activeSubmission.id || '');
-    const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-    
-    const hwMatch = homeworks?.find(h =>
-      String(h.id) === targetId ||
-      String(h.id) === normTargetId ||
-      String(h.testId) === targetId ||
-      (h.submissions && h.submissions.some(s => String(s.id) === String(activeSubmission.id)))
-    );
-
-    const bankQ = allBankQuestions?.find(q =>
-      String(q.id) === targetId ||
-      String(q.id) === normTargetId ||
-      String(q.questionId) === targetId ||
-      String(q.id) === String(hwMatch?.questionId || hwMatch?.testId)
-    );
-
-    const questionsList = [
-      ...(hwMatch?.questionsList || hwMatch?.questions || []),
-      ...(bankQ?.questionsList || bankQ?.questions || []),
-      ...(activeSubmission.questions || []),
-      ...(activeSubmission.answers || [])
-    ];
-
-    const isImageFormat = Boolean(
-      activeSubmission.contentType === 'gorsel' || activeSubmission.contentType === 'image' || activeSubmission.sourceFormat === 'image' ||
-      hwMatch?.contentType === 'gorsel' || hwMatch?.contentType === 'image' || hwMatch?.sourceFormat === 'image' ||
-      bankQ?.contentType === 'gorsel' || bankQ?.contentType === 'image' || bankQ?.sourceFormat === 'image' || bankQ?.type === 'gorsel' ||
-      activeSubmission.testTitle?.toLowerCase().includes('görsel') || activeSubmission.testTitle?.toLowerCase().includes('gorsel') ||
-      hwMatch?.title?.toLowerCase().includes('görsel') || hwMatch?.title?.toLowerCase().includes('gorsel') ||
-      bankQ?.title?.toLowerCase().includes('görsel') || bankQ?.title?.toLowerCase().includes('gorsel')
-    );
-
-    const getPayload = (obj) => obj?.contentPayload || obj?.pdfPayload || obj?.htmlPayload || obj?.url || obj?.content || null;
-    let payload = getPayload(activeSubmission) || getPayload(hwMatch) || getPayload(bankQ);
-    let type = activeSubmission.contentType || hwMatch?.contentType || bankQ?.contentType || activeSubmission.sourceFormat || hwMatch?.sourceFormat || bankQ?.sourceFormat;
-
-    if (payload && typeof payload === 'string') {
-      if (payload.startsWith('data:application/pdf') || payload.includes('.pdf')) {
-        type = 'pdf';
-      } else if (payload.startsWith('data:text/html') || payload.startsWith('<!DOCTYPE') || payload.startsWith('<html') || payload.includes('<html')) {
-        type = 'html';
-      }
+    if (!activeSubmission) {
+      setMediaItems([]);
+      return;
     }
 
-    const collectedUrls = [];
+    let isMounted = true;
 
-    const processString = (str) => {
-      if (!str || typeof str !== 'string') return;
-      const trimmed = str.trim();
-      if (!trimmed || trimmed === '[STORED_IN_INDEXEDDB]' || trimmed === '[LOCALSTORAGE_CACHE]') return;
-      if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('data:text/html') || trimmed.startsWith('data:application/pdf') || trimmed.startsWith('%PDF-')) return;
+    async function resolveAllMedia() {
+      const targetId = String(activeSubmission.testId || activeSubmission.homeworkId || activeSubmission.questionId || activeSubmission.id || '');
+      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
 
-      if (trimmed.includes('data:image/') && trimmed.indexOf('data:image/', 5) !== -1) {
-        const parts = trimmed.split(/(?=data:image\/)/);
-        parts.forEach(p => processString(p));
-        return;
-      }
+      const hwMatch = homeworks?.find(h =>
+        String(h.id) === targetId ||
+        String(h.id) === normTargetId ||
+        String(h.testId) === targetId ||
+        (h.submissions && h.submissions.some(s => String(s.id) === String(activeSubmission.id)))
+      );
 
-      if (trimmed.includes('\n') || trimmed.includes('|')) {
-        const parts = trimmed.split(/\n\n|\n|\|/);
-        parts.forEach(p => processString(p));
-        return;
-      }
+      const bankQ = allBankQuestions?.find(q =>
+        String(q.id) === targetId ||
+        String(q.id) === normTargetId ||
+        String(q.questionId) === targetId ||
+        String(q.id) === String(hwMatch?.questionId || hwMatch?.testId)
+      );
 
-      let finalUrl = trimmed;
-      if (!finalUrl.startsWith('http') && !finalUrl.startsWith('data:') && !finalUrl.startsWith('blob:') && !finalUrl.startsWith('/') && !finalUrl.startsWith('./')) {
-        if (/^[A-Za-z0-9+/=]+$/.test(finalUrl.slice(0, 100))) {
-          finalUrl = `data:image/jpeg;base64,${finalUrl}`;
+      const items = [];
+
+      const processStringImages = (str, arr) => {
+        if (!str || typeof str !== 'string') return;
+        const trimmed = str.trim();
+        if (!trimmed || trimmed === '[STORED_IN_INDEXEDDB]' || trimmed === '[LOCALSTORAGE_CACHE]') return;
+        if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('data:text/html') || trimmed.startsWith('data:application/pdf') || trimmed.startsWith('%PDF-')) return;
+
+        if (trimmed.includes('data:image/') && trimmed.indexOf('data:image/', 5) !== -1) {
+          trimmed.split(/(?=data:image\/)/).forEach(p => processStringImages(p, arr));
+          return;
         }
-      }
+        if (trimmed.includes('\n') || trimmed.includes('|')) {
+          trimmed.split(/\n\n|\n|\|/).forEach(p => processStringImages(p, arr));
+          return;
+        }
 
-      if (isValidImageUrl(finalUrl) && !collectedUrls.includes(finalUrl)) {
-        collectedUrls.push(finalUrl);
-      }
-    };
-
-    const processObj = (obj) => {
-      if (!obj) return;
-      if (typeof obj === 'string') { processString(obj); return; }
-      if (Array.isArray(obj)) { obj.forEach(item => processObj(item)); return; }
-      
-      processString(obj.imageUrl);
-      processObj(obj.imageUrls);
-      processString(obj.url);
-      processString(obj.src);
-      processString(obj.contentPayload);
-      processString(obj.content);
-      processString(obj.pdfPayload);
-    };
-
-    processObj(activeSubmission);
-    processObj(hwMatch);
-    processObj(bankQ);
-    processObj(questionsList);
-
-    if (collectedUrls.length > 0 || isImageFormat) {
-      setImageUrls(collectedUrls);
-      type = 'image';
-    }
-
-    setMediaType(type || null);
-    setResolvedPayload(payload);
-
-    async function fetchFromIdb() {
-      const candidateIds = [
-        targetId,
-        normTargetId,
-        activeSubmission.id,
-        activeSubmission.testId,
-        activeSubmission.homeworkId,
-        bankQ?.id,
-        bankQ?.questionsList?.[0]?.id,
-        bankQ?.questions?.[0]?.id
-      ].filter(Boolean);
-
-      for (const id of candidateIds) {
-        const val = await idbGetPayload(id);
-        if (val && val !== '[STORED_IN_INDEXEDDB]') {
-          if (val.startsWith('data:application/pdf') || val.includes('.pdf')) {
-            setMediaType('pdf');
-            setResolvedPayload(val);
-          } else if (val.includes('<html') || val.startsWith('<!DOCTYPE')) {
-            setMediaType('html');
-            setResolvedPayload(val);
-          } else {
-            processString(val);
-            if (collectedUrls.length > 0 || isImageFormat) {
-              setImageUrls([...collectedUrls]);
-              setMediaType('image');
-            }
+        let finalUrl = trimmed;
+        if (!finalUrl.startsWith('http') && !finalUrl.startsWith('data:') && !finalUrl.startsWith('blob:') && !finalUrl.startsWith('/') && !finalUrl.startsWith('./')) {
+          if (/^[A-Za-z0-9+/=]+$/.test(finalUrl.slice(0, 100))) {
+            finalUrl = `data:image/jpeg;base64,${finalUrl}`;
           }
-          break;
+        }
+        if (isValidImageUrl(finalUrl) && !arr.includes(finalUrl)) {
+          arr.push(finalUrl);
+        }
+      };
+
+      // 1. Check sections (Multi-Section / Composite Exams)
+      const rawSections = hwMatch?.sections || bankQ?.sections || activeSubmission.sections;
+      if (Array.isArray(rawSections) && rawSections.length > 0) {
+        for (let i = 0; i < rawSections.length; i++) {
+          const sec = rawSections[i];
+          const secQId = typeof sec === 'object' ? (sec.questionId || sec.id) : sec;
+          const foundBankQ = allBankQuestions?.find(q => String(q.id) === String(secQId));
+
+          let secPayload = sec?.contentPayload || sec?.pdfPayload || sec?.htmlPayload || foundBankQ?.contentPayload || foundBankQ?.pdfPayload || foundBankQ?.htmlPayload;
+          if (!secPayload || secPayload === '[STORED_IN_INDEXEDDB]') {
+            secPayload = await idbGetPayload(secQId);
+          }
+
+          let secType = sec?.contentType || sec?.type || foundBankQ?.contentType || foundBankQ?.type || 'standard';
+          if (secPayload && typeof secPayload === 'string') {
+            if (secPayload.startsWith('data:application/pdf') || secPayload.includes('.pdf')) secType = 'pdf';
+            else if (secPayload.startsWith('data:text/html') || secPayload.startsWith('<!DOCTYPE') || secPayload.startsWith('<html') || secPayload.includes('<html')) secType = 'html';
+            else if (secPayload.startsWith('data:image/')) secType = 'image';
+          }
+
+          const secImgs = [];
+          if (sec?.imageUrls) (Array.isArray(sec.imageUrls) ? sec.imageUrls : [sec.imageUrls]).forEach(u => processStringImages(u, secImgs));
+          if (sec?.imageUrl) processStringImages(sec.imageUrl, secImgs);
+          if (foundBankQ?.imageUrls) (Array.isArray(foundBankQ.imageUrls) ? foundBankQ.imageUrls : [foundBankQ.imageUrls]).forEach(u => processStringImages(u, secImgs));
+          if (foundBankQ?.imageUrl) processStringImages(foundBankQ.imageUrl, secImgs);
+          if (secPayload && secType === 'image') processStringImages(secPayload, secImgs);
+
+          if (secType === 'pdf' || secType === 'html' || secImgs.length > 0 || (secPayload && secType !== 'standard')) {
+            items.push({
+              id: `sec_${i}`,
+              title: sec?.title || foundBankQ?.title || `${i + 1}. Bölüm`,
+              type: secImgs.length > 0 && secType !== 'pdf' && secType !== 'html' ? 'image' : secType,
+              payload: secPayload,
+              urls: secImgs
+            });
+          }
         }
       }
 
-      if (collectedUrls.length === 0) {
-        const allEntries = await idbGetAllEntries();
-        for (const entry of allEntries) {
-          if (entry.payload && typeof entry.payload === 'string') {
-            processString(entry.payload);
-            if (collectedUrls.length > 0) {
-              setImageUrls([...collectedUrls]);
-              setMediaType('image');
+      // 2. If no sections or only 1 item, check main homework / submission / bankQ
+      if (items.length === 0) {
+        let payload = activeSubmission.contentPayload || activeSubmission.pdfPayload || activeSubmission.htmlPayload ||
+                          hwMatch?.contentPayload || hwMatch?.pdfPayload || hwMatch?.htmlPayload ||
+                          bankQ?.contentPayload || bankQ?.pdfPayload || bankQ?.htmlPayload;
+
+        if (!payload || payload === '[STORED_IN_INDEXEDDB]') {
+          const candidateIds = [targetId, normTargetId, activeSubmission.id, activeSubmission.testId, hwMatch?.id, bankQ?.id].filter(Boolean);
+          for (const cid of candidateIds) {
+            const val = await idbGetPayload(cid);
+            if (val && val !== '[STORED_IN_INDEXEDDB]') {
+              payload = val;
               break;
             }
           }
         }
+
+        let type = activeSubmission.contentType || hwMatch?.contentType || bankQ?.contentType || activeSubmission.sourceFormat;
+        if (payload && typeof payload === 'string') {
+          if (payload.startsWith('data:application/pdf') || payload.includes('.pdf')) type = 'pdf';
+          else if (payload.startsWith('data:text/html') || payload.startsWith('<!DOCTYPE') || payload.startsWith('<html') || payload.includes('<html')) type = 'html';
+          else if (payload.startsWith('data:image/')) type = 'image';
+        }
+
+        const imgs = [];
+        const processAllImages = (obj) => {
+          if (!obj) return;
+          if (typeof obj === 'string') { processStringImages(obj, imgs); return; }
+          if (Array.isArray(obj)) { obj.forEach(item => processAllImages(item)); return; }
+          processStringImages(obj.imageUrl, imgs);
+          if (obj.imageUrls) processAllImages(obj.imageUrls);
+          if (obj.contentPayload && typeof obj.contentPayload === 'string' && obj.contentPayload.startsWith('data:image')) processStringImages(obj.contentPayload, imgs);
+        };
+
+        processAllImages(activeSubmission);
+        processAllImages(hwMatch);
+        processAllImages(bankQ);
+
+        if (type === 'pdf' || type === 'html' || imgs.length > 0 || payload) {
+          items.push({
+            id: 'main_media',
+            title: activeSubmission.testTitle || hwMatch?.title || bankQ?.title || 'Sınav İçeriği',
+            type: imgs.length > 0 && type !== 'pdf' && type !== 'html' ? 'image' : (type || (imgs.length > 0 ? 'image' : 'html')),
+            payload,
+            urls: imgs
+          });
+        }
+      }
+
+      if (isMounted) {
+        setMediaItems(items);
       }
     }
 
-    fetchFromIdb();
+    resolveAllMedia();
+    return () => { isMounted = false; };
   }, [activeSubmission, allBankQuestions, homeworks]);
 
-  // Only render top collapsible media viewer for PDF or HTML document exams
-  if (mediaType !== 'pdf' && mediaType !== 'html') {
+  if (mediaItems.length === 0) {
     return null;
   }
 
-  if (!resolvedPayload) {
-    return null;
-  }
+  const currentMedia = mediaItems[activeTabIdx] || mediaItems[0];
+  if (!currentMedia) return null;
 
-  const getMediaBadge = () => {
-    if (mediaType === 'pdf') return { label: '📕 PDF Sınav Dokümanı', bg: 'linear-gradient(135deg, #7f1d1d, #991b1b)', border: '#ef4444' };
-    if (mediaType === 'html') return { label: '🌐 HTML İnteraktif Sınav İçeriği', bg: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)', border: '#3b82f6' };
-    if (mediaType === 'image') return { label: '🖼️ Sınav Görselleri', bg: 'linear-gradient(135deg, #701a75, #86198f)', border: '#d946ef' };
-    return { label: '📄 Sınav İçeriği', bg: 'linear-gradient(135deg, #374151, #1f2937)', border: '#6b7280' };
+  const getMediaBadge = (type) => {
+    if (type === 'pdf') return { label: '📕 PDF Sınav Dokümanı', bg: 'linear-gradient(135deg, #7f1d1d, #991b1b)', border: '#ef4444', color: '#fca5a5' };
+    if (type === 'html') return { label: '🌐 HTML İnteraktif Sınav', bg: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)', border: '#3b82f6', color: '#93c5fd' };
+    if (type === 'image') return { label: '🖼️ Sınav Görselleri', bg: 'linear-gradient(135deg, #701a75, #86198f)', border: '#d946ef', color: '#f0abfc' };
+    return { label: '📄 Sınav İçeriği', bg: 'linear-gradient(135deg, #374151, #1f2937)', border: '#6b7280', color: '#e5e7eb' };
   };
 
-  const badge = getMediaBadge();
+  const badge = getMediaBadge(currentMedia.type);
 
   return (
     <div style={{
@@ -328,52 +318,94 @@ function CollapsibleMediaViewer({ activeSubmission, allBankQuestions, homeworks 
       marginBottom: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
       transition: 'all 0.3s ease'
     }}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(p => !p)}
-        style={{
-          width: '100%', padding: '0.85rem 1.25rem',
-          background: badge.bg, border: 'none', color: 'white',
-          fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          outline: 'none'
-        }}
-      >
+      {/* Header Bar */}
+      <div style={{
+        padding: '0.75rem 1.25rem',
+        background: badge.bg, color: 'white',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: '0.75rem'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span>{badge.label}</span>
-          <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.2)', padding: '0.15rem 0.55rem', borderRadius: '50px' }}>
-            {isOpen ? 'Gösteriliyor' : 'Tıklayıp Açın'}
-          </span>
+          <span style={{ fontWeight: 900, fontSize: '0.92rem' }}>{badge.label}</span>
+          {mediaItems.length > 1 && (
+            <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.2)', padding: '0.15rem 0.55rem', borderRadius: '50px', fontWeight: 800 }}>
+              {mediaItems.length} Bölüm / Medya
+            </span>
+          )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
-          <span>{isOpen ? 'Daralt' : 'Genişlet'}</span>
-          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </div>
-      </button>
 
-      {isOpen && (
-        <div style={{ padding: '1rem', background: '#0f172a', borderTop: '1px solid #334155', minHeight: 300, maxHeight: 600, overflowY: 'auto' }}>
-          {mediaType === 'pdf' && (
-            <PdfViewerWithControls payload={resolvedPayload} title={activeSubmission.testTitle} height="520px" />
-          )}
-          {mediaType === 'html' && (
-            <HtmlViewerWithControls payload={resolvedPayload} height="520px" />
-          )}
-          {mediaType === 'image' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-              {imageUrls.map((url, idx) => (
-                <StandardImageFrame key={idx} src={url} alt={`Soru Görseli ${idx + 1}`} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {mediaItems.length > 1 && (
+            <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(0,0,0,0.25)', padding: '0.2rem', borderRadius: '0.6rem' }}>
+              {mediaItems.map((item, idx) => (
+                <button
+                  key={item.id || idx}
+                  type="button"
+                  onClick={() => setActiveTabIdx(idx)}
+                  style={{
+                    padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: 'none',
+                    background: activeTabIdx === idx ? 'white' : 'transparent',
+                    color: activeTabIdx === idx ? '#0f172a' : 'white',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {item.type === 'pdf' ? '📕' : item.type === 'html' ? '🌐' : '🖼️'} {item.title || `${idx + 1}. Bölüm`}
+                </button>
               ))}
-              {imageUrls.length === 0 && (
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsOpen(p => !p)}
+            style={{
+              background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
+              padding: '0.35rem 0.75rem', borderRadius: '0.5rem',
+              fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.3rem'
+            }}
+          >
+            <span>{isOpen ? 'Daralt' : 'Genişlet'}</span>
+            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Content Area */}
+      {isOpen && (
+        <div style={{ padding: '1rem', background: '#0f172a', borderTop: '1px solid #334155', minHeight: 320, maxHeight: 620, overflowY: 'auto' }}>
+          {currentMedia.type === 'pdf' && (
+            <PdfViewerWithControls payload={currentMedia.payload} title={currentMedia.title || activeSubmission.testTitle} height="520px" />
+          )}
+          {currentMedia.type === 'html' && (
+            <HtmlViewerWithControls payload={currentMedia.payload} height="520px" />
+          )}
+          {currentMedia.type === 'image' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center' }}>
+              {currentMedia.urls && currentMedia.urls.length > 0 ? (
+                currentMedia.urls.map((url, idx) => (
+                  <div key={idx} style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#f0abfc' }}>
+                      🖼️ Soru / Bölüm Görseli {idx + 1}:
+                    </div>
+                    <StandardImageFrame src={url} alt={`Soru Görseli ${idx + 1}`} />
+                  </div>
+                ))
+              ) : currentMedia.payload ? (
+                <div style={{ width: '100%', maxWidth: '800px' }}>
+                  <StandardImageFrame src={currentMedia.payload} alt="Sınav Görseli" />
+                </div>
+              ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>
-                  🖼️ Bu görsel test için medya önbelleği yükleniyor veya soru bazlı görseller aşağıdaki soru kartlarında gösterilmektedir.
+                  🖼️ Görseller aşağıdaki ilgili soru kartlarında gösterilmektedir.
                 </div>
               )}
             </div>
           )}
-          {!mediaType && resolvedPayload && (
+          {!['pdf', 'html', 'image'].includes(currentMedia.type) && currentMedia.payload && (
             <div style={{ color: '#f8fafc', whiteSpace: 'pre-wrap', padding: '1rem', lineHeight: 1.6 }}>
-              {resolvedPayload}
+              {currentMedia.payload}
             </div>
           )}
         </div>
@@ -400,9 +432,56 @@ export default function EvaluationManager() {
   const [teacherNotes, setTeacherNotes] = useState({}); // { [questionNo]: string }
   const [overallFeedback, setOverallFeedback] = useState('');
 
-  // 1. Filter ONLY Open-Ended / Written Submissions
+  const isAdmin = currentUser?.role === 'admin';
+  const teacherId = currentUser?.id;
+
+
+  const teacherHomeworkIds = useMemo(() => {
+    if (isAdmin || !teacherId) return new Set();
+    return new Set(
+      (homeworks || [])
+        .filter(h => String(h.createdBy) === String(teacherId) || String(h.teacherId) === String(teacherId) || String(h.assignedBy) === String(teacherId))
+        .map(h => String(h.id))
+    );
+  }, [homeworks, isAdmin, teacherId]);
+
+  // 1. Filter ONLY Open-Ended / Written Submissions STRICTLY SCOPED TO TEACHER
   const openEndedSubmissions = useMemo(() => {
     return (allSubmissions || []).filter(sub => {
+      // Non-admin (teacher) isolation check
+      if (!isAdmin) {
+        if (!teacherId) return false;
+        if (sub.id && String(sub.id).startsWith('sub_sample')) return false;
+
+        const targetId = String(sub.homeworkId || sub.hwId || sub.testId || '');
+        const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+
+        // Find homework that matches this submission
+        const hwMatch = (homeworks || []).find(h =>
+          String(h.id) === targetId ||
+          String(h.id) === normTargetId ||
+          String(h.testId) === targetId ||
+          (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
+        );
+
+        // Was the homework itself created/assigned by this teacher?
+        const hwIsMine = hwMatch && (
+          String(hwMatch.createdBy) === String(teacherId) ||
+          String(hwMatch.teacherId) === String(teacherId) ||
+          String(hwMatch.assignedBy) === String(teacherId)
+        );
+
+        // Was the submission directly tagged to this teacher?
+        const subIsMine =
+          String(sub.createdBy) === String(teacherId) ||
+          String(sub.teacherId) === String(teacherId) ||
+          String(sub.assignedBy) === String(teacherId);
+
+        // Owning the student is NOT enough — the homework/submission must belong to this teacher
+        if (!hwIsMine && !subIsMine) return false;
+      }
+
+      // Check open ended nature
       const answers = sub.answers || [];
       const hasWrittenText = answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0);
       if (hasWrittenText) return true;
@@ -422,7 +501,7 @@ export default function EvaluationManager() {
 
       return false;
     });
-  }, [allSubmissions]);
+  }, [allSubmissions, homeworks, isAdmin, teacherId]);
 
   // Robust Title Resolver for Sınav / Ödev Başlığı
   const resolveTitle = (sub) => {
@@ -655,7 +734,7 @@ export default function EvaluationManager() {
       );
 
       // If it's a standard text/written exam without explicit images, do NOT resolve random images
-      if (!isImageFormat && !hasExplicitImages) {
+      if (!isImageFormat && !hasExplicitImages && !activeSubmission.contentPayload?.startsWith('data:image')) {
         if (isMounted) setResolvedModalImages([]);
         return;
       }
@@ -666,8 +745,34 @@ export default function EvaluationManager() {
 
       const candidateIds = [
         targetId, normTargetId, activeSubmission.id, activeSubmission.testId, activeSubmission.homeworkId,
-        hwMatch?.id, bankQ?.id, bankQ?.questionsList?.[0]?.id, bankQ?.questions?.[0]?.id
+        hwMatch?.id, hwMatch?.questionId, hwMatch?.testId,
+        bankQ?.id, bankQ?.questionId, bankQ?.questionsList?.[0]?.id, bankQ?.questions?.[0]?.id
       ].filter(Boolean);
+
+      // Add all section question ids
+      if (hwMatch?.sections && Array.isArray(hwMatch.sections)) {
+        hwMatch.sections.forEach(s => {
+          const sId = typeof s === 'object' ? (s.questionId || s.id) : s;
+          if (sId && !candidateIds.includes(sId)) candidateIds.push(sId);
+        });
+      }
+      if (hwMatch?.questionIds && Array.isArray(hwMatch.questionIds)) {
+        hwMatch.questionIds.forEach(qid => {
+          if (qid && !candidateIds.includes(qid)) candidateIds.push(qid);
+        });
+      }
+      if (activeSubmission?.sections && Array.isArray(activeSubmission.sections)) {
+        activeSubmission.sections.forEach(s => {
+          const sId = typeof s === 'object' ? (s.questionId || s.id) : s;
+          if (sId && !candidateIds.includes(sId)) candidateIds.push(sId);
+        });
+      }
+
+      // Process all matched bank questions for sections
+      candidateIds.forEach(cid => {
+        const foundBQ = allBankQuestions?.find(q => String(q.id) === String(cid));
+        if (foundBQ) processObj(foundBQ);
+      });
 
       for (const id of candidateIds) {
         const val = await idbGetPayload(id);
@@ -1345,18 +1450,40 @@ export default function EvaluationManager() {
                     {/* Question Image if present */}
                     {(() => {
                       const targetId = String(activeSubmission.testId || activeSubmission.homeworkId || activeSubmission.questionId || activeSubmission.id || '');
-                      const bankQ = allBankQuestions?.find(q => String(q.id) === targetId || String(q.id) === targetId.replace(/^q_?|^hw_?/, ''));
-                      
+                      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+                      const hwMatch = homeworks?.find(h => String(h.id) === targetId || String(h.id) === normTargetId || String(h.testId) === targetId);
+                      const bankQ = allBankQuestions?.find(q =>
+                        String(q.id) === targetId ||
+                        String(q.id) === normTargetId ||
+                        String(q.questionId) === targetId ||
+                        String(q.id) === String(hwMatch?.questionId || hwMatch?.testId)
+                      );
+
+                      const secQId = ans.sectionId || ans.questionId || (hwMatch?.sections || [])[idx]?.questionId || (hwMatch?.questionIds || [])[idx];
+                      const secBQ = secQId ? allBankQuestions?.find(q => String(q.id) === String(secQId)) : null;
+
                       const subQ = (activeSubmission.questions || [])[idx] || {};
                       const bq = (bankQ?.questionsList || bankQ?.questions || [])[idx] || {};
+                      const secQ = (secBQ?.questionsList || secBQ?.questions || [])[ans.subIndex ?? idx] || {};
 
-                      let qImg = resolvedModalImages[idx] ||
-                                 ans.imageUrl || (Array.isArray(ans.imageUrls) ? ans.imageUrls[idx] || ans.imageUrls[0] : ans.imageUrls) ||
-                                 subQ.imageUrl || (Array.isArray(subQ.imageUrls) ? subQ.imageUrls[0] : subQ.imageUrls) ||
-                                 bq.imageUrl || (Array.isArray(bq.imageUrls) ? bq.imageUrls[0] : bq.imageUrls);
+                      let qImg = (resolvedModalImages && resolvedModalImages[idx] && isValidImageUrl(resolvedModalImages[idx]) ? resolvedModalImages[idx] : null) ||
+                                 (ans.imageUrl && isValidImageUrl(ans.imageUrl) ? ans.imageUrl : null) ||
+                                 (Array.isArray(ans.imageUrls) ? ans.imageUrls[idx] || ans.imageUrls[0] : null) ||
+                                 (subQ.imageUrl && isValidImageUrl(subQ.imageUrl) ? subQ.imageUrl : null) ||
+                                 (Array.isArray(subQ.imageUrls) ? subQ.imageUrls[idx] || subQ.imageUrls[0] : null) ||
+                                 (bq.imageUrl && isValidImageUrl(bq.imageUrl) ? bq.imageUrl : null) ||
+                                 (Array.isArray(bq.imageUrls) ? bq.imageUrls[idx] || bq.imageUrls[0] : null) ||
+                                 (secQ.imageUrl && isValidImageUrl(secQ.imageUrl) ? secQ.imageUrl : null) ||
+                                 (Array.isArray(secQ.imageUrls) ? secQ.imageUrls[ans.subIndex ?? idx] || secQ.imageUrls[0] : null) ||
+                                 (Array.isArray(bankQ?.imageUrls) ? bankQ.imageUrls[idx] || bankQ.imageUrls[0] : null) ||
+                                 (Array.isArray(secBQ?.imageUrls) ? secBQ.imageUrls[ans.subIndex ?? idx] || secBQ.imageUrls[0] : null) ||
+                                 (Array.isArray(hwMatch?.imageUrls) ? hwMatch.imageUrls[idx] || hwMatch.imageUrls[0] : null) ||
+                                 (bankQ?.imageUrl && isValidImageUrl(bankQ.imageUrl) ? bankQ.imageUrl : null) ||
+                                 (secBQ?.imageUrl && isValidImageUrl(secBQ.imageUrl) ? secBQ.imageUrl : null) ||
+                                 (hwMatch?.imageUrl && isValidImageUrl(hwMatch.imageUrl) ? hwMatch.imageUrl : null);
 
                       if (!qImg) {
-                        const payload = activeSubmission.contentPayload || bankQ?.contentPayload;
+                        const payload = activeSubmission.contentPayload || bankQ?.contentPayload || secBQ?.contentPayload || hwMatch?.contentPayload;
                         if (payload && typeof payload === 'string') {
                           let parts = [];
                           if (payload.includes('data:image/') && payload.indexOf('data:image/', 5) !== -1) {
@@ -1377,6 +1504,11 @@ export default function EvaluationManager() {
                             qImg = finalPart;
                           }
                         }
+                      }
+
+                      // Also fallback to resolvedModalImages[0] if index is out of bounds
+                      if (!qImg && resolvedModalImages && resolvedModalImages.length > 0) {
+                        qImg = resolvedModalImages[idx % resolvedModalImages.length];
                       }
 
                       if (qImg && typeof qImg === 'string' && isValidImageUrl(qImg)) {

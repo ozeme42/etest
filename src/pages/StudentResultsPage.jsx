@@ -19,6 +19,7 @@ import { useUser } from '../context/UserContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Subject Config ────────────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
@@ -112,8 +113,27 @@ export default function StudentResultsPage() {
   const { data: curData } = useCurriculum();
   const { books, bookTests } = useTrackedBooks();
 
+  const { currentUser } = useAuth();
+  const isStudentRole = currentUser?.role === 'student';
+
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
-  const [selectedStudent, setSelectedStudent] = useState(studentMembers[0] || null);
+
+  const initialStudent = useMemo(() => {
+    if (isStudentRole && currentUser) {
+      return studentMembers.find(u => String(u.id) === String(currentUser.id)) || currentUser;
+    }
+    return studentMembers[0] || null;
+  }, [isStudentRole, currentUser, studentMembers]);
+
+  const [selectedStudent, setSelectedStudent] = useState(initialStudent);
+
+  React.useEffect(() => {
+    if (isStudentRole && currentUser) {
+      const match = studentMembers.find(u => String(u.id) === String(currentUser.id)) || currentUser;
+      setSelectedStudent(match);
+    }
+  }, [isStudentRole, currentUser, studentMembers]);
+
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -377,17 +397,29 @@ export default function StudentResultsPage() {
             </div>
           </div>
 
-          {/* Student Selector */}
-          <div style={{ display: 'flex', gap: 6, background: 'white', padding: 6, borderRadius: 16, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-            {studentMembers.map(s => {
-              const active = selectedStudent?.id === s.id;
-              return (
-                <button key={s.id} onClick={() => setSelectedStudent(s)} style={{ padding: '0.4rem 0.9rem', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: active ? '#6366f1' : 'transparent', color: active ? 'white' : '#475569' }}>
-                  <GraduationCap size={14} /> {s.name}
-                </button>
-              );
-            })}
-          </div>
+          {/* Student Selector (Only shown to Teachers and Admins) */}
+          {!isStudentRole ? (
+            <div style={{ display: 'flex', gap: 6, background: 'white', padding: 6, borderRadius: 16, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+              {studentMembers.map(s => {
+                const active = selectedStudent?.id === s.id;
+                return (
+                  <button key={s.id} onClick={() => setSelectedStudent(s)} style={{ padding: '0.4rem 0.9rem', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: active ? '#6366f1' : 'transparent', color: active ? 'white' : '#475569' }}>
+                    <GraduationCap size={14} /> {s.name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', padding: '0.5rem 1rem', borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#eef2ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
+                <GraduationCap size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Öğrenci Karnesi</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── TABS ── */}

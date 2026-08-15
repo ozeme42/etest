@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS teacher_id VARCHAR(100);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password TEXT;
 
 -- 2. AUTOMATIC SYNC FROM SUPABASE AUTH TO PUBLIC.USERS TABLE
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -338,3 +340,18 @@ ON CONFLICT (id) DO NOTHING;
 CREATE POLICY "Public Read Access for question_files" ON storage.objects FOR SELECT USING (bucket_id = 'question_files');
 CREATE POLICY "Public Insert Access for question_files" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'question_files');
 CREATE POLICY "Public Update Access for question_files" ON storage.objects FOR UPDATE WITH CHECK (bucket_id = 'question_files');
+
+-- ==========================================
+-- 9. ÖLÇEK SİSTEMİ (SCALES)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.scales (
+    id VARCHAR(100) PRIMARY KEY,
+    teacher_id VARCHAR(100) NOT NULL,
+    data TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.scales ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public scales" ON public.scales FOR ALL USING (true) WITH CHECK (true);
+

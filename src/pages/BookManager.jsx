@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, Plus, Trash2, BookMarked, Library, 
   FileText, HelpCircle, CheckCircle, XCircle, 
@@ -11,6 +12,7 @@ import './BookManager.css';
 
 export default function BookManager() {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { books, bookTests, addTrackedBook, updateTrackedBook, deleteTrackedBook, addTrackedBookTest } = useTrackedBooks();
   const { submissions } = useEvaluation();
   
@@ -56,7 +58,14 @@ export default function BookManager() {
   }, [editingBook]);
 
   const enrichedBooks = useMemo(() => {
-    return books.filter(b => b.bookType !== 'exam').map(book => {
+    let filteredBooks = books.filter(b => b.bookType !== 'exam');
+    if (currentUser?.role === 'teacher' && currentUser?.id) {
+      filteredBooks = filteredBooks.filter(b => 
+        b.createdBy === currentUser.id || 
+        b.teacherId === currentUser.id
+      );
+    }
+    return filteredBooks.map(book => {
       const tests = bookTests.filter(bt => bt.bookId === book.id);
       
       const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId) && s.status === 'completed');
@@ -78,7 +87,7 @@ export default function BookManager() {
         totalIncorrectAnswers: totalIncorrect
       };
     });
-  }, [books, bookTests, submissions]);
+  }, [books, bookTests, submissions, currentUser]);
 
   const showToast = (title, type = 'success') => {
     alert(`${type === 'success' ? '✅' : '❌'} ${title}`);
@@ -95,7 +104,11 @@ export default function BookManager() {
         updateTrackedBook(editingBook.id, newBook);
         showToast("Kitap başarıyla güncellendi!");
       } else {
-        addTrackedBook(newBook);
+        addTrackedBook({
+          ...newBook,
+          createdBy: currentUser?.id,
+          teacherId: currentUser?.id
+        });
         showToast("Kitap başarıyla eklendi!");
       }
       setNewBook({ title: "", publisher: "", bookType: "standard" });

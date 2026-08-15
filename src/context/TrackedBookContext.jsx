@@ -7,6 +7,7 @@ import {
   dbAddTrackedBookTest,
   dbDeleteTrackedBookTest
 } from '../services/supabaseService';
+import { safeSetItem } from '../utils/storageUtils';
 
 const TrackedBookContext = createContext();
 
@@ -44,43 +45,31 @@ export function TrackedBookProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('eTestTrackedBooks', JSON.stringify(books));
-    } catch (e) {
-      console.warn('TrackedBookContext: localStorage quota exceeded for books', e);
-    }
+    safeSetItem('eTestTrackedBooks', JSON.stringify(books));
   }, [books]);
 
   useEffect(() => {
-    try {
-      const sanitizedTests = bookTests.map(test => {
-        const copy = { ...test };
-        delete copy.submissions;
-        if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
-          copy.contentPayload = '[STORED_IN_INDEXEDDB]';
-        }
-        if (typeof copy.pdfPayload === 'string' && copy.pdfPayload.length > 500 && !copy.pdfPayload.startsWith('http')) {
-          copy.pdfPayload = '[STORED_IN_INDEXEDDB]';
-        }
-        if (typeof copy.htmlPayload === 'string' && copy.htmlPayload.length > 500 && !copy.htmlPayload.startsWith('http')) {
-          copy.htmlPayload = '[STORED_IN_INDEXEDDB]';
-        }
-        return copy;
-      });
-      localStorage.setItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
-    } catch (e) {
-      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-        try {
-          const minimalTests = bookTests.map(t => ({
-            id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, optionCount: t.optionCount
-          }));
-          localStorage.setItem('eTestTrackedBookTests', JSON.stringify(minimalTests));
-        } catch (e2) {
-          console.warn('TrackedBookContext: localStorage quota exceeded even after minimal save', e2);
-        }
-      } else {
-        console.warn('TrackedBookContext: localStorage quota exceeded for bookTests', e);
+    const sanitizedTests = bookTests.map(test => {
+      const copy = { ...test };
+      delete copy.submissions;
+      if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
+        copy.contentPayload = '[STORED_IN_INDEXEDDB]';
       }
+      if (typeof copy.pdfPayload === 'string' && copy.pdfPayload.length > 500 && !copy.pdfPayload.startsWith('http')) {
+        copy.pdfPayload = '[STORED_IN_INDEXEDDB]';
+      }
+      if (typeof copy.htmlPayload === 'string' && copy.htmlPayload.length > 500 && !copy.htmlPayload.startsWith('http')) {
+        copy.htmlPayload = '[STORED_IN_INDEXEDDB]';
+      }
+      return copy;
+    });
+
+    const success = safeSetItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
+    if (!success) {
+      const minimalTests = bookTests.map(t => ({
+        id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, optionCount: t.optionCount
+      }));
+      safeSetItem('eTestTrackedBookTests', JSON.stringify(minimalTests));
     }
   }, [bookTests]);
 
@@ -98,6 +87,9 @@ export function TrackedBookProvider({ children }) {
 
   const updateTrackedBook = async (id, updates) => {
     setBooks(prev => prev.map(book => book.id === id ? { ...book, ...updates } : book));
+    if (updates.optionCount !== undefined) {
+      setBookTests(prev => prev.map(t => (t.bookId === id || toUUID(t.bookId) === toUUID(id)) ? { ...t, optionCount: updates.optionCount } : t));
+    }
     await dbUpdateTrackedBook(id, updates);
   };
 

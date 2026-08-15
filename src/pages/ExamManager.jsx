@@ -136,7 +136,14 @@ export default function ExamManager() {
   const [bulkInputText, setBulkInputText] = useState('');
 
   const physicalExamsDatabase = useMemo(() => {
-    return books.filter(b => b.bookType === 'exam').map(b => {
+    let filteredBooks = books.filter(b => b.bookType === 'exam');
+    if (currentUser?.role === 'teacher' && currentUser?.id) {
+      filteredBooks = filteredBooks.filter(b => 
+        b.createdBy === currentUser.id || 
+        b.teacherId === currentUser.id
+      );
+    }
+    return filteredBooks.map(b => {
       const testsForBook = bookTests.filter(t => t.bookId === b.id);
       const builtAnswerKey = {};
       const subjectArray = [];
@@ -361,7 +368,9 @@ export default function ExamManager() {
       subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name })),
       bookType: 'exam',
       penaltyRatio,
-      pdfUrl: examPdfUrl.trim() || ''
+      pdfUrl: examPdfUrl.trim() || '',
+      createdBy: currentUser?.id,
+      teacherId: currentUser?.id
     });
 
     const testPromises = [];
@@ -442,6 +451,7 @@ export default function ExamManager() {
       return;
     }
     const testsForExam = bookTests.filter(t => t.bookId === assignModalExam.id).map(t => t.id);
+    const subs = assignModalExam.subjects || [];
 
     const hwData = {
       title: assignModalExam.title,
@@ -451,7 +461,16 @@ export default function ExamManager() {
       targetType: assignTargetMode,
       targetIds: assignTargets,
       tests: testsForExam,
-      assignedBy: currentUser?.id
+      assignedBy: currentUser?.id,
+      type: 'physicalExam',
+      contentType: 'physicalExam',
+      isPhysical: true,
+      examType: assignModalExam.publisher || 'LGS / YKS',
+      subjects: subs,
+      penaltyRatio: assignModalExam.penaltyRatio !== undefined ? assignModalExam.penaltyRatio : 3,
+      totalQuestions: subs.reduce((acc, s) => acc + (Number(s.count) || 20), 0) || 90,
+      pdfUrl: assignModalExam.pdfUrl || '',
+      answerKey: assignModalExam.answerKey || {}
     };
     await addHomework(hwData);
     setAssignModalExam(null);

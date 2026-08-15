@@ -1477,3 +1477,69 @@ export async function dbSaveCoachingProfile(profile) {
     return null;
   }
 }
+
+// ==========================================
+// ÖLÇEK SİSTEMİ (SCALES)
+// ==========================================
+
+export async function dbGetScales(teacherId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase
+      .from('scales')
+      .select('*')
+      .eq('teacher_id', String(teacherId));
+    if (error) {
+      console.warn('[Supabase] dbGetScales error:', error.message);
+      return null;
+    }
+    return (data || []).map(row => {
+      try {
+        const parsed = JSON.parse(row.data || '{}');
+        return { ...parsed, id: row.id, teacherId: row.teacher_id };
+      } catch {
+        return { id: row.id, teacherId: row.teacher_id };
+      }
+    });
+  } catch (err) {
+    console.warn('[Supabase] dbGetScales catch:', err.message);
+    return null;
+  }
+}
+
+export async function dbSaveScale(scale) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const payload = {
+      id: String(scale.id),
+      teacher_id: String(scale.teacherId || scale.createdBy || ''),
+      data: JSON.stringify(scale),
+    };
+    const { data, error } = await supabase
+      .from('scales')
+      .upsert([payload], { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) {
+      console.warn('[Supabase] dbSaveScale error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveScale catch:', err.message);
+    return null;
+  }
+}
+
+export async function dbDeleteScale(scaleId) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { error } = await supabase
+      .from('scales')
+      .delete()
+      .eq('id', String(scaleId));
+    if (error) console.warn('[Supabase] dbDeleteScale error:', error.message);
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteScale catch:', err.message);
+  }
+}

@@ -7,7 +7,11 @@ import { safeSetItem } from '../utils/storageUtils';
 const AuthContext = createContext();
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    return { currentUser: null, loading: false, error: null, login: async () => {}, logout: async () => {}, register: async () => {}, fastDemoLogin: async () => {} };
+  }
+  return context;
 }
 
 export function translateAuthError(msg) {

@@ -8,6 +8,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
+import { toUUID } from '../services/supabaseService';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
 import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
@@ -27,11 +28,11 @@ export default function ModularQuizPage() {
   const studentId = searchParams.get('studentId') || currentUser?.id;
   const navigate = useNavigate();
 
-  const { homeworks } = useHomework();
-  const { data: curriculumData } = useCurriculum();
+  const { homeworks, isLoading: hwLoading } = useHomework();
+  const { data: curriculumData, isLoading: currLoading } = useCurriculum();
   const { submissions, addSubmission, updateSubmission, isSyncing } = useEvaluation();
-  const { questions: allBankQuestions } = useQuestionBank();
-  const { bookTests, books } = useTrackedBooks();
+  const { questions: allBankQuestions, isLoading: qbLoading } = useQuestionBank();
+  const { bookTests, books, isLoading: booksLoading } = useTrackedBooks();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -39,17 +40,17 @@ export default function ModularQuizPage() {
   const [submissionResult, setSubmissionResult] = useState(null);
   const isSubmittingRef = useRef(false);
 
-  // Grace period for initial context data load (5 seconds)
+  // Grace period for initial context data load (4 seconds)
   const [initLoading, setInitLoading] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setInitLoading(false), 5000);
+    const t = setTimeout(() => setInitLoading(false), 4000);
     return () => clearTimeout(t);
   }, []);
 
   const draftSubmission = useMemo(() => {
     if (!submissions || submissions.length === 0) return null;
     return submissions.find(
-      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId)) && 
+      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId) || toUUID(s.testId) === toUUID(testId)) && 
            String(s.studentId) === String(studentId) && 
            (s.status === 'in_progress' || s.status === 'draft')
     );
@@ -59,7 +60,7 @@ export default function ModularQuizPage() {
   const completedSub = useMemo(() => {
     if (!submissions || submissions.length === 0) return null;
     return submissions.find(
-      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId)) && 
+      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId) || toUUID(s.testId) === toUUID(testId)) && 
            String(s.studentId) === String(studentId) && 
            s.status !== 'in_progress' && s.status !== 'draft'
     );
@@ -67,8 +68,8 @@ export default function ModularQuizPage() {
 
   const bookForTest = useMemo(() => {
     if (!test) return null;
-    const bId = test.bookId || (test.tests && Array.isArray(test.tests) && test.tests.length > 0 && bookTests?.find(bt => String(bt.id) === String(test.tests[0]))?.bookId);
-    return books?.find(b => String(b.id) === String(bId));
+    const bId = test.bookId || (test.tests && Array.isArray(test.tests) && test.tests.length > 0 && bookTests?.find(bt => String(bt.id) === String(test.tests[0]) || toUUID(bt.id) === toUUID(test.tests[0]))?.bookId);
+    return books?.find(b => String(b.id) === String(bId) || toUUID(b.id) === toUUID(bId));
   }, [test, books, bookTests]);
 
   const effectiveTest = useMemo(() => {
@@ -94,44 +95,169 @@ export default function ModularQuizPage() {
     );
   }
 
-
   useEffect(() => {
-    let foundTest = homeworks.find(h => String(h.id) === String(testId));
+    const cleanTestId = String(testId || '').trim();
+    const uuidTestId = toUUID(cleanTestId);
+    const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
 
-    if (!foundTest && bookTests) {
-      foundTest = bookTests.find(t => String(t.id) === String(testId));
+    // 0. Extract composite test IDs (e.g. bt_hw_wt3wv8_1786690900059_tbt_8xm27i_1786690469999 or book_test_hw_..._...)
+    let subCandidateId = null;
+    let explicitHwId = null;
+
+    if (cleanTestId.includes('_tbt_')) {
+      const idx = cleanTestId.indexOf('_tbt_');
+      subCandidateId = cleanTestId.slice(idx + 1); // "tbt_8xm27i_1786690469999"
+      explicitHwId = cleanTestId.slice(0, idx).replace(/^(?:bt_|book_test_)/, '');
+    } else if (cleanTestId.includes('_bt_')) {
+      const idx = cleanTestId.indexOf('_bt_');
+      subCandidateId = cleanTestId.slice(idx + 1); // "bt_..."
+      explicitHwId = cleanTestId.slice(0, idx).replace(/^(?:bt_|book_test_)/, '');
+    } else if (cleanTestId.includes('_q_')) {
+      const idx = cleanTestId.indexOf('_q_');
+      subCandidateId = cleanTestId.slice(idx + 1);
+      explicitHwId = cleanTestId.slice(0, idx).replace(/^(?:bt_|book_test_)/, '');
     }
 
+    if (!subCandidateId && bookTests && bookTests.length > 0) {
+      const matchedBt = bookTests.find(bt => cleanTestId.endsWith(String(bt.id)));
+      if (matchedBt) {
+        subCandidateId = matchedBt.id;
+        const prefix = cleanTestId.slice(0, cleanTestId.lastIndexOf(matchedBt.id)).replace(/_$/, '');
+        explicitHwId = prefix.replace(/^(?:bt_|book_test_)/, '');
+      }
+    }
+
+    let foundTest = null;
+    const testCandidates = [subCandidateId, cleanTestId].filter(Boolean);
+
+    // 1. Search in bookTests (Tracked Book Tests)
+    if (bookTests && bookTests.length > 0) {
+      for (const cand of testCandidates) {
+        const match = bookTests.find(t => 
+          String(t.id) === cand || 
+          toUUID(t.id) === cand || 
+          String(t.id) === toUUID(cand) ||
+          toUUID(t.id) === toUUID(cand) ||
+          normalizeId(t.id) === normalizeId(cand)
+        );
+        if (match) {
+          foundTest = { ...match, hwId: explicitHwId || match.hwId, sourceType: 'trackedBook' };
+          break;
+        }
+      }
+    }
+
+    // 2. Search in homeworks directly (by cleanTestId or explicitHwId)
+    if (!foundTest && homeworks && homeworks.length > 0) {
+      const hwCandidates = [explicitHwId, cleanTestId].filter(Boolean);
+      for (const cand of hwCandidates) {
+        const match = homeworks.find(h => 
+          String(h.id) === cand || 
+          toUUID(h.id) === cand || 
+          String(h.id) === toUUID(cand) ||
+          toUUID(h.id) === toUUID(cand) ||
+          normalizeId(h.id) === normalizeId(cand)
+        );
+        if (match) {
+          foundTest = match;
+          break;
+        }
+      }
+    }
+
+    // 3. Search if any candidate is inside any homework's `tests` array
+    if (!foundTest && homeworks) {
+      const parentHw = homeworks.find(h => h.tests && Array.isArray(h.tests) && h.tests.some(t => {
+        const tid = typeof t === 'object' ? t.id : String(t);
+        return testCandidates.some(cand => 
+          String(tid) === cand || 
+          toUUID(tid) === cand || 
+          String(tid) === toUUID(cand) || 
+          toUUID(tid) === toUUID(cand) || 
+          normalizeId(tid) === normalizeId(cand)
+        );
+      }));
+      if (parentHw) {
+        const specificTest = (bookTests || []).find(bt => testCandidates.some(cand => String(bt.id) === cand || toUUID(bt.id) === cand || normalizeId(bt.id) === normalizeId(cand)));
+        if (specificTest) {
+          foundTest = { ...specificTest, hwId: parentHw.id, bookId: parentHw.bookId || specificTest.bookId, sourceType: 'trackedBook' };
+        } else {
+          foundTest = parentHw;
+        }
+      }
+    }
+
+    // 4. Search in curriculumData.tests
     if (!foundTest && curriculumData?.tests) {
-      foundTest = curriculumData.tests.find(t => String(t.id) === String(testId));
+      foundTest = curriculumData.tests.find(t => 
+        testCandidates.some(cand => 
+          String(t.id) === cand || 
+          toUUID(t.id) === cand || 
+          normalizeId(t.id) === normalizeId(cand)
+        )
+      );
     }
 
+    // 5. Search in allBankQuestions
     if (!foundTest && allBankQuestions) {
-      foundTest = allBankQuestions.find(q => String(q.id) === String(testId));
+      foundTest = allBankQuestions.find(q => 
+        testCandidates.some(cand => 
+          String(q.id) === cand || 
+          toUUID(q.id) === cand || 
+          normalizeId(q.id) === normalizeId(cand)
+        )
+      );
+    }
+
+    // 6. Search in books list for whole-book tasks
+    if (!foundTest && books) {
+      const matchingBook = books.find(b => testCandidates.some(cand => String(b.id) === cand || toUUID(b.id) === cand));
+      if (matchingBook) {
+        const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(matchingBook.id) || toUUID(bt.bookId) === toUUID(matchingBook.id));
+        if (testsForBook.length > 0) {
+          foundTest = {
+            id: matchingBook.id,
+            title: matchingBook.title || 'Kitap Görevi',
+            sourceType: 'trackedBook',
+            bookId: matchingBook.id,
+            tests: testsForBook.map(t => t.id),
+            totalQuestions: testsForBook.reduce((acc, t) => acc + (t.questionCount || 20), 0)
+          };
+        }
+      }
     }
 
     if (foundTest) {
-      setTest(foundTest);
-
       const isTrackedBook = Boolean(
-        foundTest.sourceType === 'trackedBook' || 
-        foundTest.bookId || 
-        foundTest.sourceFormat === 'physical'
+        !String(foundTest.id || '').startsWith('hw_') &&
+        (
+          foundTest.sourceType === 'trackedBook' || 
+          foundTest.sourceFormat === 'physical' ||
+          (foundTest.bookId && !foundTest.contentType && !foundTest.contentPayload && !foundTest.imageUrls && !foundTest.imageUrl && !foundTest.sections) ||
+          (foundTest.id && (String(foundTest.id).startsWith('bt_') || String(foundTest.id).startsWith('tbt_')))
+        )
       );
 
       if (isTrackedBook) {
         // Resolve questions from bookTests
         let targetBookTests = [];
-        if (foundTest.tests && Array.isArray(foundTest.tests) && bookTests) {
-          targetBookTests = bookTests.filter(bt => foundTest.tests.includes(bt.id));
+        if (foundTest.tests && Array.isArray(foundTest.tests) && bookTests && bookTests.length > 0) {
+          targetBookTests = bookTests.filter(bt => 
+            foundTest.tests.some(t => {
+              const tid = typeof t === 'object' ? t.id : String(t);
+              return String(tid) === String(bt.id) || 
+                     (toUUID(tid) && String(toUUID(tid)) === String(toUUID(bt.id))) ||
+                     normalizeId(tid) === normalizeId(bt.id);
+            })
+          );
         }
         if (targetBookTests.length === 0) {
           targetBookTests = [foundTest];
         }
 
         const sections = targetBookTests.map((bt, secIdx) => {
-          const qCount = bt.questionCount || bt.totalQuestions || bt.questionsCount || 20;
-          const ansKey = bt.answerKey || {};
+          const qCount = bt.questionCount || bt.totalQuestions || bt.questionsCount || foundTest.totalQuestions || foundTest.questionCount || 20;
+          const ansKey = bt.answerKey || foundTest.answerKey || {};
           const secQs = [];
 
           for (let i = 1; i <= qCount; i++) {
@@ -140,7 +266,7 @@ export default function ModularQuizPage() {
 
             if (Array.isArray(ansKey)) {
               letterAns = ansKey[i - 1];
-            } else if (typeof ansKey === 'object') {
+            } else if (typeof ansKey === 'object' && ansKey !== null) {
               letterAns = ansKey[i] ?? ansKey[String(i)] ?? ansKey[i - 1] ?? ansKey[String(i - 1)];
             } else if (typeof ansKey === 'string') {
               const clean = ansKey.replace(/[^A-Ea-e0-4]/g, '');
@@ -167,10 +293,10 @@ export default function ModularQuizPage() {
             }
 
             secQs.push({
-              id: `${bt.id || 'bt'}_q${i}`,
+              id: `${bt.id || foundTest.id || 'bt'}_q${i}`,
               questionNo: i,
-              testName: bt.name || bt.title || `Bölüm ${secIdx + 1}`,
-              questionText: `${bt.name || 'Test'} - Soru ${i}`,
+              testName: bt.name || bt.title || foundTest.title || `Bölüm ${secIdx + 1}`,
+              questionText: `${bt.name || bt.title || foundTest.title || 'Test'} - Soru ${i}`,
               questionCount: 1,
               correctAnswer: idxAns,
               correctAnswerLetter: letterAns
@@ -179,7 +305,7 @@ export default function ModularQuizPage() {
 
           return {
             id: bt.id || `sec_${secIdx}`,
-            title: bt.name || bt.title || `Bölüm ${secIdx + 1}`,
+            title: bt.name || bt.title || foundTest.title || `Bölüm ${secIdx + 1}`,
             questionCount: qCount,
             questions: secQs
           };
@@ -196,13 +322,13 @@ export default function ModularQuizPage() {
           });
         });
 
-        const totalQFallback = foundTest.totalQuestions || foundTest.questionCount || foundTest.questionsCount;
+        const totalQFallback = foundTest.totalQuestions || foundTest.questionCount || foundTest.questionsCount || allResolvedQs.length || 20;
         if (allResolvedQs.length === 0 && totalQFallback) {
           for (let i = 1; i <= totalQFallback; i++) {
             allResolvedQs.push({
               id: `hw_q${i}`,
               questionNo: i,
-              testName: foundTest.title || 'Kitap Ödevi',
+              testName: foundTest.title || foundTest.name || 'Kitap Ödevi',
               questionText: `Soru ${i}`,
               questionCount: 1,
               correctAnswer: null,
@@ -213,6 +339,8 @@ export default function ModularQuizPage() {
 
         setTest({
           ...foundTest,
+          title: foundTest.title || foundTest.name || 'Kitap Testi',
+          sourceType: 'trackedBook',
           sections
         });
         setQuestions(allResolvedQs);
@@ -252,11 +380,37 @@ export default function ModularQuizPage() {
         const resolved = resolveTestQuestions(foundTest, allBankQuestions);
         setQuestions(resolved);
       }
+      setLoading(false);
+    } else {
+      // Only finish loading if all context fetches are completed
+      if (!hwLoading && !booksLoading && !currLoading && !qbLoading) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
-  }, [testId, homeworks, curriculumData, allBankQuestions, bookTests, submissions, studentId]);
+  }, [testId, homeworks, curriculumData, allBankQuestions, bookTests, books, submissions, studentId, hwLoading, booksLoading, currLoading, qbLoading]);
 
-  if (loading || isSyncing) {
+  // If this is a physical exam (from ExamManager or TrackedBook with bookType: 'exam'), redirect directly to /physical-exam/:id
+  useEffect(() => {
+    if (test) {
+      const isPhysicalExam = (
+        test.type === 'physicalExam' ||
+        test.contentType === 'physicalExam' ||
+        test.bookType === 'exam' ||
+        bookForTest?.bookType === 'exam' ||
+        test.sourceFormat === 'physicalExam' ||
+        (test.subjects && test.subjects.length > 0 && !test.questionsList)
+      );
+      if (isPhysicalExam) {
+        const targetId = test.hwId || test.bookId || test.id || testId;
+        navigate(`/physical-exam/${targetId}?studentId=${studentId || ''}`, { replace: true });
+      }
+    }
+  }, [test, bookForTest, testId, studentId, navigate]);
+
+  const isDataLoading = (hwLoading && (!homeworks || homeworks.length === 0)) || 
+                        (booksLoading && (!bookTests || bookTests.length === 0));
+
+  if (loading || isSyncing || isDataLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
         Sınav Yükleniyor...
@@ -273,11 +427,20 @@ export default function ModularQuizPage() {
       );
     }
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1rem' }}>
-        <h2>Sınav Bulunamadı</h2>
-        <button onClick={() => navigate(-1)} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800 }}>
-          Geri Dön
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem' }}>🔍</div>
+        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Sınav Bulunamadı</h2>
+        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', lineHeight: 1.5 }}>
+          Bu teste ait kayıt bulunamadı veya henüz yükleniyor olabilir. Lütfen listenizi kontrol ediniz.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+          <button onClick={() => navigate('/student')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
+            Öğrenci Paneline Dön
+          </button>
+          <button onClick={() => navigate('/student/books')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#334155', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
+            Kitaplarıma Dön
+          </button>
+        </div>
       </div>
     );
   }
@@ -469,7 +632,7 @@ export default function ModularQuizPage() {
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '1rem' }}>
               <button
-                onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: `/student/books/${test.bookId || test.id}` } })}
+                onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: test.bookId ? `/student/books/${test.bookId}` : '/student' } })}
                 style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}
               >
                 <Eye size={18} /> Cevapları İncele
@@ -527,7 +690,7 @@ export default function ModularQuizPage() {
 
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', width: '100%', marginTop: '1rem' }}>
             <button
-              onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: `/student/books/${test.bookId || test.id}` } })}
+              onClick={() => navigate(`/quiz-review/${test.id}?studentId=${studentId}`, { state: { from: test.bookId ? `/student/books/${test.bookId}` : '/student' } })}
               style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}
             >
               <Eye size={18} /> Detaylı İncele
@@ -591,31 +754,34 @@ export default function ModularQuizPage() {
   );
 
   const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
-    q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || (q.pdfPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+    q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || Boolean(q.pdfPayload) || Boolean(q.pdfUrl)
   ));
-  const isDefinitelyStandardForPdf = isRealStandardQuiz && !hasExplicitPdfQuestions;
-  const isPdf = !isDefinitelyStandardForPdf && Boolean(
-    test.pdfPayload || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
-    test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions
+  const isPdf = Boolean(
+    test.pdfPayload || test.pdfUrl || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
+    test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions ||
+    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.includes('.pdf')))
   );
 
-  // ALWAYS force Physical Optik Grid Form for tracked book homeworks or tests!
+  // ALWAYS force Physical Optik Grid Form ONLY for real physical tracked book tests with no digital content
   const isPhysical = Boolean(
-    test.sourceFormat === 'physical' ||
-    test.formatType === 'physical' ||
-    test.questionType === 'optik_form' ||
-    test.type === 'optik_form' ||
-    test.sourceType === 'trackedBook' ||
-    test.bookId
+    !String(test.id || '').startsWith('hw_') &&
+    (
+      test.sourceFormat === 'physical' ||
+      test.formatType === 'physical' ||
+      test.questionType === 'optik_form' ||
+      test.type === 'optik_form' ||
+      (test.sourceType === 'trackedBook' && !test.contentType && !test.contentPayload && !test.sections && !test.questionsList && !test.questions?.length)
+    )
   );
 
   const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
-    q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
+    q.type === 'gorsel' || q.type === 'gorsel_klasik' || q.questionType === 'gorsel_klasik' || q.contentType === 'gorsel' || q.formatType === 'image' || q.sourceFormat === 'image' || (q.imageUrls && q.imageUrls.length > 0) || (q.imageUrl && typeof q.imageUrl === 'string' && q.imageUrl !== '[STORED_IN_INDEXEDDB]')
   ));
-  const isDefinitelyStandardForImage = isRealStandardQuiz && !hasExplicitImageQuestions;
-  const isImageTest = !isHtml && !isPdf && !isPhysical && !isDefinitelyStandardForImage && Boolean(
+  const isImageTest = !isHtml && !isPdf && !isPhysical && Boolean(
     test.sourceFormat === 'image' || test.formatType === 'image' ||
-    test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions
+    test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions ||
+    Boolean(test.imageUrl || (test.imageUrls && test.imageUrls.length > 0)) ||
+    (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
   );
 
   const isMultiSection = Boolean(
@@ -632,14 +798,7 @@ export default function ModularQuizPage() {
 
   const renderRunner = () => {
     if (isMultiSection) {
-      if (isPhysical) {
-        return <BulkHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
-      }
       return <MultiHomeworkRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
-    }
-
-    if (isPhysical) {
-      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
     }
 
     if (isHtml) {
@@ -652,6 +811,10 @@ export default function ModularQuizPage() {
 
     if (isImageTest) {
       return <ImageQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
+    }
+
+    if (isPhysical) {
+      return <PhysicalQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} bookPdfUrl={bookPdfUrl} />;
     }
 
     return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;

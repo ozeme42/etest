@@ -14,6 +14,7 @@ import { StudyPlanProvider } from './context/StudyPlanContext.jsx'
 import { GoalProvider } from './context/GoalContext.jsx'
 import { ScheduleProvider } from './context/ScheduleContext.jsx'
 import { CoachingProvider } from './context/CoachingContext.jsx'
+import { ScaleProvider } from './context/ScaleContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -29,7 +30,9 @@ createRoot(document.getElementById('root')).render(
                       <GoalProvider>
                         <ScheduleProvider>
                           <CoachingProvider>
-                            <App />
+                            <ScaleProvider>
+                              <App />
+                            </ScaleProvider>
                           </CoachingProvider>
                         </ScheduleProvider>
                       </GoalProvider>

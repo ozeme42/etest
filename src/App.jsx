@@ -36,11 +36,22 @@ import MyCoachingPage from './pages/MyCoachingPage';
 import ExamManager from './pages/ExamManager';
 import ExamAnalysisPage from './pages/ExamAnalysisPage';
 import PhysicalExamRunner from './pages/PhysicalExamRunner';
+import TrackedBookQuizRunner from './pages/TrackedBookQuizRunner';
 import StudentProgramPage from './pages/StudentProgramPage';
 import LoginPage from './pages/LoginPage';
+import ScalePage from './pages/ScalePage';
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
 import './App.css';
+
+// Route guard: redirects to '/' if user doesn't have the required role
+function RequireRole({ roles, children }) {
+  const { currentUser } = useAuth();
+  if (!currentUser || !roles.includes(currentUser.role)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
 
 function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -114,7 +125,7 @@ function Sidebar() {
           <div className="nav-section-title">Kullanıcı Panelleri</div>
           
           {/* Öğrenciye Özel Menüler (Öğretmen ve Admin Göremez) */}
-          {(currentUser?.role === 'student' || (!currentUser && true)) && (
+          {currentUser?.role === 'student' && (
             <>
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
                 <GraduationCap size={20} /> Öğrenci Paneli
@@ -182,6 +193,9 @@ function Sidebar() {
               <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
                 <Map size={20} /> Yol Haritası
               </NavLink>
+              <NavLink to="/scales" className="nav-link" onClick={closeSidebar}>
+                <ListTree size={20} /> Ölçek & Takip
+              </NavLink>
             </>
           )}
 
@@ -205,8 +219,11 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+
   const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/'];
-  const shouldHideSidebar = !currentUser || hideSidebarRoutes.some(route => location.pathname.startsWith(route));
+  const isLandingPage = location.pathname === '/';
+  const isQuizRoute = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
+  const shouldHideSidebar = !currentUser || isLandingPage || isQuizRoute;
 
   useEffect(() => {
     initNativeApp(navigate);
@@ -219,7 +236,7 @@ function AppContent() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/student" element={<StudentDashboard />} />
           <Route path="/student/books" element={<StudentBooksPage />} />
@@ -230,7 +247,7 @@ function AppContent() {
           <Route path="/evaluations" element={<EvaluationManager />} />
           <Route path="/questions" element={<QuestionBank />} />
           <Route path="/quiz/:testId" element={<ModularQuizPage />} />
-          <Route path="/book-quiz/:testId" element={<ModularQuizPage />} />
+          <Route path="/book-quiz/:testId" element={<TrackedBookQuizRunner />} />
           <Route path="/quiz-review/:testId" element={<ModularQuizReviewPage />} />
           <Route path="/review/:submissionId" element={<ModularQuizReviewPage />} />
           <Route path="/books" element={<BookManager />} />
@@ -246,6 +263,7 @@ function AppContent() {
           <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
           <Route path="/my-coaching" element={<MyCoachingPage />} />
           <Route path="/physical-exam" element={<ExamManager />} />
+          <Route path="/scales" element={<ScalePage />} />
           <Route path="/exam-analysis/:examId" element={<ExamAnalysisPage />} />
           <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
           <Route path="/login" element={<LoginPage />} />

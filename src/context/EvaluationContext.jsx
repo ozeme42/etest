@@ -5,7 +5,11 @@ import { useAuth } from './AuthContext';
 const EvaluationContext = createContext();
 
 export function useEvaluation() {
-  return useContext(EvaluationContext);
+  const context = useContext(EvaluationContext);
+  if (!context) {
+    return { submissions: [], addSubmission: async () => {}, deleteSubmission: async () => {}, clearStudentSubmissions: async () => {} };
+  }
+  return context;
 }
 
 const DEFAULT_SAMPLE_SUBMISSIONS = [

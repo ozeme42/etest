@@ -13,7 +13,11 @@ import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 const CurriculumContext = createContext();
 
 export function useCurriculum() {
-  return useContext(CurriculumContext);
+  const context = useContext(CurriculumContext);
+  if (!context) {
+    return { data: { grades: [], subjects: [], units: [], topics: [], tests: [] }, addGrade: async () => {}, addSubject: async () => {}, addUnit: async () => {}, addTopic: async () => {} };
+  }
+  return context;
 }
 
 const INITIAL_DATA = {

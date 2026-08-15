@@ -10,7 +10,11 @@ import {
 const StudyPlanContext = createContext();
 
 export function useStudyPlan() {
-  return useContext(StudyPlanContext);
+  const context = useContext(StudyPlanContext);
+  if (!context) {
+    return { studyPlans: [], studyAssignments: [], addStudyPlan: async () => {}, updateStudyPlan: async () => {}, deleteStudyPlan: async () => {} };
+  }
+  return context;
 }
 
 export function StudyPlanProvider({ children }) {

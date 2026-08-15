@@ -5,6 +5,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { toUUID } from '../services/supabaseService';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
 import HtmlQuizReview from '../components/quiz/review/HtmlQuizReview';
@@ -23,11 +24,11 @@ export default function ModularQuizReviewPage() {
   const studentId = searchParams.get('studentId');
   const navigate = useNavigate();
 
-  const { homeworks } = useHomework();
-  const { submissions } = useEvaluation();
+  const { homeworks, isLoading: hwLoading } = useHomework();
+  const { submissions, isLoading: subLoading } = useEvaluation();
   const { data: curriculumData } = useCurriculum();
   const { questions: allBankQuestions } = useQuestionBank();
-  const { bookTests } = useTrackedBooks();
+  const { bookTests, isLoading: booksLoading } = useTrackedBooks();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -97,25 +98,66 @@ export default function ModularQuizReviewPage() {
 
     // 4. Resolve testId from found submission or targetId
     const resolvedTestId = foundSubmission?.testId || foundSubmission?.homeworkId || targetId;
-    const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '');
+    const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
 
-    // 5. Search test in homeworks
+    // Extract composite IDs (e.g. bt_hw_..._tbt_...)
+    let subCandidateId = null;
+    let explicitHwId = null;
+    const compMatch = String(resolvedTestId || '').match(/^(?:bt_|book_test_)?(hw_[^_]+)_(.+)$/);
+    if (compMatch) {
+      explicitHwId = compMatch[1];
+      subCandidateId = compMatch[2];
+    }
+
+    // 5. Search in bookTests by subCandidateId or resolvedTestId
+    if (!foundTest && bookTests) {
+      if (subCandidateId) {
+        foundTest = bookTests.find(t =>
+          String(t.id) === subCandidateId ||
+          toUUID(t.id) === subCandidateId ||
+          String(t.id) === toUUID(subCandidateId) ||
+          normalizeId(t.id) === normalizeId(subCandidateId)
+        );
+        if (foundTest && explicitHwId) {
+          foundTest = { ...foundTest, hwId: explicitHwId };
+        }
+      }
+
+      if (!foundTest) {
+        foundTest = bookTests.find(t =>
+          String(t.id) === String(resolvedTestId) ||
+          String(t.id) === String(targetId) ||
+          toUUID(t.id) === String(resolvedTestId) ||
+          toUUID(t.id) === String(targetId) ||
+          normalizeId(t.id) === normalizeId(resolvedTestId) ||
+          normalizeId(t.id) === normalizeId(targetId)
+        );
+      }
+    }
+
+    // 6. Search test in homeworks
     if (!foundTest && homeworks && Array.isArray(homeworks)) {
+      const searchHwId = explicitHwId || resolvedTestId;
       foundTest = homeworks.find(h =>
-        String(h.id) === String(resolvedTestId) ||
+        String(h.id) === String(searchHwId) ||
         String(h.id) === String(targetId) ||
-        normalizeId(h.id) === normalizeId(resolvedTestId) ||
+        toUUID(h.id) === String(searchHwId) ||
+        toUUID(h.id) === String(targetId) ||
+        normalizeId(h.id) === normalizeId(searchHwId) ||
         normalizeId(h.id) === normalizeId(targetId)
       );
     }
 
-    // 6. Search test in bookTests
-    if (!foundTest && bookTests) {
-      foundTest = bookTests.find(t =>
-        String(t.id) === String(resolvedTestId) ||
-        String(t.id) === String(targetId) ||
-        normalizeId(t.id) === normalizeId(resolvedTestId)
-      );
+    // 6.5 Search if test is in any homework's tests list
+    if (!foundTest && homeworks && Array.isArray(homeworks)) {
+      const parentHw = homeworks.find(h => h.tests && Array.isArray(h.tests) && h.tests.some(t => {
+        const tid = typeof t === 'object' ? t.id : String(t);
+        return String(tid) === String(resolvedTestId) || String(tid) === String(targetId) || toUUID(tid) === String(resolvedTestId) || toUUID(tid) === String(targetId) || normalizeId(tid) === normalizeId(resolvedTestId);
+      }));
+      if (parentHw) {
+        const specificTest = (bookTests || []).find(bt => String(bt.id) === String(resolvedTestId) || toUUID(bt.id) === String(resolvedTestId) || normalizeId(bt.id) === normalizeId(resolvedTestId));
+        foundTest = specificTest ? { ...specificTest, hwId: parentHw.id } : parentHw;
+      }
     }
 
     // 7. Search test in curriculumData.tests
@@ -380,13 +422,15 @@ export default function ModularQuizReviewPage() {
   );
 
   const isPhysical = Boolean(
-    test.sourceFormat === 'physical' ||
-    test.formatType === 'physical' ||
-    test.questionType === 'optik_form' ||
-    test.type === 'optik_form' ||
-    test.sourceType === 'trackedBook' ||
-    test.bookId ||
-    (submission && (submission.bookId || submission.sourceType === 'trackedBook'))
+    !String(test.id || '').startsWith('hw_') &&
+    (
+      test.sourceFormat === 'physical' ||
+      test.formatType === 'physical' ||
+      test.questionType === 'optik_form' ||
+      test.type === 'optik_form' ||
+      (test.sourceType === 'trackedBook' && !test.contentType && !test.contentPayload && !test.sections && !test.questionsList && !test.questions?.length) ||
+      (submission && (submission.bookId || submission.sourceType === 'trackedBook') && !test.contentType && !test.contentPayload && !test.sections)
+    )
   );
 
   const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 

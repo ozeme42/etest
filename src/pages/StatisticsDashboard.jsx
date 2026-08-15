@@ -7,6 +7,7 @@ import {
 import { Users, BookOpen, Target, BrainCircuit, Activity, BarChart3, PieChart as PieChartIcon, Sparkles, Trophy, GraduationCap, CheckCircle2 } from 'lucide-react';
 
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
@@ -28,32 +29,64 @@ function StatCard({ icon: Icon, label, value, grad }) {
 }
 
 export default function StatisticsDashboard() {
-  const { users } = useUser();
-  const { submissions } = useEvaluation();
-  const { homeworks } = useHomework();
-  const { studyAssignments } = useStudyPlan();
-  const { data: curriculumData } = useCurriculum();
+  const { users } = useUser() || { users: [] };
+  const auth = useAuth() || {};
+  const currentUser = auth.currentUser;
+  const { submissions: allSubmissions } = useEvaluation() || { submissions: [] };
+  const { homeworks: allHomeworks } = useHomework() || { homeworks: [] };
+  const { studyAssignments: allStudyAssignments } = useStudyPlan() || { studyAssignments: [] };
+  const curriculumContext = useCurriculum() || {};
+  const curriculumData = curriculumContext.data;
   
-  const students = users.filter(u => u.role === 'student');
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherId = currentUser?.id;
+
+  const students = useMemo(() => {
+    const all = (users || []).filter(u => u && u.role === 'student');
+    if (!isTeacher || !teacherId) return all;
+    return all.filter(u => u.teacherId === teacherId || !u.teacherId);
+  }, [users, isTeacher, teacherId]);
+
+  const teacherStudentIds = useMemo(() => new Set(students.map(s => String(s.id))), [students]);
+
+  const homeworks = useMemo(() => {
+    const all = allHomeworks || [];
+    if (!isTeacher || !teacherId) return all;
+    return all.filter(h => h.createdBy === teacherId || h.teacherId === teacherId || h.assignedBy === teacherId);
+  }, [allHomeworks, isTeacher, teacherId]);
+
+  const studyAssignments = useMemo(() => {
+    const all = allStudyAssignments || [];
+    if (!isTeacher || !teacherId) return all;
+    return all.filter(a => teacherStudentIds.has(String(a.studentId)) || a.teacherId === teacherId);
+  }, [allStudyAssignments, isTeacher, teacherId, teacherStudentIds]);
+
+  const submissions = useMemo(() => {
+    const all = allSubmissions || [];
+    if (!isTeacher || !teacherId) return all;
+    return all.filter(s => s && s.studentId && teacherStudentIds.has(String(s.studentId)));
+  }, [allSubmissions, isTeacher, teacherId, teacherStudentIds]);
 
   // --- KPI Calculations ---
   const totalStudents = students.length;
   const totalHomeworksAssigned = homeworks.length;
   
-  const avgScore = submissions.length > 0 
-    ? Math.round(submissions.reduce((acc, sub) => acc + sub.score, 0) / submissions.length)
+  const validSubmissions = useMemo(() => submissions.filter(s => s && s.score !== undefined && s.score !== null && !isNaN(Number(s.score))), [submissions]);
+  const avgScore = validSubmissions.length > 0 
+    ? Math.round(validSubmissions.reduce((acc, sub) => acc + Number(sub.score), 0) / validSubmissions.length)
     : 0;
 
   const totalStudyAssignments = studyAssignments.length;
-  const completedStudyAssignments = studyAssignments.filter(a => a.status === 'completed').length;
+  const completedStudyAssignments = studyAssignments.filter(a => a.status === 'completed' || a.completed === true).length;
 
   // --- Chart 1: Success Over Time (Area Chart) ---
   const successOverTimeData = useMemo(() => {
     const grouped = {};
-    submissions.forEach(sub => {
-      const dateStr = new Date(sub.submittedAt).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+    (submissions || []).forEach(sub => {
+      if (!sub || sub.score === undefined || sub.score === null || isNaN(Number(sub.score))) return;
+      const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' }) : 'Genel';
       if (!grouped[dateStr]) grouped[dateStr] = { date: dateStr, totalScore: 0, count: 0 };
-      grouped[dateStr].totalScore += sub.score;
+      grouped[dateStr].totalScore += Number(sub.score);
       grouped[dateStr].count += 1;
     });
 
@@ -61,8 +94,7 @@ export default function StatisticsDashboard() {
       .map(item => ({
         date: item.date,
         'Ortalama Skor': Math.round(item.totalScore / item.count)
-      }))
-      .sort((a,b) => 1); 
+      }));
   }, [submissions]);
 
   const finalSuccessData = successOverTimeData;
@@ -70,13 +102,13 @@ export default function StatisticsDashboard() {
   // --- Chart 2: Assignments by Subject (Bar Chart) ---
   const finalSubjectData = useMemo(() => {
     const grouped = {};
-    studyAssignments.forEach(a => {
+    (studyAssignments || []).forEach(a => {
       const s = a.subject || 'Belirtilmemiş';
       if (!grouped[s]) {
         grouped[s] = { subject: s, Atanan: 0, Tamamlanan: 0 };
       }
       grouped[s].Atanan += 1;
-      if (a.status === 'completed') {
+      if (a.status === 'completed' || a.completed === true) {
         grouped[s].Tamamlanan += 1;
       }
     });
@@ -86,14 +118,14 @@ export default function StatisticsDashboard() {
   // --- Chart 2.5: Assignments by Topic (Bar Chart) ---
   const finalTopicData = useMemo(() => {
     const grouped = {};
-    studyAssignments.forEach(a => {
+    (studyAssignments || []).forEach(a => {
       const t = a.topic || 'Belirtilmemiş';
       const label = t.length > 12 ? t.substring(0, 12) + '...' : t;
       if (!grouped[t]) {
         grouped[t] = { topic: label, fullTopic: t, Atanan: 0, Tamamlanan: 0 };
       }
       grouped[t].Atanan += 1;
-      if (a.status === 'completed') {
+      if (a.status === 'completed' || a.completed === true) {
         grouped[t].Tamamlanan += 1;
       }
     });
@@ -102,8 +134,8 @@ export default function StatisticsDashboard() {
 
   // --- Chart 3: Study Plan Status (Pie Chart) ---
   const statusData = useMemo(() => {
-    const completed = studyAssignments.filter(a => a.status === 'completed').length;
-    const pending = studyAssignments.filter(a => a.status !== 'completed').length;
+    const completed = (studyAssignments || []).filter(a => a.status === 'completed' || a.completed === true).length;
+    const pending = (studyAssignments || []).filter(a => a.status !== 'completed' && !a.completed).length;
     return [
       { name: 'Tamamlandı', value: completed },
       { name: 'Bekliyor', value: pending }
@@ -118,25 +150,64 @@ export default function StatisticsDashboard() {
 
   // --- Chart 4: Student Stats Table Data ---
   const studentStats = useMemo(() => {
+    const gradesList = curriculumData?.grades || [];
+
     return students.map(student => {
-      const studentSubmissions = submissions.filter(s => s.studentId === student.id);
-      const studentAvgScore = studentSubmissions.length > 0 
-        ? Math.round(studentSubmissions.reduce((acc, sub) => acc + sub.score, 0) / studentSubmissions.length)
+      const studentSubmissions = (submissions || []).filter(s => 
+        s && String(s.studentId) === String(student.id) && 
+        s.score !== undefined && s.score !== null && !isNaN(Number(s.score))
+      );
+      
+      const rawAvg = studentSubmissions.length > 0 
+        ? Math.round(studentSubmissions.reduce((acc, sub) => acc + Number(sub.score), 0) / studentSubmissions.length)
         : 0;
+      const studentAvgScore = isNaN(rawAvg) ? 0 : rawAvg;
       
-      const studentAssignments = studyAssignments.filter(a => a.studentId === student.id);
-      const studentCompletedAssignments = studentAssignments.filter(a => a.status === 'completed').length;
+      const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(student.id));
+      const completedTasks = studentAssignments.filter(a => a.status === 'completed' || a.completed === true).length;
+      const totalTasks = studentAssignments.length;
+      const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
       
-      const grade = curriculumData?.grades?.find(g => g.id === student.gradeId);
-      const gradeName = grade ? grade.name : 'Sınıfsız';
+      // Robust Grade Name Matching
+      let gradeName = '';
+      if (student.grade && student.grade !== 'g1' && !student.grade.startsWith('g_')) {
+        gradeName = student.grade;
+      } else if (student.className) {
+        gradeName = student.className;
+      } else if (student.gradeName) {
+        gradeName = student.gradeName;
+      }
+
+      if (!gradeName) {
+        const target = String(student.gradeId || student.classId || student.grade || '').trim().toLowerCase();
+        const matched = gradesList.find(g => 
+          String(g.id).toLowerCase() === target || 
+          g.name.toLowerCase() === target
+        );
+
+        if (matched) {
+          gradeName = matched.name;
+        } else if (student.gradeId === 'g1') {
+          gradeName = '5. Sınıf';
+        } else if (student.gradeId === 'g2') {
+          gradeName = '6. Sınıf';
+        } else if (student.gradeId === 'g3') {
+          gradeName = '7. Sınıf';
+        } else if (student.gradeId === 'g4') {
+          gradeName = '8. Sınıf (LGS)';
+        } else {
+          gradeName = student.gradeId || student.grade || 'Sınıfsız';
+        }
+      }
 
       return {
         id: student.id,
-        name: student.name,
-        gradeName,
+        name: student.name || 'İsimsiz Öğrenci',
+        gradeName: gradeName || 'Sınıfsız',
         avgScore: studentAvgScore,
-        completedTasks: studentCompletedAssignments,
-        totalTasks: studentAssignments.length,
+        completedTasks,
+        totalTasks,
+        progressPct: isNaN(progressPct) ? 0 : progressPct
       };
     });
   }, [students, submissions, studyAssignments, curriculumData]);
@@ -327,7 +398,7 @@ export default function StatisticsDashboard() {
                   </tr>
                 ) : (
                   studentStats.map((student, idx) => {
-                    const pct = student.totalTasks === 0 ? 0 : Math.round((student.completedTasks / student.totalTasks) * 100);
+                    const pct = student.progressPct;
                     return (
                       <tr key={student.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors">
                         <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-100">{student.name}</td>
@@ -363,7 +434,7 @@ export default function StatisticsDashboard() {
           {/* Mobile Cards View */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
             {studentStats.map((student, i) => {
-              const pct = student.totalTasks === 0 ? 0 : Math.round((student.completedTasks / student.totalTasks) * 100);
+              const pct = student.progressPct;
               const avatarColors = ['bg-indigo-500','bg-blue-500','bg-emerald-500','bg-orange-500','bg-purple-500','bg-rose-500'];
               const av = avatarColors[i % avatarColors.length];
 

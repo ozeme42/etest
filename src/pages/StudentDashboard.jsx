@@ -4,7 +4,7 @@ import {
   PlayCircle, Target, AlertCircle, Timer, BookOpen, Check,
   Sparkles, Trophy, Flame, GraduationCap, BarChart3, Clock,
   Calendar, CheckCircle2, X, Plus, ExternalLink, Zap,
-  ChevronRight, Star, TrendingUp, BookMarked, CalendarDays,
+  ChevronRight, ChevronDown, ChevronUp, Star, TrendingUp, BookMarked, CalendarDays,
   Ruler, TestTube2, BookCopy, Globe, MessageSquare,
   FileText, ClipboardList, ArrowRight, RefreshCw, ClipboardCheck, Eye, RotateCcw
 } from 'lucide-react';
@@ -187,11 +187,15 @@ function HomeworkCard({ task, selectedStudent, isMobile }) {
   ) : null;
 
   const handleStart = () => {
-    let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
-    if (task.sourceType === 'trackedBook') {
-      path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
-    } else if (task.type === 'physicalExam') {
-      path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
+    const targetId = task.realTestId || task.testId || task.id;
+    let path = `/quiz/${targetId}?studentId=${selectedStudent.id}`;
+    const matchingBook = books?.find(b => String(b.id) === String(task.bookId));
+    const isExam = task.type === 'physicalExam' || task.contentType === 'physicalExam' || task.bookType === 'exam' || matchingBook?.bookType === 'exam' || task.isPhysical;
+
+    if (isExam) {
+      path = `/physical-exam/${task.hwId || task.bookId || targetId}?studentId=${selectedStudent.id}`;
+    } else if (task.sourceType === 'trackedBook' || task.isBookAssignment) {
+      path = `/book-quiz/${targetId}?studentId=${selectedStudent.id}`;
     }
     navigate(path);
   };
@@ -334,16 +338,74 @@ function ProgressBar({ value, color = '#6366f1', bg = '#eff6ff', height = 8 }) {
 const avatarColors = ['#6366f1', '#3b82f6', '#10b981', '#f97316', '#a855f7', '#f43f5e'];
 
 const DASHBOARD_QUOTES = [
-  { quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", author: "Robert Collier", category: "Disiplin" },
-  { quote: "Gelecek, bugün ne yaptığına bağlıdır. Yarın değil, tam da şimdi!", author: "Mahatma Gandhi", category: "Eylem" },
-  { quote: "Zirveye tırmanmak yorucudur ama oradaki manzara her şeye değer.", author: "Anonim", category: "Zafer" },
-  { quote: "Disiplin, ne istediğin ile en çok ne istediğin arasındaki seçimdir.", author: "Abraham Lincoln", category: "Odak" },
-  { quote: "Zafer, 'vazgeçmeyenlerindir'. Yapabileceğinin en iyisini yap!", author: "Mustafa Kemal Atatürk", category: "İnanç" },
-  { quote: "Zorluklar, başarının değerini artıran süslerdir.", author: "Molière", category: "Mücadele" },
-  { quote: "Sınırlarını zorlamayan biri, potansiyelinin ne olduğunu asla öğrenemez.", author: "Kobe Bryant", category: "Özgüven" },
-  { quote: "Sınavı kazandıran zeka değil, bıkmadan gösterilen sürekliliktir.", author: "Koçluk Mottosu", category: "Disiplin" },
-  { quote: "Rüzgar ne kadar sert eserse esin, sağlam ağaç köklerinden kopmaz.", author: "Konfüçyüs", category: "Mücadele" },
-  { quote: "Başarı, her gün biraz daha iyi olmakla gelir! 💪", author: "Günün Mottosu", category: "Gelişim" }
+  /* ─── Disiplin ─── */
+  { quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", author: "Robert Collier", category: "Disiplin", emoji: "🔥" },
+  { quote: "Disiplin, motivasyon bittiğinde devreye giren şeydir.", author: "Jim Rohn", category: "Disiplin", emoji: "🔥" },
+  { quote: "Bugün yapabileceğini yarına bırakma — yarın daha çok işin olacak.", author: "Benjamin Franklin", category: "Disiplin", emoji: "🔥" },
+  { quote: "Sınavı kazandıran zeka değil, bıkmadan gösterilen sürekliliktir.", author: "Koçluk Mottosu", category: "Disiplin", emoji: "🔥" },
+  { quote: "Her gün birkaç soru çözmek, sınavda binlerce soruya hazır olmanı sağlar.", author: "Anonim", category: "Disiplin", emoji: "🔥" },
+  { quote: "Küçük adımlar, büyük hedeflere götüren tek yoldur.", author: "Lao Tzu", category: "Disiplin", emoji: "🔥" },
+
+  /* ─── Odak ─── */
+  { quote: "Disiplin, ne istediğin ile en çok ne istediğin arasındaki seçimdir.", author: "Abraham Lincoln", category: "Odak", emoji: "🎯" },
+  { quote: "Dağınık bir zihin, hiçbir zaman hedefe ulaşamaz. Odaklan.", author: "Anonim", category: "Odak", emoji: "🎯" },
+  { quote: "Bir seferde bir şeye konsantre ol — gücün çarpıcı hale gelir.", author: "Orison Swett Marden", category: "Odak", emoji: "🎯" },
+  { quote: "Telefonu bir kenara bırak. Geleceğini şekillendirecek saatler bunlar.", author: "Günün Hatırlatması", category: "Odak", emoji: "🎯" },
+  { quote: "Şu an çalışmak istemiyorsan, gelecekte daha çok çalışmak zorunda kalırsın.", author: "Anonim", category: "Odak", emoji: "🎯" },
+
+  /* ─── Mücadele ─── */
+  { quote: "Zorluklar, başarının değerini artıran süslerdir.", author: "Molière", category: "Mücadele", emoji: "💪" },
+  { quote: "Rüzgar ne kadar sert eserse esin, sağlam ağaç köklerinden kopmaz.", author: "Konfüçyüs", category: "Mücadele", emoji: "💪" },
+  { quote: "Hayat seni yere vurduğunda sayılmayı bırak, kalk.", author: "Rocky Balboa", category: "Mücadele", emoji: "💪" },
+  { quote: "En karanlık gece bile sabahla biter.", author: "Victor Hugo", category: "Mücadele", emoji: "💪" },
+  { quote: "Yanlış yapmak seni geride bırakmaz — aynı yanlışı tekrarlamak bırakır.", author: "Pedagoji Notu", category: "Mücadele", emoji: "💪" },
+  { quote: "Zorlu yollar genellikle güzel yerlere çıkar.", author: "Hazrat Ali", category: "Mücadele", emoji: "💪" },
+
+  /* ─── İnanç ─── */
+  { quote: "Zafer, 'vazgeçmeyenlerindir'.", author: "Mustafa Kemal Atatürk", category: "İnanç", emoji: "⭐" },
+  { quote: "Güçlü ol — hem zihnin hem bedenin bu mücadeleye değer.", author: "Marcus Aurelius", category: "İnanç", emoji: "⭐" },
+  { quote: "Kendine inan. Dünya, kendine inanan insanların peşinden gider.", author: "Oprah Winfrey", category: "İnanç", emoji: "⭐" },
+  { quote: "İmkânsız diye bir şey yoktur; kelime bile 'I'm possible' (Ben yapabilirim) der.", author: "Audrey Hepburn", category: "İnanç", emoji: "⭐" },
+  { quote: "Sen düşündüğünden çok daha güçlüsün, bildiğinden çok daha zekisin.", author: "A.A. Milne", category: "İnanç", emoji: "⭐" },
+  { quote: "Bir şeyin zor olması onu yapmamak için değil, daha değerli hale getirmek için bir nedendir.", author: "Seneca", category: "İnanç", emoji: "⭐" },
+
+  /* ─── Eylem ─── */
+  { quote: "Gelecek, bugün ne yaptığına bağlıdır.", author: "Mahatma Gandhi", category: "Eylem", emoji: "⚡" },
+  { quote: "Hayal kurmak güzeldir; ama hayalini gerçeğe dönüştürmek daha güzeldir.", author: "Thomas Edison", category: "Eylem", emoji: "⚡" },
+  { quote: "Bir adım atmak, dünya hakkında düşünmekten daha değerlidir.", author: "Johann W. von Goethe", category: "Eylem", emoji: "⚡" },
+  { quote: "Yarın başlamak, sonsuza kadar ertelemenin başlangıcıdır.", author: "Anonim", category: "Eylem", emoji: "⚡" },
+  { quote: "Şu anda uyuyabileceğin saatler, yarın uyanık geçireceğin saatlerin temelidir.", author: "Anonim", category: "Eylem", emoji: "⚡" },
+  { quote: "Bir test daha çöz. Bir konu daha oku. Farkı o an yaratırsın.", author: "Günün Önerisi", category: "Eylem", emoji: "⚡" },
+
+  /* ─── Zafer ─── */
+  { quote: "Zirveye tırmanmak yorucudur ama oradaki manzara her şeye değer.", author: "Anonim", category: "Zafer", emoji: "🏆" },
+  { quote: "Başarı, hazırlık ile fırsatın buluştuğu andır.", author: "Seneca", category: "Zafer", emoji: "🏆" },
+  { quote: "Düşüp kalkmak zayıflık değildir — kalkmayı bırakmak öyledir.", author: "Anonim", category: "Zafer", emoji: "🏆" },
+  { quote: "Sınav sonucu seni tanımlamaz; nasıl hazırlandığın seni tanımlar.", author: "Koçluk Mottosu", category: "Zafer", emoji: "🏆" },
+  { quote: "Yorgunluk geçicidir; pişmanlık kalıcıdır.", author: "Anonim", category: "Zafer", emoji: "🏆" },
+  { quote: "Bugün neden çalıştığını yarın anlayacaksın.", author: "Anonim", category: "Zafer", emoji: "🏆" },
+
+  /* ─── Gelişim ─── */
+  { quote: "Sınırlarını zorlamayan biri, potansiyelinin ne olduğunu asla öğrenemez.", author: "Kobe Bryant", category: "Gelişim", emoji: "🌱" },
+  { quote: "Başarı, her gün biraz daha iyi olmakla gelir.", author: "Günün Mottosu", category: "Gelişim", emoji: "🌱" },
+  { quote: "Dün senden daha iyi ol. Bugün kendini geç.", author: "Miyamoto Musashi", category: "Gelişim", emoji: "🌱" },
+  { quote: "Bilgi, hiçbir zaman sırt çantandan daha ağır gelmez.", author: "Anonim", category: "Gelişim", emoji: "🌱" },
+  { quote: "Beyin de bir kas gibidir — ne kadar kullanırsan o kadar güçlenir.", author: "Nörobilim Gerçeği", category: "Gelişim", emoji: "🌱" },
+  { quote: "Okumak, yerinde duran bir zihin için tek seyahattir.", author: "Gustave Flaubert", category: "Gelişim", emoji: "🌱" },
+
+  /* ─── Özgüven ─── */
+  { quote: "Başkası sana inanmak zorunda değil; ama sen kendine inanmak zorundasın.", author: "Anonim", category: "Özgüven", emoji: "✨" },
+  { quote: "Her uzman, bir zamanlar acemiydi. Devam et.", author: "Helen Hayes", category: "Özgüven", emoji: "✨" },
+  { quote: "Hata yapmak başarısızlık değildir; hatadan ders çıkarmamak öyledir.", author: "John Dewey", category: "Özgüven", emoji: "✨" },
+  { quote: "Zekâ kalıtsal değil, çabadır. Her gün biraz daha zeki olursun.", author: "Carol Dweck", category: "Özgüven", emoji: "✨" },
+  { quote: "Kendinle karşılaştırman gereken tek kişi, dünkü sensin.", author: "Jordan B. Peterson", category: "Özgüven", emoji: "✨" },
+
+  /* ─── Sabır ─── */
+  { quote: "Sabır, en tatlı meyveleri veren ağacı sular.", author: "Fransız Atasözü", category: "Sabır", emoji: "🌊" },
+  { quote: "Büyük şeyler zaman alır. Vazgeçme.", author: "Anonim", category: "Sabır", emoji: "🌊" },
+  { quote: "Bir tohum ilkbaharda çiçek açar; ama tüm kış boyunca beslenmesi gerekir.", author: "Türk Atasözü", category: "Sabır", emoji: "🌊" },
+  { quote: "Kaybetmek korkusu kazanma heyecanından daha güçlü olmamalıdır.", author: "Phil Jackson", category: "Sabır", emoji: "🌊" },
+  { quote: "Bir adım at. Sonra bir adım daha. Merdiven budur.", author: "Martin Luther King Jr.", category: "Sabır", emoji: "🌊" },
 ];
 
 export default function StudentDashboard() {
@@ -359,9 +421,10 @@ export default function StudentDashboard() {
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
   const { bookTests = [], books = [] } = useTrackedBooks() || {};
-  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile } = useCoaching();
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [showAllTodayTasks, setShowAllTodayTasks] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -419,28 +482,55 @@ export default function StudentDashboard() {
     return (homeworks || []).filter(hw => {
       return isHomeworkForStudent(hw, selectedStudent, gradesList);
     }).flatMap(hw => {
-      if (hw.isBookAssignment && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-        const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+      const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+      const isExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || bookObj?.bookType === 'exam' || hw.isPhysical;
 
-        return Object.entries(hw.testDueDates).map(([testId, tDateStr]) => {
-          const testObj = bookTests.find(b => String(b.id) === String(testId));
-          const sub = submissions.find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId)))));
-          const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
-          const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+      if (isExam) {
+        const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id)) ||
+          submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id) || (bookObj && s.testId === bookObj.id)) && String(s.studentId) === String(selectedStudent.id));
+        return [{
+          ...hw,
+          type: 'physicalExam',
+          contentType: 'physicalExam',
+          isPhysical: true,
+          status: sub ? 'Sonuçlandı' : 'Atandı',
+          questionCount: hw.totalQuestions || (bookObj?.subjects || []).reduce((acc, s) => acc + (s.count || 20), 0) || 90,
+          correctAnswers: sub ? (sub.score || 0) : 0,
+          submissionId: sub?.id,
+          realTestId: hw.id,
+          hwId: hw.id,
+          bookId: hw.bookId || (bookObj ? bookObj.id : undefined)
+        }];
+      }
 
-          return {
-            ...hw,
-            id: `bt_${hw.id}_${testId}`,
-            subject: subjectName,
-            title: `${cleanBookTitle} — ${testObj?.name || 'Test'}`,
-            dueDate: tDateStr,
-            status: sub ? 'Sonuçlandı' : 'Atandı',
-            questionCount: testObj?.questionCount || 20,
-            correctAnswers: sub ? (sub.score || 0) : 0,
-            submissionId: sub?.id
-          };
-        });
+      if (hw.isBookAssignment) {
+        if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+          return Object.entries(hw.testDueDates).map(([testId, tDateStr]) => {
+            const testObj = bookTests.find(b => String(b.id) === String(testId));
+            const sub = submissions.find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId)))));
+            const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
+            const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+
+            return {
+              ...hw,
+              id: `bt_${hw.id}_${testId}`,
+              realTestId: testId,
+              testId: testId,
+              hwId: hw.id,
+              subject: subjectName,
+              title: `${cleanBookTitle} — ${testObj?.name || 'Test'}`,
+              dueDate: tDateStr,
+              status: sub ? 'Sonuçlandı' : 'Atandı',
+              questionCount: testObj?.questionCount || 20,
+              correctAnswers: sub ? (sub.score || 0) : 0,
+              submissionId: sub?.id
+            };
+          });
+        }
+        // Whole book assignment without individual test due dates is accessible via "Kitaplarım" only
+        return [];
       }
 
       const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id)) ||
@@ -484,7 +574,21 @@ export default function StudentDashboard() {
         }
       }
       
-      return { id: t.id, type: resolvedType || 'test', title: t.title, subject: getCategoryName(t), dueDateStr: dueDateObj.toLocaleDateString('tr-TR'), dueDateObj, questionCount: t.questionCount, durationMinutes: (t.questionCount || 0) * 2 || 30, sourceType: resolvedSourceType };
+      return { 
+        ...t,
+        id: t.id, 
+        realTestId: t.realTestId || t.testId,
+        testId: t.testId || t.realTestId,
+        hwId: t.hwId,
+        type: resolvedType || t.type || 'test', 
+        title: t.title, 
+        subject: getCategoryName(t), 
+        dueDateStr: dueDateObj.toLocaleDateString('tr-TR'), 
+        dueDateObj, 
+        questionCount: t.questionCount, 
+        durationMinutes: (t.questionCount || 0) * 2 || 30, 
+        sourceType: resolvedSourceType || t.sourceType 
+      };
     });
     return [...tTasks].sort((a, b) => a.dueDateObj - b.dueDateObj);
   }, [tests, assignments, allQuestions]);
@@ -604,52 +708,54 @@ export default function StudentDashboard() {
       if (!isHomeworkForStudent(hw, selectedStudent, gradesList)) return;
 
       // A) Book Assignment with testDueDates
-      if (hw.isBookAssignment && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-        const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+      if (hw.isBookAssignment) {
+        if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
-        Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
-          if (!tDateStr) return;
-          const tYMD = tDateStr.split('T')[0];
-          if (todayYMD === tYMD) {
-            const tObj = bookTests.find(b => String(b.id) === String(testId));
-            const testName = tObj?.name || 'Test';
-            const qCount = tObj?.questionCount || 20;
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const tYMD = tDateStr.split('T')[0];
+            if (todayYMD === tYMD) {
+              const tObj = bookTests.find(b => String(b.id) === String(testId));
+              const testName = tObj?.name || 'Test';
+              const qCount = tObj?.questionCount || 20;
 
-            const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
-            const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
-            const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
-            const topicName = topicObj?.name || tObj?.topicName || '';
+              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
+              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
+              const topicName = topicObj?.name || tObj?.topicName || '';
 
-            const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
-            const displaySub = `${cleanBookTitle} — ${testName}`;
+              const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
+              const displaySub = `${cleanBookTitle} — ${testName}`;
 
-            const isSolved = submissions.some(s =>
-              String(s.studentId) === String(studentId) &&
-              s.status !== 'in_progress' && s.status !== 'draft' &&
-              (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))))
-            );
+              const isSolved = submissions.some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))))
+              );
 
-            // Exclude solved/completed tests so they disappear from today's program view
-            if (isSolved) return;
+              // Exclude solved/completed tests so they disappear from today's program view
+              if (isSolved) return;
 
-            const existsInManual = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}`);
-            if (!existsInManual) {
-              autoHwItems.push({
-                id: `book_test_${hw.id}_${testId}`,
-                hwId: hw.id,
-                testId: testId,
-                isAutoHomework: true,
-                taskType: 'kitap',
-                subject: displayHeader,
-                topic: displaySub,
-                questionCount: `${qCount} soru`,
-                time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                done: false
-              });
+              const existsInManual = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}`);
+              if (!existsInManual) {
+                autoHwItems.push({
+                  id: `book_test_${hw.id}_${testId}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: 'kitap',
+                  subject: displayHeader,
+                  topic: displaySub,
+                  questionCount: `${qCount} soru`,
+                  time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                  done: false
+                });
+              }
             }
-          }
-        });
+          });
+        }
         return;
       }
 
@@ -788,938 +894,639 @@ export default function StudentDashboard() {
   const successPct = Math.round(stats.successRate);
   const progressPct = Math.floor(stats.completedRate);
 
-  /* ─── STYLES ─── */
+  /* ─── Design Tokens ─── */
   const S = {
-    page: { minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" },
-    hero: {
-      background: 'linear-gradient(135deg, #3730a3 0%, #6d28d9 50%, #a21caf 100%)',
-      padding: isMobile ? '1.5rem 1rem 3.5rem' : '2rem 2rem 4rem',
-      position: 'relative', overflow: 'hidden'
-    },
-    section: { padding: isMobile ? '0 0.875rem' : '0 1.5rem', marginBottom: '1.5rem' },
-    sectionTitle: { fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 },
-    card: { background: '#ffffff', borderRadius: 20, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' },
-    glassChip: { background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 99 },
+    section: { marginBottom: '1.25rem' },
+    sectionTitle: { fontSize: '0.68rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 },
+    card: { background: '#ffffff', borderRadius: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden' },
   };
 
-  /* ─── Stat chips ─── */
+  const subjectIcons = {
+    'Matematik': '📐', 'Türkçe': '📚', 'Fen Bilimleri': '🔬',
+    'Sosyal Bilgiler': '🌍', 'İnkılap Tarihi': '🏛️', 'İngilizce': '🇬🇧', 'Din Kültürü': '🌙'
+  };
+
   const statChips = [
-    { label: 'Toplam', value: tests.length, color: '#6366f1', bg: '#eef2ff' },
-    { label: 'Tamamlandı', value: completedCount, color: '#16a34a', bg: '#dcfce7' },
-    { label: 'Bekliyor', value: pendingCount, color: '#ea580c', bg: '#ffedd5' },
-    { label: 'Gecikti', value: overdueCount, color: '#dc2626', bg: '#fee2e2' },
+    { label: 'Toplam', value: tests.length, color: '#6366f1', bg: '#eef2ff', icon: '📋' },
+    { label: 'Tamamlandı', value: completedCount, color: '#16a34a', bg: '#dcfce7', icon: '✅' },
+    { label: 'Bekliyor', value: pendingCount, color: '#ea580c', bg: '#ffedd5', icon: '⏳' },
+    { label: 'Gecikti', value: overdueCount, color: '#dc2626', bg: '#fee2e2', icon: '🔥' },
   ];
 
-  /* ─── Quick action tiles ─── */
   const quickTiles = [
-    { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)' },
-    { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)' },
-    { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)' },
-    { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)' },
+    { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)', sh: 'rgba(99,102,241,0.3)' },
+    { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)', sh: 'rgba(219,39,119,0.28)' },
+    { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)', sh: 'rgba(8,145,178,0.28)' },
+    { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)', sh: 'rgba(234,88,12,0.28)' },
   ];
 
   return (
-    <div style={S.page}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#f8faff 0%,#f1f5f9 50%,#eef2ff 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { box-sizing: border-box; }
-        @keyframes sdFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes sdPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.06); } }
-        @keyframes sdShimmer { 0%,100% { opacity:0.6; } 50% { opacity:1; } }
-        @keyframes sdSpin { to { transform:rotate(360deg); } }
-        .sd-tile { transition: transform 0.18s, box-shadow 0.18s; }
-        .sd-tile:active { transform: scale(0.96); }
-        .sd-btn { transition: all 0.18s; }
+        @keyframes sdFadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes sdPulseRing { 0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0.5)} 50%{box-shadow:0 0 0 10px rgba(167,139,250,0)} }
+        @keyframes sdShimmer { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
+        @keyframes aurora { 0%,100%{transform:translate(0,0) scale(1);opacity:.6} 33%{transform:translate(28px,-18px) scale(1.1);opacity:.8} 66%{transform:translate(-18px,14px) scale(.95);opacity:.5} }
+        .sd-tile { transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); cursor:pointer; }
+        .sd-tile:hover { transform: translateY(-4px) scale(1.02); }
+        .sd-tile:active { transform: scale(0.97); }
+        .sd-btn { transition: all 0.18s ease; }
+        .sd-btn:hover { filter: brightness(1.06); }
         .sd-btn:active { transform: scale(0.97); }
-        .sd-chip { transition: transform 0.2s; }
-        .sd-chip:hover { transform: translateY(-2px); }
-        .sd-hw-card { transition: all 0.2s; }
-        .sd-hw-card:active { transform: scale(0.98); }
-        .sd-section { animation: sdFadeUp 0.4s ease both; }
+        .sd-stat-chip { transition: all 0.2s ease; }
+        .sd-stat-chip:hover { transform: translateY(-3px); }
+        .sd-hw-card { transition: all 0.2s ease; cursor:pointer; }
+        .sd-hw-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.1) !important; }
+        .sd-hw-card:active { transform: scale(0.99); }
+        .sd-section { animation: sdFadeUp 0.5s ease both; }
+        .sd-task-row { transition: all 0.15s ease; }
+        .sd-task-row:hover { background: #f0f4ff !important; }
+        .scroll-hide { scrollbar-width:none; -ms-overflow-style:none; }
+        .scroll-hide::-webkit-scrollbar { display:none; }
+        @media(min-width:900px) {
+          .sd-content-outer { max-width:1280px; margin:0 auto; padding:0 2rem; }
+          .sd-stat-outer { max-width:1280px; margin:0 auto; padding:0 2rem; }
+          .sd-hero-inner { max-width:1280px; margin:0 auto; }
+          .sd-main-grid { display:grid; grid-template-columns:1fr 360px; gap:1.5rem; align-items:start; }
+        }
+        @media(max-width:899px) {
+          .sd-content-outer { padding:0 0.875rem; }
+          .sd-stat-outer { padding:0 0.875rem; }
+          .sd-main-grid { display:flex; flex-direction:column; }
+        }
       `}</style>
 
-      {/* ════════════════ HERO ════════════════ */}
-      <div style={S.hero}>
-        {/* bg orbs */}
-        <div style={{ position:'absolute', top:-60, right:-60, width:220, height:220, background:'rgba(255,255,255,0.07)', borderRadius:'50%', filter:'blur(40px)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:-40, left:20, width:160, height:160, background:'rgba(255,255,255,0.05)', borderRadius:'50%', filter:'blur(30px)', pointerEvents:'none' }} />
+      {/* ════ HERO ════ */}
+      <div style={{ background:'linear-gradient(135deg,#1e1b4b 0%,#312e81 25%,#4c1d95 55%,#6d28d9 80%,#7c3aed 100%)', padding: isMobile ? '1.5rem 1rem 5.5rem' : '2.25rem 2rem 5rem', position:'relative', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:-80, right:-60, width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(167,139,250,0.35) 0%,transparent 70%)', animation:'aurora 8s ease infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:-60, left:-40, width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.2) 0%,transparent 70%)', animation:'aurora 12s ease infinite reverse', pointerEvents:'none' }} />
 
-        {/* Student switcher */}
-        {studentMembers.length > 1 && (
-          <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:8, marginBottom:12, scrollbarWidth:'none' }}>
-            {studentMembers.map((s, i) => {
-              const active = selectedStudent?.id === s.id;
-              const col = avatarColors[i % avatarColors.length];
-              return (
-                <button key={s.id} onClick={() => setSelectedStudent(s)} className="sd-btn"
-                  style={{ display:'flex', alignItems:'center', gap:5, padding:'0.3rem 0.75rem', borderRadius:99, border:`1.5px solid ${active ? 'white' : 'rgba(255,255,255,0.35)'}`, background: active ? 'rgba(255,255,255,0.25)' : 'transparent', color:'white', fontWeight:700, fontSize:'0.75rem', cursor:'pointer', whiteSpace:'nowrap', backdropFilter:'blur(8px)' }}>
-                  <div style={{ width:16, height:16, borderRadius:'50%', background:col, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:900, color:'white', flexShrink:0 }}>{s.name.charAt(0)}</div>
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="sd-hero-inner" style={{ position:'relative', zIndex:2 }}>
 
-        {/* Hero main row */}
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, position:'relative', zIndex:2 }}>
-
-          {/* Left: avatar + info */}
-          <div style={{ display:'flex', alignItems:'center', gap:14, flex:1, minWidth:0 }}>
-            {/* Avatar */}
-            <div style={{ position:'relative', flexShrink:0 }}>
-              <div style={{ width: isMobile ? 60 : 72, height: isMobile ? 60 : 72, borderRadius:'50%', background: avatarColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight:900, color:'white', border:'3px solid rgba(255,255,255,0.4)', boxShadow:'0 6px 20px rgba(0,0,0,0.25)', animation:'sdPulse 4s ease infinite' }}>
-                {selectedStudent?.name?.charAt(0) || 'Ö'}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 16, flex:1, minWidth:0 }}>
+              <div style={{ position:'relative', flexShrink:0 }}>
+                <div style={{ width: isMobile ? 62 : 76, height: isMobile ? 62 : 76, borderRadius:'50%', background: avatarColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.55rem' : '1.9rem', fontWeight:900, color:'white', border:'3px solid rgba(255,255,255,0.4)', boxShadow:'0 8px 28px rgba(0,0,0,0.3)', animation:'sdPulseRing 3s ease infinite' }}>
+                  {selectedStudent?.name?.charAt(0) || 'Ö'}
+                </div>
+                <div style={{ position:'absolute', bottom:2, right:2, width:14, height:14, borderRadius:'50%', background:'#4ade80', border:'2.5px solid rgba(255,255,255,0.85)' }} />
               </div>
-              <div style={{ position:'absolute', bottom:2, right:2, width:14, height:14, borderRadius:'50%', background:'#22c55e', border:'2px solid white' }} />
-            </div>
-
-            {/* Name + date */}
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.7)', fontWeight:700, marginBottom:2 }}>Hoş Geldin 👋</div>
-              <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight:900, color:'white', margin:0, lineHeight:1.1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {selectedStudent?.name || 'Öğrenci'}
-              </h1>
-              {/* Dates Row: Today */}
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 99, padding: '0.2rem 0.6rem', backdropFilter: 'blur(8px)' }}>
-                  <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>📅 {todayStr}</span>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.65)', fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:3 }}>Hoş Geldin 👋</div>
+                <h1 style={{ fontSize: isMobile ? '1.45rem' : '1.9rem', fontWeight:900, color:'white', margin:0, lineHeight:1.05, letterSpacing:'-0.025em', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {selectedStudent?.name || 'Öğrenci'}
+                </h1>
+                <div style={{ marginTop:7, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.14)', borderRadius:99, padding:'0.22rem 0.65rem', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.18)' }}>
+                    <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.9)', fontWeight:700 }}>📅 {todayStr}</span>
+                  </div>
+                  {hasCoach && (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(74,222,128,0.18)', borderRadius:99, padding:'0.22rem 0.65rem', border:'1px solid rgba(74,222,128,0.3)' }}>
+                      <span style={{ fontSize:'0.62rem', color:'#4ade80', fontWeight:800 }}>🎓 Koçum Var</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right: Ultra Premium Glassmorphic Circular Progress Badge */}
-          <div style={{
-            position: 'relative',
-            width: isMobile ? 74 : 90,
-            height: isMobile ? 74 : 90,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.28), rgba(255,255,255,0.08))',
-            backdropFilter: 'blur(16px)',
-            border: '1.5px solid rgba(255,255,255,0.4)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.5)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            {/* SVG Circular Progress Ring */}
-            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 36 36">
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.18)"
-                strokeWidth="2.8"
-              />
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke={successPct >= 70 ? '#4ade80' : successPct >= 50 ? '#fbbf24' : '#f87171'}
-                strokeWidth="3.2"
-                strokeDasharray={`${Math.min(successPct, 100)}, 100`}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dasharray 1.2s ease-in-out' }}
-              />
-            </svg>
-
-            {/* Inner Content */}
-            <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
-              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', fontWeight: 900, color: '#ffffff', lineHeight: 1, letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                %{successPct}
-              </div>
-              <div style={{ fontSize: '0.52rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>
-                Başarı
+            <div style={{ position:'relative', width: isMobile ? 72 : 86, height: isMobile ? 72 : 86, flexShrink:0 }}>
+              <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', transform:'rotate(-90deg)' }} viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15.91" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2.5" />
+                <circle cx="18" cy="18" r="15.91" fill="none"
+                  stroke={successPct >= 70 ? '#4ade80' : successPct >= 50 ? '#fbbf24' : '#f87171'}
+                  strokeWidth="3" strokeDasharray={`${Math.min(successPct,100)} 100`} strokeLinecap="round"
+                  style={{ transition:'stroke-dasharray 1.2s ease' }}
+                />
+              </svg>
+              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.1)', borderRadius:'50%', backdropFilter:'blur(8px)', border:'1.5px solid rgba(255,255,255,0.25)' }}>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.3rem', fontWeight:900, color:'white', lineHeight:1 }}>%{successPct}</div>
+                <div style={{ fontSize:'0.48rem', fontWeight:800, color:'rgba(255,255,255,0.8)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Başarı</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* White wave at bottom */}
-        <div style={{ position:'absolute', bottom:-2, left:0, right:0, lineHeight:0 }}>
-          <svg viewBox="0 0 390 40" preserveAspectRatio="none" style={{ width:'100%', height:40, display:'block' }}>
-            <path d="M0,40 C100,10 280,10 390,40 L390,40 L0,40 Z" fill="#f1f5f9" />
+        <div style={{ position:'absolute', bottom:-1, left:0, right:0, lineHeight:0 }}>
+          <svg viewBox="0 0 1440 48" preserveAspectRatio="none" style={{ width:'100%', height:48, display:'block' }}>
+            <path d="M0,48 C480,10 960,10 1440,48 L1440,48 L0,48 Z" fill="#f8faff" />
           </svg>
         </div>
       </div>
 
-      {/* ════════════════ STAT CHIPS (5-Column Responsive Grid - 100% Mobile Fit) ════════════════ */}
-      <div style={{ padding: isMobile ? '0 0.5rem' : '0 1.5rem', marginTop: isMobile ? 12 : -12, marginBottom: '1.25rem', position: 'relative', zIndex: 10 }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: isMobile ? 4 : 10,
-          width: '100%'
-        }}>
+      {/* ════ STAT CHIPS ════ */}
+      <div className="sd-stat-outer" style={{ marginTop: isMobile ? -36 : -42, marginBottom:'1.25rem', position:'relative', zIndex:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap: isMobile ? 5 : 10 }}>
           {statChips.map((c, i) => (
-            <div key={i} className="sd-chip" style={{
-              background: 'white',
-              borderRadius: isMobile ? 12 : 16,
-              padding: isMobile ? '0.55rem 0.2rem' : '0.75rem 1rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              border: `1.5px solid ${c.bg}`,
-              animation: `sdFadeUp 0.4s ease ${i * 0.05}s both`,
-              minWidth: 0
-            }}>
-              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: c.color, lineHeight: 1 }}>{c.value}</div>
-              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.01em', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{c.label}</div>
+            <div key={i} className="sd-stat-chip" style={{ background:'white', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.55rem 0.15rem' : '0.85rem 0.6rem', boxShadow:'0 6px 20px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:`1.5px solid ${c.bg}`, animation:`sdFadeUp 0.4s ease ${i*0.06}s both`, minWidth:0 }}>
+              <div style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', lineHeight:1, marginBottom:2 }}>{c.icon}</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight:900, color:c.color, lineHeight:1 }}>{c.value}</div>
+              <div style={{ fontSize: isMobile ? '0.48rem' : '0.58rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.01em', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{c.label}</div>
             </div>
           ))}
-          {/* Progress chip */}
-          <div className="sd-chip" style={{
-            background: 'white',
-            borderRadius: isMobile ? 12 : 16,
-            padding: isMobile ? '0.55rem 0.2rem' : '0.75rem 1rem',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            border: '1.5px solid #f3e8ff',
-            animation: 'sdFadeUp 0.4s ease 0.25s both',
-            minWidth: 0
-          }}>
-            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 900, color: '#9333ea', lineHeight: 1 }}>%{progressPct}</div>
-            <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.01em', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>Tamamlanma</div>
+          <div className="sd-stat-chip" style={{ background:'white', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.55rem 0.15rem' : '0.85rem 0.6rem', boxShadow:'0 6px 20px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:'1.5px solid #f3e8ff', animation:'sdFadeUp 0.4s ease 0.3s both', minWidth:0 }}>
+            <div style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', lineHeight:1, marginBottom:2 }}>🏆</div>
+            <div style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight:900, color:'#9333ea', lineHeight:1 }}>%{progressPct}</div>
+            <div style={{ fontSize: isMobile ? '0.48rem' : '0.58rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.01em', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>Tamamlanma</div>
           </div>
         </div>
       </div>
 
-      {/* ════════════════ QUICK TILES ════════════════ */}
-      <div style={S.section} className="sd-section">
-        <div style={S.sectionTitle}>
-          <span style={{ fontSize:14 }}>⚡</span> Hızlı Erişim
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '0.75rem' }}>
-          {quickTiles.map((t, i) => (
-            <button
-              key={i}
-              onClick={() => navigate(t.to)}
-              className="sd-tile"
-              style={{
-                background: t.g,
-                borderRadius: 20,
-                padding: isMobile ? '0.85rem' : '1.1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left',
-                boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
-                animation: `sdFadeUp 0.4s ease ${i * 0.08}s both`
-              }}
-            >
-              <div style={{
-                fontSize: isMobile ? '1.35rem' : '1.65rem',
-                lineHeight: 1,
-                flexShrink: 0,
-                background: 'rgba(255,255,255,0.2)',
-                width: isMobile ? 40 : 46,
-                height: isMobile ? 40 : 46,
-                borderRadius: 14,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backdropFilter: 'blur(6px)'
-              }}>
-                {t.icon}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', fontWeight: 900, color: 'white', lineHeight: 1.2 }}>
-                  {t.label}
-                </div>
-                <div style={{ fontSize: '0.64rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {t.sub}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ════ CONTENT WRAP ════ */}
+      <div className="sd-content-outer" style={{ paddingBottom:'1rem' }}>
 
-      {/* ════════════════ TODAY'S PROGRAM & TASKS (Günün Programı) ════════════════ */}
-      <div style={S.section} className="sd-section">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={S.sectionTitle}>
-            <span style={{ fontSize: 16 }}>🗓️</span> Günün Programı ({todayProgramInfo.dayName})
-            {todayProgramInfo.items.length > 0 && (
-              <span style={{
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                color: 'white',
-                borderRadius: 99,
-                padding: '0.12rem 0.6rem',
-                fontSize: '0.65rem',
-                fontWeight: 900,
-                marginLeft: 4
-              }}>
-                {todayProgramInfo.items.filter(i => i.done).length}/{todayProgramInfo.items.length} Tamamlandı
-              </span>
-            )}
-          </div>
-
-          <Link to="/my-program" style={{ textDecoration: 'none', fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 3 }}>
-            Tüm Program <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        {todayProgramInfo.items.length === 0 ? (
-          <div style={{
-            background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-            borderRadius: 20,
-            padding: '1.5rem 1.25rem',
-            border: '1.5px dashed #cbd5e1',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 8
-          }}>
-            <div style={{ fontSize: '2rem' }}>✨</div>
-            <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>
-              Bugün ({todayProgramInfo.dayName}) için tanımlı ders görevi yok
+        {coachingNote && (
+          <div className="sd-section" style={{ background:'linear-gradient(135deg,#fffbeb,#fef3c7)', borderRadius:16, padding:'0.85rem 1rem', border:'1.5px solid #fde68a', boxShadow:'0 4px 16px rgba(245,158,11,0.1)', display:'flex', alignItems:'flex-start', gap:10, marginBottom:'1.25rem' }}>
+            <div style={{ fontSize:'1.1rem', flexShrink:0 }}>💬</div>
+            <div>
+              <div style={{ fontSize:'0.62rem', fontWeight:900, color:'#b45309', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>Koç Notunuz</div>
+              <div style={{ fontSize:'0.8rem', color:'#78350f', fontWeight:600, lineHeight:1.5 }}>{typeof coachingNote === 'string' ? coachingNote : coachingNote?.note || ''}</div>
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              Ders eklemek veya haftalık programını düzenlemek için aşağıdaki butona tıkla.
-            </div>
-            <Link to="/my-program" style={{
-              marginTop: 6,
-              textDecoration: 'none',
-              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-              color: 'white',
-              borderRadius: 14,
-              padding: '0.5rem 1.25rem',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)'
-            }}>
-              📅 Programıma Git & Ders Ekle
-            </Link>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {todayProgramInfo.items.map((item, idx) => {
-              const taskIcons = {
-                konu: '📖',
-                soru: '✏️',
-                tekrar: '🔄',
-                kitap: '📚',
-                deneme: '📊',
-                diger: '✨'
-              };
-              const icon = taskIcons[item.taskType] || '📌';
-              const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId;
-
-              const handleTaskClick = () => {
-                if (item.roadmapAssignmentId) {
-                  navigate(`/student/study-plan/${item.roadmapAssignmentId}`);
-                  return;
-                }
-                if (item.testId) {
-                  navigate(`/book-quiz/${item.testId}?studentId=${selectedStudent.id}`);
-                  return;
-                }
-                if (item.hwId) {
-                  const hwObj = (homeworks || []).find(h => String(h.id) === String(item.hwId));
-                  if (hwObj?.type === 'physicalExam') {
-                    navigate(`/physical-exam/${item.hwId}?studentId=${selectedStudent.id}`);
-                  } else if (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0) {
-                    navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
-                  } else {
-                    navigate(`/quiz/${item.hwId}?studentId=${selectedStudent.id}`);
-                  }
-                  return;
-                }
-                handleToggleTodayTask(item.id);
-              };
-
-              return (
-                <div
-                  key={item.id || idx}
-                  onClick={handleTaskClick}
-                  style={{
-                    background: item.done ? '#f8fafc' : '#ffffff',
-                    borderRadius: 16,
-                    padding: '0.85rem 1.1rem',
-                    border: item.done ? '1.5px solid #e2e8f0' : '1.5px solid #e0e7ff',
-                    boxShadow: item.done ? 'none' : '0 4px 16px rgba(99,102,241,0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    cursor: 'pointer',
-                    opacity: item.done ? 0.75 : 1,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                    {/* Checkbox */}
-                    <div style={{
-                      width: 22, height: 22,
-                      borderRadius: 7,
-                      border: item.done ? 'none' : '2px solid #cbd5e1',
-                      background: item.done ? '#16a34a' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                      transition: 'all 0.2s'
-                    }}>
-                      {item.done && <Check size={14} color="white" strokeWidth={3} />}
-                    </div>
-
-                    {/* Task Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: item.done ? '#64748b' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none' }}>
-                          {icon} {item.subject || item.bookName || 'Ders Görevi'}
-                        </span>
-                        {(item.startTime || item.endTime || item.time || item.saat) && (
-                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#4f46e5', background: '#eef2ff', border: '1px solid #c7d2fe', padding: '0.15rem 0.5rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                            🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
-                          </span>
-                        )}
-                        {item.hours && (
-                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#6366f1', background: '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-                            ⏱️ {item.hours} sa
-                          </span>
-                        )}
-                        {item.questionCount && (
-                          <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0891b2', background: '#ecfeff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-                            ✏️ {item.questionCount} soru
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.topic || item.note || item.bookName || 'Günün ders çalışması'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status Indicator Pill / Action Button */}
-                  {isQuizTask ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTaskClick();
-                      }}
-                      style={{
-                        background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 99,
-                        padding: '0.35rem 0.75rem',
-                        fontSize: '0.7rem',
-                        fontWeight: 900,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        boxShadow: '0 3px 10px rgba(79,70,229,0.3)',
-                        flexShrink: 0
-                      }}
-                    >
-                      <PlayCircle size={13} /> Çöz
-                    </button>
-                  ) : (
-                    <div style={{
-                      fontSize: '0.65rem',
-                      fontWeight: 900,
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: 99,
-                      background: item.done ? '#dcfce7' : '#eef2ff',
-                      color: item.done ? '#15803d' : '#4f46e5',
-                      flexShrink: 0
-                    }}>
-                      {item.done ? 'Tamamlandı ✓' : 'Tamamla'}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         )}
-      </div>
 
-      {/* ════════════════ STUDY PLANS ════════════════ */}
-      {myRoadmaps.length > 0 && (
-        <div style={S.section} className="sd-section">
-          <div style={S.sectionTitle}>
-            <span style={{ fontSize:14 }}>🗺️</span> Yol Haritalarım
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
-            {myRoadmaps.map(({ assignment, plan }) => {
-              const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
-              const done = assignment.completedTopics?.length || 0;
-              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-              return (
-                <div key={assignment.id} onClick={() => navigate(`/student/study-plan/${assignment.id}`)} className="sd-hw-card"
-                  style={{ ...S.card, padding:'1rem 1.1rem', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.85rem' }}>
-                  <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <Target size={20} color="white" />
+        <div className="sd-main-grid">
+
+          {/* ──── LEFT COLUMN ──── */}
+          <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
+
+            {/* QUICK TILES (mobile: shown in left column at top) */}
+            <div className="sd-section">
+              <div style={S.sectionTitle}><span style={{ fontSize:14 }}>⚡</span> Hızlı Erişim</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.7rem' }}>
+                {quickTiles.map((t, i) => (
+                  <button key={i} onClick={() => navigate(t.to)} className="sd-tile"
+                    style={{ background:t.g, borderRadius:18, padding: isMobile ? '0.8rem' : '1rem', display:'flex', alignItems:'center', gap:'0.65rem', border:'none', cursor:'pointer', textAlign:'left', boxShadow:`0 6px 18px ${t.sh}`, animation:`sdFadeUp 0.4s ease ${i*0.07}s both` }}>
+                    <div style={{ width: isMobile ? 38 : 42, height: isMobile ? 38 : 42, borderRadius:12, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.2rem' : '1.4rem', flexShrink:0, backdropFilter:'blur(6px)' }}>{t.icon}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize: isMobile ? '0.82rem' : '0.9rem', fontWeight:900, color:'white', lineHeight:1.2 }}>{t.label}</div>
+                      <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.78)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* TODAY'S PROGRAM */}
+            <div className="sd-section">
+              <div style={{ ...S.card, overflow:'hidden' }}>
+                <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', padding:'0.9rem 1.1rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div>
+                    <div style={{ fontSize:'0.58rem', fontWeight:800, color:'rgba(255,255,255,0.7)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Programı</div>
+                    <div style={{ fontSize:'0.95rem', fontWeight:900, color:'white', marginTop:1 }}>{todayProgramInfo.dayName}</div>
                   </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#0f172a', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
-                    <div style={{ height:6, background:'#f1f5f9', borderRadius:99, overflow:'hidden', marginBottom:3 }}>
-                      <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 1s' }} />
-                    </div>
-                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:700, color:'#94a3b8' }}>
-                      <span>{done}/{total} konu</span>
-                      <span style={{ color:'#6366f1' }}>%{pct}</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} color="#cbd5e1" />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════ PENDING HOMEWORKS ════════════════ */}
-      <div style={{ ...S.section, marginBottom:'1.25rem' }} className="sd-section">
-        <div style={S.sectionTitle}>
-          <span style={{ fontSize:14 }}>📋</span> Bekleyen Ödevler
-          {pendingCount > 0 && (
-            <span style={{ background:'#ef4444', color:'white', borderRadius:99, padding:'0.1rem 0.55rem', fontSize:'0.65rem', fontWeight:900, marginLeft:4, animation:'sdShimmer 2s infinite' }}>{pendingCount}</span>
-          )}
-        </div>
-
-        {pendingTasks.length === 0 ? (
-          <div style={{ ...S.card, padding:'2.5rem 1rem', textAlign:'center' }}>
-            <div style={{ fontSize:'2.5rem', marginBottom:8 }}>🎉</div>
-            <div style={{ fontWeight:800, color:'#0f172a', fontSize:'0.95rem', marginBottom:4 }}>Tüm ödevler tamamlandı!</div>
-            <div style={{ fontSize:'0.78rem', color:'#94a3b8' }}>Harika iş çıkardın!</div>
-          </div>
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:'0.7rem' }}>
-            {pendingTasks.map(task => {
-              const conf = getSubConf(getThemeKey(task.subject));
-              const dueDate = task.dueDateObj;
-              const overdue = isPast(dueDate) && !isToday(dueDate);
-              const dueToday = isToday(dueDate);
-              const daysDiff = differenceInDays(dueDate, new Date());
-
-              const subjectIcons = {
-                'Matematik': '📐',
-                'Türkçe': '📚',
-                'Fen Bilimleri': '🔬',
-                'Sosyal Bilgiler': '🌍',
-                'İnkılap Tarihi': '🏛️',
-                'İngilizce': '🇬🇧',
-                'Din Kültürü': '🌙'
-              };
-              const subIcon = subjectIcons[task.subject] || '📝';
-
-              return (
-                <div
-                  key={task.id}
-                  className="sd-hw-card"
-                  onClick={() => {
-                    let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
-                    if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
-                    else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
-                    navigate(path);
-                  }}
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: 20,
-                    padding: isMobile ? '1rem' : '1.25rem',
-                    boxShadow: overdue
-                      ? '0 10px 28px rgba(239, 68, 68, 0.12)'
-                      : dueToday
-                      ? '0 10px 28px rgba(245, 158, 11, 0.12)'
-                      : '0 8px 24px rgba(0, 0, 0, 0.06)',
-                    border: overdue
-                      ? '1.5px solid rgba(239, 68, 68, 0.3)'
-                      : dueToday
-                      ? '1.5px solid rgba(245, 158, 11, 0.3)'
-                      : '1.5px solid rgba(226, 232, 240, 0.8)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.22s ease'
-                  }}
-                >
-                  {/* Glowing Urgency Bar Top Accent */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0,
-                    height: 4,
-                    background: overdue
-                      ? 'linear-gradient(90deg, #ef4444, #dc2626)'
-                      : dueToday
-                      ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                      : `linear-gradient(90deg, ${conf.color}, #6366f1)`
-                  }} />
-
-                  {/* Header Row: Subject Badge + Urgency Badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      background: conf.bg,
-                      border: `1.5px solid ${conf.border}`,
-                      borderRadius: 99,
-                      padding: '0.25rem 0.7rem',
-                      fontWeight: 800,
-                      fontSize: '0.7rem',
-                      color: conf.badge
-                    }}>
-                      <span>{subIcon}</span>
-                      <span>{task.subject}</span>
-                    </div>
-
-                    {overdue ? (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        borderRadius: 99,
-                        padding: '0.22rem 0.65rem',
-                        fontWeight: 900,
-                        fontSize: '0.65rem',
-                        color: '#dc2626'
-                      }}>
-                        <Flame size={12} fill="#ef4444" color="#ef4444" />
-                        <span>{differenceInDays(new Date(), dueDate)}g Gecikti</span>
-                      </div>
-                    ) : dueToday ? (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid rgba(245, 158, 11, 0.35)',
-                        borderRadius: 99,
-                        padding: '0.22rem 0.65rem',
-                        fontWeight: 900,
-                        fontSize: '0.65rem',
-                        color: '#b45309'
-                      }}>
-                        <Zap size={12} fill="#f59e0b" color="#f59e0b" />
-                        <span>Bugün Son</span>
-                      </div>
-                    ) : (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        background: 'rgba(16, 185, 129, 0.12)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        borderRadius: 99,
-                        padding: '0.22rem 0.65rem',
-                        fontWeight: 900,
-                        fontSize: '0.65rem',
-                        color: '#059669'
-                      }}>
-                        <Clock size={12} color="#10b981" />
-                        <span>{daysDiff + 1} Gün Kaldı</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    {todayProgramInfo.items.length > 0 && (
+                      <div style={{ background:'rgba(255,255,255,0.2)', borderRadius:99, padding:'0.18rem 0.6rem', backdropFilter:'blur(8px)' }}>
+                        <span style={{ fontSize:'0.65rem', fontWeight:900, color:'white' }}>{todayProgramInfo.items.filter(i => i.done).length}/{todayProgramInfo.items.length}</span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Task Title */}
-                  <div style={{
-                    fontWeight: 900,
-                    fontSize: isMobile ? '0.95rem' : '1.05rem',
-                    color: '#0f172a',
-                    lineHeight: 1.35
-                  }}>
-                    {task.title}
-                  </div>
-
-                  {/* Footer Row: Meta Pills + Action Button */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                    paddingTop: 4,
-                    borderTop: '1px solid #f1f5f9'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Calendar size={13} color="#94a3b8" /> {task.dueDateStr}
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <BookOpen size={13} color="#94a3b8" /> {task.questionCount || 0} Soru
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        let path = `/quiz/${task.id}?studentId=${selectedStudent.id}`;
-                        if (task.sourceType === 'trackedBook') path = `/book-quiz/${task.id}?studentId=${selectedStudent.id}`;
-                        else if (task.type === 'physicalExam') path = `/physical-exam/${task.id}?studentId=${selectedStudent.id}`;
-                        navigate(path);
-                      }}
-                      className="sd-btn"
-                      style={{
-                        background: `linear-gradient(135deg, ${conf.color}, #4f46e5)`,
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 14,
-                        padding: isMobile ? '0.5rem 1rem' : '0.6rem 1.25rem',
-                        fontSize: '0.78rem',
-                        fontWeight: 900,
-                        cursor: 'pointer',
-                        boxShadow: `0 6px 16px ${conf.color}44`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0
-                      }}
-                    >
-                      <PlayCircle size={15} />
-                      <span>Hemen Çöz</span>
-                      <ChevronRight size={14} />
-                    </button>
+                    <Link to="/my-program" style={{ textDecoration:'none', background:'rgba(255,255,255,0.18)', borderRadius:8, padding:'0.28rem 0.6rem', fontSize:'0.65rem', fontWeight:800, color:'white', display:'flex', alignItems:'center', gap:3, border:'1px solid rgba(255,255,255,0.25)' }}>
+                      Tümü <ChevronRight size={12} />
+                    </Link>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
-
-      {/* ════════════════ GOALS ════════════════ */}
-      <div style={S.section} className="sd-section">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-          <div style={S.sectionTitle}>
-            <span style={{ fontSize:14 }}>🎯</span> Hedeflerim ({studentGoals.length})
-          </div>
-          <button onClick={() => setShowGoalModal(true)} className="sd-btn"
-            style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:800, color:'#6366f1', background:'#eef2ff', border:'none', borderRadius:10, padding:'0.35rem 0.75rem', cursor:'pointer' }}>
-            <Plus size={12} /> Ekle
-          </button>
-        </div>
-
-        {studentGoals.length === 0 ? (
-          <div style={{ ...S.card, padding:'1.75rem 1rem', textAlign:'center' }}>
-            <div style={{ fontSize:'2rem', marginBottom:6 }}>🎯</div>
-            <div style={{ fontWeight:700, color:'#64748b', fontSize:'0.85rem', marginBottom:6 }}>Henüz hedef yok</div>
-            <button onClick={() => setShowGoalModal(true)} className="sd-btn"
-              style={{ background:'#eef2ff', color:'#6366f1', border:'none', borderRadius:10, padding:'0.5rem 1rem', fontWeight:800, fontSize:'0.8rem', cursor:'pointer' }}>
-              İlk hedefini ekle →
-            </button>
-          </div>
-        ) : (
-          <div style={{ ...S.card, overflow:'hidden' }}>
-            {studentGoals.slice(0, 4).map((g, i, arr) => {
-              const pct = Math.min(100, Math.round(((g.current || 0) / (g.target || 1)) * 100));
-              const done = pct >= 100;
-              return (
-                <div key={g.id} style={{ padding:'0.85rem 1rem', borderBottom: i < arr.length-1 ? '1px solid #f8fafc' : 'none' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontWeight:700, fontSize:'0.84rem', color:'#0f172a', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.title}</div>
-                      <div style={{ display:'flex', gap:4 }}>
-                        <span style={{ fontSize:'0.58rem', fontWeight:800, background:'#eff6ff', color:'#2563eb', padding:'0.1rem 0.4rem', borderRadius:99 }}>{g.period}</span>
-                        <span style={{ fontSize:'0.58rem', fontWeight:800, background:'#fef3c7', color:'#b45309', padding:'0.1rem 0.4rem', borderRadius:99 }}>{g.type}</span>
+                <div style={{ padding:'0.6rem' }}>
+                  {todayProgramInfo.items.length === 0 ? (
+                    <div style={{ textAlign:'center', padding:'1.75rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                      <div style={{ fontSize:'2rem' }}>✨</div>
+                      <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#1e293b' }}>Bugün için program yok</div>
+                      <div style={{ fontSize:'0.73rem', color:'#64748b' }}>Haftalık programını düzenlemek için tıkla.</div>
+                      <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', borderRadius:12, padding:'0.45rem 1.1rem', fontWeight:800, fontSize:'0.75rem', marginTop:4, boxShadow:'0 4px 12px rgba(79,70,229,0.3)' }}>📅 Programa Git</Link>
+                    </div>
+                  ) : (() => {
+                    const MAX_VISIBLE = 3;
+                    const hasMore = todayProgramInfo.items.length > MAX_VISIBLE;
+                    const visibleItems = (hasMore && !showAllTodayTasks) ? todayProgramInfo.items.slice(0, MAX_VISIBLE) : todayProgramInfo.items;
+                    const hiddenCount = todayProgramInfo.items.length - MAX_VISIBLE;
+                    const taskColors = { konu:'#6366f1', soru:'#0891b2', tekrar:'#059669', kitap:'#7c3aed', deneme:'#ea580c', ödev:'#db2777', diger:'#64748b' };
+                    const taskIcons = { konu:'📖', soru:'✏️', tekrar:'🔄', kitap:'📚', deneme:'📊', ödev:'📝', diger:'📌' };
+                    return (
+                      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                        {visibleItems.map((item, idx) => {
+                          const taskColor = taskColors[item.taskType] || '#6366f1';
+                          const icon = taskIcons[item.taskType] || '📌';
+                          const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId;
+                          const handleTaskClick = () => {
+                            if (item.roadmapAssignmentId) { navigate(`/student/study-plan/${item.roadmapAssignmentId}`); return; }
+                            if (item.testId) { navigate(`/book-quiz/${item.testId}?studentId=${selectedStudent.id}`); return; }
+                            if (item.hwId) {
+                              const hwObj = (homeworks || []).find(h => String(h.id) === String(item.hwId));
+                              const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
+                              const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                              if (isExam) navigate(`/physical-exam/${item.hwId}?studentId=${selectedStudent.id}`);
+                              else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
+                              else navigate(`/quiz/${item.hwId}?studentId=${selectedStudent.id}`);
+                              return;
+                            }
+                            handleToggleTodayTask(item.id);
+                          };
+                          return (
+                            <div key={item.id || idx} className="sd-task-row"
+                              onClick={handleTaskClick}
+                              style={{ background: item.done ? '#f0fdf4' : '#fafaff', borderRadius:11, padding:'0.6rem 0.7rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, cursor:'pointer', borderLeft:`4px solid ${item.done ? '#22c55e' : taskColor}`, border:`1px solid ${item.done ? '#bbf7d0' : '#e8ecff'}`, borderLeft:`4px solid ${item.done ? '#22c55e' : taskColor}`, opacity: item.done ? 0.85 : 1 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
+                                <div style={{ width:30, height:30, borderRadius:8, background: item.done ? '#22c55e' : `${taskColor}15`, border:`1.5px solid ${item.done ? '#22c55e' : taskColor}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem', flexShrink:0 }}>
+                                  {item.done ? <Check size={13} color="white" strokeWidth={3} /> : icon}
+                                </div>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:'0.82rem', fontWeight:800, color: item.done ? '#166534' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                    {item.subject || item.bookName || 'Ders Görevi'}
+                                  </div>
+                                  {item.topic && <div style={{ fontSize:'0.66rem', color:'#64748b', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.topic}</div>}
+                                  {(item.time || item.questionCount) && (
+                                    <div style={{ display:'flex', gap:5, marginTop:2 }}>
+                                      {item.time && <span style={{ fontSize:'0.58rem', fontWeight:800, color:'#4f46e5', background:'#eef2ff', padding:'0.08rem 0.4rem', borderRadius:99 }}>⏰ {item.time}</span>}
+                                      {item.questionCount && <span style={{ fontSize:'0.58rem', fontWeight:800, color:'#0891b2', background:'#ecfeff', padding:'0.08rem 0.4rem', borderRadius:99 }}>✏️ {item.questionCount}</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              {isQuizTask ? (
+                                <button onClick={e => { e.stopPropagation(); handleTaskClick(); }} className="sd-btn"
+                                  style={{ background:`linear-gradient(135deg,${taskColor},#6366f1)`, color:'white', border:'none', borderRadius:9, padding:'0.3rem 0.65rem', fontSize:'0.66rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:3, whiteSpace:'nowrap', boxShadow:`0 3px 10px ${taskColor}40`, flexShrink:0 }}>
+                                  <PlayCircle size={11} /> Çöz
+                                </button>
+                              ) : (
+                                <div style={{ fontSize:'0.6rem', fontWeight:900, padding:'0.2rem 0.5rem', borderRadius:99, background: item.done ? '#dcfce7' : '#eef2ff', color: item.done ? '#15803d' : '#4f46e5', flexShrink:0, whiteSpace:'nowrap' }}>
+                                  {item.done ? '✓ Tamam' : 'Tamamla'}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {hasMore && (
+                          <button onClick={() => setShowAllTodayTasks(p => !p)} className="sd-btn"
+                            style={{ width:'100%', padding:'0.5rem', borderRadius:10, background: showAllTodayTasks ? '#f1f5f9' : 'linear-gradient(135deg,#eef2ff,#e0e7ff)', border: showAllTodayTasks ? '1px solid #cbd5e1' : '1.5px solid #c7d2fe', color:'#4f46e5', fontWeight:800, fontSize:'0.72rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:2 }}>
+                            {showAllTodayTasks ? <><ChevronUp size={13} /> Daha Az Göster</> : <><ChevronDown size={13} /> {hiddenCount} görev daha</>}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                      <span style={{ fontSize:'0.78rem', fontWeight:900, color: done ? '#16a34a' : '#6366f1' }}>%{pct}</span>
-                      <button onClick={() => deleteGoal(g.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#cbd5e1', padding:2, display:'flex' }}><X size={13} /></button>
-                    </div>
-                  </div>
-                  <div style={{ height:5, background:'#f1f5f9', borderRadius:99, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${pct}%`, background: done ? '#22c55e' : 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 0.8s' }} />
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.62rem', color:'#94a3b8', fontWeight:600, marginTop:3 }}>
-                    <span>{g.current || 0} / {g.target} {g.type}</span>
-                    {done && <span style={{ color:'#16a34a', fontWeight:800 }}>✓ Tamamlandı</span>}
-                  </div>
-                </div>
-              );
-            })}
-            <div style={{ padding:'0.75rem 1rem', background:'#fafafa', borderTop:'1px solid #f1f5f9' }}>
-              <button onClick={() => navigate('/goals')} className="sd-btn"
-                style={{ width:'100%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', border:'none', borderRadius:12, padding:'0.65rem', fontWeight:800, fontSize:'0.8rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, boxShadow:'0 4px 12px rgba(99,102,241,0.25)' }}>
-                Tüm Hedefler <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ════════════════ COMPLETED EXAMS ════════════════ */}
-      {completedCount > 0 && (
-        <div style={S.section} className="sd-section">
-          <div style={S.sectionTitle}><span style={{ fontSize:14 }}>✅</span> Tamamlanan Sınavlar ({completedCount})</div>
-          <div style={S.card}>
-            {tests.filter(t => t.status === 'Sonuçlandı').slice(0, 5).map((test, i, arr) => {
-              const conf = getSubConf(getThemeKey(getCategoryName(test)));
-              const score = test.correctAnswers || 0;
-              const good = score >= 70;
-              return (
-                <div key={test.id} style={{ display:'flex', alignItems:'center', gap:'0.75rem', padding:'0.8rem 1rem', borderBottom: i < arr.length-1 ? '1px solid #f8fafc' : 'none' }}>
-                  <div style={{ width:36, height:36, borderRadius:10, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <conf.icon size={15} color={conf.color} />
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, fontSize:'0.82rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
-                    <div style={{ fontSize:'0.65rem', color:'#94a3b8', fontWeight:600 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                    <div style={{ textAlign:'right' }}>
-                      <div style={{ fontWeight:900, fontSize:'0.9rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
-                      <div style={{ width:40, marginTop:2 }}>
-                        <div style={{ height:3, background: good ? '#dcfce7' : '#fee2e2', borderRadius:99 }}>
-                          <div style={{ height:'100%', width:`${score}%`, background: good ? '#22c55e' : '#ef4444', borderRadius:99 }} />
-                        </div>
-                      </div>
-                    </div>
-                    <button onClick={() => { if (test.type === 'physicalExam') { navigate(`/physical-exam/${test.id}?studentId=${selectedStudent.id}`); } else if (test.submissionId) { navigate(`/review/${test.submissionId}`); } else { navigate(`/quiz/${test.id}?studentId=${selectedStudent.id}`); } }}
-                      className="sd-btn"
-                      style={{ padding:'0.35rem', borderRadius:8, background:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', display:'flex', alignItems:'center' }}>
-                      <Eye size={13} color="#475569" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════ MOTIVATION + RESULTS ════════════════ */}
-      <div style={{ ...S.section, display:'flex', flexDirection: isMobile ? 'column' : 'row', gap:'0.75rem' }} className="sd-section">
-        {/* Motivation */}
-        {(() => {
-          const currentDashQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
-          const dayLetters = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
-          const currentDayIdx = (new Date().getDay() + 6) % 7;
-
-          return (
-            <div style={{
-              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%)',
-              borderRadius: 20, padding: '1rem 1.15rem', flex: 1,
-              boxShadow: '0 6px 20px rgba(245,158,11,0.15)', border: '1px solid #fcd34d',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 10
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Flame size={20} color="#d97706" />
-                    <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#92400e' }}>Günün Motivasyonu!</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDashQuoteIdx(p => p + 1)}
-                    style={{
-                      background: 'rgba(255,255,255,0.7)', border: '1px solid #fde68a',
-                      borderRadius: 8, padding: '0.2rem 0.5rem', color: '#b45309',
-                      fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-                    }}
-                    title="Yeni Söz Göster"
-                  >
-                    <RefreshCw size={11} /> Sözü Değiştir
-                  </button>
-                </div>
-
-                <div style={{ fontSize: '0.8rem', color: '#78350f', lineHeight: 1.5, fontWeight: 700, fontStyle: 'italic', borderLeft: '3px solid #f59e0b', paddingLeft: 8, margin: '4px 0 6px' }}>
-                  "{currentDashQuote.quote}"
-                  <div style={{ fontSize: '0.68rem', fontStyle: 'normal', fontWeight: 900, color: '#b45309', marginTop: 2, textAlign: 'right' }}>
-                    — {currentDashQuote.author}
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
+            </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#92400e', textTransform: 'uppercase' }}>Haftalık İlerleme Serisi</span>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/my-coaching')}
-                    style={{ background: 'none', border: 'none', color: '#b45309', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
-                  >
-                    Zafer Merkezini Aç <ArrowRight size={11} />
-                  </button>
+            {/* PENDING HOMEWORKS */}
+            <div className="sd-section">
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
+                <div style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(135deg,#ef4444,#dc2626)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.85rem' }}>📋</div>
+                <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Bekleyen Ödevler</span>
+                {pendingCount > 0 && (
+                  <span style={{ background:'#ef4444', color:'white', borderRadius:99, padding:'0.1rem 0.5rem', fontSize:'0.62rem', fontWeight:900, animation:'sdShimmer 2s infinite' }}>{pendingCount}</span>
+                )}
+              </div>
+
+              {pendingTasks.length === 0 ? (
+                <div style={{ ...S.card, padding:'2rem 1rem', textAlign:'center' }}>
+                  <div style={{ fontSize:'2.5rem', marginBottom:8 }}>🎉</div>
+                  <div style={{ fontWeight:900, color:'#0f172a', fontSize:'0.9rem', marginBottom:4 }}>Tüm ödevler tamamlandı!</div>
+                  <div style={{ fontSize:'0.73rem', color:'#94a3b8' }}>Harika iş çıkardın!</div>
                 </div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.65rem' }}>
+                  {pendingTasks.map(task => {
+                    const conf = getSubConf(getThemeKey(task.subject));
+                    const dueDate = task.dueDateObj;
+                    const overdue = isPast(dueDate) && !isToday(dueDate);
+                    const dueToday = isToday(dueDate);
+                    const daysDiff = differenceInDays(dueDate, new Date());
+                    const subIcon = subjectIcons[task.subject] || '📝';
+                    const urgencyColor = overdue ? '#dc2626' : dueToday ? '#d97706' : '#059669';
+                    const urgencyBg = overdue ? 'rgba(239,68,68,0.1)' : dueToday ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)';
+                    const urgencyText = overdue ? `${differenceInDays(new Date(), dueDate)}g Gecikti 🔥` : dueToday ? 'Bugün Son ⚡' : `${daysDiff+1} Gün Kaldı`;
 
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {dayLetters.map((d, i) => {
-                    const isPassedOrToday = i <= currentDayIdx;
-                    const isTodayActive = i === currentDayIdx;
+                    const matchingBook = books?.find(b => String(b.id) === String(task.bookId));
+                    const isExam = task.type === 'physicalExam' || task.contentType === 'physicalExam' || task.bookType === 'exam' || matchingBook?.bookType === 'exam' || task.isPhysical;
+                    const handleOpenPendingTask = (e) => {
+                      if (e) e.stopPropagation();
+                      const targetTestId = task.realTestId || task.testId || task.id;
+                      let path = `/quiz/${targetTestId}?studentId=${selectedStudent.id}`;
+                      if (isExam) path = `/physical-exam/${task.hwId || task.bookId || targetTestId}?studentId=${selectedStudent.id}`;
+                      else if (task.sourceType === 'trackedBook' || task.isBookAssignment) path = `/book-quiz/${targetTestId}?studentId=${selectedStudent.id}`;
+                      navigate(path);
+                    };
+
                     return (
-                      <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isTodayActive ? '#78350f' : '#b45309', marginBottom: 2 }}>{d}</div>
-                        <div style={{
-                          width: '100%', aspectRatio: 1, borderRadius: 5,
-                          background: isTodayActive ? '#f59e0b' : isPassedOrToday ? '#fbbf24' : 'rgba(245,158,11,0.25)',
-                          border: isTodayActive ? '1.5px solid #d97706' : 'none',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                          {isPassedOrToday && <Star size={9} color="white" fill="white" />}
+                      <div key={task.id} className="sd-hw-card"
+                        onClick={() => handleOpenPendingTask()}
+                        style={{ background:'white', borderRadius:18, boxShadow: overdue ? '0 8px 24px rgba(239,68,68,0.1)' : dueToday ? '0 8px 24px rgba(245,158,11,0.1)' : '0 6px 20px rgba(0,0,0,0.05)', border: overdue ? '1.5px solid rgba(239,68,68,0.25)' : dueToday ? '1.5px solid rgba(245,158,11,0.25)' : '1.5px solid rgba(226,232,240,0.8)', overflow:'hidden', position:'relative' }}>
+                        <div style={{ height:3, background: overdue ? 'linear-gradient(90deg,#ef4444,#dc2626)' : dueToday ? 'linear-gradient(90deg,#f59e0b,#d97706)' : `linear-gradient(90deg,${conf.color},#6366f1)` }} />
+                        <div style={{ padding: isMobile ? '0.85rem' : '1rem 1.1rem' }}>
+                          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom:10 }}>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:6, flexWrap:'wrap' }}>
+                                <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:conf.bg, border:`1.5px solid ${conf.border}`, borderRadius:99, padding:'0.2rem 0.6rem', fontWeight:800, fontSize:'0.68rem', color:conf.badge }}>
+                                  {subIcon} {task.subject}
+                                </div>
+                                <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:urgencyBg, border:`1px solid ${urgencyColor}30`, borderRadius:99, padding:'0.2rem 0.5rem', fontWeight:900, fontSize:'0.62rem', color:urgencyColor }}>
+                                  {urgencyText}
+                                </div>
+                              </div>
+                              <div style={{ fontWeight:900, fontSize: isMobile ? '0.9rem' : '0.96rem', color:'#0f172a', lineHeight:1.35 }}>{task.title}</div>
+                            </div>
+                            <div style={{ width:40, height:40, borderRadius:12, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                              <conf.icon size={17} color={conf.color} />
+                            </div>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:9, borderTop:'1px solid #f1f5f9' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                              <span style={{ fontSize:'0.68rem', color:'#64748b', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}><Calendar size={12} color="#94a3b8" /> {task.dueDateStr}</span>
+                              <span style={{ fontSize:'0.68rem', color:'#64748b', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}><BookOpen size={12} color="#94a3b8" /> {task.questionCount || 0} Soru</span>
+                            </div>
+                            <button onClick={handleOpenPendingTask} className="sd-btn"
+                              style={{ background:`linear-gradient(135deg,${conf.color},#6366f1)`, color:'white', border:'none', borderRadius:12, padding:'0.45rem 0.9rem', fontSize:'0.73rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:5, boxShadow:`0 4px 12px ${conf.color}40`, whiteSpace:'nowrap', flexShrink:0 }}>
+                              <PlayCircle size={13} /> Hemen Çöz
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              )}
             </div>
-          );
-        })()}
 
-        {/* Results CTA */}
-        <button onClick={() => navigate('/student-results')} className="sd-btn"
-          style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius:20, padding:'1rem 1.1rem', border:'none', cursor:'pointer', display:'flex', flexDirection: isMobile ? 'row' : 'column', alignItems:'center', gap:'0.75rem', boxShadow:'0 6px 20px rgba(99,102,241,0.25)', flex: isMobile ? 1 : undefined, textAlign:'left' }}>
-          <div style={{ width:44, height:44, borderRadius:14, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <BarChart3 size={22} color="white" />
-          </div>
-          <div>
-            <div style={{ fontWeight:800, fontSize:'0.9rem', color:'white' }}>Detaylı Karne</div>
-            <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.75)', fontWeight:600, marginTop:2 }}>Grafik & performans analizi</div>
-          </div>
-        </button>
-      </div>
+            {/* COMPLETED EXAMS */}
+            {completedCount > 0 && (
+              <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
+                <div style={{ padding:'0.85rem 1.1rem', borderBottom:'1px solid #f8fafc', display:'flex', alignItems:'center', gap:6 }}>
+                  <CheckCircle2 size={16} color="#22c55e" />
+                  <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Tamamlanan Sınavlar</span>
+                  <span style={{ background:'#dcfce7', color:'#16a34a', borderRadius99:99, padding:'0.1rem 0.45rem', fontSize:'0.62rem', fontWeight:900 }}>{completedCount}</span>
+                </div>
+                {tests.filter(t => t.status === 'Sonuçlandı').slice(0, 5).map((test, i, arr) => {
+                  const conf = getSubConf(getThemeKey(getCategoryName(test)));
+                  const score = test.correctAnswers || 0;
+                  const good = score >= 70;
+                  const targetTestId = test.realTestId || test.testId || test.id;
+                  return (
+                    <div key={test.id} className="sd-hw-card"
+                      onClick={() => { if (test.type === 'physicalExam') navigate(`/physical-exam/${targetTestId}?studentId=${selectedStudent.id}`); else if (test.submissionId) navigate(`/review/${test.submissionId}`); else navigate(`/quiz/${targetTestId}?studentId=${selectedStudent.id}`); }}
+                      style={{ display:'flex', alignItems:'center', gap:10, padding:'0.75rem 1.1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                      <div style={{ width:34, height:34, borderRadius:10, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><conf.icon size={14} color={conf.color} /></div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontWeight:700, fontSize:'0.8rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
+                        <div style={{ fontSize:'0.62rem', color:'#94a3b8', fontWeight:600 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                        <div style={{ textAlign:'right' }}>
+                          <div style={{ fontWeight:900, fontSize:'0.88rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
+                          <div style={{ width:40, height:3, background: good ? '#dcfce7' : '#fee2e2', borderRadius:99, marginTop:3 }}>
+                            <div style={{ height:'100%', width:`${score}%`, background: good ? '#22c55e' : '#ef4444', borderRadius:99 }} />
+                          </div>
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); if (test.submissionId) navigate(`/review/${test.submissionId}`); }} className="sd-btn"
+                          style={{ padding:'0.32rem', borderRadius:8, background:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', display:'flex' }}><Eye size={13} color="#475569" /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-      {/* Bottom padding for mobile nav */}
+          </div>{/* end LEFT COLUMN */}
+
+          {/* ──── RIGHT COLUMN ──── */}
+          <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
+
+            {/* ROADMAPS */}
+            {myRoadmaps.length > 0 && (
+              <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
+                <div style={{ padding:'0.85rem 1.1rem', borderBottom:'1px solid #f8fafc', display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem' }}>🗺️</div>
+                  <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Yol Haritalarım</span>
+                </div>
+                <div style={{ padding:'0.5rem' }}>
+                  {myRoadmaps.map(({ assignment, plan }) => {
+                    const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
+                    const done = assignment.completedTopics?.length || 0;
+                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    return (
+                      <div key={assignment.id} className="sd-hw-card"
+                        onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
+                        style={{ padding:'0.85rem', borderRadius:14, display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+                        <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Target size={18} color="white" /></div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontWeight:800, fontSize:'0.84rem', color:'#0f172a', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
+                          <div style={{ height:5, background:'#f1f5f9', borderRadius:99, overflow:'hidden', marginBottom:3 }}>
+                            <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 1s' }} />
+                          </div>
+                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.62rem', fontWeight:700, color:'#94a3b8' }}>
+                            <span>{done}/{total} konu</span><span style={{ color:'#6366f1' }}>%{pct}</span>
+                          </div>
+                        </div>
+                        <ChevronRight size={14} color="#cbd5e1" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* GOALS */}
+            <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
+              <div style={{ padding:'0.85rem 1.1rem', borderBottom:'1px solid #f8fafc', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(135deg,#ea580c,#dc2626)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem' }}>🎯</div>
+                  <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Hedeflerim ({studentGoals.length})</span>
+                </div>
+                <button onClick={() => setShowGoalModal(true)} className="sd-btn"
+                  style={{ display:'flex', alignItems:'center', gap:3, fontSize:'0.68rem', fontWeight:800, color:'#6366f1', background:'#eef2ff', border:'none', borderRadius:8, padding:'0.28rem 0.65rem', cursor:'pointer' }}>
+                  <Plus size={11} /> Ekle
+                </button>
+              </div>
+              {studentGoals.length === 0 ? (
+                <div style={{ padding:'1.5rem 1rem', textAlign:'center' }}>
+                  <div style={{ fontSize:'1.75rem', marginBottom:6 }}>🎯</div>
+                  <div style={{ fontWeight:700, color:'#64748b', fontSize:'0.8rem', marginBottom:8 }}>Henüz hedef yok</div>
+                  <button onClick={() => setShowGoalModal(true)} className="sd-btn"
+                    style={{ background:'#eef2ff', color:'#6366f1', border:'none', borderRadius:10, padding:'0.42rem 0.9rem', fontWeight:800, fontSize:'0.74rem', cursor:'pointer' }}>İlk hedefini ekle →</button>
+                </div>
+              ) : (
+                <>
+                  {studentGoals.slice(0, 4).map((g, i, arr) => {
+                    const pct = Math.min(100, Math.round(((g.current || 0) / (g.target || 1)) * 100));
+                    const done = pct >= 100;
+                    return (
+                      <div key={g.id} style={{ padding:'0.75rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontWeight:700, fontSize:'0.8rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3 }}>{g.title}</div>
+                            <div style={{ display:'flex', gap:4 }}>
+                              <span style={{ fontSize:'0.56rem', fontWeight:800, background:'#eff6ff', color:'#2563eb', padding:'0.08rem 0.4rem', borderRadius:99 }}>{g.period}</span>
+                              <span style={{ fontSize:'0.56rem', fontWeight:800, background:'#fef3c7', color:'#b45309', padding:'0.08rem 0.4rem', borderRadius:99 }}>{g.type}</span>
+                            </div>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                            <span style={{ fontSize:'0.78rem', fontWeight:900, color: done ? '#16a34a' : '#6366f1' }}>%{pct}</span>
+                            <button onClick={() => deleteGoal(g.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#cbd5e1', padding:2, display:'flex' }}><X size={13} /></button>
+                          </div>
+                        </div>
+                        <div style={{ height:5, background:'#f1f5f9', borderRadius:99, overflow:'hidden' }}>
+                          <div style={{ height:'100%', width:`${pct}%`, background: done ? '#22c55e' : 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 0.8s' }} />
+                        </div>
+                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.6rem', color:'#94a3b8', fontWeight:600, marginTop:3 }}>
+                          <span>{g.current || 0} / {g.target} {g.type}</span>
+                          {done && <span style={{ color:'#16a34a', fontWeight:800 }}>✓ Tamamlandı</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{ padding:'0.7rem', background:'#fafafa', borderTop:'1px solid #f1f5f9' }}>
+                    <button onClick={() => navigate('/goals')} className="sd-btn"
+                      style={{ width:'100%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', border:'none', borderRadius:12, padding:'0.58rem', fontWeight:800, fontSize:'0.77rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, boxShadow:'0 4px 12px rgba(99,102,241,0.25)' }}>
+                      Tüm Hedefler <ChevronRight size={13} />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* MOTIVATION + RESULTS */}
+            <div className="sd-section" style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {(() => {
+                const currentDashQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
+                const dayLetters = ['Pzt','Sal','Çrş','Prş','Cum','Cts','Paz'];
+                const currentDayIdx = (new Date().getDay() + 6) % 7;
+                const quoteNum = (dashQuoteIdx % DASHBOARD_QUOTES.length) + 1;
+                const catColors = {
+                  'Disiplin':  { bg:'#fef3c7', text:'#b45309', dot:'#f59e0b' },
+                  'Odak':      { bg:'#ede9fe', text:'#6d28d9', dot:'#8b5cf6' },
+                  'Mücadele':  { bg:'#fee2e2', text:'#b91c1c', dot:'#ef4444' },
+                  'İnanç':     { bg:'#dbeafe', text:'#1e40af', dot:'#3b82f6' },
+                  'Eylem':     { bg:'#dcfce7', text:'#166534', dot:'#22c55e' },
+                  'Zafer':     { bg:'#fef9c3', text:'#854d0e', dot:'#eab308' },
+                  'Gelişim':   { bg:'#d1fae5', text:'#065f46', dot:'#10b981' },
+                  'Özgüven':   { bg:'#fce7f3', text:'#9d174d', dot:'#ec4899' },
+                  'Sabır':     { bg:'#e0f2fe', text:'#075985', dot:'#0ea5e9' },
+                };
+                const cat = catColors[currentDashQuote.category] || catColors['Disiplin'];
+                return (
+                  <div style={{ borderRadius:20, overflow:'hidden', boxShadow:'0 8px 32px rgba(245,158,11,0.15)', border:'1px solid rgba(253,230,138,0.6)' }}>
+                    {/* Card Header */}
+                    <div style={{ background:'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)', padding:'0.75rem 1rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                        <div style={{ width:30, height:30, borderRadius:9, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem' }}>
+                          {currentDashQuote.emoji || '✨'}
+                        </div>
+                        <div>
+                          <div style={{ fontSize:'0.56rem', fontWeight:800, color:'rgba(255,255,255,0.75)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Motivasyonu</div>
+                          <div style={{ fontSize:'0.78rem', fontWeight:900, color:'white' }}>İlham Al, Harekete Geç</div>
+                        </div>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <div style={{ fontSize:'0.58rem', fontWeight:800, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', borderRadius:99, padding:'0.18rem 0.55rem', border:'1px solid rgba(255,255,255,0.25)' }}>
+                          {quoteNum}/{DASHBOARD_QUOTES.length}
+                        </div>
+                        <button type="button" onClick={() => setDashQuoteIdx(p => p + 1)}
+                          style={{ background:'rgba(255,255,255,0.2)', border:'1px solid rgba(255,255,255,0.35)', borderRadius:10, padding:'0.28rem 0.6rem', color:'white', fontSize:'0.62rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:4, backdropFilter:'blur(8px)' }}>
+                          <RefreshCw size={10} /> Yeni Söz
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quote Body */}
+                    <div style={{ background:'linear-gradient(180deg,#fffbeb 0%,#fefce8 100%)', padding:'1rem 1.1rem' }}>
+                      {/* Category badge */}
+                      <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:cat.bg, borderRadius:99, padding:'0.18rem 0.65rem', border:`1px solid ${cat.dot}30`, marginBottom:10 }}>
+                        <div style={{ width:6, height:6, borderRadius:'50%', background:cat.dot }} />
+                        <span style={{ fontSize:'0.6rem', fontWeight:900, color:cat.text, textTransform:'uppercase', letterSpacing:'0.08em' }}>{currentDashQuote.category}</span>
+                      </div>
+
+                      {/* Quote text */}
+                      <div style={{ position:'relative', paddingLeft:14, marginBottom:10 }}>
+                        <div style={{ position:'absolute', left:0, top:0, bottom:0, width:3, borderRadius:99, background:`linear-gradient(180deg,${cat.dot},${cat.dot}44)` }} />
+                        <div style={{ fontSize:'0.83rem', color:'#1c1917', lineHeight:1.7, fontWeight:600, fontStyle:'italic' }}>
+                          "{currentDashQuote.quote}"
+                        </div>
+                        <div style={{ marginTop:6, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:5 }}>
+                          <div style={{ height:1, flex:1, background:'linear-gradient(90deg,transparent,#d97706)' }} />
+                          <span style={{ fontSize:'0.65rem', fontWeight:900, color:'#b45309' }}>— {currentDashQuote.author}</span>
+                        </div>
+                      </div>
+
+                      {/* Week Tracker */}
+                      <div style={{ background:'rgba(245,158,11,0.08)', borderRadius:12, padding:'0.65rem 0.75rem', border:'1px solid rgba(245,158,11,0.2)' }}>
+                        <div style={{ fontSize:'0.55rem', fontWeight:900, color:'#92400e', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:7 }}>📅 Haftalık Çalışma Serisi</div>
+                        <div style={{ display:'flex', gap:4 }}>
+                          {dayLetters.map((d, i) => {
+                            const isPast = i < currentDayIdx;
+                            const isToday = i === currentDayIdx;
+                            const isFuture = i > currentDayIdx;
+                            return (
+                              <div key={i} style={{ flex:1, textAlign:'center' }}>
+                                <div style={{ fontSize:'0.44rem', fontWeight:900, color: isToday ? '#92400e' : '#b45309', marginBottom:3, letterSpacing:'-0.02em' }}>{d}</div>
+                                <div style={{
+                                  aspectRatio:1,
+                                  borderRadius:6,
+                                  background: isToday ? '#f59e0b' : isPast ? '#fbbf24' : 'rgba(245,158,11,0.12)',
+                                  border: isToday ? '2px solid #d97706' : isPast ? '1px solid #fcd34d' : '1px solid rgba(245,158,11,0.2)',
+                                  display:'flex', alignItems:'center', justifyContent:'center',
+                                  boxShadow: isToday ? '0 0 0 3px rgba(245,158,11,0.25)' : 'none',
+                                  transition:'all 0.2s'
+                                }}>
+                                  {isPast && <span style={{ fontSize:'0.55rem' }}>✓</span>}
+                                  {isToday && <Star size={9} color="white" fill="white" />}
+                                  {isFuture && <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(245,158,11,0.3)' }} />}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <button onClick={() => navigate('/student-results')} className="sd-tile"
+                style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius:18, padding:'0.95rem 1.1rem', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:12, boxShadow:'0 8px 24px rgba(99,102,241,0.28)', textAlign:'left', width:'100%' }}>
+                <div style={{ width:42, height:42, borderRadius:13, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><BarChart3 size={20} color="white" /></div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:900, fontSize:'0.9rem', color:'white', marginBottom:2 }}>Detaylı Karne</div>
+                  <div style={{ fontSize:'0.67rem', color:'rgba(255,255,255,0.75)', fontWeight:600 }}>Grafik & performans analizi</div>
+                </div>
+                <ChevronRight size={16} color="rgba(255,255,255,0.7)" />
+              </button>
+            </div>
+
+          </div>{/* end RIGHT COLUMN */}
+
+        </div>{/* end sd-main-grid */}
+
+      </div>{/* end sd-content-outer */}
+
       <div style={{ height: isMobile ? '5rem' : '2rem' }} />
 
-      {/* ════════════════ GOAL MODAL ════════════════ */}
+      {/* GOAL MODAL */}
       {showGoalModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.6)', backdropFilter:'blur(8px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
-          <div style={{ background:'white', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.5rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.25)', animation:'sdFadeUp 0.3s ease' }}>
-            {/* Drag handle for mobile */}
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.65)', backdropFilter:'blur(10px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
+          <div style={{ background:'white', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.5rem', width:'100%', maxWidth: isMobile ? '100%' : 420, boxShadow:'0 32px 80px rgba(0,0,0,0.25)', animation:'sdFadeUp 0.3s ease' }}>
             {isMobile && <div style={{ width:40, height:4, background:'#e2e8f0', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
-              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'none', borderRadius:10, padding:'0.5rem', cursor:'pointer', display:'flex' }}><X size={16} color="#64748b" /></button>
+              <h2 style={{ fontWeight:900, fontSize:'1rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
+              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'none', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex' }}><X size={16} color="#64748b" /></button>
             </div>
-            <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+            <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
               <input placeholder="Hedef başlığı..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%', boxSizing:'border-box' }} required />
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
+                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.65rem' }}>
                 <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                  style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.88rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
+                  style={{ padding:'0.7rem 0.85rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
                   {['Soru','Sayfa','Dakika'].map(v => <option key={v}>{v}</option>)}
                 </select>
                 <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                  style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.88rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
+                  style={{ padding:'0.7rem 0.85rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
                   {['Günlük','Haftalık','Aylık'].map(v => <option key={v}>{v}</option>)}
                 </select>
               </div>
               <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))}
-                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%', boxSizing:'border-box' }} required />
+                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
               <button type="submit" className="sd-btn"
                 style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(99,102,241,0.35)' }}>
                 Hedef Kaydet ✓
