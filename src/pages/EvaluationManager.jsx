@@ -12,7 +12,7 @@ import {
   AlertCircle, Search, Filter, Layers, MessageSquare, Award,
   Sparkles, Check, Edit3, Send, FileText, Globe, Image as ImageIcon,
   RotateCcw, Trophy, ThumbsUp, ThumbsDown, CheckCircle, HelpCircle,
-  ClipboardCheck, Ruler, TestTube2, BookCopy, Zap, Plus, Minus
+  ClipboardCheck, Ruler, TestTube2, BookCopy, Zap, Plus, Minus, Maximize2
 } from 'lucide-react';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
@@ -21,6 +21,7 @@ import ImageQuizReview from '../components/quiz/review/ImageQuizReview';
 import StandardQuizReview from '../components/quiz/review/StandardQuizReview';
 import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
 import MultiHomeworkRunner from '../components/quiz/runner/MultiHomeworkRunner';
+import ImageLightbox, { StandardImageFrame } from '../components/quiz/common/ImageLightbox';
 
 import { resolveTestQuestions } from '../utils/testResolver';
 import { idbGetPayload } from '../services/indexedDbService';
@@ -61,391 +62,21 @@ const QUICK_FEEDBACK_PRESETS = [
   '🌟 Gayet başarılı, tebrikler!'
 ];
 
-// ─── TEACHER GRADING BOTTOM BAR ───────────────────────────────────────────────
-function TeacherGradingBar({
-  submission,
-  test,
-  questions,
-  questionScores,
-  setQuestionScores,
-  teacherNotes,
-  setTeacherNotes,
-  overallFeedback,
-  setOverallFeedback,
-  onSave,
-  onClose,
-  isSaving
-}) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeQNo, setActiveQNo] = useState(1);
-
-  const totalQuestions = Math.max(1, questions?.length || submission?.answers?.length || 1);
-  const questionsList = questions && questions.length > 0 ? questions : (submission?.answers || []);
-
-  // Strict calculation for 1..totalQuestions only
-  const totalScore = useMemo(() => {
-    let sum = 0;
-    for (let i = 1; i <= totalQuestions; i++) {
-      const s = questionScores[i];
-      if (s !== undefined && s !== null) {
-        sum += Math.max(0, Math.min(10, Number(s) || 0));
-      } else {
-        const a = (submission?.answers || [])[i - 1];
-        if (a) {
-          sum += a.score !== undefined ? Number(a.score) : (a.isCorrect === true ? 10 : 0);
-        }
-      }
-    }
-    return Math.min(totalQuestions * 10, sum);
-  }, [questionScores, totalQuestions, submission]);
-
-  const maxScore = totalQuestions * 10;
-  const percentage = maxScore > 0 ? Math.min(100, Math.round((totalScore / maxScore) * 100)) : 0;
-
-  const currentAns = (submission?.answers || []).find(a => (a.questionNo || 0) === activeQNo) || (submission?.answers || [])[activeQNo - 1] || {};
-  const currentScore = questionScores[activeQNo] ?? (currentAns.score !== undefined ? currentAns.score : (currentAns.isCorrect === true ? 10 : 0));
-  const currentNote = teacherNotes[activeQNo] ?? (currentAns.teacherNote || '');
-
-  const handleScoreChange = (newScore) => {
-    const clamped = Math.max(0, Math.min(10, newScore));
-    setQuestionScores(p => ({ ...p, [activeQNo]: clamped }));
-  };
-
-  const handleNextQ = () => {
-    if (activeQNo < totalQuestions) {
-      setActiveQNo(p => p + 1);
-    }
-  };
-
-  const handlePrevQ = () => {
-    if (activeQNo > 1) {
-      setActiveQNo(p => p - 1);
-    }
-  };
-
-  return (
-    <div style={{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 999999,
-      background: 'rgba(15, 23, 42, 0.98)',
-      backdropFilter: 'blur(24px)',
-      borderTop: '2px solid #334155',
-      boxShadow: '0 -10px 40px rgba(0,0,0,0.7)',
-      color: '#f8fafc',
-      fontFamily: "'Inter', sans-serif",
-      transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-    }}>
-      {/* Top Header / Control Strip */}
-      <div style={{
-        padding: '0.6rem 1rem',
-        background: '#1e293b',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '0.6rem'
-      }}>
-        {/* Left: Back & Student Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.35rem',
-              background: 'rgba(255,255,255,0.1)', border: 'none',
-              borderRadius: '0.6rem', padding: '0.45rem 0.8rem',
-              color: 'white', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer'
-            }}
-          >
-            <ArrowLeft size={15} /> <span style={{ display: 'inline' }}>Kapat</span>
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#38bdf8' }}>
-              ✍️ Puanlama
-            </span>
-            <span style={{
-              fontSize: '0.75rem', background: 'rgba(56, 189, 248, 0.15)',
-              color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)',
-              padding: '0.15rem 0.6rem', borderRadius: '50px', fontWeight: 800
-            }}>
-              {submission.studentName || 'Öğrenci'}
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Live Score & Save & Collapse */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          {/* Live Score Badge */}
-          <div style={{
-            background: 'linear-gradient(135deg, #312e81, #1e1b4b)',
-            color: '#e0e7ff', padding: '0.35rem 0.75rem', borderRadius: '0.75rem',
-            fontWeight: 900, fontSize: '0.85rem', border: '1px solid #4f46e5',
-            display: 'flex', alignItems: 'center', gap: '0.4rem'
-          }}>
-            <span>🎯 Not:</span>
-            <span style={{ color: percentage >= 70 ? '#34d399' : (percentage >= 50 ? '#fbbf24' : '#f87171') }}>
-              {totalScore} / {maxScore}
-            </span>
-            <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>(%{percentage})</span>
-          </div>
-
-          {/* Save Button */}
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={isSaving}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              border: 'none', borderRadius: '0.75rem',
-              padding: '0.45rem 1.1rem',
-              color: 'white', fontWeight: 900, fontSize: '0.82rem',
-              cursor: isSaving ? 'wait' : 'pointer',
-              boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
-              opacity: isSaving ? 0.7 : 1
-            }}
-          >
-            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Kaydet & Bitir'}
-          </button>
-
-          {/* Toggle View */}
-          <button
-            type="button"
-            onClick={() => setIsCollapsed(p => !p)}
-            style={{
-              background: 'rgba(255,255,255,0.08)', border: 'none',
-              borderRadius: '0.55rem', padding: '0.45rem 0.65rem',
-              color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem',
-              fontSize: '0.75rem', fontWeight: 700
-            }}
-          >
-            {isCollapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            <span>{isCollapsed ? 'Aç' : 'Gizle'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Expanded Grading Drawer */}
-      {!isCollapsed && (
-        <div style={{
-          padding: '0.85rem 1rem',
-          maxHeight: '280px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          {/* Question Navigator Carousel / Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-            <button
-              type="button"
-              onClick={handlePrevQ}
-              disabled={activeQNo === 1}
-              style={{
-                background: 'rgba(255,255,255,0.08)', border: 'none',
-                borderRadius: '0.5rem', padding: '0.35rem 0.5rem',
-                color: activeQNo === 1 ? '#475569' : 'white',
-                cursor: activeQNo === 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'nowrap' }}>
-              {Array.from({ length: totalQuestions }, (_, i) => i + 1).map(qNo => {
-                const score = questionScores[qNo];
-                const isActive = activeQNo === qNo;
-                return (
-                  <button
-                    key={qNo}
-                    type="button"
-                    onClick={() => setActiveQNo(qNo)}
-                    style={{
-                      padding: '0.35rem 0.65rem',
-                      borderRadius: '0.6rem',
-                      border: isActive ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
-                      background: isActive ? 'linear-gradient(135deg, #0284c7, #0369a1)' : score !== undefined ? (score > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)') : 'rgba(255,255,255,0.05)',
-                      color: isActive ? 'white' : score !== undefined ? (score > 0 ? '#34d399' : '#f87171') : '#cbd5e1',
-                      fontWeight: 800,
-                      fontSize: '0.76rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <span>S.{qNo}</span>
-                    {score !== undefined && (
-                      <span style={{ fontSize: '0.68rem', opacity: 0.9 }}>({score}p)</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleNextQ}
-              disabled={activeQNo === totalQuestions}
-              style={{
-                background: 'rgba(255,255,255,0.08)', border: 'none',
-                borderRadius: '0.5rem', padding: '0.35rem 0.5rem',
-                color: activeQNo === totalQuestions ? '#475569' : 'white',
-                cursor: activeQNo === totalQuestions ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          {/* Active Question Grading Panel */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '0.75rem',
-            alignItems: 'start'
-          }}>
-            {/* Card 1: Question Score & Student Answer */}
-            <div style={{ background: '#1e293b', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#fbbf24' }}>
-                  ✍️ Soru {activeQNo} Puanı: <span style={{ color: '#38bdf8', fontSize: '0.95rem' }}>{currentScore} / 10</span>
-                </span>
-
-                {/* Quick Score Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleScoreChange(10)}
-                    style={{
-                      padding: '0.3rem 0.6rem', borderRadius: '0.45rem',
-                      border: '1px solid #059669',
-                      background: currentScore === 10 ? '#059669' : 'rgba(6,78,59,0.3)',
-                      color: 'white', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer'
-                    }}
-                  >
-                    ✓ 10
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleScoreChange(5)}
-                    style={{
-                      padding: '0.3rem 0.6rem', borderRadius: '0.45rem',
-                      border: '1px solid #d97706',
-                      background: currentScore === 5 ? '#d97706' : 'rgba(120,53,15,0.3)',
-                      color: 'white', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer'
-                    }}
-                  >
-                    ½ 5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleScoreChange(0)}
-                    style={{
-                      padding: '0.3rem 0.6rem', borderRadius: '0.45rem',
-                      border: '1px solid #dc2626',
-                      background: currentScore === 0 ? '#dc2626' : 'rgba(127,29,29,0.3)',
-                      color: 'white', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer'
-                    }}
-                  >
-                    ✕ 0
-                  </button>
-                  
-                  {/* Stepper */}
-                  <button
-                    type="button"
-                    onClick={() => handleScoreChange(currentScore - 1)}
-                    style={{ background: '#0f172a', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '0.4rem', padding: '0.25rem 0.4rem', cursor: 'pointer' }}
-                  >
-                    <Minus size={13} />
-                  </button>
-                  <span style={{ fontWeight: 900, minWidth: '22px', textAlign: 'center', fontSize: '0.85rem' }}>{currentScore}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleScoreChange(currentScore + 1)}
-                    style={{ background: '#0f172a', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '0.4rem', padding: '0.25rem 0.4rem', cursor: 'pointer' }}
-                  >
-                    <Plus size={13} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Student Written Response Snippet */}
-              <div style={{ background: '#0f172a', padding: '0.5rem 0.75rem', borderRadius: '0.55rem', marginBottom: '0.5rem', fontSize: '0.78rem', color: '#e2e8f0', border: '1px solid #334155', maxHeight: '60px', overflowY: 'auto' }}>
-                <span style={{ color: '#fbbf24', fontWeight: 800 }}>Öğrenci Yanıtı: </span>
-                <span>{currentAns.userAnswerText || '(Yazılı yanıt girilmedi / Boş)'}</span>
-              </div>
-
-              {/* Question Feedback Note */}
-              <input
-                type="text"
-                placeholder={`Soru ${activeQNo} için öğretmen notu (Örn: Çözüm yöntemi doğru)...`}
-                value={currentNote}
-                onChange={e => setTeacherNotes(p => ({ ...p, [activeQNo]: e.target.value }))}
-                style={{
-                  width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.55rem',
-                  background: '#0f172a', border: '1px solid #334155', color: '#f8fafc',
-                  fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            {/* Card 2: Overall Feedback & Quick Presets */}
-            <div style={{ background: '#1e293b', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#818cf8', marginBottom: '0.4rem' }}>
-                💬 Sınavın Geneli İçin Öğrenciye Karne Mesajı
-              </div>
-
-              {/* Quick Feedback Pills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.45rem' }}>
-                {QUICK_FEEDBACK_PRESETS.slice(0, 3).map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setOverallFeedback(preset)}
-                    style={{
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
-                      color: '#a5b4fc',
-                      fontSize: '0.68rem',
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '50px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {preset.slice(0, 22)}...
-                  </button>
-                ))}
-              </div>
-
-              <textarea
-                rows="2"
-                placeholder="Öğrencinin bu sınavdaki genel performansı ve tavsiyeleriniz..."
-                value={overallFeedback}
-                onChange={e => setOverallFeedback(e.target.value)}
-                style={{
-                  width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.55rem',
-                  background: '#0f172a', border: '1px solid #334155', color: '#f8fafc',
-                  fontSize: '0.78rem', outline: 'none', resize: 'none', boxSizing: 'border-box'
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+// Helper to determine if a question item is Open-Ended / Written
+function isItemOpenEnded(item, ans) {
+  if (ans?.userAnswerText && String(ans.userAnswerText).trim().length > 0) return true;
+  if (!item) return false;
+  if (item.isOpenEnded === true || item.openEnded === true) return true;
+  const qType = String(item.questionType || item.type || item.contentType || item.formatType || '').toLowerCase();
+  if (['acik_uclu', 'yazili', 'gorsel_klasik'].includes(qType)) return true;
+  const title = String(item.title || item.name || item.questionText || item.text || '').toLowerCase();
+  if (title.includes('açık uçlu') || title.includes('acik uclu') || title.includes('yazılı') || title.includes('yazili')) return true;
+  if (Array.isArray(item.options) && item.options.length > 0 && !item.isOpenEnded) return false;
+  return false;
 }
 
-// ─── FULL QUIZ REVIEW CONTAINER (EXACT STUDENT SOLVER & REVIEW INTERFACE) ────
-function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curriculumData, bookTests, books, onClose, onSaveSuccess }) {
+// ─── SIMPLE & CLEAR EVALUATION MODAL (SADE VE AKILLI DEĞERLENDİRME EKRANI) ────
+function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curriculumData, bookTests, books, onClose, onSaveSuccess }) {
   const { updateSubmission } = useEvaluation();
   const { updateHomeworkSubmission } = useHomework();
 
@@ -454,10 +85,14 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // 'focused_oe' (Sadece Puanlanacak Açık Uçlular) vs 'full_exam' (Tüm Sınavı İncele)
+  const [viewTab, setViewTab] = useState('focused_oe');
+
   // Local Grading States
   const [questionScores, setQuestionScores] = useState({});
   const [teacherNotes, setTeacherNotes] = useState({});
   const [overallFeedback, setOverallFeedback] = useState('');
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const targetId = String(submission.testId || submission.homeworkId || submission.questionId || submission.id || '');
   const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
@@ -465,7 +100,7 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
   useEffect(() => {
     let isMounted = true;
 
-    async function loadTestAndQuestions() {
+    async function loadTestData() {
       setLoading(true);
 
       let foundHw = homeworks?.find(h =>
@@ -495,7 +130,6 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
 
       let resolved = foundHw || foundBankQ || foundBookTest || foundCurTest || null;
 
-      // Check IDB payload if content is stored in indexedDb
       let contentPayload = submission.contentPayload || resolved?.contentPayload || null;
       let pdfPayload = submission.pdfPayload || resolved?.pdfPayload || null;
       let htmlPayload = submission.htmlPayload || resolved?.htmlPayload || null;
@@ -513,7 +147,6 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
         }
       }
 
-      // Check sections for multi-section tests
       let sections = resolved?.sections || resolved?.tests || null;
       if (Array.isArray(sections) && sections.length > 0) {
         const mappedSections = [];
@@ -532,7 +165,8 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
             bankQ: secBankQ ? { ...secBankQ, contentPayload: secPayload || secBankQ.contentPayload } : { id: secQId, title: sec?.title },
             questions: secResolvedQs,
             questionCount: secBankQ?.questionCount || secResolvedQs.length || 1,
-            contentPayload: secPayload
+            contentPayload: secPayload,
+            isOpenEnded: secBankQ ? isItemOpenEnded(secBankQ) : false
           });
         }
         sections = mappedSections;
@@ -559,7 +193,6 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
         setTest(finalTestObj);
         setQuestions(resolvedQuestionsList.length > 0 ? resolvedQuestionsList : (submission.answers || []));
 
-        // Initialize question scores and notes
         const scores = {};
         const notes = {};
         const qCount = Math.max(1, resolvedQuestionsList.length || submission.answers?.length || 1);
@@ -581,26 +214,88 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
       }
     }
 
-    loadTestAndQuestions();
+    loadTestData();
     return () => { isMounted = false; };
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
-  const handleSaveGrading = async () => {
+  // Separate Open-Ended (Manual Teacher Grade) vs Multiple-Choice (Auto Graded)
+  const categorizedQuestions = useMemo(() => {
+    const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
+    const oeList = [];
+    const mcList = [];
+
+    for (let i = 1; i <= totalQ; i++) {
+      const qObj = questions[i - 1] || {};
+      const ans = (submission?.answers || [])[i - 1] || {};
+      const isOE = isItemOpenEnded(qObj, ans);
+
+      const itemInfo = {
+        qNo: i,
+        question: qObj,
+        answer: ans,
+        isOE,
+        imageUrl: qObj.imageUrl || ans.imageUrl || (qObj.imageUrls && qObj.imageUrls[0]) || (test?.sections && test.sections.find(s => s.questions?.some(sq => sq.id === qObj.id))?.bankQ?.imageUrls?.[0]) || null,
+        title: qObj.title || qObj.name || qObj.questionText || `Soru ${i}`,
+        sectionTitle: test?.sections?.find(s => s.questions?.some(sq => sq.id === qObj.id))?.title || null
+      };
+
+      if (isOE) oeList.push(itemInfo);
+      else mcList.push(itemInfo);
+    }
+
+    return { oeList, mcList, totalQ };
+  }, [questions, submission, test]);
+
+  // If there are NO open ended questions, default viewTab to 'full_exam'
+  useEffect(() => {
+    if (!loading && categorizedQuestions.oeList.length === 0) {
+      setViewTab('full_exam');
+    }
+  }, [loading, categorizedQuestions.oeList.length]);
+
+  // Live Score Breakdown
+  const scoreStats = useMemo(() => {
+    const { oeList, mcList, totalQ } = categorizedQuestions;
+
+    let mcCorrect = 0;
+    mcList.forEach(m => {
+      if (m.answer?.isCorrect === true) mcCorrect++;
+    });
+
+    let oeTotalScore = 0;
+    oeList.forEach(o => {
+      const s = questionScores[o.qNo] ?? (o.answer?.score !== undefined ? Number(o.answer.score) : 0);
+      oeTotalScore += Math.max(0, Math.min(10, s));
+    });
+
+    const mcPoints = mcCorrect * 10;
+    const totalPoints = mcPoints + oeTotalScore;
+    const maxPoints = totalQ * 10;
+    const percentage = maxPoints > 0 ? Math.min(100, Math.round((totalPoints / maxPoints) * 100)) : 0;
+
+    return {
+      mcCount: mcList.length,
+      mcCorrect,
+      oeCount: oeList.length,
+      oeTotalScore,
+      oeMaxScore: oeList.length * 10,
+      totalPoints,
+      maxPoints,
+      percentage
+    };
+  }, [categorizedQuestions, questionScores]);
+
+  const handleSaveEvaluation = async () => {
     if (isSaving || !submission) return;
     setIsSaving(true);
 
     try {
-      const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
-      let totalScore = 0;
-      for (let i = 1; i <= totalQ; i++) {
-        totalScore += Math.max(0, Math.min(10, Number(questionScores[i]) || 0));
-      }
-      const maxPossible = totalQ * 10;
-      const computedPercentage = maxPossible > 0 ? Math.min(100, Math.round((totalScore / maxPossible) * 100)) : 0;
+      const { totalQ } = categorizedQuestions;
+      const { percentage, totalPoints, maxPoints } = scoreStats;
 
       const updatedAnswers = (submission.answers || []).map((ans, idx) => {
         const qNo = ans.questionNo || (idx + 1);
-        const score = questionScores[qNo] ?? 0;
+        const score = questionScores[qNo] ?? (ans.isCorrect === true ? 10 : 0);
         const note = teacherNotes[qNo] || '';
         return {
           ...ans,
@@ -614,9 +309,9 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
       const updatedSubPayload = {
         ...submission,
         answers: updatedAnswers,
-        score: computedPercentage,
-        rawScore: totalScore,
-        maxScore: maxPossible,
+        score: percentage,
+        rawScore: totalPoints,
+        maxScore: maxPoints,
         status: 'evaluated',
         isEvaluatedByTeacher: true,
         teacherFeedback: overallFeedback,
@@ -624,10 +319,8 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
         evaluatedAt: new Date().toISOString()
       };
 
-      // 1. Update EvaluationContext
       await updateSubmission(submission.id, updatedSubPayload);
 
-      // 2. Update HomeworkContext if linked to a homework
       if (submission.homeworkId || submission.hwId) {
         const hwId = submission.homeworkId || submission.hwId;
         try {
@@ -638,7 +331,7 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
       if (onSaveSuccess) onSaveSuccess(updatedSubPayload);
       onClose();
     } catch (err) {
-      console.error('Error saving teacher evaluation:', err);
+      console.error('Error saving evaluation:', err);
       alert('Değerlendirme kaydedilirken bir hata oluştu.');
     } finally {
       setIsSaving(false);
@@ -648,41 +341,17 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
   if (loading || !test) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
-        Sınav ve Çözüm Ekranı Yükleniyor...
+        Sınav ve Değerlendirme Ekranı Hazırlanıyor...
       </div>
     );
   }
 
-  // Determine Runner / Review Type exactly like ModularQuizReviewPage & Student Quiz Runner
-  const isMultiSection = Boolean(
-    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
-    test.isBulk ||
-    test.isMulti
-  );
+  const isMultiSection = Boolean((test.sections && test.sections.length > 1) || test.isBulk || test.isMulti);
+  const isPdf = Boolean(test.pdfPayload || test.pdfUrl || test.contentType === 'pdf');
+  const isHtml = Boolean(test.htmlPayload || test.contentType === 'html');
+  const isImageTest = !isHtml && !isPdf && Boolean(test.contentType === 'gorsel' || (test.imageUrls && test.imageUrls.length > 0) || test.imageUrl);
 
-  const isPdf = Boolean(
-    test.pdfPayload || test.pdfUrl || test.contentType === 'pdf' || test.sourceFormat === 'pdf' ||
-    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:application/pdf') || test.contentPayload.includes('.pdf')))
-  );
-
-  const isHtml = Boolean(
-    test.htmlPayload || test.contentType === 'html' || test.sourceFormat === 'html' ||
-    (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:text/html') || test.contentPayload.includes('<html') || test.contentPayload.startsWith('<!DOCTYPE')))
-  );
-
-  const isImageTest = !isHtml && !isPdf && Boolean(
-    test.contentType === 'gorsel' || test.contentType === 'image' || test.sourceFormat === 'image' || test.type === 'gorsel' ||
-    (test.imageUrls && test.imageUrls.length > 0) || test.imageUrl ||
-    (typeof test.contentPayload === 'string' && test.contentPayload.startsWith('data:image'))
-  );
-
-  const isPhysical = Boolean(
-    !String(test.id || '').startsWith('hw_') &&
-    (test.sourceFormat === 'physical' || test.questionType === 'optik_form' || (test.sourceType === 'trackedBook' && !test.contentPayload && !test.sections))
-  );
-
-  const renderReviewScreen = () => {
+  const renderFullExamScreen = () => {
     if (isMultiSection) {
       return (
         <MultiHomeworkRunner
@@ -694,83 +363,484 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
         />
       );
     }
-
     if (isPdf) {
-      return (
-        <PdfQuizReview
-          submission={submission}
-          test={test}
-          questions={questions}
-          onClose={onClose}
-        />
-      );
+      return <PdfQuizReview submission={submission} test={test} questions={questions} onClose={onClose} />;
     }
-
     if (isHtml) {
-      return (
-        <HtmlQuizReview
-          submission={submission}
-          test={test}
-          questions={questions}
-          onClose={onClose}
-        />
-      );
+      return <HtmlQuizReview submission={submission} test={test} questions={questions} onClose={onClose} />;
     }
-
     if (isImageTest) {
-      return (
-        <ImageQuizReview
-          submission={submission}
-          test={test}
-          questions={questions}
-          onClose={onClose}
-        />
-      );
+      return <ImageQuizReview submission={submission} test={test} questions={questions} onClose={onClose} />;
     }
-
-    if (isPhysical) {
-      return (
-        <PhysicalQuizReview
-          submission={submission}
-          test={test}
-          questions={questions}
-          onClose={onClose}
-        />
-      );
-    }
-
-    return (
-      <StandardQuizReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        onClose={onClose}
-      />
-    );
+    return <StandardQuizReview submission={submission} test={test} questions={questions} onClose={onClose} />;
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Top Main Review Screen (Scrollable, 100% Student View) */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '160px', background: '#0f172a' }}>
-        {renderReviewScreen()}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#090d16', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
+      {/* Lightbox for zooming question images */}
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} alt="Soru Görseli" onClose={() => setLightboxSrc(null)} />
+      )}
+
+      {/* ── TOP CONTROL BAR ── */}
+      <div style={{
+        background: '#131c2e',
+        borderBottom: '1px solid #1e293b',
+        padding: '0.65rem 1.25rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        zIndex: 10
+      }}>
+        {/* Left: Back + Student Badge + Test Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '0.6rem', padding: '0.45rem 0.85rem',
+              color: 'white', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft size={15} /> Geri
+          </button>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: 'white', padding: '0.15rem 0.55rem', borderRadius: '50px',
+                fontWeight: 900, fontSize: '0.75rem'
+              }}>
+                🎓 {submission.studentName || 'Öğrenci'}
+              </span>
+              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#f8fafc' }}>
+                {submission.testTitle || test.title}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Clean Mode Switcher Tabs */}
+        <div style={{ display: 'flex', background: '#090d16', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid #1e293b' }}>
+          <button
+            type="button"
+            onClick={() => setViewTab('focused_oe')}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '0.55rem',
+              border: 'none',
+              background: viewTab === 'focused_oe' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+              color: viewTab === 'focused_oe' ? '#0f172a' : '#94a3b8',
+              fontWeight: 900,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}
+          >
+            <Zap size={14} /> Puanlanacak Açık Uçlular ({categorizedQuestions.oeList.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewTab('full_exam')}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '0.55rem',
+              border: 'none',
+              background: viewTab === 'full_exam' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+              color: viewTab === 'full_exam' ? 'white' : '#94a3b8',
+              fontWeight: 900,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}
+          >
+            <Eye size={14} /> Tüm Sınav &amp; Dokümanlar ({categorizedQuestions.totalQ})
+          </button>
+        </div>
+
+        {/* Right: Score Breakdown & Save Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{
+            background: '#090d16', border: '1px solid #1e293b',
+            borderRadius: '0.75rem', padding: '0.35rem 0.75rem',
+            display: 'flex', alignItems: 'center', gap: '0.6rem'
+          }}>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+              Çoktan Seçmeli: <span style={{ color: '#34d399', fontWeight: 900 }}>{scoreStats.mcCorrect}/{scoreStats.mcCount} D</span> (Oto)
+            </div>
+            <div style={{ width: 1, height: 16, background: '#334155' }} />
+            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: scoreStats.percentage >= 70 ? '#34d399' : (scoreStats.percentage >= 50 ? '#fbbf24' : '#f87171') }}>
+              Toplam: %{scoreStats.percentage}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveEvaluation}
+            disabled={isSaving}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              border: 'none', borderRadius: '0.75rem',
+              padding: '0.5rem 1.25rem',
+              color: 'white', fontWeight: 900, fontSize: '0.84rem',
+              cursor: isSaving ? 'wait' : 'pointer',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
+              opacity: isSaving ? 0.7 : 1
+            }}
+          >
+            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Bitir'}
+          </button>
+        </div>
       </div>
 
-      {/* Floating Bottom Grading Bar */}
-      <TeacherGradingBar
-        submission={submission}
-        test={test}
-        questions={questions}
-        questionScores={questionScores}
-        setQuestionScores={setQuestionScores}
-        teacherNotes={teacherNotes}
-        setTeacherNotes={setTeacherNotes}
-        overallFeedback={overallFeedback}
-        setOverallFeedback={setOverallFeedback}
-        onSave={handleSaveGrading}
-        onClose={onClose}
-        isSaving={isSaving}
-      />
+      {/* ── MAIN CONTENT BODY ── */}
+      <div style={{ flex: 1, overflowY: 'auto', background: '#090d16', position: 'relative' }}>
+        
+        {/* TAB 1: SADECE PUANLANACAK AÇIK UÇLU SORULAR */}
+        {viewTab === 'focused_oe' ? (
+          <div style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem 1rem 5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {/* Auto-Graded Summary Banner */}
+            {scoreStats.mcCount > 0 && (
+              <div style={{
+                background: 'rgba(30, 41, 59, 0.6)',
+                border: '1px solid #334155',
+                borderRadius: '1rem',
+                padding: '0.85rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(16,185,129,0.2)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle2 size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc' }}>
+                      {scoreStats.mcCount} Adet Çoktan Seçmeli Soru Otomatik Puanlandı
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      Öğrenci bu sorulardan {scoreStats.mcCorrect} doğru yaptı ({scoreStats.mcCount > 0 ? Math.round((scoreStats.mcCorrect/scoreStats.mcCount)*100) : 0}%). Aşağıda sadece not vermeniz gereken açık uçlu sorular listelenmiştir.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setViewTab('full_exam')}
+                  style={{
+                    background: 'transparent', border: '1px solid #475569',
+                    borderRadius: '0.5rem', padding: '0.35rem 0.75rem',
+                    color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
+                  }}
+                >
+                  Çoktan Seçmelileri İncele →
+                </button>
+              </div>
+            )}
+
+            {/* List of Open-Ended Questions to Grade */}
+            {categorizedQuestions.oeList.length === 0 ? (
+              <div style={{
+                background: '#131c2e', borderRadius: '1.25rem', padding: '3.5rem 1.5rem',
+                textAlign: 'center', border: '1px solid #1e293b'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
+                  Puanlama Gerektiren Açık Uçlu Soru Yok!
+                </h3>
+                <p style={{ margin: '0.5rem 0 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  Bu sınavdaki tüm sorular çoktan seçmelidir ve sistem tarafından otomatik olarak puanlanmıştır.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewTab('full_exam')}
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: 'white', border: 'none', borderRadius: '0.75rem',
+                    padding: '0.6rem 1.25rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer'
+                  }}
+                >
+                  Sınavın Tamamını &amp; Cevapları Gör
+                </button>
+              </div>
+            ) : (
+              categorizedQuestions.oeList.map((oeItem, idx) => {
+                const qNo = oeItem.qNo;
+                const currentScore = questionScores[qNo] ?? (oeItem.answer?.score !== undefined ? Number(oeItem.answer.score) : 0);
+                const currentNote = teacherNotes[qNo] ?? (oeItem.answer?.teacherNote || '');
+
+                return (
+                  <div
+                    key={qNo}
+                    style={{
+                      background: '#131c2e',
+                      border: '1.5px solid rgba(245,158,11,0.4)',
+                      borderRadius: '1.25rem',
+                      padding: '1.25rem',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem'
+                    }}
+                  >
+                    {/* Question Header & Section Tag */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          background: '#f59e0b', color: '#0f172a',
+                          padding: '0.2rem 0.6rem', borderRadius: '0.5rem',
+                          fontWeight: 900, fontSize: '0.8rem'
+                        }}>
+                          ✍️ Açık Uçlu Soru {idx + 1} / {categorizedQuestions.oeList.length} (Soru #{qNo})
+                        </span>
+                        {oeItem.sectionTitle && (
+                          <span style={{ background: '#1e293b', color: '#94a3b8', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
+                            {oeItem.sectionTitle}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Current Score Tag */}
+                      <div style={{
+                        background: currentScore === 10 ? 'rgba(16,185,129,0.2)' : (currentScore >= 5 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)'),
+                        color: currentScore === 10 ? '#34d399' : (currentScore >= 5 ? '#fbbf24' : '#f87171'),
+                        border: `1px solid ${currentScore === 10 ? '#059669' : (currentScore >= 5 ? '#d97706' : '#dc2626')}`,
+                        padding: '0.25rem 0.75rem', borderRadius: '50px', fontWeight: 900, fontSize: '0.82rem'
+                      }}>
+                        Verilen Puan: {currentScore} / 10 Puan
+                      </div>
+                    </div>
+
+                    {/* Question Visual Image / Content */}
+                    {oeItem.imageUrl && (
+                      <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto', background: '#090d16', borderRadius: '0.85rem', padding: '0.5rem', border: '1px solid #334155' }}>
+                        <img
+                          src={oeItem.imageUrl}
+                          alt={`Soru ${qNo} Görseli`}
+                          style={{ width: '100%', height: 'auto', maxHeight: '360px', objectFit: 'contain', borderRadius: '0.5rem', display: 'block', cursor: 'zoom-in' }}
+                          onClick={() => setLightboxSrc(oeItem.imageUrl)}
+                        />
+                        <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.68rem', fontWeight: 800 }}>
+                          🔍 Büyütmek için tıkla
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Question Text Prompt */}
+                    {oeItem.question?.questionText && (
+                      <div style={{ background: '#090d16', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #1e293b', fontSize: '0.88rem', color: '#f1f5f9', fontWeight: 600 }}>
+                        <span style={{ color: '#38bdf8', fontWeight: 800 }}>❓ Soru Metni: </span>
+                        {oeItem.question.questionText}
+                      </div>
+                    )}
+
+                    {/* Student Written Response Box */}
+                    <div style={{
+                      background: '#1e293b',
+                      border: '1.5px solid #3b82f6',
+                      borderRadius: '0.85rem',
+                      padding: '1rem',
+                      boxShadow: '0 4px 16px rgba(59,130,246,0.15)'
+                    }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', textTransform: 'uppercase', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        📝 Öğrencinin Yazılı Yanıtı:
+                      </div>
+                      <div style={{ fontSize: '0.92rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                        {oeItem.answer?.userAnswerText || '(Öğrenci bu soruya yazılı yanıt vermedi - Boş)'}
+                      </div>
+                    </div>
+
+                    {/* Teacher Quick Grading Controls (3 BIG BUTTONS) */}
+                    <div style={{
+                      background: '#090d16',
+                      padding: '0.85rem',
+                      borderRadius: '0.85rem',
+                      border: '1px solid #1e293b',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#fbbf24' }}>
+                          🎯 Bu Soruya Puan Ver:
+                        </span>
+
+                        {/* Big 3 Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 10 }))}
+                            style={{
+                              padding: '0.5rem 1rem', borderRadius: '0.65rem',
+                              border: currentScore === 10 ? '2px solid #34d399' : '1px solid #059669',
+                              background: currentScore === 10 ? '#059669' : 'rgba(6,78,59,0.35)',
+                              color: 'white', fontWeight: 900, fontSize: '0.84rem', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '0.35rem'
+                            }}
+                          >
+                            ✓ Tam Puan (10)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 5 }))}
+                            style={{
+                              padding: '0.5rem 1rem', borderRadius: '0.65rem',
+                              border: currentScore === 5 ? '2px solid #fbbf24' : '1px solid #d97706',
+                              background: currentScore === 5 ? '#d97706' : 'rgba(120,53,15,0.35)',
+                              color: 'white', fontWeight: 900, fontSize: '0.84rem', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '0.35rem'
+                            }}
+                          >
+                            ½ Yarım Puan (5)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setQuestionScores(p => ({ ...p, [qNo]: 0 }))}
+                            style={{
+                              padding: '0.5rem 1rem', borderRadius: '0.65rem',
+                              border: currentScore === 0 ? '2px solid #f87171' : '1px solid #dc2626',
+                              background: currentScore === 0 ? '#dc2626' : 'rgba(127,29,29,0.35)',
+                              color: 'white', fontWeight: 900, fontSize: '0.84rem', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '0.35rem'
+                            }}
+                          >
+                            ✕ 0 Puan
+                          </button>
+
+                          {/* Custom Manual Stepper */}
+                          <div style={{ display: 'flex', alignItems: 'center', background: '#1e293b', borderRadius: '0.65rem', border: '1px solid #334155', padding: '0.2rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => setQuestionScores(p => ({ ...p, [qNo]: Math.max(0, currentScore - 1) }))}
+                              style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '0.3rem', cursor: 'pointer' }}
+                            >
+                              <Minus size={14} />
+                            </button>
+                            <span style={{ fontWeight: 900, minWidth: '28px', textAlign: 'center', fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {currentScore}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setQuestionScores(p => ({ ...p, [qNo]: Math.min(10, currentScore + 1) }))}
+                              style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '0.3rem', cursor: 'pointer' }}
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Question Note Input */}
+                      <input
+                        type="text"
+                        placeholder={`Soru ${qNo} için öğretmenin geri bildirim notu...`}
+                        value={currentNote}
+                        onChange={e => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '0.55rem 0.85rem', borderRadius: '0.65rem',
+                          background: '#131c2e', border: '1px solid #334155', color: '#f8fafc',
+                          fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+
+            {/* Overall Feedback Card */}
+            <div style={{
+              background: '#131c2e',
+              borderRadius: '1.25rem',
+              padding: '1.25rem',
+              border: '1px solid #1e293b',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                💬 Sınavın Geneli İçin Öğrenciye Karne Mesajı:
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {QUICK_FEEDBACK_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setOverallFeedback(preset)}
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.15)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      color: '#a5b4fc',
+                      fontSize: '0.72rem',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '50px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows="3"
+                placeholder="Öğrencinin bu sınavdaki genel performansı ve tavsiyeleriniz..."
+                value={overallFeedback}
+                onChange={e => setOverallFeedback(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem',
+                  background: '#090d16', border: '1px solid #334155', color: '#f8fafc',
+                  fontSize: '0.85rem', outline: 'none', resize: 'none', boxSizing: 'border-box'
+                }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveEvaluation}
+                  disabled={isSaving}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.45rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none', borderRadius: '0.75rem',
+                    padding: '0.65rem 1.5rem',
+                    color: 'white', fontWeight: 900, fontSize: '0.9rem',
+                    cursor: isSaving ? 'wait' : 'pointer',
+                    boxShadow: '0 4px 16px rgba(16,185,129,0.45)'
+                  }}
+                >
+                  <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla ✓'}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        ) : (
+          /* TAB 2: TÜM SINAVI VE DOKÜMANLARI İNCELE */
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            {renderFullExamScreen()}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
@@ -991,9 +1061,9 @@ export default function EvaluationManager() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc', padding: '1rem', fontFamily: "'Inter', sans-serif" }}>
-      {/* If an active submission is opened, render the FULL QUIZ REVIEW CONTAINER */}
+      {/* Smart Evaluation Modal */}
       {activeSubmission && (
-        <FullQuizReviewContainer
+        <SmartEvaluationModal
           submission={activeSubmission}
           allBankQuestions={allBankQuestions}
           homeworks={homeworks}
@@ -1031,7 +1101,7 @@ export default function EvaluationManager() {
               </h1>
             </div>
             <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', fontWeight: 500 }}>
-              Öğrencilerin çözdüğü tüm testleri orijinal sınav ekranında inceleyin, açık uçlu soruları puanlayın.
+              Çoktan seçmeli sorular otomatik puanlanır; açık uçlu yazılı yanıtları tek tıkla kolayca puanlayın.
             </p>
           </div>
 
