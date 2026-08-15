@@ -231,9 +231,9 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
   const { correctCount, wrongCount, blankCount } = stats;
   const totalCount = correctCount + wrongCount + blankCount;
-  const scorePercentage = (submission?.score !== undefined && submission?.score !== null)
+  const scorePercentage = (isEvaluated && submission?.isEvaluatedByTeacher && submission?.score !== undefined && submission?.score !== null)
     ? submission.score
-    : (totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0);
+    : (totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : (submission?.score || 0));
 
   // Map answers for grid navigator
   const answersMap = useMemo(() => {

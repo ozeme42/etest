@@ -460,17 +460,13 @@ export default function ModularQuizPage() {
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNo || (idx + 1);
 
-      let isCorrect = ans.isCorrect;
-      
-      // Sadece isCorrect undefined ise (runner tarafından değerlendirilmemişse) burada değerlendir.
-      if (isCorrect === undefined) {
-        if (userAns !== null && userAns !== undefined && userAns !== '') {
-          isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
-        } else if (textVal) {
-          isCorrect = null; // Open ended pending
-        } else {
-          isCorrect = false; // Blank
-        }
+      // Her zaman kullanıcı cevabını checkIsAnswerCorrect ile değerlendir
+      if (userAns !== null && userAns !== undefined && userAns !== '') {
+        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+      } else if (textVal) {
+        isCorrect = null; // Open ended pending
+      } else {
+        isCorrect = false; // Blank
       }
 
       if (isCorrect === true) correctCount++;

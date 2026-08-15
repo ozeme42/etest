@@ -280,9 +280,9 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
 
   const { correctCount, wrongCount, blankCount } = stats;
   const totalCount = correctCount + wrongCount + blankCount;
-  const scorePercentage = (submission?.score !== undefined && submission?.score !== null)
+  const scorePercentage = (isEvaluated && submission?.isEvaluatedByTeacher && submission?.score !== undefined && submission?.score !== null)
     ? submission.score
-    : (totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0);
+    : (totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : (submission?.score || 0));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: 'white' }}>

@@ -414,11 +414,14 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
     const formattedAnswers = Array.from({ length: qCount }).map((_, idx) => {
       const qNo = idx + 1;
       const qObj = resolvedQuestions[idx] || questions[idx] || {};
-      const savedAns = answers[qNo] || {};
-      const textVal = openEndedText[qNo] || '';
+      const savedAns = answers[qNo] !== undefined ? answers[qNo] : (answers[String(qNo)] !== undefined ? answers[String(qNo)] : answers[idx]);
+      const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
-      const userAns = savedAns.userAnswer !== undefined ? savedAns.userAnswer : null;
-      const textAns = textVal || savedAns.userAnswerText || null;
+      const userAns = (savedAns !== null && typeof savedAns === 'object' && savedAns.userAnswer !== undefined)
+        ? savedAns.userAnswer
+        : ((savedAns !== null && savedAns !== undefined && typeof savedAns !== 'object') ? savedAns : null);
+
+      const textAns = textVal || (savedAns && typeof savedAns === 'object' ? savedAns.userAnswerText : null) || null;
       
       const isCorrect = userAns !== null 
         ? checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo)
