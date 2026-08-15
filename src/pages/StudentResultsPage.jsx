@@ -58,7 +58,14 @@ function getTypeKey(s) {
   return 'individual';
 }
 
-function ScoreBadge({ score, type, size = 'md' }) {
+function ScoreBadge({ score, type, isPendingEval, size = 'md' }) {
+  if (isPendingEval) {
+    return (
+      <span style={{ fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem', fontWeight: 900, background: '#fef3c7', color: '#92400e', border: '1.5px solid #f59e0b', borderRadius: 10, padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+        ✍️ Not Bekliyor
+      </span>
+    );
+  }
   const fontSize = size === 'lg' ? '1.35rem' : size === 'sm' ? '0.8rem' : '1rem';
   const pad = size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem';
   const color = score >= 80 ? '#166534' : score >= 60 ? '#854d0e' : '#991b1b';
@@ -220,26 +227,38 @@ export default function StudentResultsPage() {
 
     const allCombined = [...baseSubs, ...hwSubs, ...bookSubs];
 
+    const isEval = (sub) => Boolean(sub?.isEvaluatedByTeacher || sub?.status === 'evaluated' || sub?.status === 'graded' || sub?.teacherFeedback || sub?.teacherNote);
+
     const deduplicatedMap = new Map();
     allCombined.forEach(s => {
       const key = s.hwId || s.testId || s.id;
       const existing = deduplicatedMap.get(key);
-      if (!existing || new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+      if (!existing || (isEval(s) && !isEval(existing)) || (isEval(s) === isEval(existing) && new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0))) {
         deduplicatedMap.set(key, s);
       }
     });
 
     return Array.from(deduplicatedMap.values()).map(s => {
+      const isEvaluated = isEval(s);
+      const isOpenEnded = Boolean(
+        s.isOpenEnded ||
+        s.questionType === 'acik_uclu' ||
+        s.type === 'acik_uclu' ||
+        s.contentType === 'acik_uclu' ||
+        (Array.isArray(s.answers) && s.answers.some(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+      );
+      const isPendingEval = isOpenEnded && !isEvaluated;
+
       let correct = s.correctCount ?? 0;
       let wrong = s.wrongCount ?? 0;
       let blank = s.blankCount ?? 0;
 
-      if (s.answers?.length > 0) {
+      if (!isOpenEnded && s.answers?.length > 0) {
         correct = 0; wrong = 0; blank = 0;
         s.answers.forEach(ans => {
           if (ans.isCorrect === true) correct++;
           else if (ans.isCorrect === false) {
-            if (!ans.userAnswer) blank++; else wrong++;
+            if (!ans.userAnswer && ans.userAnswer !== 0) blank++; else wrong++;
           }
         });
       }
@@ -255,11 +274,31 @@ export default function StudentResultsPage() {
 
       const subjKey = getSubjectKey({ testTitle: title, subjectKey: matchedHw?.subject || matchedCur?.subject || s.subjectKey || '' });
       const typeKey = getTypeKey(s);
-      const total = s.totalQuestions || (s.answers?.length) || (correct + wrong + blank) || (matchedHw?.totalQuestions) || 0;
-      const score = s.score !== undefined && s.score !== null && s.score <= 100 ? s.score
-        : total > 0 ? Math.round((correct / total) * 100) : (s.score ? Math.min(100, s.score) : 0);
+      const total = s.totalQuestions || (s.answers?.length) || (correct + wrong + blank) || (matchedHw?.totalQuestions) || 1;
+      
+      let score = 0;
+      if (isEvaluated && s.score !== undefined && s.score !== null) {
+        score = Math.min(100, Math.max(0, s.score));
+      } else if (!isPendingEval && total > 0) {
+        score = Math.round((correct / total) * 100);
+      } else if (s.score !== undefined && s.score !== null && !isPendingEval) {
+        score = Math.min(100, Math.max(0, s.score));
+      }
 
-      return { ...s, testTitle: title, subjectKey: subjKey, typeKey, correctCount: correct, wrongCount: wrong, blankCount: blank, totalQuestions: total, computedScore: score };
+      return {
+        ...s,
+        testTitle: title,
+        subjectKey: subjKey,
+        typeKey,
+        isEvaluated,
+        isOpenEnded,
+        isPendingEval,
+        correctCount: correct,
+        wrongCount: wrong,
+        blankCount: blank,
+        totalQuestions: total,
+        computedScore: score
+      };
     }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
   }, [submissions, homeworks, bookTests, books, allCurTestsMap, selectedStudent]);
 
@@ -680,7 +719,7 @@ export default function StudentResultsPage() {
                         </div>
                         <span style={{ fontSize: '0.72rem', fontWeight: 900, color: th.color, background: th.bg, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.18rem 0.5rem' }}>{s.subjectKey}</span>
                       </div>
-                      <ScoreBadge score={s.computedScore} type={s.type} size="sm" />
+                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" />
                     </div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', lineHeight: 1.3 }}>{s.testTitle}</div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -693,7 +732,7 @@ export default function StudentResultsPage() {
                         {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'} · {s.totalQuestions} Soru
                       </span>
                       {s.type !== 'physicalExam' && (
-                        <button onClick={() => navigate(`/review/${s.id}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 9, padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 9, padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Eye size={12} /> İncele
                         </button>
                       )}
@@ -842,11 +881,11 @@ export default function StudentResultsPage() {
                               </div>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <ScoreBadge score={s.computedScore} type={s.type} size="sm" />
+                              <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" />
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               {s.type !== 'physicalExam' ? (
-                                <button onClick={() => navigate(`/review/${s.id}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 9, padding: '0.35rem 0.8rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 9, padding: '0.35rem 0.8rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <Eye size={12} /> İncele
                                 </button>
                               ) : (
@@ -895,11 +934,11 @@ export default function StudentResultsPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
                         <div>
-                          <ScoreBadge score={s.computedScore} type={s.type} />
+                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} />
                           <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
                         {s.type !== 'physicalExam' ? (
-                          <button onClick={() => navigate(`/review/${s.id}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Eye size={12} /> İncele
                           </button>
                         ) : (

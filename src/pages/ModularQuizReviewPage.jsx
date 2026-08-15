@@ -46,20 +46,32 @@ export default function ModularQuizReviewPage() {
 
     // 1. Search in EvaluationContext (global submissions)
     if (submissions && Array.isArray(submissions)) {
-      foundSubmission = submissions.find(s =>
+      const candidates = submissions.filter(s =>
         String(s.id) === String(targetId) ||
         String(s.testId) === String(targetId) ||
+        String(s.hwId) === String(targetId) ||
         String(s.homeworkId) === String(targetId) ||
         (studentId && String(s.studentId) === String(studentId) && (
           String(s.testId) === String(targetId) ||
+          String(s.hwId) === String(targetId) ||
           String(s.homeworkId) === String(targetId) ||
           String(s.id) === String(targetId)
         ))
       );
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => {
+          const aEval = Boolean(a.isEvaluatedByTeacher || a.status === 'evaluated' || a.status === 'graded' || a.teacherFeedback);
+          const bEval = Boolean(b.isEvaluatedByTeacher || b.status === 'evaluated' || b.status === 'graded' || b.teacherFeedback);
+          if (aEval && !bEval) return -1;
+          if (!aEval && bEval) return 1;
+          return new Date(b.submittedAt || b.evaluatedAt || 0) - new Date(a.submittedAt || a.evaluatedAt || 0);
+        });
+        foundSubmission = candidates[0];
+      }
     }
 
     // 2. Search in HomeworkContext (homeworks[].submissions)
-    if (!foundSubmission && homeworks && Array.isArray(homeworks)) {
+    if ((!foundSubmission || (!foundSubmission.isEvaluatedByTeacher && foundSubmission.status !== 'evaluated')) && homeworks && Array.isArray(homeworks)) {
       for (const hw of homeworks) {
         if (String(hw.id) === String(targetId) || (hw.submissions && hw.submissions.some(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId)))) {
           if (hw.submissions && Array.isArray(hw.submissions) && hw.submissions.length > 0) {

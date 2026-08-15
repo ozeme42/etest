@@ -289,20 +289,30 @@ export function EvaluationProvider({ children }) {
   };
 
   const updateSubmission = async (id, updatedData) => {
+    let savedTarget = null;
     setSubmissions(prev => {
-      let target = null;
+      let found = false;
       const nextSubs = prev.map(sub => {
-        if (String(sub.id) === String(id)) {
-          target = { ...sub, ...updatedData };
+        const isMatch = (
+          String(sub.id) === String(id) ||
+          String(sub.testId) === String(id) ||
+          (sub.hwId && String(sub.hwId) === String(id)) ||
+          (updatedData.studentId && String(sub.studentId) === String(updatedData.studentId) && (
+            (updatedData.testId && String(sub.testId) === String(updatedData.testId)) ||
+            (updatedData.hwId && String(sub.hwId) === String(updatedData.hwId))
+          ))
+        );
 
-          // Yüksek boyutlu verileri silerek localStorage'ı koru
-          delete target.contentPayload;
-          delete target.pdfPayload;
-          delete target.htmlPayload;
-          delete target.imageUrl;
-          delete target.imageUrls;
-          if (target.questionsList) {
-            target.questionsList = target.questionsList.map(q => {
+        if (isMatch) {
+          found = true;
+          const merged = { ...sub, ...updatedData };
+          delete merged.contentPayload;
+          delete merged.pdfPayload;
+          delete merged.htmlPayload;
+          delete merged.imageUrl;
+          delete merged.imageUrls;
+          if (merged.questionsList) {
+            merged.questionsList = merged.questionsList.map(q => {
               const qCopy = { ...q };
               delete qCopy.contentPayload;
               delete qCopy.htmlPayload;
@@ -311,19 +321,39 @@ export function EvaluationProvider({ children }) {
               return qCopy;
             });
           }
-
-          return target;
+          savedTarget = merged;
+          return merged;
         }
         return sub;
       });
-      if (target) {
+
+      if (!found) {
+        const newTarget = {
+          id: id || `sub_${Date.now()}`,
+          submittedAt: new Date().toISOString(),
+          ...updatedData
+        };
+        delete newTarget.contentPayload;
+        delete newTarget.pdfPayload;
+        delete newTarget.htmlPayload;
+        delete newTarget.imageUrl;
+        delete newTarget.imageUrls;
+        savedTarget = newTarget;
+        nextSubs.push(newTarget);
+      }
+
+      if (savedTarget) {
         try {
+          localStorage.setItem('eTestSubmissions', JSON.stringify(nextSubs));
           localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
         } catch (e) {}
-        dbSaveSubmission(target);
       }
       return nextSubs;
     });
+
+    if (savedTarget) {
+      await dbSaveSubmission(savedTarget);
+    }
   };
 
   const deleteSubmission = async (id) => {
