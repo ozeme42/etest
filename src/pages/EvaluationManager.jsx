@@ -8,11 +8,11 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import {
   CheckCircle2, XCircle, Clock3, Eye, Save, ArrowLeft,
-  ClipboardList, Users, BookOpen, Star, ChevronRight, ChevronDown, ChevronUp,
+  ClipboardList, Users, BookOpen, Star, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
   AlertCircle, Search, Filter, Layers, MessageSquare, Award,
   Sparkles, Check, Edit3, Send, FileText, Globe, Image as ImageIcon,
   RotateCcw, Trophy, ThumbsUp, ThumbsDown, CheckCircle, HelpCircle,
-  ClipboardCheck, Ruler, TestTube2, BookCopy
+  ClipboardCheck, Ruler, TestTube2, BookCopy, Zap, Plus, Minus
 } from 'lucide-react';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
@@ -26,7 +26,7 @@ import { resolveTestQuestions } from '../utils/testResolver';
 import { idbGetPayload } from '../services/indexedDbService';
 import { toUUID } from '../services/supabaseService';
 
-// ─── SUBJECT HELPER ──────────────────────────────────────────────────────────
+// ─── SUBJECT HELPER & THEMES ──────────────────────────────────────────────────
 function detectSubject(title = '', existingSubject = '') {
   if (existingSubject && !['genel', 'diğer', 'all', ''].includes(String(existingSubject).toLowerCase().trim())) {
     return existingSubject;
@@ -39,19 +39,27 @@ function detectSubject(title = '', existingSubject = '') {
   if (t.includes('ingilizce') || t.includes('english') || t.includes('ing')) return 'İngilizce';
   if (t.includes('din') || t.includes('ahlak') || t.includes('ilmihal') || t.includes('fıkıh') || t.includes('siyer') || t.includes('kuran')) return 'Din Kültürü';
   if (t.includes('deneme') || t.includes('lgs') || t.includes('tarama')) return 'Genel Deneme';
-  return 'Genel';
+  return 'Genel Testler';
 }
 
-const subjectColors = {
-  'Matematik': { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
-  'Fen Bilimleri': { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-  'Türkçe': { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
-  'Sosyal Bilgiler': { bg: '#faf5ff', color: '#9333ea', border: '#e9d5ff' },
-  'İngilizce': { bg: '#fff1f2', color: '#e11d48', border: '#fecdd3' },
-  'Din Kültürü': { bg: '#f0fdfa', color: '#0d9488', border: '#99f6e4' },
-  'Genel Deneme': { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe' },
-  'Genel': { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' }
+const subjectThemes = {
+  'Matematik': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', icon: '📐' },
+  'Fen Bilimleri': { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', icon: '🔬' },
+  'Türkçe': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: '📚' },
+  'Sosyal Bilgiler': { bg: '#faf5ff', color: '#7e22ce', border: '#e9d5ff', icon: '🌍' },
+  'İngilizce': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3', icon: '🇬🇧' },
+  'Din Kültürü': { bg: '#f0fdfa', color: '#0f766e', border: '#99f6e4', icon: '🌙' },
+  'Genel Deneme': { bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe', icon: '🏛️' },
+  'Genel Testler': { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1', icon: '📝' }
 };
+
+const QUICK_FEEDBACK_PRESETS = [
+  '👏 Çözüm yöntemi ve açıklama harika, tam puan!',
+  '💡 Çözüm doğru ancak işlem adımlarına dikkat edilmeli.',
+  '✍️ Açıklama biraz eksik kalmış, formülü belirtmelisin.',
+  '⚠️ Yanlış formül veya kavram kullanılmış, tekrar gözden geçir.',
+  '🌟 Gayet başarılı, tebrikler!'
+];
 
 // ─── TEACHER GRADING BOTTOM BAR ───────────────────────────────────────────────
 function TeacherGradingBar({
@@ -71,12 +79,25 @@ function TeacherGradingBar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeQNo, setActiveQNo] = useState(1);
 
-  const totalQuestions = questions?.length || submission?.answers?.length || 1;
+  const totalQuestions = Math.max(1, questions?.length || submission?.answers?.length || 1);
   const questionsList = questions && questions.length > 0 ? questions : (submission?.answers || []);
 
+  // Strict calculation for 1..totalQuestions only
   const totalScore = useMemo(() => {
-    return Object.values(questionScores).reduce((sum, v) => sum + (Number(v) || 0), 0);
-  }, [questionScores]);
+    let sum = 0;
+    for (let i = 1; i <= totalQuestions; i++) {
+      const s = questionScores[i];
+      if (s !== undefined && s !== null) {
+        sum += Math.max(0, Math.min(10, Number(s) || 0));
+      } else {
+        const a = (submission?.answers || [])[i - 1];
+        if (a) {
+          sum += a.score !== undefined ? Number(a.score) : (a.isCorrect === true ? 10 : 0);
+        }
+      }
+    }
+    return Math.min(totalQuestions * 10, sum);
+  }, [questionScores, totalQuestions, submission]);
 
   const maxScore = totalQuestions * 10;
   const percentage = maxScore > 0 ? Math.min(100, Math.round((totalScore / maxScore) * 100)) : 0;
@@ -85,6 +106,23 @@ function TeacherGradingBar({
   const currentScore = questionScores[activeQNo] ?? (currentAns.score !== undefined ? currentAns.score : (currentAns.isCorrect === true ? 10 : 0));
   const currentNote = teacherNotes[activeQNo] ?? (currentAns.teacherNote || '');
 
+  const handleScoreChange = (newScore) => {
+    const clamped = Math.max(0, Math.min(10, newScore));
+    setQuestionScores(p => ({ ...p, [activeQNo]: clamped }));
+  };
+
+  const handleNextQ = () => {
+    if (activeQNo < totalQuestions) {
+      setActiveQNo(p => p + 1);
+    }
+  };
+
+  const handlePrevQ = () => {
+    if (activeQNo > 1) {
+      setActiveQNo(p => p - 1);
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -92,59 +130,67 @@ function TeacherGradingBar({
       left: 0,
       right: 0,
       zIndex: 999999,
-      background: 'rgba(15, 23, 42, 0.96)',
-      backdropFilter: 'blur(20px)',
+      background: 'rgba(15, 23, 42, 0.98)',
+      backdropFilter: 'blur(24px)',
       borderTop: '2px solid #334155',
-      boxShadow: '0 -10px 40px rgba(0,0,0,0.6)',
+      boxShadow: '0 -10px 40px rgba(0,0,0,0.7)',
       color: '#f8fafc',
       fontFamily: "'Inter', sans-serif",
       transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
-      {/* Top Toggle Bar */}
+      {/* Top Header / Control Strip */}
       <div style={{
-        padding: '0.5rem 1.5rem',
+        padding: '0.6rem 1rem',
         background: '#1e293b',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '0.75rem'
+        gap: '0.6rem'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        {/* Left: Back & Student Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <button
             type="button"
             onClick={onClose}
             style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
               background: 'rgba(255,255,255,0.1)', border: 'none',
-              borderRadius: '0.6rem', padding: '0.4rem 0.85rem',
-              color: 'white', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer'
+              borderRadius: '0.6rem', padding: '0.45rem 0.8rem',
+              color: 'white', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer'
             }}
           >
-            <ArrowLeft size={15} /> Değerlendirmelere Dön
+            <ArrowLeft size={15} /> <span style={{ display: 'inline' }}>Kapat</span>
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#38bdf8' }}>
-              ✍️ Öğretmen Değerlendirme &amp; Notlandırma Modu
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#38bdf8' }}>
+              ✍️ Puanlama
             </span>
-            <span style={{ fontSize: '0.75rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '0.15rem 0.55rem', borderRadius: '50px', fontWeight: 800 }}>
+            <span style={{
+              fontSize: '0.75rem', background: 'rgba(56, 189, 248, 0.15)',
+              color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)',
+              padding: '0.15rem 0.6rem', borderRadius: '50px', fontWeight: 800
+            }}>
               {submission.studentName || 'Öğrenci'}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Right: Live Score & Save & Collapse */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           {/* Live Score Badge */}
           <div style={{
-            background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-            color: '#e0e7ff', padding: '0.35rem 0.85rem', borderRadius: '0.75rem',
-            fontWeight: 900, fontSize: '0.85rem', border: '1px solid #6366f1',
+            background: 'linear-gradient(135deg, #312e81, #1e1b4b)',
+            color: '#e0e7ff', padding: '0.35rem 0.75rem', borderRadius: '0.75rem',
+            fontWeight: 900, fontSize: '0.85rem', border: '1px solid #4f46e5',
             display: 'flex', alignItems: 'center', gap: '0.4rem'
           }}>
             <span>🎯 Not:</span>
-            <span style={{ color: '#34d399' }}>{totalScore} / {maxScore}</span>
+            <span style={{ color: percentage >= 70 ? '#34d399' : (percentage >= 50 ? '#fbbf24' : '#f87171') }}>
+              {totalScore} / {maxScore}
+            </span>
             <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>(%{percentage})</span>
           </div>
 
@@ -154,53 +200,63 @@ function TeacherGradingBar({
             onClick={onSave}
             disabled={isSaving}
             style={{
-              display: 'flex', alignItems: 'center', gap: '0.45rem',
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
               background: 'linear-gradient(135deg, #10b981, #059669)',
               border: 'none', borderRadius: '0.75rem',
-              padding: '0.5rem 1.25rem',
-              color: 'white', fontWeight: 900, fontSize: '0.86rem',
+              padding: '0.45rem 1.1rem',
+              color: 'white', fontWeight: 900, fontSize: '0.82rem',
               cursor: isSaving ? 'wait' : 'pointer',
-              boxShadow: '0 4px 16px rgba(16,185,129,0.45)',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
               opacity: isSaving ? 0.7 : 1
             }}
           >
-            <Save size={16} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Tamamla'}
+            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Kaydet & Bitir'}
           </button>
 
-          {/* Collapse/Expand toggle */}
+          {/* Toggle View */}
           <button
             type="button"
             onClick={() => setIsCollapsed(p => !p)}
             style={{
               background: 'rgba(255,255,255,0.08)', border: 'none',
-              borderRadius: '0.5rem', padding: '0.4rem 0.65rem',
+              borderRadius: '0.55rem', padding: '0.45rem 0.65rem',
               color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem',
               fontSize: '0.75rem', fontWeight: 700
             }}
           >
             {isCollapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            <span>{isCollapsed ? 'Not Paneli' : 'Gizle'}</span>
+            <span>{isCollapsed ? 'Aç' : 'Gizle'}</span>
           </button>
         </div>
       </div>
 
-      {/* Expanded Grading Details Body */}
+      {/* Expanded Grading Drawer */}
       {!isCollapsed && (
         <div style={{
-          padding: '1rem 1.5rem',
-          maxHeight: '260px',
+          padding: '0.85rem 1rem',
+          maxHeight: '280px',
           overflowY: 'auto',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(220px, 320px) 1fr 1fr',
-          gap: '1.25rem',
-          alignItems: 'start'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem'
         }}>
-          {/* 1. Question Navigator Pills */}
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-              Sorular ({totalQuestions})
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '140px', overflowY: 'auto' }}>
+          {/* Question Navigator Carousel / Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+            <button
+              type="button"
+              onClick={handlePrevQ}
+              disabled={activeQNo === 1}
+              style={{
+                background: 'rgba(255,255,255,0.08)', border: 'none',
+                borderRadius: '0.5rem', padding: '0.35rem 0.5rem',
+                color: activeQNo === 1 ? '#475569' : 'white',
+                cursor: activeQNo === 1 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'nowrap' }}>
               {Array.from({ length: totalQuestions }, (_, i) => i + 1).map(qNo => {
                 const score = questionScores[qNo];
                 const isActive = activeQNo === qNo;
@@ -216,120 +272,171 @@ function TeacherGradingBar({
                       background: isActive ? 'linear-gradient(135deg, #0284c7, #0369a1)' : score !== undefined ? (score > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)') : 'rgba(255,255,255,0.05)',
                       color: isActive ? 'white' : score !== undefined ? (score > 0 ? '#34d399' : '#f87171') : '#cbd5e1',
                       fontWeight: 800,
-                      fontSize: '0.78rem',
+                      fontSize: '0.76rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      gap: '0.25rem',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     <span>S.{qNo}</span>
                     {score !== undefined && (
-                      <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>({score}p)</span>
+                      <span style={{ fontSize: '0.68rem', opacity: 0.9 }}>({score}p)</span>
                     )}
                   </button>
                 );
               })}
             </div>
+
+            <button
+              type="button"
+              onClick={handleNextQ}
+              disabled={activeQNo === totalQuestions}
+              style={{
+                background: 'rgba(255,255,255,0.08)', border: 'none',
+                borderRadius: '0.5rem', padding: '0.35rem 0.5rem',
+                color: activeQNo === totalQuestions ? '#475569' : 'white',
+                cursor: activeQNo === totalQuestions ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
-          {/* 2. Active Question Scoring & Notes */}
-          <div style={{ background: '#1e293b', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-              <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#fbbf24' }}>
-                ✍️ Soru {activeQNo} Puanı &amp; Notu
-              </span>
+          {/* Active Question Grading Panel */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '0.75rem',
+            alignItems: 'start'
+          }}>
+            {/* Card 1: Question Score & Student Answer */}
+            <div style={{ background: '#1e293b', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#fbbf24' }}>
+                  ✍️ Soru {activeQNo} Puanı: <span style={{ color: '#38bdf8', fontSize: '0.95rem' }}>{currentScore} / 10</span>
+                </span>
 
-              {/* Quick Score Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setQuestionScores(p => ({ ...p, [activeQNo]: 10 }))}
-                  style={{
-                    padding: '0.25rem 0.55rem', borderRadius: '0.45rem',
-                    border: '1px solid #059669',
-                    background: currentScore === 10 ? '#064e3b' : 'rgba(6,78,59,0.3)',
-                    color: '#34d399', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
-                  }}
-                >
-                  ✓ 10 Puan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuestionScores(p => ({ ...p, [activeQNo]: 5 }))}
-                  style={{
-                    padding: '0.25rem 0.55rem', borderRadius: '0.45rem',
-                    border: '1px solid #d97706',
-                    background: currentScore === 5 ? '#78350f' : 'rgba(120,53,15,0.3)',
-                    color: '#fef3c7', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
-                  }}
-                >
-                  ½ 5 Puan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuestionScores(p => ({ ...p, [activeQNo]: 0 }))}
-                  style={{
-                    padding: '0.25rem 0.55rem', borderRadius: '0.45rem',
-                    border: '1px solid #dc2626',
-                    background: currentScore === 0 ? '#7f1d1d' : 'rgba(127,29,29,0.3)',
-                    color: '#f87171', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
-                  }}
-                >
-                  ✕ 0 Puan
-                </button>
-                <input
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={currentScore}
-                  onChange={e => setQuestionScores(p => ({ ...p, [activeQNo]: Math.max(0, Math.min(10, Number(e.target.value))) }))}
-                  style={{
-                    width: '46px', padding: '0.25rem', borderRadius: '0.45rem',
-                    background: '#0f172a', border: '1px solid #6366f1',
-                    color: '#e0e7ff', fontWeight: 900, textAlign: 'center', fontSize: '0.8rem'
-                  }}
-                />
+                {/* Quick Score Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleScoreChange(10)}
+                    style={{
+                      padding: '0.3rem 0.6rem', borderRadius: '0.45rem',
+                      border: '1px solid #059669',
+                      background: currentScore === 10 ? '#059669' : 'rgba(6,78,59,0.3)',
+                      color: 'white', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer'
+                    }}
+                  >
+                    ✓ 10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScoreChange(5)}
+                    style={{
+                      padding: '0.3rem 0.6rem', borderRadius: '0.45rem',
+                      border: '1px solid #d97706',
+                      background: currentScore === 5 ? '#d97706' : 'rgba(120,53,15,0.3)',
+                      color: 'white', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer'
+                    }}
+                  >
+                    ½ 5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScoreChange(0)}
+                    style={{
+                      padding: '0.3rem 0.6rem', borderRadius: '0.45rem',
+                      border: '1px solid #dc2626',
+                      background: currentScore === 0 ? '#dc2626' : 'rgba(127,29,29,0.3)',
+                      color: 'white', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer'
+                    }}
+                  >
+                    ✕ 0
+                  </button>
+                  
+                  {/* Stepper */}
+                  <button
+                    type="button"
+                    onClick={() => handleScoreChange(currentScore - 1)}
+                    style={{ background: '#0f172a', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '0.4rem', padding: '0.25rem 0.4rem', cursor: 'pointer' }}
+                  >
+                    <Minus size={13} />
+                  </button>
+                  <span style={{ fontWeight: 900, minWidth: '22px', textAlign: 'center', fontSize: '0.85rem' }}>{currentScore}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleScoreChange(currentScore + 1)}
+                    style={{ background: '#0f172a', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '0.4rem', padding: '0.25rem 0.4rem', cursor: 'pointer' }}
+                  >
+                    <Plus size={13} />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Student Answer Snippet */}
-            {currentAns.userAnswerText && (
-              <div style={{ background: '#0f172a', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', marginBottom: '0.6rem', fontSize: '0.8rem', color: '#e2e8f0', border: '1px solid #334155' }}>
+              {/* Student Written Response Snippet */}
+              <div style={{ background: '#0f172a', padding: '0.5rem 0.75rem', borderRadius: '0.55rem', marginBottom: '0.5rem', fontSize: '0.78rem', color: '#e2e8f0', border: '1px solid #334155', maxHeight: '60px', overflowY: 'auto' }}>
                 <span style={{ color: '#fbbf24', fontWeight: 800 }}>Öğrenci Yanıtı: </span>
-                <span>{currentAns.userAnswerText}</span>
+                <span>{currentAns.userAnswerText || '(Yazılı yanıt girilmedi / Boş)'}</span>
               </div>
-            )}
 
-            <input
-              type="text"
-              placeholder={`Soru ${activeQNo} için öğretmenin notu (Örn: Çözüm yöntemi doğru)...`}
-              value={currentNote}
-              onChange={e => setTeacherNotes(p => ({ ...p, [activeQNo]: e.target.value }))}
-              style={{
-                width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.55rem',
-                background: '#0f172a', border: '1px solid #334155', color: '#f8fafc',
-                fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* 3. Overall Feedback Textarea */}
-          <div style={{ background: '#1e293b', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#818cf8', marginBottom: '0.4rem' }}>
-              💬 Sınavın Geneli İçin Öğrenciye Karne Mesajı
+              {/* Question Feedback Note */}
+              <input
+                type="text"
+                placeholder={`Soru ${activeQNo} için öğretmen notu (Örn: Çözüm yöntemi doğru)...`}
+                value={currentNote}
+                onChange={e => setTeacherNotes(p => ({ ...p, [activeQNo]: e.target.value }))}
+                style={{
+                  width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.55rem',
+                  background: '#0f172a', border: '1px solid #334155', color: '#f8fafc',
+                  fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box'
+                }}
+              />
             </div>
-            <textarea
-              rows="3"
-              placeholder="Öğrencinin bu sınavdaki genel başarısı ve önerileriniz..."
-              value={overallFeedback}
-              onChange={e => setOverallFeedback(e.target.value)}
-              style={{
-                width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.55rem',
-                background: '#0f172a', border: '1px solid #334155', color: '#f8fafc',
-                fontSize: '0.8rem', outline: 'none', resize: 'none', boxSizing: 'border-box'
-              }}
-            />
+
+            {/* Card 2: Overall Feedback & Quick Presets */}
+            <div style={{ background: '#1e293b', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#818cf8', marginBottom: '0.4rem' }}>
+                💬 Sınavın Geneli İçin Öğrenciye Karne Mesajı
+              </div>
+
+              {/* Quick Feedback Pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.45rem' }}>
+                {QUICK_FEEDBACK_PRESETS.slice(0, 3).map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setOverallFeedback(preset)}
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.15)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      color: '#a5b4fc',
+                      fontSize: '0.68rem',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '50px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {preset.slice(0, 22)}...
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows="2"
+                placeholder="Öğrencinin bu sınavdaki genel performansı ve tavsiyeleriniz..."
+                value={overallFeedback}
+                onChange={e => setOverallFeedback(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.45rem 0.75rem', borderRadius: '0.55rem',
+                  background: '#0f172a', border: '1px solid #334155', color: '#f8fafc',
+                  fontSize: '0.78rem', outline: 'none', resize: 'none', boxSizing: 'border-box'
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -455,11 +562,17 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
         // Initialize question scores and notes
         const scores = {};
         const notes = {};
-        (submission.answers || []).forEach((ans, idx) => {
-          const qNo = ans.questionNo || (idx + 1);
-          scores[qNo] = ans.score !== undefined ? ans.score : (ans.isCorrect === true ? 10 : (ans.isCorrect === false ? 0 : 0));
-          notes[qNo] = ans.teacherNote || '';
-        });
+        const qCount = Math.max(1, resolvedQuestionsList.length || submission.answers?.length || 1);
+        for (let i = 1; i <= qCount; i++) {
+          const ans = (submission.answers || [])[i - 1];
+          if (ans) {
+            scores[i] = ans.score !== undefined ? Number(ans.score) : (ans.isCorrect === true ? 10 : 0);
+            notes[i] = ans.teacherNote || '';
+          } else {
+            scores[i] = 0;
+            notes[i] = '';
+          }
+        }
 
         setQuestionScores(scores);
         setTeacherNotes(notes);
@@ -477,8 +590,11 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
     setIsSaving(true);
 
     try {
-      const totalScore = Object.values(questionScores).reduce((sum, v) => sum + (Number(v) || 0), 0);
-      const totalQ = questions?.length || submission?.answers?.length || 1;
+      const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
+      let totalScore = 0;
+      for (let i = 1; i <= totalQ; i++) {
+        totalScore += Math.max(0, Math.min(10, Number(questionScores[i]) || 0));
+      }
       const maxPossible = totalQ * 10;
       const computedPercentage = maxPossible > 0 ? Math.min(100, Math.round((totalScore / maxPossible) * 100)) : 0;
 
@@ -678,18 +794,16 @@ export default function EvaluationManager() {
   const isAdmin = currentUser?.role === 'admin';
   const teacherId = currentUser?.id;
 
-  // 1. COMBINE & DEDUPLICATE SUBMISSIONS FROM EVALUATION CONTEXT & HOMEWORK CONTEXT
+  // 1. COMBINE & DEDUPLICATE SUBMISSIONS
   const combinedSubmissions = useMemo(() => {
     const map = new Map();
 
-    // From EvaluationContext
     (allSubmissions || []).forEach(sub => {
       if (sub && sub.id) {
         map.set(String(sub.id), sub);
       }
     });
 
-    // From HomeworkContext
     (homeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(sub => {
         const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
@@ -711,10 +825,10 @@ export default function EvaluationManager() {
     return Array.from(map.values());
   }, [allSubmissions, homeworks]);
 
-  // 2. ENRICH EACH SUBMISSION WITH REAL NAMES, TITLES, AND SUBJECTS
+  // 2. ENRICH EACH SUBMISSION
   const enrichedSubmissions = useMemo(() => {
     return combinedSubmissions.map(sub => {
-      // A) Student Name Resolver
+      // A) Student Name
       let studentName = sub.studentName;
       const sId = String(sub.studentId || sub.userId || sub.user_id || '');
       if (!studentName || studentName === 'Öğrenci' || !studentName.trim()) {
@@ -728,7 +842,7 @@ export default function EvaluationManager() {
         }
       }
 
-      // B) Test Title Resolver
+      // B) Test Title
       let targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.questionId || sub.id || '');
       let normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
 
@@ -767,30 +881,25 @@ export default function EvaluationManager() {
         else title = 'Ödev / Sınav';
       }
 
-      // C) Subject Resolver
+      // C) Subject
       let subject = detectSubject(title, sub.subject || matchedHw?.subject || matchedBankQ?.subject || matchedCurTest?.subjectName);
 
-      // D) Question Count Resolver
+      // D) Question Count
       let totalQ = sub.totalQuestions || matchedHw?.totalQuestions || matchedHw?.questionCount || matchedBankQ?.questionCount || (sub.answers?.length) || 1;
 
-      // E) Score Resolver (Normalize to 0-100%)
+      // E) Score (0-100%)
       let score = sub.score;
       if (score !== undefined && score !== null) {
         score = Number(score);
         if (score > 100) {
-          // If stored as raw points (e.g. 14 points out of 20)
           const maxPossible = totalQ * 10;
-          if (maxPossible > 0) {
-            score = Math.min(100, Math.round((score / maxPossible) * 100));
-          } else {
-            score = 100;
-          }
+          score = maxPossible > 0 ? Math.min(100, Math.round((score / maxPossible) * 100)) : 100;
         } else {
           score = Math.max(0, Math.min(100, Math.round(score)));
         }
       }
 
-      // F) Determine Pending Evaluation vs Completed
+      // F) Determine isPending
       const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
       let hasWrittenAnswers = false;
       if (Array.isArray(sub.answers)) {
@@ -877,11 +986,11 @@ export default function EvaluationManager() {
     });
   }, [activeTab, pendingList, completedList, scopedSubmissions, search, subjectFilter, studentFilter]);
 
-  const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel Deneme'];
+  const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel Deneme', 'Genel Testler'];
   const studentUsers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc', padding: '1.5rem', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc', padding: '1rem', fontFamily: "'Inter', sans-serif" }}>
       {/* If an active submission is opened, render the FULL QUIZ REVIEW CONTAINER */}
       {activeSubmission && (
         <FullQuizReviewContainer
@@ -897,50 +1006,50 @@ export default function EvaluationManager() {
       )}
 
       {/* Main Evaluations List Dashboard */}
-      <div style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         
         {/* Header Title & Summary Banner */}
         <div style={{
           background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          borderRadius: '1.5rem',
-          padding: '1.75rem 2rem',
+          borderRadius: '1.25rem',
+          padding: '1.25rem 1.5rem',
           border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1.25rem'
+          gap: '1rem'
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.9rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
-                <ClipboardCheck size={24} color="white" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.25rem' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}>
+                <ClipboardCheck size={22} color="white" />
               </div>
-              <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.02em' }}>
                 Öğrenci Sınav &amp; Ödev Değerlendirme Merkezi
               </h1>
             </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.88rem', fontWeight: 500 }}>
-              Öğrencilerin çözdüğü tüm testleri orijinal çözüm ekranında inceleyin, açık uçlu soruları puanlayıp notlandırın.
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', fontWeight: 500 }}>
+              Öğrencilerin çözdüğü tüm testleri orijinal sınav ekranında inceleyin, açık uçlu soruları puanlayın.
             </p>
           </div>
 
           {/* Quick Stat Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '1rem', padding: '0.75rem 1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1 }}>{pendingList.length}</div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fef3c7', textTransform: 'uppercase', marginTop: '0.25rem' }}>✍️ Not Bekleyen</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.85rem', padding: '0.55rem 1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1 }}>{pendingList.length}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#fef3c7', textTransform: 'uppercase', marginTop: '0.2rem' }}>✍️ Not Bekleyen</div>
             </div>
 
-            <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '1rem', padding: '0.75rem 1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399', lineHeight: 1 }}>{completedList.length}</div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d1fae5', textTransform: 'uppercase', marginTop: '0.25rem' }}>✅ Tamamlanan</div>
+            <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '0.85rem', padding: '0.55rem 1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#34d399', lineHeight: 1 }}>{completedList.length}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d1fae5', textTransform: 'uppercase', marginTop: '0.2rem' }}>✅ Tamamlanan</div>
             </div>
 
-            <div style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '1rem', padding: '0.75rem 1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#818cf8', lineHeight: 1 }}>{scopedSubmissions.length}</div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e0e7ff', textTransform: 'uppercase', marginTop: '0.25rem' }}>📊 Toplam Sınav</div>
+            <div style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '0.85rem', padding: '0.55rem 1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#818cf8', lineHeight: 1 }}>{scopedSubmissions.length}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#e0e7ff', textTransform: 'uppercase', marginTop: '0.2rem' }}>📊 Toplam Sınav</div>
             </div>
           </div>
         </div>
@@ -951,96 +1060,97 @@ export default function EvaluationManager() {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.75rem',
           background: '#1e293b',
-          padding: '0.85rem 1.25rem',
-          borderRadius: '1.25rem',
+          padding: '0.75rem 1rem',
+          borderRadius: '1.1rem',
           border: '1px solid #334155'
         }}>
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => setActiveTab('pending')}
               style={{
-                padding: '0.55rem 1.1rem',
-                borderRadius: '0.75rem',
+                padding: '0.5rem 0.95rem',
+                borderRadius: '0.7rem',
                 border: 'none',
                 background: activeTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.05)',
                 color: activeTab === 'pending' ? '#0f172a' : '#cbd5e1',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: activeTab === 'pending' ? '0 4px 14px rgba(245,158,11,0.3)' : 'none'
+                gap: '0.35rem',
+                boxShadow: activeTab === 'pending' ? '0 4px 12px rgba(245,158,11,0.3)' : 'none'
               }}
             >
-              <Edit3 size={15} /> Not Bekleyenler ({pendingList.length})
+              <Edit3 size={14} /> Not Bekleyenler ({pendingList.length})
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('all')}
               style={{
-                padding: '0.55rem 1.1rem',
-                borderRadius: '0.75rem',
+                padding: '0.5rem 0.95rem',
+                borderRadius: '0.7rem',
                 border: 'none',
                 background: activeTab === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.05)',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: activeTab === 'all' ? '0 4px 14px rgba(99,102,241,0.3)' : 'none'
+                gap: '0.35rem',
+                boxShadow: activeTab === 'all' ? '0 4px 12px rgba(99,102,241,0.3)' : 'none'
               }}
             >
-              <ClipboardList size={15} /> Tüm Sınavlar ({scopedSubmissions.length})
+              <ClipboardList size={14} /> Tüm Sınavlar ({scopedSubmissions.length})
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('completed')}
               style={{
-                padding: '0.55rem 1.1rem',
-                borderRadius: '0.75rem',
+                padding: '0.5rem 0.95rem',
+                borderRadius: '0.7rem',
                 border: 'none',
                 background: activeTab === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: activeTab === 'completed' ? '0 4px 14px rgba(16,185,129,0.3)' : 'none'
+                gap: '0.35rem',
+                boxShadow: activeTab === 'completed' ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
               }}
             >
-              <CheckCircle2 size={15} /> Tamamlananlar ({completedList.length})
+              <CheckCircle2 size={14} /> Tamamlananlar ({completedList.length})
             </button>
           </div>
 
           {/* Search and Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
+            <div style={{ position: 'relative', flex: '1 1 180px' }}>
+              <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
-                placeholder="Öğrenci veya sınav ara..."
+                placeholder="Öğrenci / sınav ara..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 style={{
-                  padding: '0.5rem 1rem 0.5rem 2.2rem',
-                  borderRadius: '0.75rem',
+                  width: '100%',
+                  padding: '0.45rem 0.85rem 0.45rem 2rem',
+                  borderRadius: '0.65rem',
                   background: '#0f172a',
                   border: '1px solid #334155',
                   color: 'white',
-                  fontSize: '0.82rem',
+                  fontSize: '0.8rem',
                   outline: 'none',
-                  minWidth: 200
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
@@ -1049,12 +1159,12 @@ export default function EvaluationManager() {
               value={subjectFilter}
               onChange={e => setSubjectFilter(e.target.value)}
               style={{
-                padding: '0.5rem 0.85rem',
-                borderRadius: '0.75rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '0.65rem',
                 background: '#0f172a',
                 border: '1px solid #334155',
                 color: 'white',
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 outline: 'none'
               }}
             >
@@ -1066,12 +1176,12 @@ export default function EvaluationManager() {
               value={studentFilter}
               onChange={e => setStudentFilter(e.target.value)}
               style={{
-                padding: '0.5rem 0.85rem',
-                borderRadius: '0.75rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '0.65rem',
                 background: '#0f172a',
                 border: '1px solid #334155',
                 color: 'white',
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 outline: 'none'
               }}
             >
@@ -1085,47 +1195,51 @@ export default function EvaluationManager() {
         {activeDisplayList.length === 0 ? (
           <div style={{
             background: '#1e293b',
-            borderRadius: '1.5rem',
-            padding: '3.5rem 2rem',
+            borderRadius: '1.25rem',
+            padding: '3rem 1.5rem',
             textAlign: 'center',
             border: '1px solid #334155',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '1rem'
+            gap: '0.75rem'
           }}>
-            <div style={{ fontSize: '3rem' }}>✨</div>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
+            <div style={{ fontSize: '2.5rem' }}>✨</div>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#f8fafc' }}>
               {activeTab === 'pending' ? 'Not Bekleyen Sınav Bulunmuyor' : 'Kayıtlı Sınav Bulunamadı'}
             </h3>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem', maxWidth: 420 }}>
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', maxWidth: 380 }}>
               {activeTab === 'pending'
-                ? 'Harika! Tüm öğrenci yazılı yanıtları ve açık uçlu sınavlar başarıyla değerlendirilmiş durumda.'
-                : 'Arama kriterlerinize uygun öğrenci sınav kaydı bulunamadı.'}
+                ? 'Harika! Tüm öğrenci yazılı yanıtları başarıyla değerlendirilmiş durumda.'
+                : 'Arama kriterlerinize uygun sınav kaydı bulunamadı.'}
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '1rem'
+          }}>
             {activeDisplayList.map((sub) => {
               const isPending = sub.isPending;
               const scoreVal = sub.score !== undefined && sub.score !== null ? sub.score : null;
               const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Tamamlandı';
               const totalQ = sub.totalQuestions || 1;
-              const subConf = subjectColors[sub.subject] || subjectColors['Genel'];
+              const subConf = subjectThemes[sub.subject] || subjectThemes['Genel Testler'];
 
               return (
                 <div
                   key={sub.id}
                   style={{
                     background: '#1e293b',
-                    border: isPending ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid #334155',
-                    borderRadius: '1.25rem',
-                    padding: '1.25rem',
-                    boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+                    border: isPending ? '1.5px solid rgba(245,158,11,0.6)' : '1px solid #334155',
+                    borderRadius: '1.1rem',
+                    padding: '1.1rem',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '1rem',
+                    gap: '0.85rem',
                     transition: 'all 0.2s ease',
                     position: 'relative',
                     overflow: 'hidden'
@@ -1137,29 +1251,30 @@ export default function EvaluationManager() {
                       top: 0,
                       left: 0,
                       right: 0,
-                      height: 4,
+                      height: 3.5,
                       background: 'linear-gradient(90deg, #f59e0b, #d97706)'
                     }} />
                   )}
 
                   <div>
                     {/* Student & Date Row */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <div style={{
-                          width: 38, height: 38, borderRadius: '50%',
+                          width: 36, height: 36, borderRadius: '50%',
                           background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'white', fontWeight: 900, fontSize: '0.9rem'
+                          color: 'white', fontWeight: 900, fontSize: '0.88rem',
+                          boxShadow: '0 2px 8px rgba(99,102,241,0.3)'
                         }}>
                           {sub.studentName?.charAt(0) || 'Ö'}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#f8fafc' }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#f8fafc' }}>
                             {sub.studentName || 'Öğrenci'}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <Clock3 size={12} /> {dateStr}
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Clock3 size={11} /> {dateStr}
                           </div>
                         </div>
                       </div>
@@ -1170,10 +1285,10 @@ export default function EvaluationManager() {
                           background: 'rgba(245,158,11,0.15)',
                           color: '#fbbf24',
                           border: '1px solid rgba(245,158,11,0.4)',
-                          padding: '0.2rem 0.6rem',
+                          padding: '0.18rem 0.55rem',
                           borderRadius: '50px',
                           fontWeight: 900,
-                          fontSize: '0.7rem'
+                          fontSize: '0.68rem'
                         }}>
                           ✍️ Not Bekliyor
                         </span>
@@ -1182,10 +1297,10 @@ export default function EvaluationManager() {
                           background: 'rgba(16,185,129,0.15)',
                           color: '#34d399',
                           border: '1px solid rgba(16,185,129,0.4)',
-                          padding: '0.2rem 0.6rem',
+                          padding: '0.18rem 0.55rem',
                           borderRadius: '50px',
                           fontWeight: 900,
-                          fontSize: '0.7rem'
+                          fontSize: '0.68rem'
                         }}>
                           ✓ Tamamlandı
                         </span>
@@ -1193,26 +1308,26 @@ export default function EvaluationManager() {
                     </div>
 
                     {/* Exam Title */}
-                    <div style={{ fontWeight: 800, fontSize: '1rem', color: '#f1f5f9', lineHeight: 1.4, marginBottom: '0.5rem' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f1f5f9', lineHeight: 1.35, marginBottom: '0.45rem' }}>
                       {sub.testTitle || 'Ödev / Sınav'}
                     </div>
 
                     {/* Info Badges */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                      <span style={{ background: '#0f172a', color: '#94a3b8', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.7rem', fontWeight: 700, border: '1px solid #334155' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      <span style={{ background: '#0f172a', color: '#94a3b8', padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 700, border: '1px solid #334155' }}>
                         📝 {totalQ} Soru
                       </span>
-                      <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.7rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
-                        📚 {sub.subject}
+                      <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
+                        {subConf.icon} {sub.subject}
                       </span>
                     </div>
                   </div>
 
                   {/* Bottom Action & Score Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #334155', paddingTop: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #334155', paddingTop: '0.75rem' }}>
                     <div>
                       {scoreVal !== null && (
-                        <div style={{ fontSize: '1.05rem', fontWeight: 900, color: scoreVal >= 70 ? '#34d399' : (scoreVal >= 50 ? '#fbbf24' : '#f87171') }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: scoreVal >= 70 ? '#34d399' : (scoreVal >= 50 ? '#fbbf24' : '#f87171') }}>
                           %{scoreVal}
                         </div>
                       )}
@@ -1222,21 +1337,21 @@ export default function EvaluationManager() {
                       type="button"
                       onClick={() => setActiveSubmission(sub)}
                       style={{
-                        padding: '0.55rem 1.15rem',
-                        borderRadius: '0.75rem',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.7rem',
                         border: 'none',
                         background: isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
                         color: isPending ? '#0f172a' : 'white',
                         fontWeight: 900,
-                        fontSize: '0.82rem',
+                        fontSize: '0.8rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.4rem',
-                        boxShadow: isPending ? '0 4px 14px rgba(245,158,11,0.35)' : '0 4px 14px rgba(99,102,241,0.3)'
+                        gap: '0.35rem',
+                        boxShadow: isPending ? '0 4px 12px rgba(245,158,11,0.35)' : '0 4px 12px rgba(99,102,241,0.3)'
                       }}
                     >
-                      {isPending ? <Edit3 size={15} /> : <Eye size={15} />}
+                      {isPending ? <Edit3 size={14} /> : <Eye size={14} />}
                       <span>{isPending ? 'Değerlendir & Not Ver' : 'Sınavı & Çözümü İncele'}</span>
                     </button>
                   </div>
