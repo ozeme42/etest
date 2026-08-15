@@ -613,57 +613,115 @@ export default function StudentDashboard() {
           const alreadyExists = baseSubs.some(s => (s.hwId === hw.id || s.testId === hw.id || s.id === hw.id));
           if (!alreadyExists) {
             hwSubs.push({
+              id: sub.id || `hw_sub_${hw.id}_${sub.studentId}`,
+              hwId: hw.id,
+              testId: hw.id,
               totalQuestions: hw.totalQuestions || sub.totalQuestions || hw.questionCount || 0,
               correctCount: sub.correctCount || (sub.score ? Math.round((sub.score/100)*(hw.totalQuestions||sub.totalQuestions||hw.questionCount||0)) : 0),
               wrongCount: sub.wrongCount || 0,
-              blankCount: sub.blankCount || 0
+              blankCount: sub.blankCount || 0,
+              score: sub.score,
+              status: sub.status || 'completed',
+              submittedAt: sub.submittedAt || sub.completedAt
             });
           }
         }
       });
     });
 
-    const allCombined = [...baseSubs, ...hwSubs];
+    const bookSubs = [];
+    (bookTests || []).forEach(bt => {
+      (bt.submissions || []).forEach(sub => {
+        if (selectedStudent && String(sub.studentId) === String(selectedStudent.id)) {
+          const alreadyExists = baseSubs.some(s => s.testId === bt.id || s.id === bt.id);
+          if (!alreadyExists) {
+            bookSubs.push({
+              id: sub.id || `bt_sub_${bt.id}_${sub.studentId}`,
+              testId: bt.id,
+              totalQuestions: bt.questionCount || sub.totalQuestions || 0,
+              correctCount: sub.correctCount || 0,
+              wrongCount: sub.wrongCount || 0,
+              blankCount: sub.blankCount || 0,
+              score: sub.score,
+              status: sub.status || 'completed',
+              submittedAt: sub.completedAt || sub.submittedAt
+            });
+          }
+        }
+      });
+    });
+
+    const allCombined = [...baseSubs, ...hwSubs, ...bookSubs];
+    const isEval = (sub) => Boolean(sub?.isEvaluatedByTeacher || sub?.status === 'evaluated' || sub?.status === 'graded' || sub?.teacherFeedback || sub?.teacherNote);
+
     const deduplicatedMap = new Map();
     allCombined.forEach(s => {
-      const uniqueKey = s.hwId || s.testId || s.id;
-      const existing = deduplicatedMap.get(uniqueKey);
-      if (!existing || new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
-        deduplicatedMap.set(uniqueKey, s);
+      const key = s.hwId || s.testId || s.id;
+      const existing = deduplicatedMap.get(key);
+      if (!existing || (isEval(s) && !isEval(existing)) || (isEval(s) === isEval(existing) && new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0))) {
+        deduplicatedMap.set(key, s);
       }
     });
 
     const unifiedSubmissions = Array.from(deduplicatedMap.values()).map(s => {
-      let correctCount = s.correctCount !== undefined ? s.correctCount : 0;
-      let wrongCount = s.wrongCount !== undefined ? s.wrongCount : 0;
-      let blankCount = s.blankCount !== undefined ? s.blankCount : 0;
-      if (s.answers && s.answers.length > 0) {
-        correctCount = 0; wrongCount = 0; blankCount = 0;
+      const isEvaluated = isEval(s);
+      const isOpenEnded = Boolean(
+        s.isOpenEnded ||
+        s.questionType === 'acik_uclu' ||
+        s.type === 'acik_uclu' ||
+        s.contentType === 'acik_uclu' ||
+        (Array.isArray(s.answers) && s.answers.some(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+      );
+      const isPendingEval = isOpenEnded && !isEvaluated;
+
+      let correct = s.correctCount ?? 0;
+      let wrong = s.wrongCount ?? 0;
+      let blank = s.blankCount ?? 0;
+
+      if (!isOpenEnded && s.answers?.length > 0) {
+        correct = 0; wrong = 0; blank = 0;
         s.answers.forEach(ans => {
-          if (ans.isCorrect === true) correctCount++;
+          if (ans.isCorrect === true) correct++;
           else if (ans.isCorrect === false) {
             const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
             if (isB) blankCount++; else wrongCount++;
           }
         });
       }
-      return { ...s, correctCount, wrongCount, blankCount };
+
+      const ansCount = Array.isArray(s.answers) ? s.answers.length : 0;
+      const sumCount = correct + wrong + blank;
+      const rawTotal = s.totalQuestions || 0;
+      const total = Math.max(rawTotal, ansCount, sumCount, 1);
+
+      let score = 0;
+      if (isEvaluated && s.score !== undefined && s.score !== null) {
+        score = Math.min(100, Math.max(0, s.score));
+      } else if (!isPendingEval && total > 0) {
+        score = Math.min(100, Math.round((correct / total) * 100));
+      } else if (s.score !== undefined && s.score !== null && !isPendingEval) {
+        score = Math.min(100, Math.max(0, s.score));
+      }
+
+      return { ...s, correctCount: correct, wrongCount: wrong, blankCount: blank, totalQuestions: total, computedScore: score };
     });
 
-    let globalCorrect = 0, globalTotal = 0;
+    let sumScore = 0;
+    let globalCorrect = 0;
+    let globalTotal = 0;
     unifiedSubmissions.forEach(s => {
-      const correct = s.correctCount || 0;
-      const qCount = s.totalQuestions || (correct + (s.wrongCount || 0) + (s.blankCount || 0));
-      if (qCount > 0) {
-        globalCorrect += correct;
-        globalTotal += qCount;
-      }
+      sumScore += s.computedScore || 0;
+      globalCorrect += s.correctCount || 0;
+      globalTotal += s.totalQuestions || 0;
     });
-    const successRate = globalTotal > 0 ? (globalCorrect / globalTotal) * 100 : 0;
+
+    const successRate = unifiedSubmissions.length > 0
+      ? Math.round(sumScore / unifiedSubmissions.length)
+      : (globalTotal > 0 ? Math.round((globalCorrect / globalTotal) * 100) : 0);
 
     const overdueCount = tests.filter(t => t.status === 'Atandı' && isPast(parseSafeDate(t.dueDate)) && !isToday(parseSafeDate(t.dueDate))).length;
-    return { testCount: tests.length, pendingCount: (tests.length - completedTests.length), successRate, overdueCount, completedRate };
-  }, [tests, assignments, submissions, selectedStudent]);
+    return { testCount: tests.length, pendingCount: (tests.length - completedTests.length), successRate, overdueCount, completedRate, totalSolvedTests: unifiedSubmissions.length, totalQ: globalTotal, totalCorrect: globalCorrect };
+  }, [tests, assignments, submissions, homeworks, bookTests, selectedStudent]);
 
   const studentGoals = useMemo(() => {
     if (!selectedStudent) return [];
