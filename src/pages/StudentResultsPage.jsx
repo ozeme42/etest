@@ -171,143 +171,83 @@ export default function StudentResultsPage() {
     return map;
   }, [curData]);
 
-  /* ── Build studentSubmissions ─── */
+  /* ── Build studentSubmissions (Yalnızca aktif tanımlı ödevler) ─── */
   const studentSubmissions = useMemo(() => {
     if (!selectedStudent) return [];
 
-    const baseSubs = (submissions || []).filter(s => {
-      if (String(s.studentId) !== String(selectedStudent.id)) return false;
-      const targetId = String(s.homeworkId || s.hwId || s.testId || s.id || '');
-      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-      const isBookSub = Boolean(s.bookTestId || s.bookId || (bookTests || []).some(bt => String(bt.id) === targetId || String(bt.id) === normTargetId));
-      const isCurTest = Boolean(allCurTestsMap.has(s.testId) || allCurTestsMap.has(s.hwId));
-      
-      if (!isBookSub && !isCurTest) {
-        const hwExists = (homeworks || []).some(h => 
-          String(h.id) === targetId || 
-          String(h.id) === normTargetId || 
-          String(h.id) === String(s.hwId) || 
-          String(h.id) === String(s.testId) ||
-          (h.submissions && h.submissions.some(sub => String(sub.id) === String(s.id)))
-        );
-        if (!hwExists) return false;
-      }
-      return true;
+    const activeHws = (homeworks || []).filter(hw => {
+      if (!hw || !hw.id) return false;
+      return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
     });
-
-    const hwSubs = [];
-    (homeworks || []).forEach(hw => {
-      (hw.submissions || []).forEach(sub => {
-        if (String(sub.studentId) !== String(selectedStudent.id)) return;
-        const exists = baseSubs.some(s => s.hwId === hw.id || s.testId === hw.id || s.id === hw.id);
-        if (!exists) {
-          hwSubs.push({
-            id: `hw_sub_${hw.id}_${selectedStudent.id}`,
-            hwId: hw.id, testId: hw.id,
-            testTitle: hw.title, studentId: selectedStudent.id,
-            score: sub.score,
-            submittedAt: sub.completedAt || sub.submittedAt || new Date().toISOString(),
-            isHomework: true, type: hw.type || 'homework',
-            totalQuestions: hw.totalQuestions || sub.totalQuestions || hw.questionCount || 0,
-            correctCount: sub.correctCount || (sub.score ? Math.round((sub.score / 100) * (hw.totalQuestions || sub.totalQuestions || hw.questionCount || 0)) : 0),
-            wrongCount: sub.wrongCount || 0, blankCount: sub.blankCount || 0,
-            status: sub.status || 'completed',
-            subjectStats: sub.subjectStats, studentAnswers: sub.studentAnswers
-          });
-        }
-      });
-    });
-
-    // Book test submissions
-    const bookSubs = [];
-    (bookTests || []).forEach(bt => {
-      (bt.submissions || []).forEach(sub => {
-        if (String(sub.studentId) !== String(selectedStudent.id)) return;
-        const parentBook = (books || []).find(b => b.id === bt.bookId);
-        bookSubs.push({
-          id: `book_sub_${bt.id}_${selectedStudent.id}`,
-          hwId: bt.id, testId: bt.id,
-          testTitle: bt.name || `${parentBook?.title || 'Kitap'} — Test`,
-          studentId: selectedStudent.id,
-          score: sub.score,
-          submittedAt: sub.completedAt || sub.submittedAt || new Date().toISOString(),
-          bookTestId: bt.id, type: 'book',
-          totalQuestions: bt.questionCount || sub.totalQuestions || 0,
-          correctCount: sub.correctCount || 0,
-          wrongCount: sub.wrongCount || 0, blankCount: sub.blankCount || 0,
-          status: sub.status || 'completed',
-          bookTitle: parentBook?.title,
-          publisher: parentBook?.publisher,
-        });
-      });
-    });
-
-    const allCombined = [...baseSubs, ...hwSubs, ...bookSubs];
 
     const isEval = (sub) => Boolean(sub?.isEvaluatedByTeacher || sub?.status === 'evaluated' || sub?.status === 'graded' || sub?.teacherFeedback || sub?.teacherNote);
+    const results = [];
 
-    const deduplicatedMap = new Map();
-    allCombined.forEach(s => {
-      const key = s.hwId || s.testId || s.id;
-      const existing = deduplicatedMap.get(key);
-      if (!existing || (isEval(s) && !isEval(existing)) || (isEval(s) === isEval(existing) && new Date(s.submittedAt || 0) > new Date(existing.submittedAt || 0))) {
-        deduplicatedMap.set(key, s);
+    activeHws.forEach(hw => {
+      const subInHw = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id));
+      const subInGlobal = (submissions || []).find(s => 
+        String(s.studentId) === String(selectedStudent.id) &&
+        (String(s.hwId) === String(hw.id) || String(s.testId) === String(hw.id) || String(s.id) === String(hw.id) || String(s.id) === String(subInHw?.id) || String(s.id) === `hw_sub_${hw.id}_${selectedStudent.id}`)
+      );
+
+      // En güncel ve değerlendirilmiş olanı seç
+      let sub = subInGlobal;
+      if (!sub || (subInHw && isEval(subInHw) && !isEval(subInGlobal))) {
+        sub = subInHw || subInGlobal;
       }
-    });
+      if (!sub) return; // Öğrenci henüz bu aktif ödevi çözmemiş
 
-    return Array.from(deduplicatedMap.values()).map(s => {
-      const isEvaluated = isEval(s);
+      const isEvaluated = isEval(sub);
       const isOpenEnded = Boolean(
-        s.isOpenEnded ||
-        s.questionType === 'acik_uclu' ||
-        s.type === 'acik_uclu' ||
-        s.contentType === 'acik_uclu' ||
-        (Array.isArray(s.answers) && s.answers.some(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
+        hw.isOpenEnded ||
+        hw.questionType === 'acik_uclu' ||
+        hw.type === 'acik_uclu' ||
+        hw.contentType === 'acik_uclu' ||
+        sub.isOpenEnded ||
+        sub.questionType === 'acik_uclu' ||
+        (Array.isArray(sub.answers) && sub.answers.some(a => a.userAnswerText && (a.userAnswer === null || a.userAnswer === undefined)))
       );
       const isPendingEval = isOpenEnded && !isEvaluated;
 
-      let correct = s.correctCount ?? 0;
-      let wrong = s.wrongCount ?? 0;
-      let blank = s.blankCount ?? 0;
+      let correct = sub.correctCount ?? 0;
+      let wrong = sub.wrongCount ?? 0;
+      let blank = sub.blankCount ?? 0;
 
-      if (!isOpenEnded && s.answers?.length > 0) {
+      if (!isOpenEnded && Array.isArray(sub.answers) && sub.answers.length > 0) {
         correct = 0; wrong = 0; blank = 0;
-        s.answers.forEach(ans => {
+        sub.answers.forEach(ans => {
           if (ans.isCorrect === true) correct++;
           else if (ans.isCorrect === false) {
-            if (!ans.userAnswer && ans.userAnswer !== 0) blank++; else wrong++;
+            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+            if (isB) blank++; else wrong++;
           }
         });
       }
 
-      const matchedHw = (homeworks || []).find(h => h.id === s.hwId || h.id === s.testId || (Array.isArray(h.questionIds) && h.questionIds.includes(s.testId)));
-      const matchedCur = allCurTestsMap.get(s.testId) || allCurTestsMap.get(s.hwId);
-
-      let title = s.testTitle;
-      const isGeneric = !title || ['test sınavı','test sinavi','test'].includes((title||'').trim().toLowerCase());
-      if (matchedHw?.title) title = matchedHw.title;
-      else if (matchedCur?.title) title = matchedCur.title;
-      else if (isGeneric) title = matchedHw?.subject ? `${matchedHw.subject} Ödevi` : s.type === 'physicalExam' ? 'Fiziki Deneme' : 'Ödev Sınavı';
-
-      const subjKey = getSubjectKey({ testTitle: title, subjectKey: matchedHw?.subject || matchedCur?.subject || s.subjectKey || '' });
-      const typeKey = getTypeKey(s);
-      const ansCount = Array.isArray(s.answers) ? s.answers.length : 0;
+      const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank;
-      const rawTotal = s.totalQuestions || matchedHw?.totalQuestions || 0;
+      const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || 0;
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
-      
+
       let score = 0;
-      if (isEvaluated && s.score !== undefined && s.score !== null) {
-        score = Math.min(100, Math.max(0, s.score));
+      if (isEvaluated && sub.score !== undefined && sub.score !== null) {
+        score = Math.min(100, Math.max(0, sub.score));
       } else if (!isPendingEval && total > 0) {
         score = Math.min(100, Math.round((correct / total) * 100));
-      } else if (s.score !== undefined && s.score !== null && !isPendingEval) {
-        score = Math.min(100, Math.max(0, s.score));
+      } else if (sub.score !== undefined && sub.score !== null && !isPendingEval) {
+        score = Math.min(100, Math.max(0, sub.score));
       }
 
-      return {
-        ...s,
-        testTitle: title,
+      const isPhysical = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical;
+      const typeKey = isPhysical ? 'physicalExam' : 'homework';
+      const subjKey = getSubjectKey({ testTitle: hw.title, subjectKey: hw.subject || sub.subjectKey || '' });
+
+      results.push({
+        ...sub,
+        id: sub.id || `hw_sub_${hw.id}_${selectedStudent.id}`,
+        hwId: hw.id,
+        testId: hw.id,
+        testTitle: hw.title,
         subjectKey: subjKey,
         typeKey,
         isEvaluated,
@@ -317,10 +257,13 @@ export default function StudentResultsPage() {
         wrongCount: wrong,
         blankCount: blank,
         totalQuestions: total,
-        computedScore: score
-      };
-    }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [submissions, homeworks, bookTests, books, allCurTestsMap, selectedStudent]);
+        computedScore: score,
+        submittedAt: sub.submittedAt || sub.completedAt || hw.createdAt || new Date().toISOString()
+      });
+    });
+
+    return results.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  }, [homeworks, submissions, selectedStudent, curData]);
 
   /* ── Overall Stats ─── */
   const overallStats = useMemo(() => {

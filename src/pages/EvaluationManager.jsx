@@ -1069,53 +1069,63 @@ export default function EvaluationManager() {
   const isAdmin = currentUser?.role === 'admin';
   const teacherId = currentUser?.id;
 
-  // 1. COMBINE & DEDUPLICATE SUBMISSIONS
+  // 1. COMBINE & DEDUPLICATE SUBMISSIONS (Yalnızca aktif tanımlı ödevler)
   const combinedSubmissions = useMemo(() => {
+    const activeHws = (homeworks || []).filter(hw => hw && hw.id);
     const map = new Map();
 
-    (allSubmissions || []).forEach(sub => {
-      if (!sub || !sub.id) return;
-      const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.id || '');
-      const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
-      
-      const isBookSub = Boolean(sub.bookTestId || sub.bookId || (bookTests || []).some(bt => String(bt.id) === targetId || String(bt.id) === normTargetId));
-      const isCurTest = Boolean((curriculumData?.tests || []).some(t => String(t.id) === targetId || String(t.id) === normTargetId));
-
-      // Eğer kitap veya müfredat testi değilse, bu bir öğretmen ödevidir. Aktif ödevlerde yoksa listeleme!
-      if (!isBookSub && !isCurTest) {
-        const hwExists = (homeworks || []).some(h =>
-          String(h.id) === targetId ||
-          String(h.id) === normTargetId ||
-          String(h.id) === String(sub.hwId) ||
-          String(h.id) === String(sub.homeworkId) ||
-          (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
-        );
-        if (!hwExists) return; // Silinmiş ödev
-      }
-
-      map.set(String(sub.id), sub);
-    });
-
-    (homeworks || []).forEach(hw => {
+    activeHws.forEach(hw => {
+      // 1. Submissions directly in hw.submissions
       (hw.submissions || []).forEach(sub => {
+        if (!sub || !sub.studentId) return;
         const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
-        if (!map.has(subKey)) {
-          map.set(subKey, {
-            ...sub,
-            id: subKey,
-            homeworkId: hw.id,
-            testId: hw.id,
-            testTitle: hw.title,
-            subject: hw.subject,
-            totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
-            submittedAt: sub.completedAt || sub.submittedAt || new Date().toISOString()
-          });
+        map.set(subKey, {
+          ...sub,
+          id: subKey,
+          homeworkId: hw.id,
+          hwId: hw.id,
+          testId: hw.id,
+          testTitle: hw.title,
+          subject: hw.subject,
+          totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
+          submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
+        });
+      });
+
+      // 2. Global submissions in allSubmissions matching this active homework
+      (allSubmissions || []).forEach(sub => {
+        if (!sub || !sub.studentId) return;
+        const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.id || '');
+        const normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+        
+        const matchesHw = String(hw.id) === targetId ||
+          String(hw.id) === normTargetId ||
+          String(hw.id) === String(sub.hwId) ||
+          String(hw.id) === String(sub.homeworkId) ||
+          (hw.submissions && hw.submissions.some(s => String(s.id) === String(sub.id)));
+
+        if (matchesHw) {
+          const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
+          const existing = map.get(subKey);
+          if (!existing || (sub.isEvaluatedByTeacher && !existing.isEvaluatedByTeacher) || new Date(sub.submittedAt || 0) > new Date(existing.submittedAt || 0)) {
+            map.set(subKey, {
+              ...sub,
+              id: subKey,
+              homeworkId: hw.id,
+              hwId: hw.id,
+              testId: hw.id,
+              testTitle: hw.title,
+              subject: hw.subject,
+              totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
+              submittedAt: sub.completedAt || sub.submittedAt || hw.createdAt || new Date().toISOString()
+            });
+          }
         }
       });
     });
 
     return Array.from(map.values());
-  }, [allSubmissions, homeworks, bookTests, curriculumData]);
+  }, [allSubmissions, homeworks]);
 
   // 2. ENRICH EACH SUBMISSION
   const enrichedSubmissions = useMemo(() => {
