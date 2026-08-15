@@ -28,7 +28,7 @@ export default function ModularQuizPage() {
   const studentId = searchParams.get('studentId') || currentUser?.id;
   const navigate = useNavigate();
 
-  const { homeworks, isLoading: hwLoading } = useHomework();
+  const { homeworks, updateHomeworkSubmission, isLoading: hwLoading } = useHomework();
   const { data: curriculumData, isLoading: currLoading } = useCurriculum();
   const { submissions, addSubmission, updateSubmission, isSyncing } = useEvaluation();
   const { questions: allBankQuestions, isLoading: qbLoading } = useQuestionBank();
@@ -460,6 +460,7 @@ export default function ModularQuizPage() {
       const textVal = ans.userAnswerText;
       const qNo = ans.questionNo || (idx + 1);
 
+      let isCorrect = null;
       // Her zaman kullanıcı cevabını checkIsAnswerCorrect ile değerlendir
       if (userAns !== null && userAns !== undefined && userAns !== '') {
         isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
@@ -535,22 +536,36 @@ export default function ModularQuizPage() {
       submittedAt: new Date().toISOString()
     };
 
-    if (draftSubmission) {
-      updateSubmission(draftSubmission.id, submissionData);
-    } else {
-      addSubmission(submissionData);
-    }
+    try {
+      if (draftSubmission) {
+        updateSubmission(draftSubmission.id, submissionData);
+      } else {
+        addSubmission(submissionData);
+      }
 
-    setSubmissionResult({
-      submissionId: newSubId,
-      isPending: isAcikUclu,
-      correctCount,
-      wrongCount,
-      blankCount,
-      pendingCount,
-      totalQuestions: totalQ,
-      score
-    });
+      if (submissionData.hwId || submissionData.testId) {
+        const hId = submissionData.hwId || submissionData.testId;
+        try {
+          if (updateHomeworkSubmission) {
+            updateHomeworkSubmission(hId, submissionData.id, submissionData);
+          }
+        } catch (e) {}
+      }
+
+      setSubmissionResult({
+        submissionId: newSubId,
+        isPending: isAcikUclu,
+        correctCount,
+        wrongCount,
+        blankCount,
+        pendingCount,
+        totalQuestions: totalQ,
+        score
+      });
+    } catch (err) {
+      console.error('Error saving submission:', err);
+      isSubmittingRef.current = false;
+    }
   };
 
   const handleAutoSave = (formattedAnswers) => {
