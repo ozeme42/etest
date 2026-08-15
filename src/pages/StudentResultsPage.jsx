@@ -20,6 +20,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
+import { isHomeworkForStudent } from '../utils/testResolver';
 
 /* ── Subject Config ────────────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
