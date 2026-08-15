@@ -89,7 +89,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
   // 'focused_oe' (Sadece Puanlanacak Açık Uçlular) vs 'full_exam' (Tüm Sınavı İncele)
   const [viewTab, setViewTab] = useState('focused_oe');
-  const [showTopMedia, setShowTopMedia] = useState(false);
+  const [showTopMedia, setShowTopMedia] = useState(true); // Doküman açık gelsin (tek olarak)
 
   // Local Grading States
   const [questionScores, setQuestionScores] = useState({});
@@ -181,7 +181,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
           for (let qIdx = 0; qIdx < secCount; qIdx++) {
             runningQIndex++;
             const existingQ = secResolvedQs[qIdx] || {};
-            const qImg = secImages[qIdx] || secImages[0] || existingQ.imageUrl || null;
+            const qImg = secImages[qIdx] || (secImages.length === 1 ? secImages[0] : null) || existingQ.imageUrl || null;
 
             generatedQuestions.push({
               ...existingQ,
@@ -233,7 +233,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         for (let i = 0; i < exactCount; i++) {
           const existingQ = baseResolvedQs[i] || baseResolvedQs[0] || {};
           const ans = ansList[i] || {};
-          const qImg = baseImages[i] || baseImages[0] || existingQ.imageUrl || resolved?.imageUrl || null;
+          const qImg = baseImages[i] || (baseImages.length === 1 ? baseImages[0] : null) || existingQ.imageUrl || (exactCount === 1 ? resolved?.imageUrl : null) || null;
 
           generatedQuestions.push({
             ...existingQ,
@@ -258,7 +258,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
       const finalTestObj = {
         ...(resolved || {}),
         id: targetId,
-        title: submission.testTitle || resolved?.title || resolved?.name || 'Sınav İncelemesi',
+        title: submission.testTitle || resolved?.title || resolved?.name || 'Sınav İnceleesi',
         contentType: submission.contentType || resolved?.contentType || (pdfPayload ? 'pdf' : (htmlPayload ? 'html' : 'standard')),
         sourceFormat: submission.sourceFormat || resolved?.sourceFormat || 'standard',
         contentPayload,
@@ -299,6 +299,15 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     return () => { isMounted = false; };
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
+  // Global Media available for whole test (PDF or HTML)
+  const globalMedia = useMemo(() => {
+    const hasPdf = Boolean(test?.pdfPayload || test?.pdfUrl || (test?.sections && test.sections.some(s => s.bankQ?.pdfPayload || s.contentPayload?.startsWith('data:application/pdf'))));
+    const hasHtml = Boolean(test?.htmlPayload || (test?.sections && test.sections.some(s => s.bankQ?.htmlPayload || s.contentPayload?.includes('<html'))));
+    const pdfSrc = test?.pdfPayload || test?.pdfUrl || (test?.sections?.find(s => s.bankQ?.pdfPayload || s.contentPayload?.startsWith('data:application/pdf'))?.contentPayload);
+    const htmlSrc = test?.htmlPayload || (test?.sections?.find(s => s.bankQ?.htmlPayload || s.contentPayload?.includes('<html'))?.contentPayload);
+    return { hasPdf, hasHtml, pdfSrc, htmlSrc };
+  }, [test]);
+
   // Separate Open-Ended (Manual Teacher Grade) vs Multiple-Choice (Auto Graded)
   const categorizedQuestions = useMemo(() => {
     const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
@@ -316,8 +325,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         answer: ans,
         isOE,
         imageUrl: qObj.imageUrl || ans.imageUrl || null,
-        pdfPayload: qObj.pdfPayload || test?.pdfPayload || null,
-        htmlPayload: qObj.htmlPayload || test?.htmlPayload || null,
         title: qObj.title || `Soru ${i}`,
         sectionTitle: qObj.sectionTitle || test?.title || null
       };
@@ -328,15 +335,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
     return { oeList, mcList, totalQ };
   }, [questions, submission, test]);
-
-  // Global Media available for whole test
-  const globalMedia = useMemo(() => {
-    const hasPdf = Boolean(test?.pdfPayload || test?.pdfUrl || (test?.sections && test.sections.some(s => s.bankQ?.pdfPayload || s.contentPayload?.startsWith('data:application/pdf'))));
-    const hasHtml = Boolean(test?.htmlPayload || (test?.sections && test.sections.some(s => s.bankQ?.htmlPayload || s.contentPayload?.includes('<html'))));
-    const pdfSrc = test?.pdfPayload || test?.pdfUrl || (test?.sections?.find(s => s.bankQ?.pdfPayload || s.contentPayload?.startsWith('data:application/pdf'))?.contentPayload);
-    const htmlSrc = test?.htmlPayload || (test?.sections?.find(s => s.bankQ?.htmlPayload || s.contentPayload?.includes('<html'))?.contentPayload);
-    return { hasPdf, hasHtml, pdfSrc, htmlSrc };
-  }, [test]);
 
   // If there are NO open ended questions, default viewTab to 'full_exam'
   useEffect(() => {
@@ -604,34 +602,34 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         {viewTab === 'focused_oe' ? (
           <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.25rem 1rem 5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
-            {/* Optional Global PDF/HTML Media Drawer Toggle */}
+            {/* SINGLE DEDICATED PDF / HTML DOCUMENT VIEWER AT THE TOP (TEK DOKÜMAN EKRANI) */}
             {(globalMedia.hasPdf || globalMedia.hasHtml) && (
-              <div style={{ background: '#131c2e', border: '1px solid #1e293b', borderRadius: '1rem', overflow: 'hidden' }}>
+              <div style={{ background: '#131c2e', border: '1.5px solid #334155', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
                 <div
                   onClick={() => setShowTopMedia(p => !p)}
                   style={{
                     padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    cursor: 'pointer', background: 'rgba(255,255,255,0.02)'
+                    cursor: 'pointer', background: 'rgba(255,255,255,0.03)', borderBottom: showTopMedia ? '1px solid #1e293b' : 'none'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '0.85rem', color: '#38bdf8' }}>
-                    <BookOpen size={16} />
-                    <span>📄 Sınavın Orijinal PDF / HTML Dokümanını Aç</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, fontSize: '0.88rem', color: globalMedia.hasPdf ? '#f43f5e' : '#10b981' }}>
+                    {globalMedia.hasPdf ? <FileText size={18} /> : <Globe size={18} />}
+                    <span>📄 {globalMedia.hasPdf ? 'Sınav PDF Dokümanı (Tüm Sorular)' : 'Sınav HTML / Web Dokümanı (Tüm Sorular)'}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#94a3b8', fontSize: '0.75rem' }}>
-                    <span>{showTopMedia ? 'Gizle' : 'Dokümanı Görüntüle'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>
+                    <span>{showTopMedia ? 'Dokümanı Gizle' : 'Dokümanı Görüntüle'}</span>
                     {showTopMedia ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </div>
                 </div>
 
                 {showTopMedia && (
-                  <div style={{ padding: '0.75rem 1rem 1rem', borderTop: '1px solid #1e293b', background: '#090d16' }}>
+                  <div style={{ background: '#090d16', padding: '0.5rem' }}>
                     {globalMedia.pdfSrc ? (
-                      <div style={{ height: '440px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #334155' }}>
+                      <div style={{ height: '460px', borderRadius: '0.65rem', overflow: 'hidden', border: '1px solid #1e293b' }}>
                         <PdfViewerWithControls payload={globalMedia.pdfSrc} title="Sınav PDF Dokümanı" height="100%" />
                       </div>
                     ) : globalMedia.htmlSrc ? (
-                      <div style={{ height: '400px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #334155' }}>
+                      <div style={{ height: '420px', borderRadius: '0.65rem', overflow: 'hidden', border: '1px solid #1e293b' }}>
                         <HtmlViewerWithControls payload={globalMedia.htmlSrc} title="Sınav HTML Dokümanı" height="100%" />
                       </div>
                     ) : null}
@@ -754,35 +752,11 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                       </div>
                     </div>
 
-                    {/* 1. PDF Dokümanı (Varsa) */}
-                    {oeItem.pdfPayload && (
-                      <div style={{ borderRadius: '0.85rem', overflow: 'hidden', border: '1px solid #334155', background: '#090d16' }}>
-                        <div style={{ padding: '0.4rem 0.85rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 800, color: '#f43f5e' }}>
-                          <FileText size={14} /> 📕 Soru PDF Dokümanı:
-                        </div>
-                        <div style={{ height: '380px' }}>
-                          <PdfViewerWithControls payload={oeItem.pdfPayload} title={`Soru ${qNo} PDF Dokümanı`} height="100%" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 2. HTML Web Dokümanı (Varsa) */}
-                    {!oeItem.pdfPayload && oeItem.htmlPayload && (
-                      <div style={{ borderRadius: '0.85rem', overflow: 'hidden', border: '1px solid #334155', background: '#090d16' }}>
-                        <div style={{ padding: '0.4rem 0.85rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 800, color: '#10b981' }}>
-                          <Globe size={14} /> 🌐 Web (HTML) Dokümanı:
-                        </div>
-                        <div style={{ height: '340px' }}>
-                          <HtmlViewerWithControls payload={oeItem.htmlPayload} title={`Soru ${qNo} HTML Dokümanı`} height="100%" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 3. Question Visual Image / Content (Varsa) */}
-                    {!oeItem.pdfPayload && !oeItem.htmlPayload && oeItem.imageUrl && (
+                    {/* Distinct Question Image (Sadece tekil resimli sorularda görsel gelir, HTML/PDF tekrarı gelmez) */}
+                    {oeItem.imageUrl && !globalMedia.hasHtml && !globalMedia.hasPdf && (
                       <div style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '0 auto', background: '#090d16', borderRadius: '0.85rem', padding: '0.5rem', border: '1px solid #334155' }}>
                         <div style={{ padding: '0.2rem 0.5rem 0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#c084fc' }}>
-                          <span>🖼️ Soru Görseli</span>
+                          <span>🖼️ Soru {qNo} Görseli</span>
                           <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>🔍 Büyütmek için tıkla</span>
                         </div>
                         <img
@@ -794,8 +768,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                       </div>
                     )}
 
-                    {/* Question Text Prompt */}
-                    {oeItem.question?.questionText && (
+                    {/* Question Text Prompt (Varsa) */}
+                    {oeItem.question?.questionText && oeItem.question.questionText !== `Soru ${qNo}` && (
                       <div style={{ background: '#090d16', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #1e293b', fontSize: '0.88rem', color: '#f1f5f9', fontWeight: 600 }}>
                         <span style={{ color: '#38bdf8', fontWeight: 800 }}>❓ Soru Metni: </span>
                         {oeItem.question.questionText}
@@ -811,9 +785,9 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                       boxShadow: '0 4px 16px rgba(59,130,246,0.15)'
                     }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', textTransform: 'uppercase', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        📝 Öğrencinin Yazılı Yanıtı:
+                        📝 Öğrencinin Soru {qNo} İçin Yazılı Yanıtı:
                       </div>
-                      <div style={{ fontSize: '0.92rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      <div style={{ fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                         {oeItem.answer?.userAnswerText || '(Öğrenci bu soruya yazılı yanıt vermedi - Boş)'}
                       </div>
                     </div>
@@ -830,7 +804,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#fbbf24' }}>
-                          🎯 Bu Soruya Puan Ver:
+                          🎯 Soru {qNo} Puanı:
                         </span>
 
                         {/* Big 3 Buttons */}
