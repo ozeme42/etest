@@ -6,15 +6,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload } from '../../../services/indexedDbService';
 
-export default function ImageQuizReview({ submission, test, questions = [] }) {
+export default function ImageQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const handleGoBack = () => {
-    if (location.state?.from && !location.state.from.includes('/quiz/')) {
-      navigate(location.state.from, { replace: true });
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (location.state?.fromTeacher || location.state?.isTeacher) {
+      navigate('/evaluation', { replace: true });
     } else {
       navigate('/student', { replace: true });
     }

@@ -12,13 +12,17 @@ function getAnsIndex(val) {
   return null;
 }
 
-export default function PhysicalQuizReview({ submission, test, questions }) {
+export default function PhysicalQuizReview({ submission, test, questions, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleGoBack = () => {
-    if (location.state?.from && !location.state.from.includes('/quiz/')) {
-      navigate(location.state.from, { replace: true });
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (location.state?.fromTeacher || location.state?.isTeacher) {
+      navigate('/evaluation', { replace: true });
     } else {
       navigate('/student', { replace: true });
     }

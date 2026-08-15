@@ -143,7 +143,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
       test.questionType === 'coktan_secmeli' ||
       test.type === 'coktan_secmeli' ||
       test.contentType === 'coktan_secmeli' ||
-      (Array.isArray(test.answerKey) && test.answerKey.length > 0)
+      (Array.isArray(test.answerKey) && test.answerKey.length > 0 && !test.isOpenEnded && test.questionType !== 'acik_uclu' && test.questionType !== 'gorsel_klasik' && test.type !== 'acik_uclu' && test.type !== 'gorsel_klasik')
     ) {
       return false;
     }
@@ -151,10 +151,13 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
     if (
       test.questionType === 'acik_uclu' ||
       test.questionType === 'yazili' ||
+      test.questionType === 'gorsel_klasik' ||
       test.type === 'acik_uclu' ||
       test.type === 'yazili' ||
+      test.type === 'gorsel_klasik' ||
       test.contentType === 'acik_uclu' ||
       test.contentType === 'yazili' ||
+      test.contentType === 'gorsel_klasik' ||
       test.isOpenEnded
     ) {
       return true;
@@ -165,7 +168,8 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
       titleStr.includes('açık uçlu') ||
       titleStr.includes('acik uclu') ||
       titleStr.includes('yazılı') ||
-      titleStr.includes('yazili')
+      titleStr.includes('yazili') ||
+      titleStr.includes('klasik')
     )) {
       return true;
     }
@@ -174,8 +178,13 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
       if (
         activeQuestion.type === 'acik_uclu' ||
         activeQuestion.type === 'yazili' ||
+        activeQuestion.type === 'gorsel_klasik' ||
+        activeQuestion.questionType === 'acik_uclu' ||
+        activeQuestion.questionType === 'yazili' ||
+        activeQuestion.questionType === 'gorsel_klasik' ||
         activeQuestion.contentType === 'acik_uclu' ||
         activeQuestion.contentType === 'yazili' ||
+        activeQuestion.contentType === 'gorsel_klasik' ||
         activeQuestion.isOpenEnded
       ) {
         return true;

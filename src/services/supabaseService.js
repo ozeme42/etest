@@ -512,7 +512,12 @@ export async function dbSaveSubmission(sub) {
 }
 
 export async function dbDeleteSubmission(id) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !id) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id));
+  if (!isUuid) {
+    // Taslak veya yerel submission id'leri Supabase tablosunda bulunmaz
+    return true;
+  }
   try {
     const { error } = await supabase.from('submissions').delete().eq('id', String(id));
     if (error) throw error;

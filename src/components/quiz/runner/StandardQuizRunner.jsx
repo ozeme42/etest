@@ -413,7 +413,7 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
 
     const formattedAnswers = Array.from({ length: qCount }).map((_, idx) => {
       const qNo = idx + 1;
-      const qObj = questions[idx] || {};
+      const qObj = resolvedQuestions[idx] || questions[idx] || {};
       const savedAns = answers[qNo] || {};
       const textVal = openEndedText[qNo] || '';
 

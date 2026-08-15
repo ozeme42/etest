@@ -6,15 +6,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
 
-export default function StandardQuizReview({ submission, test, questions = [] }) {
+export default function StandardQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const handleGoBack = () => {
-    if (location.state?.from && !location.state.from.includes('/quiz/')) {
-      navigate(location.state.from, { replace: true });
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (location.state?.fromTeacher || location.state?.isTeacher) {
+      navigate('/evaluation', { replace: true });
     } else {
       navigate('/student', { replace: true });
     }
@@ -77,23 +81,94 @@ export default function StandardQuizReview({ submission, test, questions = [] })
     return count > 0 ? count : (answers.length || 1);
   }, [submission.totalQuestions, test, questions, resolvedQuestions.length, answers]);
 
+  const normalizeAnsIndex = (val) => {
+    if (val === null || val === undefined || val === '') return null;
+    if (typeof val === 'number') return val;
+    const str = String(val).trim().toUpperCase();
+    if (/^[A-E]$/.test(str)) {
+      return str.charCodeAt(0) - 65;
+    }
+    const num = Number(str);
+    return (!isNaN(num) && num >= 0 && num <= 4) ? num : null;
+  };
+
+  const answersList = useMemo(() => {
+    const raw = submission.answers || submission.userAnswers || submission.studentAnswers || [];
+    if (Array.isArray(raw)) {
+      return raw.map((item, idx) => {
+        if (typeof item === 'object' && item !== null) {
+          return {
+            questionNo: item.questionNo || (idx + 1),
+            questionId: item.questionId || `q_${idx + 1}`,
+            userAnswer: item.userAnswer !== undefined ? item.userAnswer : (item.answer !== undefined ? item.answer : item.selectedOption),
+            userAnswerText: item.userAnswerText || item.textAnswer || item.textVal || '',
+            isCorrect: item.isCorrect,
+            ...item
+          };
+        }
+        return {
+          questionNo: idx + 1,
+          questionId: `q_${idx + 1}`,
+          userAnswer: item,
+          userAnswerText: typeof item === 'string' && item.length > 1 ? item : '',
+          isCorrect: null
+        };
+      });
+    }
+    if (typeof raw === 'object' && raw !== null) {
+      return Object.entries(raw).map(([key, val]) => {
+        const qNum = parseInt(key.replace(/\D/g, ''), 10) || 1;
+        if (typeof val === 'object' && val !== null) {
+          return {
+            questionNo: val.questionNo || qNum,
+            questionId: val.questionId || key,
+            userAnswer: val.userAnswer !== undefined ? val.userAnswer : (val.answer !== undefined ? val.answer : val.selectedOption),
+            userAnswerText: val.userAnswerText || val.textAnswer || val.textVal || '',
+            isCorrect: val.isCorrect,
+            ...val
+          };
+        }
+        return {
+          questionNo: qNum,
+          questionId: key,
+          userAnswer: val,
+          userAnswerText: typeof val === 'string' && val.length > 1 ? val : '',
+          isCorrect: null
+        };
+      });
+    }
+    return [];
+  }, [submission]);
+
   const reEvalCorrect = (ansObj, qObj, qNo) => {
     const uAns = ansObj?.userAnswer;
     const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
     
     if (hasAns) {
+      const uIdx = normalizeAnsIndex(uAns);
+      const keySource = test.answerKey || qObj?.answerKey || questions[0]?.answerKey;
+      const rawCorrectKey = Array.isArray(keySource)
+        ? keySource[qNo - 1]
+        : (keySource && typeof keySource === 'object' ? (keySource[qNo] ?? keySource[String(qNo)]) : qObj?.correctAnswer);
+      const cIdx = normalizeAnsIndex(rawCorrectKey !== undefined && rawCorrectKey !== null ? rawCorrectKey : qObj?.correctAnswer);
+
+      if (uIdx !== null && cIdx !== null) {
+        return uIdx === cIdx;
+      }
+
       const computed = checkIsAnswerCorrect(uAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
       if (computed !== null && computed !== undefined) return computed;
-    } else if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
-      // Sadece cevap varsa veya elle notlandıysa isCorrect'i al
-      if (ansObj.isCorrect === true || ansObj.score === 0 || ansObj.score > 0) return ansObj.isCorrect;
+    }
+
+    if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
+      return ansObj.isCorrect;
     }
     
     return null;
   };
 
   const activeQuestion = resolvedQuestions[currentIndex] || questions[currentIndex] || questions[0] || {};
-  const activeAnsObj = answers.find(a => (a.questionNo === currentIndex + 1 || String(a.questionId).includes(`_${currentIndex + 1}`))) || answers[currentIndex] || {};
+  const activeAnsObj = answersList.find(a => Number(a.questionNo) === currentIndex + 1 || String(a.questionId) === `q_${currentIndex + 1}` || String(a.questionId).endsWith(`_${currentIndex + 1}`)) || answersList[currentIndex] || {};
 
   const userAns = activeAnsObj.userAnswer;
   const textAns = activeAnsObj.userAnswerText;
@@ -381,8 +456,11 @@ export default function StandardQuizReview({ submission, test, questions = [] })
                 const optLabel = String.fromCharCode(65 + optIdx);
                 const optText = typeof opt === 'string' ? opt : (opt?.text || opt?.label || opt?.optionText || optLabel);
 
-                const isUserChoice = userAns === optIdx || userAns === optLabel;
-                const isCorrectOption = displayCorrectIndex === optIdx || displayCorrectIndex === optLabel;
+                const userAnsIdx = normalizeAnsIndex(userAns);
+                const correctIdx = normalizeAnsIndex(displayCorrectIndex);
+
+                const isUserChoice = userAnsIdx !== null && userAnsIdx === optIdx;
+                const isCorrectOption = correctIdx !== null && correctIdx === optIdx;
 
                 let border = '1px solid #334155';
                 let bg = '#0f172a';
@@ -418,7 +496,8 @@ export default function StandardQuizReview({ submission, test, questions = [] })
                       {optLabel}
                     </div>
                     <span style={{ flexGrow: 1 }}>{optText}</span>
-                    {isCorrectOption && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399' }}>✓ DOĞRU CEVAP</span>}
+                    {isUserChoice && isCorrectOption && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399' }}>✓ SENİN SEÇİMİN (DOĞRU)</span>}
+                    {!isUserChoice && isCorrectOption && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399' }}>✓ DOĞRU CEVAP</span>}
                     {isUserChoice && !isCorrectOption && <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#f87171' }}>✕ SENİN SEÇİMİN</span>}
                   </div>
                 );

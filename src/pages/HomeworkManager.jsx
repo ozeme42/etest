@@ -81,6 +81,7 @@ export default function HomeworkManager() {
   const [selQuestionType, setSelQuestionType] = useState('all');
   const [selContentType, setSelContentType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [assignmentMode, setAssignmentMode] = useState('separate'); // 'separate' (ayrı ayrı tekli ödevler) | 'combined' (birleşik tek ödev)
 
   useEffect(() => {
     if (location.state?.autoSelectQuestionId) {
@@ -136,7 +137,7 @@ export default function HomeworkManager() {
     setTargetMode('grade'); setSelectedTargets([]); setStudentGradeFilter('all');
     setSelGrade('all'); setSelSubject('all'); setSelUnit('all'); setSelTopic('all');
     setSelQuestionType('all'); setSelContentType('all'); setSearchQuery('');
-    setSelectedQuestionIds([]); setEditingHwId(null); setStep(1); setViewMode('list');
+    setSelectedQuestionIds([]); setAssignmentMode('separate'); setEditingHwId(null); setStep(1); setViewMode('list');
   };
 
   const openEditPage = (hw) => {
@@ -297,6 +298,67 @@ export default function HomeworkManager() {
       };
     }));
 
+    // Toplu seçim yapılmışsa ve 'ayrı ayrı tekli' seçilmişse her testi bağımsız ödev olarak ata
+    if (selectedQuestionIds.length > 1 && assignmentMode === 'separate' && !editingHwId) {
+      for (let i = 0; i < selectedQs.length; i++) {
+        const q = selectedQs[i];
+        let pdfPayload = q.pdfPayload;
+        let contentPayload = q.contentPayload;
+        const needsIdb = (p) => !p || p === '[STORED_IN_INDEXEDDB]' || p === '[LOCALSTORAGE_CACHE]';
+        if (needsIdb(pdfPayload) || needsIdb(contentPayload)) {
+          const idVariants = [
+            q.id,
+            String(q.id).replace(/^q_?/, ''),
+            String(q.id).replace(/^q_?/, 'q_'),
+            String(q.id).replace(/^q_?/, 'q'),
+          ];
+          for (const idv of idVariants) {
+            try {
+              const val = await idbGetPayload(idv);
+              if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
+                if (needsIdb(pdfPayload) && (q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || (typeof val === 'string' && val.startsWith('data:application/pdf')))) {
+                  pdfPayload = val;
+                } else if (needsIdb(contentPayload)) {
+                  contentPayload = val;
+                }
+                break;
+              }
+            } catch (e) {}
+          }
+        }
+
+        const qCount = q.questionCount || q.totalQuestions || q.qCount || (q.isBundle ? 10 : 1);
+        const subHwData = {
+          title: q.title || q.name || `${title} (${i + 1}. Test)`,
+          dueDate,
+          timePerQuestion: parseInt(timePerQuestion, 10),
+          totalQuestions: qCount,
+          subject: q.subject || q.subjectName || firstSub,
+          targetType: targetMode,
+          targetIds: selectedTargets,
+          questionIds: [q.id],
+          assignedBy: currentUser?.id,
+          type: q.contentType === 'physicalExam' ? 'physicalExam' : 'test',
+          contentType: q.contentType || q.type || 'test',
+          contentPayload: needsIdb(contentPayload) ? undefined : contentPayload,
+          pdfPayload: needsIdb(pdfPayload) ? undefined : pdfPayload,
+          htmlPayload: q.htmlPayload,
+          pdfUrl: q.pdfUrl,
+          imageUrls: q.imageUrls,
+          questionType: q.questionType || q.type,
+          isOpenEnded: q.isOpenEnded || q.type === 'acik_uclu' || q.contentType === 'acik_uclu' || q.contentType === 'gorsel_klasik' || q.type === 'gorsel_klasik',
+          answerKey: q.answerKey,
+          subjects: q.subjects,
+          penaltyRatio: q.penaltyRatio,
+          examType: q.examType
+        };
+        addHomework(subHwData);
+      }
+      showToast(`🎉 ${selectedQs.length} adet ödev ayrı ayrı başarıyla yayınlandı!`);
+      resetForm();
+      return;
+    }
+
     const hwData = {
       title, dueDate, timePerQuestion: parseInt(timePerQuestion, 10),
       totalQuestions: totalQCount, subject: firstSub,
@@ -308,7 +370,7 @@ export default function HomeworkManager() {
       pdfPayload: firstQ.pdfPayload,
       htmlPayload: firstQ.htmlPayload,
       questionType: firstQ.questionType || firstQ.type,
-      isOpenEnded: firstQ.isOpenEnded || firstQ.type === 'acik_uclu' || firstQ.contentType === 'acik_uclu',
+      isOpenEnded: firstQ.isOpenEnded || firstQ.type === 'acik_uclu' || firstQ.contentType === 'acik_uclu' || firstQ.contentType === 'gorsel_klasik' || firstQ.type === 'gorsel_klasik',
       answerKey: isPhysical ? physicalExam.answerKey : undefined,
       subjects: isPhysical ? physicalExam.subjects : undefined,
       penaltyRatio: isPhysical ? physicalExam.penaltyRatio : undefined,
@@ -773,14 +835,103 @@ export default function HomeworkManager() {
                 </div>
               )}
             </div>
+            {selectedQuestionIds.length > 1 && !editingHwId && (
+              <div style={{ ...C.card, padding: '1.25rem', border: '2px solid #818cf8', background: '#f8faff', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <Layers size={20} color="#4f46e5" />
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>
+                      Toplu Ödev Atama Biçimi ({selectedQuestionIds.length} Test Seçildi)
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Seçtiğiniz testlerin öğrencilere nasıl atanacağını belirleyin:
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
+                  <div
+                    onClick={() => setAssignmentMode('separate')}
+                    style={{
+                      padding: '0.9rem 1.1rem',
+                      borderRadius: '0.85rem',
+                      cursor: 'pointer',
+                      border: assignmentMode === 'separate' ? '2px solid #4f46e5' : '1.5px solid #e2e8f0',
+                      background: assignmentMode === 'separate' ? '#eff6ff' : '#fff',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.75rem',
+                      transition: 'all 0.15s',
+                      boxShadow: assignmentMode === 'separate' ? '0 4px 12px rgba(79,70,229,0.12)' : 'none'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="assignmentMode"
+                      checked={assignmentMode === 'separate'}
+                      onChange={() => setAssignmentMode('separate')}
+                      style={{ marginTop: '0.2rem', accentColor: '#4f46e5', cursor: 'pointer', width: 16, height: 16 }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: assignmentMode === 'separate' ? '#1e40af' : '#1e293b' }}>
+                        📑 Ayrı Ayrı Tekil Ödevler Olarak Ata (Önerilen)
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.25rem', lineHeight: 1.4 }}>
+                        Her test bağımsız birer ödev olarak oluşturulur. Öğrenci her testi kendi ekranında tek tek çözer ({selectedQuestionIds.length} adet bağımsız ödev).
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setAssignmentMode('combined')}
+                    style={{
+                      padding: '0.9rem 1.1rem',
+                      borderRadius: '0.85rem',
+                      cursor: 'pointer',
+                      border: assignmentMode === 'combined' ? '2px solid #7c3aed' : '1.5px solid #e2e8f0',
+                      background: assignmentMode === 'combined' ? '#f5f3ff' : '#fff',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.75rem',
+                      transition: 'all 0.15s',
+                      boxShadow: assignmentMode === 'combined' ? '0 4px 12px rgba(124,58,237,0.12)' : 'none'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="assignmentMode"
+                      checked={assignmentMode === 'combined'}
+                      onChange={() => setAssignmentMode('combined')}
+                      style={{ marginTop: '0.2rem', accentColor: '#7c3aed', cursor: 'pointer', width: 16, height: 16 }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: assignmentMode === 'combined' ? '#6b21a8' : '#1e293b' }}>
+                        📚 Birleşik / Bölümlü Tek Ödev Olarak Ata
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.25rem', lineHeight: 1.4 }}>
+                        Tüm testler tek bir ödev çatısı altında toplanır (Bölüm 1, Bölüm 2... şeklinde tek seferde çözülür).
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ ...C.card, padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.7rem' }}>
               <div>
-                <div style={{ fontWeight: 900, fontSize: '0.88rem' }}>{selectedQuestionIds.length > 0 ? selectedQuestionIds.length + ' Soru Secildi' : 'Henuz soru secilmedi'}</div>
+                <div style={{ fontWeight: 900, fontSize: '0.88rem' }}>{selectedQuestionIds.length > 0 ? selectedQuestionIds.length + ' Soru / Test Secildi' : 'Henuz soru secilmedi'}</div>
                 {selectedQuestionIds.length > 0 && <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Tahmini sure: ~{selectedQuestionIds.length * timePerQuestion} dakika</div>}
               </div>
               <div style={{ display: 'flex', gap: '0.55rem' }}>
                 <button onClick={() => setStep(2)} style={{ ...C.chipBtn(false), padding: '0.55rem 1rem' }}><ArrowLeft size={14} /> Geri</button>
-                <button onClick={handleSave} style={{ ...C.primaryBtn }}><Sparkles size={15} /> {editingHwId ? 'Ödevi Güncelle' : 'Ödevi Yayınla!'}</button>
+                <button onClick={handleSave} style={{ ...C.primaryBtn }}>
+                  <Sparkles size={15} />{' '}
+                  {editingHwId
+                    ? 'Ödevi Güncelle'
+                    : selectedQuestionIds.length > 1 && assignmentMode === 'separate'
+                    ? `${selectedQuestionIds.length} Ödevi Ayrı Ayrı Yayınla!`
+                    : 'Ödevi Yayınla!'}
+                </button>
               </div>
             </div>
           </div>

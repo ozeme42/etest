@@ -283,7 +283,26 @@ export default function StudentBookDetailsPage() {
         </div>
       );
     }
-    return <div className="container" style={{ padding: '2rem' }}>İçerik bulunamadı.</div>;
+    return (
+      <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+        <h3 style={{ color: '#1e293b', fontWeight: 800, marginBottom: '0.5rem' }}>İçerik bulunamadı</h3>
+        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Aradığınız kitap veya test haritası bulunamadı veya kaldırılmış olabilir.</p>
+        <button
+          onClick={() => navigate('/student')}
+          style={{
+            padding: '0.65rem 1.4rem',
+            borderRadius: '0.75rem',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            color: 'white',
+            fontWeight: 800,
+            cursor: 'pointer'
+          }}
+        >
+          Öğrenci Paneline Dön
+        </button>
+      </div>
+    );
   }
 
   let overallCompleted = 0;

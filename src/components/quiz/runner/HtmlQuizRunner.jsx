@@ -481,6 +481,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
+              const q = questions[idx] || questions[0] || {};
               const selectedOpt = answers[qNo];
               const textVal = openEndedText[qNo] || '';
 

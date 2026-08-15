@@ -7,23 +7,33 @@ import { resolveTestQuestions } from '../../../utils/testResolver';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { idbGetPayload, idbGetAllKeys } from '../../../services/indexedDbService';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
-import ImageLightbox, { StandardImageFrame, isValidImageUrl } from '../common/ImageLightbox';
+import ImageLightbox, { StandardImageFrame, isValidImageUrl, extractImageUrls } from '../common/ImageLightbox';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Layers, FileSpreadsheet, Pencil } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import QuizPanelLayout from './QuizPanelLayout';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { wrapInStyledHtmlDocument } from '../../HtmlViewerWithControls';
 function checkIsOE(obj) {
   if (!obj) return false;
 
-  const isExplicitlyMultipleChoice = obj.questionType === 'coktan_secmeli' || obj.type === 'coktan_secmeli';
+  const isExplicitlyMultipleChoice = obj.questionType === 'coktan_secmeli' || obj.type === 'coktan_secmeli' || obj.contentType === 'coktan_secmeli' || (Array.isArray(obj.options) && obj.options.length > 0 && !obj.isOpenEnded && obj.questionType !== 'acik_uclu' && obj.type !== 'acik_uclu' && obj.type !== 'gorsel_klasik' && obj.questionType !== 'gorsel_klasik');
 
   const isOE = Boolean(
     obj.questionType === 'acik_uclu' ||
     obj.type === 'acik_uclu' ||
+    obj.contentType === 'acik_uclu' ||
+    obj.questionType === 'gorsel_klasik' ||
+    obj.type === 'gorsel_klasik' ||
+    obj.contentType === 'gorsel_klasik' ||
     obj.questionType === 'yazili' ||
     obj.type === 'yazili' ||
     obj.contentType === 'yazili' ||
-    obj.isOpenEnded === true
+    obj.formatType === 'yazili' ||
+    obj.sourceFormat === 'yazili' ||
+    obj.formatType === 'gorsel_klasik' ||
+    obj.sourceFormat === 'gorsel_klasik' ||
+    obj.isOpenEnded === true ||
+    obj.openEnded === true
   );
 
   const titleStr = String(obj.title || obj.name || obj.questionText || obj.text || '').toLowerCase();
@@ -31,7 +41,8 @@ function checkIsOE(obj) {
     titleStr.includes('açık uçlu') ||
     titleStr.includes('acik uclu') ||
     titleStr.includes('yazılı') ||
-    titleStr.includes('yazili')
+    titleStr.includes('yazili') ||
+    titleStr.includes('klasik')
   );
   
   return (isOE || hasOEWord) && !isExplicitlyMultipleChoice;
@@ -86,6 +97,76 @@ function isImageSection(bankQ) {
   );
 }
 
+export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}, resolvedQuestions = [], secImages = []) {
+  // 1. Answer Key check (from all sources)
+  const getAkCount = (obj) => {
+    if (!obj || !obj.answerKey) return 0;
+    const ak = obj.answerKey;
+    if (Array.isArray(ak)) return ak.filter(x => x !== undefined && x !== null && x !== '').length || ak.length;
+    if (typeof ak === 'string') return ak.trim().length;
+    if (typeof ak === 'object') return Object.keys(ak).length;
+    return 0;
+  };
+  const akCount = Math.max(
+    getAkCount(sec),
+    getAkCount(bankQ),
+    getAkCount(foundInBank),
+    getAkCount(bankQ?.bankQ)
+  );
+
+  // 2. Direct question lists
+  const listCount = Math.max(
+    Array.isArray(sec?.questionsList) ? sec.questionsList.length : 0,
+    Array.isArray(bankQ?.questionsList) ? bankQ.questionsList.length : 0,
+    Array.isArray(foundInBank?.questionsList) ? foundInBank.questionsList.length : 0,
+    Array.isArray(sec?.questions) ? sec.questions.length : 0,
+    Array.isArray(bankQ?.questions) ? bankQ.questions.length : 0,
+    Array.isArray(foundInBank?.questions) ? foundInBank.questions.length : 0,
+    Array.isArray(sec?.questionIds) ? sec.questionIds.length : 0,
+    Array.isArray(bankQ?.questionIds) ? bankQ.questionIds.length : 0,
+    Array.isArray(foundInBank?.questionIds) ? foundInBank.questionIds.length : 0,
+    Array.isArray(resolvedQuestions) ? resolvedQuestions.length : 0
+  );
+
+  // 3. Question Count field (numeric)
+  const getRawCount = (obj) => {
+    if (!obj) return 0;
+    const val = obj.questionCount ?? obj.totalQuestions ?? obj.questionsCount ?? obj.qCount ?? obj.soruSayisi;
+    if (val !== undefined && val !== null) {
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num > 0) return num;
+    }
+    return 0;
+  };
+  const countField = Math.max(
+    getRawCount(sec),
+    getRawCount(bankQ),
+    getRawCount(foundInBank),
+    getRawCount(bankQ?.bankQ)
+  );
+
+  // 4. Title regex (e.g. "(4 Soru)" or "4 Soru")
+  const titleMatch = (() => {
+    const titles = [sec?.title, bankQ?.title, bankQ?.name, foundInBank?.title, foundInBank?.name];
+    for (const t of titles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+    return 0;
+  })();
+
+  // 5. Visual images count
+  const imgCount = Array.isArray(secImages) ? secImages.length : 0;
+
+  // Final exact resolution (no hardcoded 10, exact count from test data)
+  return Math.max(countField, akCount, listCount, titleMatch, imgCount, 1);
+}
+
 // ─── STABLE HTML VIEWER — React.memo ile sarılmış, sectionAnswers değişiminden TAMAMEN izole ──────
 // Bu bileşen sadece activeSec.id veya bankQ.id değiştiğinde yeniden yüklenir.
 // sectionAnswers, optik panel cevapları gibi değişkenlerden etkilenmez, iframe titremez.
@@ -107,8 +188,9 @@ const StableHtmlViewer = memo(function StableHtmlViewer({ bankQ, secId, title })
   useEffect(() => {
     const makeBlob = (raw) => {
       try {
-        const html = raw.startsWith('data:') ? atob(raw.split(',')[1] || '') : raw;
-        const blob = new Blob([html], { type: 'text/html' });
+        let html = raw.startsWith('data:') ? atob(raw.split(',')[1] || '') : raw;
+        html = wrapInStyledHtmlDocument(html, title || 'Doküman');
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
           URL.revokeObjectURL(blobUrlRef.current);
@@ -264,15 +346,16 @@ function RightOptikPanel({
               ) : (
                 <div style={{ display: 'flex', gap: '0.3rem' }}>
                   {(() => {
+                    const targetObj = bankQ || {};
                     const isExplicitFive = Boolean(
-                      Number(test?.optionCount) === 5 ||
-                      Number(test?.optionsCount) === 5 ||
-                      Number(test?.book?.optionCount) === 5 ||
-                      String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
-                      test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
-                      test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
-                      Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
-                      Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+                      Number(targetObj?.optionCount) === 5 ||
+                      Number(targetObj?.optionsCount) === 5 ||
+                      Number(targetObj?.book?.optionCount) === 5 ||
+                      String(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || '').includes('5') ||
+                      targetObj?.examType === 'TYT' || targetObj?.examType === 'AYT' || targetObj?.examType === 'YKS' ||
+                      targetObj?.book?.publisher === 'TYT' || targetObj?.book?.publisher === 'AYT' || targetObj?.book?.publisher === 'YKS' ||
+                      Boolean(String(targetObj?.grade || targetObj?.book?.grade || '').match(/^(9|10|11|12)/)) ||
+                      Boolean(String(targetObj?.title || targetObj?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
                     );
                     const isFourOptions = !isExplicitFive;
                     const optList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
@@ -674,14 +757,43 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           }
         }
 
-        const safeMaxAns = (obj) => {
-          if (!obj || !obj.answerKey) return 0;
-          if (Array.isArray(obj.answerKey) || typeof obj.answerKey === 'string') return obj.answerKey.length;
-          if (typeof obj.answerKey === 'object') return Object.keys(obj.answerKey).length;
-          return 0;
+        const getFirstValidImages = (sources) => {
+          for (const s of sources) {
+            const list = extractImageUrls(s);
+            if (list && list.length > 0) return list;
+          }
+          return [];
         };
-        const maxAns = Math.max(safeMaxAns(bankQ), safeMaxAns(sec));
-        const qCount = bankQ?.questionCount || bankQ?.totalQuestions || sec.questionCount || sec.totalQuestions || resolvedQuestions.length || maxAns || 10;
+
+        const secImages = getFirstValidImages([
+          bankQ?.imageUrls,
+          sec.imageUrls,
+          bankQ?.imageUrl,
+          sec.imageUrl,
+          bankQ?.contentPayload,
+          sec.contentPayload,
+          bankQ?.bankQ?.imageUrls,
+          bankQ?.bankQ?.imageUrl
+        ]);
+
+        if (secImages.length > 1) {
+          resolvedQuestions = secImages.map((imgUrl, imgIdx) => {
+            const existingQ = (resolvedQuestions && resolvedQuestions[imgIdx]) || {};
+            return {
+              ...existingQ,
+              id: `${bankQ?.id || sec.id || 'q'}_sub_${imgIdx + 1}`,
+              questionNo: imgIdx + 1,
+              questionText: existingQ.questionText || `Soru ${imgIdx + 1}`,
+              imageUrl: imgUrl,
+              imageUrls: [imgUrl],
+              options: existingQ.options || ['A', 'B', 'C', 'D'],
+              correctAnswer: existingQ.correctAnswer,
+              correctAnswerLetter: existingQ.correctAnswerLetter
+            };
+          });
+        }
+
+        const qCount = resolveExactQuestionCount(sec, bankQ, foundInBank, resolvedQuestions, secImages);
 
         if (resolvedQuestions.length < qCount) {
           const filled = [...resolvedQuestions];
@@ -689,6 +801,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             filled.push({
               id: `${bankQ?.id || sec.id || 'q'}_sub_${i + 1}`,
               questionText: `Soru ${i + 1}`,
+              imageUrl: secImages[i] || secImages[0] || null,
               options: ['A', 'B', 'C', 'D', 'E']
             });
           }
@@ -1200,7 +1313,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   };
 
   const activeSecState = sectionAnswers[activeSec.id] || { answers: {}, openEndedText: {} };
-  const secOE = checkIsOE(activeSec.bankQ);
+  const secOE = checkIsOE(activeSec.bankQ) || checkIsOE(activeSec) || Boolean(activeSec.resolvedQuestions && activeSec.resolvedQuestions.some(checkIsOE));
   const activeBankQ = activeSec.bankQ || {};
 
   const [idbPayload, setIdbPayload] = useState(null);
@@ -1240,6 +1353,33 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
   const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec) || isPdfSection(test) || Boolean(activePdfPayload && typeof activePdfPayload === 'string' && (activePdfPayload.startsWith('data:application/pdf') || activePdfPayload.includes('.pdf')));
   const isHtml = !isPdf && (isHtmlSection(activeBankQ) || isHtmlSection(activeSec));
   const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec) || isImageSection(test) || Boolean(idbPayload && typeof idbPayload === 'string' && idbPayload.startsWith('data:image')));
+
+  const effectiveSecImages = useMemo(() => {
+    const candidates = [
+      activeSec.imageUrls,
+      activeSec.bankQ?.imageUrls,
+      activeBankQ?.imageUrls,
+      activeSec.imageUrl,
+      activeSec.bankQ?.imageUrl,
+      activeBankQ?.imageUrl,
+      activeSec.contentPayload,
+      activeSec.bankQ?.contentPayload,
+      activeBankQ?.contentPayload,
+      idbPayload
+    ];
+    for (const c of candidates) {
+      const list = extractImageUrls(c);
+      if (list && list.length > 0) return list;
+    }
+    return [];
+  }, [activeSec, activeBankQ, idbPayload]);
+
+  const effectiveQCount = useMemo(() => {
+    if (isImage && effectiveSecImages.length > 0) {
+      return effectiveSecImages.length;
+    }
+    return resolveExactQuestionCount(activeSec, activeBankQ, activeSec.bankQ, activeSec.resolvedQuestions, effectiveSecImages);
+  }, [isImage, effectiveSecImages, activeSec, activeBankQ]);
 
   // IDB loader runs ALWAYS on section change regardless of isPdf.
   // This breaks the chicken-and-egg: isPdf can't be true without idbPayload,
@@ -1465,7 +1605,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
             answerContent={
               <RightOptikPanel
-                qCount={activeSec.qCount}
+                qCount={effectiveQCount}
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
@@ -1503,7 +1643,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
             answerContent={
               <RightOptikPanel
-                qCount={activeSec.qCount}
+                qCount={effectiveQCount}
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
@@ -1553,32 +1693,20 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   </div>
 
                   {/* QUESTION CARDS IN DARK THEME */}
-                  {Array.from({ length: activeSec.qCount }).map((_, idx) => {
+                  {Array.from({ length: effectiveQCount }).map((_, idx) => {
                     const qNo = idx + 1;
                     const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
                     const isQOpenEnded = secOE || checkIsOE(qObj);
 
                     let questionImageUrls = [];
-                    const isQObjActuallySection = String(qObj.id) === String(activeSec.bankQ?.id) || String(qObj.id) === String(activeSec.id);
-
-                    if (!isQObjActuallySection && qObj.imageUrls && qObj.imageUrls.length > 0) {
-                      questionImageUrls = qObj.imageUrls;
-                    } else if (!isQObjActuallySection && qObj.imageUrl) {
-                      questionImageUrls = [qObj.imageUrl];
-                    } else if (!isQObjActuallySection && qObj.contentPayload && qObj.contentPayload.startsWith('data:image')) {
-                      questionImageUrls = [qObj.contentPayload];
-                    } else {
-                      const secRawImages = activeSec.imageUrls || activeSec.bankQ?.imageUrls || (activeSec.bankQ?.contentPayload?.startsWith('data:image') ? [activeSec.bankQ.contentPayload] : (idbPayload?.startsWith('data:image') ? [idbPayload] : []));
-                      const secImages = (Array.isArray(secRawImages) ? secRawImages : [secRawImages]).filter(isValidImageUrl);
-                      if (secImages.length > 0) {
-                        if (secImages.length === activeSec.qCount || secImages.length > 1) {
-                          if (secImages[idx]) questionImageUrls = [secImages[idx]];
-                        } else {
-                          if (idx === 0) questionImageUrls = [secImages[0]];
-                        }
+                    if (effectiveSecImages.length > 0) {
+                      if (effectiveSecImages[idx]) {
+                        questionImageUrls = [effectiveSecImages[idx]];
+                      } else {
+                        questionImageUrls = [effectiveSecImages[0]];
                       }
                     }
-                    const imageUrls = (Array.isArray(questionImageUrls) ? questionImageUrls : [questionImageUrls]).filter(isValidImageUrl);
+                    const imageUrls = extractImageUrls(questionImageUrls);
 
                     const userAnsObj = activeSecState.answers?.[qNo];
                     const selectedOpt = userAnsObj !== undefined ? (typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj) : undefined;
@@ -1779,7 +1907,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
             answerContent={
               <RightOptikPanel
-                qCount={activeSec.qCount}
+                qCount={effectiveQCount}
                 answers={activeSecState.answers || {}}
                 openEndedText={activeSecState.openEndedText || {}}
                 isOpenEnded={secOE}
@@ -1835,10 +1963,8 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
                   const qText = qObj.questionText || qObj.text || qObj.question || qObj.title || qObj.questionTitle || qObj.name || (qObj.contentPayload && !qObj.contentPayload.startsWith('data:') ? qObj.contentPayload : null) || `Soru ${qNo}`;
 
-                  const rawImages = (qObj.imageUrls && qObj.imageUrls.length > 0)
-                    ? qObj.imageUrls
-                    : (qObj.imageUrl ? [qObj.imageUrl] : (qObj.contentPayload && qObj.contentPayload.startsWith('data:image') ? [qObj.contentPayload] : []));
-                  const imageUrls = (Array.isArray(rawImages) ? rawImages : [rawImages]).filter(isValidImageUrl);
+                  const rawImages = [qObj.imageUrls, qObj.imageUrl, qObj.image, qObj.contentPayload];
+                  const imageUrls = extractImageUrls(rawImages);
 
                   const isExplicitFive = Boolean(
                     Number(test?.optionCount) === 5 ||

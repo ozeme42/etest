@@ -11,7 +11,8 @@ export function isValidImageUrl(url) {
     trimmed.startsWith('<html') ||
     trimmed.startsWith('data:text/html') ||
     trimmed.startsWith('data:application/pdf') ||
-    trimmed.startsWith('%PDF-')
+    trimmed.startsWith('%PDF-') ||
+    trimmed.includes('|')
   ) {
     return false;
   }
@@ -29,6 +30,26 @@ export function isValidImageUrl(url) {
     return true;
   }
   return false;
+}
+
+export function extractImageUrls(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    const list = val.flatMap(item => extractImageUrls(item)).filter(isValidImageUrl);
+    return Array.from(new Set(list));
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed || trimmed.includes('[STORED_IN_') || trimmed.includes('[LOCALSTORAGE_')) return [];
+    if (trimmed.includes('|') || trimmed.includes('\n')) {
+      const parts = trimmed.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImageUrl);
+      return Array.from(new Set(parts));
+    }
+    if (isValidImageUrl(trimmed)) {
+      return [trimmed];
+    }
+  }
+  return [];
 }
 
 export function StandardImageFrame({ src, alt, title, onOpenFullscreen }) {
