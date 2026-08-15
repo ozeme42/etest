@@ -404,7 +404,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 );
               }
 
-              if (!hasAnswer && !tAns && !activeAnsObj.userAnswerText) {
+              if (!hasAnswer && !textAns && !activeAnsObj.userAnswerText) {
                 return (
                   <span style={{ padding: '0.35rem 0.75rem', background: '#334155', color: '#94a3b8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
                     BOŞ BIRAKILDI
