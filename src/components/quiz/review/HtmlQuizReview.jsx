@@ -175,13 +175,15 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
 
     const isMatches = Boolean(userAnsLetter && displayCorrectKey && userAnsLetter === displayCorrectKey);
 
-    let isCorrect = false;
+    let isCorrect = null;
     if (isMatches) {
       isCorrect = true;
     } else if (userAns !== null && userAns !== undefined && userAns !== '') {
       isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
-    } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
-      isCorrect = ansObj.isCorrect;
+    } else if (ansObj.userAnswerText) {
+      isCorrect = ansObj.isCorrect !== undefined ? ansObj.isCorrect : null;
+    } else {
+      isCorrect = null;
     }
 
     return { userAnsLetter, displayCorrectKey, isCorrect };

@@ -143,6 +143,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
   const reEvalCorrect = (ansObj, qObj, qNo) => {
     const uAns = ansObj?.userAnswer;
     const hasAns = uAns !== null && uAns !== undefined && uAns !== '';
+    const hasText = Boolean(ansObj?.userAnswerText || ansObj?.textAnswer);
     
     if (hasAns) {
       const uIdx = normalizeAnsIndex(uAns);
@@ -160,8 +161,11 @@ export default function StandardQuizReview({ submission, test, questions = [], o
       if (computed !== null && computed !== undefined) return computed;
     }
 
-    if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
-      return ansObj.isCorrect;
+    if (hasText) {
+      if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
+        return ansObj.isCorrect;
+      }
+      return null;
     }
     
     return null;
@@ -377,6 +381,14 @@ export default function StandardQuizReview({ submission, test, questions = [], o
             {(() => {
               const isQOpenEnded = isOpenEndedMode || textAns || activeAnsObj.userAnswerText || activeQuestion.type === 'acik_uclu';
 
+              if (!hasAnswer && !textAns && !activeAnsObj.userAnswerText) {
+                return (
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#334155', color: '#94a3b8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
+                    BOŞ
+                  </span>
+                );
+              }
+
               if (isQOpenEnded && !isEvaluated) {
                 if (textAns || activeAnsObj.userAnswerText) {
                   return (
@@ -400,7 +412,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
                 );
               }
 
-              if (isCorrect === false) {
+              if (isCorrect === false && (hasAnswer || activeAnsObj.score === 0)) {
                 return (
                   <span style={{ padding: '0.35rem 0.75rem', background: '#7f1d1d', color: '#f87171', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #dc2626' }}>
                     <XCircle size={16} /> {isQOpenEnded ? 'YANLIŞ (0 Puan)' : 'YANLIŞ'}

@@ -9,7 +9,7 @@
  */
 export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   if (userAns === null || userAns === undefined || userAns === '') {
-    return false;
+    return null;
   }
 
   const normalizeAns = (val) => {
@@ -24,7 +24,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   };
 
   const userIdx = normalizeAns(userAns);
-  if (userIdx === null) return false;
+  if (userIdx === null) return null;
 
   // --- Adım 1: Önce answerKey dizisi var mı kontrol et ---
   // Bundle/paket sınavlarda (PDF, HTML, Görsel) test.answerKey veya qObj.answerKey

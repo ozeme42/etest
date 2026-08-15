@@ -181,10 +181,10 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       let isCorrect;
       if (hasAnswer) {
         isCorrect = checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo);
-      } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
-        isCorrect = ansObj.isCorrect;
+      } else if (textAns) {
+        isCorrect = ansObj.isCorrect !== undefined ? ansObj.isCorrect : null;
       } else {
-        isCorrect = false;
+        isCorrect = null;
       }
 
       if (isCorrect === true) {

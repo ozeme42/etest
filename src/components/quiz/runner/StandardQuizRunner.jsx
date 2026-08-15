@@ -423,9 +423,9 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
 
       const textAns = textVal || (savedAns && typeof savedAns === 'object' ? savedAns.userAnswerText : null) || null;
       
-      const isCorrect = userAns !== null 
+      const isCorrect = (userAns !== null && userAns !== undefined && userAns !== '')
         ? checkIsAnswerCorrect(userAns, qObj, { ...test, answerKey: test.answerKey || questions[0]?.answerKey }, qNo)
-        : (textAns ? null : false);
+        : null;
 
       return {
         questionId: qObj.id || `q_${qNo}`,

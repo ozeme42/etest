@@ -400,6 +400,14 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 );
               }
 
+              if (!hasAnswer && !tAns && !activeAnsObj.userAnswerText) {
+                return (
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#334155', color: '#94a3b8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
+                    BOŞ BIRAKILDI
+                  </span>
+                );
+              }
+
               if (isCorrect === true || activeAnsObj.score > 0) {
                 return (
                   <span style={{ padding: '0.35rem 0.75rem', background: '#064e3b', color: '#34d399', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #059669' }}>
@@ -408,7 +416,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 );
               }
 
-              if (isCorrect === false) {
+              if (isCorrect === false && (hasAnswer || activeAnsObj.score === 0)) {
                 return (
                   <span style={{ padding: '0.35rem 0.75rem', background: '#7f1d1d', color: '#f87171', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #dc2626' }}>
                     <XCircle size={16} /> {isQOpenEnded ? 'YANLIŞ (0 Puan)' : 'YANLIŞ CEVAPLADIN'}
