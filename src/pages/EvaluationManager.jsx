@@ -12,7 +12,7 @@ import {
   AlertCircle, Search, Filter, Layers, MessageSquare, Award,
   Sparkles, Check, Edit3, Send, FileText, Globe, Image as ImageIcon,
   RotateCcw, Trophy, ThumbsUp, ThumbsDown, CheckCircle, HelpCircle,
-  ClipboardCheck
+  ClipboardCheck, Ruler, TestTube2, BookCopy
 } from 'lucide-react';
 
 import PdfQuizReview from '../components/quiz/review/PdfQuizReview';
@@ -25,6 +25,33 @@ import MultiHomeworkRunner from '../components/quiz/runner/MultiHomeworkRunner';
 import { resolveTestQuestions } from '../utils/testResolver';
 import { idbGetPayload } from '../services/indexedDbService';
 import { toUUID } from '../services/supabaseService';
+
+// ─── SUBJECT HELPER ──────────────────────────────────────────────────────────
+function detectSubject(title = '', existingSubject = '') {
+  if (existingSubject && !['genel', 'diğer', 'all', ''].includes(String(existingSubject).toLowerCase().trim())) {
+    return existingSubject;
+  }
+  const t = (String(title) + ' ' + String(existingSubject || '')).toLowerCase();
+  if (t.includes('matematik') || t.includes('mat')) return 'Matematik';
+  if (t.includes('fen')) return 'Fen Bilimleri';
+  if (t.includes('türkçe') || t.includes('turkce') || t.includes('türk')) return 'Türkçe';
+  if (t.includes('sosyal') || t.includes('inkılap') || t.includes('tarih')) return 'Sosyal Bilgiler';
+  if (t.includes('ingilizce') || t.includes('english') || t.includes('ing')) return 'İngilizce';
+  if (t.includes('din') || t.includes('ahlak') || t.includes('ilmihal') || t.includes('fıkıh') || t.includes('siyer') || t.includes('kuran')) return 'Din Kültürü';
+  if (t.includes('deneme') || t.includes('lgs') || t.includes('tarama')) return 'Genel Deneme';
+  return 'Genel';
+}
+
+const subjectColors = {
+  'Matematik': { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+  'Fen Bilimleri': { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
+  'Türkçe': { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
+  'Sosyal Bilgiler': { bg: '#faf5ff', color: '#9333ea', border: '#e9d5ff' },
+  'İngilizce': { bg: '#fff1f2', color: '#e11d48', border: '#fecdd3' },
+  'Din Kültürü': { bg: '#f0fdfa', color: '#0d9488', border: '#99f6e4' },
+  'Genel Deneme': { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe' },
+  'Genel': { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0' }
+};
 
 // ─── TEACHER GRADING BOTTOM BAR ───────────────────────────────────────────────
 function TeacherGradingBar({
@@ -52,10 +79,9 @@ function TeacherGradingBar({
   }, [questionScores]);
 
   const maxScore = totalQuestions * 10;
-  const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+  const percentage = maxScore > 0 ? Math.min(100, Math.round((totalScore / maxScore) * 100)) : 0;
 
   const currentAns = (submission?.answers || []).find(a => (a.questionNo || 0) === activeQNo) || (submission?.answers || [])[activeQNo - 1] || {};
-  const currentQObj = questionsList[activeQNo - 1] || {};
   const currentScore = questionScores[activeQNo] ?? (currentAns.score !== undefined ? currentAns.score : (currentAns.isCorrect === true ? 10 : 0));
   const currentNote = teacherNotes[activeQNo] ?? (currentAns.teacherNote || '');
 
@@ -313,7 +339,7 @@ function TeacherGradingBar({
 
 // ─── FULL QUIZ REVIEW CONTAINER (EXACT STUDENT SOLVER & REVIEW INTERFACE) ────
 function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curriculumData, bookTests, books, onClose, onSaveSuccess }) {
-  const { updateSubmission, evaluateAnswer, finalizeSubmission } = useEvaluation();
+  const { updateSubmission } = useEvaluation();
   const { updateHomeworkSubmission } = useHomework();
 
   const [test, setTest] = useState(null);
@@ -454,7 +480,7 @@ function FullQuizReviewContainer({ submission, allBankQuestions, homeworks, curr
       const totalScore = Object.values(questionScores).reduce((sum, v) => sum + (Number(v) || 0), 0);
       const totalQ = questions?.length || submission?.answers?.length || 1;
       const maxPossible = totalQ * 10;
-      const computedPercentage = maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
+      const computedPercentage = maxPossible > 0 ? Math.min(100, Math.round((totalScore / maxPossible) * 100)) : 0;
 
       const updatedAnswers = (submission.answers || []).map((ans, idx) => {
         const qNo = ans.questionNo || (idx + 1);
@@ -652,9 +678,145 @@ export default function EvaluationManager() {
   const isAdmin = currentUser?.role === 'admin';
   const teacherId = currentUser?.id;
 
-  // Filter Submissions scoped to teacher / admin
+  // 1. COMBINE & DEDUPLICATE SUBMISSIONS FROM EVALUATION CONTEXT & HOMEWORK CONTEXT
+  const combinedSubmissions = useMemo(() => {
+    const map = new Map();
+
+    // From EvaluationContext
+    (allSubmissions || []).forEach(sub => {
+      if (sub && sub.id) {
+        map.set(String(sub.id), sub);
+      }
+    });
+
+    // From HomeworkContext
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
+        if (!map.has(subKey)) {
+          map.set(subKey, {
+            ...sub,
+            id: subKey,
+            homeworkId: hw.id,
+            testId: hw.id,
+            testTitle: hw.title,
+            subject: hw.subject,
+            totalQuestions: hw.totalQuestions || hw.questionCount || sub.totalQuestions,
+            submittedAt: sub.completedAt || sub.submittedAt || new Date().toISOString()
+          });
+        }
+      });
+    });
+
+    return Array.from(map.values());
+  }, [allSubmissions, homeworks]);
+
+  // 2. ENRICH EACH SUBMISSION WITH REAL NAMES, TITLES, AND SUBJECTS
+  const enrichedSubmissions = useMemo(() => {
+    return combinedSubmissions.map(sub => {
+      // A) Student Name Resolver
+      let studentName = sub.studentName;
+      const sId = String(sub.studentId || sub.userId || sub.user_id || '');
+      if (!studentName || studentName === 'Öğrenci' || !studentName.trim()) {
+        const matchedUser = (users || []).find(u => String(u.id) === sId || String(u.studentId) === sId);
+        if (matchedUser && matchedUser.name) {
+          studentName = matchedUser.name;
+        } else if (sId) {
+          studentName = `Öğrenci (#${sId.slice(-4)})`;
+        } else {
+          studentName = 'Öğrenci';
+        }
+      }
+
+      // B) Test Title Resolver
+      let targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.questionId || sub.id || '');
+      let normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
+
+      let matchedHw = (homeworks || []).find(h =>
+        String(h.id) === targetId ||
+        String(h.id) === normTargetId ||
+        String(h.testId) === targetId ||
+        (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
+      );
+
+      let matchedBankQ = (allBankQuestions || []).find(q =>
+        String(q.id) === targetId ||
+        String(q.id) === normTargetId ||
+        String(q.questionId) === targetId
+      );
+
+      let matchedBookTest = (bookTests || []).find(bt =>
+        String(bt.id) === targetId ||
+        String(bt.id) === normTargetId ||
+        toUUID(bt.id) === targetId
+      );
+
+      let matchedCurTest = (curriculumData?.tests || []).find(t =>
+        String(t.id) === targetId ||
+        String(t.id) === normTargetId
+      );
+
+      let title = sub.testTitle || sub.homeworkTitle || sub.title;
+      const isGeneric = !title || ['sınav', 'test', 'açık uçlu sınav kağıdı', 'değerlendirme dosyası', 'ödev', 'test sınavı'].includes(String(title).trim().toLowerCase());
+
+      if (isGeneric) {
+        if (matchedHw?.title) title = matchedHw.title;
+        else if (matchedBankQ?.title || matchedBankQ?.questionText || matchedBankQ?.text) title = matchedBankQ.title || matchedBankQ.questionText || matchedBankQ.text;
+        else if (matchedBookTest?.name || matchedBookTest?.title) title = matchedBookTest.name || matchedBookTest.title;
+        else if (matchedCurTest?.title || matchedCurTest?.name) title = matchedCurTest.title || matchedCurTest.name;
+        else title = 'Ödev / Sınav';
+      }
+
+      // C) Subject Resolver
+      let subject = detectSubject(title, sub.subject || matchedHw?.subject || matchedBankQ?.subject || matchedCurTest?.subjectName);
+
+      // D) Question Count Resolver
+      let totalQ = sub.totalQuestions || matchedHw?.totalQuestions || matchedHw?.questionCount || matchedBankQ?.questionCount || (sub.answers?.length) || 1;
+
+      // E) Score Resolver (Normalize to 0-100%)
+      let score = sub.score;
+      if (score !== undefined && score !== null) {
+        score = Number(score);
+        if (score > 100) {
+          // If stored as raw points (e.g. 14 points out of 20)
+          const maxPossible = totalQ * 10;
+          if (maxPossible > 0) {
+            score = Math.min(100, Math.round((score / maxPossible) * 100));
+          } else {
+            score = 100;
+          }
+        } else {
+          score = Math.max(0, Math.min(100, Math.round(score)));
+        }
+      }
+
+      // F) Determine Pending Evaluation vs Completed
+      const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
+      let hasWrittenAnswers = false;
+      if (Array.isArray(sub.answers)) {
+        hasWrittenAnswers = sub.answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0);
+      }
+      const isExplicitOpenEnded = sub.isOpenEnded || sub.questionType === 'acik_uclu' || sub.questionType === 'yazili' || sub.contentType === 'acik_uclu' || sub.contentType === 'yazili';
+      const titleLower = String(title).toLowerCase();
+      const hasOEKeywords = titleLower.includes('açık uçlu') || titleLower.includes('acik uclu') || titleLower.includes('yazılı') || titleLower.includes('yazili');
+
+      const isPending = !isAlreadyEvaluated && (hasWrittenAnswers || isExplicitOpenEnded || hasOEKeywords);
+
+      return {
+        ...sub,
+        studentName,
+        testTitle: title,
+        subject,
+        totalQuestions: totalQ,
+        score,
+        isPending
+      };
+    });
+  }, [combinedSubmissions, users, homeworks, allBankQuestions, bookTests, curriculumData]);
+
+  // 3. FILTER BY TEACHER / ADMIN PERMISSION
   const scopedSubmissions = useMemo(() => {
-    return (allSubmissions || []).filter(sub => {
+    return enrichedSubmissions.filter(sub => {
       if (sub.status === 'draft' || sub.status === 'in_progress') return false;
 
       if (!isAdmin) {
@@ -685,36 +847,15 @@ export default function EvaluationManager() {
         if (!hwIsMine && !subIsMine) return false;
       }
       return true;
-    });
-  }, [allSubmissions, homeworks, isAdmin, teacherId]);
-
-  // Determine if a submission has open-ended written questions that need grading
-  const isSubmissionPendingGrading = (sub) => {
-    const isDone = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
-    if (isDone) return false;
-
-    const answers = sub.answers || [];
-    const hasWrittenText = answers.some(a => a.userAnswerText && String(a.userAnswerText).trim().length > 0);
-    if (hasWrittenText) return true;
-
-    if (sub.isOpenEnded || sub.questionType === 'acik_uclu' || sub.questionType === 'yazili' || sub.contentType === 'acik_uclu' || sub.contentType === 'yazili') {
-      return true;
-    }
-
-    const titleLower = String(sub.testTitle || sub.title || '').toLowerCase();
-    if (titleLower.includes('açık uçlu') || titleLower.includes('acik uclu') || titleLower.includes('yazılı') || titleLower.includes('yazili')) {
-      return true;
-    }
-
-    return false;
-  };
+    }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  }, [enrichedSubmissions, homeworks, isAdmin, teacherId]);
 
   const pendingList = useMemo(() => {
-    return scopedSubmissions.filter(s => isSubmissionPendingGrading(s));
+    return scopedSubmissions.filter(s => s.isPending);
   }, [scopedSubmissions]);
 
   const completedList = useMemo(() => {
-    return scopedSubmissions.filter(s => !isSubmissionPendingGrading(s));
+    return scopedSubmissions.filter(s => !s.isPending);
   }, [scopedSubmissions]);
 
   const activeDisplayList = useMemo(() => {
@@ -736,7 +877,7 @@ export default function EvaluationManager() {
     });
   }, [activeTab, pendingList, completedList, scopedSubmissions, search, subjectFilter, studentFilter]);
 
-  const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü'];
+  const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel Deneme'];
   const studentUsers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   return (
@@ -751,9 +892,7 @@ export default function EvaluationManager() {
           bookTests={bookTests}
           books={books}
           onClose={() => setActiveSubmission(null)}
-          onSaveSuccess={(updated) => {
-            setActiveSubmission(null);
-          }}
+          onSaveSuccess={() => setActiveSubmission(null)}
         />
       )}
 
@@ -968,10 +1107,11 @@ export default function EvaluationManager() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
             {activeDisplayList.map((sub) => {
-              const isPending = isSubmissionPendingGrading(sub);
-              const scoreVal = sub.score !== undefined ? sub.score : null;
+              const isPending = sub.isPending;
+              const scoreVal = sub.score !== undefined && sub.score !== null ? sub.score : null;
               const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Tamamlandı';
-              const totalQ = sub.totalQuestions || (sub.answers?.length) || 1;
+              const totalQ = sub.totalQuestions || 1;
+              const subConf = subjectColors[sub.subject] || subjectColors['Genel'];
 
               return (
                 <div
@@ -1054,7 +1194,7 @@ export default function EvaluationManager() {
 
                     {/* Exam Title */}
                     <div style={{ fontWeight: 800, fontSize: '1rem', color: '#f1f5f9', lineHeight: 1.4, marginBottom: '0.5rem' }}>
-                      {sub.testTitle || sub.title || 'Sınav / Ödev'}
+                      {sub.testTitle || 'Ödev / Sınav'}
                     </div>
 
                     {/* Info Badges */}
@@ -1062,11 +1202,9 @@ export default function EvaluationManager() {
                       <span style={{ background: '#0f172a', color: '#94a3b8', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.7rem', fontWeight: 700, border: '1px solid #334155' }}>
                         📝 {totalQ} Soru
                       </span>
-                      {sub.subject && (
-                        <span style={{ background: '#0f172a', color: '#818cf8', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.7rem', fontWeight: 800, border: '1px solid #334155' }}>
-                          📚 {sub.subject}
-                        </span>
-                      )}
+                      <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.7rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
+                        📚 {sub.subject}
+                      </span>
                     </div>
                   </div>
 
