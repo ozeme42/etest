@@ -273,6 +273,7 @@ export default function StudentResultsPage() {
       else if (isGeneric) title = matchedHw?.subject ? `${matchedHw.subject} Ödevi` : s.type === 'physicalExam' ? 'Fiziki Deneme' : 'Ödev Sınavı';
 
       const subjKey = getSubjectKey({ testTitle: title, subjectKey: matchedHw?.subject || matchedCur?.subject || s.subjectKey || '' });
+      const typeKey = getTypeKey(s);
       const ansCount = Array.isArray(s.answers) ? s.answers.length : 0;
       const sumCount = correct + wrong + blank;
       const rawTotal = s.totalQuestions || matchedHw?.totalQuestions || 0;
