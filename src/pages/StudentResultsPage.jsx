@@ -175,8 +175,16 @@ export default function StudentResultsPage() {
   const studentSubmissions = useMemo(() => {
     if (!selectedStudent) return [];
 
-    const baseSubs = (submissions || [])
-      .filter(s => String(s.studentId) === String(selectedStudent.id));
+    const baseSubs = (submissions || []).filter(s => {
+      if (String(s.studentId) !== String(selectedStudent.id)) return false;
+      const isHwSub = Boolean(s.hwId || s.homeworkId || s.isHomework || String(s.testId || '').startsWith('hw_') || String(s.id || '').startsWith('hw_'));
+      if (isHwSub) {
+        const hwId = s.hwId || s.homeworkId || s.testId || s.id;
+        const exists = (homeworks || []).some(h => String(h.id) === String(hwId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.testId));
+        if (!exists) return false;
+      }
+      return true;
+    });
 
     const hwSubs = [];
     (homeworks || []).forEach(hw => {

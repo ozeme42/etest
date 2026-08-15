@@ -367,11 +367,18 @@ export function EvaluationProvider({ children }) {
   };
 
   const deleteSubmissionsByTestId = async (testId) => {
+    if (!testId) return;
     setSubmissions(prev => {
       const remaining = [];
       const toDelete = [];
       prev.forEach(s => {
-        if (String(s.testId) === String(testId)) {
+        const matches = String(s.testId) === String(testId) ||
+          String(s.hwId) === String(testId) ||
+          String(s.homeworkId) === String(testId) ||
+          String(s.id) === String(testId) ||
+          String(s.id).includes(testId) ||
+          String(s.testId).includes(testId);
+        if (matches) {
           toDelete.push(s.id);
         } else {
           remaining.push(s);
@@ -381,6 +388,16 @@ export function EvaluationProvider({ children }) {
       return remaining;
     });
   };
+
+  useEffect(() => {
+    const handleHwDeleted = (e) => {
+      if (e.detail?.id) {
+        deleteSubmissionsByTestId(e.detail.id);
+      }
+    };
+    window.addEventListener('homework_deleted', handleHwDeleted);
+    return () => window.removeEventListener('homework_deleted', handleHwDeleted);
+  }, []);
 
   const deleteAllSubmissions = async () => {
     setSubmissions(prev => {

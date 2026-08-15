@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
-import { idbSetPayload } from '../services/indexedDbService';
+import { idbSetPayload, idbDeletePayload } from '../services/indexedDbService';
 
 const HomeworkContext = createContext();
 
@@ -145,6 +145,16 @@ useEffect(() => {
   const deleteHomework = async (id) => {
     setHomeworks(prev => prev.filter(hw => hw.id !== id));
     await dbDeleteHomework(id);
+    try {
+      localStorage.removeItem(`quiz_draft_${id}`);
+      localStorage.removeItem(`homework_sub_${id}`);
+      localStorage.removeItem(`quiz_submission_${id}`);
+      localStorage.removeItem(`draft_quiz_${id}_ans`);
+      if (typeof idbDeletePayload === 'function') {
+        await idbDeletePayload(id);
+      }
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('homework_deleted', { detail: { id } }));
   };
 
   const deleteAllHomeworks = async () => {
@@ -152,6 +162,16 @@ useEffect(() => {
     setHomeworks([]);
     for (const hw of currentHomeworks) {
       await dbDeleteHomework(hw.id);
+      try {
+        localStorage.removeItem(`quiz_draft_${hw.id}`);
+        localStorage.removeItem(`homework_sub_${hw.id}`);
+        localStorage.removeItem(`quiz_submission_${hw.id}`);
+        localStorage.removeItem(`draft_quiz_${hw.id}_ans`);
+        if (typeof idbDeletePayload === 'function') {
+          await idbDeletePayload(hw.id);
+        }
+      } catch (e) {}
+      window.dispatchEvent(new CustomEvent('homework_deleted', { detail: { id: hw.id } }));
     }
   };
 

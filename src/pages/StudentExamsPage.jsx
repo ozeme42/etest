@@ -224,9 +224,16 @@ export default function StudentExamsPage() {
     return isHomeworkForStudent(hw, currentUser, curData?.grades);
   }), [homeworks, currentUser, curData?.grades]);
 
-  const studentSubmissions = useMemo(() => submissions.filter(s =>
-    String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft'
-  ), [submissions, studentId]);
+  const studentSubmissions = useMemo(() => submissions.filter(s => {
+    if (String(s.studentId) !== String(studentId) || s.status === 'in_progress' || s.status === 'draft') return false;
+    const isHwSub = Boolean(s.hwId || s.homeworkId || s.isHomework || String(s.testId || '').startsWith('hw_') || String(s.id || '').startsWith('hw_'));
+    if (isHwSub) {
+      const hwId = s.hwId || s.homeworkId || s.testId || s.id;
+      const exists = (homeworks || []).some(h => String(h.id) === String(hwId) || String(h.id) === String(s.hwId) || String(h.id) === String(s.testId));
+      if (!exists) return false;
+    }
+    return true;
+  }), [submissions, homeworks, studentId]);
 
   const assignedBooks = useMemo(() => {
     const bookMap = {};
