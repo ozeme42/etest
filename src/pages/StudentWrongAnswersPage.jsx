@@ -635,36 +635,6 @@ export default function StudentWrongAnswersPage() {
               </p>
             </div>
           </div>
-
-          {/* Student Selector Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 5px rgba(0,0,0,0.03)' }}>
-            {studentMembers.map(s => {
-              const active = selectedStudent?.id === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedStudent(s)}
-                  style={{
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '0.75rem',
-                    border: 'none',
-                    background: active ? '#ef4444' : 'transparent',
-                    color: active ? 'white' : '#64748b',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <GraduationCap size={16} />
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* TOP LEVEL NAVIGATION TAB SWITCHER (HER İKİ GÖRÜNÜM DE MEVCUT) */}
