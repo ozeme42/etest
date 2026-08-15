@@ -684,7 +684,7 @@ export default function StudentDashboard() {
           if (ans.isCorrect === true) correct++;
           else if (ans.isCorrect === false) {
             const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
-            if (isB) blankCount++; else wrongCount++;
+            if (isB) blank++; else wrong++;
           }
         });
       }
