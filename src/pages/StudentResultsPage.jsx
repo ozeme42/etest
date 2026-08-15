@@ -273,14 +273,16 @@ export default function StudentResultsPage() {
       else if (isGeneric) title = matchedHw?.subject ? `${matchedHw.subject} Ödevi` : s.type === 'physicalExam' ? 'Fiziki Deneme' : 'Ödev Sınavı';
 
       const subjKey = getSubjectKey({ testTitle: title, subjectKey: matchedHw?.subject || matchedCur?.subject || s.subjectKey || '' });
-      const typeKey = getTypeKey(s);
-      const total = s.totalQuestions || (s.answers?.length) || (correct + wrong + blank) || (matchedHw?.totalQuestions) || 1;
+      const ansCount = Array.isArray(s.answers) ? s.answers.length : 0;
+      const sumCount = correct + wrong + blank;
+      const rawTotal = s.totalQuestions || matchedHw?.totalQuestions || 0;
+      const total = Math.max(rawTotal, ansCount, sumCount, 1);
       
       let score = 0;
       if (isEvaluated && s.score !== undefined && s.score !== null) {
         score = Math.min(100, Math.max(0, s.score));
       } else if (!isPendingEval && total > 0) {
-        score = Math.round((correct / total) * 100);
+        score = Math.min(100, Math.round((correct / total) * 100));
       } else if (s.score !== undefined && s.score !== null && !isPendingEval) {
         score = Math.min(100, Math.max(0, s.score));
       }

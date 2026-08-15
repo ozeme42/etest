@@ -191,6 +191,21 @@ export default function ModularQuizReviewPage() {
       );
     }
 
+    // 8.2 Search by title matching if not found by ID
+    if (!foundTest && foundSubmission) {
+      const subTitle = (foundSubmission.testTitle || foundSubmission.title || '').trim().toLowerCase();
+      if (subTitle && subTitle.length > 1) {
+        const matchTitle = (t) => {
+          const name = String(t?.name || t?.title || '').trim().toLowerCase();
+          return name && (name === subTitle || name.includes(subTitle) || subTitle.includes(name));
+        };
+        foundTest = (bookTests || []).find(matchTitle)
+          || (allBankQuestions || []).find(matchTitle)
+          || (homeworks || []).find(matchTitle)
+          || (curriculumData?.tests || []).find(matchTitle);
+      }
+    }
+
     // 8.5 Check submission for embedded test object or sections
     if (!foundTest && foundSubmission) {
       const embedded = foundSubmission.test || foundSubmission.homework || foundSubmission.testDetails;
@@ -419,19 +434,54 @@ export default function ModularQuizReviewPage() {
   const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
     q.type === 'html' || q.questionType === 'html' || q.contentType === 'html' || q.formatType === 'html' || q.sourceFormat === 'html' || (q.htmlPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
   ));
-  const isDefinitelyStandardForHtml = isRealStandardQuiz && !hasExplicitHtmlQuestions;
-  const isHtml = !isDefinitelyStandardForHtml && Boolean(
-    test.htmlPayload || test.sourceFormat === 'html' || test.formatType === 'html' ||
-    test.contentType === 'html' || test.type === 'html' || test.questionType === 'html' || hasExplicitHtmlQuestions
-  );
 
   const hasExplicitPdfQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
     q.type === 'pdf' || q.questionType === 'pdf' || q.contentType === 'pdf' || q.formatType === 'pdf' || q.sourceFormat === 'pdf' || (q.pdfPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
   ));
-  const isDefinitelyStandardForPdf = isRealStandardQuiz && !hasExplicitPdfQuestions;
-  const isPdf = !isDefinitelyStandardForPdf && Boolean(
-    test.pdfPayload || test.sourceFormat === 'pdf' || test.formatType === 'pdf' ||
-    test.contentType === 'pdf' || test.type === 'pdf' || test.questionType === 'pdf' || hasExplicitPdfQuestions
+
+  const isValidHtmlStr = (str) => typeof str === 'string' && (
+    str.includes('<!DOCTYPE') ||
+    str.includes('<html') ||
+    str.includes('<body') ||
+    str.includes('<div') ||
+    str.includes('<script') ||
+    str.includes('<style')
+  );
+
+  const isValidPdfStr = (str) => typeof str === 'string' && (
+    str.startsWith('data:application/pdf') ||
+    str.includes('.pdf') ||
+    str.startsWith('%PDF')
+  );
+
+  const isHtml = Boolean(
+    test.htmlPayload ||
+    isValidHtmlStr(test.contentPayload) ||
+    isValidHtmlStr(test.payload) ||
+    test.sourceFormat === 'html' ||
+    test.formatType === 'html' ||
+    test.contentType === 'html' ||
+    test.type === 'html' ||
+    test.questionType === 'html' ||
+    hasExplicitHtmlQuestions ||
+    (test.title && String(test.title).toLowerCase().includes('html')) ||
+    (test.name && String(test.name).toLowerCase().includes('html')) ||
+    (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('html'))
+  );
+
+  const isPdf = !isHtml && Boolean(
+    test.pdfPayload ||
+    test.pdfUrl ||
+    isValidPdfStr(test.contentPayload) ||
+    test.sourceFormat === 'pdf' ||
+    test.formatType === 'pdf' ||
+    test.contentType === 'pdf' ||
+    test.type === 'pdf' ||
+    test.questionType === 'pdf' ||
+    hasExplicitPdfQuestions ||
+    (test.title && String(test.title).toLowerCase().includes('pdf')) ||
+    (test.name && String(test.name).toLowerCase().includes('pdf')) ||
+    (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('pdf'))
   );
 
   const isPhysical = Boolean(
