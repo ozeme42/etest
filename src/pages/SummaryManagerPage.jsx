@@ -92,8 +92,40 @@ export default function SummaryManagerPage() {
     }
   }, [filteredSubjects, selectedSubjectId]);
 
+  // Natural unit and topic sorting
+  const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
+    if (!unit) return fallbackIndex;
+    if (typeof unit.order === 'number') return unit.order;
+    if (typeof unit.sortOrder === 'number') return unit.sortOrder;
+    if (typeof unit.unitNumber === 'number') return unit.unitNumber;
+    const match = String(unit.name || '').match(/(\d+)/);
+    return match ? parseInt(match[1], 10) : fallbackIndex;
+  };
+
+  const sortUnitsNaturally = (unitList = []) => {
+    return [...unitList].sort((a, b) => {
+      const numA = extractUnitOrderNumber(a, 999);
+      const numB = extractUnitOrderNumber(b, 999);
+      if (numA !== numB) return numA - numB;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true });
+    });
+  };
+
+  const sortTopicsNaturally = (topicList = []) => {
+    return [...topicList].sort((a, b) => {
+      if (typeof a.order === 'number' && typeof b.order === 'number') return a.order - b.order;
+      const numA = (String(a.name || '').match(/(\d+)/) || [])[1];
+      const numB = (String(b.name || '').match(/(\d+)/) || [])[1];
+      if (numA && numB && parseInt(numA, 10) !== parseInt(numB, 10)) {
+        return parseInt(numA, 10) - parseInt(numB, 10);
+      }
+      return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true });
+    });
+  };
+
   const filteredUnits = useMemo(() => {
-    return units.filter(u => String(u.subjectId) === String(selectedSubjectId));
+    const list = units.filter(u => String(u.subjectId) === String(selectedSubjectId));
+    return sortUnitsNaturally(list);
   }, [units, selectedSubjectId]);
 
   // Load summary content when target changes
@@ -267,7 +299,7 @@ export default function SummaryManagerPage() {
               filteredUnits.map((u, uIdx) => {
                 const isUnitSelected = selectedTarget?.type === 'unit' && String(selectedTarget?.id) === String(u.id);
                 const unitHasSummary = hasSummary('unit', u.id);
-                const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
+                const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
                 const filteredUnitTopics = searchQuery
                   ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   : unitTopics;

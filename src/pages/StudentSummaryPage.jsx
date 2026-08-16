@@ -36,26 +36,75 @@ const getSubjectTheme = (subjectName = '') => {
   return { icon: '📚', color: '#4f46e5', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: '#eef2ff', border: '#c7d2fe', badge: 'Ders' };
 };
 
-// Format clean unit display name (prevents duplicate "Ü1 1" outputs)
-const formatUnitDisplayName = (unit, index) => {
-  if (!unit) return `${index + 1}. Ünite`;
+// Natural alphanumeric / unit number extractor and sorter
+const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
+  if (!unit) return fallbackIndex;
+  if (typeof unit.order === 'number') return unit.order;
+  if (typeof unit.sortOrder === 'number') return unit.sortOrder;
+  if (typeof unit.unitNumber === 'number') return unit.unitNumber;
+
   const raw = String(unit.name || '').trim();
-  if (!raw) return `${index + 1}. Ünite`;
-  
-  // If raw is just a number like "1", "2", "3"
-  if (/^\d+$/.test(raw)) {
-    return `${raw}. Ünite`;
+  // Match "1. Ünite", "Ünite 1", "1 - ...", or leading numbers
+  const match = raw.match(/(\d+)/);
+  if (match) {
+    return parseInt(match[1], 10);
   }
-  // If raw is "Ünite 1" or "1. Ünite"
-  if (/^(\d+)\.\s*ünite$/i.test(raw) || /^ünite\s*(\d+)$/i.test(raw)) {
-    const num = raw.replace(/\D/g, '');
-    return `${num || index + 1}. Ünite`;
+  return fallbackIndex;
+};
+
+const sortUnitsNaturally = (unitList = []) => {
+  return [...unitList].sort((a, b) => {
+    const numA = extractUnitOrderNumber(a, 999);
+    const numB = extractUnitOrderNumber(b, 999);
+    if (numA !== numB) {
+      return numA - numB;
+    }
+    return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
+  });
+};
+
+const sortTopicsNaturally = (topicList = []) => {
+  return [...topicList].sort((a, b) => {
+    if (typeof a.order === 'number' && typeof b.order === 'number') return a.order - b.order;
+    const numA = (String(a.name || '').match(/(\d+)/) || [])[1];
+    const numB = (String(b.name || '').match(/(\d+)/) || [])[1];
+    if (numA && numB && parseInt(numA, 10) !== parseInt(numB, 10)) {
+      return parseInt(numA, 10) - parseInt(numB, 10);
+    }
+    return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
+  });
+};
+
+// Format clean unit details and titles
+const getUnitDetails = (unit, index) => {
+  const unitNum = extractUnitOrderNumber(unit, index + 1);
+  const raw = String(unit?.name || '').trim();
+
+  // If raw is just "1", "1. Ünite", "Ünite 1", "1 - Ünite", etc.
+  const isGeneric = !raw || 
+    /^\d+$/.test(raw) || 
+    /^(\d+)\.\s*ünite$/i.test(raw) || 
+    /^ünite\s*(\d+)$/i.test(raw) || 
+    /^ünite\s*-\s*(\d+)$/i.test(raw);
+
+  let cleanTitle = '';
+  if (!isGeneric) {
+    cleanTitle = raw
+      .replace(/^(\d+\.\s*ünite|\d+\s*-\s*ünite|ünite\s*\d+)[:\s\-]*/i, '')
+      .replace(/^(\d+)[\.\-]\s*/, '')
+      .trim();
   }
-  // If raw already starts with "1. Ünite" or "Ünite 1"
-  if (/^(\d+\.|\d+\s*-\s*|ünite\s*\d+)/i.test(raw)) {
-    return raw;
-  }
-  return `${index + 1}. Ünite: ${raw}`;
+
+  const fullDisplayName = cleanTitle 
+    ? `${unitNum}. Ünite: ${cleanTitle}` 
+    : `${unitNum}. Ünite`;
+
+  return {
+    unitNum,
+    cleanTitle,
+    fullDisplayName,
+    badgeText: `${unitNum}. ÜNİTE`
+  };
 };
 
 export default function StudentSummaryPage() {
@@ -101,32 +150,33 @@ export default function StudentSummaryPage() {
     }
   }, [filteredSubjects, selectedSubjectId]);
 
-  // Filter units by selected subject
+  // Filter and naturally sort units by selected subject (1. Ünite, 2. Ünite, 3. Ünite...)
   const filteredUnits = useMemo(() => {
-    return units.filter(u => String(u.subjectId) === String(selectedSubjectId));
+    const list = units.filter(u => String(u.subjectId) === String(selectedSubjectId));
+    return sortUnitsNaturally(list);
   }, [units, selectedSubjectId]);
 
-  // Linear list of all reading items for next / previous navigation
+  // Linear list of all reading items for next / previous navigation in natural order
   const readingItemList = useMemo(() => {
     const list = [];
     filteredUnits.forEach((u, uIdx) => {
-      const uTitle = formatUnitDisplayName(u, uIdx);
+      const { fullDisplayName } = getUnitDetails(u, uIdx);
       list.push({
         type: 'unit',
         id: u.id,
-        name: uTitle,
+        name: fullDisplayName,
         unitId: u.id,
-        unitName: uTitle,
-        label: `${uTitle} (Genel Özet)`
+        unitName: fullDisplayName,
+        label: `${fullDisplayName} (Genel Özet)`
       });
-      const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
+      const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
       unitTopics.forEach(t => {
         list.push({
           type: 'topic',
           id: t.id,
           name: t.name,
           unitId: u.id,
-          unitName: uTitle,
+          unitName: fullDisplayName,
           label: t.name
         });
       });
@@ -341,22 +391,22 @@ export default function StudentSummaryPage() {
 
                 <div className="edu-drawer-scroll custom-scrollbar">
                   {filteredUnits.map((u, uIdx) => {
-                    const uTitle = formatUnitDisplayName(u, uIdx);
+                    const { unitNum, fullDisplayName, badgeText } = getUnitDetails(u, uIdx);
                     const isUnitActive = activeReadingTarget?.type === 'unit' && String(activeReadingTarget?.id) === String(u.id);
                     const unitHasSummary = hasSummary('unit', u.id);
-                    const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
+                    const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
 
                     return (
                       <div key={u.id} className="edu-drawer-unit-box">
                         <div 
                           className={`edu-drawer-unit-item ${isUnitActive ? 'active' : ''}`}
                           onClick={() => {
-                            setActiveReadingTarget({ type: 'unit', id: u.id, name: uTitle, unitId: u.id, unitName: uTitle });
+                            setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName });
                             setIsDrawerOpen(false);
                           }}
                         >
-                          <span className="edu-unit-num">{uIdx + 1}</span>
-                          <strong>{uTitle} (Genel Özet)</strong>
+                          <span className="edu-unit-num">{unitNum}</span>
+                          <strong>{fullDisplayName} (Genel Özet)</strong>
                           {unitHasSummary && <span className="edu-dot-badge">●</span>}
                         </div>
 
@@ -370,7 +420,7 @@ export default function StudentSummaryPage() {
                                 key={t.id}
                                 className={`edu-drawer-topic-item ${isTopicActive ? 'active' : ''}`}
                                 onClick={() => {
-                                  setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: uTitle });
+                                  setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: fullDisplayName });
                                   setIsDrawerOpen(false);
                                 }}
                               >
@@ -490,15 +540,15 @@ export default function StudentSummaryPage() {
           <div className="edu-units-catalog-grid">
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
-                const uTitle = formatUnitDisplayName(u, uIdx);
+                const { unitNum, cleanTitle, fullDisplayName, badgeText } = getUnitDetails(u, uIdx);
                 const unitHasSummary = hasSummary('unit', u.id);
-                const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
+                const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
 
                 const filteredTopicsList = searchQuery
-                  ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || uTitle.toLowerCase().includes(searchQuery.toLowerCase()))
+                  ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || fullDisplayName.toLowerCase().includes(searchQuery.toLowerCase()))
                   : unitTopics;
 
-                if (searchQuery && !uTitle.toLowerCase().includes(searchQuery.toLowerCase()) && filteredTopicsList.length === 0) {
+                if (searchQuery && !fullDisplayName.toLowerCase().includes(searchQuery.toLowerCase()) && filteredTopicsList.length === 0) {
                   return null;
                 }
 
@@ -521,15 +571,17 @@ export default function StudentSummaryPage() {
                             color: '#ffffff'
                           }}
                         >
-                          {uIdx + 1}. ÜNİTE
+                          {badgeText}
                         </span>
-                        <h3 className="edu-unit-vibrant-title">{uTitle}</h3>
+                        {cleanTitle ? (
+                          <h3 className="edu-unit-vibrant-title">{cleanTitle}</h3>
+                        ) : null}
                       </div>
 
                       {/* General Unit Summary Button */}
                       <button
                         className={`edu-unit-summary-action-btn ${unitHasSummary ? 'has-summary' : ''}`}
-                        onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: uTitle, unitId: u.id, unitName: uTitle })}
+                        onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName })}
                         style={{
                           '--action-color': activeTheme.color,
                           '--action-bg': activeTheme.lightBg
@@ -553,7 +605,7 @@ export default function StudentSummaryPage() {
                               <div
                                 key={t.id}
                                 className={`edu-topic-vibrant-chip ${topicHasSummary ? 'has-content' : ''}`}
-                                onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: uTitle })}
+                                onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: fullDisplayName })}
                               >
                                 <div className="edu-topic-chip-left">
                                   <span className="edu-topic-pill-num">{tIdx + 1}</span>
