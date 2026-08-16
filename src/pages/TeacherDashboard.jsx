@@ -328,10 +328,8 @@ export default function TeacherDashboard() {
     setEditStudentName(student.name || '');
     setEditStudentEmail(student.email || '');
     setEditStudentPassword(student.password || '123456');
-    const g = data?.grades?.find(g =>
-      String(g.id) === String(student.gradeId) || g.name === student.gradeId ||
-      String(g.id) === String(student.classId) || g.name === student.grade
-    );
+    const g = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
+           || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
     setEditStudentGrade(g ? g.id : (student.gradeId || data?.grades?.[0]?.id || 'g1'));
   };
 
@@ -758,10 +756,8 @@ export default function TeacherDashboard() {
                         {students.map((student, i) => {
                           const solved = submissions.filter(s => s.studentId === student.id).length;
                           const isCoached = coachedIds.includes(student.id);
-                          const gObj = data?.grades?.find(g =>
-                            String(g.id) === String(student.gradeId) || g.name === student.gradeId ||
-                            String(g.id) === String(student.classId) || g.name === student.grade || g.name === student.className
-                          );
+                          const gObj = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
+                                    || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
                           return (
                             <tr key={student.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.1s' }}
                               onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
@@ -777,7 +773,7 @@ export default function TeacherDashboard() {
                                   value={gObj ? gObj.id : (student.gradeId || '')}
                                   onChange={async (e) => {
                                     const gId = e.target.value;
-                                    const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name;
+                                    const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name || gId;
                                     await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
                                   }}
                                   style={{ padding: '0.3rem 0.6rem', borderRadius: '0.6rem', border: '1.5px solid #dbeafe', background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', outline: 'none' }}
@@ -819,7 +815,8 @@ export default function TeacherDashboard() {
                   {/* Mobile cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem' }}>
                     {students.map((student, i) => {
-                      const grade   = data.grades.find(g => String(g.id) === String(student.gradeId) || g.name === student.gradeId || String(g.id) === String(student.classId) || g.name === student.grade || g.name === student.className);
+                      const grade = data.grades.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
+                                 || data.grades.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
                       const solved  = submissions.filter(s => s.studentId === student.id).length;
                       const isCoached = coachedIds.includes(student.id);
                       return (

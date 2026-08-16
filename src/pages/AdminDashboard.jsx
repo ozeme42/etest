@@ -309,12 +309,8 @@ function UserManager() {
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUserId(user.id);
-      const matchedGrade = curData?.grades?.find(g => 
-        String(g.id) === String(user.gradeId) || 
-        g.name === user.gradeId || 
-        String(g.id) === String(user.classId) || 
-        g.name === user.grade
-      );
+      const matchedGrade = curData?.grades?.find(g => String(g.id) === String(user.gradeId) || String(g.id) === String(user.classId))
+        || curData?.grades?.find(g => g.name === user.gradeId || g.name === user.grade || g.name === user.className);
       setFormData({
         name: user.name || '',
         email: user.email || '',
@@ -463,13 +459,8 @@ function UserManager() {
                   </td>
                   <td>
                     {user.role === 'student' ? (() => {
-                      const userGradeObj = curData?.grades?.find(g => 
-                        String(g.id) === String(user.gradeId) || 
-                        g.name === user.gradeId || 
-                        String(g.id) === String(user.classId) || 
-                        g.name === user.grade ||
-                        g.name === user.className
-                      );
+                      const userGradeObj = curData?.grades?.find(g => String(g.id) === String(user.gradeId) || String(g.id) === String(user.classId))
+                        || curData?.grades?.find(g => g.name === user.gradeId || g.name === user.grade || g.name === user.className);
                       const currentGradeVal = userGradeObj ? userGradeObj.id : (user.gradeId || '');
                       return (
                         <select

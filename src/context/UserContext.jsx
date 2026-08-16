@@ -31,11 +31,11 @@ export function UserProvider({ children }) {
             return {
               ...localU,
               ...dbU,
-              // Permanently preserve class/grade and teacher info if dbU has default/null values
-              gradeId: (dbU.gradeId && dbU.gradeId !== 'g1') ? dbU.gradeId : (localU?.gradeId || dbU.gradeId || 'g1'),
-              classId: dbU.classId || localU?.classId || null,
-              className: dbU.className || localU?.className || null,
-              grade: dbU.grade || localU?.grade || null,
+              // Supabase gradeId is the authoritative value
+              gradeId: dbU.gradeId || 'g1',
+              classId: dbU.classId || dbU.gradeId || 'g1',
+              grade: dbU.grade || null,
+              className: dbU.className || null,
               teacherId: (dbU.teacherId !== undefined && dbU.teacherId !== null) ? dbU.teacherId : (localU?.teacherId || null),
               password: dbU.password || localU?.password || null,
             };
