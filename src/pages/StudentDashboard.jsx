@@ -647,16 +647,32 @@ export default function StudentDashboard() {
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
 
       let score = 0;
-      if (isEvaluated && s.score !== undefined && s.score !== null) {
-        score = Math.min(100, Math.max(0, s.score));
+      if (isEvaluated && sub.score !== undefined && sub.score !== null) {
+        score = Math.min(100, Math.max(0, sub.score));
       } else if (!isPendingEval && total > 0) {
         score = Math.min(100, Math.round((correct / total) * 100));
-      } else if (s.score !== undefined && s.score !== null && !isPendingEval) {
-        score = Math.min(100, Math.max(0, s.score));
+      } else if (sub.score !== undefined && sub.score !== null && !isPendingEval) {
+        score = Math.min(100, Math.max(0, sub.score));
       }
 
-      return { ...s, correctCount: correct, wrongCount: wrong, blankCount: blank, totalQuestions: total, computedScore: score };
+      unifiedSubmissions.push({
+        ...sub,
+        id: sub.id || `hw_sub_${hw.id}_${selectedStudent?.id}`,
+        hwId: hw.id,
+        testId: hw.id,
+        correctCount: correct,
+        wrongCount: wrong,
+        blankCount: blank,
+        totalQuestions: total,
+        computedScore: score
+      });
     });
+
+    const completedTests = tests.filter(t => t.status === 'Sonuçlandı');
+    const completedAssignments = assignments.filter(a => a.status === 'completed');
+    const totalAll = tests.length + assignments.length;
+    const totalDone = completedTests.length + completedAssignments.length;
+    const completedRate = totalAll > 0 ? (totalDone / totalAll) * 100 : 0;
 
     let sumScore = 0;
     let globalCorrect = 0;
@@ -669,11 +685,20 @@ export default function StudentDashboard() {
 
     const successRate = unifiedSubmissions.length > 0
       ? Math.round(sumScore / unifiedSubmissions.length)
-      : (globalTotal > 0 ? Math.round((globalCorrect / globalTotal) * 100) : 0);
+      : 0;
 
     const overdueCount = tests.filter(t => t.status === 'Atandı' && isPast(parseSafeDate(t.dueDate)) && !isToday(parseSafeDate(t.dueDate))).length;
-    return { testCount: tests.length, pendingCount: (tests.length - completedTests.length), successRate, overdueCount, completedRate, totalSolvedTests: unifiedSubmissions.length, totalQ: globalTotal, totalCorrect: globalCorrect };
-  }, [tests, assignments, submissions, homeworks, bookTests, selectedStudent]);
+    return {
+      testCount: tests.length,
+      pendingCount: (tests.length - completedTests.length),
+      successRate,
+      overdueCount,
+      completedRate,
+      totalSolvedTests: unifiedSubmissions.length,
+      totalQ: globalTotal,
+      totalCorrect: globalCorrect
+    };
+  }, [tests, assignments, submissions, homeworks, selectedStudent, curData]);
 
   const studentGoals = useMemo(() => {
     if (!selectedStudent) return [];
