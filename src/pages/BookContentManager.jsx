@@ -82,6 +82,7 @@ export default function BookContentManager() {
   // Accordion States (Expanded by default)
   const [collapsedSubjects, setCollapsedSubjects] = useState({});
   const [collapsedTopics, setCollapsedTopics] = useState({});
+  const [selectedTests, setSelectedTests] = useState([]);
   const [expandedHomeworkDetails, setExpandedHomeworkDetails] = useState({});
   const [expandedStudentTests, setExpandedStudentTests] = useState({});
   const [studentTestSearch, setStudentTestSearch] = useState({});
