@@ -22,6 +22,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
+import { toUUID } from '../services/supabaseService';
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from 'recharts';
 
 /* ─── helpers ──────────────────────────────────────────────────── */

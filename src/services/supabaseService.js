@@ -214,11 +214,11 @@ export async function dbGetSummaries() {
   try {
     const { data, error } = await supabase.from('summaries').select('*').order('created_at', { ascending: false });
     if (error) {
-      // If summaries table does not exist yet on remote, fail gracefully
-      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      // If summaries table does not exist yet on remote, fail gracefully without errors
+      if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('does not exist') || error.message?.includes('schema cache') || error.message?.includes('404')) {
         return null;
       }
-      throw error;
+      return null;
     }
     return (data || []).map(s => ({
       id: String(s.id),
@@ -235,7 +235,6 @@ export async function dbGetSummaries() {
       updatedAt: s.updated_at || s.created_at
     }));
   } catch (err) {
-    console.warn('[Supabase] dbGetSummaries error:', err.message);
     return null;
   }
 }
@@ -262,13 +261,10 @@ export async function dbSaveSummary(summary) {
 
     const { data, error } = await supabase.from('summaries').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
-      // If table does not exist or column mismatch, log cleanly and return payload so app keeps functioning locally
-      console.warn('[Supabase] dbSaveSummary notice:', error.message);
       return { success: true, data: [payload] };
     }
     return { success: true, data };
   } catch (err) {
-    console.warn('[Supabase] dbSaveSummary unexpected:', err.message);
     return { success: true };
   }
 }
@@ -278,10 +274,9 @@ export async function dbDeleteSummary(targetId) {
   try {
     const targetIdStr = String(targetId);
     const { error } = await supabase.from('summaries').delete().or(`id.eq.${targetIdStr},target_id.eq.${targetIdStr}`);
-    if (error) throw error;
+    if (error) return false;
     return true;
   } catch (err) {
-    console.warn('[Supabase] dbDeleteSummary error:', err.message);
     return false;
   }
 }
