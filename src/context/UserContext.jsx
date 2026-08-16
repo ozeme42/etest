@@ -28,14 +28,16 @@ export function UserProvider({ children }) {
               String(l.id) === String(dbU.id) || 
               (l.email && dbU.email && l.email.toLowerCase() === dbU.email.toLowerCase())
             );
+            const actualGradeId = dbU.gradeId || dbU.grade_id || localU?.gradeId || localU?.grade_id || 'g1';
             return {
               ...localU,
               ...dbU,
-              // Supabase gradeId is the authoritative value
-              gradeId: dbU.gradeId || 'g1',
-              classId: dbU.classId || dbU.gradeId || 'g1',
-              grade: dbU.grade || null,
-              className: dbU.className || null,
+              id: dbU.id || localU?.id,
+              gradeId: actualGradeId,
+              grade_id: actualGradeId,
+              classId: actualGradeId,
+              grade: dbU.grade || localU?.grade || null,
+              className: dbU.className || localU?.className || null,
               teacherId: (dbU.teacherId !== undefined && dbU.teacherId !== null) ? dbU.teacherId : (localU?.teacherId || null),
               password: dbU.password || localU?.password || null,
             };
@@ -63,9 +65,12 @@ export function UserProvider({ children }) {
   }, [users]);
 
   const addUser = async (userData) => {
+    const gId = userData.gradeId || userData.grade_id || userData.grade || userData.classId || 'g1';
     const newUser = {
       id: userData.id || `u_${Date.now()}`,
-      gradeId: userData.gradeId || userData.grade || userData.classId || 'g1',
+      gradeId: gId,
+      grade_id: gId,
+      classId: gId,
       ...userData
     };
     setUsers(prev => {
@@ -93,13 +98,16 @@ export function UserProvider({ children }) {
           (targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail);
         
         if (isMatch) {
-          updatedUserObj = { ...u, ...updatedData };
-          if (updatedData.gradeId) {
-            updatedUserObj.gradeId = updatedData.gradeId;
-            updatedUserObj.classId = updatedData.classId || updatedData.gradeId;
-            if (updatedData.grade) updatedUserObj.grade = updatedData.grade;
-            if (updatedData.className) updatedUserObj.className = updatedData.className;
-          }
+          const newGradeId = updatedData.gradeId || updatedData.grade_id || updatedData.classId || u.gradeId || u.grade_id;
+          updatedUserObj = { 
+            ...u, 
+            ...updatedData,
+            gradeId: newGradeId,
+            grade_id: newGradeId,
+            classId: newGradeId,
+            grade: updatedData.grade !== undefined ? updatedData.grade : (u.grade || null),
+            className: updatedData.className !== undefined ? updatedData.className : (updatedData.grade || u.className || null)
+          };
           return updatedUserObj;
         }
         return u;
@@ -110,7 +118,6 @@ export function UserProvider({ children }) {
 
     if (updatedUserObj) {
       await dbUpdateUser(updatedUserObj.id || id, updatedUserObj);
-      await dbAddUser(updatedUserObj);
     }
     return updatedUserObj;
   };

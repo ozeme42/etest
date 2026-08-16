@@ -122,14 +122,16 @@ export function AuthProvider({ children }) {
           const userObj = {
             id: data.user.id,
             email: data.user.email,
-            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+            name: foundUser?.name || data.user.user_metadata?.name || data.user.email.split('@')[0],
             password: password,
             role,
-            gradeId: data.user.user_metadata?.gradeId || 'g1',
+            gradeId: foundUser?.gradeId || data.user.user_metadata?.gradeId || 'g1',
             isApproved
           };
           setCurrentUser(userObj);
-          await dbAddUser(userObj);
+          if (!foundUser) {
+            await dbAddUser(userObj);
+          }
           setLoading(false);
           return { success: true, user: userObj };
         } else if (supaErr && !foundUser) {
