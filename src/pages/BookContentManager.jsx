@@ -1322,7 +1322,9 @@ export default function BookContentManager() {
                     return { student: st, studentId: stId, solvedCount, totalTestsInHw, isDone, pct, solvedSubmissions };
                   }).filter(Boolean);
 
-                  const overallHwPct = targetStudents.length > 0 ? Math.round((completedStudentsCount / targetStudents.length) * 100) : 0;
+                  const totalSolvedInHw = studentProgressDetails.reduce((sum, item) => sum + (item.solvedCount || 0), 0);
+                  const totalPossibleInHw = (targetStudents.length || 1) * totalTestsInHw;
+                  const overallHwProgressPct = totalPossibleInHw > 0 ? Math.round((totalSolvedInHw / totalPossibleInHw) * 100) : 0;
                   const isExpanded = expandedHomeworkDetails[hw.id];
                   const isExpired = new Date(hw.dueDate) < new Date();
 
@@ -1373,13 +1375,13 @@ export default function BookContentManager() {
 
                         {/* PROGRESS BAR & ACTIONS */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                          <div style={{ minWidth: '150px' }}>
+                          <div style={{ minWidth: '160px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.25rem' }}>
-                              <span style={{ color: '#475569' }}>Tamamlanma</span>
-                              <span style={{ color: overallHwPct === 100 ? '#059669' : '#4f46e5' }}>%{overallHwPct} ({completedStudentsCount}/{targetStudents.length})</span>
+                              <span style={{ color: '#475569' }}>İlerleme</span>
+                              <span style={{ color: overallHwProgressPct === 100 ? '#059669' : '#4f46e5' }}>%{overallHwProgressPct} ({totalSolvedInHw}/{totalPossibleInHw} Test)</span>
                             </div>
                             <div style={{ background: '#e2e8f0', borderRadius: 99, height: 7, overflow: 'hidden' }}>
-                              <div style={{ width: `${overallHwPct}%`, background: overallHwPct === 100 ? '#10b981' : '#4f46e5', height: '100%', borderRadius: 99 }} />
+                              <div style={{ width: `${overallHwProgressPct}%`, background: overallHwProgressPct === 100 ? '#10b981' : '#4f46e5', height: '100%', borderRadius: 99 }} />
                             </div>
                           </div>
 
