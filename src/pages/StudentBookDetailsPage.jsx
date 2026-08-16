@@ -7,7 +7,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import PdfViewerPanel from '../components/PdfViewerPanel';
@@ -23,10 +23,42 @@ export default function StudentBookDetailsPage() {
   const { submissions = [], deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const [openSubjects, setOpenSubjects] = useState({});
   const [openTopics, setOpenTopics] = useState({});
+  const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
+  const [editingTest, setEditingTest] = useState(null);
+  const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, answerKey: {}, pdfUrl: '' });
 
   const queryStudentId = searchParams.get('studentId');
   const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
   const isTeacherViewing = currentUser?.role === 'teacher' || currentUser?.role === 'admin' || isFromTeacher;
+
+  const handleOpenEditTest = (test) => {
+    setEditingTest(test);
+    setEditTestFormData({
+      name: test.name || '',
+      questionCount: test.questionCount || 20,
+      answerKey: test.answerKey || {},
+      pdfUrl: test.pdfUrl || ''
+    });
+    setIsEditTestModalOpen(true);
+  };
+
+  const handleSaveEditTest = async () => {
+    if (!editingTest || !editTestFormData.name?.trim()) return;
+    try {
+      await updateTrackedBookTest(editingTest.id, {
+        bookId: String(book?.id || editingTest.bookId),
+        subjectId: editingTest.subjectId ? String(editingTest.subjectId) : null,
+        topicId: editingTest.topicId ? String(editingTest.topicId) : null,
+        name: editTestFormData.name.trim(),
+        questionCount: Number(editTestFormData.questionCount) || 20,
+        answerKey: editTestFormData.answerKey || {},
+        pdfUrl: editTestFormData.pdfUrl || ''
+      });
+      setIsEditTestModalOpen(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const targetStudent = useMemo(() => {
     if (queryStudentId) {
@@ -695,32 +727,44 @@ export default function StudentBookDetailsPage() {
                                     <Eye size={13} /> Sonucu İncele
                                   </button>
                                   {isTeacherViewing && (
-                                    <button
-                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                      title="Bu testi sıfırla (Sadece Öğretmen)"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                          if (test.latestSubId) {
-                                            await deleteSubmission(test.latestSubId);
+                                    <>
+                                      <button
+                                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #c7d2fe', color: '#4338ca', background: '#eef2ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                        title="Testi Düzenle"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleOpenEditTest(test);
+                                        }}
+                                      >
+                                        <Edit size={12} /> Düzenle
+                                      </button>
+                                      <button
+                                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                        title="Bu testi sıfırla (Sadece Öğretmen)"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                            if (test.latestSubId) {
+                                              await deleteSubmission(test.latestSubId);
+                                            }
+                                            if (test.bestSub?.id) {
+                                              await deleteSubmission(test.bestSub.id);
+                                            }
+                                            if (test.bestSub?.supabaseId) {
+                                              await deleteSubmission(test.bestSub.supabaseId);
+                                            }
+                                            if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+                                              await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                            }
+                                            if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+                                              await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
+                                            }
                                           }
-                                          if (test.bestSub?.id) {
-                                            await deleteSubmission(test.bestSub.id);
-                                          }
-                                          if (test.bestSub?.supabaseId) {
-                                            await deleteSubmission(test.bestSub.supabaseId);
-                                          }
-                                          if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-                                            await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                          }
-                                          if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-                                            await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
-                                          }
-                                        }
-                                      }}
-                                    >
-                                      <RotateCcw size={12} /> Sıfırla
-                                    </button>
+                                        }}
+                                      >
+                                        <RotateCcw size={12} /> Sıfırla
+                                      </button>
+                                    </>
                                   )}
                                 </div>
                               ) : test.isLocked ? (
@@ -839,32 +883,44 @@ export default function StudentBookDetailsPage() {
                                             <Eye size={13} /> Sonucu İncele
                                           </button>
                                           {isTeacherViewing && (
-                                            <button
-                                              style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                              title="Bu testi sıfırla"
-                                              onClick={async (e) => {
-                                                e.stopPropagation();
-                                                if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                                  if (test.latestSubId) {
-                                                    await deleteSubmission(test.latestSubId);
+                                            <>
+                                              <button
+                                                style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #c7d2fe', color: '#4338ca', background: '#eef2ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                                title="Testi Düzenle"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleOpenEditTest(test);
+                                                }}
+                                              >
+                                                <Edit size={12} /> Düzenle
+                                              </button>
+                                              <button
+                                                style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                                title="Bu testi sıfırla"
+                                                onClick={async (e) => {
+                                                  e.stopPropagation();
+                                                  if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                                    if (test.latestSubId) {
+                                                      await deleteSubmission(test.latestSubId);
+                                                    }
+                                                    if (test.bestSub?.id) {
+                                                      await deleteSubmission(test.bestSub.id);
+                                                    }
+                                                    if (test.bestSub?.supabaseId) {
+                                                      await deleteSubmission(test.bestSub.supabaseId);
+                                                    }
+                                                    if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+                                                      await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                                    }
+                                                    if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+                                                      await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
+                                                    }
                                                   }
-                                                  if (test.bestSub?.id) {
-                                                    await deleteSubmission(test.bestSub.id);
-                                                  }
-                                                  if (test.bestSub?.supabaseId) {
-                                                    await deleteSubmission(test.bestSub.supabaseId);
-                                                  }
-                                                  if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-                                                    await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                                  }
-                                                  if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-                                                    await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
-                                                  }
-                                                }
-                                              }}
-                                            >
-                                              <RotateCcw size={12} /> Sıfırla
-                                            </button>
+                                                }}
+                                              >
+                                                <RotateCcw size={12} /> Sıfırla
+                                              </button>
+                                            </>
                                           )}
                                         </div>
                                       ) : test.isLocked ? (
@@ -949,32 +1005,44 @@ export default function StudentBookDetailsPage() {
                                   <Eye size={13} /> Sonucu İncele
                                 </button>
                                 {isTeacherViewing && (
-                                  <button
-                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                    title="Bu testi sıfırla (Sadece Öğretmen)"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                        if (test.latestSubId) {
-                                          await deleteSubmission(test.latestSubId);
+                                  <>
+                                    <button
+                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #c7d2fe', color: '#4338ca', background: '#eef2ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      title="Testi Düzenle"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenEditTest(test);
+                                      }}
+                                    >
+                                      <Edit size={12} /> Düzenle
+                                    </button>
+                                    <button
+                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      title="Bu testi sıfırla (Sadece Öğretmen)"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                          if (test.latestSubId) {
+                                            await deleteSubmission(test.latestSubId);
+                                          }
+                                          if (test.bestSub?.id) {
+                                            await deleteSubmission(test.bestSub.id);
+                                          }
+                                          if (test.bestSub?.supabaseId) {
+                                            await deleteSubmission(test.bestSub.supabaseId);
+                                          }
+                                          if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+                                            await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                          }
+                                          if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+                                            await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
+                                          }
                                         }
-                                        if (test.bestSub?.id) {
-                                          await deleteSubmission(test.bestSub.id);
-                                        }
-                                        if (test.bestSub?.supabaseId) {
-                                          await deleteSubmission(test.bestSub.supabaseId);
-                                        }
-                                        if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-                                          await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                        }
-                                        if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-                                          await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
-                                        }
-                                      }
-                                    }}
-                                  >
-                                    <RotateCcw size={12} /> Sıfırla
-                                  </button>
+                                      }}
+                                    >
+                                      <RotateCcw size={12} /> Sıfırla
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             ) : test.isLocked ? (
@@ -1102,6 +1170,105 @@ export default function StudentBookDetailsPage() {
               >
                 <Save size={18} /> {isSavingBulk ? 'Kaydediliyor...' : 'Tümünü Kaydet'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Single Test Edit Modal (Teacher) */}
+      {isEditTestModalOpen && editingTest && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '450px', background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--color-primary)', fontSize: '1.15rem', fontWeight: 800 }}>Testi Düzenle: {editingTest.name}</h3>
+            
+            <div style={{ margin: '1rem 0' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>Test Adı</label>
+              <input 
+                type="text" 
+                value={editTestFormData.name} 
+                onChange={e => setEditTestFormData(p => ({ ...p, name: e.target.value }))} 
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }} 
+                autoFocus 
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>Soru Sayısı</label>
+              <input 
+                type="number" 
+                min="1"
+                max="100"
+                value={editTestFormData.questionCount} 
+                onChange={e => setEditTestFormData(p => ({ ...p, questionCount: parseInt(e.target.value) || 0 }))} 
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }} 
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>PDF Linki (İsteğe Bağlı)</label>
+              <input
+                type="url"
+                value={editTestFormData.pdfUrl || ''}
+                onChange={e => setEditTestFormData(p => ({ ...p, pdfUrl: e.target.value }))}
+                placeholder="https://drive.google.com/... veya PDF URL"
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                <span>Cevap Anahtarı</span>
+                <input 
+                  type="text" 
+                  placeholder="Toplu Gir (Örn: ABC...)"
+                  onChange={(e) => {
+                    const str = e.target.value;
+                    const newKey = {};
+                    str.replace(/[^A-Ea-e]/g, '').toUpperCase().split('').forEach((char, idx) => {
+                      if (idx < editTestFormData.questionCount) newKey[idx + 1] = char;
+                    });
+                    setEditTestFormData(p => ({ ...p, answerKey: newKey }));
+                  }}
+                  style={{ padding: '0.3rem 0.5rem', fontSize: '0.78rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', width: '150px', outline: 'none' }}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto', padding: '0.5rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                {Array.from({ length: editTestFormData.questionCount }).map((_, i) => {
+                  const qNum = i + 1;
+                  const val = editTestFormData.answerKey?.[qNum] || '';
+                  return (
+                    <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0' }}>
+                      <div style={{ width: '18px', fontWeight: 800, fontSize: '0.75rem', color: '#64748b' }}>{qNum}.</div>
+                      <div style={{ display: 'flex', gap: '0.2rem' }}>
+                        {['A', 'B', 'C', 'D', 'E'].map(opt => {
+                          const isSelected = val === opt;
+                          return (
+                            <button
+                              type="button"
+                              key={opt}
+                              onClick={() => setEditTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
+                              style={{
+                                width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #cbd5e1',
+                                background: isSelected ? 'var(--color-primary)' : 'white',
+                                color: isSelected ? 'white' : '#1e293b', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button className="btn btn-outline" onClick={() => setIsEditTestModalOpen(false)} style={{ padding: '0.5rem 1rem', fontWeight: 700 }}>İptal</button>
+              <button className="btn btn-primary" onClick={handleSaveEditTest} style={{ padding: '0.5rem 1.25rem', fontWeight: 800 }}>Kaydet</button>
             </div>
           </div>
         </div>

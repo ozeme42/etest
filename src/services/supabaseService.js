@@ -1589,17 +1589,18 @@ export async function dbDeleteTrackedBook(bookId) {
 }
 
 export async function dbAddTrackedBookTest(test) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !test) return null;
   try {
+    const bId = test.bookId || test.book_id || null;
     const payload = {
       id: String(test.id || `tbt_${Date.now()}`),
-      book_id: String(test.bookId),
-      subject_id: test.subjectId ? String(test.subjectId) : null,
-      topic_id: test.topicId ? String(test.topicId) : null,
+      book_id: bId ? String(bId) : null,
+      subject_id: (test.subjectId || test.subject_id) ? String(test.subjectId || test.subject_id) : null,
+      topic_id: (test.topicId || test.topic_id) ? String(test.topicId || test.topic_id) : null,
       name: test.name,
-      question_count: test.questionCount || 20,
-      answer_key: test.answerKey || {},
-      pdf_url: test.pdfUrl || ''
+      question_count: Number(test.questionCount || test.question_count) || 20,
+      answer_key: test.answerKey || test.answer_key || {},
+      pdf_url: test.pdfUrl || test.pdf_url || ''
     };
     const { data, error } = await supabase.from('tracked_book_tests').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;

@@ -465,22 +465,40 @@ export default function BookContentManager() {
   };
 
   const handleTestSave = async () => {
-    if (!book || !currentSubject || !testFormData.name.trim()) return;
+    if (!book || !testFormData.name?.trim()) {
+      showToast('Lütfen test adını giriniz.', 'error');
+      return;
+    }
     
+    const targetSubjectId = currentSubject?.id || currentTest?.subjectId || null;
+    const targetTopicId = currentTopic ? String(currentTopic.id) : (currentTest?.topicId || null);
+
     const testPayload = {
-      subjectId: String(currentSubject.id),
-      topicId: currentTopic ? String(currentTopic.id) : null,
-      name: testFormData.name,
-      questionCount: testFormData.questionCount || 20,
+      bookId: String(book.id),
+      subjectId: targetSubjectId ? String(targetSubjectId) : null,
+      topicId: targetTopicId,
+      name: testFormData.name.trim(),
+      questionCount: Number(testFormData.questionCount) || 20,
       pdfUrl: testFormData.pdfUrl || '',
     };
     
-    if (book.bookType !== 'open_ended') testPayload.answerKey = testFormData.answerKey;
+    if (book.bookType !== 'open_ended') {
+      testPayload.answerKey = testFormData.answerKey || {};
+    }
 
-    if (currentTest) updateTrackedBookTest(currentTest.id, testPayload);
-    else addTrackedBookTest(book.id, testPayload);
-    
-    setIsTestDialogOpen(false);
+    try {
+      if (currentTest) {
+        await updateTrackedBookTest(currentTest.id, testPayload);
+        showToast('Test başarıyla güncellendi.', 'success');
+      } else {
+        await addTrackedBookTest(book.id, testPayload);
+        showToast('Yeni test başarıyla eklendi.', 'success');
+      }
+      setIsTestDialogOpen(false);
+    } catch (err) {
+      console.error(err);
+      showToast('Test kaydedilirken bir hata oluştu.', 'error');
+    }
   };
 
   // --- BULK WIZARD EXECUTION ---

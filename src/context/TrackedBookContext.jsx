@@ -113,10 +113,33 @@ export function TrackedBookProvider({ children }) {
   };
 
   const updateTrackedBookTest = async (id, updates) => {
-    setBookTests(prev => prev.map(test => test.id === id ? { ...test, ...updates } : test));
-    const target = bookTests.find(t => t.id === id);
-    if (target) {
-      await dbAddTrackedBookTest({ ...target, ...updates });
+    let updatedObj = null;
+    const idStr = String(id);
+    const idUuid = toUUID(idStr);
+
+    setBookTests(prev => {
+      const next = prev.map(test => {
+        const isMatch = String(test.id) === idStr || (idUuid && String(test.id) === idUuid) || (toUUID(test.id) && String(toUUID(test.id)) === idUuid);
+        if (isMatch) {
+          updatedObj = { ...test, ...updates, id: test.id, bookId: updates.bookId || test.bookId || test.book_id };
+          return updatedObj;
+        }
+        return test;
+      });
+      return next;
+    });
+
+    if (!updatedObj) {
+      const target = bookTests.find(t => String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid));
+      if (target) {
+        updatedObj = { ...target, ...updates, id: target.id, bookId: updates.bookId || target.bookId || target.book_id };
+      } else {
+        updatedObj = { id: idStr, ...updates };
+      }
+    }
+
+    if (updatedObj) {
+      await dbAddTrackedBookTest(updatedObj);
     }
   };
 
