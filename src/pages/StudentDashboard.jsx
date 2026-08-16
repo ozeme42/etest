@@ -1103,29 +1103,32 @@ export default function StudentDashboard() {
       }
 
       (plan.subjects || []).forEach(subject => {
-        if (subject.dueDate) {
+        const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
+        const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+        const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+
+        // Yalnızca alt konuları olmayan bağımsız ders/ünite varsa ve tamamlanmamışsa ekle
+        if (!hasChildTopics && subject.dueDate) {
           const sYMD = subject.dueDate.split('T')[0];
-          if (todayYMD === sYMD) {
-            const isCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name);
-            if (!isCompleted) {
-              const existsInManual = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}`);
-              if (!existsInManual) {
-                autoHwItems.push({
-                  id: `roadmap_sub_${assignment.id}_${subject.id}`,
-                  roadmapAssignmentId: assignment.id,
-                  isAutoHomework: true,
-                  isRoadmapTask: true,
-                  taskType: 'konu',
-                  subject: `${plan.title} • ${subject.name}`,
-                  topic: subject.name,
-                  time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
-                  done: false
-                });
-              }
+          if (todayYMD === sYMD && !isSubjectCompleted) {
+            const existsInManual = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}`);
+            if (!existsInManual) {
+              autoHwItems.push({
+                id: `roadmap_sub_${assignment.id}_${subject.id}`,
+                roadmapAssignmentId: assignment.id,
+                isAutoHomework: true,
+                isRoadmapTask: true,
+                taskType: 'konu',
+                subject: `${plan.title} • ${subject.name}`,
+                topic: subject.name,
+                time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+                done: false
+              });
             }
           }
         }
 
+        // Alt konuların kendi hedef tarihlerine göre kontrol et
         (subject.topics || []).forEach(topic => {
           if (topic.dueDate) {
             const tYMD = topic.dueDate.split('T')[0];
