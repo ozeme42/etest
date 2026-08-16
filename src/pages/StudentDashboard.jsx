@@ -550,13 +550,16 @@ export default function StudentDashboard() {
 
             const tIdStr = String(testId);
             const tUuidStr = String(toUUID(testId) || '');
+            const studentIdStr = String(selectedStudent.id);
+            const studentUuidStr = String(toUUID(selectedStudent.id) || '');
 
-            const sub = (hw.submissions || []).find(s =>
-              String(s.studentId) === String(selectedStudent.id) &&
-              s.status !== 'in_progress' && s.status !== 'draft' &&
-              (String(s.testId) === tIdStr || String(s.bookTestId) === tIdStr || String(s.realTestId) === tIdStr || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
-            ) || submissions.find(s => {
-              if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status === 'draft') return false;
+            const sub = (hw.submissions || []).find(s => {
+              const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
+              if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+              return String(s.testId) === tIdStr || String(s.bookTestId) === tIdStr || String(s.realTestId) === tIdStr || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr));
+            }) || submissions.find(s => {
+              const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+              if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
               const matchFields = [
                 String(s.testId || ''),
                 String(s.realTestId || ''),
@@ -568,7 +571,7 @@ export default function StudentDashboard() {
               if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
                 matchFields.push(...s.bookTestIds.map(String));
               }
-              const matches = matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr)));
+              const matches = matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr) || toUUID(f) === tIdStr || (tUuidStr && toUUID(f) === tUuidStr)));
               if (!matches) return false;
               if (hwCreatedTime && s.submittedAt && hw.retakeCount && hw.retakeCount > 0) {
                 return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
@@ -596,7 +599,7 @@ export default function StudentDashboard() {
               status: sub ? 'Sonuçlandı' : 'Atandı',
               questionCount: testObj?.questionCount || 20,
               correctAnswers: sub ? (sub.score || 0) : 0,
-              submissionId: sub?.id
+              submissionId: sub?.id || sub?.supabaseId
             };
           });
         }
@@ -1468,8 +1471,18 @@ export default function StudentDashboard() {
                   const targetTestId = test.realTestId || test.testId || test.id;
                   return (
                     <div key={test.id} className="sd-hw-card"
-                      onClick={() => { if (test.type === 'physicalExam') navigate(`/physical-exam/${targetTestId}?studentId=${selectedStudent.id}`); else if (test.submissionId) navigate(`/review/${test.submissionId}`); else navigate(`/quiz/${targetTestId}?studentId=${selectedStudent.id}`); }}
-                      style={{ display:'flex', alignItems:'center', gap:10, padding:'0.75rem 1.1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                      onClick={() => {
+                        if (test.type === 'physicalExam') {
+                          navigate(`/physical-exam/${targetTestId}?studentId=${selectedStudent.id}`);
+                        } else if (test.submissionId) {
+                          navigate(`/review/${test.submissionId}?studentId=${selectedStudent.id}`);
+                        } else if (test.isBookAssignment || test.sourceType === 'trackedBook' || test.bookId) {
+                          navigate(`/book-quiz/${targetTestId}?studentId=${selectedStudent.id}&review=true`);
+                        } else {
+                          navigate(`/quiz-review/${targetTestId}?studentId=${selectedStudent.id}`);
+                        }
+                      }}
+                      style={{ display:'flex', alignItems:'center', gap:10, padding:'0.75rem 1.1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none', cursor: 'pointer' }}>
                       <div style={{ width:34, height:34, borderRadius:10, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><conf.icon size={14} color={conf.color} /></div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontWeight:700, fontSize:'0.8rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
@@ -1482,8 +1495,19 @@ export default function StudentDashboard() {
                             <div style={{ height:'100%', width:`${score}%`, background: good ? '#22c55e' : '#ef4444', borderRadius:99 }} />
                           </div>
                         </div>
-                        <button onClick={e => { e.stopPropagation(); if (test.submissionId) navigate(`/review/${test.submissionId}`); }} className="sd-btn"
-                          style={{ padding:'0.32rem', borderRadius:8, background:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', display:'flex' }}><Eye size={13} color="#475569" /></button>
+                        <button onClick={e => {
+                          e.stopPropagation();
+                          if (test.submissionId) {
+                            navigate(`/review/${test.submissionId}?studentId=${selectedStudent.id}`);
+                          } else if (test.isBookAssignment || test.sourceType === 'trackedBook' || test.bookId) {
+                            navigate(`/book-quiz/${targetTestId}?studentId=${selectedStudent.id}&review=true`);
+                          } else {
+                            navigate(`/quiz-review/${targetTestId}?studentId=${selectedStudent.id}`);
+                          }
+                        }} className="sd-btn"
+                          style={{ padding:'0.32rem', borderRadius:8, background:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', display:'flex' }} title="Sonucu İncele">
+                          <Eye size={13} color="#475569" />
+                        </button>
                       </div>
                     </div>
                   );

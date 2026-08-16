@@ -257,9 +257,12 @@ export default function TrackedBookQuizRunner() {
 
     const testIdStr = String(resolvedTest.id);
     const testUuidStr = String(toUUID(resolvedTest.id) || '');
+    const studentIdStr = String(studentId || currentUser?.id || '');
+    const studentUuidStr = String(toUUID(studentIdStr) || '');
 
     const existingSub = (submissions || []).find(s => {
-      if (String(s.studentId) !== String(studentId)) return false;
+      const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+      if (!isMatchStudent) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
 
       const matchFields = [
@@ -274,7 +277,7 @@ export default function TrackedBookQuizRunner() {
         matchFields.push(...s.bookTestIds.map(String));
       }
 
-      return matchFields.some(f => f && (f === testIdStr || (testUuidStr && f === testUuidStr)));
+      return matchFields.some(f => f && (f === testIdStr || (testUuidStr && f === testUuidStr) || toUUID(f) === testIdStr || (testUuidStr && toUUID(f) === testUuidStr)));
     });
 
     if (existingSub) {
