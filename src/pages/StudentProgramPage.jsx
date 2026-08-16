@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Save, CheckCircle2, Calendar, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Save, CheckCircle2, Calendar, ArrowLeft, Layers, Target, BookOpen, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import ProgramCenter, { normalizeWeeklyProgram } from '../components/ProgramCenter';
@@ -18,6 +19,7 @@ function getWeekDateRange() {
 export default function StudentProgramPage() {
   const { currentUser } = useAuth();
   const { getCoachingProfileForStudent, saveCoachingProfile } = useCoaching();
+  const navigate = useNavigate();
 
   const studentId = currentUser?.id;
   const existingProfile = useMemo(
@@ -67,55 +69,74 @@ export default function StudentProgramPage() {
   if (!currentUser) return null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f6fa', fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)', fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: '#f8fafc', padding: '1.25rem 1rem', boxSizing: 'border-box' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .prog-anim { animation: fadeIn 0.3s ease both; }
+        @media (max-width: 768px) {
+          .prog-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .prog-kpis { width: 100% !important; justify-content: space-between !important; }
+          .prog-kpis > div { flex: 1 !important; min-width: 0 !important; }
+        }
       `}</style>
 
-      {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg,#4f46e5 0%,#6366f1 50%,#7c3aed 100%)', padding: 'clamp(1rem,4vw,1.75rem) clamp(1rem,4vw,2rem)', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 4px 24px rgba(79,70,229,0.25)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'white', border: '2px solid rgba(255,255,255,0.35)', flexShrink: 0 }}>
-              {currentUser.name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
-            <div>
-              <div style={{ fontWeight: 900, fontSize: 'clamp(0.95rem,2.5vw,1.15rem)', color: 'white' }}>Merhaba, {currentUser.name?.split(' ')[0]} 👋</div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginTop: 1 }}>📅 {weekRange}</div>
+      <div style={{ maxWidth: 1300, margin: '0 auto' }}>
+        {/* Header with Back Button & Stats */}
+        <div className="prog-header-wrap prog-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button
+              onClick={() => navigate('/student')}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', borderRadius: '0.75rem', padding: '0.55rem 0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, color: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}
+            >
+              <ArrowLeft size={18} /> Öğrenci Paneli
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.15rem', color: 'white', border: '2px solid rgba(255,255,255,0.35)', boxShadow: '0 0 16px rgba(168,85,247,0.4)', flexShrink: 0 }}>
+                {currentUser.name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+              <div>
+                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>
+                  Haftalık Ders Programım 📅
+                </h1>
+                <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 2 }}>
+                  Merhaba {currentUser.name?.split(' ')[0]} 👋 · {weekRange}
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+
+          <div className="prog-kpis" style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
             {[
-              { label: 'Haftalık', value: `%${weekPct}`, sub: `${doneItems}/${totalItems}` },
-              { label: 'Konu',     value: doneTopics,    sub: `${totalTopics} toplam` },
+              { label: 'Haftalık', value: `%${weekPct}`, sub: `${doneItems}/${totalItems}`, color: '#818cf8', border: 'rgba(129,140,248,0.35)' },
+              { label: 'Konu İlerleme', value: doneTopics, sub: `${totalTopics} toplam`, color: '#34d399', border: 'rgba(52,211,153,0.35)' },
             ].map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.75rem', padding: '0.5rem 0.9rem', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center', minWidth: 72 }}>
-                <div style={{ fontWeight: 900, fontSize: '1.1rem', color: 'white' }}>{s.value}</div>
-                <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{s.label}</div>
-                <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{s.sub}</div>
+              <div key={s.label} style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '0.65rem 1.1rem', border: `1.5px solid ${s.border}`, textAlign: 'center', minWidth: 95, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                <div style={{ fontWeight: 900, fontSize: '1.2rem', color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{s.label}</div>
+                <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{s.sub}</div>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(1rem,3vw,1.75rem) clamp(1rem,4vw,2rem)', paddingBottom: 100 }}>
-        <ProgramCenter
-          weeklyProgram={weeklyProgram}
-          setWeeklyProgram={setWeeklyProgram}
-          topicPool={topicPool}
-          setTopicPool={setTopicPool}
-        />
-      </div>
+        {/* Content */}
+        <div style={{ paddingBottom: 100 }}>
+          <ProgramCenter
+            weeklyProgram={weeklyProgram}
+            setWeeklyProgram={setWeeklyProgram}
+            topicPool={topicPool}
+            setTopicPool={setTopicPool}
+            isDark={true}
+          />
+        </div>
 
-      {/* Floating Save */}
-      <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 200 }}>
-        <button onClick={handleSave}
-          style={{ padding: '0.8rem 1.5rem', background: saved ? '#16a34a' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: 'white', border: 'none', borderRadius: '1rem', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: saved ? '0 8px 24px rgba(22,163,74,0.4)' : '0 8px 24px rgba(99,102,241,0.4)', transition: 'all 0.25s', fontFamily: 'inherit' }}>
-          {saved ? <><CheckCircle2 size={18} /> Kaydedildi!</> : <><Save size={18} /> Kaydet</>}
-        </button>
+        {/* Floating Save */}
+        <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 200 }}>
+          <button onClick={handleSave}
+            style={{ padding: '0.85rem 1.6rem', background: saved ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '1rem', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.55rem', boxShadow: saved ? '0 8px 28px rgba(16,185,129,0.45)' : '0 8px 28px rgba(99,102,241,0.45)', transition: 'all 0.25s', backdropFilter: 'blur(10px)' }}>
+            {saved ? <><CheckCircle2 size={20} /> Kaydedildi!</> : <><Save size={20} /> Değişiklikleri Kaydet</>}
+          </button>
+        </div>
       </div>
     </div>
   );
