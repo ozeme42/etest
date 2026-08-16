@@ -519,41 +519,73 @@ export default function StudentDashboard() {
         }];
       }
 
-      if (hw.isBookAssignment) {
-        if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
 
-          return Object.entries(hw.testDueDates).map(([testId, tDateStr]) => {
+      if (isBook) {
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+        // 1. Gather all assigned test IDs for this book assignment
+        let testIdsList = [];
+        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+          testIdsList = hw.tests;
+        } else if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          testIdsList = Object.keys(hw.testDueDates);
+        } else if (bookObj) {
+          const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(bookObj.id));
+          if (allBookTests.length > 0) {
+            testIdsList = allBookTests.map(bt => bt.id);
+          }
+        }
+
+        if (testIdsList.length > 0) {
+          return testIdsList.map((testId, idx) => {
             const testObj = bookTests.find(b => String(b.id) === String(testId));
+            const tDateStr = hw.testDueDates?.[testId] || hw.dueDate || hw.assignedDueDate;
+
+            const tIdStr = String(testId);
+            const tUuidStr = String(toUUID(testId) || '');
+
             const sub = (hw.submissions || []).find(s =>
               String(s.studentId) === String(selectedStudent.id) &&
-              (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId)))) &&
-              s.status !== 'in_progress' && s.status !== 'draft'
+              s.status !== 'in_progress' && s.status !== 'draft' &&
+              (String(s.testId) === tIdStr || String(s.bookTestId) === tIdStr || String(s.realTestId) === tIdStr || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
             ) || submissions.find(s => {
-              if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status !== 'draft') return false;
-              const matches = (
-                String(s.testId) === String(testId) ||
-                String(s.bookTestId) === String(testId) ||
-                (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))) ||
-                (String(s.hwId) === String(hw.id) && String(s.testId) === String(testId))
-              );
+              if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status === 'draft') return false;
+              const matchFields = [
+                String(s.testId || ''),
+                String(s.realTestId || ''),
+                String(s.bookTestId || ''),
+                String(s.metadata?.realTestId || ''),
+                String(s.metadata?.bookTestId || ''),
+                String(s.metadata?.realId || '')
+              ];
+              if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+                matchFields.push(...s.bookTestIds.map(String));
+              }
+              const matches = matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr)));
               if (!matches) return false;
               if (hwCreatedTime && s.submittedAt && hw.retakeCount && hw.retakeCount > 0) {
                 return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
               }
               return true;
             });
+
             const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
             const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+            const testName = testObj?.name || (testIdsList.length > 1 ? `Test ${idx + 1}` : 'Test');
 
             return {
               ...hw,
               id: `bt_${hw.id}_${testId}`,
               realTestId: testId,
               testId: testId,
+              bookTestId: testId,
               hwId: hw.id,
+              bookId: hw.bookId || bookObj?.id,
+              sourceType: 'trackedBook',
+              isBookAssignment: true,
               subject: subjectName,
-              title: `${cleanBookTitle} — ${testObj?.name || 'Test'}`,
+              title: `${cleanBookTitle} — ${testName}`,
               dueDate: tDateStr,
               status: sub ? 'Sonuçlandı' : 'Atandı',
               questionCount: testObj?.questionCount || 20,
@@ -562,7 +594,47 @@ export default function StudentDashboard() {
             };
           });
         }
-        return [];
+      }
+
+      // Check if standard homework has multiple tests assigned
+      if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+        return hw.tests.map((testId, idx) => {
+          const tIdStr = String(testId);
+          const tUuidStr = String(toUUID(testId) || '');
+
+          const sub = (hw.submissions || []).find(s =>
+            String(s.studentId) === String(selectedStudent.id) &&
+            s.status !== 'in_progress' && s.status !== 'draft' &&
+            (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+          ) || submissions.find(s => {
+            if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status === 'draft') return false;
+            const matchFields = [
+              String(s.testId || ''),
+              String(s.realTestId || ''),
+              String(s.metadata?.realTestId || ''),
+              String(s.metadata?.realId || '')
+            ];
+            const matches = matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr)));
+            if (!matches) return false;
+            if (hwCreatedTime && s.submittedAt && hw.retakeCount && hw.retakeCount > 0) {
+              return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
+            }
+            return true;
+          });
+
+          return {
+            ...hw,
+            id: `hw_${hw.id}_${testId}`,
+            realTestId: testId,
+            testId: testId,
+            hwId: hw.id,
+            title: `${hw.title || hw.name || 'Ödev'} (Test ${idx + 1})`,
+            status: sub ? 'Sonuçlandı' : 'Atandı',
+            questionCount: hw.totalQuestions ? Math.round(hw.totalQuestions / hw.tests.length) : 10,
+            correctAnswers: sub ? (sub.score || 0) : 0,
+            submissionId: sub?.id
+          };
+        });
       }
 
       const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft') ||
@@ -792,12 +864,13 @@ export default function StudentDashboard() {
       const gradesList = curData?.grades || [];
       if (!isHomeworkForStudent(hw, selectedStudent, gradesList)) return;
 
-      // A) Book Assignment with testDueDates
-      if (hw.isBookAssignment) {
-        if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-          const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+      // A) Book Assignment
+      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
+      if (isBook) {
+        const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
+        if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
             const tYMD = tDateStr.split('T')[0];
@@ -814,10 +887,13 @@ export default function StudentDashboard() {
               const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
               const displaySub = `${cleanBookTitle} — ${testName}`;
 
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
+
               const isSolved = submissions.some(s =>
                 String(s.studentId) === String(studentId) &&
                 s.status !== 'in_progress' && s.status !== 'draft' &&
-                (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))))
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
               );
 
               // Exclude solved/completed tests so they disappear from today's program view
@@ -840,8 +916,8 @@ export default function StudentDashboard() {
               }
             }
           });
+          return;
         }
-        return;
       }
 
       // B) Standard Homework or overall due date
@@ -865,6 +941,39 @@ export default function StudentDashboard() {
       }
 
       if (isForToday) {
+        // If homework has multiple tests, find the unsolved ones
+        if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+          hw.tests.forEach((testId, idx) => {
+            const tIdStr = String(testId);
+            const tUuidStr = String(toUUID(testId) || '');
+            const isTestSolved = submissions.some(s =>
+              String(s.studentId) === String(studentId) &&
+              s.status !== 'in_progress' && s.status !== 'draft' &&
+              (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+            );
+            if (isTestSolved) return;
+
+            const tObj = bookTests.find(b => String(b.id) === tIdStr);
+            const testTitle = tObj?.name || `Test ${idx + 1}`;
+            const existsInManual = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}` || m.hwId === hw.id);
+            if (!existsInManual) {
+              autoHwItems.push({
+                id: `auto_hw_${hw.id}_${testId}`,
+                hwId: hw.id,
+                testId: testId,
+                isAutoHomework: true,
+                taskType: isBook ? 'kitap' : 'ödev',
+                subject: hw.subject || 'Atanan Kitap/Ödev',
+                topic: `${hw.title || 'Ödev'} — ${testTitle}`,
+                questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+                done: false
+              });
+            }
+          });
+          return;
+        }
+
         const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
           submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
         const isDone = !!sub;

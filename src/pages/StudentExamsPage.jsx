@@ -249,20 +249,28 @@ export default function StudentExamsPage() {
       const hwUUID = toUUID(hw.id);
       if (hwUUID) hwIdSet.add(String(hwUUID));
       studentSubmissions.forEach(s => {
-        const candidateFields = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
+        const candidateFields = [
+          s.testId,
+          s.realTestId,
+          s.bookTestId,
+          s.metadata?.realTestId,
+          s.metadata?.bookTestId,
+          s.metadata?.realId
+        ];
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
-        let isHwSolved = false;
-        const matchedTestIds = new Set();
+
         candidateFields.forEach(field => {
           if (field == null) return;
-          const raw = String(field), uuid = toUUID(field);
-          if (hwIdSet.has(raw) || (uuid && hwIdSet.has(String(uuid)))) isHwSolved = true;
+          const raw = String(field);
+          const uuid = toUUID(field);
           hwTestIdsRaw.forEach(id => {
-            if (String(id) === raw || (uuid && String(toUUID(id)) === String(uuid))) matchedTestIds.add(String(id));
+            const strId = String(id);
+            const uuidId = toUUID(id);
+            if (strId === raw || (uuid && String(uuidId) === String(uuid))) {
+              bookMap[book.id].allSolvedTestIds.add(strId);
+            }
           });
         });
-        if (isHwSolved) hwTestIdsRaw.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
-        else matchedTestIds.forEach(id => bookMap[book.id].allSolvedTestIds.add(id));
       });
       if (hw.dueDate) {
         const d = new Date(hw.dueDate);

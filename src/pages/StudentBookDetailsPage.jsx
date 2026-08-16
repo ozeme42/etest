@@ -121,30 +121,45 @@ export default function StudentBookDetailsPage() {
       let hasFoundFirstUnfinished = false;
       
       const testsWithStatus = assignedSubjTests.map((t, index) => {
-        // Is it solved?
+        // Is it solved? Check submissions strictly matching this test ID
+        const tIdStr = String(t.id);
+        const tUuidStr = String(toUUID(t.id) || '');
+
         const solvedSubs = submissions.filter(s => {
           if (String(s.studentId) !== String(studentId)) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
-          
-          // Direct match
-          if (String(s.testId) === String(t.id) || String(s.testId) === toUUID(t.id)) return true;
-          if (String(s.bookTestId) === String(t.id) || String(s.bookTestId) === toUUID(t.id)) return true;
-          if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === String(t.id) || String(tid) === toUUID(t.id))) return true;
 
-          // Homework match! If the submission is a homework (starts with hw_ or is its UUID equivalent)
-          const relatedHw = homeworks.find(hw => String(hw.id) === String(s.testId) || toUUID(hw.id) === String(s.testId));
-          if (relatedHw && relatedHw.tests && relatedHw.tests.some(tId => String(tId) === String(t.id) || String(tId) === toUUID(t.id))) {
-            return true;
+          const matchFields = [
+            String(s.testId || ''),
+            String(s.realTestId || ''),
+            String(s.bookTestId || ''),
+            String(s.metadata?.realTestId || ''),
+            String(s.metadata?.bookTestId || ''),
+            String(s.metadata?.realId || '')
+          ];
+          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+            matchFields.push(...s.bookTestIds.map(String));
           }
-          return false;
+
+          return matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr)));
         });
-        
-        // Check if there is a homework submission for this test (from before UUID fix)
-        const hwForTest = homeworks.find(hw => hw.tests && hw.tests.some(tId => String(tId) === String(t.id) || String(tId) === toUUID(t.id)));
-        const hwSub = (hwForTest?.submissions || []).find(s => String(s.studentId) === String(studentId));
-        
+
+        // Also check if any homework submission explicitly belongs to this test ID
+        let hwSub = null;
+        for (const hw of homeworks) {
+          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
+          const match = hw.submissions.find(s => {
+            if (String(s.studentId) !== String(studentId)) return false;
+            return String(s.testId || s.bookTestId) === tIdStr || (tUuidStr && String(s.testId || s.bookTestId) === tUuidStr);
+          });
+          if (match) {
+            hwSub = match;
+            break;
+          }
+        }
+
         const isCompleted = solvedSubs.length > 0 || !!hwSub;
-        
+
         let bestScore = null;
         let bestSub = null;
         if (solvedSubs.length > 0) {

@@ -1601,54 +1601,56 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
       // A) Homeworks & Book Assignments
       studentHomeworks.forEach(hw => {
-        if (hw.isBookAssignment) {
-          if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-            const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-            const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
+        const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
-            Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
-              if (!tDateStr) return;
-              const tYMD = tDateStr.split('T')[0];
-              if (dayInfo.ymd === tYMD) {
-                const tObj = bookTests.find(b => String(b.id) === String(testId));
-                const testName = tObj?.name || 'Test';
-                const qCount = tObj?.questionCount || 20;
+        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const tYMD = tDateStr.split('T')[0];
+            if (dayInfo.ymd === tYMD) {
+              const tObj = bookTests.find(b => String(b.id) === String(testId));
+              const testName = tObj?.name || 'Test';
+              const qCount = tObj?.questionCount || 20;
 
-                const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
-                const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
-                const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
-                const topicName = topicObj?.name || tObj?.topicName || '';
+              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
+              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
+              const topicName = topicObj?.name || tObj?.topicName || '';
 
-                const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
-                const displaySub = `${cleanBookTitle} — ${testName}`;
+              const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
+              const displaySub = `${cleanBookTitle} — ${testName}`;
 
-                const isSolved = submissions.some(s =>
-                  String(s.studentId) === String(studentId) &&
-                  s.status !== 'in_progress' && s.status !== 'draft' &&
-                  (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))))
-                );
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
 
-                // Exclude solved/completed tests so they disappear from the program view
-                if (isSolved) return;
+              const isSolved = submissions.some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+              );
 
-                const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
-                if (!exists) {
-                  autoHwItems.push({
-                    id: `book_test_${hw.id}_${testId}_${dayObj.day}`,
-                    hwId: hw.id,
-                    testId: testId,
-                    isAutoHomework: true,
-                    taskType: 'kitap',
-                    subject: displayHeader,
-                    topic: displaySub,
-                    questionCount: `${qCount} soru`,
-                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                    done: false
-                  });
-                }
+              // Exclude solved/completed tests so they disappear from the program view
+              if (isSolved) return;
+
+              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `book_test_${hw.id}_${testId}_${dayObj.day}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: 'kitap',
+                  subject: displayHeader,
+                  topic: displaySub,
+                  questionCount: `${qCount} soru`,
+                  time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                  done: false
+                });
               }
-            });
-          }
+            }
+          });
           return;
         }
 
@@ -1670,6 +1672,38 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
         }
 
         if (isForThisDay) {
+          if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+            hw.tests.forEach((testId, idx) => {
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
+              const isTestSolved = submissions.some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+              );
+              if (isTestSolved) return;
+
+              const tObj = bookTests.find(b => String(b.id) === tIdStr);
+              const testTitle = tObj?.name || `Test ${idx + 1}`;
+              const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${dayObj.day}` || m.hwId === hw.id);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `auto_hw_${hw.id}_${testId}_${dayObj.day}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: isBook ? 'kitap' : 'ödev',
+                  subject: hw.subject || 'Atanan Kitap/Ödev',
+                  topic: `${hw.title || 'Ödev'} — ${testTitle}`,
+                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+                  done: false
+                });
+              }
+            });
+            return;
+          }
+
           const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
             submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
           const isDone = !!sub;

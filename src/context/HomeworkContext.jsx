@@ -177,15 +177,24 @@ useEffect(() => {
 
   const submitHomework = (hwId, studentId, score, totalQuestions, extraData = {}) => {
     setHomeworks(prev => prev.map(hw => {
-      if (hw.id === hwId) {
-        const existing = (hw.submissions || []).find(s => s.studentId === studentId);
-        let newSubmissions = [...(hw.submissions || [])];
-        if (existing) {
-          newSubmissions = newSubmissions.map(s => 
-            s.studentId === studentId ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData } : s
+      if (String(hw.id) === String(hwId)) {
+        const targetTestId = extraData.testId || extraData.bookTestId;
+        const existingList = Array.isArray(hw.submissions) ? [...hw.submissions] : [];
+        const existingIdx = existingList.findIndex(s => {
+          if (String(s.studentId) !== String(studentId)) return false;
+          if (targetTestId && (s.testId || s.bookTestId)) {
+            return String(s.testId || s.bookTestId) === String(targetTestId);
+          }
+          return !targetTestId && !s.testId;
+        });
+
+        let newSubmissions;
+        if (existingIdx >= 0) {
+          newSubmissions = existingList.map((s, idx) =>
+            idx === existingIdx ? { ...s, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData } : s
           );
         } else {
-          newSubmissions.push({ studentId, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData });
+          newSubmissions = [...existingList, { studentId, score, completedAt: new Date().toISOString(), totalQuestions, ...extraData }];
         }
         const updated = { ...hw, submissions: newSubmissions };
         dbAddHomework(updated);
@@ -198,13 +207,19 @@ useEffect(() => {
   const updateHomeworkSubmission = (hwId, studentOrSubId, updatedSubData) => {
     setHomeworks(prev => prev.map(hw => {
       if (String(hw.id) === String(hwId)) {
+        const targetTestId = updatedSubData?.testId || updatedSubData?.bookTestId;
         const existingList = Array.isArray(hw.submissions) ? [...hw.submissions] : [];
-        const foundIdx = existingList.findIndex(s =>
-          String(s.studentId) === String(studentOrSubId) ||
-          String(s.studentId) === String(updatedSubData?.studentId) ||
-          String(s.id) === String(studentOrSubId) ||
-          String(s.id) === String(updatedSubData?.id)
-        );
+        const foundIdx = existingList.findIndex(s => {
+          const isSameStudent = String(s.studentId) === String(studentOrSubId) ||
+            String(s.studentId) === String(updatedSubData?.studentId) ||
+            String(s.id) === String(studentOrSubId) ||
+            String(s.id) === String(updatedSubData?.id);
+          if (!isSameStudent) return false;
+          if (targetTestId && (s.testId || s.bookTestId)) {
+            return String(s.testId || s.bookTestId) === String(targetTestId);
+          }
+          return !targetTestId && !s.testId;
+        });
 
         let nextSubmissions;
         if (foundIdx >= 0) {
