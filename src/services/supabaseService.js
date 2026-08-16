@@ -61,10 +61,6 @@ export async function dbUpdateUser(userId, updates = {}) {
       const gVal = updates.gradeId || updates.grade_id || updates.classId || updates.grade;
       payload.grade_id = String(gVal);
     }
-    if (updates.teacherId !== undefined || updates.teacher_id !== undefined) {
-      payload.teacher_id = updates.teacherId || updates.teacher_id || null;
-    }
-    if (updates.password !== undefined) payload.password = updates.password;
     if (updates.isApproved !== undefined || updates.is_approved !== undefined) {
       payload.is_approved = Boolean(updates.isApproved ?? updates.is_approved);
     }
@@ -86,27 +82,7 @@ export async function dbUpdateUser(userId, updates = {}) {
       }
     }
 
-    // 3. If column error occurred on retry, filter unknown columns
-    if (!updatedRows && resId.error) {
-      const safePayload = { ...payload };
-      if (resId.error.message && resId.error.message.includes('is_approved')) delete safePayload.is_approved;
-      if (resId.error.message && resId.error.message.includes('teacher_id')) delete safePayload.teacher_id;
-      if (resId.error.message && resId.error.message.includes('grade_id')) delete safePayload.grade_id;
-      if (resId.error.message && resId.error.message.includes('password')) delete safePayload.password;
-
-      const retryId = await supabase.from('users').update(safePayload).eq('id', String(userId)).select();
-      if (!retryId.error && retryId.data && retryId.data.length > 0) {
-        updatedRows = retryId.data;
-      } else if (updates.email || payload.email) {
-        const mail = (updates.email || payload.email).trim().toLowerCase();
-        const retryEmail = await supabase.from('users').update(safePayload).eq('email', mail).select();
-        if (!retryEmail.error && retryEmail.data && retryEmail.data.length > 0) {
-          updatedRows = retryEmail.data;
-        }
-      }
-    }
-
-    // 4. If row still doesn't exist in Supabase users table, upsert it!
+    // 3. If row still doesn't exist in Supabase users table, insert/upsert it!
     if (!updatedRows) {
       const insertPayload = {
         id: String(userId),
@@ -114,8 +90,6 @@ export async function dbUpdateUser(userId, updates = {}) {
         name: updates.name || 'Öğrenci',
         role: updates.role || 'student',
         grade_id: payload.grade_id || 'g1',
-        teacher_id: payload.teacher_id || null,
-        password: updates.password || '123456',
         is_approved: payload.is_approved !== undefined ? payload.is_approved : true
       };
       const upsertRes = await supabase.from('users').upsert([insertPayload], { onConflict: 'id' }).select();
@@ -144,8 +118,6 @@ export async function dbAddUser(user) {
       name: user.name || 'Kullanıcı',
       role: user.role || 'student',
       grade_id: String(user.gradeId || user.grade || user.classId || 'g1'),
-      teacher_id: user.teacherId || null,
-      password: user.password || null,
       is_approved: isApprovedVal
     };
 
@@ -170,15 +142,7 @@ export async function dbAddUser(user) {
         const updateByEmail = await supabase.from('users').update(payload).eq('email', payload.email).select();
         return { success: true, data: updateByEmail.data };
       }
-
-      const fallbackPayload = { ...payload };
-      if (error.message && error.message.includes('is_approved')) delete fallbackPayload.is_approved;
-      if (error.message && error.message.includes('teacher_id')) delete fallbackPayload.teacher_id;
-      if (error.message && error.message.includes('grade_id')) delete fallbackPayload.grade_id;
-      if (error.message && error.message.includes('password')) delete fallbackPayload.password;
-      
-      const fallbackRes = await supabase.from('users').upsert([fallbackPayload], { onConflict: 'id' }).select();
-      return { success: true, data: fallbackRes.data };
+      return { success: false, error };
     }
     return { success: true, data };
   } catch (err) {
