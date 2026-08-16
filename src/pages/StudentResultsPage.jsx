@@ -296,6 +296,9 @@ export default function StudentResultsPage() {
     });
 
     // 2. Process all completed individual book tests (Kitap takibindeki gerçek çözülen testler)
+    // Her test için en iyi sonucu alarak mükerrerliği önle (StudentDashboard ile birebir aynı)
+    const bestBookSubsByTest = {};
+
     (submissions || []).forEach(sub => {
       if (!sub) return;
       const sid = String(sub.studentId);
@@ -352,27 +355,29 @@ export default function StudentResultsPage() {
         scorePct = Math.min(100, Math.round((correct / total) * 100));
       }
 
-      processedTestKeys.add(bTestId);
-      if (toUUID(bTestId)) processedTestKeys.add(String(toUUID(bTestId)));
-
-      results.push({
-        ...sub,
-        id: subIdStr || `book_sub_${bTestId}_${selectedStudent.id}`,
-        testId: bTestId,
-        testTitle: `${cleanBookTitle} — ${subjectName} (${testName})`,
-        subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
-        typeKey: 'book',
-        isEvaluated: true,
-        isOpenEnded: false,
-        isPendingEval: false,
-        correctCount: correct,
-        wrongCount: wrong,
-        blankCount: blank,
-        totalQuestions: total,
-        computedScore: scorePct,
-        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
-      });
+      const existing = bestBookSubsByTest[bTestId];
+      if (!existing || correct > existing.correctCount || (correct === existing.correctCount && scorePct > existing.computedScore)) {
+        bestBookSubsByTest[bTestId] = {
+          ...sub,
+          id: subIdStr || `book_sub_${bTestId}_${selectedStudent.id}`,
+          testId: bTestId,
+          testTitle: `${cleanBookTitle} — ${subjectName} (${testName})`,
+          subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
+          typeKey: 'book',
+          isEvaluated: true,
+          isOpenEnded: false,
+          isPendingEval: false,
+          correctCount: correct,
+          wrongCount: wrong,
+          blankCount: blank,
+          totalQuestions: total,
+          computedScore: scorePct,
+          submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
+        };
+      }
     });
+
+    Object.values(bestBookSubsByTest).forEach(item => results.push(item));
 
     return results.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
   }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
@@ -383,23 +388,28 @@ export default function StudentResultsPage() {
     if (total === 0) return { total: 0, avgScore: 0, maxScore: 0, totalQ: 0, totalCorrect: 0, weakSubjects: 0 };
     let sumScore = 0, max = 0, totalQ = 0, totalCorrect = 0;
     studentSubmissions.forEach(s => {
-      sumScore += s.computedScore;
+      sumScore += s.computedScore || 0;
       if (s.computedScore > max) max = s.computedScore;
-      totalQ += s.totalQuestions;
-      totalCorrect += s.correctCount;
+      totalQ += s.totalQuestions || 0;
+      totalCorrect += s.correctCount || 0;
     });
+
+    const successRate = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : (total > 0 ? Math.round(sumScore / total) : 0);
+
     const subjectAvgs = {};
     studentSubmissions.forEach(s => {
       if (!subjectAvgs[s.subjectKey]) subjectAvgs[s.subjectKey] = { sum: 0, count: 0 };
-      subjectAvgs[s.subjectKey].sum += s.computedScore;
+      subjectAvgs[s.subjectKey].sum += s.computedScore || 0;
       subjectAvgs[s.subjectKey].count++;
     });
     const weakSubjects = Object.values(subjectAvgs).filter(v => v.count > 0 && (v.sum / v.count) < 60).length;
     return {
       total,
-      avgScore: Math.round(sumScore / total),
+      avgScore: successRate,
       maxScore: Math.round(max),
-      totalQ, totalCorrect, weakSubjects,
+      totalQ,
+      totalCorrect,
+      weakSubjects,
       completedCount: studentSubmissions.filter(s => s.status !== 'pending_evaluation').length,
     };
   }, [studentSubmissions]);
