@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { dbGetUsers, dbAddUser, dbDeleteUser } from '../services/supabaseService';
+import { dbGetUsers, dbAddUser, dbUpdateUser, dbDeleteUser } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
 
 const UserContext = createContext();
@@ -93,13 +93,15 @@ export function UserProvider({ children }) {
         }
         return u;
       });
-      localStorage.setItem('eTestUsers', JSON.stringify(newList));
+      safeSetItem('eTestUsers', JSON.stringify(newList));
       return newList;
     });
 
     if (updatedUserObj) {
+      await dbUpdateUser(id, updatedData);
       await dbAddUser(updatedUserObj);
     }
+    return updatedUserObj;
   };
 
   const deleteUser = async (id) => {

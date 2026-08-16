@@ -56,6 +56,15 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    if (currentUser?.id && users && users.length > 0) {
+      const match = users.find(u => String(u.id) === String(currentUser.id) || (u.email && u.email.toLowerCase() === (currentUser.email || '').toLowerCase()));
+      if (match && (match.gradeId !== currentUser.gradeId || match.name !== currentUser.name || match.teacherId !== currentUser.teacherId || match.role !== currentUser.role)) {
+        setCurrentUser(prev => ({ ...prev, ...match }));
+      }
+    }
+  }, [users, currentUser?.id]);
+
   // Login handler
   const login = async (email, password) => {
     setLoading(true);

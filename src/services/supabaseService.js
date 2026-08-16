@@ -50,6 +50,54 @@ export async function dbGetUsers() {
   }
 }
 
+export async function dbUpdateUser(userId, updates) {
+  if (!isSupabaseConfigured() || !userId) return null;
+  try {
+    const payload = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.role !== undefined) payload.role = updates.role;
+    if (updates.gradeId !== undefined || updates.grade_id !== undefined || updates.classId !== undefined || updates.grade !== undefined) {
+      const gVal = updates.gradeId || updates.grade_id || updates.classId || updates.grade;
+      payload.grade_id = gVal;
+    }
+    if (updates.teacherId !== undefined || updates.teacher_id !== undefined) {
+      payload.teacher_id = updates.teacherId || updates.teacher_id || null;
+    }
+    if (updates.password !== undefined) payload.password = updates.password;
+    if (updates.isApproved !== undefined || updates.is_approved !== undefined) {
+      payload.is_approved = Boolean(updates.isApproved ?? updates.is_approved);
+    }
+
+    // Direct UPDATE by id
+    let { data, error } = await supabase.from('users').update(payload).eq('id', String(userId)).select();
+    
+    // If error because optional column doesn't exist, remove and retry
+    if (error) {
+      const safePayload = { ...payload };
+      if (error.message && error.message.includes('is_approved')) delete safePayload.is_approved;
+      if (error.message && error.message.includes('teacher_id')) delete safePayload.teacher_id;
+      if (error.message && error.message.includes('grade_id')) delete safePayload.grade_id;
+      if (error.message && error.message.includes('password')) delete safePayload.password;
+      
+      const retry = await supabase.from('users').update(safePayload).eq('id', String(userId)).select();
+      data = retry.data;
+      error = retry.error;
+    }
+
+    // Fallback: If no rows updated by id and email exists, update by email
+    if (!error && (!data || data.length === 0) && updates.email) {
+      const emailUpdate = await supabase.from('users').update(payload).eq('email', updates.email).select();
+      data = emailUpdate.data;
+    }
+
+    return { success: !error, data };
+  } catch (err) {
+    console.warn('[Supabase] dbUpdateUser error:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function dbAddUser(user) {
   if (!isSupabaseConfigured()) return null;
   try {
@@ -67,12 +115,22 @@ export async function dbAddUser(user) {
       password: user.password || null,
       is_approved: isApprovedVal
     };
+
+    // Try direct update by id first if user exists
+    const { data: updateData, error: updateErr } = await supabase.from('users').update(payload).eq('id', payload.id).select();
+    if (!updateErr && updateData && updateData.length > 0) {
+      return { success: true, data: updateData };
+    }
+
+    // Otherwise upsert
     const { data, error } = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
-      if (error.code === '23505' || error.status === 409) {
-        return { success: true, data: [payload] };
+      // If conflict on email, update by email
+      if (payload.email && (error.code === '23505' || (error.message && error.message.includes('unique')))) {
+        const updateByEmail = await supabase.from('users').update(payload).eq('email', payload.email).select();
+        return { success: true, data: updateByEmail.data };
       }
-      // Fallback if password or teacher_id columns don't exist in remote table
+
       const fallbackPayload = { ...payload };
       if (error.message && error.message.includes('is_approved')) delete fallbackPayload.is_approved;
       if (error.message && error.message.includes('teacher_id')) delete fallbackPayload.teacher_id;
@@ -84,6 +142,7 @@ export async function dbAddUser(user) {
     }
     return { success: true, data };
   } catch (err) {
+    console.warn('[Supabase] dbAddUser error:', err.message);
     return { success: true };
   }
 }
