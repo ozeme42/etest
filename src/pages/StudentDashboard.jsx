@@ -1214,7 +1214,6 @@ export default function StudentDashboard() {
   ];
 
   const quickTiles = [
-    { icon: '🎧', label: 'Çalışma Odası', sub: 'Pomodoro & Odaklanma', to: '/study-room', g: 'linear-gradient(135deg,#6366f1,#4f46e5)', sh: 'rgba(99,102,241,0.35)' },
     { icon: '📖', label: 'Ders Özetleri', sub: 'Konu anlatımları', to: '/student/summaries', g: 'linear-gradient(135deg,#059669,#10b981)', sh: 'rgba(16,185,129,0.3)' },
     { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)', sh: 'rgba(99,102,241,0.3)' },
     { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)', sh: 'rgba(219,39,119,0.28)' },
