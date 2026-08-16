@@ -1732,16 +1732,43 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       // B) Roadmap / Study Plan items with target dates (dueDate)
       const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
       studentAssignments.forEach(assignment => {
+        if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+
         const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
         if (!plan) return;
 
-        const completedTopicsSet = new Set(assignment.completedTopics || []);
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+        } else if (typeof assignment.topic === 'string') {
+          try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+        }
+        const completedTopicsSet = new Set(compTopics.map(String));
+
+        // Check if all steps completed
+        let totalPlanSteps = 0;
+        let completedPlanSteps = 0;
+        (plan.subjects || []).forEach(subject => {
+          if (subject.dueDate) {
+            totalPlanSteps++;
+            if (completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name)) completedPlanSteps++;
+          }
+          (subject.topics || []).forEach(topic => {
+            totalPlanSteps++;
+            if (completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name)) completedPlanSteps++;
+          });
+        });
+
+        if (totalPlanSteps > 0 && completedPlanSteps >= totalPlanSteps) {
+          return;
+        }
 
         (plan.subjects || []).forEach(subject => {
           if (subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
             if (dayInfo.ymd === sYMD) {
-              const isCompleted = completedTopicsSet.has(subject.id);
+              const isCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name);
               if (!isCompleted) {
                 const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`);
                 if (!exists) {
@@ -1765,7 +1792,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
             if (topic.dueDate) {
               const tYMD = topic.dueDate.split('T')[0];
               if (dayInfo.ymd === tYMD) {
-                const isCompleted = completedTopicsSet.has(topic.id);
+                const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
                 if (!isCompleted) {
                   const exists = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`);
                   if (!exists) {

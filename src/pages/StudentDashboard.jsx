@@ -1069,16 +1069,44 @@ export default function StudentDashboard() {
     // C) Roadmap / Study Plan assigned items with target dates (dueDate)
     const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
     studentAssignments.forEach(assignment => {
+      // Tamamlanmış yol haritalarını tamamen hariç tut
+      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+
       const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
       if (!plan) return;
 
-      const completedTopicsSet = new Set(assignment.completedTopics || []);
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+      } else if (typeof assignment.topic === 'string') {
+        try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+      }
+      const completedTopicsSet = new Set(compTopics.map(String));
+
+      // Tüm adımları tamamlanmış mı kontrol et
+      let totalPlanSteps = 0;
+      let completedPlanSteps = 0;
+      (plan.subjects || []).forEach(subject => {
+        if (subject.dueDate) {
+          totalPlanSteps++;
+          if (completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name)) completedPlanSteps++;
+        }
+        (subject.topics || []).forEach(topic => {
+          totalPlanSteps++;
+          if (completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name)) completedPlanSteps++;
+        });
+      });
+
+      if (totalPlanSteps > 0 && completedPlanSteps >= totalPlanSteps) {
+        return; // Tüm harita bitti, programa ekleme
+      }
 
       (plan.subjects || []).forEach(subject => {
         if (subject.dueDate) {
           const sYMD = subject.dueDate.split('T')[0];
           if (todayYMD === sYMD) {
-            const isCompleted = completedTopicsSet.has(subject.id);
+            const isCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name);
             if (!isCompleted) {
               const existsInManual = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}`);
               if (!existsInManual) {
@@ -1102,7 +1130,7 @@ export default function StudentDashboard() {
           if (topic.dueDate) {
             const tYMD = topic.dueDate.split('T')[0];
             if (todayYMD === tYMD) {
-              const isCompleted = completedTopicsSet.has(topic.id);
+              const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
               if (!isCompleted) {
                 const existsInManual = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}`);
                 if (!existsInManual) {
@@ -1125,10 +1153,17 @@ export default function StudentDashboard() {
       });
     });
 
+    const allItems = [...autoHwItems, ...manualItems];
+    // Tamamlanan görevleri günün aktif programından filtrele
+    const pendingItems = allItems.filter(item => !item.done);
+
     return {
       dayName: currentDayObj.long,
       dayKey: currentDayObj.key,
-      items: [...autoHwItems, ...manualItems]
+      totalCount: allItems.length,
+      completedCount: allItems.filter(i => i.done).length,
+      items: pendingItems,
+      hasAllCompleted: allItems.length > 0 && pendingItems.length === 0
     };
   }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, studyAssignments, studyPlans]);
 
@@ -1342,9 +1377,9 @@ export default function StudentDashboard() {
                     <div style={{ fontSize:'0.95rem', fontWeight:900, color:'white', marginTop:1 }}>{todayProgramInfo.dayName}</div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    {todayProgramInfo.items.length > 0 && (
+                    {todayProgramInfo.totalCount > 0 && (
                       <div style={{ background:'rgba(255,255,255,0.2)', borderRadius:99, padding:'0.18rem 0.6rem', backdropFilter:'blur(8px)' }}>
-                        <span style={{ fontSize:'0.65rem', fontWeight:900, color:'white' }}>{todayProgramInfo.items.filter(i => i.done).length}/{todayProgramInfo.items.length}</span>
+                        <span style={{ fontSize:'0.65rem', fontWeight:900, color:'white' }}>{todayProgramInfo.completedCount}/{todayProgramInfo.totalCount}</span>
                       </div>
                     )}
                     <Link to="/my-program" style={{ textDecoration:'none', background:'rgba(255,255,255,0.18)', borderRadius:8, padding:'0.28rem 0.6rem', fontSize:'0.65rem', fontWeight:800, color:'white', display:'flex', alignItems:'center', gap:3, border:'1px solid rgba(255,255,255,0.25)' }}>
@@ -1355,12 +1390,21 @@ export default function StudentDashboard() {
 
                 <div style={{ padding:'0.6rem' }}>
                   {todayProgramInfo.items.length === 0 ? (
-                    <div style={{ textAlign:'center', padding:'1.75rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-                      <div style={{ fontSize:'2rem' }}>✨</div>
-                      <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#1e293b' }}>Bugün için program yok</div>
-                      <div style={{ fontSize:'0.73rem', color:'#64748b' }}>Haftalık programını düzenlemek için tıkla.</div>
-                      <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', borderRadius:12, padding:'0.45rem 1.1rem', fontWeight:800, fontSize:'0.75rem', marginTop:4, boxShadow:'0 4px 12px rgba(79,70,229,0.3)' }}>📅 Programa Git</Link>
-                    </div>
+                    todayProgramInfo.hasAllCompleted ? (
+                      <div style={{ textAlign:'center', padding:'1.75rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                        <div style={{ fontSize:'2rem' }}>🎉</div>
+                        <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#15803d' }}>Bugünkü Görevler Tamamlandı!</div>
+                        <div style={{ fontSize:'0.73rem', color:'#64748b' }}>Harika iş çıkardın, bugünün tüm hedeflerini bitirdin.</div>
+                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'white', borderRadius:12, padding:'0.45rem 1.1rem', fontWeight:800, fontSize:'0.75rem', marginTop:4, boxShadow:'0 4px 12px rgba(22,163,74,0.3)' }}>📅 Haftalık Programa Git</Link>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign:'center', padding:'1.75rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                        <div style={{ fontSize:'2rem' }}>✨</div>
+                        <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#1e293b' }}>Bugün için program yok</div>
+                        <div style={{ fontSize:'0.73rem', color:'#64748b' }}>Haftalık programını düzenlemek için tıkla.</div>
+                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', borderRadius:12, padding:'0.45rem 1.1rem', fontWeight:800, fontSize:'0.75rem', marginTop:4, boxShadow:'0 4px 12px rgba(79,70,229,0.3)' }}>📅 Programa Git</Link>
+                      </div>
+                    )
                   ) : (() => {
                     const MAX_VISIBLE = 3;
                     const hasMore = todayProgramInfo.items.length > MAX_VISIBLE;
