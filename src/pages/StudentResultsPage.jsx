@@ -21,6 +21,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
+import { toUUID } from '../services/supabaseService';
 
 /* ── Subject Config ────────────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
@@ -172,9 +173,12 @@ export default function StudentResultsPage() {
     return map;
   }, [curData]);
 
-  /* ── Build studentSubmissions (Yalnızca aktif tanımlı ödevler) ─── */
+  /* ── Build studentSubmissions (Yalnızca aktif testler ve kitap testleri) ─── */
   const studentSubmissions = useMemo(() => {
     if (!selectedStudent) return [];
+
+    const studentIdStr = String(selectedStudent.id || '');
+    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
 
     const activeHws = (homeworks || []).filter(hw => {
       if (!hw || !hw.id) return false;
@@ -183,20 +187,41 @@ export default function StudentResultsPage() {
 
     const isEval = (sub) => Boolean(sub?.isEvaluatedByTeacher || sub?.status === 'evaluated' || sub?.status === 'graded' || sub?.teacherFeedback || sub?.teacherNote);
     const results = [];
+    const processedTestKeys = new Set();
 
+    // 1. Process regular non-book homeworks (Kitap ödevi olmayan normal ödev/denemeler)
     activeHws.forEach(hw => {
-      const subInHw = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id));
-      const subInGlobal = (submissions || []).find(s => 
-        String(s.studentId) === String(selectedStudent.id) &&
-        (String(s.hwId) === String(hw.id) || String(s.testId) === String(hw.id) || String(s.id) === String(hw.id) || String(s.id) === String(subInHw?.id) || String(s.id) === `hw_sub_${hw.id}_${selectedStudent.id}`)
-      );
+      if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Kendi Eklediğim)')) {
+        return; // Kitap görevleri tek bir mega-sınav değildir, test bazlı aşağıda işlenir
+      }
 
-      // En güncel ve değerlendirilmiş olanı seç
+      const subInHw = (hw.submissions || []).find(s => {
+        const sid = String(s.studentId);
+        return sid === studentIdStr || (studentUuidStr && sid === studentUuidStr);
+      });
+      const subInGlobal = (submissions || []).find(s => {
+        const sid = String(s.studentId);
+        const isMatch = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr);
+        return isMatch && (
+          String(s.hwId) === String(hw.id) ||
+          String(s.testId) === String(hw.id) ||
+          String(s.id) === String(hw.id) ||
+          String(s.id) === String(subInHw?.id) ||
+          String(s.id) === `hw_sub_${hw.id}_${selectedStudent.id}`
+        );
+      });
+
       let sub = subInGlobal;
       if (!sub || (subInHw && isEval(subInHw) && !isEval(subInGlobal))) {
         sub = subInHw || subInGlobal;
       }
-      if (!sub) return; // Öğrenci henüz bu aktif ödevi çözmemiş
+      if (!sub) return;
+
+      const subIdStr = String(sub.id || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+      if (sub.status === 'in_progress' || sub.status === 'draft') return;
+      const raw = sub.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
 
       const isEvaluated = isEval(sub);
       const isOpenEnded = Boolean(
@@ -210,9 +235,9 @@ export default function StudentResultsPage() {
       );
       const isPendingEval = isOpenEnded && !isEvaluated;
 
-      let correct = sub.correctCount ?? 0;
-      let wrong = sub.wrongCount ?? 0;
-      let blank = sub.blankCount ?? 0;
+      let correct = sub.correctCount ?? raw.correctCount ?? 0;
+      let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
+      let blank = sub.blankCount ?? raw.blankCount ?? 0;
 
       if (!isOpenEnded && Array.isArray(sub.answers) && sub.answers.length > 0) {
         correct = 0; wrong = 0; blank = 0;
@@ -227,21 +252,28 @@ export default function StudentResultsPage() {
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank;
-      const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || 0;
+      const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || raw.totalQuestions || 0;
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
 
+      if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
+
       let score = 0;
-      if (isEvaluated && sub.score !== undefined && sub.score !== null) {
-        score = Math.min(100, Math.max(0, sub.score));
+      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+        score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+        score = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
+      } else if (isEvaluated && sub.score !== undefined && sub.score !== null) {
+        score = Math.min(100, Math.max(0, Math.round(sub.score)));
       } else if (!isPendingEval && total > 0) {
         score = Math.min(100, Math.round((correct / total) * 100));
-      } else if (sub.score !== undefined && sub.score !== null && !isPendingEval) {
-        score = Math.min(100, Math.max(0, sub.score));
       }
 
       const isPhysical = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical;
       const typeKey = isPhysical ? 'physicalExam' : 'homework';
       const subjKey = getSubjectKey({ testTitle: hw.title, subjectKey: hw.subject || sub.subjectKey || '' });
+
+      processedTestKeys.add(String(hw.id));
+      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
 
       results.push({
         ...sub,
@@ -259,12 +291,91 @@ export default function StudentResultsPage() {
         blankCount: blank,
         totalQuestions: total,
         computedScore: score,
-        submittedAt: sub.submittedAt || sub.completedAt || hw.createdAt || new Date().toISOString()
+        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || hw.createdAt || new Date().toISOString()
+      });
+    });
+
+    // 2. Process all completed individual book tests (Kitap takibindeki gerçek çözülen testler)
+    (submissions || []).forEach(sub => {
+      if (!sub) return;
+      const sid = String(sub.studentId);
+      const isMatch = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sub.studentId) === studentUuidStr);
+      if (!isMatch) return;
+
+      const subIdStr = String(sub.id || sub.supabaseId || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+      if (sub.status === 'in_progress' || sub.status === 'draft') return;
+      const raw = sub.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
+      const bTestId = String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || '');
+      if (!bTestId || processedTestKeys.has(bTestId) || (toUUID(bTestId) && processedTestKeys.has(String(toUUID(bTestId))))) {
+        return;
+      }
+
+      let correct = sub.correctCount ?? raw.correctCount ?? 0;
+      let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
+      let blank = sub.blankCount ?? raw.blankCount ?? 0;
+
+      if (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.correctCount === undefined) {
+        correct = 0; wrong = 0; blank = 0;
+        sub.answers.forEach(ans => {
+          if (ans.isCorrect === true) correct++;
+          else if (ans.isCorrect === false) {
+            const isB = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+            if (isB) blank++; else wrong++;
+          }
+        });
+      }
+
+      if (correct === 0 && wrong === 0 && blank === 0 && (!sub.answers || sub.answers.length === 0)) return;
+
+      const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
+      const bookObj = (books || []).find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
+      const cleanBookTitle = (bookObj?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+
+      const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
+      const subjectName = subjObj?.name || bookObj?.subject || cleanBookTitle;
+      const testName = testObj?.name || sub.testTitle || raw.testTitle || 'Test';
+
+      const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
+      const sumCount = correct + wrong + blank;
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || 0;
+      const total = Math.max(rawTotal, ansCount, sumCount, 1);
+
+      let scorePct = 0;
+      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+        scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+        scorePct = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
+      } else if (total > 0) {
+        scorePct = Math.min(100, Math.round((correct / total) * 100));
+      }
+
+      processedTestKeys.add(bTestId);
+      if (toUUID(bTestId)) processedTestKeys.add(String(toUUID(bTestId)));
+
+      results.push({
+        ...sub,
+        id: subIdStr || `book_sub_${bTestId}_${selectedStudent.id}`,
+        testId: bTestId,
+        testTitle: `${cleanBookTitle} — ${subjectName} (${testName})`,
+        subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
+        typeKey: 'book',
+        isEvaluated: true,
+        isOpenEnded: false,
+        isPendingEval: false,
+        correctCount: correct,
+        wrongCount: wrong,
+        blankCount: blank,
+        totalQuestions: total,
+        computedScore: scorePct,
+        submittedAt: sub.submittedAt || sub.completedAt || raw.submittedAt || sub.createdAt || new Date().toISOString()
       });
     });
 
     return results.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [homeworks, submissions, selectedStudent, curData]);
+  }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
 
   /* ── Overall Stats ─── */
   const overallStats = useMemo(() => {
