@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowLeft, CheckCircle, XCircle, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -13,7 +13,26 @@ function getAnsIndex(val) {
   return null;
 }
 
-export default function PhysicalQuizReview({ submission, test, questions, onClose }) {
+function getQuestionColumns(totalCount, maxPerCol = 10) {
+  let perCol = maxPerCol;
+  if (totalCount <= 10) perCol = totalCount;
+  else if (totalCount <= 14) perCol = Math.ceil(totalCount / 2);
+  else if (totalCount <= 20) perCol = 10;
+  else if (totalCount <= 30) perCol = 10;
+  else perCol = Math.ceil(totalCount / Math.ceil(totalCount / 10));
+
+  const columns = [];
+  for (let i = 0; i < totalCount; i += perCol) {
+    const col = [];
+    for (let j = i; j < Math.min(i + perCol, totalCount); j++) {
+      col.push(j + 1);
+    }
+    columns.push(col);
+  }
+  return columns;
+}
+
+export default function PhysicalQuizReview({ submission, test, questions = [], onClose }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,7 +53,7 @@ export default function PhysicalQuizReview({ submission, test, questions, onClos
     }
   };
 
-  const answers = submission.answers || [];
+  const answers = submission?.answers || [];
   const qCount = useMemo(() => {
     if (Array.isArray(questions) && questions.length > 0) return questions.length;
     if (Array.isArray(answers) && answers.length > 0) return answers.length;
@@ -44,16 +63,33 @@ export default function PhysicalQuizReview({ submission, test, questions, onClos
     return 20;
   }, [questions, answers, test, submission]);
 
-  const correctCount = submission.correctCount || answers.filter(a => a.isCorrect === true).length;
-  const wrongCount = submission.wrongCount || answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length;
-  const blankCount = submission.blankCount || (qCount - correctCount - wrongCount);
+  const correctCount = submission?.correctCount ?? answers.filter(a => a.isCorrect === true).length;
+  const wrongCount = submission?.wrongCount ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '').length;
+  const blankCount = submission?.blankCount ?? Math.max(0, qCount - correctCount - wrongCount);
+  const scorePct = submission?.score ?? (qCount > 0 ? Math.round((correctCount / qCount) * 100) : 0);
+
+  const questionColumns = useMemo(() => {
+    return getQuestionColumns(qCount, 10);
+  }, [qCount]);
+
+  const isExplicitFive = Boolean(
+    Number(test?.optionCount) === 5 ||
+    Number(test?.optionsCount) === 5 ||
+    Number(test?.book?.optionCount) === 5 ||
+    String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
+    test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
+    test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
+    Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
+    Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
+  );
+  const optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
       
       {/* HEADER */}
       <header style={{
-        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
+        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 2rem',
         background: '#1e293b',
         borderBottom: '1px solid #334155',
         display: 'flex',
@@ -99,12 +135,12 @@ export default function PhysicalQuizReview({ submission, test, questions, onClos
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {test.title || test.name}
+              {test?.title || test?.name || submission?.testTitle || 'Optik Form İnceleme'}
               {!isMobile && " — Optik Form İnceleme"}
             </h2>
             {!isMobile && (
               <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                📋 İşaretlenmiş Optik Form Karşılaştırma Analizi
+                📋 İşaretlenmiş Optik Form Karşılaştırma Analizi ({qCount} Soru)
               </div>
             )}
           </div>
@@ -157,179 +193,191 @@ export default function PhysicalQuizReview({ submission, test, questions, onClos
             <span>○ {blankCount}</span>
             {!isMobile && <span>Boş</span>}
           </div>
+          <div style={{
+            background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+            color: '#ffffff',
+            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.85rem',
+            borderRadius: '0.5rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.72rem' : '0.82rem',
+            border: '1px solid #6366f1',
+            boxShadow: '0 2px 8px rgba(79,70,229,0.35)'
+          }}>
+            %{scorePct}
+          </div>
         </div>
       </header>
 
       {/* BODY */}
-      <div style={{ maxWidth: '950px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+      <div style={{ maxWidth: '1600px', width: '100%', margin: '0 auto', padding: isMobile ? '0.75rem' : '1.25rem 2rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
         
         {/* BANNER WITH COLOR LEGEND */}
-        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <FileSpreadsheet size={28} />
+        <div style={{ background: 'linear-gradient(135deg, #0f766e, #047857)', borderRadius: '1rem', padding: '0.85rem 1.25rem', color: 'white', boxShadow: '0 6px 20px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <FileSpreadsheet size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem' }}>Optik Form Sonuç Görünümü</h3>
-              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
-                İşaretlediğiniz kabarcıklar ile doğru cevap anahtarı renklerle gösterilmiştir:
+              <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem' }}>Optik Form Sonuç Görünümü</h3>
+              <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.75rem', opacity: 0.9 }}>
+                İşaretlediğiniz kabarcıklar ve doğru cevap anahtarı sütun sıralamasıyla listelenmiştir:
               </p>
             </div>
           </div>
 
           {/* COLOR LEGEND GUIDES */}
-          <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(0,0,0,0.25)', padding: '0.5rem 0.85rem', borderRadius: '0.75rem', fontSize: '0.78rem', fontWeight: 800, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', background: 'rgba(0,0,0,0.25)', padding: '0.35rem 0.75rem', borderRadius: '0.6rem', fontSize: '0.74rem', fontWeight: 800, flexWrap: 'wrap' }}>
             <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Doğru
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} /> Doğru
             </span>
             <span style={{ color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
             </span>
             <span style={{ color: '#6ee7b7', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
+              <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
             </span>
           </div>
         </div>
 
-        {/* OPTICAL FORM GRID REVIEW */}
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-          {Array.from({ length: qCount }).map((_, idx) => {
-            const qNo = idx + 1;
-            const qObj = questions[idx] || {};
-            const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[idx] || {};
-
-            const userAnsIndex = getAnsIndex(ansObj.userAnswer);
-            const textAns = ansObj.userAnswerText;
-
-            let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
-            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
-            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
-
-            const isBlank = userAnsIndex === null && !textAns;
-            let isCorrect = ansObj.isCorrect;
-            if (isCorrect === null || isCorrect === undefined) {
-              if (userAnsIndex !== null && correctAnsIndex !== null) {
-                isCorrect = userAnsIndex === correctAnsIndex;
-              }
-            }
-
-            return (
-              <div
-                key={qNo}
-                style={{
-                  background: '#0f172a',
-                  padding: '0.85rem 1rem',
-                  borderRadius: '0.85rem',
-                  border: `1.5px solid ${isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : '#334155'}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem'
-                }}
-              >
-                {/* QUESTION HEADER */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem' }}>
-                  <span style={{ color: '#f8fafc' }}>
-                    {qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}
-                  </span>
-
-                  {isCorrect === true && (
-                    <span style={{ fontSize: '0.73rem', background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 900, border: '1px solid #10b981' }}>
-                      ✓ Doğru
-                    </span>
-                  )}
-                  {isCorrect === false && (
-                    <span style={{ fontSize: '0.73rem', background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 900, border: '1px solid #ef4444' }}>
-                      ✕ Yanlış
-                    </span>
-                  )}
-                  {isBlank && (
-                    <span style={{ fontSize: '0.73rem', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 800 }}>
-                      — Boş
-                    </span>
-                  )}
-                </div>
-
-                {/* TEXT / OPEN-ENDED RESPONSE */}
-                {textAns ? (
-                  <div style={{ fontSize: '0.82rem', color: '#cbd5e1', background: '#1e293b', padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
-                    <strong style={{ color: '#a5b4fc' }}>Yazılı Yanıt: </strong>{textAns}
-                  </div>
-                ) : (
-                  /* 5 OPTICAL BUBBLES IN COLOR */
-                  <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.2rem' }}>
-                    {(() => {
-                      const isExplicitFive = Boolean(
-                        Number(test?.optionCount) === 5 ||
-                        Number(test?.optionsCount) === 5 ||
-                        Number(test?.book?.optionCount) === 5 ||
-                        String(test?.optionCount || test?.optionsCount || test?.book?.optionCount || '').includes('5') ||
-                        test?.examType === 'TYT' || test?.examType === 'AYT' || test?.examType === 'YKS' ||
-                        test?.book?.publisher === 'TYT' || test?.book?.publisher === 'AYT' || test?.book?.publisher === 'YKS' ||
-                        Boolean(String(test?.grade || test?.book?.grade || '').match(/^(9|10|11|12)/)) ||
-                        Boolean(String(test?.title || test?.book?.title || '').match(/tyt|ayt|yks|9\s*sınıf|10\s*sınıf|11\s*sınıf|12\s*sınıf|lise/i))
-                      );
-                      const isFourOptions = !isExplicitFive;
-                      const optionsList = (qObj.options && Array.isArray(qObj.options) && qObj.options.length > 0)
-                        ? (isFourOptions && qObj.options.length > 4 ? qObj.options.slice(0, 4) : qObj.options)
-                        : (isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E']);
-                      return optionsList.map((opt, optIdx) => {
-                        const isUserMarked = userAnsIndex === optIdx;
-                        const isAnswerKey = correctAnsIndex === optIdx;
-
-                        let bg = '#1e293b';
-                        let color = '#94a3b8';
-                        let border = '1px solid #334155';
-                        let labelText = opt;
-
-                        if (isUserMarked && isAnswerKey) {
-                          // 🟢 Student marked correctly!
-                          bg = '#10b981';
-                          color = '#ffffff';
-                          border = '2px solid #059669';
-                          labelText = '✓ ' + opt;
-                        } else if (isUserMarked && !isAnswerKey) {
-                          // 🔴 Student marked wrong!
-                          bg = '#ef4444';
-                          color = '#ffffff';
-                          border = '2px solid #dc2626';
-                          labelText = '✕ ' + opt;
-                        } else if (!isUserMarked && isAnswerKey) {
-                          // 🟢 Correct Answer Key (missed or left blank)
-                          bg = 'rgba(16, 185, 129, 0.15)';
-                          color = '#34d399';
-                          border = '2px solid #10b981';
-                          labelText = opt + ' ★';
-                        }
-
-                        return (
-                          <div
-                            key={opt}
-                            style={{
-                              flex: 1,
-                              height: '34px',
-                            borderRadius: '0.5rem',
-                            background: bg,
-                            color: color,
-                            border: border,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 900,
-                            fontSize: '0.8rem',
-                            boxShadow: (isUserMarked || isAnswerKey) ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {labelText}
-                        </div>
-                      );
-                    });
-                  })()}
-                  </div>
-                )}
+        {/* COLUMN-BY-COLUMN COMPACT OPTICAL FORM */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(auto-fit, minmax(280px, 1fr))`,
+          gap: '1rem',
+          alignItems: 'start'
+        }}>
+          {questionColumns.map((col, colIdx) => (
+            <div
+              key={colIdx}
+              style={{
+                background: '#1e293b',
+                borderRadius: '0.85rem',
+                padding: '0.75rem 0.85rem',
+                border: '1px solid #334155',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: '0.35rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#38bdf8', fontWeight: 900 }}>Sütun {colIdx + 1}</span>
+                <span>Soru {col[0]} – {col[col.length - 1]}</span>
               </div>
-            );
-          })}
+
+              {col.map(qNo => {
+                const idx = qNo - 1;
+                const qObj = questions[idx] || {};
+                const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[idx] || {};
+
+                const userAnsIndex = getAnsIndex(ansObj.userAnswer);
+                const textAns = ansObj.userAnswerText;
+
+                let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
+                if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
+                if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
+                if (correctAnsIndex === null && test?.answerKey) {
+                  const ak = test.answerKey;
+                  const keyVal = Array.isArray(ak) ? ak[idx] : (ak[qNo] || ak[String(qNo)]);
+                  correctAnsIndex = getAnsIndex(keyVal);
+                }
+
+                const isBlank = userAnsIndex === null && !textAns;
+                let isCorrect = ansObj.isCorrect;
+                if (isCorrect === null || isCorrect === undefined) {
+                  if (userAnsIndex !== null && correctAnsIndex !== null) {
+                    isCorrect = userAnsIndex === correctAnsIndex;
+                  }
+                }
+
+                const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
+
+                return (
+                  <div
+                    key={qNo}
+                    style={{
+                      background: '#0f172a',
+                      padding: '0.35rem 0.6rem',
+                      borderRadius: '0.6rem',
+                      border: `1.5px solid ${isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : '#334155'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.4rem',
+                      minHeight: '34px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 50, flexShrink: 0 }}>
+                      <span style={{
+                        fontWeight: 900,
+                        fontSize: '0.8rem',
+                        color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#f8fafc'
+                      }}>
+                        {qNo}.
+                      </span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#94a3b8' }}>
+                        {isCorrect === true ? '✓' : isCorrect === false ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
+                      </span>
+                    </div>
+
+                    {textAns ? (
+                      <div style={{ fontSize: '0.75rem', color: '#cbd5e1', background: '#1e293b', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', flex: 1 }}>
+                        {textAns}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {optionsList.map((opt, optIdx) => {
+                          const isUserMarked = userAnsIndex === optIdx;
+                          const isAnswerKey = correctAnsIndex === optIdx;
+
+                          let bg = '#1e293b';
+                          let color = '#94a3b8';
+                          let border = '1px solid #334155';
+
+                          if (isUserMarked && isAnswerKey) {
+                            bg = '#10b981';
+                            color = '#ffffff';
+                            border = '2px solid #059669';
+                          } else if (isUserMarked && !isAnswerKey) {
+                            bg = '#ef4444';
+                            color = '#ffffff';
+                            border = '2px solid #dc2626';
+                          } else if (!isUserMarked && isAnswerKey) {
+                            bg = 'rgba(16, 185, 129, 0.2)';
+                            color = '#34d399';
+                            border = '2px solid #10b981';
+                          }
+
+                          return (
+                            <div
+                              key={opt}
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                background: bg,
+                                color: color,
+                                border: border,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                boxShadow: (isUserMarked || isAnswerKey) ? '0 2px 6px rgba(0,0,0,0.3)' : 'none'
+                              }}
+                              title={isUserMarked && isAnswerKey ? 'Doğru işaretlendi' : isUserMarked ? 'Hatalı işaretlendi' : isAnswerKey ? 'Doğru cevap' : ''}
+                            >
+                              {opt}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     </div>

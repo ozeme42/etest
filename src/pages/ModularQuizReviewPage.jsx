@@ -487,15 +487,16 @@ export default function ModularQuizReviewPage() {
   );
 
   const isPhysical = Boolean(
-    !String(test.id || '').startsWith('hw_') &&
-    (
-      test.sourceFormat === 'physical' ||
-      test.formatType === 'physical' ||
-      test.questionType === 'optik_form' ||
-      test.type === 'optik_form' ||
-      (test.sourceType === 'trackedBook' && !test.contentType && !test.contentPayload && !test.sections && !test.questionsList && !test.questions?.length) ||
-      (submission && (submission.bookId || submission.sourceType === 'trackedBook') && !test.contentType && !test.contentPayload && !test.sections)
-    )
+    test.sourceFormat === 'physical' ||
+    test.formatType === 'physical' ||
+    test.questionType === 'optik_form' ||
+    test.type === 'optik_form' ||
+    test.sourceType === 'trackedBook' ||
+    Boolean(test.bookId) ||
+    Boolean(submission?.bookId) ||
+    Boolean(submission?.sourceType === 'trackedBook') ||
+    Boolean(submission?.bookTestId) ||
+    (!test.contentType && !test.contentPayload && !test.sections && (!questions || questions.length === 0 || !questions[0]?.text))
   );
 
   const hasExplicitImageQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 

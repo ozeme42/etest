@@ -15,6 +15,25 @@ import {
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle
 } from 'lucide-react';
 
+function getQuestionColumns(totalCount, maxPerCol = 10) {
+  let perCol = maxPerCol;
+  if (totalCount <= 10) perCol = totalCount;
+  else if (totalCount <= 14) perCol = Math.ceil(totalCount / 2);
+  else if (totalCount <= 20) perCol = 10;
+  else if (totalCount <= 30) perCol = 10;
+  else perCol = Math.ceil(totalCount / Math.ceil(totalCount / 10));
+
+  const columns = [];
+  for (let i = 0; i < totalCount; i += perCol) {
+    const col = [];
+    for (let j = i; j < Math.min(i + perCol, totalCount); j++) {
+      col.push(j + 1);
+    }
+    columns.push(col);
+  }
+  return columns;
+}
+
 export default function TrackedBookQuizRunner() {
   const { testId: routeParamId } = useParams();
   const [searchParams] = useSearchParams();
@@ -162,6 +181,10 @@ export default function TrackedBookQuizRunner() {
 
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
   const isOpenEnded = resolvedBook?.bookType === 'open_ended' || resolvedTest?.questionType === 'acik_uclu';
+
+  const questionColumns = useMemo(() => {
+    return getQuestionColumns(questionCount, 10);
+  }, [questionCount]);
 
   // Timer calculation
   const perQuestionMins = Number(resolvedTest?.timePerQuestion || resolvedBook?.timePerQuestion) || 2;
@@ -850,127 +873,153 @@ export default function TrackedBookQuizRunner() {
                   </div>
                 </div>
 
-                {/* Question rows */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
-                  {Array.from({ length: questionCount }).map((_, idx) => {
-                    const qNo = idx + 1;
-                    const selected = answers[qNo] || answers[String(qNo)] || '';
-
-                    let isCorrect = false;
-                    let isWrong = false;
-                    let correctKey = '';
-
-                    if (isSubmitted) {
-                      const answerKey = resolvedTest.answerKey || resolvedBook?.answerKey || {};
-                      correctKey = Array.isArray(answerKey) 
-                        ? (answerKey[idx] || '') 
-                        : (answerKey[qNo] || answerKey[String(qNo)] || '');
-                      isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
-                      isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
-                    }
-
-                    if (isOpenEnded) {
-                      return (
-                        <div key={qNo} style={{ background: '#0f172a', padding: '0.75rem 0.85rem', borderRadius: '0.85rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontWeight: 900, fontSize: '0.82rem', color: '#f8fafc' }}>
-                            Soru {qNo}
-                          </span>
-                          <textarea
-                            disabled={isSubmitted}
-                            value={selected}
-                            onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                            placeholder="Cevabınızı buraya yazınız..."
-                            rows={2}
-                            style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '0.5rem', color: 'white', fontSize: '0.8rem', resize: 'vertical' }}
-                          />
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div 
-                        key={qNo} 
-                        style={{
-                          background: '#0f172a',
-                          padding: '0.75rem 0.85rem',
-                          borderRadius: '0.85rem',
-                          border: isCorrect ? '1.5px solid #10b981' : isWrong ? '1.5px solid #ef4444' : selected ? '1.5px solid #0891b2' : '1px solid #334155',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.5rem'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 65 }}>
-                          <span style={{
-                            fontWeight: 900,
-                            fontSize: '0.82rem',
-                            color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#f8fafc'
-                          }}>
-                            Soru {qNo}
-                          </span>
-                          {isSubmitted && (
-                            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
-                              {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end' }}>
-                          {optionsList.map((opt) => {
-                            const isSelected = selected === opt;
-                            const isThisOptCorrect = isSubmitted && correctKey === opt;
-
-                            return (
-                              <button
-                                key={opt}
-                                type="button"
-                                disabled={isSubmitted}
-                                onClick={() => handleSelectOption(qNo, opt)}
-                                style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: '50%',
-                                  fontWeight: 900,
-                                  fontSize: '0.8rem',
-                                  cursor: isSubmitted ? 'default' : 'pointer',
-                                  border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #10b981' : '1px solid #475569',
-                                  background: isSubmitted && isThisOptCorrect ? '#059669' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#0891b2' : '#1e293b',
-                                  color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : '#cbd5e1',
-                                  transition: 'all 0.12s ease',
-                                  boxShadow: isSelected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
-                                }}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-
-                          {!isSubmitted && (
-                            <button
-                              type="button"
-                              onClick={() => handleClearOption(qNo)}
-                              disabled={!selected}
-                              title="İşareti Kaldır"
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: selected ? '#ef4444' : 'transparent',
-                                cursor: selected ? 'pointer' : 'default',
-                                padding: 2,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                pointerEvents: selected ? 'auto' : 'none'
-                              }}
-                            >
-                              <XIcon size={14} />
-                            </button>
-                          )}
-                        </div>
+                {/* Question Columns (Sütun Sütun Sıralama: 1. sütun 1-10, 2. sütun 11-20...) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+                  {questionColumns.map((col, colIdx) => (
+                    <div
+                      key={colIdx}
+                      style={{
+                        background: '#0f172a',
+                        borderRadius: '0.85rem',
+                        padding: '0.75rem 0.85rem',
+                        border: '1px solid #334155',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.35rem',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', borderBottom: '1px solid #1e293b', paddingBottom: '0.35rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#38bdf8', fontWeight: 900 }}>Sütun {colIdx + 1}</span>
+                        <span>Soru {col[0]} – {col[col.length - 1]}</span>
                       </div>
-                    );
-                  })}
+
+                      {col.map(qNo => {
+                        const idx = qNo - 1;
+                        const selected = answers[qNo] || answers[String(qNo)] || '';
+
+                        let isCorrect = false;
+                        let isWrong = false;
+                        let correctKey = '';
+
+                        if (isSubmitted) {
+                          const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+                          correctKey = Array.isArray(answerKey) 
+                            ? (answerKey[idx] || '') 
+                            : (answerKey[qNo] || answerKey[String(qNo)] || '');
+                          isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
+                          isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
+                        }
+
+                        if (isOpenEnded) {
+                          return (
+                            <div key={qNo} style={{ background: '#1e293b', padding: '0.6rem 0.75rem', borderRadius: '0.65rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              <span style={{ fontWeight: 900, fontSize: '0.8rem', color: '#f8fafc' }}>
+                                Soru {qNo}
+                              </span>
+                              <textarea
+                                disabled={isSubmitted}
+                                value={selected}
+                                onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                                placeholder="Cevabınızı yazınız..."
+                                rows={2}
+                                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 6, padding: '0.4rem', color: 'white', fontSize: '0.78rem', resize: 'vertical' }}
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div 
+                            key={qNo} 
+                            style={{
+                              background: '#1e293b',
+                              padding: '0.35rem 0.6rem',
+                              borderRadius: '0.6rem',
+                              border: isCorrect ? '1.5px solid #10b981' : isWrong ? '1.5px solid #ef4444' : selected ? '1.5px solid #0891b2' : '1px solid #334155',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.4rem',
+                              minHeight: '36px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 50, flexShrink: 0 }}>
+                              <span style={{
+                                fontWeight: 900,
+                                fontSize: '0.8rem',
+                                color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#f8fafc'
+                              }}>
+                                {qNo}.
+                              </span>
+                              {isSubmitted && (
+                                <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
+                                  {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                              {optionsList.map((opt) => {
+                                const isSelected = selected === opt;
+                                const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    disabled={isSubmitted}
+                                    onClick={() => handleSelectOption(qNo, opt)}
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: '50%',
+                                      fontWeight: 900,
+                                      fontSize: '0.78rem',
+                                      cursor: isSubmitted ? 'default' : 'pointer',
+                                      border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #10b981' : '1px solid #475569',
+                                      background: isSubmitted && isThisOptCorrect ? '#059669' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#0891b2' : '#0f172a',
+                                      color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : '#cbd5e1',
+                                      transition: 'all 0.12s ease',
+                                      boxShadow: isSelected ? '0 2px 6px rgba(8,145,178,0.4)' : 'none',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: 0
+                                    }}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+
+                              {!isSubmitted && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClearOption(qNo)}
+                                  disabled={!selected}
+                                  title="İşareti Kaldır"
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: selected ? '#ef4444' : 'transparent',
+                                    cursor: selected ? 'pointer' : 'default',
+                                    padding: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    pointerEvents: selected ? 'auto' : 'none'
+                                  }}
+                                >
+                                  <XIcon size={13} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1108,43 +1157,70 @@ export default function TrackedBookQuizRunner() {
               </button>
             </div>
 
-            <div style={{ padding: '1rem', overflowY: 'auto', flex: 1, background: '#0f172a' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {Array.from({ length: questionCount }).map((_, idx) => {
-                  const qNo = idx + 1;
-                  const selected = answers[qNo] || answers[String(qNo)] || '';
-
-                  return (
-                    <div key={qNo} style={{ background: '#1e293b', padding: '0.75rem 0.85rem', borderRadius: '0.75rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc', minWidth: 60 }}>
-                        Soru {qNo}
-                      </span>
-
-                      <div style={{ display: 'flex', gap: '0.35rem', flex: 1, maxWidth: 260 }}>
-                        {optionsList.map((opt) => {
-                          const isSelected = selected === opt;
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => handleSelectOption(qNo, opt)}
-                              style={{
-                                flex: 1, height: 36, borderRadius: '50%',
-                                fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
-                                border: isSelected ? '2px solid #0891b2' : '1.5px solid #475569',
-                                background: isSelected ? '#0891b2' : '#0f172a',
-                                color: isSelected ? 'white' : '#cbd5e1',
-                                transition: 'all 0.12s'
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
-                      </div>
+            <div style={{ padding: '0.85rem', overflowY: 'auto', flex: 1, background: '#0f172a' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: questionColumns.length > 1 ? 'repeat(auto-fit, minmax(240px, 1fr))' : '1fr', gap: '0.75rem', alignItems: 'start' }}>
+                {questionColumns.map((col, colIdx) => (
+                  <div
+                    key={colIdx}
+                    style={{
+                      background: '#1e293b',
+                      borderRadius: '0.75rem',
+                      padding: '0.65rem 0.75rem',
+                      border: '1px solid #334155',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: '0.25rem', marginBottom: '0.15rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#38bdf8', fontWeight: 900 }}>Sütun {colIdx + 1}</span>
+                      <span>Soru {col[0]} – {col[col.length - 1]}</span>
                     </div>
-                  );
-                })}
+
+                    {col.map(qNo => {
+                      const selected = answers[qNo] || answers[String(qNo)] || '';
+
+                      return (
+                        <div key={qNo} style={{ background: '#0f172a', padding: '0.35rem 0.6rem', borderRadius: '0.6rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', minHeight: '36px' }}>
+                          <span style={{ fontWeight: 900, fontSize: '0.8rem', color: '#f8fafc', minWidth: 45 }}>
+                            {qNo}.
+                          </span>
+
+                          <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {optionsList.map((opt) => {
+                              const isSelected = selected === opt;
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => handleSelectOption(qNo, opt)}
+                                  style={{
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: '50%',
+                                    fontWeight: 900,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    border: isSelected ? 'none' : '1px solid #475569',
+                                    background: isSelected ? '#0891b2' : '#1e293b',
+                                    color: isSelected ? 'white' : '#cbd5e1',
+                                    transition: 'all 0.12s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: 0
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
 
