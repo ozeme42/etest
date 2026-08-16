@@ -372,7 +372,7 @@ export default function TeacherDashboard() {
       padding: '1.25rem 1rem 5rem 1rem',
       boxSizing: 'border-box'
     }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
         {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
         <div style={{

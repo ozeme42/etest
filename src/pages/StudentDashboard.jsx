@@ -1249,9 +1249,9 @@ export default function StudentDashboard() {
         .scroll-hide { scrollbar-width:none; -ms-overflow-style:none; }
         .scroll-hide::-webkit-scrollbar { display:none; }
         @media(min-width:900px) {
-          .sd-content-outer { max-width:1280px; margin:0 auto; padding:0 2rem; }
-          .sd-stat-outer { max-width:1280px; margin:0 auto; padding:0 2rem; }
-          .sd-hero-inner { max-width:1280px; margin:0 auto; }
+          .sd-content-outer { width:100%; max-width:100%; margin:0; padding:0 1.5rem; }
+          .sd-stat-outer { width:100%; max-width:100%; margin:0; padding:0 1.5rem; }
+          .sd-hero-inner { width:100%; max-width:100%; margin:0; }
           .sd-main-grid { display:grid; grid-template-columns:1fr 360px; gap:1.5rem; align-items:start; }
         }
         @media(max-width:899px) {

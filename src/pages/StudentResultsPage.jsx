@@ -534,7 +534,7 @@ export default function StudentResultsPage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1300, margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
 
         {/* ── HEADER ── */}
         <div className="sr-header-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>

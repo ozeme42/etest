@@ -80,7 +80,7 @@ export default function StudentProgramPage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1300, margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
         {/* Header with Back Button & Stats */}
         <div className="prog-header-wrap prog-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

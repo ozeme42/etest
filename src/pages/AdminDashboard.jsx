@@ -38,7 +38,7 @@ export default function AdminDashboard() {
       padding: '1.5rem 1rem 5rem 1rem',
       boxSizing: 'border-box'
     }}>
-      <div style={{ maxWidth: 1440, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {/* TOP CONTROL CENTER HEADER */}
         <div style={{

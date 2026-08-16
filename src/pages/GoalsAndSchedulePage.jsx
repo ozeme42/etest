@@ -847,7 +847,7 @@ export default function GoalsAndSchedulePage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1300, margin: '0 auto', paddingBottom: 80 }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0, paddingBottom: 80 }}>
         
         {/* HEADER BAR */}
         <div className="goal-header-wrap goal-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>

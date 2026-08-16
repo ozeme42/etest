@@ -630,7 +630,7 @@ export default function StudentWrongAnswersPage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1300, margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
 
         {/* HEADER */}
         <div className="wa-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
