@@ -737,12 +737,15 @@ export default function BookContentManager() {
     }
   };
 
-  const handleResetSingleBookTestForStudent = async (hw, stId, testId, testName, stName) => {
+  const handleResetSingleBookTestForStudent = async (hw, stId, testId, testName, stName, subId) => {
     if (!stId || !testId) return;
     if (!window.confirm(`${stName || 'Öğrenci'} adlı öğrencinin "${testName || 'Test'}" testindeki tüm yanıtlarını sıfırlamak istiyor musunuz? Öğrenci bu testi baştan çözebilecek.`)) {
       return;
     }
     try {
+      if (subId && typeof deleteSubmission === 'function') {
+        await deleteSubmission(subId);
+      }
       if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
         await deleteStudentSubmissionsForBookOrHw(stId, hw?.id, book?.id, [testId]);
       }
@@ -1601,7 +1604,7 @@ export default function BookContentManager() {
                                                     </button>
 
                                                     <button
-                                                      onClick={() => handleResetSingleBookTestForStudent(hw, item.student.id, t.id, t.testDef?.name, item.student.name)}
+                                                      onClick={() => handleResetSingleBookTestForStudent(hw, item.student.id, t.id, t.testDef?.name, item.student.name, t.testSub?.id)}
                                                       style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.25rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.73rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                       title="Sadece bu testin yanıtını sıfırla"
                                                     >

@@ -754,7 +754,7 @@ export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds =
       if (targetList.length > 0) {
         await supabase.from('submissions').delete().eq('student_id', sid).in('test_id', targetList);
       }
-      if (hwId) {
+      if (hwId && (!testIds || testIds.length === 0)) {
         const hwStr = String(hwId);
         const hwUuid = toUUID(hwStr);
         await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwStr);
