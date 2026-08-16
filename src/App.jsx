@@ -4,7 +4,8 @@ import { initNativeApp } from './services/nativeMobileService';
 import MobileBottomNav from './components/MobileBottomNav';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
-  Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar
+  Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 
 import Landing from './pages/Landing';
@@ -55,7 +56,7 @@ function RequireRole({ roles, children }) {
   return children;
 }
 
-function Sidebar() {
+function Sidebar({ isCollapsed, setIsCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const { isStudentCoached } = useCoaching();
@@ -64,6 +65,13 @@ function Sidebar() {
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('sidebar_collapsed', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const hasCoach = currentUser?.role === 'student' ? isStudentCoached(currentUser?.id) : true;
 
@@ -81,12 +89,31 @@ function Sidebar() {
 
       <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={closeSidebar}></div>
 
-      <nav className={`sidebar glass ${isOpen ? 'open' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <div className="sidebar-header">
+      {/* FLOATING TOGGLE BUTTON (VISIBLE WHEN SIDEBAR IS COLLAPSED ON DESKTOP/TABLET) */}
+      {isCollapsed && (
+        <button
+          onClick={toggleCollapse}
+          className="sidebar-floating-toggle-btn"
+          title="Menüyü Aç"
+        >
+          <PanelLeftOpen size={18} />
+          <span className="floating-btn-text">Menü</span>
+        </button>
+      )}
+
+      <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link to="/" className="brand" onClick={closeSidebar}>
             <span className="brand-icon">✨</span>
             <span className="brand-text">E-Test</span>
           </Link>
+          <button 
+            onClick={toggleCollapse}
+            className="sidebar-collapse-toggle-btn"
+            title="Menüyü Gizle"
+          >
+            <PanelLeftClose size={18} />
+          </button>
         </div>
 
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
@@ -227,6 +254,14 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
 
   const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/'];
   const isLandingPage = location.pathname === '/';
@@ -238,8 +273,13 @@ function AppContent() {
   }, []);
 
   return (
-    <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''}`}>
-      {!shouldHideSidebar && <Sidebar />}
+    <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {!shouldHideSidebar && (
+        <Sidebar 
+          isCollapsed={isSidebarCollapsed} 
+          setIsCollapsed={setIsSidebarCollapsed} 
+        />
+      )}
 
       <main className="main-content">
         <Routes>
