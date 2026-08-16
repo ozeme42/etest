@@ -125,6 +125,7 @@ export default function BookContentManager() {
   // Mistake Filter States
   const [mistakeFilterSubject, setMistakeFilterSubject] = useState("all");
   const [mistakeFilterTopic, setMistakeFilterTopic] = useState("all");
+  const [mistakeFilterStudent, setMistakeFilterStudent] = useState("all");
 
   const showToast = (msg, type = 'success') => {
     alert(`${type === 'success' ? '✅' : '❌'} ${msg}`);
@@ -258,6 +259,7 @@ export default function BookContentManager() {
 
       const subjName = subject?.name || 'Genel';
       const topName = topic?.name || 'Direkt Testler';
+      const stName = students.find(st => String(st.id) === String(sub.studentId))?.name || sub.studentName || 'Öğrenci';
 
       const answersArr = Array.isArray(sub.answers) ? sub.answers : [];
       answersArr.forEach((ans, ansIdx) => {
@@ -270,7 +272,9 @@ export default function BookContentManager() {
           const qNum = Number(rawNum) || (ansIdx + 1);
 
           mistakesBySubject[subjName][topName].push({ 
-            submission: sub, 
+            submission: { ...sub, studentName: stName }, 
+            studentId: String(sub.studentId),
+            studentName: stName,
             testDef, 
             questionNumber: qNum,
             isBlank
@@ -279,9 +283,9 @@ export default function BookContentManager() {
       });
     }
     return mistakesBySubject;
-  }, [submissions, tests, book]);
+  }, [submissions, tests, book, students]);
 
-  const { filteredMistakes, subjectOptions, topicOptions } = useMemo(() => {
+  const { filteredMistakes, subjectOptions, topicOptions, studentOptions } = useMemo(() => {
     const flatList = [];
     Object.entries(mistakeList).forEach(([subjectName, topics]) => {
         Object.entries(topics).forEach(([topicName, mistakes]) => {
@@ -294,19 +298,22 @@ export default function BookContentManager() {
     const filtered = flatList.filter(m => {
         if (mistakeFilterSubject !== 'all' && m.subjectName !== mistakeFilterSubject) return false;
         if (mistakeFilterTopic !== 'all' && m.topicName !== mistakeFilterTopic) return false;
+        if (mistakeFilterStudent !== 'all' && String(m.studentId) !== String(mistakeFilterStudent)) return false;
         return true;
     });
 
     const grouped = [];
     const map = new Map();
     filtered.forEach(m => {
-        const key = `${m.submission.studentId}_${m.testDef.id}`;
+        const key = `${m.studentId}_${m.testDef.id}`;
         const qNum = Number(m.questionNumber) || 1;
         if (!map.has(key)) {
             map.set(key, {
                 subjectName: m.subjectName,
                 topicName: m.topicName,
                 testDef: m.testDef,
+                studentId: m.studentId,
+                studentName: m.studentName,
                 submission: m.submission,
                 questionData: [{ num: qNum, isBlank: m.isBlank }]
             });
@@ -327,8 +334,14 @@ export default function BookContentManager() {
         flatList.filter(m => mistakeFilterSubject === 'all' || m.subjectName === mistakeFilterSubject).map(m => m.topicName)
     )).sort();
 
-    return { filteredMistakes: grouped, subjectOptions: subjects, topicOptions: topics };
-  }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic]);
+    const uniqueStudentIds = Array.from(new Set(flatList.map(m => m.studentId)));
+    const studentOpts = uniqueStudentIds.map(stId => {
+      const found = students.find(s => String(s.id) === String(stId));
+      return { id: stId, name: found?.name || 'Öğrenci' };
+    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    return { filteredMistakes: grouped, subjectOptions: subjects, topicOptions: topics, studentOptions: studentOpts };
+  }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic, mistakeFilterStudent, students]);
 
   // --- HANDLERS ---
   const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: !p[subjId] }));
@@ -741,6 +754,33 @@ export default function BookContentManager() {
     } catch (e) {
       console.error(e);
       showToast('Sıfırlama sırasında hata oluştu.', 'error');
+    }
+  };
+
+  const handleResetMistakeSubmission = async (mistake) => {
+    const stName = mistake.studentName || mistake.submission?.studentName || 'Öğrenci';
+    const testName = mistake.testDef?.name || 'Test';
+    if (!window.confirm(`${stName} adlı öğrencinin "${testName}" testindeki tüm yanıtlarını sıfırlamak istiyor musunuz? Öğrenci teste tekrar sonuç girebilecek.`)) {
+      return;
+    }
+    try {
+      const stId = mistake.studentId || mistake.submission?.studentId;
+      const testId = mistake.testDef?.id;
+      const hwId = mistake.submission?.hwId || mistake.submission?.homeworkId;
+
+      if (typeof deleteSubmission === 'function' && mistake.submission?.id) {
+        await deleteSubmission(mistake.submission.id);
+      }
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(stId, hwId, book?.id, [testId]);
+      }
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(hwId, stId, book?.id);
+      }
+      showToast(`${stName} için "${testName}" testi başarıyla sıfırlandı. Öğrenci artık teste tekrar sonuç girebilir.`, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Sıfırlama sırasında bir hata oluştu.', 'error');
     }
   };
 
@@ -1369,7 +1409,18 @@ export default function BookContentManager() {
                 <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Kitaptaki hatalı cevapların dökümü.</p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {studentOptions.length > 0 && (
+                <select 
+                  className="input-field" 
+                  value={mistakeFilterStudent} 
+                  onChange={e => setMistakeFilterStudent(e.target.value)} 
+                  style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1.5px solid #c7d2fe', background: '#f5f3ff', color: '#4338ca', fontWeight: 800, minWidth: 160 }}
+                >
+                  <option value="all">👤 Tüm Öğrenciler ({studentOptions.length})</option>
+                  {studentOptions.map(st => <option key={st.id} value={st.id}>👤 {st.name}</option>)}
+                </select>
+              )}
               {subjectOptions.length > 0 && (
                 <select className="input-field" value={mistakeFilterSubject} onChange={e => setMistakeFilterSubject(e.target.value)} style={{ padding: '0.5rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}>
                   <option value="all">Tüm Dersler</option>
@@ -1414,17 +1465,14 @@ export default function BookContentManager() {
                           ))}
                         </div>
                       </td>
-                      <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{mistake.submission.studentName}</td>
+                      <td style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>
+                        👤 {mistake.studentName || mistake.submission.studentName || 'Öğrenci'}
+                      </td>
                       <td style={{ padding: '1rem', textAlign: 'right' }}>
                         <button
-                          onClick={async () => {
-                            if (window.confirm(`${mistake.submission.studentName} adlı öğrencinin bu testteki (${mistake.testDef.name}) yanıtını sıfırlamak istiyor musunuz?`)) {
-                              await deleteSubmission(mistake.submission.id);
-                              showToast('Test yanıtı sıfırlandı.');
-                            }
-                          }}
-                          style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.25rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                          title="Bu test sonucunu sil ve öğrencinin tekrar çözmesine izin ver"
+                          onClick={() => handleResetMistakeSubmission(mistake)}
+                          style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.25rem 0.65rem', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          title="Bu test sonucunu sil ve öğrencinin tekrar sonuç girmesine izin ver"
                         >
                           <RotateCcw size={11} /> Sıfırla
                         </button>
