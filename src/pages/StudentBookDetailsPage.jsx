@@ -772,13 +772,27 @@ export default function StudentBookDetailsPage() {
                                   <Lock size={14} /> Kilitli
                                 </span>
                               ) : (
-                                <button
-                                  className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                  onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
-                                >
-                                  <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  {isTeacherViewing && (
+                                    <button
+                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #c7d2fe', color: '#4338ca', background: '#eef2ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      title="Testi Düzenle"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenEditTest(test);
+                                      }}
+                                    >
+                                      <Edit size={12} /> Düzenle
+                                    </button>
+                                  )}
+                                  <button
+                                    className="sbdp-btn-solve"
+                                    style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                    onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                                  >
+                                    <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -928,13 +942,27 @@ export default function StudentBookDetailsPage() {
                                           <Lock size={14} /> Kilitli
                                         </span>
                                       ) : (
-                                        <button
-                                          className="sbdp-btn-solve"
-                                          style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                          onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
-                                        >
-                                          <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
-                                        </button>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                          {isTeacherViewing && (
+                                            <button
+                                              style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #c7d2fe', color: '#4338ca', background: '#eef2ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                              title="Testi Düzenle"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenEditTest(test);
+                                              }}
+                                            >
+                                              <Edit size={12} /> Düzenle
+                                            </button>
+                                          )}
+                                          <button
+                                            className="sbdp-btn-solve"
+                                            style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                            onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                                          >
+                                            <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
+                                          </button>
+                                        </div>
                                       )}
                                     </div>
                                   </div>
@@ -1050,13 +1078,27 @@ export default function StudentBookDetailsPage() {
                                 <Lock size={14} /> Kilitli
                               </span>
                             ) : (
-                              <button
-                                className="sbdp-btn-solve"
-                                style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
-                              >
-                                <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                {isTeacherViewing && (
+                                  <button
+                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #c7d2fe', color: '#4338ca', background: '#eef2ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    title="Testi Düzenle"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenEditTest(test);
+                                    }}
+                                  >
+                                    <Edit size={12} /> Düzenle
+                                  </button>
+                                )}
+                                <button
+                                  className="sbdp-btn-solve"
+                                  style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                  onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                                >
+                                  <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
