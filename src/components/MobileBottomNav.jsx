@@ -15,7 +15,7 @@ export default function MobileBottomNav() {
 
   const studentTabs = [
     { label: 'Ana Sayfa', path: '/student', icon: Home },
-    { label: 'Ödevlerim', path: '/student/exams', icon: ClipboardList },
+    { label: 'Denemelerim', path: '/student/exams', icon: Award },
     { label: 'Kitaplarım', path: '/student/books', icon: BookOpen },
     { label: 'Programım', path: '/my-program', icon: Calendar },
     { label: 'Sonuçlarım', path: '/student-results', icon: BarChart3 },
