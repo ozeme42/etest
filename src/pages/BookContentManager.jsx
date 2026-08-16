@@ -35,7 +35,7 @@ export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
   const [editDateValue, setEditDateValue] = useState('');
@@ -741,6 +741,10 @@ export default function BookContentManager() {
       const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(book?.id)).map(bt => bt.id);
       const hwTests = hw?.tests || allBookTests;
       const allTestIds = Array.from(new Set([...hwTests, ...allBookTests]));
+
+      if (typeof deleteBookSubmissionsForEveryone === 'function') {
+        await deleteBookSubmissionsForEveryone(book?.id, hw?.id, allTestIds);
+      }
 
       for (const st of (students || [])) {
         if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {

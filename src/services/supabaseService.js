@@ -731,31 +731,36 @@ export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds =
   try {
     const stIdStr = String(studentId);
     const stUuid = toUUID(stIdStr);
+    const studentIds = Array.from(new Set([stIdStr, stUuid].filter(Boolean)));
 
-    // 1. If hwId provided, delete all submissions with this homework_id or matching test_id
+    // 1. Gather all possible test IDs and UUIDs
+    const allTestIdentifiers = new Set();
     if (hwId) {
-      const hwIdStr = String(hwId);
-      const hwUuid = toUUID(hwIdStr);
-      await supabase.from('submissions').delete().match({ student_id: stIdStr, homework_id: hwIdStr });
-      if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, homework_id: hwIdStr });
-      if (hwUuid) {
-        await supabase.from('submissions').delete().match({ student_id: stIdStr, homework_id: hwUuid });
-        if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, homework_id: hwUuid });
-        await supabase.from('submissions').delete().match({ student_id: stIdStr, test_id: hwUuid });
-        if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, test_id: hwUuid });
-      }
+      allTestIdentifiers.add(String(hwId));
+      const hu = toUUID(hwId);
+      if (hu) allTestIdentifiers.add(String(hu));
     }
+    (testIds || []).forEach(tid => {
+      if (tid) {
+        allTestIdentifiers.add(String(tid));
+        const u = toUUID(tid);
+        if (u) allTestIdentifiers.add(String(u));
+      }
+    });
 
-    // 2. If testIds provided, delete submissions for each testId and its UUID
-    if (testIds && Array.isArray(testIds) && testIds.length > 0) {
-      for (const tid of testIds) {
-        const tidStr = String(tid);
-        const tidUuid = toUUID(tidStr);
-        await supabase.from('submissions').delete().match({ student_id: stIdStr, test_id: tidStr });
-        if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, test_id: tidStr });
-        if (tidUuid && tidUuid !== tidStr) {
-          await supabase.from('submissions').delete().match({ student_id: stIdStr, test_id: tidUuid });
-          if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, test_id: tidUuid });
+    const targetList = Array.from(allTestIdentifiers);
+
+    for (const sid of studentIds) {
+      if (targetList.length > 0) {
+        await supabase.from('submissions').delete().eq('student_id', sid).in('test_id', targetList);
+      }
+      if (hwId) {
+        const hwStr = String(hwId);
+        const hwUuid = toUUID(hwStr);
+        await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwStr);
+        if (hwUuid) {
+          await supabase.from('submissions').delete().eq('student_id', sid).eq('homework_id', hwUuid);
+          await supabase.from('submissions').delete().eq('student_id', sid).eq('test_id', hwUuid);
         }
       }
     }

@@ -468,6 +468,11 @@ export function EvaluationProvider({ children }) {
         }
       });
 
+      try {
+        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
+        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
+      } catch {}
+
       return remaining;
     });
 
@@ -492,9 +497,96 @@ export function EvaluationProvider({ children }) {
     } catch {}
   };
 
+  const deleteBookSubmissionsForEveryone = async (bookId, hwId, testIds = []) => {
+    const testIdsSet = new Set((testIds || []).map(String));
+    if (hwId) testIdsSet.add(String(hwId));
+
+    const testUuidsSet = new Set();
+    (testIds || []).forEach(tid => {
+      const u = toUUID(tid);
+      if (u) testUuidsSet.add(String(u));
+    });
+    if (hwId) {
+      const hu = toUUID(hwId);
+      if (hu) testUuidsSet.add(String(hu));
+    }
+
+    const toDeleteIds = [];
+
+    setSubmissions(prev => {
+      const remaining = [];
+      prev.forEach(s => {
+        const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
+        const isMatchingHw = hwId && (
+          String(s.hwId) === String(hwId) || 
+          String(s.homeworkId) === String(hwId) || 
+          String(s.testId) === String(hwId) ||
+          testUuidsSet.has(String(s.hwId)) ||
+          testUuidsSet.has(String(s.homeworkId)) ||
+          testUuidsSet.has(String(s.testId))
+        );
+
+        const candidateFields = [
+          s.testId,
+          s.realTestId,
+          s.bookTestId,
+          s.metadata?.realTestId,
+          s.metadata?.bookTestId,
+          s.metadata?.realId
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
+
+        const isMatchingTest = candidateFields.some(f => {
+          if (!f) return false;
+          const fs = String(f);
+          return testIdsSet.has(fs) || testUuidsSet.has(fs);
+        });
+
+        if (isMatchingBook || isMatchingHw || isMatchingTest) {
+          if (s.id) toDeleteIds.push(s.id);
+          if (s.supabaseId) toDeleteIds.push(s.supabaseId);
+        } else {
+          remaining.push(s);
+        }
+      });
+
+      try {
+        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
+        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
+      } catch {}
+
+      return remaining;
+    });
+
+    for (const id of toDeleteIds) {
+      await dbDeleteSubmission(id);
+    }
+
+    // Direct batch delete in Supabase by test IDs and homework IDs
+    if (testIds && testIds.length > 0) {
+      const allUuids = Array.from(testUuidsSet);
+      if (allUuids.length > 0) {
+        await supabase.from('submissions').delete().in('test_id', allUuids);
+      }
+      await supabase.from('submissions').delete().in('test_id', Array.from(testIdsSet));
+    }
+    if (hwId) {
+      await supabase.from('submissions').delete().eq('homework_id', String(hwId));
+      const hu = toUUID(hwId);
+      if (hu) {
+        await supabase.from('submissions').delete().eq('homework_id', hu);
+        await supabase.from('submissions').delete().eq('test_id', hu);
+      }
+    }
+  };
+
   const deleteAllSubmissions = async () => {
     setSubmissions(prev => {
       prev.forEach(s => dbDeleteSubmission(s.id));
+      try {
+        localStorage.removeItem('eTestSubmissions');
+        localStorage.removeItem('etest_submissions');
+      } catch {}
       return [];
     });
   };
@@ -511,6 +603,7 @@ export function EvaluationProvider({ children }) {
       clearSubmissionsForStudent,
       deleteSubmissionsByTestId,
       deleteStudentSubmissionsForBookOrHw,
+      deleteBookSubmissionsForEveryone,
       deleteAllSubmissions
     }}>
       {children}
