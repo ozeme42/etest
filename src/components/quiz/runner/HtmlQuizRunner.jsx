@@ -47,39 +47,66 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
 
   // Exact question count calculation
   const qCount = useMemo(() => {
-    let count = Number(
-      test.questionCount ||
-      test.totalQuestions ||
-      test.questionsCount ||
-      questions[0]?.questionCount ||
-      questions[0]?.totalQuestions
-    );
-
+    // 1. Direct answer key length
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) {
       return keyArray.length;
     }
+    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
+      return keyArray.trim().length;
+    }
+    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
+      return Object.keys(keyArray).length;
+    }
 
-    if (test.questionsList && test.questionsList.length > 0) {
+    // 2. Direct question list length
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
       return test.questionsList.length;
     }
-    if (test.questionIds && test.questionIds.length > 1) {
+    if (Array.isArray(test.questionIds) && test.questionIds.length > 0) {
       return test.questionIds.length;
     }
-    if (questions.length > 1) {
+    if (Array.isArray(questions) && questions.length > 0) {
       return questions.length;
     }
 
+    // 3. Question Count fields on test or first question
+    const rawCount = Number(
+      test.questionCount ||
+      test.totalQuestions ||
+      test.questionsCount ||
+      test.qCount ||
+      questions[0]?.questionCount ||
+      questions[0]?.totalQuestions ||
+      questions[0]?.qCount
+    );
+    if (!isNaN(rawCount) && rawCount > 0) {
+      return rawCount;
+    }
+
+    // 4. Title regex (e.g. "(2 Soru)" or "2 Soru")
+    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
+    for (const t of titles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+
+    // 5. Answers in state
     const maxAnsKey = Math.max(
       ...Object.keys(answers).map(Number).filter(n => !isNaN(n)),
       ...Object.keys(openEndedText).map(Number).filter(n => !isNaN(n)),
       0
     );
     if (maxAnsKey > 0) {
-      return Math.max(maxAnsKey, count > 1 ? count : 10);
+      return maxAnsKey;
     }
 
-    return (count && count > 1) ? count : 10;
+    return 1;
   }, [test, questions, answers, openEndedText]);
 
   const [idbHtml, setIdbHtml] = useState(null);

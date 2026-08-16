@@ -249,7 +249,7 @@ export default function HomeworkManager() {
     const selectedQs = questions.filter(q => selectedQuestionIds.includes(q.id));
     const physicalExam = selectedQs.find(q => q.contentType === 'physicalExam');
     const isPhysical = !!physicalExam;
-    const totalQCount = isPhysical ? physicalExam.totalQuestions : selectedQs.reduce((acc, q) => acc + (q.isBundle ? (q.questionCount || 1) : 1), 0);
+    const totalQCount = isPhysical ? physicalExam.totalQuestions : selectedQs.reduce((acc, q) => acc + (q.questionCount || q.totalQuestions || q.qCount || (Array.isArray(q.answerKey) ? q.answerKey.length : 1)), 0);
     const firstQ = selectedQs[0] || {};
     const firstSub = firstQ.subject || firstQ.subjectName || 'Genel';
 
@@ -289,7 +289,7 @@ export default function HomeworkManager() {
         contentType: q.contentType || q.type || q.formatType || q.sourceFormat,
         formatType: q.formatType || q.sourceFormat,
         sourceFormat: q.sourceFormat,
-        questionCount: q.questionCount || q.totalQuestions || q.qCount || 10,
+        questionCount: q.questionCount || q.totalQuestions || q.qCount || (Array.isArray(q.answerKey) ? q.answerKey.length : 1),
         questionType: q.questionType || q.type,
         answerKey: q.answerKey,
         pdfPayload: needsIdb(pdfPayload) ? undefined : pdfPayload,
@@ -328,7 +328,7 @@ export default function HomeworkManager() {
           }
         }
 
-        const qCount = q.questionCount || q.totalQuestions || q.qCount || (q.isBundle ? 10 : 1);
+        const qCount = q.questionCount || q.totalQuestions || q.qCount || (Array.isArray(q.answerKey) ? q.answerKey.length : 1);
         const subHwData = {
           title: q.title || q.name || `${title} (${i + 1}. Test)`,
           dueDate,

@@ -582,7 +582,7 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
         const bankQ = allBankQuestions?.find(q => String(q.id) === String(sec.questionId || sec.id)) || sec;
         let resolvedQuestions = bankQ ? resolveTestQuestions(bankQ, allBankQuestions) : (sec.questions || []);
         
-        const qCount = bankQ?.questionCount || sec.questionCount || resolvedQuestions.length || 10;
+        const qCount = bankQ?.questionCount || sec.questionCount || (resolvedQuestions && resolvedQuestions.length > 0 ? resolvedQuestions.length : null) || (Array.isArray(bankQ?.answerKey) ? bankQ.answerKey.length : 1);
 
         if (resolvedQuestions.length < qCount) {
           const filled = [...resolvedQuestions];
@@ -623,7 +623,7 @@ export default function CompositeQuizRunner({ test, questions, onSubmit }) {
           return 0;
         };
         const maxAns = Math.max(safeMaxAns(bankQ), safeMaxAns(subTest));
-        const qCount = bankQ?.questionCount || bankQ?.totalQuestions || subTest.questionCount || subTest.totalQuestions || resolvedQuestions.length || maxAns || 10;
+        const qCount = bankQ?.questionCount || bankQ?.totalQuestions || subTest.questionCount || subTest.totalQuestions || (resolvedQuestions && resolvedQuestions.length > 0 ? resolvedQuestions.length : null) || maxAns || 1;
 
         return {
           id: subTest.id || `sec_${idx}`,

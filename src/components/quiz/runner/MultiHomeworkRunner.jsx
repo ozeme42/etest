@@ -907,7 +907,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
       title: test.title || test.name || '1. Bölüm',
       bankQ: test,
       resolvedQuestions: finalQs,
-      qCount: test.questionCount || test.totalQuestions || finalQs.length || safeMaxAns(test) || 10
+      qCount: test.questionCount || test.totalQuestions || (finalQs && finalQs.length > 0 ? finalQs.length : null) || safeMaxAns(test) || 1
     }];
   }, [test, questions, allBankQuestions, findInAllSources, isReviewMode, userAnswers]);
 

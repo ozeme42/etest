@@ -44,7 +44,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       return Math.max(keyArray.length, answers.length);
     }
 
-    if (answers.length > 1) {
+    if (answers.length > 0) {
       return Math.max(answers.length, count || 1);
     }
 
@@ -52,7 +52,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       return test.questionsList.length;
     }
 
-    return (count && count > 1) ? count : (answers.length || 10);
+    return (count && count > 0) ? count : (answers.length || 1);
   }, [submission.totalQuestions, test, questions, answers]);
 
   const [idbHtml, setIdbHtml] = useState(null);
