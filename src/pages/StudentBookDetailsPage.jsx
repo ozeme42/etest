@@ -6,7 +6,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import PdfViewerPanel from '../components/PdfViewerPanel';
@@ -15,9 +15,9 @@ export default function StudentBookDetailsPage() {
   const { bookId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { homeworks = [], isLoading: hwLoading } = useHomework();
+  const { homeworks = [], isLoading: hwLoading, clearHomeworkSubmissionsForStudent } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions = [] } = useEvaluation();
+  const { submissions = [], deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const [openSubjects, setOpenSubjects] = useState({});
   const [openTopics, setOpenTopics] = useState({});
 
@@ -237,6 +237,43 @@ export default function StudentBookDetailsPage() {
   const [isSavingBulk, setIsSavingBulk] = useState(false);
   const [showBookPdf, setShowBookPdf] = useState(false);
 
+  const handleResetEntireBook = async () => {
+    if (!window.confirm(`${book?.title} kitabındaki TÜM test yanıtlarınızı sıfırlayıp baştan çözmek istediğinize emin misiniz?`)) return;
+    try {
+      const allAssignedTestIdsArr = Array.from(assignedTestIds);
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, allAssignedTestIdsArr);
+      }
+      for (const hw of homeworks) {
+        if (hw.isBookAssignment && String(hw.bookId) === String(bookId) && typeof clearHomeworkSubmissionsForStudent === 'function') {
+          await clearHomeworkSubmissionsForStudent(hw.id, studentId);
+        }
+      }
+      alert('Kitaptaki tüm test yanıtları başarıyla sıfırlandı. Testleri baştan çözebilirsiniz.');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleResetSingleTest = async (test) => {
+    if (!window.confirm(`${test.name} testindeki önceki yanıtlarınızı sıfırlayıp baştan çözmek istiyor musunuz?`)) return;
+    try {
+      if (test.latestSubId && typeof deleteSubmission === 'function') {
+        await deleteSubmission(test.latestSubId);
+      }
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+      }
+      try {
+        localStorage.removeItem(`draft_tracked_book_test_${test.id}_${studentId}`);
+        localStorage.removeItem(`draft_tracked_book_test_${test.id}_${studentId}_time`);
+      } catch {}
+      navigate(`/book-quiz/${test.id}?studentId=${studentId}&retake=true`);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     if (isBulkSettingsModalOpen) {
       const initial = {};
@@ -449,6 +486,15 @@ export default function StudentBookDetailsPage() {
                     <FileText size={12} /> {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
                   </button>
                 )}
+                {overallCompleted > 0 && (
+                  <button
+                    onClick={handleResetEntireBook}
+                    style={{ marginLeft: 10, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 800, border: '1.5px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer' }}
+                    title="Kitaptaki tüm testlerin yanıtlarını sıfırla ve baştan çöz"
+                  >
+                    <RotateCcw size={12} /> Kitap Yanıtlarını Sıfırla
+                  </button>
+                )}
               </h1>
 
               <div style={{ maxWidth: 420 }}>
@@ -634,13 +680,22 @@ export default function StudentBookDetailsPage() {
 
                             <div style={{ flexShrink: 0 }}>
                               {test.isCompleted ? (
-                                <button
-                                  className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
-                                  onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
-                                >
-                                  Sonucu İncele
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                  <button
+                                    className="sbdp-btn-solve"
+                                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
+                                    onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
+                                  >
+                                    Sonucu İncele
+                                  </button>
+                                  <button
+                                    onClick={() => handleResetSingleTest(test)}
+                                    style={{ padding: '0.4rem 0.65rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                    title="Testi sıfırla ve yeniden çöz"
+                                  >
+                                    <RotateCcw size={12} /> Sıfırla
+                                  </button>
+                                </div>
                               ) : test.isLocked ? (
                                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <Lock size={14} /> Kilitli
@@ -736,13 +791,22 @@ export default function StudentBookDetailsPage() {
 
                                     <div style={{ flexShrink: 0 }}>
                                       {test.isCompleted ? (
-                                        <button
-                                          className="sbdp-btn-solve"
-                                          style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
-                                          onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
-                                        >
-                                          Sonucu İncele
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                          <button
+                                            className="sbdp-btn-solve"
+                                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
+                                            onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
+                                          >
+                                            Sonucu İncele
+                                          </button>
+                                          <button
+                                            onClick={() => handleResetSingleTest(test)}
+                                            style={{ padding: '0.4rem 0.65rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                            title="Testi sıfırla ve yeniden çöz"
+                                          >
+                                            <RotateCcw size={12} /> Sıfırla
+                                          </button>
+                                        </div>
                                       ) : test.isLocked ? (
                                         <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
                                           <Lock size={14} /> Kilitli

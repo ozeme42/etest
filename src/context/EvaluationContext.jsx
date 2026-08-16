@@ -399,11 +399,47 @@ export function EvaluationProvider({ children }) {
     return () => window.removeEventListener('homework_deleted', handleHwDeleted);
   }, []);
 
-  const deleteAllSubmissions = async () => {
+  const deleteStudentSubmissionsForBookOrHw = async (studentId, hwId, bookId, testIds = []) => {
+    if (!studentId) return;
+    const testIdsSet = new Set((testIds || []).map(String));
+    if (hwId) testIdsSet.add(String(hwId));
+
     setSubmissions(prev => {
-      prev.forEach(s => dbDeleteSubmission(s.id));
-      return [];
+      const remaining = [];
+      const toDelete = [];
+      prev.forEach(s => {
+        if (String(s.studentId) !== String(studentId)) {
+          remaining.push(s);
+          return;
+        }
+
+        const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
+        const isMatchingHw = hwId && (String(s.hwId) === String(hwId) || String(s.homeworkId) === String(hwId) || String(s.testId) === String(hwId));
+        const isMatchingTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || testIdsSet.has(String(s.realTestId));
+
+        if (isMatchingBook || isMatchingHw || isMatchingTest) {
+          toDelete.push(s.id);
+        } else {
+          remaining.push(s);
+        }
+      });
+
+      toDelete.forEach(id => dbDeleteSubmission(id));
+      return remaining;
     });
+
+    try {
+      (testIds || []).forEach(tId => {
+        localStorage.removeItem(`draft_tracked_book_test_${tId}_${studentId}`);
+        localStorage.removeItem(`draft_tracked_book_test_${tId}_${studentId}_time`);
+        localStorage.removeItem(`draft_quiz_${tId}_ans`);
+        localStorage.removeItem(`draft_quiz_${tId}_time`);
+      });
+      if (hwId) {
+        localStorage.removeItem(`draft_tracked_book_test_${hwId}_${studentId}`);
+        localStorage.removeItem(`draft_quiz_${hwId}_ans`);
+      }
+    } catch {}
   };
 
   return (
@@ -417,6 +453,7 @@ export function EvaluationProvider({ children }) {
       deleteSubmission,
       clearSubmissionsForStudent,
       deleteSubmissionsByTestId,
+      deleteStudentSubmissionsForBookOrHw,
       deleteAllSubmissions
     }}>
       {children}

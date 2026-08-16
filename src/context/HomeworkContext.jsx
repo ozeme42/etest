@@ -238,6 +238,18 @@ useEffect(() => {
     }));
   };
 
+  const clearHomeworkSubmissionsForStudent = async (hwId, studentId) => {
+    setHomeworks(prev => prev.map(hw => {
+      if (String(hw.id) === String(hwId)) {
+        const updatedSubs = (hw.submissions || []).filter(s => String(s.studentId) !== String(studentId));
+        const updatedHw = { ...hw, submissions: updatedSubs };
+        dbAddHomework(updatedHw);
+        return updatedHw;
+      }
+      return hw;
+    }));
+  };
+
   return (
     <HomeworkContext.Provider value={{
       homeworks,
@@ -247,7 +259,8 @@ useEffect(() => {
       deleteHomework,
       deleteAllHomeworks,
       submitHomework,
-      updateHomeworkSubmission
+      updateHomeworkSubmission,
+      clearHomeworkSubmissionsForStudent
     }}>
       {children}
     </HomeworkContext.Provider>

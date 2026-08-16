@@ -9,7 +9,7 @@ import {
   ArrowLeft, BookMarked, Layers, FileText, CheckCircle, 
   ChevronDown, ChevronRight, Plus, Edit, Trash2, 
   ListX, Send, XCircle, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
-  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings
+  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings, RotateCcw, RefreshCw
 } from 'lucide-react';
 
 function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
@@ -35,8 +35,8 @@ export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions, deleteSubmissionsByTestId } = useEvaluation();
-  const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework } = useHomework();
+  const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
   const [editDateValue, setEditDateValue] = useState('');
   const [scheduleModalHw, setScheduleModalHw] = useState(null);
@@ -247,10 +247,10 @@ export default function BookContentManager() {
   // --- MISTAKE ANALYSIS LOGIC ---
   const mistakeList = useMemo(() => {
     const mistakesBySubject = {};
-    const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId) && s.status === 'completed');
+    const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId || t.id === s.bookTestId) && s.status === 'completed');
 
     for (const sub of solvedSubmissions) {
-      const testDef = tests.find(t => t.id === sub.testId);
+      const testDef = tests.find(t => t.id === sub.testId || t.id === sub.bookTestId);
       if (!testDef) continue;
       
       const subject = book?.subjects?.find(s => String(s.id) === String(testDef.subjectId));
@@ -259,16 +259,20 @@ export default function BookContentManager() {
       const subjName = subject?.name || 'Genel';
       const topName = topic?.name || 'Direkt Testler';
 
-      sub.answers.forEach(ans => {
+      const answersArr = Array.isArray(sub.answers) ? sub.answers : [];
+      answersArr.forEach((ans, ansIdx) => {
         if (!ans.isCorrect) {
-          const isBlank = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
+          const isBlank = ans.isBlank || ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '';
           if (!mistakesBySubject[subjName]) mistakesBySubject[subjName] = {};
           if (!mistakesBySubject[subjName][topName]) mistakesBySubject[subjName][topName] = [];
           
+          const rawNum = ans.questionNo || ans.qNo || ans.questionNumber || (ans.questionIndex !== undefined ? ans.questionIndex + 1 : null) || (ans.questionId ? parseInt(String(ans.questionId).replace(/\D/g, '')) : null) || (ansIdx + 1);
+          const qNum = Number(rawNum) || (ansIdx + 1);
+
           mistakesBySubject[subjName][topName].push({ 
             submission: sub, 
             testDef, 
-            questionNumber: ans.questionId,
+            questionNumber: qNum,
             isBlank
           });
         }
@@ -297,18 +301,19 @@ export default function BookContentManager() {
     const map = new Map();
     filtered.forEach(m => {
         const key = `${m.submission.studentId}_${m.testDef.id}`;
+        const qNum = Number(m.questionNumber) || 1;
         if (!map.has(key)) {
             map.set(key, {
                 subjectName: m.subjectName,
                 topicName: m.topicName,
                 testDef: m.testDef,
                 submission: m.submission,
-                questionData: [{ num: parseInt(m.questionNumber), isBlank: m.isBlank }]
+                questionData: [{ num: qNum, isBlank: m.isBlank }]
             });
             grouped.push(map.get(key));
         } else {
-            if (!map.get(key).questionData.find(q => q.num === parseInt(m.questionNumber))) {
-                map.get(key).questionData.push({ num: parseInt(m.questionNumber), isBlank: m.isBlank });
+            if (!map.get(key).questionData.find(q => q.num === qNum)) {
+                map.get(key).questionData.push({ num: qNum, isBlank: m.isBlank });
             }
         }
     });
@@ -689,6 +694,25 @@ export default function BookContentManager() {
       if (typeof deleteHomework === 'function') deleteHomework(hwId);
       if (typeof deleteSubmissionsByTestId === 'function') deleteSubmissionsByTestId(hwId);
       showToast("Ödev ve ilişkili değerlendirmeler silindi.");
+    }
+  };
+
+  const handleResetStudentBookHomework = async (hw, stId, stName) => {
+    if (!window.confirm(`${stName || 'Öğrenci'} adlı öğrencinin bu ödevdeki yanıtları sıfırlanacak ve testleri baştan çözebilecek. Emin misiniz?`)) {
+      return;
+    }
+    try {
+      const hwTests = hw.tests || tests.map(t => t.id);
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(stId, hw.id, book?.id, hwTests);
+      }
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(hw.id, stId);
+      }
+      showToast(`${stName || 'Öğrenci'} yanıtları başarıyla sıfırlandı. Öğrenci artık testleri baştan çözebilir.`, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Sıfırlama sırasında bir hata oluştu.', 'error');
     }
   };
 
@@ -1204,21 +1228,32 @@ export default function BookContentManager() {
                                   <div style={{ width: `${item.pct}%`, background: item.isDone ? '#10b981' : '#38bdf8', height: '100%' }} />
                                 </div>
 
-                                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem', alignItems: 'center' }}>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
                                   <span>Çözülen: {item.solvedCount} / {item.totalTestsInHw} Test</span>
-                                  {item.solvedSubmissions.length > 0 && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ color: '#059669', fontWeight: 800 }}>
-                                        {item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length}% Başarı
-                                      </span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    {item.solvedSubmissions.length > 0 && (
+                                      <>
+                                        <span style={{ color: '#059669', fontWeight: 800 }}>
+                                          {Math.round(item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length)}% Başarı
+                                        </span>
+                                        <button 
+                                          onClick={() => navigate(`/review/${item.solvedSubmissions[item.solvedSubmissions.length - 1].id}`)}
+                                          style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '0.2rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}
+                                        >
+                                          İncele
+                                        </button>
+                                      </>
+                                    )}
+                                    {item.solvedCount > 0 && (
                                       <button 
-                                        onClick={() => navigate(`/review/${item.solvedSubmissions[item.solvedSubmissions.length - 1].id}`)}
-                                        style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}
+                                        onClick={() => handleResetStudentBookHomework(hw, st.id, st.name)}
+                                        style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.2rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                        title="Öğrencinin bu ödevdeki yanıtlarını sıfırla ve yeniden çözmesini sağla"
                                       >
-                                        İncele
+                                        <RotateCcw size={11} /> Sıfırla
                                       </button>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -1287,6 +1322,7 @@ export default function BookContentManager() {
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Test</th>
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Hatalı Sorular</th>
                     <th style={{ padding: '1rem', color: 'var(--color-text-muted)' }}>Öğrenci</th>
+                    <th style={{ padding: '1rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1305,6 +1341,20 @@ export default function BookContentManager() {
                         </div>
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{mistake.submission.studentName}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`${mistake.submission.studentName} adlı öğrencinin bu testteki (${mistake.testDef.name}) yanıtını sıfırlamak istiyor musunuz?`)) {
+                              await deleteSubmission(mistake.submission.id);
+                              showToast('Test yanıtı sıfırlandı.');
+                            }
+                          }}
+                          style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.25rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          title="Bu test sonucunu sil ve öğrencinin tekrar çözmesine izin ver"
+                        >
+                          <RotateCcw size={11} /> Sıfırla
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
