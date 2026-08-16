@@ -238,9 +238,12 @@ useEffect(() => {
     }));
   };
 
-  const clearHomeworkSubmissionsForStudent = async (hwId, studentId) => {
+  const clearHomeworkSubmissionsForStudent = async (hwId, studentId, bookId) => {
     setHomeworks(prev => prev.map(hw => {
-      if (String(hw.id) === String(hwId)) {
+      const isTargetHw = hwId && String(hw.id) === String(hwId);
+      const isTargetBookHw = bookId && hw.isBookAssignment && String(hw.bookId) === String(bookId);
+
+      if (isTargetHw || isTargetBookHw) {
         const updatedSubs = (hw.submissions || []).filter(s => String(s.studentId) !== String(studentId));
         const updatedHw = { ...hw, submissions: updatedSubs };
         dbAddHomework(updatedHw);

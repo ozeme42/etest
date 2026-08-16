@@ -698,21 +698,49 @@ export default function BookContentManager() {
   };
 
   const handleResetStudentBookHomework = async (hw, stId, stName) => {
+    if (!stId) return;
     if (!window.confirm(`${stName || 'Öğrenci'} adlı öğrencinin bu ödevdeki yanıtları sıfırlanacak ve testleri baştan çözebilecek. Emin misiniz?`)) {
       return;
     }
     try {
-      const hwTests = hw.tests || tests.map(t => t.id);
+      const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(book?.id)).map(bt => bt.id);
+      const hwTests = hw?.tests || allBookTests;
+      const allTestIds = Array.from(new Set([...hwTests, ...allBookTests]));
+
       if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
-        await deleteStudentSubmissionsForBookOrHw(stId, hw.id, book?.id, hwTests);
+        await deleteStudentSubmissionsForBookOrHw(stId, hw?.id, book?.id, allTestIds);
       }
       if (typeof clearHomeworkSubmissionsForStudent === 'function') {
-        await clearHomeworkSubmissionsForStudent(hw.id, stId);
+        await clearHomeworkSubmissionsForStudent(hw?.id, stId, book?.id);
       }
       showToast(`${stName || 'Öğrenci'} yanıtları başarıyla sıfırlandı. Öğrenci artık testleri baştan çözebilir.`, 'success');
     } catch (e) {
       console.error(e);
       showToast('Sıfırlama sırasında bir hata oluştu.', 'error');
+    }
+  };
+
+  const handleResetEntireHomework = async (hw) => {
+    if (!window.confirm(`"${hw.title}" ödevine ait TÜM öğrencilerin çözümlerini ve yanıtlarını sıfırlamak istediğinize emin misiniz?`)) {
+      return;
+    }
+    try {
+      const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(book?.id)).map(bt => bt.id);
+      const hwTests = hw?.tests || allBookTests;
+      const allTestIds = Array.from(new Set([...hwTests, ...allBookTests]));
+
+      for (const st of (students || [])) {
+        if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+          await deleteStudentSubmissionsForBookOrHw(st.id, hw?.id, book?.id, allTestIds);
+        }
+        if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+          await clearHomeworkSubmissionsForStudent(hw?.id, st.id, book?.id);
+        }
+      }
+      showToast('Tüm öğrencilerin yanıtları başarıyla sıfırlandı.', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Sıfırlama sırasında hata oluştu.', 'error');
     }
   };
 
@@ -1090,22 +1118,39 @@ export default function BookContentManager() {
                     targetStudents = students.filter(s => (hw.targetIds || []).some(tid => s.id === tid));
                   }
 
-                  const hwTests = hw.tests || [];
+                  const hwTests = (hw.tests && hw.tests.length > 0)
+                    ? hw.tests
+                    : (hw.testDueDates && Object.keys(hw.testDueDates).length > 0)
+                      ? Object.keys(hw.testDueDates)
+                      : tests.map(t => t.id);
+
                   const totalTestsInHw = hwTests.length || 1;
+                  const hwTestsSet = new Set(hwTests.map(String));
 
                   let completedStudentsCount = 0;
                   const studentProgressDetails = targetStudents.map(st => {
-                    const solvedSubmissions = submissions.filter(s => 
-                      s.studentId === st.id && 
-                      s.status === 'completed' &&
-                      (s.testId === hw.id || s.homeworkId === hw.id || s.hwId === hw.id || hwTests.includes(s.testId) || hwTests.includes(s.bookTestId))
-                    );
+                    const solvedSubmissions = submissions.filter(s => {
+                      if (String(s.studentId) !== String(st.id) || s.status === 'in_progress' || s.status === 'draft') return false;
+                      return hwTestsSet.has(String(s.testId)) || 
+                             hwTestsSet.has(String(s.bookTestId)) || 
+                             hwTestsSet.has(String(s.realTestId)) || 
+                             String(s.hwId) === String(hw.id) || 
+                             String(s.homeworkId) === String(hw.id) ||
+                             String(s.testId) === String(hw.id);
+                    });
                     
-                    const isDone = solvedSubmissions.length > 0; // If any matching submission exists, they finished the homework
+                    const uniqueSolvedTests = new Set();
+                    solvedSubmissions.forEach(s => {
+                      const matchedId = hwTests.find(tid => String(tid) === String(s.testId) || String(tid) === String(s.bookTestId) || String(tid) === String(s.realTestId));
+                      if (matchedId) uniqueSolvedTests.add(String(matchedId));
+                    });
+
+                    const solvedCount = uniqueSolvedTests.size;
+                    const isDone = solvedCount >= totalTestsInHw && totalTestsInHw > 0;
                     if (isDone) completedStudentsCount++;
                     
-                    const pct = isDone ? 100 : 0;
-                    return { student: st, solvedCount: isDone ? totalTestsInHw : 0, totalTestsInHw, isDone, pct, solvedSubmissions };
+                    const pct = totalTestsInHw > 0 ? Math.round((solvedCount / totalTestsInHw) * 100) : 0;
+                    return { student: st, solvedCount, totalTestsInHw, isDone, pct, solvedSubmissions };
                   });
 
                   const overallHwPct = targetStudents.length > 0 ? Math.round((completedStudentsCount / targetStudents.length) * 100) : 0;
@@ -1197,6 +1242,16 @@ export default function BookContentManager() {
                           </button>
 
                           <button 
+                            onClick={() => handleResetEntireHomework(hw)}
+                            className="btn btn-outline"
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#e11d48', borderColor: '#fecdd3', background: '#fff1f2' }}
+                            title="Bu ödeve ait tüm öğrencilerin çözümlerini ve yanıtlarını sıfırla"
+                          >
+                            <RotateCcw size={14} />
+                            Tümünü Sıfırla
+                          </button>
+
+                          <button 
                             onClick={() => handleDeleteHomeworkItem(hw.id)}
                             className="btn btn-outline"
                             style={{ padding: '0.4rem', color: '#ef4444', border: 'none' }}
@@ -1246,7 +1301,7 @@ export default function BookContentManager() {
                                     )}
                                     {item.solvedCount > 0 && (
                                       <button 
-                                        onClick={() => handleResetStudentBookHomework(hw, st.id, st.name)}
+                                        onClick={() => handleResetStudentBookHomework(hw, item.student.id, item.student.name)}
                                         style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.2rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                         title="Öğrencinin bu ödevdeki yanıtlarını sıfırla ve yeniden çözmesini sağla"
                                       >

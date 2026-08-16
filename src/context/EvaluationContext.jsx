@@ -404,6 +404,16 @@ export function EvaluationProvider({ children }) {
     const testIdsSet = new Set((testIds || []).map(String));
     if (hwId) testIdsSet.add(String(hwId));
 
+    const testUuidsSet = new Set();
+    (testIds || []).forEach(tid => {
+      const u = toUUID(tid);
+      if (u) testUuidsSet.add(String(u));
+    });
+    if (hwId) {
+      const hu = toUUID(hwId);
+      if (hu) testUuidsSet.add(String(hu));
+    }
+
     setSubmissions(prev => {
       const remaining = [];
       const toDelete = [];
@@ -414,8 +424,30 @@ export function EvaluationProvider({ children }) {
         }
 
         const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
-        const isMatchingHw = hwId && (String(s.hwId) === String(hwId) || String(s.homeworkId) === String(hwId) || String(s.testId) === String(hwId));
-        const isMatchingTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || testIdsSet.has(String(s.realTestId));
+        const isMatchingHw = hwId && (
+          String(s.hwId) === String(hwId) || 
+          String(s.homeworkId) === String(hwId) || 
+          String(s.testId) === String(hwId) ||
+          testUuidsSet.has(String(s.hwId)) ||
+          testUuidsSet.has(String(s.homeworkId)) ||
+          testUuidsSet.has(String(s.testId))
+        );
+
+        const candidateFields = [
+          s.testId,
+          s.realTestId,
+          s.bookTestId,
+          s.metadata?.realTestId,
+          s.metadata?.bookTestId,
+          s.metadata?.realId
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
+
+        const isMatchingTest = candidateFields.some(f => {
+          if (!f) return false;
+          const fs = String(f);
+          return testIdsSet.has(fs) || testUuidsSet.has(fs);
+        });
 
         if (isMatchingBook || isMatchingHw || isMatchingTest) {
           toDelete.push(s.id);
