@@ -731,7 +731,7 @@ export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds =
   try {
     const stIdStr = String(studentId);
     const stUuid = toUUID(stIdStr);
-    const studentIds = Array.from(new Set([stIdStr, stUuid].filter(Boolean)));
+    const studentIds = Array.from(new Set([stIdStr, stUuid, 'u1'].filter(Boolean)));
 
     // 1. Gather all possible test IDs and UUIDs
     const allTestIdentifiers = new Set();
@@ -764,9 +764,69 @@ export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds =
         }
       }
     }
+
+    // Also clean up from homeworks table
+    await dbClearHomeworkSubmissionsForStudent(hwId, studentId, null, testIds);
+
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteSubmissionsForStudentAndTests error:', err.message);
+    return false;
+  }
+}
+
+export async function dbClearHomeworkSubmissionsForStudent(hwId, studentId, bookId = null, testIds = []) {
+  if (!isSupabaseConfigured() || !studentId) return null;
+  try {
+    const stIdStr = String(studentId);
+    const stUuid = toUUID(stIdStr);
+    const testIdsSet = new Set((testIds || []).map(String));
+    (testIds || []).forEach(tid => {
+      const u = toUUID(tid);
+      if (u) testIdsSet.add(String(u));
+    });
+    const hasSpecificTests = testIdsSet.size > 0;
+
+    let query = supabase.from('homeworks').select('*');
+    if (hwId) {
+      query = query.eq('id', String(hwId));
+    }
+    const { data: hws, error } = await query;
+    if (error || !hws) return false;
+
+    for (const hw of hws) {
+      const raw = hw.raw_data || {};
+      const isTargetBook = bookId && (
+        String(hw.book_id) === String(bookId) || 
+        String(raw.bookId) === String(bookId) || 
+        (hw.title && hw.title.includes(bookId))
+      );
+      if (hwId || isTargetBook || (!hwId && !bookId)) {
+        const subs = raw.submissions || hw.submissions || [];
+        const filteredSubs = subs.filter(s => {
+          const isMatchStudent = String(s.studentId) === stIdStr || (stUuid && String(s.studentId) === stUuid) || (stUuid && toUUID(s.studentId) === stUuid) || String(s.studentId) === 'u1' || stIdStr === 'u1';
+          if (!isMatchStudent) return true;
+          if (hasSpecificTests) {
+            const isMatchTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || (toUUID(s.testId) && testIdsSet.has(toUUID(s.testId)));
+            return !isMatchTest;
+          }
+          return false;
+        });
+
+        const updatedRaw = {
+          ...raw,
+          submissions: filteredSubs
+        };
+        delete updatedRaw.raw_data;
+
+        await supabase.from('homeworks').update({
+          raw_data: updatedRaw
+        }).eq('id', hw.id);
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbClearHomeworkSubmissionsForStudent error:', err.message);
     return false;
   }
 }
@@ -1277,6 +1337,7 @@ export async function dbAddHomework(hw) {
         return s;
       });
     }
+    delete safeRaw.raw_data;
 
     const payload = {
       id: String(processedHw.id || `hw_${Date.now()}`),

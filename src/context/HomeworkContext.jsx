@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { dbGetHomeworks, dbAddHomework, dbDeleteHomework } from '../services/supabaseService';
+import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { idbSetPayload, idbDeletePayload } from '../services/indexedDbService';
 
@@ -250,39 +250,51 @@ useEffect(() => {
     const stIdStr = String(studentId);
     const stUuid = toUUID(stIdStr);
 
-    setHomeworks(prev => prev.map(hw => {
-      const isTargetHw = hwId && (String(hw.id) === String(hwId) || String(toUUID(hw.id)) === String(hwId));
-      const isTargetBookHw = bookId && (
-        String(hw.bookId) === String(bookId) || 
-        (hw.raw_data && String(hw.raw_data.bookId) === String(bookId)) ||
-        (hw.title && bookId && hw.title.includes(bookId))
-      );
+    let updatedList = [];
+    setHomeworks(prev => {
+      updatedList = prev.map(hw => {
+        const isTargetHw = hwId && (String(hw.id) === String(hwId) || String(toUUID(hw.id)) === String(hwId));
+        const isTargetBookHw = bookId && (
+          String(hw.bookId) === String(bookId) || 
+          (hw.raw_data && String(hw.raw_data.bookId) === String(bookId)) ||
+          (hw.title && bookId && hw.title.includes(bookId))
+        );
 
-      if (isTargetHw || isTargetBookHw || (!hwId && !bookId)) {
-        const updatedSubs = (hw.submissions || []).filter(s => {
-          const isMatchStudent = String(s.studentId) === stIdStr || (stUuid && String(s.studentId) === stUuid) || (stUuid && toUUID(s.studentId) === stUuid) || String(s.studentId) === 'u1' || stIdStr === 'u1';
-          if (!isMatchStudent) return true; // keep other students
+        if (isTargetHw || isTargetBookHw || (!hwId && !bookId)) {
+          const subs = hw.submissions || hw.raw_data?.submissions || [];
+          const updatedSubs = subs.filter(s => {
+            const isMatchStudent = String(s.studentId) === stIdStr || (stUuid && String(s.studentId) === stUuid) || (stUuid && toUUID(s.studentId) === stUuid) || String(s.studentId) === 'u1' || stIdStr === 'u1';
+            if (!isMatchStudent) return true; // keep other students
 
-          if (hasSpecificTests) {
-            const isMatchingTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || testIdsSet.has(toUUID(s.testId));
-            return !isMatchingTest; // drop matching test
-          }
-          return false; // drop all for this student in this homework
-        });
+            if (hasSpecificTests) {
+              const isMatchingTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || (toUUID(s.testId) && testIdsSet.has(toUUID(s.testId)));
+              return !isMatchingTest; // drop matching test
+            }
+            return false; // drop all for this student in this homework
+          });
 
-        const updatedHw = {
-          ...hw,
-          submissions: updatedSubs,
-          raw_data: {
-            ...(hw.raw_data || {}),
-            submissions: updatedSubs
-          }
-        };
-        dbAddHomework(updatedHw).catch(console.error);
-        return updatedHw;
-      }
-      return hw;
-    }));
+          const cleanRaw = { ...(hw.raw_data || {}), submissions: updatedSubs };
+          delete cleanRaw.raw_data;
+
+          return {
+            ...hw,
+            submissions: updatedSubs,
+            raw_data: cleanRaw
+          };
+        }
+        return hw;
+      });
+
+      try {
+        localStorage.setItem('eTestHomeworks', JSON.stringify(updatedList));
+        localStorage.setItem('etest_homeworks', JSON.stringify(updatedList));
+      } catch (e) {}
+
+      return updatedList;
+    });
+
+    // Execute direct Supabase database update
+    await dbClearHomeworkSubmissionsForStudent(hwId, studentId, bookId, testIds);
   };
 
   return (
