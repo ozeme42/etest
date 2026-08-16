@@ -148,8 +148,17 @@ export default function StudentBooksPage() {
 
       bookMap[book.id].assignedHomeworks.push(hw);
 
-      let hwTestIdsRaw = hw.tests || [];
-      if (hw.title?.includes('(Tüm Kitap Görevi)')) {
+      let hwTestIdsRaw = [];
+      const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
+
+      if (hasTestDueDates) {
+        // Kitap takibinden tarih girilmiş testler: Sadece tarihi girilen testler görünsün
+        hwTestIdsRaw = Object.entries(hw.testDueDates)
+          .filter(([_, dStr]) => dStr && String(dStr).trim() !== '')
+          .map(([tId, _]) => tId);
+      } else if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+        hwTestIdsRaw = hw.tests;
+      } else if (hw.title?.includes('(Tüm Kitap Görevi)')) {
         hwTestIdsRaw = bookTests.filter(bt => String(bt.bookId) === String(book.id)).map(bt => bt.id);
       }
       hwTestIdsRaw.forEach(id => bookMap[book.id].allAssignedTestIds.add(String(id)));

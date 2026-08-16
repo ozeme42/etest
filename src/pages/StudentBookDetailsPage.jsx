@@ -72,14 +72,23 @@ export default function StudentBookDetailsPage() {
         isSelfAdded = true;
       }
       
-      if (hw.title && hw.title.includes('(Tüm Kitap Görevi)')) {
-        bookTests.forEach(bt => {
-           if (String(bt.bookId) === String(bookId)) {
-             ids.add(String(bt.id));
-           }
+      const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
+
+      if (hasTestDueDates) {
+        // Kitap takibinden tarih girilmiş testler: Sadece tarihi girilen testler görünsün
+        Object.entries(hw.testDueDates).forEach(([tId, dStr]) => {
+          if (dStr && String(dStr).trim() !== '') {
+            ids.add(String(tId));
+          }
         });
-      } else if (hw.tests) {
+      } else if (Array.isArray(hw.tests) && hw.tests.length > 0) {
         hw.tests.forEach(tId => ids.add(String(tId)));
+      } else if (hw.title && hw.title.includes('(Tüm Kitap Görevi)')) {
+        bookTests.forEach(bt => {
+          if (String(bt.bookId) === String(bookId)) {
+            ids.add(String(bt.id));
+          }
+        });
       }
 
       if (hw.dueDate) {

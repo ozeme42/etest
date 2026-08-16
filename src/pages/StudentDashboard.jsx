@@ -527,10 +527,15 @@ export default function StudentDashboard() {
 
         // 1. Gather all assigned test IDs for this book assignment
         let testIdsList = [];
-        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+        const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
+
+        if (hasTestDueDates) {
+          // Kitap takibinden planlanan testler: Sadece tarihi girilmiş olanlar öğrenciye görünsün
+          testIdsList = Object.entries(hw.testDueDates)
+            .filter(([_, dStr]) => dStr && String(dStr).trim() !== '')
+            .map(([tId, _]) => tId);
+        } else if (Array.isArray(hw.tests) && hw.tests.length > 0) {
           testIdsList = hw.tests;
-        } else if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-          testIdsList = Object.keys(hw.testDueDates);
         } else if (bookObj) {
           const allBookTests = bookTests.filter(bt => String(bt.bookId) === String(bookObj.id));
           if (allBookTests.length > 0) {
