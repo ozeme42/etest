@@ -158,35 +158,66 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
           {currentUser?.role === 'student' && (
             <>
               <NavLink to="/study-room" className="nav-link" onClick={closeSidebar}>
-                <Headphones size={20} /> Çalışma Odası (Pomodoro)
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #a855f7, #6366f1)', boxShadow: '0 2px 10px rgba(168,85,247,0.4)' }}>
+                  <Headphones size={16} color="white" />
+                </div>
+                <span>Çalışma Odası</span>
+                <span className="nav-hot-badge">YENİ</span>
               </NavLink>
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
-                <GraduationCap size={20} /> Öğrenci Paneli
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 2px 10px rgba(99,102,241,0.35)' }}>
+                  <GraduationCap size={16} color="white" />
+                </div>
+                <span>Öğrenci Paneli</span>
               </NavLink>
               <NavLink to="/student/summaries" className="nav-link" onClick={closeSidebar}>
-                <BookOpen size={20} /> Ders Özetleri
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
+                  <BookOpen size={16} color="white" />
+                </div>
+                <span>Ders Özetleri</span>
               </NavLink>
               <NavLink to="/student/books" className="nav-link" onClick={closeSidebar}>
-                <BookMarked size={20} /> Kitaplarım
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(8,145,178,0.35)' }}>
+                  <BookMarked size={16} color="white" />
+                </div>
+                <span>Kitaplarım</span>
               </NavLink>
               <NavLink to="/student/exams" className="nav-link" onClick={closeSidebar}>
-                <ClipboardCheck size={20} /> Denemelerim
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
+                  <ClipboardCheck size={16} color="white" />
+                </div>
+                <span>Denemelerim</span>
               </NavLink>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-                <Award size={20} /> Sonuçlarım
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                  <Award size={16} color="white" />
+                </div>
+                <span>Sonuçlarım</span>
               </NavLink>
               <NavLink to="/wrong-answers" className="nav-link" onClick={closeSidebar}>
-                <AlertTriangle size={20} /> Hatalarım
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)', boxShadow: '0 2px 10px rgba(225,29,72,0.35)' }}>
+                  <AlertTriangle size={16} color="white" />
+                </div>
+                <span>Hatalarım</span>
               </NavLink>
               <NavLink to="/my-program" className="nav-link" onClick={closeSidebar}>
-                <Calendar size={20} /> Programım
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #9333ea, #c084fc)', boxShadow: '0 2px 10px rgba(147,51,234,0.35)' }}>
+                  <Calendar size={16} color="white" />
+                </div>
+                <span>Programım</span>
               </NavLink>
               <NavLink to="/goals" className="nav-link" onClick={closeSidebar}>
-                <Target size={20} /> Hedefler & Program
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)', boxShadow: '0 2px 10px rgba(234,88,12,0.35)' }}>
+                  <Target size={16} color="white" />
+                </div>
+                <span>Hedefler & Program</span>
               </NavLink>
               {currentUser?.role === 'student' && isStudentCoached(currentUser?.id) && (
                 <NavLink to="/my-coaching" className="nav-link" onClick={closeSidebar}>
-                  <span style={{ fontSize: '1.1rem' }}>📂</span> Koçluk Dosyam
+                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 2px 10px rgba(217,119,6,0.35)', fontSize: '1rem' }}>
+                    📂
+                  </div>
+                  <span>Koçluk Dosyam</span>
                 </NavLink>
               )}
             </>
@@ -195,7 +226,10 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
           {/* Öğretmen ve Admin Paneli */}
           {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
             <NavLink to="/teacher" className="nav-link" onClick={closeSidebar}>
-              <Users size={20} /> Öğretmen Paneli
+              <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 2px 10px rgba(99,102,241,0.35)' }}>
+                <Users size={16} color="white" />
+              </div>
+              <span>Öğretmen Paneli</span>
             </NavLink>
           )}
 
@@ -204,36 +238,58 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
             <>
               <div className="nav-section-title">Modüller</div>
               <NavLink to="/summaries" className="nav-link" onClick={closeSidebar}>
-                <BookOpen size={20} /> Ders Özetleri
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
+                  <BookOpen size={16} color="white" />
+                </div>
+                <span>Ders Özetleri</span>
               </NavLink>
               <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
-                <ClipboardCheck size={20} /> Fiziki Deneme & Optik
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
+                  <ClipboardCheck size={16} color="white" />
+                </div>
+                <span>Fiziki Deneme & Optik</span>
               </NavLink>
               <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
-                <BarChart2 size={20} /> İstatistik & Analiz
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(8,145,178,0.35)' }}>
+                  <BarChart2 size={16} color="white" />
+                </div>
+                <span>İstatistik & Analiz</span>
               </NavLink>
               <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
-                <BookMarked size={20} /> Ödevler
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)', boxShadow: '0 2px 10px rgba(234,88,12,0.35)' }}>
+                  <BookMarked size={16} color="white" />
+                </div>
+                <span>Ödevler</span>
               </NavLink>
               <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
-                <ClipboardCheck size={20} /> Değerlendirmeler
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
+                  <ClipboardCheck size={16} color="white" />
+                </div>
+                <span>Değerlendirmeler</span>
               </NavLink>
-
-              {/* Soru Bankası: Öğretmen ve Admin Görebilir */}
-              {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
-                <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
-                  <Database size={20} /> Soru Bankası
-                </NavLink>
-              )}
-
+              <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                  <Database size={16} color="white" />
+                </div>
+                <span>Soru Bankası</span>
+              </NavLink>
               <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
-                <BookMarked size={20} /> Kitap Takibi
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0284c7, #38bdf8)', boxShadow: '0 2px 10px rgba(2,132,199,0.35)' }}>
+                  <BookMarked size={16} color="white" />
+                </div>
+                <span>Kitap Takibi</span>
               </NavLink>
               <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
-                <Map size={20} /> Yol Haritası
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', boxShadow: '0 2px 10px rgba(139,92,246,0.35)' }}>
+                  <Map size={16} color="white" />
+                </div>
+                <span>Yol Haritası</span>
               </NavLink>
               <NavLink to="/scales" className="nav-link" onClick={closeSidebar}>
-                <ListTree size={20} /> Ölçek & Takip
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #db2777, #f43f5e)', boxShadow: '0 2px 10px rgba(219,39,119,0.35)' }}>
+                  <ListTree size={16} color="white" />
+                </div>
+                <span>Ölçek & Takip</span>
               </NavLink>
             </>
           )}
@@ -243,7 +299,10 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
             <>
               <div className="nav-section-title">Yönetim</div>
               <NavLink to="/admin" className="nav-link" onClick={closeSidebar}>
-                <Settings size={20} /> Admin
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #475569, #64748b)', boxShadow: '0 2px 10px rgba(71,85,105,0.35)' }}>
+                  <Settings size={16} color="white" />
+                </div>
+                <span>Admin</span>
               </NavLink>
             </>
           )}
