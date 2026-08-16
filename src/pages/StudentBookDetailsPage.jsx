@@ -384,8 +384,20 @@ export default function StudentBookDetailsPage() {
   const overallSuccessRate = totalQuestions > 0 ? Math.round((overallCorrect / totalQuestions) * 100) : 0;
 
   const [selectedChartSubject, setSelectedChartSubject] = useState('all');
+  const [selectedChartTopic, setSelectedChartTopic] = useState('all');
+
+  const currentChartSubjectObj = useMemo(() => {
+    if (selectedChartSubject === 'all') return null;
+    return subjectProgress.find(s => String(s.id) === String(selectedChartSubject)) || null;
+  }, [subjectProgress, selectedChartSubject]);
+
+  const currentChartTopicObj = useMemo(() => {
+    if (!currentChartSubjectObj || selectedChartTopic === 'all') return null;
+    return (currentChartSubjectObj.topics || []).find(t => String(t.id) === String(selectedChartTopic)) || null;
+  }, [currentChartSubjectObj, selectedChartTopic]);
 
   const subjectChartData = useMemo(() => {
+    // LEVEL 1: ALL SUBJECTS
     if (selectedChartSubject === 'all') {
       return subjectProgress.map(subj => {
         let subjCorrect = 0;
@@ -408,6 +420,7 @@ export default function StudentBookDetailsPage() {
         const rate = totalQ > 0 ? Math.round((subjCorrect / totalQ) * 100) : 0;
 
         return {
+          type: 'subject',
           id: subj.id,
           name: subj.name,
           displayName: `${subj.name} (%${rate})`,
@@ -420,31 +433,104 @@ export default function StudentBookDetailsPage() {
           Boş: subjBlank
         };
       });
-    } else {
-      const subj = subjectProgress.find(s => String(s.id) === selectedChartSubject);
-      if (!subj) return [];
-      
-      return subj.tests.map(test => {
-        const d = (test.isCompleted && test.bestSub) ? (test.bestSub.correctCount || 0) : 0;
-        const y = (test.isCompleted && test.bestSub) ? (test.bestSub.wrongCount || 0) : 0;
-        const b = (test.isCompleted && test.bestSub) ? (test.bestSub.blankCount || 0) : 0;
-        const totalQ = d + y + b;
-        const rate = (test.isCompleted && test.bestScore !== null) ? test.bestScore : (totalQ > 0 ? Math.round((d / totalQ) * 100) : 0);
+    }
+
+    const subj = subjectProgress.find(s => String(s.id) === String(selectedChartSubject));
+    if (!subj) return [];
+
+    // LEVEL 2: SPECIFIC SUBJECT, ALL TOPICS/UNITS
+    if (selectedChartTopic === 'all' && subj.topics && subj.topics.length > 0) {
+      const topicItems = subj.topics.map(topic => {
+        let topicCorrect = 0;
+        let topicWrong = 0;
+        let topicBlank = 0;
+        let solvedTests = 0;
+
+        topic.tests.forEach(test => {
+          if (test.isCompleted) {
+            solvedTests++;
+            if (test.bestSub) {
+              topicCorrect += test.bestSub.correctCount || 0;
+              topicWrong += test.bestSub.wrongCount || 0;
+              topicBlank += test.bestSub.blankCount || 0;
+            }
+          }
+        });
+
+        const totalQ = topicCorrect + topicWrong + topicBlank;
+        const rate = totalQ > 0 ? Math.round((topicCorrect / totalQ) * 100) : 0;
 
         return {
-          id: test.id,
-          name: test.name || `Test ${test.index}`,
-          displayName: `${test.name || `Test ${test.index}`} (%${rate})`,
+          type: 'topic',
+          id: topic.id,
+          name: topic.name,
+          displayName: `${topic.name} (%${rate})`,
           rate,
           totalQ,
-          isCompleted: test.isCompleted,
-          Doğru: d,
-          Yanlış: y,
-          Boş: b,
+          solvedTests,
+          totalTests: topic.totalCount || topic.tests.length,
+          Doğru: topicCorrect,
+          Yanlış: topicWrong,
+          Boş: topicBlank
         };
       });
+
+      if (subj.directTests && subj.directTests.length > 0) {
+        subj.directTests.forEach(test => {
+          const d = (test.isCompleted && test.bestSub) ? (test.bestSub.correctCount || 0) : 0;
+          const y = (test.isCompleted && test.bestSub) ? (test.bestSub.wrongCount || 0) : 0;
+          const b = (test.isCompleted && test.bestSub) ? (test.bestSub.blankCount || 0) : 0;
+          const totalQ = d + y + b;
+          const rate = (test.isCompleted && test.bestScore !== null) ? test.bestScore : (totalQ > 0 ? Math.round((d / totalQ) * 100) : 0);
+
+          topicItems.push({
+            type: 'test',
+            id: test.id,
+            name: test.name || `Test ${test.index}`,
+            displayName: `${test.name || `Test ${test.index}`} (%${rate})`,
+            rate,
+            totalQ,
+            isCompleted: test.isCompleted,
+            Doğru: d,
+            Yanlış: y,
+            Boş: b
+          });
+        });
+      }
+
+      return topicItems;
     }
-  }, [subjectProgress, selectedChartSubject]);
+
+    // LEVEL 3: SPECIFIC TOPIC/UNIT OR DIRECT TESTS UNDER SUBJECT
+    let targetTests = subj.tests;
+    if (selectedChartTopic !== 'all') {
+      const topicObj = (subj.topics || []).find(t => String(t.id) === String(selectedChartTopic));
+      if (topicObj) {
+        targetTests = topicObj.tests;
+      }
+    }
+
+    return targetTests.map(test => {
+      const d = (test.isCompleted && test.bestSub) ? (test.bestSub.correctCount || 0) : 0;
+      const y = (test.isCompleted && test.bestSub) ? (test.bestSub.wrongCount || 0) : 0;
+      const b = (test.isCompleted && test.bestSub) ? (test.bestSub.blankCount || 0) : 0;
+      const totalQ = d + y + b;
+      const rate = (test.isCompleted && test.bestScore !== null) ? test.bestScore : (totalQ > 0 ? Math.round((d / totalQ) * 100) : 0);
+
+      return {
+        type: 'test',
+        id: test.id,
+        name: test.name || `Test ${test.index}`,
+        displayName: `${test.name || `Test ${test.index}`} (%${rate})`,
+        rate,
+        totalQ,
+        isCompleted: test.isCompleted,
+        Doğru: d,
+        Yanlış: y,
+        Boş: b,
+      };
+    });
+  }, [subjectProgress, selectedChartSubject, selectedChartTopic]);
 
   return (
     <div style={{ padding: '1.5rem 1rem', maxWidth: 1000, margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -579,30 +665,97 @@ export default function StudentBookDetailsPage() {
 
       {subjectChartData.length > 0 && (
         <div className="sbdp-anim" style={{ background: 'white', borderRadius: '1.1rem', border: '1.5px solid #e2e8f0', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <BarChart2 size={18} color="#6366f1" /> {selectedChartSubject === 'all' ? 'Derslere Göre Başarı Dağılımı' : 'Testlere Göre Başarı'}
-            </h3>
-            <select
-              value={selectedChartSubject}
-              onChange={e => setSelectedChartSubject(e.target.value)}
-              style={{ padding: '0.4rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
-            >
-              <option value="all">Tüm Dersler</option>
-              {subjectProgress.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
-            </select>
+          
+          {/* Chart Header & Selectors */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BarChart2 size={19} color="#6366f1" />
+                {selectedChartSubject === 'all' 
+                  ? 'Derslere Göre Başarı Dağılımı' 
+                  : selectedChartTopic === 'all' 
+                    ? `${currentChartSubjectObj?.name || 'Ders'} - Ünitelere Göre Başarı` 
+                    : `${currentChartTopicObj?.name || 'Ünite'} - Testlere Göre Başarı`}
+              </h3>
+              
+              {/* Breadcrumb Path */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginTop: 4 }}>
+                <span 
+                  onClick={() => { setSelectedChartSubject('all'); setSelectedChartTopic('all'); }} 
+                  style={{ cursor: 'pointer', color: selectedChartSubject === 'all' ? '#1e293b' : '#6366f1', textDecoration: selectedChartSubject === 'all' ? 'none' : 'underline' }}
+                >
+                  Tüm Dersler
+                </span>
+                {currentChartSubjectObj && (
+                  <>
+                    <span>/</span>
+                    <span 
+                      onClick={() => setSelectedChartTopic('all')} 
+                      style={{ cursor: 'pointer', color: selectedChartTopic === 'all' ? '#1e293b' : '#6366f1', textDecoration: selectedChartTopic === 'all' ? 'none' : 'underline' }}
+                    >
+                      {currentChartSubjectObj.name}
+                    </span>
+                  </>
+                )}
+                {currentChartTopicObj && (
+                  <>
+                    <span>/</span>
+                    <span style={{ color: '#0f172a', fontWeight: 800 }}>
+                      {currentChartTopicObj.name}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Select Dropdowns */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {/* Subject Select */}
+              <select
+                value={selectedChartSubject}
+                onChange={e => {
+                  setSelectedChartSubject(e.target.value);
+                  setSelectedChartTopic('all');
+                }}
+                style={{ padding: '0.4rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="all">📚 Tüm Dersler</option>
+                {subjectProgress.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
+              </select>
+
+              {/* Topic/Unit Select (Appears when a subject with topics is selected) */}
+              {currentChartSubjectObj && currentChartSubjectObj.topics && currentChartSubjectObj.topics.length > 0 && (
+                <select
+                  value={selectedChartTopic}
+                  onChange={e => setSelectedChartTopic(e.target.value)}
+                  style={{ padding: '0.4rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #c7d2fe', fontSize: '0.82rem', fontWeight: 700, color: '#4338ca', background: '#f5f3ff', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value="all">📑 Tüm Üniteler / Konular</option>
+                  {currentChartSubjectObj.topics.map(tp => <option key={tp.id} value={String(tp.id)}>{tp.name}</option>)}
+                </select>
+              )}
+            </div>
           </div>
 
-          {/* Ders/Test Başarı Durumu Kartları (Grafiğin Üstünde) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem', marginBottom: '1.25rem' }}>
+          {/* Interactive Drill-down Cards (Grafiğin Üstünde) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.6rem', marginBottom: '1.25rem' }}>
             {subjectChartData.map((item, idx) => {
               const rateColor = item.rate >= 70 ? '#059669' : item.rate >= 50 ? '#d97706' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
               const rateBg = item.rate >= 70 ? '#f0fdf4' : item.rate >= 50 ? '#fffbeb' : item.totalQ === 0 ? '#f8fafc' : '#fef2f2';
               const rateBorder = item.rate >= 70 ? '#bbf7d0' : item.rate >= 50 ? '#fde68a' : item.totalQ === 0 ? '#e2e8f0' : '#fecdd3';
+              const isDrillable = item.type === 'subject' || item.type === 'topic';
 
               return (
                 <div 
                   key={idx} 
+                  onClick={() => {
+                    if (item.type === 'subject') {
+                      setSelectedChartSubject(String(item.id));
+                      setSelectedChartTopic('all');
+                    } else if (item.type === 'topic') {
+                      setSelectedChartTopic(String(item.id));
+                    }
+                  }}
                   style={{
                     background: rateBg, 
                     border: `1.5px solid ${rateBorder}`, 
@@ -611,11 +764,14 @@ export default function StudentBookDetailsPage() {
                     display: 'flex', 
                     flexDirection: 'column', 
                     gap: 3,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    cursor: isDrillable ? 'pointer' : 'default',
+                    transition: 'all 0.15s ease'
                   }}
+                  title={isDrillable ? `${item.name} detaylarını görmek için tıkla` : item.name}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.name}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.name}
                     </span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 900, color: rateColor }}>
@@ -623,7 +779,7 @@ export default function StudentBookDetailsPage() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
-                    {selectedChartSubject === 'all' ? (
+                    {item.totalTests ? (
                       <>
                         <span>{item.solvedTests}/{item.totalTests} Test</span>
                         <span style={{ color: '#059669' }}>{item.Doğru}D <span style={{ color: '#ef4444' }}>{item.Yanlış}Y</span></span>
@@ -640,6 +796,7 @@ export default function StudentBookDetailsPage() {
             })}
           </div>
 
+          {/* Bar Chart View */}
           <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer>
               <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -649,15 +806,62 @@ export default function StudentBookDetailsPage() {
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }} 
                   contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px rgba(0,0,0,0.1)', fontWeight: 800, fontSize: '0.83rem' }} 
-                  formatter={(value, name, item) => [
+                  formatter={(value, name) => [
                     `${value} Soru`,
                     name
                   ]}
                 />
                 <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.82rem', fontWeight: 700 }} />
-                <Bar dataKey="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
-                <Bar dataKey="Yanlış" stackId="a" fill="#ef4444" />
-                <Bar dataKey="Boş" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                <Bar 
+                  dataKey="Doğru" 
+                  stackId="a" 
+                  fill="#10b981" 
+                  radius={[0, 0, 4, 4]} 
+                  cursor="pointer"
+                  onClick={(entry) => {
+                    if (entry && entry.payload) {
+                      if (entry.payload.type === 'subject') {
+                        setSelectedChartSubject(String(entry.payload.id));
+                        setSelectedChartTopic('all');
+                      } else if (entry.payload.type === 'topic') {
+                        setSelectedChartTopic(String(entry.payload.id));
+                      }
+                    }
+                  }}
+                />
+                <Bar 
+                  dataKey="Yanlış" 
+                  stackId="a" 
+                  fill="#ef4444" 
+                  cursor="pointer"
+                  onClick={(entry) => {
+                    if (entry && entry.payload) {
+                      if (entry.payload.type === 'subject') {
+                        setSelectedChartSubject(String(entry.payload.id));
+                        setSelectedChartTopic('all');
+                      } else if (entry.payload.type === 'topic') {
+                        setSelectedChartTopic(String(entry.payload.id));
+                      }
+                    }
+                  }}
+                />
+                <Bar 
+                  dataKey="Boş" 
+                  stackId="a" 
+                  fill="#94a3b8" 
+                  radius={[4, 4, 0, 0]} 
+                  cursor="pointer"
+                  onClick={(entry) => {
+                    if (entry && entry.payload) {
+                      if (entry.payload.type === 'subject') {
+                        setSelectedChartSubject(String(entry.payload.id));
+                        setSelectedChartTopic('all');
+                      } else if (entry.payload.type === 'topic') {
+                        setSelectedChartTopic(String(entry.payload.id));
+                      }
+                    }
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
