@@ -92,24 +92,7 @@ export default function ModularQuizReviewPage() {
       }
     }
 
-    // 3. Search in localStorage fallbacks
-    if (!foundSubmission) {
-      try {
-        const localKeys = [`quiz_submission_${targetId}`, `homework_sub_${targetId}`, `submission_${targetId}`, `draft_quiz_${targetId}_ans`];
-        for (const k of localKeys) {
-          const raw = localStorage.getItem(k);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            foundSubmission = parsed.answers ? parsed : { answers: parsed };
-            break;
-          }
-        }
-      } catch (e) {
-        console.error('LocalStorage load error:', e);
-      }
-    }
-
-    // 4. Resolve testId from found submission or targetId
+    // 3. Resolve testId from found submission or targetId
     const resolvedTestId = foundSubmission?.testId || foundSubmission?.homeworkId || targetId;
     const normalizeId = (id) => String(id || '').replace(/^hw_/, '').replace(/^q_?/, '').replace(/^bt_?/, '').replace(/^tbt_?/, '');
 

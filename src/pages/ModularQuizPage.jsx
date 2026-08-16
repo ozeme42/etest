@@ -637,13 +637,6 @@ export default function ModularQuizPage() {
         } catch (e) {}
       }
 
-      try {
-        localStorage.setItem(`quiz_submission_${testId}`, JSON.stringify(submissionData));
-        if (effectiveHwId) {
-          localStorage.setItem(`homework_sub_${effectiveHwId}`, JSON.stringify(submissionData));
-        }
-      } catch (e) {}
-
       setSubmissionResult({
         submissionId: newSubId,
         isPending: isAcikUclu,

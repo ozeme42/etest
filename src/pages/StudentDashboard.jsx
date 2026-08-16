@@ -582,21 +582,7 @@ export default function StudentDashboard() {
             return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
           }
           return true;
-        }) || (() => {
-          try {
-            const keys = [`quiz_submission_${hw.id}`, `homework_sub_${hw.id}`, `submission_${hw.id}`];
-            for (const k of keys) {
-              const raw = localStorage.getItem(k);
-              if (raw) {
-                const parsed = JSON.parse(raw);
-                if (parsed && (parsed.answers || parsed.score !== undefined) && parsed.status !== 'in_progress' && parsed.status !== 'draft') {
-                  return parsed;
-                }
-              }
-            }
-          } catch (e) {}
-          return null;
-        })();
+        });
 
       return [{
         ...hw,

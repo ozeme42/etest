@@ -357,37 +357,40 @@ export async function dbGetSubmissions(studentId) {
     if (studentId) query = query.eq('student_id', studentId);
     const { data, error } = await query;
     if (error) throw error;
-    return data.map(s => ({
-      id: String(s.id),
-      testId: s.test_id,
-      studentId: s.student_id,
-      // FIX: homework_id artık okunuyor ve hwId/homeworkId olarak map ediliyor.
-      // StudentBooksPage bu alanı ödev<->kitap eşleştirmesi için kullanıyor.
-      hwId: s.homework_id ? String(s.homework_id) : null,
-      homeworkId: s.homework_id ? String(s.homework_id) : null,
-      score: s.score,
-      correctCount: s.correct_count,
-      wrongCount: s.wrong_count,
-      emptyCount: s.empty_count,
-      blankCount: s.empty_count,
-      subject: s.subject,
-      title: s.title,
-      testTitle: s.test_title || s.title,
-      status: (s.answers || []).find(a => a.type === 'metadata')?.status || s.status || (s.is_evaluated_by_teacher ? 'completed' : 'pending_evaluation'),
-      isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || s.status === 'completed' || s.status === 'evaluated'),
-      teacherFeedback: s.teacher_feedback || null,
-      totalScorePoints: s.total_score_points || null,
-      maxPossibleScore: s.max_possible_score || null,
-      answers: (s.answers || []).filter(a => a.type !== 'metadata'),
-      bookTestId: (s.answers || []).find(a => a.type === 'metadata')?.bookTestId || null,
-      bookTestIds: (s.answers || []).find(a => a.type === 'metadata')?.bookTestIds || [],
-      questions: s.questions || [],
-      contentPayload: s.content_payload || null,
-      imageUrl: s.image_url || null,
-      imageUrls: s.image_urls || [],
-      contentType: s.content_type || null,
-      createdAt: s.created_at
-    }));
+    return data.map(s => {
+      const meta = (s.answers || []).find(a => a.type === 'metadata');
+      return {
+        id: meta?.realId || String(s.id),
+        supabaseId: String(s.id),
+        testId: meta?.realTestId || s.test_id,
+        realTestId: meta?.realTestId || s.test_id,
+        studentId: s.student_id,
+        hwId: s.homework_id ? String(s.homework_id) : (meta?.hwId ? String(meta.hwId) : null),
+        homeworkId: s.homework_id ? String(s.homework_id) : (meta?.hwId ? String(meta.hwId) : null),
+        score: s.score,
+        correctCount: s.correct_count,
+        wrongCount: s.wrong_count,
+        emptyCount: s.empty_count,
+        blankCount: s.empty_count,
+        subject: s.subject,
+        title: s.title,
+        testTitle: s.test_title || s.title,
+        status: meta?.status || s.status || (s.is_evaluated_by_teacher ? 'completed' : 'pending_evaluation'),
+        isEvaluatedByTeacher: Boolean(s.is_evaluated_by_teacher || s.status === 'completed' || s.status === 'evaluated'),
+        teacherFeedback: s.teacher_feedback || null,
+        totalScorePoints: s.total_score_points || null,
+        maxPossibleScore: s.max_possible_score || null,
+        answers: (s.answers || []).filter(a => a.type !== 'metadata'),
+        bookTestId: meta?.bookTestId || null,
+        bookTestIds: meta?.bookTestIds || [],
+        questions: s.questions || [],
+        contentPayload: s.content_payload || null,
+        imageUrl: s.image_url || null,
+        imageUrls: s.image_urls || [],
+        contentType: s.content_type || null,
+        createdAt: s.created_at
+      };
+    });
   } catch (err) {
     console.warn('[Supabase] dbGetSubmissions error:', err.message);
     return null;
@@ -413,14 +416,18 @@ export async function dbSaveSubmission(sub) {
       total_score_points: sub.totalScorePoints || null,
       max_possible_score: sub.maxPossibleScore || null,
       is_evaluated_by_teacher: Boolean(sub.isEvaluatedByTeacher || sub.status === 'completed' || sub.status === 'evaluated'),
-      // FIX: homework_id artık payload'a gerçekten dahil ediliyor
-      // (aşağıda koşulsuz silinmiyor). Eski kodda bu alan her zaman
-      // siliniyordu, bu yüzden kitap ilerlemesi hiçbir zaman
-      // sunucu tarafında doğru hesaplanamıyordu.
       homework_id: (sub.hwId || sub.homeworkId) ? String(sub.hwId || sub.homeworkId) : null,
       answers: [
         ...(sub.answers || []).filter(a => a.type !== 'metadata'),
-        { type: 'metadata', bookTestId: sub.bookTestId || null, bookTestIds: sub.bookTestIds || [], status: sub.status || 'pending_evaluation' }
+        {
+          type: 'metadata',
+          realId: sub.id,
+          realTestId: sub.testId,
+          hwId: sub.hwId || sub.homeworkId || null,
+          bookTestId: sub.bookTestId || null,
+          bookTestIds: sub.bookTestIds || [],
+          status: sub.status || 'pending_evaluation'
+        }
       ],
       questions: sub.questions || []
     };
