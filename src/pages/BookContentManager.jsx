@@ -1172,11 +1172,30 @@ export default function BookContentManager() {
                               <span style={{ fontSize: '0.73rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 800, background: isExpired ? '#fef2f2' : '#ecfdf5', color: isExpired ? '#ef4444' : '#10b981', border: `1px solid ${isExpired ? '#fca5a5' : '#a7f3d0'}` }}>
                                 {isExpired ? 'Süresi Bitti' : 'Aktif'}
                               </span>
-                              <span style={{ fontSize: '0.73rem', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontWeight: 800, background: '#f1f5f9', color: '#475569' }}>
-                                {hw.targetType === 'class' || hw.targetType === 'grade' ? `🏫 Sınıf (${targetStudents.length} Öğrenci)` : `👤 ${targetStudents.length} Özel Öğrenci`}
-                              </span>
+                              {hw.targetType === 'class' || hw.targetType === 'grade' ? (
+                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 800, background: '#e0e7ff', color: '#4338ca', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  🏫 Sınıf ({targetStudents.length} Öğrenci)
+                                </span>
+                              ) : targetStudents.length === 1 ? (
+                                <span style={{ fontSize: '0.78rem', padding: '0.2rem 0.65rem', borderRadius: '0.4rem', fontWeight: 900, background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  👤 Öğrenci: {targetStudents[0]?.name}
+                                </span>
+                              ) : targetStudents.length > 1 && targetStudents.length <= 3 ? (
+                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 800, background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  👤 {targetStudents.map(s => s.name).join(', ')}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 800, background: '#f1f5f9', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  👤 {targetStudents.length} Öğrenci ({targetStudents.slice(0, 2).map(s => s.name).join(', ')}...)
+                                </span>
+                              )}
                             </div>
-                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                              {targetStudents.length === 1 && (
+                                <span style={{ color: '#4338ca', fontWeight: 800, background: '#eef2ff', padding: '1px 6px', borderRadius: '4px' }}>
+                                  👤 {targetStudents[0]?.name}
+                                </span>
+                              )}
                               <span>📝 {totalTestsInHw} Test ({hw.totalQuestions || '?'} Soru)</span>
                               <span>📅 Son Tarih: {new Date(hw.dueDate).toLocaleDateString('tr-TR')}</span>
                             </div>
