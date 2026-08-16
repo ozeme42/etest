@@ -1,25 +1,38 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import PdfViewerPanel from '../components/PdfViewerPanel';
 
 export default function StudentBookDetailsPage() {
   const { bookId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { users = [] } = useUser();
   const { homeworks = [], isLoading: hwLoading, clearHomeworkSubmissionsForStudent } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, updateTrackedBookTest } = useTrackedBooks();
   const { submissions = [], deleteSubmission, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const [openSubjects, setOpenSubjects] = useState({});
   const [openTopics, setOpenTopics] = useState({});
+
+  const queryStudentId = searchParams.get('studentId');
+  const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
+
+  const targetStudent = useMemo(() => {
+    if (queryStudentId) {
+      return (users || []).find(u => String(u.id) === String(queryStudentId) || toUUID(u.id) === toUUID(queryStudentId)) || { id: queryStudentId, name: 'Öğrenci' };
+    }
+    return currentUser;
+  }, [queryStudentId, users, currentUser]);
 
   const toggleSubject = (subjId) => {
     setOpenSubjects(prev => ({ ...prev, [subjId]: !prev[subjId] }));
@@ -45,10 +58,10 @@ export default function StudentBookDetailsPage() {
     setOpenTopics({});
   };
 
-  const studentId = currentUser?.id;
-  const grade = currentUser?.grade;
-  const gradeId = currentUser?.gradeId;
-  const className = currentUser?.className;
+  const studentId = targetStudent?.id || currentUser?.id;
+  const grade = targetStudent?.grade;
+  const gradeId = targetStudent?.gradeId;
+  const className = targetStudent?.className;
 
   // Find the book
   const book = useMemo(() => books.find(b => String(b.id) === String(bookId)), [books, bookId]);
@@ -62,7 +75,7 @@ export default function StudentBookDetailsPage() {
 
     const bookAssignments = homeworks.filter(hw => {
       if (!hw.isBookAssignment || String(hw.bookId) !== String(bookId)) return false;
-      return isHomeworkForStudent(hw, currentUser, curData?.grades);
+      return isHomeworkForStudent(hw, targetStudent, curData?.grades);
     });
 
     let isSelfAdded = false;
@@ -106,7 +119,7 @@ export default function StudentBookDetailsPage() {
     }
 
     return { ids, targetDueDate, remainingDays, isSelfAdded };
-  }, [homeworks, bookId, studentId, grade, gradeId, className]);
+  }, [homeworks, bookId, studentId, grade, gradeId, className, targetStudent, bookTests, curData]);
 
   const assignedTestIds = bookData.ids;
 
@@ -128,10 +141,12 @@ export default function StudentBookDetailsPage() {
       const testsWithStatus = subjTests.map((t, index) => {
         // Is it solved? Check submissions strictly matching this test ID
         const tIdStr = String(t.id);
-        const tUuidStr = String(toUUID(t.id) || '');
+        const studentIdStr = String(studentId);
+        const studentUuidStr = String(toUUID(studentId) || '');
 
         const solvedSubs = submissions.filter(s => {
-          if (String(s.studentId) !== String(studentId)) return false;
+          const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+          if (!isMatchStudent) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
 
           const matchFields = [
@@ -146,7 +161,7 @@ export default function StudentBookDetailsPage() {
             matchFields.push(...s.bookTestIds.map(String));
           }
 
-          return matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr)));
+          return matchFields.some(f => f && (f === tIdStr || (tUuidStr && f === tUuidStr) || toUUID(f) === tIdStr || (tUuidStr && toUUID(f) === tUuidStr)));
         });
 
         // Also check if any homework submission explicitly belongs to this test ID
@@ -154,7 +169,8 @@ export default function StudentBookDetailsPage() {
         for (const hw of homeworks) {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
           const match = hw.submissions.find(s => {
-            if (String(s.studentId) !== String(studentId)) return false;
+            const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
+            if (!isMatchStudent) return false;
             return String(s.testId || s.bookTestId) === tIdStr || (tUuidStr && String(s.testId || s.bookTestId) === tUuidStr);
           });
           if (match) {
@@ -384,10 +400,10 @@ export default function StudentBookDetailsPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <button
-          onClick={() => navigate(book?.bookType === 'exam' ? '/student/exams' : '/student/books')}
+          onClick={() => navigate(isFromTeacher ? `/books/${book?.id}` : (book?.bookType === 'exam' ? '/student/exams' : '/student/books'))}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1.5px solid #e2e8f0', borderRadius: '0.65rem', padding: '0.5rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: '#334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
         >
-          <ArrowLeft size={16} /> {book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön'}
+          <ArrowLeft size={16} /> {isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}
         </button>
         {bookData.isSelfAdded && (
           <button
@@ -398,6 +414,30 @@ export default function StudentBookDetailsPage() {
           </button>
         )}
       </div>
+
+      {isFromTeacher && (
+        <div className="sbdp-anim" style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)', color: 'white', padding: '0.9rem 1.25rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 6px 20px rgba(30,27,75,0.25)', border: '1px solid #4338ca' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+              {(targetStudent?.name || 'Ö').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6 }}>
+                👤 {targetStudent?.name || 'Öğrenci'} <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#4f46e5', padding: '2px 8px', borderRadius: 99 }}>Öğrenci Kitap İlerleme Görünümü</span>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#c7d2fe', marginTop: 2 }}>
+                Öğrencinin gördüğü birebir kitap ekranı • Çözülen testler, başarı oranları ve optik formlar
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/books/${book?.id}`)}
+            style={{ background: 'white', border: 'none', color: '#1e1b4b', padding: '0.45rem 1rem', borderRadius: '0.6rem', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+          >
+            <ArrowLeft size={15} /> Kitap Yönetimine Dön
+          </button>
+        </div>
+      )}
 
       {overallPct < 100 && bookData.remainingDays !== null && (
         <div className="sbdp-anim" style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '2px solid #86efac', borderRadius: '1rem', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 12px rgba(22,163,74,0.08)' }}>
@@ -641,13 +681,30 @@ export default function StudentBookDetailsPage() {
 
                             <div style={{ flexShrink: 0 }}>
                               {test.isCompleted ? (
-                                <button
-                                  className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
-                                  onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
-                                >
-                                  Sonucu İncele
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <button
+                                    className="sbdp-btn-solve"
+                                    style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                  >
+                                    <Eye size={13} /> Sonucu İncele
+                                  </button>
+                                  <button
+                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    title="Bu testi sıfırla"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                        if (test.latestSubId) {
+                                          await deleteSubmission(test.latestSubId);
+                                        }
+                                        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                      }
+                                    }}
+                                  >
+                                    <RotateCcw size={12} /> Sıfırla
+                                  </button>
+                                </div>
                               ) : test.isLocked ? (
                                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <Lock size={14} /> Kilitli
@@ -656,9 +713,9 @@ export default function StudentBookDetailsPage() {
                                 <button
                                   className="sbdp-btn-solve"
                                   style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                  onClick={() => navigate(`/book-quiz/${test.id}`)}
+                                  onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                 >
-                                  <PlayCircle size={14} /> Şimdi Çöz
+                                  <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                 </button>
                               )}
                             </div>
@@ -755,13 +812,30 @@ export default function StudentBookDetailsPage() {
 
                                     <div style={{ flexShrink: 0 }}>
                                       {test.isCompleted ? (
-                                        <button
-                                          className="sbdp-btn-solve"
-                                          style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
-                                          onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
-                                        >
-                                          Sonucu İncele
-                                        </button>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                          <button
+                                            className="sbdp-btn-solve"
+                                            style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                          >
+                                            <Eye size={13} /> Sonucu İncele
+                                          </button>
+                                          <button
+                                            style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            title="Bu testi sıfırla"
+                                            onClick={async (e) => {
+                                              e.stopPropagation();
+                                              if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                                if (test.latestSubId) {
+                                                  await deleteSubmission(test.latestSubId);
+                                                }
+                                                await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                              }
+                                            }}
+                                          >
+                                            <RotateCcw size={12} /> Sıfırla
+                                          </button>
+                                        </div>
                                       ) : test.isLocked ? (
                                         <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
                                           <Lock size={14} /> Kilitli
@@ -770,9 +844,9 @@ export default function StudentBookDetailsPage() {
                                         <button
                                           className="sbdp-btn-solve"
                                           style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                          onClick={() => navigate(`/book-quiz/${test.id}`)}
+                                          onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                         >
-                                          <PlayCircle size={14} /> Şimdi Çöz
+                                          <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                         </button>
                                       )}
                                     </div>
@@ -835,13 +909,30 @@ export default function StudentBookDetailsPage() {
 
                           <div style={{ flexShrink: 0 }}>
                             {test.isCompleted ? (
-                              <button
-                                className="sbdp-btn-solve"
-                                style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer' }}
-                                onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book.id}` } })}
-                              >
-                                Sonucu İncele
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <button
+                                  className="sbdp-btn-solve"
+                                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #10b981', color: '#059669', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                >
+                                  <Eye size={13} /> Sonucu İncele
+                                </button>
+                                <button
+                                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  title="Bu testi sıfırla"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                      if (test.latestSubId) {
+                                        await deleteSubmission(test.latestSubId);
+                                      }
+                                      await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                    }
+                                  }}
+                                >
+                                  <RotateCcw size={12} /> Sıfırla
+                                </button>
+                              </div>
                             ) : test.isLocked ? (
                               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Lock size={14} /> Kilitli
@@ -850,9 +941,9 @@ export default function StudentBookDetailsPage() {
                               <button
                                 className="sbdp-btn-solve"
                                 style={{ padding: '0.4rem 1.2rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                onClick={() => navigate(`/book-quiz/${test.id}`)}
+                                onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                               >
-                                <PlayCircle size={14} /> Şimdi Çöz
+                                <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                               </button>
                             )}
                           </div>

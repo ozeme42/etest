@@ -1421,11 +1421,18 @@ export default function BookContentManager() {
                           </button>
 
                           <button 
-                            onClick={() => toggleHwDetails(hw.id)}
+                            onClick={() => {
+                              if (targetStudents.length === 1) {
+                                navigate(`/student/books/${book?.id}?studentId=${targetStudents[0].id}&fromTeacher=true`);
+                              } else {
+                                toggleHwDetails(hw.id);
+                              }
+                            }}
                             className="btn btn-outline"
-                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#4f46e5', borderColor: '#c7d2fe', background: '#eef2ff' }}
+                            title="Öğrencinin gördüğü birebir kitap ekranında detaylı ilerlemeyi aç"
                           >
-                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            <BookOpen size={15} />
                             Detaylı İlerleme
                           </button>
 
@@ -1558,6 +1565,31 @@ export default function BookContentManager() {
                                   <div style={{ background: '#f1f5f9', borderRadius: 99, height: 7, overflow: 'hidden' }}>
                                     <div style={{ width: `${item.pct}%`, background: item.isDone ? '#10b981' : '#38bdf8', height: '100%', borderRadius: 99, transition: 'width 0.3s' }} />
                                   </div>
+
+                                  {/* PROMINENT BUTTON: OPEN STUDENT BOOK SCREEN */}
+                                  <button
+                                    onClick={() => navigate(`/student/books/${book?.id}?studentId=${item.student.id}&fromTeacher=true`)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '0.5rem',
+                                      padding: '0.65rem 1rem',
+                                      borderRadius: '0.65rem',
+                                      background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                      color: 'white',
+                                      border: 'none',
+                                      fontWeight: 900,
+                                      fontSize: '0.85rem',
+                                      cursor: 'pointer',
+                                      boxShadow: '0 4px 14px rgba(79,70,229,0.25)',
+                                      transition: 'all 0.2s'
+                                    }}
+                                    title="Öğrencinin gördüğü birebir kitap sayfasını açarak ünite, konu, test ve soru bazlı tüm sonuçları inceleyin"
+                                  >
+                                    <BookOpen size={16} />
+                                    📖 Öğrencinin Birebir Kitap Ekranını Aç ({item.student.name})
+                                  </button>
 
                                   {/* TOGGLE TEST BREAKDOWN BUTTON */}
                                   <button
