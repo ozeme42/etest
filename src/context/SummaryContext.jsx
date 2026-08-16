@@ -57,14 +57,22 @@ export function SummaryProvider({ children }) {
             // Remote first
             remote.forEach(s => map.set(String(s.targetId || s.id), s));
             // Keep any local unsynced
+            let hasLocalOnly = false;
             prev.forEach(s => {
               const key = String(s.targetId || s.id);
               if (!map.has(key)) {
                 map.set(key, s);
+                hasLocalOnly = true;
               }
             });
             const merged = Array.from(map.values());
             idbSetPayload(CACHE_KEY, JSON.stringify(merged)).catch(() => {});
+
+            // Auto-backup local summaries to cloud if any exist
+            if (hasLocalOnly && merged.length > 0) {
+              dbSaveSummary(merged[0], merged).catch(() => {});
+            }
+
             return merged;
           });
         }
@@ -100,15 +108,16 @@ export function SummaryProvider({ children }) {
       updatedAt: new Date().toISOString()
     };
 
+    let nextList = [];
     setSummaries(prev => {
       const filtered = prev.filter(s => String(s.targetId) !== targetIdStr && String(s.id) !== summaryId);
-      const nextList = [newSummary, ...filtered];
+      nextList = [newSummary, ...filtered];
       idbSetPayload(CACHE_KEY, JSON.stringify(nextList)).catch(() => {});
       return nextList;
     });
 
     try {
-      await dbSaveSummary(newSummary);
+      await dbSaveSummary(newSummary, nextList);
     } catch (e) {
       console.warn('Failed to save summary to remote DB:', e);
     }
@@ -121,14 +130,15 @@ export function SummaryProvider({ children }) {
     if (!targetId) return;
     const targetIdStr = String(targetId);
 
+    let nextList = [];
     setSummaries(prev => {
-      const nextList = prev.filter(s => String(s.targetId) !== targetIdStr && String(s.id) !== targetIdStr);
+      nextList = prev.filter(s => String(s.targetId) !== targetIdStr && String(s.id) !== targetIdStr);
       idbSetPayload(CACHE_KEY, JSON.stringify(nextList)).catch(() => {});
       return nextList;
     });
 
     try {
-      await dbDeleteSummary(targetIdStr);
+      await dbDeleteSummary(targetIdStr, nextList);
     } catch (e) {
       console.warn('Failed to delete summary from remote DB:', e);
     }

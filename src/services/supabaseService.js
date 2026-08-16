@@ -275,34 +275,60 @@ export async function dbAddTopic(topic) {
 export async function dbGetSummaries() {
   if (!isSupabaseConfigured()) return null;
   try {
+    // 1. Try dedicated summaries table first
     const { data, error } = await supabase.from('summaries').select('*').order('created_at', { ascending: false });
-    if (error) {
-      // If summaries table does not exist yet on remote, fail gracefully without errors
-      if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('does not exist') || error.message?.includes('schema cache') || error.message?.includes('404')) {
-        return null;
-      }
-      return null;
+    if (!error && data && data.length > 0) {
+      return data.map(s => ({
+        id: String(s.id),
+        targetType: s.target_type || s.targetType || 'topic',
+        targetId: String(s.target_id || s.targetId),
+        gradeId: s.grade_id || s.gradeId || null,
+        subjectId: s.subject_id || s.subjectId || null,
+        unitId: s.unit_id || s.unitId || null,
+        topicId: s.topic_id || s.topicId || null,
+        title: s.title || '',
+        contentHtml: s.content_html || s.contentHtml || '',
+        authorName: s.author_name || s.authorName || 'Öğretmen',
+        createdAt: s.created_at,
+        updatedAt: s.updated_at || s.created_at
+      }));
     }
-    return (data || []).map(s => ({
-      id: String(s.id),
-      targetType: s.target_type || s.targetType || 'topic',
-      targetId: String(s.target_id || s.targetId),
-      gradeId: s.grade_id || s.gradeId || null,
-      subjectId: s.subject_id || s.subjectId || null,
-      unitId: s.unit_id || s.unitId || null,
-      topicId: s.topic_id || s.topicId || null,
-      title: s.title || '',
-      contentHtml: s.content_html || s.contentHtml || '',
-      authorName: s.author_name || s.authorName || 'Öğretmen',
-      createdAt: s.created_at,
-      updatedAt: s.updated_at || s.created_at
-    }));
+
+    // 2. Cloud Fallback: Fetch from global summaries store in Supabase
+    const { data: storeData, error: storeErr } = await supabase
+      .from('coaching_profiles')
+      .select('*')
+      .eq('id', 'global_summaries_store')
+      .maybeSingle();
+
+    if (!storeErr && storeData?.extra_data) {
+      const parsed = typeof storeData.extra_data === 'string' ? JSON.parse(storeData.extra_data) : storeData.extra_data;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(s => ({
+          id: String(s.id || `sum_${s.targetType || 'item'}_${s.targetId}`),
+          targetType: s.targetType || s.target_type || 'topic',
+          targetId: String(s.targetId || s.target_id),
+          gradeId: s.gradeId || s.grade_id || null,
+          subjectId: s.subjectId || s.subject_id || null,
+          unitId: s.unitId || s.unit_id || null,
+          topicId: s.topicId || s.topic_id || null,
+          title: s.title || '',
+          contentHtml: s.contentHtml || s.content_html || '',
+          authorName: s.authorName || s.author_name || 'Öğretmen',
+          createdAt: s.createdAt || s.created_at,
+          updatedAt: s.updatedAt || s.updated_at || new Date().toISOString()
+        }));
+      }
+    }
+
+    return [];
   } catch (err) {
+    console.warn('[Supabase] dbGetSummaries error:', err.message);
     return null;
   }
 }
 
-export async function dbSaveSummary(summary) {
+export async function dbSaveSummary(summary, allSummaries = []) {
   if (!isSupabaseConfigured()) return null;
   try {
     const targetIdStr = String(summary.targetId || summary.id);
@@ -322,24 +348,48 @@ export async function dbSaveSummary(summary) {
       updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase.from('summaries').upsert([payload], { onConflict: 'id' }).select();
-    if (error) {
-      return { success: true, data: [payload] };
+    // 1. Try dedicated summaries table
+    try {
+      await supabase.from('summaries').upsert([payload], { onConflict: 'id' });
+    } catch {}
+
+    // 2. Always persist full summaries list to Supabase cloud store
+    if (allSummaries && Array.isArray(allSummaries)) {
+      const storePayload = {
+        id: 'global_summaries_store',
+        student_id: 'system_summaries',
+        extra_data: JSON.stringify(allSummaries)
+      };
+      await supabase.from('coaching_profiles').upsert([storePayload], { onConflict: 'id' });
     }
-    return { success: true, data };
-  } catch (err) {
+
     return { success: true };
+  } catch (err) {
+    console.warn('[Supabase] dbSaveSummary error:', err.message);
+    return { success: false, error: err.message };
   }
 }
 
-export async function dbDeleteSummary(targetId) {
+export async function dbDeleteSummary(targetId, remainingSummaries = []) {
   if (!isSupabaseConfigured() || !targetId) return null;
   try {
     const targetIdStr = String(targetId);
-    const { error } = await supabase.from('summaries').delete().or(`id.eq.${targetIdStr},target_id.eq.${targetIdStr}`);
-    if (error) return false;
+    try {
+      await supabase.from('summaries').delete().or(`id.eq.${targetIdStr},target_id.eq.${targetIdStr}`);
+    } catch {}
+
+    if (remainingSummaries && Array.isArray(remainingSummaries)) {
+      const storePayload = {
+        id: 'global_summaries_store',
+        student_id: 'system_summaries',
+        extra_data: JSON.stringify(remainingSummaries)
+      };
+      await supabase.from('coaching_profiles').upsert([storePayload], { onConflict: 'id' });
+    }
+
     return true;
   } catch (err) {
+    console.warn('[Supabase] dbDeleteSummary error:', err.message);
     return false;
   }
 }
