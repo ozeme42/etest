@@ -27,10 +27,11 @@ export default function SummaryHtmlViewer({
       body {
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: ${fontSize}px;
-        line-height: 1.85;
+        line-height: 1.8;
         color: #334155;
         background: #ffffff;
-        padding: 24px;
+        padding: 8px 2px;
+        width: 100%;
         word-break: break-word;
         overflow-wrap: break-word;
       }

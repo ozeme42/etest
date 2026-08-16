@@ -141,10 +141,10 @@ export default function StudentSummaryPage() {
   }, [activeReadingTarget?.id]);
 
   return (
-    <div className="edu-portal-root">
+    <div className={`edu-portal-root ${activeReadingTarget ? 'reading-active' : ''}`}>
       
       {/* ════════════════════════════════════════════════════════════════
-          VIEW 1: FULLSCREEN READER MODE (Sol panel olmadan tam ekran)
+          VIEW 1: FULLSCREEN EDGE-TO-EDGE READER (Sağa Sola Yasla)
          ════════════════════════════════════════════════════════════════ */}
       {activeReadingTarget ? (
         <div className="edu-reader-view-fullscreen">
@@ -158,20 +158,20 @@ export default function StudentSummaryPage() {
                 className="edu-back-to-catalog-btn"
                 onClick={() => setActiveReadingTarget(null)}
               >
-                <ArrowLeft size={18} />
+                <ArrowLeft size={16} />
                 <span>Konu Listesi</span>
               </button>
 
               {/* Breadcrumbs */}
               <div className="edu-topbar-breadcrumbs">
                 <span>{currentGrade?.name}</span>
-                <ChevronRight size={13} className="crumb-sep" />
+                <ChevronRight size={12} className="crumb-sep" />
                 <span style={{ color: activeTheme.color, fontWeight: 800 }}>{currentSubject?.name}</span>
-                <ChevronRight size={13} className="crumb-sep" />
+                <ChevronRight size={12} className="crumb-sep" />
                 <span>{currentUnit?.name}</span>
                 {activeReadingTarget.type === 'topic' && (
                   <>
-                    <ChevronRight size={13} className="crumb-sep" />
+                    <ChevronRight size={12} className="crumb-sep" />
                     <strong className="crumb-active-title">{activeReadingTarget.name}</strong>
                   </>
                 )}
@@ -186,18 +186,18 @@ export default function StudentSummaryPage() {
                   onClick={() => setIsDrawerOpen(true)}
                   title="Diğer Konuları Görüntüle"
                 >
-                  <ListFilter size={16} />
+                  <ListFilter size={15} />
                   <span>Konular</span>
                 </button>
 
                 {/* Font Size Adjuster */}
                 <div className="edu-font-adjust-box">
                   <button 
-                    onClick={() => setFontSize(prev => Math.max(14, prev - 1))}
+                    onClick={() => setFontSize(prev => Math.max(13, prev - 1))}
                     title="Yazı Boyutunu Küçült"
                     className="edu-ctrl-btn"
                   >
-                    <ZoomOut size={14} /> A-
+                    <ZoomOut size={13} /> A-
                   </button>
                   <span className="edu-font-val">{fontSize}px</span>
                   <button 
@@ -205,13 +205,13 @@ export default function StudentSummaryPage() {
                     title="Yazı Boyutunu Büyüt"
                     className="edu-ctrl-btn"
                   >
-                    <ZoomIn size={14} /> A+
+                    <ZoomIn size={13} /> A+
                   </button>
                 </div>
 
                 {/* Print Button */}
                 <button onClick={handlePrint} className="edu-ctrl-btn" title="Yazdır / PDF Kaydet">
-                  <Printer size={15} />
+                  <Printer size={14} />
                   <span>Yazdır</span>
                 </button>
               </div>
@@ -219,7 +219,7 @@ export default function StudentSummaryPage() {
             </div>
           </header>
 
-          {/* MAIN FULL-WIDTH ARTICLE CONTAINER */}
+          {/* MAIN EDGE-TO-EDGE ARTICLE CONTAINER */}
           <main className="edu-fullscreen-article-wrap">
             <article className="edu-reader-card-full">
               
@@ -241,7 +241,7 @@ export default function StudentSummaryPage() {
                 <h1 className="edu-article-title">{activeReadingTarget.name}</h1>
               </div>
 
-              {/* IFRAME HTML VIEWER */}
+              {/* IFRAME HTML VIEWER (Edge to edge) */}
               <div className="edu-iframe-container">
                 <SummaryHtmlViewer
                   htmlContent={currentSummary?.contentHtml || ''}
@@ -266,7 +266,7 @@ export default function StudentSummaryPage() {
                   onClick={() => navigate('/student/exams')}
                 >
                   <span>Testlere Git</span>
-                  <ArrowRight size={16} />
+                  <ArrowRight size={15} />
                 </button>
               </div>
 
@@ -277,7 +277,7 @@ export default function StudentSummaryPage() {
                     className="edu-page-nav-btn prev"
                     onClick={() => setActiveReadingTarget(prevItem)}
                   >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={18} />
                     <div className="edu-page-nav-text">
                       <span className="edu-nav-sub">Önceki Konu</span>
                       <strong>{prevItem.name}</strong>
@@ -294,7 +294,7 @@ export default function StudentSummaryPage() {
                       <span className="edu-nav-sub">Sonraki Konu</span>
                       <strong>{nextItem.name}</strong>
                     </div>
-                    <ChevronRight size={20} />
+                    <ChevronRight size={18} />
                   </button>
                 ) : <div />}
               </div>
@@ -308,11 +308,11 @@ export default function StudentSummaryPage() {
               <div className="edu-drawer-panel" onClick={e => e.stopPropagation()}>
                 <div className="edu-drawer-header">
                   <div className="edu-drawer-title">
-                    <FolderOpen size={18} color="#4f46e5" />
+                    <FolderOpen size={17} color="#4f46e5" />
                     <span>Konu Listesi</span>
                   </div>
                   <button className="edu-drawer-close" onClick={() => setIsDrawerOpen(false)}>
-                    <X size={20} />
+                    <X size={18} />
                   </button>
                 </div>
 
@@ -369,7 +369,7 @@ export default function StudentSummaryPage() {
       ) : (
 
         /* ════════════════════════════════════════════════════════════════
-            VIEW 2: CATALOG / TOPIC SELECTION VIEW (Katalog & Kartlar)
+            VIEW 2: CATALOG VIEW (Çok Küçük & Kompakt Ünite Kartları)
            ════════════════════════════════════════════════════════════════ */
         <div className="edu-catalog-view">
           
@@ -401,7 +401,7 @@ export default function StudentSummaryPage() {
               <div className="edu-hero-main-banner">
                 <div className="edu-banner-text">
                   <h1>{currentGrade?.name || 'Tüm Sınıflar'} Ders Özetleri & Konu Rehberi 📚</h1>
-                  <p>Müfredata tam uyumlu ünite özetleri, formüller, önemli kavramlar ve sınav ipuçları parmaklarının ucunda.</p>
+                  <p>Müfredata tam uyumlu ünite özetleri ve sınav notları parmaklarının ucunda.</p>
                 </div>
               </div>
 
@@ -419,7 +419,7 @@ export default function StudentSummaryPage() {
                       if (hasSummary('unit', u.id)) summaryCount++;
                       const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
                       unitTopics.forEach(t => {
-                        if (hasSummary('topic', t.id)) sumCount++;
+                        if (hasSummary('topic', t.id)) summaryCount++;
                       });
                     });
 
@@ -451,7 +451,7 @@ export default function StudentSummaryPage() {
           {/* SEARCH & FILTER BAR */}
           <div className="edu-catalog-toolbar">
             <div className="edu-catalog-search">
-              <Search size={18} color="#64748b" />
+              <Search size={16} color="#64748b" />
               <input
                 type="text"
                 placeholder={`${currentSubject?.name || 'Ders'} içinde konu veya ünite ara...`}
@@ -461,7 +461,7 @@ export default function StudentSummaryPage() {
             </div>
           </div>
 
-          {/* CURRICULUM UNITS & TOPICS CARDS GRID */}
+          {/* COMPACT & MINIMAL UNITS & TOPICS LIST */}
           <div className="edu-units-catalog-grid">
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
@@ -477,65 +477,47 @@ export default function StudentSummaryPage() {
                 }
 
                 return (
-                  <div key={u.id} className="edu-unit-card">
+                  <div key={u.id} className="edu-unit-card-compact">
                     
-                    {/* Unit Card Header */}
-                    <div className="edu-unit-card-top">
-                      <div className="edu-unit-card-title-wrap">
-                        <span className="edu-unit-large-num" style={{ background: activeTheme.lightBg, color: activeTheme.color }}>
-                          {uIdx + 1}
+                    {/* Compact Unit Card Header */}
+                    <div className="edu-unit-compact-header">
+                      <div className="edu-unit-compact-left">
+                        <span className="edu-unit-badge-pill" style={{ background: activeTheme.lightBg, color: activeTheme.color, borderColor: activeTheme.border }}>
+                          Ü{uIdx + 1}
                         </span>
-                        <div>
-                          <span className="edu-unit-badge-sub">ÜNİTE {uIdx + 1}</span>
-                          <h3 className="edu-unit-heading">{u.name}</h3>
-                        </div>
+                        <h3 className="edu-unit-compact-title">{u.name}</h3>
                       </div>
 
-                      {/* General Unit Summary Button */}
+                      {/* General Unit Summary Pill */}
                       <button
-                        className={`edu-unit-summary-pill-btn ${unitHasSummary ? 'has-summary' : ''}`}
+                        className={`edu-unit-compact-pill-btn ${unitHasSummary ? 'has-summary' : ''}`}
                         onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id })}
                       >
-                        <BookMarked size={15} />
-                        <span>{unitHasSummary ? 'Ünite Özetini Oku' : 'Ünite Özeti'}</span>
-                        <ChevronRight size={14} />
+                        <BookMarked size={13} />
+                        <span>{unitHasSummary ? 'Ünite Özeti' : 'Özet'}</span>
+                        <ChevronRight size={13} />
                       </button>
                     </div>
 
-                    {/* Topic Items List */}
-                    <div className="edu-unit-card-topics">
-                      <div className="edu-topics-section-title">
-                        <span>Konular & Kazanımlar ({unitTopics.length})</span>
-                      </div>
-
-                      <div className="edu-topics-pill-grid">
+                    {/* Compact Topics Chips List */}
+                    <div className="edu-unit-compact-topics-wrap">
+                      <div className="edu-compact-topics-grid">
                         {filteredTopicsList.map((t, tIdx) => {
                           const topicHasSummary = hasSummary('topic', t.id);
 
                           return (
                             <div
                               key={t.id}
-                              className={`edu-topic-pill-card ${topicHasSummary ? 'ready' : ''}`}
+                              className={`edu-topic-compact-chip ${topicHasSummary ? 'has-content' : ''}`}
                               onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id })}
                             >
-                              <div className="edu-topic-card-left">
-                                <span className="edu-topic-num-circle">{tIdx + 1}</span>
-                                <span className="edu-topic-card-name">{t.name}</span>
-                              </div>
-
-                              <div className="edu-topic-card-right">
-                                {topicHasSummary ? (
-                                  <span className="edu-ready-badge">
-                                    <CheckCircle2 size={13} />
-                                    <span>Özet Oku</span>
-                                  </span>
-                                ) : (
-                                  <span className="edu-browse-badge">
-                                    <span>İncele</span>
-                                  </span>
-                                )}
-                                <ChevronRight size={15} className="edu-topic-arrow" />
-                              </div>
+                              <span className="edu-topic-dot-bullet" />
+                              <span className="edu-topic-compact-name">{t.name}</span>
+                              {topicHasSummary ? (
+                                <span className="edu-chip-ready-tag">Özet</span>
+                              ) : (
+                                <ChevronRight size={12} className="edu-chip-arrow" />
+                              )}
                             </div>
                           );
                         })}
@@ -547,7 +529,7 @@ export default function StudentSummaryPage() {
               })
             ) : (
               <div className="edu-empty-catalog">
-                <BookOpen size={48} color="#94a3b8" />
+                <BookOpen size={40} color="#94a3b8" />
                 <h3>Bu Derse Ait Ünite Bulunamadı</h3>
                 <p>Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.</p>
               </div>
