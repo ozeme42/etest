@@ -533,7 +533,7 @@ export default function StudentBookDetailsPage() {
   }, [subjectProgress, selectedChartSubject, selectedChartTopic]);
 
   return (
-    <div style={{ padding: '1.5rem 1rem', maxWidth: 1000, margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ padding: '1.5rem 2rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <style>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .sbdp-anim { animation: fadeSlideUp 0.3s ease both; }
@@ -603,7 +603,7 @@ export default function StudentBookDetailsPage() {
       )}
 
       <div className="sbdp-anim" style={{ borderRadius: '1.25rem', overflow: 'hidden', marginBottom: '1.75rem', boxShadow: '0 12px 40px rgba(79,70,229,0.15)' }}>
-        <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%)', padding: '2rem 2rem 1.25rem', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0891b2 100%)', padding: '2rem 2.5rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: -50, right: 80, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
@@ -621,7 +621,7 @@ export default function StudentBookDetailsPage() {
                   {book.optionCount === 4 ? '🎯 4 Seçenekli Optik (Ortaokul A-D)' : '🎯 5 Seçenekli Optik (Lise A-E)'}
                 </span>
               </div>
-              <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
                 {book.title}
                 {book.pdfUrl && (
                   <button
@@ -633,7 +633,7 @@ export default function StudentBookDetailsPage() {
                 )}
               </h1>
 
-              <div style={{ maxWidth: 420 }}>
+              <div style={{ maxWidth: 500 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)' }}>Genel İlerleme</span>
                   <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallPct === 100 ? '#4ade80' : 'white' }}>%{overallPct}</span>
@@ -654,23 +654,23 @@ export default function StudentBookDetailsPage() {
             { label: 'Boş', value: overallBlank, color: '#94a3b8', bg: '#f8fafc', icon: '⬜' },
             { label: 'Başarı', value: `%${overallSuccessRate}`, color: '#7c3aed', bg: '#faf5ff', icon: '🎯' },
           ].map((s, i) => (
-            <div key={i} style={{ flex: '1 1 80px', padding: '0.9rem 0.5rem', textAlign: 'center', borderRight: i < 4 ? '1px solid #f1f5f9' : 'none', background: s.bg }}>
-              <div style={{ fontSize: '1rem', marginBottom: 2 }}>{s.icon}</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
+            <div key={i} style={{ flex: '1 1 120px', padding: '1rem 0.75rem', textAlign: 'center', borderRight: i < 4 ? '1px solid #f1f5f9' : 'none', background: s.bg }}>
+              <div style={{ fontSize: '1.1rem', marginBottom: 2 }}>{s.icon}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
             </div>
           ))}
         </div>
       </div>
 
       {subjectChartData.length > 0 && (
-        <div className="sbdp-anim" style={{ background: 'white', borderRadius: '1.1rem', border: '1.5px solid #e2e8f0', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+        <div className="sbdp-anim" style={{ background: 'white', borderRadius: '1.1rem', border: '1.5px solid #e2e8f0', padding: '1.75rem 2rem', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
           
           {/* Chart Header & Selectors */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BarChart2 size={19} color="#6366f1" />
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BarChart2 size={20} color="#6366f1" />
                 {selectedChartSubject === 'all' 
                   ? 'Derslere Göre Başarı Dağılımı' 
                   : selectedChartTopic === 'all' 
@@ -679,7 +679,7 @@ export default function StudentBookDetailsPage() {
               </h3>
               
               {/* Breadcrumb Path */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.82rem', color: '#64748b', fontWeight: 700, marginTop: 4 }}>
                 <span 
                   onClick={() => { setSelectedChartSubject('all'); setSelectedChartTopic('all'); }} 
                   style={{ cursor: 'pointer', color: selectedChartSubject === 'all' ? '#1e293b' : '#6366f1', textDecoration: selectedChartSubject === 'all' ? 'none' : 'underline' }}
@@ -717,7 +717,7 @@ export default function StudentBookDetailsPage() {
                   setSelectedChartSubject(e.target.value);
                   setSelectedChartTopic('all');
                 }}
-                style={{ padding: '0.4rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
+                style={{ padding: '0.45rem 1rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', background: 'white', cursor: 'pointer', outline: 'none' }}
               >
                 <option value="all">📚 Tüm Dersler</option>
                 {subjectProgress.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
@@ -728,7 +728,7 @@ export default function StudentBookDetailsPage() {
                 <select
                   value={selectedChartTopic}
                   onChange={e => setSelectedChartTopic(e.target.value)}
-                  style={{ padding: '0.4rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #c7d2fe', fontSize: '0.82rem', fontWeight: 700, color: '#4338ca', background: '#f5f3ff', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '0.45rem 1rem', borderRadius: '0.6rem', border: '1.5px solid #c7d2fe', fontSize: '0.85rem', fontWeight: 700, color: '#4338ca', background: '#f5f3ff', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="all">📑 Tüm Üniteler / Konular</option>
                   {currentChartSubjectObj.topics.map(tp => <option key={tp.id} value={String(tp.id)}>{tp.name}</option>)}
@@ -738,7 +738,7 @@ export default function StudentBookDetailsPage() {
           </div>
 
           {/* Interactive Drill-down Cards (Grafiğin Üstünde) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.6rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem', marginBottom: '1.5rem' }}>
             {subjectChartData.map((item, idx) => {
               const rateColor = item.rate >= 70 ? '#059669' : item.rate >= 50 ? '#d97706' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
               const rateBg = item.rate >= 70 ? '#f0fdf4' : item.rate >= 50 ? '#fffbeb' : item.totalQ === 0 ? '#f8fafc' : '#fef2f2';
@@ -759,26 +759,26 @@ export default function StudentBookDetailsPage() {
                   style={{
                     background: rateBg, 
                     border: `1.5px solid ${rateBorder}`, 
-                    borderRadius: '0.75rem', 
-                    padding: '0.65rem 0.85rem',
+                    borderRadius: '0.85rem', 
+                    padding: '0.8rem 1rem',
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: 3,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    gap: 4,
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
                     cursor: isDrillable ? 'pointer' : 'default',
                     transition: 'all 0.15s ease'
                   }}
                   title={isDrillable ? `${item.name} detaylarını görmek için tıkla` : item.name}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.name}
                     </span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: rateColor }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: rateColor }}>
                       %{item.rate}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
                     {item.totalTests ? (
                       <>
                         <span>{item.solvedTests}/{item.totalTests} Test</span>
@@ -797,11 +797,11 @@ export default function StudentBookDetailsPage() {
           </div>
 
           {/* Bar Chart View */}
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer>
               <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} dy={10} tickFormatter={v => v.length > 18 ? v.substring(0, 18) + '…' : v} />
+                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} dy={10} tickFormatter={v => v.length > 28 ? v.substring(0, 28) + '…' : v} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }} 
@@ -811,7 +811,7 @@ export default function StudentBookDetailsPage() {
                     name
                   ]}
                 />
-                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.82rem', fontWeight: 700 }} />
+                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 700 }} />
                 <Bar 
                   dataKey="Doğru" 
                   stackId="a" 
