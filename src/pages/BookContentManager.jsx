@@ -928,9 +928,9 @@ export default function BookContentManager() {
           }}
         >
           <ListX size={18} /> Yanlış Analizi 
-          {Object.keys(mistakeList).length > 0 && (
+          {filteredMistakes && filteredMistakes.length > 0 && (
             <span style={{ background: 'var(--color-error)', color: 'white', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontSize: '0.78rem', fontWeight: 900 }}>
-              {Object.values(mistakeList).flatMap(Object.values).flat().length}
+              {filteredMistakes.length}
             </span>
           )}
         </button>
@@ -1176,9 +1176,16 @@ export default function BookContentManager() {
                 {bookHomeworks.map(hw => {
                   let targetStudents = [];
                   if (hw.targetType === 'grade' || hw.targetType === 'class') {
-                    targetStudents = students.filter(s => (hw.targetIds || []).some(tid => s.gradeId === tid || s.grade === tid || s.className === tid));
+                    targetStudents = students.filter(s => (hw.targetIds || []).some(tid => String(s.gradeId) === String(tid) || String(s.grade) === String(tid) || String(s.className) === String(tid)));
                   } else {
-                    targetStudents = students.filter(s => (hw.targetIds || []).some(tid => s.id === tid));
+                    targetStudents = (hw.targetIds || []).map(tid => {
+                      return students.find(s => String(s.id) === String(tid)) || { id: tid, name: 'Öğrenci' };
+                    });
+                  }
+                  if (targetStudents.length === 0 && students.length > 0) {
+                    if (hw.targetType === 'all' || !hw.targetType) {
+                      targetStudents = students;
+                    }
                   }
 
                   const hwTests = (hw.tests && hw.tests.length > 0)
@@ -1191,9 +1198,11 @@ export default function BookContentManager() {
                   const hwTestsSet = new Set(hwTests.map(String));
 
                   let completedStudentsCount = 0;
-                  const studentProgressDetails = targetStudents.map(st => {
-                    const solvedSubmissions = submissions.filter(s => {
-                      if (String(s.studentId) !== String(st.id) || s.status === 'in_progress' || s.status === 'draft') return false;
+                  const studentProgressDetails = (targetStudents || []).map(st => {
+                    if (!st) return null;
+                    const stId = st.id;
+                    const solvedSubmissions = (submissions || []).filter(s => {
+                      if (String(s.studentId) !== String(stId) || s.status === 'in_progress' || s.status === 'draft') return false;
                       return hwTestsSet.has(String(s.testId)) || 
                              hwTestsSet.has(String(s.bookTestId)) || 
                              hwTestsSet.has(String(s.realTestId)) || 
@@ -1213,8 +1222,8 @@ export default function BookContentManager() {
                     if (isDone) completedStudentsCount++;
                     
                     const pct = totalTestsInHw > 0 ? Math.round((solvedCount / totalTestsInHw) * 100) : 0;
-                    return { student: st, solvedCount, totalTestsInHw, isDone, pct, solvedSubmissions };
-                  });
+                    return { student: st, studentId: stId, solvedCount, totalTestsInHw, isDone, pct, solvedSubmissions };
+                  }).filter(Boolean);
 
                   const overallHwPct = targetStudents.length > 0 ? Math.round((completedStudentsCount / targetStudents.length) * 100) : 0;
                   const isExpanded = expandedHomeworkDetails[hw.id];
