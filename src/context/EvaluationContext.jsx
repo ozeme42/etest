@@ -376,14 +376,24 @@ export function EvaluationProvider({ children }) {
   };
 
   const deleteSubmission = async (id) => {
-    let subToDelete = null;
+    if (!id) return;
+    const target = submissions.find(s => String(s.id) === String(id) || String(s.supabaseId) === String(id));
+    const idsToDelete = [String(id)];
+    if (target?.id) idsToDelete.push(String(target.id));
+    if (target?.supabaseId) idsToDelete.push(String(target.supabaseId));
+
     setSubmissions(prev => {
-      subToDelete = prev.find(s => s.id === id || s.supabaseId === id);
-      return prev.filter(s => s.id !== id && s.supabaseId !== id);
+      const remaining = prev.filter(s => !idsToDelete.includes(String(s.id)) && !idsToDelete.includes(String(s.supabaseId)));
+      try {
+        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
+        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
+      } catch (e) {}
+      return remaining;
     });
-    if (id) await dbDeleteSubmission(id);
-    if (subToDelete?.supabaseId && subToDelete.supabaseId !== id) {
-      await dbDeleteSubmission(subToDelete.supabaseId);
+
+    await dbDeleteSubmissionsByIds(idsToDelete);
+    for (const sid of idsToDelete) {
+      await dbDeleteSubmission(sid);
     }
   };
 
@@ -395,26 +405,36 @@ export function EvaluationProvider({ children }) {
   const deleteSubmissionsByTestId = async (testId) => {
     if (!testId) return;
     const toDelete = [];
+    const tStr = String(testId);
+    const tU = toUUID(tStr);
+
+    submissions.forEach(s => {
+      const matches = String(s.testId) === tStr ||
+        String(s.hwId) === tStr ||
+        String(s.homeworkId) === tStr ||
+        String(s.id) === tStr ||
+        (tU && String(s.testId) === tU) ||
+        (tU && String(s.hwId) === tU);
+      if (matches) {
+        if (s.id) toDelete.push(String(s.id));
+        if (s.supabaseId) toDelete.push(String(s.supabaseId));
+      }
+    });
+
     setSubmissions(prev => {
-      const remaining = [];
-      prev.forEach(s => {
-        const matches = String(s.testId) === String(testId) ||
-          String(s.hwId) === String(testId) ||
-          String(s.homeworkId) === String(testId) ||
-          String(s.id) === String(testId) ||
-          String(s.id).includes(testId) ||
-          String(s.testId).includes(testId);
-        if (matches) {
-          if (s.id) toDelete.push(s.id);
-          if (s.supabaseId) toDelete.push(s.supabaseId);
-        } else {
-          remaining.push(s);
-        }
-      });
+      const remaining = prev.filter(s => !toDelete.includes(String(s.id)) && !toDelete.includes(String(s.supabaseId)));
+      try {
+        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
+        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
+      } catch (e) {}
       return remaining;
     });
-    for (const id of toDelete) {
-      await dbDeleteSubmission(id);
+
+    if (toDelete.length > 0) {
+      await dbDeleteSubmissionsByIds(toDelete);
+      for (const id of toDelete) {
+        await dbDeleteSubmission(id);
+      }
     }
   };
 
@@ -451,69 +471,67 @@ export function EvaluationProvider({ children }) {
 
     const toDeleteIds = [];
 
-    setSubmissions(prev => {
-      const remaining = [];
-      prev.forEach(s => {
-        const isMatchStudent = String(s.studentId) === stIdStr || 
-          (stUuid && String(s.studentId) === String(stUuid)) || 
-          (stUuid && toUUID(s.studentId) === String(stUuid)) ||
-          String(s.studentId) === 'u1' || stIdStr === 'u1';
+    // Collect ALL matching submission IDs synchronously from current state
+    submissions.forEach(s => {
+      const isMatchStudent = String(s.studentId) === stIdStr || 
+        (stUuid && String(s.studentId) === String(stUuid)) || 
+        (stUuid && toUUID(s.studentId) === String(stUuid)) ||
+        String(s.studentId) === 'u1' || stIdStr === 'u1';
 
-        if (!isMatchStudent) {
-          remaining.push(s);
-          return;
-        }
+      if (!isMatchStudent) return;
 
-        const candidateFields = [
-          s.testId,
-          s.realTestId,
-          s.bookTestId,
-          s.metadata?.realTestId,
-          s.metadata?.bookTestId,
-          s.metadata?.realId
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
+      const candidateFields = [
+        s.testId,
+        s.realTestId,
+        s.bookTestId,
+        s.metadata?.realTestId,
+        s.metadata?.bookTestId,
+        s.metadata?.realId
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
 
-        const isMatchingTest = candidateFields.some(f => {
-          if (!f) return false;
-          const fs = String(f);
-          const fu = toUUID(f);
-          return testIdsSet.has(fs) || testUuidsSet.has(fs) || (fu && testUuidsSet.has(fu)) || (fu && testIdsSet.has(fu));
-        });
-
-        let shouldDelete = false;
-
-        if (hasSpecificTests) {
-          shouldDelete = isMatchingTest;
-        } else {
-          const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
-          const isMatchingHw = hwId && (
-            hwIdsSet.has(String(s.hwId)) || 
-            hwIdsSet.has(String(s.homeworkId)) || 
-            hwIdsSet.has(String(s.testId))
-          );
-          shouldDelete = isMatchingBook || isMatchingHw || isMatchingTest;
-        }
-
-        if (shouldDelete) {
-          if (s.id) toDeleteIds.push(s.id);
-          if (s.supabaseId) toDeleteIds.push(s.supabaseId);
-        } else {
-          remaining.push(s);
-        }
+      const isMatchingTest = candidateFields.some(f => {
+        if (!f) return false;
+        const fs = String(f);
+        const fu = toUUID(f);
+        return testIdsSet.has(fs) || testUuidsSet.has(fs) || (fu && testUuidsSet.has(fu)) || (fu && testIdsSet.has(fu));
       });
 
+      let shouldDelete = false;
+
+      if (hasSpecificTests) {
+        shouldDelete = isMatchingTest;
+      } else {
+        const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
+        const isMatchingHw = hwId && (
+          hwIdsSet.has(String(s.hwId)) || 
+          hwIdsSet.has(String(s.homeworkId)) || 
+          hwIdsSet.has(String(s.testId))
+        );
+        shouldDelete = isMatchingBook || isMatchingHw || isMatchingTest;
+      }
+
+      if (shouldDelete) {
+        if (s.id) toDeleteIds.push(String(s.id));
+        if (s.supabaseId) toDeleteIds.push(String(s.supabaseId));
+      }
+    });
+
+    setSubmissions(prev => {
+      const remaining = prev.filter(s => !toDeleteIds.includes(String(s.id)) && !toDeleteIds.includes(String(s.supabaseId)));
       try {
         localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
         localStorage.setItem('etest_submissions', JSON.stringify(remaining));
       } catch {}
-
       return remaining;
     });
 
     // 1. Delete all collected submission IDs from Supabase
     if (toDeleteIds.length > 0) {
       await dbDeleteSubmissionsByIds(toDeleteIds);
+      for (const delId of toDeleteIds) {
+        await dbDeleteSubmission(delId);
+      }
     }
     // 2. Direct batch delete in Supabase by student + test/homework IDs
     await dbDeleteSubmissionsForStudentAndTests(studentId, testIds, hasSpecificTests ? null : hwId);
@@ -548,53 +566,53 @@ export function EvaluationProvider({ children }) {
 
     const toDeleteIds = [];
 
-    setSubmissions(prev => {
-      const remaining = [];
-      prev.forEach(s => {
-        const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
-        const isMatchingHw = hwId && (
-          String(s.hwId) === String(hwId) || 
-          String(s.homeworkId) === String(hwId) || 
-          String(s.testId) === String(hwId) ||
-          testUuidsSet.has(String(s.hwId)) ||
-          testUuidsSet.has(String(s.homeworkId)) ||
-          testUuidsSet.has(String(s.testId))
-        );
+    submissions.forEach(s => {
+      const isMatchingBook = bookId && (String(s.bookId) === String(bookId));
+      const isMatchingHw = hwId && (
+        String(s.hwId) === String(hwId) || 
+        String(s.homeworkId) === String(hwId) || 
+        String(s.testId) === String(hwId) ||
+        testUuidsSet.has(String(s.hwId)) ||
+        testUuidsSet.has(String(s.homeworkId)) ||
+        testUuidsSet.has(String(s.testId))
+      );
 
-        const candidateFields = [
-          s.testId,
-          s.realTestId,
-          s.bookTestId,
-          s.metadata?.realTestId,
-          s.metadata?.bookTestId,
-          s.metadata?.realId
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
+      const candidateFields = [
+        s.testId,
+        s.realTestId,
+        s.bookTestId,
+        s.metadata?.realTestId,
+        s.metadata?.bookTestId,
+        s.metadata?.realId
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidateFields.push(...s.bookTestIds);
 
-        const isMatchingTest = candidateFields.some(f => {
-          if (!f) return false;
-          const fs = String(f);
-          return testIdsSet.has(fs) || testUuidsSet.has(fs);
-        });
-
-        if (isMatchingBook || isMatchingHw || isMatchingTest) {
-          if (s.id) toDeleteIds.push(s.id);
-          if (s.supabaseId) toDeleteIds.push(s.supabaseId);
-        } else {
-          remaining.push(s);
-        }
+      const isMatchingTest = candidateFields.some(f => {
+        if (!f) return false;
+        const fs = String(f);
+        return testIdsSet.has(fs) || testUuidsSet.has(fs);
       });
 
+      if (isMatchingBook || isMatchingHw || isMatchingTest) {
+        if (s.id) toDeleteIds.push(String(s.id));
+        if (s.supabaseId) toDeleteIds.push(String(s.supabaseId));
+      }
+    });
+
+    setSubmissions(prev => {
+      const remaining = prev.filter(s => !toDeleteIds.includes(String(s.id)) && !toDeleteIds.includes(String(s.supabaseId)));
       try {
         localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
         localStorage.setItem('etest_submissions', JSON.stringify(remaining));
       } catch {}
-
       return remaining;
     });
 
     if (toDeleteIds.length > 0) {
       await dbDeleteSubmissionsByIds(toDeleteIds);
+      for (const delId of toDeleteIds) {
+        await dbDeleteSubmission(delId);
+      }
     }
     await dbDeleteBookSubmissionsForEveryone(testIds, hwId);
   };
