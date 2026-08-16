@@ -74,7 +74,10 @@ export default function StudentBookDetailsPage() {
     let targetDueDate = null;
 
     const bookAssignments = homeworks.filter(hw => {
-      if (!hw.isBookAssignment || String(hw.bookId) !== String(bookId)) return false;
+      const isMatchBook = String(hw.bookId) === String(bookId) ||
+        (book && hw.title && (hw.title.includes(book.title) || book.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim()))) ||
+        (Array.isArray(hw.tests) && hw.tests.length > 0 && hw.tests.some(tid => bookTests.some(bt => String(bt.id) === String(tid) && String(bt.bookId) === String(bookId))));
+      if (!isMatchBook) return false;
       return isHomeworkForStudent(hw, targetStudent, curData?.grades);
     });
 

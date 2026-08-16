@@ -75,7 +75,8 @@ export function HomeworkProvider({ children }) {
     }
   }, [homeworks]);
 
-const { user } = useAuth();
+const { currentUser } = useAuth();
+const user = currentUser;
 
 useEffect(() => {
   if (user?.id && homeworks.length > 0) {

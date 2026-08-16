@@ -1167,7 +1167,8 @@ export async function dbGetHomeworks() {
       if (h.raw_data && typeof h.raw_data === 'object') {
         raw = h.raw_data;
       }
-      const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : []);
+      const qIds = h.question_ids || h.questionIds || raw.questionIds || (Array.isArray(h.tests) ? h.tests : (raw.tests || []));
+      const bId = h.book_id || raw.bookId || raw.book_id || null;
       return {
         id: String(h.id),
         title: h.title || raw.title || '',
@@ -1182,7 +1183,12 @@ export async function dbGetHomeworks() {
         time: h.time || raw.time || 20,
         createdAt: h.created_at,
         submissions: h.submissions || raw.submissions || [],
-        ...raw
+        bookId: bId,
+        isBookAssignment: Boolean(h.is_book_assignment || raw.isBookAssignment || bId),
+        testDueDates: raw.testDueDates || h.test_due_dates || {},
+        ...raw,
+        // Override with canonical fields so raw cannot accidentally set bookId to undefined
+        ...(bId ? { bookId: bId, isBookAssignment: true } : {})
       };
     });
   } catch (err) {
@@ -1245,7 +1251,14 @@ export async function dbAddHomework(hw) {
     }
 
     const qIds = processedHw.questionIds || processedHw.tests || [];
-    const fullRaw = { ...processedHw, questionIds: qIds, tests: qIds };
+    const fullRaw = {
+      ...processedHw,
+      questionIds: qIds,
+      tests: qIds,
+      bookId: processedHw.bookId || null,
+      isBookAssignment: Boolean(processedHw.isBookAssignment || processedHw.bookId),
+      testDueDates: processedHw.testDueDates || {}
+    };
 
     // Strip large base64 payloads from raw_data so DB insert doesn't fail due to size limits
     const safeRaw = { ...fullRaw };

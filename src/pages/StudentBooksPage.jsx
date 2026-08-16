@@ -131,15 +131,30 @@ export default function StudentBooksPage() {
     });
   }, [homeworks, currentUser, curData?.grades]);
 
+  const studentIdStr = String(studentId || '');
+  const studentUuidStr = String(toUUID(studentId) || '');
+
   const studentSubmissions = useMemo(() =>
-    submissions.filter(s => String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft')
-    , [submissions, studentId]);
+    submissions.filter(s => {
+      const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+      return isMatchStudent && s.status !== 'in_progress' && s.status !== 'draft';
+    })
+    , [submissions, studentIdStr, studentUuidStr]);
 
   const assignedBooks = useMemo(() => {
     const bookMap = {};
 
     bookAssignments.forEach(hw => {
-      const book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
+      let book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType !== 'exam');
+      if (!book && hw.title) {
+        book = books.find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
+      }
+      if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
+        const matchedBt = bookTests.find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
+        if (matchedBt) {
+          book = books.find(b => String(b.id) === String(matchedBt.bookId) && b.bookType !== 'exam');
+        }
+      }
       if (!book) return;
 
       if (!bookMap[book.id]) {

@@ -185,7 +185,8 @@ export function EvaluationProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
+  const user = currentUser;
 
   // FIX: Bu ref, 'u1' -> gerçek kullanıcı id'si taşıma işleminin
   // yalnızca BİR KEZ çalışmasını garanti eder. Önceki kodda bu effect
