@@ -8,7 +8,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { 
   ArrowLeft, BookMarked, Layers, FileText, CheckCircle, CheckCircle2,
   ChevronDown, ChevronRight, ChevronUp, Plus, Edit, Trash2, 
-  ListX, Send, XCircle, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
+  ListX, Send, XCircle, X, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
   Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings, RotateCcw, RefreshCw,
   Search, Eye
 } from 'lucide-react';
