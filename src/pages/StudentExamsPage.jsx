@@ -48,7 +48,7 @@ function Ring({ pct, size = 52, stroke = 5, color }) {
   const offset = circ - (pct / 100) * circ;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         style={{ transition: 'stroke-dashoffset 0.7s ease' }} />
@@ -57,16 +57,39 @@ function Ring({ pct, size = 52, stroke = 5, color }) {
 }
 
 /* ── Stat card ─── */
-function KPI({ icon, label, value, color, bg, sub }) {
+function KPI({ icon, label, value, color, bg, border, sub }) {
   return (
-    <div style={{ background: 'white', borderRadius: 18, padding: '1rem 1.2rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 44, height: 44, borderRadius: 14, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {React.cloneElement(icon, { size: 20, color })}
+    <div style={{
+      background: bg,
+      borderRadius: 20,
+      padding: '1.1rem 1.25rem',
+      border: `1.5px solid ${border || 'rgba(255,255,255,0.15)'}`,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      backdropFilter: 'blur(16px)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        background: 'rgba(255,255,255,0.14)',
+        border: '1.5px solid rgba(255,255,255,0.22)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+      }}>
+        {React.cloneElement(icon, { size: 22, color: '#ffffff' })}
       </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '1.35rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginTop: 2 }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, marginTop: 1 }}>{sub}</div>}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.35)' }}>{value}</div>
+        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)', marginTop: 3 }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.65)', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -77,13 +100,13 @@ function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload || {};
   return (
-    <div style={{ background: '#0f172a', color: 'white', padding: '0.7rem 1rem', borderRadius: 12, boxShadow: '0 8px 20px rgba(0,0,0,0.3)', border: '1px solid #334155', minWidth: 160 }}>
-      <div style={{ fontWeight: 900, fontSize: '0.82rem', color: '#38bdf8', marginBottom: 4 }}>{d.fullName || label}</div>
-      {d.date && <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: 6 }}>{d.date}</div>}
+    <div style={{ background: '#0f172a', color: 'white', padding: '0.8rem 1.1rem', borderRadius: 14, boxShadow: '0 12px 30px rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.2)', minWidth: 160 }}>
+      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#a5b4fc', marginBottom: 4 }}>{d.fullName || label}</div>
+      {d.date && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', marginBottom: 6 }}>{d.date}</div>}
       {payload.map((p, i) => (
-        <div key={i} style={{ fontSize: '0.78rem', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 2 }}>
-          <span style={{ color: p.color || '#94a3b8' }}>{p.name}</span>
-          <span style={{ fontWeight: 900 }}>{p.value}</span>
+        <div key={i} style={{ fontSize: '0.8rem', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 3 }}>
+          <span style={{ color: p.color || 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{p.name}</span>
+          <span style={{ fontWeight: 900, color: '#ffffff' }}>{p.value}</span>
         </div>
       ))}
     </div>
@@ -389,29 +412,29 @@ export default function StudentExamsPage() {
      RENDER
   ════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8fafc 0%, #f3e8ff 100%)', padding: '1.5rem 1rem', fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)', padding: '1.5rem 1.5rem', fontFamily: "'Inter', system-ui, sans-serif", color: '#f8fafc', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1300, margin: '0 auto' }}>
 
         {/* ── HEADER ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
-              <FileBarChart2 size={14} color="#8b5cf6" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#8b5cf6' }}>DENEME MERKEZİ</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(139, 92, 246, 0.25)', border: '1px solid rgba(167, 139, 250, 0.35)', borderRadius: 99, padding: '0.35rem 0.95rem', marginBottom: 10 }}>
+              <FileBarChart2 size={15} color="#c4b5fd" />
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c4b5fd', letterSpacing: '0.05em' }}>DENEME MERKEZİ</span>
             </div>
-            <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>Denemelerim</h1>
-            <p style={{ margin: '5px 0 0', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>Fiziki deneme sınavları, manuel sonuçlar ve net gelişim analizin 📊</p>
+            <h1 style={{ margin: 0, fontSize: '1.95rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2, textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>Denemelerim</h1>
+            <p style={{ margin: '5px 0 0', color: 'rgba(255, 255, 255, 0.72)', fontSize: '0.9rem', fontWeight: 600 }}>Fiziki deneme sınavları, manuel sonuçlar ve net gelişim analizin 📊</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
               onClick={() => handleOpenMockModal()}
-              style={{ padding: '0.65rem 1.1rem', background: 'white', color: '#8b5cf6', border: '1.5px solid #ddd6fe', borderRadius: 12, fontWeight: 800, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 2px 8px rgba(139,92,246,0.1)' }}
+              style={{ padding: '0.65rem 1.15rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1.5px solid rgba(255,255,255,0.18)', borderRadius: 12, fontWeight: 800, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}
             >
               <ClipboardList size={16} /> Manuel Sonuç Ekle
             </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              style={{ padding: '0.65rem 1.1rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 6px 20px rgba(139,92,246,0.3)' }}
+              style={{ padding: '0.65rem 1.15rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 6px 20px rgba(99,102,241,0.4)' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}
             >
@@ -422,42 +445,42 @@ export default function StudentExamsPage() {
 
         {/* ── KPI CARDS ── */}
         {!isEmpty && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 11, marginBottom: 20 }}>
-            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} color="#8b5cf6" bg="#f5f3ff" sub={`${overallStats.bookCount} fiziki · ${overallStats.mockCount} manuel`} />
-            <KPI icon={<Target />} label="Ortalama Net" value={overallStats.avgNet} color="#10b981" bg="#f0fdf4" />
-            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} color="#f59e0b" bg="#fffbeb" />
-            <KPI icon={<Calendar />} label="Son Deneme" value={overallStats.lastDate} color="#0ea5e9" bg="#f0f9ff" />
-            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} color="#16a34a" bg="#f0fdf4" />
-            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} color="#ef4444" bg="#fef2f2" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 22 }}>
+            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} color="#ffffff" bg="linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)" border="rgba(165,180,252,0.35)" sub={`${overallStats.bookCount} fiziki · ${overallStats.mockCount} manuel`} />
+            <KPI icon={<Target />} label="Ortalama Net" value={overallStats.avgNet} color="#ffffff" bg="linear-gradient(135deg, #064e3b 0%, #059669 100%)" border="rgba(52,211,153,0.35)" />
+            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} color="#ffffff" bg="linear-gradient(135deg, #78350f 0%, #d97706 100%)" border="rgba(253,186,116,0.35)" />
+            <KPI icon={<Calendar />} label="Son Deneme" value={overallStats.lastDate} color="#ffffff" bg="linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)" border="rgba(125,211,252,0.35)" />
+            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} color="#ffffff" bg="linear-gradient(135deg, #065f46 0%, #10b981 100%)" border="rgba(110,231,183,0.35)" />
+            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} color="#ffffff" bg="linear-gradient(135deg, #831843 0%, #e11d48 100%)" border="rgba(253,164,175,0.35)" />
           </div>
         )}
 
         {/* ── TREND CHART ── */}
         {allExamsList.length > 1 && (
-          <div style={{ background: 'white', borderRadius: 22, border: '1px solid #e2e8f0', padding: '1.3rem 1.5rem', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 22, border: '1.5px solid rgba(255, 255, 255, 0.14)', padding: '1.4rem 1.6rem', marginBottom: 22, boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>
-                <TrendingUp size={18} color="#8b5cf6" /> Net Gelişim Grafiği
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>
+                <TrendingUp size={18} color="#a78bfa" /> Net Gelişim Grafiği
               </div>
               <select value={chartMetric} onChange={e => setChartMetric(e.target.value)}
-                style={{ padding: '0.4rem 0.8rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontWeight: 800, fontSize: '0.78rem', background: '#f8fafc', color: '#1e293b', outline: 'none' }}>
-                <option value="Toplam Net">Genel (Toplam Net)</option>
-                {overallStats.subjects.map(s => <option key={s.name} value={s.name}>{s.name} Net</option>)}
+                style={{ padding: '0.45rem 0.9rem', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.18)', fontWeight: 800, fontSize: '0.8rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', outline: 'none', cursor: 'pointer' }}>
+                <option value="Toplam Net" style={{ background: '#0f172a', color: '#ffffff' }}>Genel (Toplam Net)</option>
+                {overallStats.subjects.map(s => <option key={s.name} value={s.name} style={{ background: '#0f172a', color: '#ffffff' }}>{s.name} Net</option>)}
               </select>
             </div>
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={trendData} margin={{ top: 8, right: 16, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.35} />
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.45} />
                     <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 700 }} dy={8} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} domain={['dataMin - 2', 'dataMax + 5']} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 700 }} dy={8} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 600 }} domain={['dataMin - 2', 'dataMax + 5']} />
                 <Tooltip content={<ChartTip />} />
-                <Area type="monotone" dataKey="Net" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#netGrad)" dot={{ fill: '#8b5cf6', r: 4 }} activeDot={{ r: 7, fill: '#7c3aed', stroke: 'white', strokeWidth: 2 }} />
+                <Area type="monotone" dataKey="Net" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#netGrad)" dot={{ fill: '#a78bfa', r: 4 }} activeDot={{ r: 7, fill: '#c4b5fd', stroke: '#0f172a', strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -467,13 +490,13 @@ export default function StudentExamsPage() {
         {!isEmpty && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
             {/* Section tabs */}
-            <div style={{ display: 'flex', gap: 5, background: 'white', padding: 5, borderRadius: 13, border: '1.5px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: 5, background: 'rgba(255,255,255,0.06)', padding: 5, borderRadius: 13, border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)' }}>
               {[
                 { key: 'all',  label: `📋 Tümü (${allExamsList.length})` },
                 { key: 'book', label: `📚 Fiziki (${assignedBooks.length})` },
                 { key: 'mock', label: `✏️ Manuel (${studentMockExams.length})` },
               ].map(s => (
-                <button key={s.key} onClick={() => setActiveSection(s.key)} style={{ padding: '0.38rem 0.85rem', borderRadius: 9, border: 'none', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', background: activeSection === s.key ? '#8b5cf6' : 'transparent', color: activeSection === s.key ? 'white' : '#64748b', whiteSpace: 'nowrap' }}>
+                <button key={s.key} onClick={() => setActiveSection(s.key)} style={{ padding: '0.4rem 0.9rem', borderRadius: 9, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', background: activeSection === s.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: activeSection === s.key ? 'white' : 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', boxShadow: activeSection === s.key ? '0 2px 8px rgba(99,102,241,0.35)' : 'none', transition: 'all 0.15s ease' }}>
                   {s.label}
                 </button>
               ))}
@@ -481,41 +504,41 @@ export default function StudentExamsPage() {
 
             {/* Search */}
             <div style={{ position: 'relative', flex: '1 1 180px' }}>
-              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.5)' }} />
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Deneme ara…"
-                style={{ width: '100%', paddingLeft: 30, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, background: 'white', outline: 'none', color: '#0f172a', boxSizing: 'border-box' }} />
+                style={{ width: '100%', paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.14)', fontSize: '0.82rem', fontWeight: 700, background: 'rgba(255,255,255,0.06)', outline: 'none', color: '#ffffff', boxSizing: 'border-box', backdropFilter: 'blur(8px)' }} />
             </div>
 
             {/* View toggle */}
-            <div style={{ display: 'flex', gap: 4, background: 'white', padding: 4, borderRadius: 12, border: '1.5px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.06)', padding: 4, borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.12)' }}>
               {[{ k: 'cards', ic: <LayoutGrid size={15} /> }, { k: 'table', ic: <List size={15} /> }].map(m => (
                 <button key={m.k} onClick={() => setViewMode(m.k)}
-                  style={{ width: 32, height: 32, borderRadius: 9, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: viewMode === m.k ? '#8b5cf6' : 'transparent', color: viewMode === m.k ? 'white' : '#64748b' }}>
+                  style={{ width: 32, height: 32, borderRadius: 9, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: viewMode === m.k ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: viewMode === m.k ? 'white' : 'rgba(255,255,255,0.6)' }}>
                   {m.ic}
                 </button>
               ))}
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>{displayedExams.length} sonuç</span>
+            <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>{displayedExams.length} sonuç</span>
           </div>
         )}
 
         {/* ── EMPTY STATE ── */}
         {isEmpty && (
           booksLoading ? (
-            <div style={{ background: 'white', borderRadius: 22, padding: '4rem 2rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: 44, height: 44, border: '4px solid #e2e8f0', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
-              <div style={{ fontWeight: 800, color: '#64748b' }}>Denemeler yükleniyor…</div>
+            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: 22, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid rgba(255,255,255,0.12)' }}>
+              <div style={{ width: 44, height: 44, border: '4px solid rgba(255,255,255,0.15)', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
+              <div style={{ fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>Denemeler yükleniyor…</div>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : (
-            <div style={{ background: 'white', borderRadius: 22, padding: '5rem 2rem', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-              <div style={{ width: 90, height: 90, background: 'linear-gradient(135deg, #f5f3ff, #ddd6fe)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <FileBarChart2 size={40} color="#8b5cf6" />
+            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: 22, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid rgba(255,255,255,0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)' }}>
+              <div style={{ width: 90, height: 90, background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.3))', border: '1.5px solid rgba(165,180,252,0.35)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(99,102,241,0.3)' }}>
+                <FileBarChart2 size={40} color="#c4b5fd" />
               </div>
-              <h2 style={{ margin: '0 0 8px', color: '#1e293b', fontWeight: 900 }}>Henüz Deneme Yok</h2>
-              <p style={{ color: '#64748b', margin: '0 0 24px', fontSize: '0.9rem' }}>Fiziki deneme sınavları atandığında veya manuel sonuç eklediğinde burada görünecek.</p>
+              <h2 style={{ margin: '0 0 8px', color: '#ffffff', fontWeight: 900 }}>Henüz Deneme Yok</h2>
+              <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 24px', fontSize: '0.9rem' }}>Fiziki deneme sınavları atandığında veya manuel sonuç eklediğinde burada görünecek.</p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button onClick={() => handleOpenMockModal()} style={{ padding: '0.7rem 1.4rem', background: 'white', color: '#8b5cf6', border: '1.5px solid #ddd6fe', borderRadius: 12, fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => handleOpenMockModal()} style={{ padding: '0.7rem 1.4rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
                   <ClipboardList size={16} /> Manuel Sonuç Ekle
                 </button>
               </div>
@@ -529,13 +552,26 @@ export default function StudentExamsPage() {
             {displayedExams.map((exam, idx) => {
               const p = pal(idx);
               const isMock = exam.type === 'mock';
-              const netColor = exam.net >= 80 ? '#10b981' : exam.net >= 40 ? '#f59e0b' : '#8b5cf6';
 
               return (
                 <div key={`${exam.type}-${exam.id}`}
-                  style={{ background: 'white', borderRadius: 22, border: `2px solid ${exam.isCompleted && !isMock ? '#10b981' : '#e2e8f0'}`, padding: '1.3rem', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', transition: 'transform 0.15s, box-shadow 0.15s', cursor: exam.type === 'book' ? 'pointer' : 'default' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 12px 30px ${p.shadow}`; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)'; }}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                    borderRadius: 22,
+                    border: `1.5px solid ${exam.isCompleted && !isMock ? 'rgba(52,211,153,0.45)' : 'rgba(255,255,255,0.12)'}`,
+                    padding: '1.3rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                    cursor: exam.type === 'book' ? 'pointer' : 'default',
+                    backdropFilter: 'blur(16px)'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 14px 36px ${p.shadow}`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'; }}
                   onClick={() => exam.type === 'book' && navigate(`/student/books/${exam.id}`)}
                 >
                   {/* Accent line */}
@@ -543,12 +579,12 @@ export default function StudentExamsPage() {
 
                   {/* Badge */}
                   {exam.isCompleted && !isMock && (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: '#10b981', color: 'white', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <Star size={10} fill="white" /> TAMAMLANDI
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(5,150,105,0.3)', border: '1px solid rgba(52,211,153,0.45)', color: '#4ade80', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Star size={10} fill="#4ade80" /> TAMAMLANDI
                     </div>
                   )}
                   {!isMock && !exam.isCompleted && exam.remainingDays !== undefined && (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: exam.remainingDays <= 3 ? '#ef4444' : '#f59e0b', color: 'white', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900 }}>
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: exam.remainingDays <= 3 ? 'rgba(225,29,72,0.3)' : 'rgba(217,119,6,0.3)', border: `1px solid ${exam.remainingDays <= 3 ? 'rgba(253,164,175,0.45)' : 'rgba(253,186,116,0.45)'}`, color: exam.remainingDays <= 3 ? '#f87171' : '#fbbf24', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900 }}>
                       ⏱ {exam.remainingDays}g kaldı
                     </div>
                   )}
@@ -556,30 +592,30 @@ export default function StudentExamsPage() {
                   {/* Header */}
                   <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 6 }}>
                     <div style={{ width: 52, height: 52, borderRadius: 14, background: `linear-gradient(145deg, ${p.from}, ${p.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 16px ${p.shadow}`, flexShrink: 0 }}>
-                      {isMock ? <ClipboardList size={24} color="rgba(255,255,255,0.9)" /> : <BookOpen size={24} color="rgba(255,255,255,0.9)" />}
+                      {isMock ? <ClipboardList size={24} color="rgba(255,255,255,0.95)" /> : <BookOpen size={24} color="rgba(255,255,255,0.95)" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', lineHeight: 1.3, paddingRight: exam.remainingDays !== undefined || exam.isCompleted ? 70 : 0 }}>{exam.title}</div>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#ffffff', lineHeight: 1.3, paddingRight: exam.remainingDays !== undefined || exam.isCompleted ? 70 : 0 }}>{exam.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <span style={{ background: isMock ? '#f5f3ff' : '#f0fdf4', color: isMock ? '#8b5cf6' : '#16a34a', border: `1px solid ${isMock ? '#ddd6fe' : '#bbf7d0'}`, borderRadius: 7, padding: '0.18rem 0.55rem', fontSize: '0.68rem', fontWeight: 900 }}>
+                        <span style={{ background: isMock ? 'rgba(139,92,246,0.2)' : 'rgba(5,150,105,0.2)', color: isMock ? '#c4b5fd' : '#4ade80', border: `1px solid ${isMock ? 'rgba(167,139,250,0.3)' : 'rgba(52,211,153,0.3)'}`, borderRadius: 7, padding: '0.18rem 0.55rem', fontSize: '0.68rem', fontWeight: 900 }}>
                           {isMock ? '✏️ Manuel' : '📚 Fiziki'}
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>{exam.date}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>{exam.date}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Progress bar (books only) */}
                   {!isMock && (
-                    <div style={{ background: '#f8fafc', borderRadius: 12, padding: '0.75rem', border: '1px solid #f1f5f9' }}>
+                    <div style={{ background: 'rgba(0, 0, 0, 0.25)', borderRadius: 12, padding: '0.75rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Test İlerlemesi</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)' }}>Test İlerlemesi</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 900, color: p.from }}>%{exam.progressPct}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 900, color: p.to }}>%{exam.progressPct}</span>
                           <Ring pct={exam.progressPct || 0} size={36} stroke={4} color={exam.isCompleted ? '#10b981' : p.from} />
                         </div>
                       </div>
-                      <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: 6, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden' }}>
                         <div style={{ width: `${exam.progressPct || 0}%`, height: '100%', background: exam.isCompleted ? '#10b981' : `linear-gradient(90deg, ${p.from}, ${p.to})`, borderRadius: 99, transition: 'width 0.7s ease' }} />
                       </div>
                     </div>
@@ -588,10 +624,10 @@ export default function StudentExamsPage() {
                   {/* D/Y/B + Net */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                     {[
-                      { l: 'Doğru', v: exam.d, c: '#059669', bg: '#f0fdf4', border: '#bbf7d0' },
-                      { l: 'Yanlış', v: exam.y, c: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' },
-                      { l: 'Boş',    v: exam.b, c: '#475569', bg: '#f8fafc', border: '#e2e8f0' },
-                      { l: 'Net',    v: exam.net, c: p.from, bg: '#f5f3ff', border: '#ddd6fe' },
+                      { l: 'Doğru', v: exam.d, c: '#4ade80', bg: 'rgba(5,150,105,0.2)', border: 'rgba(52,211,153,0.35)' },
+                      { l: 'Yanlış', v: exam.y, c: '#f87171', bg: 'rgba(225,29,72,0.2)', border: 'rgba(253,164,175,0.35)' },
+                      { l: 'Boş',    v: exam.b, c: '#cbd5e1', bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)' },
+                      { l: 'Net',    v: exam.net, c: '#c4b5fd', bg: 'rgba(99,102,241,0.2)', border: 'rgba(165,180,252,0.35)' },
                     ].map((s, i) => (
                       <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '0.6rem', color: s.c, fontWeight: 900, textTransform: 'uppercase' }}>{s.l}</div>
@@ -601,20 +637,20 @@ export default function StudentExamsPage() {
                   </div>
 
                   {/* CTA */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10 }}>
                     {exam.type === 'book' ? (
                       <button onClick={e => { e.stopPropagation(); navigate(`/student/books/${exam.id}`); }}
-                        style={{ width: '100%', padding: '0.6rem', background: exam.isCompleted ? 'white' : `linear-gradient(135deg, ${p.from}, ${p.to})`, color: exam.isCompleted ? '#475569' : 'white', border: exam.isCompleted ? '1.5px solid #e2e8f0' : 'none', borderRadius: 11, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, boxShadow: exam.isCompleted ? 'none' : `0 4px 12px ${p.shadow}` }}>
+                        style={{ width: '100%', padding: '0.6rem', background: exam.isCompleted ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${p.from}, ${p.to})`, color: 'white', border: exam.isCompleted ? '1.5px solid rgba(255,255,255,0.18)' : 'none', borderRadius: 11, fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, boxShadow: exam.isCompleted ? 'none' : `0 4px 12px ${p.shadow}` }}>
                         {exam.isCompleted ? '📋 Haritayı Görüntüle' : '▶ Devam Et'} <ArrowRight size={14} />
                       </button>
                     ) : (
                       <div style={{ display: 'flex', gap: 6, width: '100%' }}>
                         <button onClick={e => { e.stopPropagation(); handleOpenMockModal(exam.original); }}
-                          style={{ flex: 1, padding: '0.55rem', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 10, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          style={{ flex: 1, padding: '0.55rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <Pencil size={13} /> Düzenle
                         </button>
                         <button onClick={e => handleDeleteMock(e, exam.id)}
-                          style={{ flex: 1, padding: '0.55rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: 10, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          style={{ flex: 1, padding: '0.55rem', background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.3)', borderRadius: 10, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <Trash2 size={13} /> Sil
                         </button>
                       </div>
@@ -624,7 +660,7 @@ export default function StudentExamsPage() {
               );
             })}
             {displayedExams.length === 0 && (
-              <div style={{ gridColumn: '1/-1', background: 'white', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+              <div style={{ gridColumn: '1/-1', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: 18, padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.65)', fontWeight: 700, border: '1.5px solid rgba(255,255,255,0.12)' }}>
                 Filtreye uygun deneme bulunamadı
               </div>
             )}
@@ -633,54 +669,54 @@ export default function StudentExamsPage() {
 
         {/* ── TABLE VIEW ── */}
         {!isEmpty && viewMode === 'table' && (
-          <div style={{ background: 'white', borderRadius: 20, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 20, border: '1.5px solid rgba(255,255,255,0.14)', overflow: 'hidden', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)' }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760, fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1.5px solid rgba(255,255,255,0.12)' }}>
                     {['DENEME ADI', 'TARİH', 'TÜR', 'DOĞRU', 'YANLIŞ', 'BOŞ', 'NET', 'İŞLEM'].map(h => (
-                      <th key={h} style={{ padding: '0.9rem 1rem', fontWeight: 900, fontSize: '0.7rem', color: '#475569', textAlign: h === 'İŞLEM' ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '0.9rem 1rem', fontWeight: 900, fontSize: '0.7rem', color: '#c7d2fe', textAlign: h === 'İŞLEM' ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {displayedExams.map((exam, idx) => (
                     <tr key={`${exam.type}-${exam.id}`}
-                      style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 1 ? '#fafafa' : 'white', transition: 'background 0.1s', cursor: exam.type === 'book' ? 'pointer' : 'default' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
-                      onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 1 ? '#fafafa' : 'white'}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent', transition: 'background 0.15s', cursor: exam.type === 'book' ? 'pointer' : 'default' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent'}
                       onClick={() => exam.type === 'book' && navigate(`/student/books/${exam.id}`)}
                     >
                       <td style={{ padding: '0.8rem 1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#0f172a' }}>
-                          {exam.type === 'mock' ? <ClipboardList size={16} color="#8b5cf6" /> : <BookOpen size={16} color={exam.isCompleted ? '#10b981' : '#f59e0b'} />}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#ffffff' }}>
+                          {exam.type === 'mock' ? <ClipboardList size={16} color="#c4b5fd" /> : <BookOpen size={16} color={exam.isCompleted ? '#4ade80' : '#fbbf24'} />}
                           <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{exam.title}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '0.8rem 1rem', color: '#64748b', fontWeight: 700 }}>{exam.date}</td>
+                      <td style={{ padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{exam.date}</td>
                       <td style={{ padding: '0.8rem 1rem' }}>
-                        <span style={{ background: exam.type === 'mock' ? '#f5f3ff' : exam.isCompleted ? '#f0fdf4' : '#fffbeb', color: exam.type === 'mock' ? '#8b5cf6' : exam.isCompleted ? '#16a34a' : '#d97706', border: `1px solid ${exam.type === 'mock' ? '#ddd6fe' : exam.isCompleted ? '#bbf7d0' : '#fde68a'}`, borderRadius: 8, padding: '0.22rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                        <span style={{ background: exam.type === 'mock' ? 'rgba(139,92,246,0.2)' : exam.isCompleted ? 'rgba(5,150,105,0.2)' : 'rgba(217,119,6,0.2)', color: exam.type === 'mock' ? '#c4b5fd' : exam.isCompleted ? '#4ade80' : '#fbbf24', border: `1px solid ${exam.type === 'mock' ? 'rgba(167,139,250,0.3)' : exam.isCompleted ? 'rgba(52,211,153,0.3)' : 'rgba(253,186,116,0.3)'}`, borderRadius: 8, padding: '0.22rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
                           {exam.type === 'mock' ? '✏️ Manuel' : exam.isCompleted ? '✅ Tamamlandı' : `📊 %${exam.progressPct}`}
                         </span>
                       </td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#059669' }}>{exam.d}</td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#b91c1c' }}>{exam.y}</td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#64748b' }}>{exam.b}</td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#8b5cf6', fontSize: '1rem' }}>{exam.net}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#4ade80' }}>{exam.d}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#f87171' }}>{exam.y}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#cbd5e1' }}>{exam.b}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#c4b5fd', fontSize: '1rem' }}>{exam.net}</td>
                       <td style={{ padding: '0.8rem 1rem', textAlign: 'right' }}>
                         {exam.type === 'book' ? (
                           <button onClick={e => { e.stopPropagation(); navigate(`/student/books/${exam.id}`); }}
-                            style={{ background: '#f5f3ff', color: '#7c3aed', border: 'none', padding: '0.38rem 0.9rem', borderRadius: 9, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>
+                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', padding: '0.38rem 0.9rem', borderRadius: 9, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer' }}>
                             {exam.isCompleted ? 'İncele' : 'Devam Et'}
                           </button>
                         ) : (
                           <div style={{ display: 'inline-flex', gap: 5 }}>
                             <button onClick={e => { e.stopPropagation(); handleOpenMockModal(exam.original); }}
-                              style={{ background: '#f1f5f9', color: '#64748b', border: 'none', padding: '0.38rem 0.55rem', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', padding: '0.38rem 0.55rem', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Pencil size={13} />
                             </button>
                             <button onClick={e => handleDeleteMock(e, exam.id)}
-                              style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.38rem 0.55rem', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              style={{ background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.3)', padding: '0.38rem 0.55rem', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -689,7 +725,7 @@ export default function StudentExamsPage() {
                     </tr>
                   ))}
                   {displayedExams.length === 0 && (
-                    <tr><td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>Sonuç bulunamadı</td></tr>
+                    <tr><td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Sonuç bulunamadı</td></tr>
                   )}
                 </tbody>
               </table>
@@ -704,56 +740,56 @@ export default function StudentExamsPage() {
           MANUEL MODAL
       ══════════════════════ */}
       {showMockModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: 24, width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', animation: 'scaleIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.75)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', borderRadius: 24, border: '1.5px solid rgba(255,255,255,0.18)', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: '0 0 3px', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>{editingMockId ? 'Deneme Sonucunu Düzenle' : 'Manuel Deneme Sonucu Ekle'}</h2>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Fiziki sınav veya dershanede giren denemenin sonuçlarını gir</p>
+                <h2 style={{ margin: '0 0 3px', fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>{editingMockId ? 'Deneme Sonucunu Düzenle' : 'Manuel Deneme Sonucu Ekle'}</h2>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Fiziki sınav veya dershanede giren denemenin sonuçlarını gir</p>
               </div>
-              <button onClick={() => setShowMockModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setShowMockModal(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff' }}>
                 <X size={17} />
               </button>
             </div>
 
             <form onSubmit={handleSaveMock} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               {/* Net rule */}
-              <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#374151' }}>Net Hesaplama Kuralı</label>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.85rem 1rem', borderRadius: 14, border: '1px solid rgba(255,255,255,0.12)' }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe' }}>Net Hesaplama Kuralı</label>
                 <select value={netRule} onChange={handleNetRuleChange}
-                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'white' }}>
-                  <option value="4">4 Yanlış → 1 Doğruyu Götürür (YKS/TYT)</option>
-                  <option value="3">3 Yanlış → 1 Doğruyu Götürür (LGS)</option>
-                  <option value="0">Yanlışlar Götürmez</option>
+                  style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'rgba(255,255,255,0.08)', color: '#ffffff', cursor: 'pointer' }}>
+                  <option value="4" style={{ background: '#0f172a', color: '#ffffff' }}>4 Yanlış → 1 Doğruyu Götürür (YKS/TYT)</option>
+                  <option value="3" style={{ background: '#0f172a', color: '#ffffff' }}>3 Yanlış → 1 Doğruyu Götürür (LGS)</option>
+                  <option value="0" style={{ background: '#0f172a', color: '#ffffff' }}>Yanlışlar Götürmez</option>
                 </select>
               </div>
 
               {/* Title + Date */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#374151' }}>Deneme Adı</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe' }}>Deneme Adı</label>
                   <input required type="text" placeholder="Örn: Özdebir TYT 1" value={newManualMock.title}
                     onChange={e => setNewManualMock(p => ({ ...p, title: e.target.value }))}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 11, border: '1.5px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 11, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#374151' }}>Tarih</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe' }}>Tarih</label>
                   <input required type="date" value={newManualMock.date}
                     onChange={e => setNewManualMock(p => ({ ...p, date: e.target.value }))}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 11, border: '1.5px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 11, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
                 </div>
               </div>
 
               {/* Add subject */}
               <div>
-                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#374151' }}>Ders Ekle</label>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe' }}>Ders Ekle</label>
                 <div style={{ display: 'flex', gap: 7 }}>
                   <input type="text" placeholder="Ders adı (Türkçe, Matematik…)" value={newSubjectName}
                     onChange={e => setNewSubjectName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubjectToMock(); } }}
-                    style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: 11, border: '1.5px solid #e2e8f0', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }} />
+                    style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: 11, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
                   <button type="button" onClick={addSubjectToMock}
-                    style={{ padding: '0.65rem 1rem', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: 11, fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
+                    style={{ padding: '0.65rem 1rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 11, fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
                     Ekle
                   </button>
                 </div>
@@ -761,43 +797,43 @@ export default function StudentExamsPage() {
 
               {/* Subject rows */}
               {Object.keys(newManualMock.subjects).length > 0 && (
-                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 30px', gap: 6, fontWeight: 900, fontSize: '0.68rem', color: '#64748b', textAlign: 'center', marginBottom: 8 }}>
+                <div style={{ background: 'rgba(0,0,0,0.25)', padding: '1rem', borderRadius: 14, border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 30px', gap: 6, fontWeight: 900, fontSize: '0.68rem', color: '#c7d2fe', textAlign: 'center', marginBottom: 8 }}>
                     <div style={{ textAlign: 'left' }}>DERS</div>
                     <div>D</div><div>Y</div><div>B</div><div>NET</div><div></div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {Object.entries(newManualMock.subjects).map(([sName, scores]) => (
                       <div key={sName} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 30px', gap: 6, alignItems: 'center' }}>
-                        <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sName}</div>
+                        <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sName}</div>
                         {['d', 'y', 'b'].map(f => (
                           <input key={f} type="number" placeholder="0" value={scores[f]}
                             onChange={e => updateSubjectScore(sName, f, e.target.value)}
-                            style={{ padding: '0.45rem 0.3rem', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none', minWidth: 0 }} />
+                            style={{ padding: '0.45rem 0.3rem', borderRadius: 8, border: '1.5px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', color: '#ffffff', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none', minWidth: 0 }} />
                         ))}
                         <input type="number" placeholder="Net" value={scores.net} step="0.25"
                           onChange={e => updateSubjectScore(sName, 'net', e.target.value)}
-                          style={{ padding: '0.45rem 0.3rem', borderRadius: 8, border: '1.5px solid #ddd6fe', background: '#f5f3ff', fontSize: '0.8rem', fontWeight: 900, textAlign: 'center', color: '#8b5cf6', outline: 'none', minWidth: 0 }} />
+                          style={{ padding: '0.45rem 0.3rem', borderRadius: 8, border: '1.5px solid rgba(165,180,252,0.35)', background: 'rgba(99,102,241,0.2)', fontSize: '0.8rem', fontWeight: 900, textAlign: 'center', color: '#c4b5fd', outline: 'none', minWidth: 0 }} />
                         <button type="button" onClick={() => removeSubjectFromMock(sName)}
-                          style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'rgba(225,29,72,0.2)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <X size={13} />
                         </button>
                       </div>
                     ))}
                   </div>
                   {/* Totals */}
-                  <div style={{ borderTop: '2px dashed #e2e8f0', marginTop: 10, paddingTop: 10, display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 30px', gap: 6, fontWeight: 900, textAlign: 'center', fontSize: '0.82rem' }}>
-                    <div style={{ textAlign: 'left', color: '#374151' }}>TOPLAM</div>
-                    <div style={{ color: '#10b981' }}>{totalMockD}</div>
-                    <div style={{ color: '#ef4444' }}>{totalMockY}</div>
-                    <div style={{ color: '#64748b' }}>{totalMockB}</div>
-                    <div style={{ color: '#8b5cf6', fontSize: '1rem' }}>{totalMockNet.toFixed(2)}</div>
+                  <div style={{ borderTop: '2px dashed rgba(255,255,255,0.15)', marginTop: 10, paddingTop: 10, display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 30px', gap: 6, fontWeight: 900, textAlign: 'center', fontSize: '0.82rem' }}>
+                    <div style={{ textAlign: 'left', color: '#ffffff' }}>TOPLAM</div>
+                    <div style={{ color: '#4ade80' }}>{totalMockD}</div>
+                    <div style={{ color: '#f87171' }}>{totalMockY}</div>
+                    <div style={{ color: '#cbd5e1' }}>{totalMockB}</div>
+                    <div style={{ color: '#c4b5fd', fontSize: '1rem' }}>{totalMockNet.toFixed(2)}</div>
                     <div></div>
                   </div>
                 </div>
               )}
 
-              <button type="submit" style={{ padding: '0.9rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer' }}>
+              <button type="submit" style={{ padding: '0.9rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(99,102,241,0.4)' }}>
                 <ClipboardList size={16} style={{ display: 'inline', marginRight: 6 }} />
                 {editingMockId ? 'Güncelle' : 'Sonucu Kaydet'}
               </button>
@@ -811,14 +847,14 @@ export default function StudentExamsPage() {
           ADD EXAM MODAL
       ══════════════════════ */}
       {isAddModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: 24, width: '100%', maxWidth: 480, padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', animation: 'scaleIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.75)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', borderRadius: 24, border: '1.5px solid rgba(255,255,255,0.18)', width: '100%', maxWidth: 480, padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: '0 0 3px', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>Kendi Denemeni Ekle</h2>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Fiziki deneme kitabını kaydet ve test testini takip et</p>
+                <h2 style={{ margin: '0 0 3px', fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>Kendi Denemeni Ekle</h2>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Fiziki deneme kitabını kaydet ve test testini takip et</p>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ffffff' }}>
                 <X size={17} />
               </button>
             </div>
@@ -828,42 +864,42 @@ export default function StudentExamsPage() {
               { label: 'Yayın / Tür', key: 'publisher', placeholder: 'Örn: Özdebir TYT' },
             ].map(f => (
               <div key={f.key}>
-                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#374151' }}>{f.label}</label>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe' }}>{f.label}</label>
                 <input type="text" value={newBook[f.key]} placeholder={f.placeholder}
                   onChange={e => setNewBook(p => ({ ...p, [f.key]: e.target.value }))}
-                  style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: 12, border: '1.5px solid #e2e8f0', fontSize: '0.88rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.88rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
               </div>
             ))}
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#374151', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #f1f5f9' }}>Dersler / Bölümler</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Dersler / Bölümler</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {newBook.subjects.map((subj, idx) => (
                   <div key={subj.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <input type="text" value={subj.name} placeholder={`Ders ${idx + 1}`}
                       onChange={e => { const s = [...newBook.subjects]; s[idx].name = e.target.value; setNewBook({ ...newBook, subjects: s }); }}
-                      style={{ flex: 2, padding: '0.6rem 0.7rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, outline: 'none' }} />
+                      style={{ flex: 2, padding: '0.6rem 0.7rem', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.8rem', fontWeight: 700, outline: 'none', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
                     <input type="number" min="1" value={subj.testCount} title="Test Sayısı"
                       onChange={e => { const s = [...newBook.subjects]; s[idx].testCount = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
-                      style={{ width: 60, padding: '0.6rem 0.4rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none' }} />
+                      style={{ width: 60, padding: '0.6rem 0.4rem', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
                     <input type="number" min="1" value={subj.questionsPerTest} title="Soru/Test"
                       onChange={e => { const s = [...newBook.subjects]; s[idx].questionsPerTest = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
-                      style={{ width: 60, padding: '0.6rem 0.4rem', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none' }} />
+                      style={{ width: 60, padding: '0.6rem 0.4rem', borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }} />
                     <button disabled={newBook.subjects.length <= 1}
                       onClick={() => setNewBook({ ...newBook, subjects: newBook.subjects.filter((_, i) => i !== idx) })}
-                      style={{ width: 32, height: 32, borderRadius: 9, border: 'none', background: newBook.subjects.length > 1 ? '#fee2e2' : '#f1f5f9', color: newBook.subjects.length > 1 ? '#ef4444' : '#cbd5e1', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      style={{ width: 32, height: 32, borderRadius: 9, border: 'none', background: newBook.subjects.length > 1 ? 'rgba(225,29,72,0.2)' : 'rgba(255,255,255,0.06)', color: newBook.subjects.length > 1 ? '#f87171' : 'rgba(255,255,255,0.3)', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <X size={13} />
                     </button>
                   </div>
                 ))}
-                <div style={{ display: 'flex', gap: 4, fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>
+                <div style={{ display: 'flex', gap: 4, fontSize: '0.68rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700, marginTop: 2 }}>
                   <span style={{ flex: 2 }}>Ders Adı</span>
                   <span style={{ width: 60, textAlign: 'center' }}>Test Sayısı</span>
                   <span style={{ width: 60, textAlign: 'center' }}>Soru/Test</span>
                   <span style={{ width: 32 }} />
                 </div>
                 <button onClick={() => setNewBook(p => ({ ...p, subjects: [...p.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
-                  style={{ padding: '0.5rem', background: '#faf5ff', color: '#8b5cf6', border: '1.5px dashed #ddd6fe', borderRadius: 10, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 2 }}>
+                  style={{ padding: '0.5rem', background: 'rgba(99,102,241,0.15)', color: '#c4b5fd', border: '1.5px dashed rgba(165,180,252,0.4)', borderRadius: 10, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 2 }}>
                   <Plus size={13} /> Yeni Ders Ekle
                 </button>
               </div>
@@ -871,7 +907,7 @@ export default function StudentExamsPage() {
 
             <button onClick={handleSaveNewBook}
               disabled={isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)}
-              style={{ padding: '0.85rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', opacity: (isSaving || !newBook.title || !newBook.publisher) ? 0.65 : 1 }}>
+              style={{ padding: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(99,102,241,0.4)', opacity: (isSaving || !newBook.title || !newBook.publisher) ? 0.65 : 1 }}>
               {isSaving ? '⏳ Oluşturuluyor…' : '📚 Denemeyi Ekle'}
             </button>
           </div>
