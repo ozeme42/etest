@@ -708,14 +708,17 @@ export async function dbSaveSubmission(sub) {
 
 export async function dbDeleteSubmission(id) {
   if (!isSupabaseConfigured() || !id) return null;
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id));
-  if (!isUuid) {
-    // Taslak veya yerel submission id'leri Supabase tablosunda bulunmaz
-    return true;
-  }
   try {
-    const { error } = await supabase.from('submissions').delete().eq('id', String(id));
-    if (error) throw error;
+    const rawId = String(id);
+    const uuid = toUUID(rawId);
+    
+    // 1. Delete by raw id
+    await supabase.from('submissions').delete().eq('id', rawId);
+    
+    // 2. Delete by computed UUID if different
+    if (uuid && uuid !== rawId) {
+      await supabase.from('submissions').delete().eq('id', uuid);
+    }
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteSubmission error:', err.message);
@@ -723,11 +726,56 @@ export async function dbDeleteSubmission(id) {
   }
 }
 
+export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds = [], hwId = null) {
+  if (!isSupabaseConfigured() || !studentId) return null;
+  try {
+    const stIdStr = String(studentId);
+    const stUuid = toUUID(stIdStr);
+
+    // 1. If hwId provided, delete all submissions with this homework_id or matching test_id
+    if (hwId) {
+      const hwIdStr = String(hwId);
+      const hwUuid = toUUID(hwIdStr);
+      await supabase.from('submissions').delete().match({ student_id: stIdStr, homework_id: hwIdStr });
+      if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, homework_id: hwIdStr });
+      if (hwUuid) {
+        await supabase.from('submissions').delete().match({ student_id: stIdStr, homework_id: hwUuid });
+        if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, homework_id: hwUuid });
+        await supabase.from('submissions').delete().match({ student_id: stIdStr, test_id: hwUuid });
+        if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, test_id: hwUuid });
+      }
+    }
+
+    // 2. If testIds provided, delete submissions for each testId and its UUID
+    if (testIds && Array.isArray(testIds) && testIds.length > 0) {
+      for (const tid of testIds) {
+        const tidStr = String(tid);
+        const tidUuid = toUUID(tidStr);
+        await supabase.from('submissions').delete().match({ student_id: stIdStr, test_id: tidStr });
+        if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, test_id: tidStr });
+        if (tidUuid && tidUuid !== tidStr) {
+          await supabase.from('submissions').delete().match({ student_id: stIdStr, test_id: tidUuid });
+          if (stUuid) await supabase.from('submissions').delete().match({ student_id: stUuid, test_id: tidUuid });
+        }
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteSubmissionsForStudentAndTests error:', err.message);
+    return false;
+  }
+}
+
 export async function dbClearStudentSubmissions(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { error } = await supabase.from('submissions').delete().eq('student_id', String(studentId));
-    if (error) throw error;
+    const stIdStr = String(studentId);
+    const stUuid = toUUID(stIdStr);
+    await supabase.from('submissions').delete().eq('student_id', stIdStr);
+    if (stUuid && stUuid !== stIdStr) {
+      await supabase.from('submissions').delete().eq('student_id', stUuid);
+    }
     return true;
   } catch (err) {
     console.warn('[Supabase] dbClearStudentSubmissions error:', err.message);

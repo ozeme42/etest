@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
+import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsForStudentAndTests, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 
 const EvaluationContext = createContext();
@@ -357,8 +357,15 @@ export function EvaluationProvider({ children }) {
   };
 
   const deleteSubmission = async (id) => {
-    setSubmissions(prev => prev.filter(s => s.id !== id));
-    await dbDeleteSubmission(id);
+    let subToDelete = null;
+    setSubmissions(prev => {
+      subToDelete = prev.find(s => s.id === id || s.supabaseId === id);
+      return prev.filter(s => s.id !== id && s.supabaseId !== id);
+    });
+    if (id) await dbDeleteSubmission(id);
+    if (subToDelete?.supabaseId && subToDelete.supabaseId !== id) {
+      await dbDeleteSubmission(subToDelete.supabaseId);
+    }
   };
 
   const clearSubmissionsForStudent = async (studentId) => {
@@ -368,9 +375,9 @@ export function EvaluationProvider({ children }) {
 
   const deleteSubmissionsByTestId = async (testId) => {
     if (!testId) return;
+    const toDelete = [];
     setSubmissions(prev => {
       const remaining = [];
-      const toDelete = [];
       prev.forEach(s => {
         const matches = String(s.testId) === String(testId) ||
           String(s.hwId) === String(testId) ||
@@ -379,14 +386,17 @@ export function EvaluationProvider({ children }) {
           String(s.id).includes(testId) ||
           String(s.testId).includes(testId);
         if (matches) {
-          toDelete.push(s.id);
+          if (s.id) toDelete.push(s.id);
+          if (s.supabaseId) toDelete.push(s.supabaseId);
         } else {
           remaining.push(s);
         }
       });
-      toDelete.forEach(id => dbDeleteSubmission(id));
       return remaining;
     });
+    for (const id of toDelete) {
+      await dbDeleteSubmission(id);
+    }
   };
 
   useEffect(() => {
@@ -414,9 +424,10 @@ export function EvaluationProvider({ children }) {
       if (hu) testUuidsSet.add(String(hu));
     }
 
+    const toDeleteIds = [];
+
     setSubmissions(prev => {
       const remaining = [];
-      const toDelete = [];
       prev.forEach(s => {
         if (String(s.studentId) !== String(studentId)) {
           remaining.push(s);
@@ -450,15 +461,22 @@ export function EvaluationProvider({ children }) {
         });
 
         if (isMatchingBook || isMatchingHw || isMatchingTest) {
-          toDelete.push(s.id);
+          if (s.id) toDeleteIds.push(s.id);
+          if (s.supabaseId) toDeleteIds.push(s.supabaseId);
         } else {
           remaining.push(s);
         }
       });
 
-      toDelete.forEach(id => dbDeleteSubmission(id));
       return remaining;
     });
+
+    // 1. Delete all collected submission IDs from Supabase
+    for (const id of toDeleteIds) {
+      await dbDeleteSubmission(id);
+    }
+    // 2. Direct batch delete in Supabase by student + test/homework IDs
+    await dbDeleteSubmissionsForStudentAndTests(studentId, testIds, hwId);
 
     try {
       (testIds || []).forEach(tId => {
