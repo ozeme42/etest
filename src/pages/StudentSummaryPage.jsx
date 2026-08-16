@@ -8,7 +8,7 @@ import {
   BookOpen, Search, ChevronRight, ChevronLeft, ChevronDown, 
   Sparkles, Layers, Printer, Maximize2, Minimize2, ZoomIn, ZoomOut,
   FolderOpen, FileText, CheckCircle2, Bookmark, Share2, Menu, X, ArrowLeft,
-  GraduationCap, PlayCircle, HelpCircle, ArrowRight
+  GraduationCap, PlayCircle, HelpCircle, ArrowRight, BookMarked, Compass, ListFilter
 } from 'lucide-react';
 import './StudentSummaryPage.css';
 
@@ -44,19 +44,18 @@ export default function StudentSummaryPage() {
 
   const [selectedGradeId, setSelectedGradeId] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
-  const [selectedTarget, setSelectedTarget] = useState(null); // { type: 'unit' | 'topic', id: string, name: string, unitId?: string }
+  const [activeReadingTarget, setActiveReadingTarget] = useState(null); // null = Catalog view, object = Full-screen Reader view
 
   const [searchQuery, setSearchQuery] = useState('');
   const [fontSize, setFontSize] = useState(16);
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const grades = curriculumData.grades || [];
   const subjects = curriculumData.subjects || [];
   const units = curriculumData.units || [];
   const topics = curriculumData.topics || [];
 
-  // 1. Set initial grade matching student's grade if available
+  // Set initial grade matching student's grade if available
   useEffect(() => {
     if (currentUser?.gradeId && grades.some(g => String(g.id) === String(currentUser.gradeId))) {
       setSelectedGradeId(currentUser.gradeId);
@@ -65,7 +64,7 @@ export default function StudentSummaryPage() {
     }
   }, [grades, currentUser, selectedGradeId]);
 
-  // 2. Filter subjects by selected grade
+  // Filter subjects by selected grade
   const filteredSubjects = useMemo(() => {
     return subjects.filter(s => String(s.gradeId) === String(selectedGradeId));
   }, [subjects, selectedGradeId]);
@@ -80,12 +79,12 @@ export default function StudentSummaryPage() {
     }
   }, [filteredSubjects, selectedSubjectId]);
 
-  // 3. Filter units by selected subject
+  // Filter units by selected subject
   const filteredUnits = useMemo(() => {
     return units.filter(u => String(u.subjectId) === String(selectedSubjectId));
   }, [units, selectedSubjectId]);
 
-  // 4. Build linear reading item list for next/previous navigation
+  // Linear list of all reading items for next / previous navigation
   const readingItemList = useMemo(() => {
     const list = [];
     filteredUnits.forEach(u => {
@@ -112,31 +111,21 @@ export default function StudentSummaryPage() {
     return list;
   }, [filteredUnits, topics]);
 
-  // 5. Auto-select first available topic or unit
-  useEffect(() => {
-    if (!selectedTarget && readingItemList.length > 0) {
-      const firstWithSummary = readingItemList.find(item => hasSummary(item.type, item.id));
-      setSelectedTarget(firstWithSummary || readingItemList[0]);
-    } else if (selectedTarget && !readingItemList.some(item => String(item.id) === String(selectedTarget.id))) {
-      setSelectedTarget(readingItemList[0] || null);
-    }
-  }, [readingItemList, selectedTarget]);
-
-  // 6. Active summary object
+  // Active summary object
   const currentSummary = useMemo(() => {
-    if (!selectedTarget) return null;
-    return getSummary(selectedTarget.type, selectedTarget.id);
-  }, [selectedTarget, summaries]);
+    if (!activeReadingTarget) return null;
+    return getSummary(activeReadingTarget.type, activeReadingTarget.id);
+  }, [activeReadingTarget, summaries]);
 
-  // 7. Navigation indices
-  const currentIdx = readingItemList.findIndex(item => String(item.id) === String(selectedTarget?.id));
+  // Navigation indices
+  const currentIdx = readingItemList.findIndex(item => String(item.id) === String(activeReadingTarget?.id));
   const prevItem = currentIdx > 0 ? readingItemList[currentIdx - 1] : null;
   const nextItem = currentIdx >= 0 && currentIdx < readingItemList.length - 1 ? readingItemList[currentIdx + 1] : null;
 
-  // 8. Selected labels
+  // Selected labels
   const currentGrade = grades.find(g => String(g.id) === String(selectedGradeId));
   const currentSubject = subjects.find(s => String(s.id) === String(selectedSubjectId));
-  const currentUnit = units.find(u => String(u.id) === String(selectedTarget?.unitId || selectedTarget?.id));
+  const currentUnit = units.find(u => String(u.id) === String(activeReadingTarget?.unitId || activeReadingTarget?.id));
 
   const activeTheme = getSubjectTheme(currentSubject?.name);
 
@@ -144,129 +133,338 @@ export default function StudentSummaryPage() {
     window.print();
   };
 
+  // Scroll to top when reading target changes
+  useEffect(() => {
+    if (activeReadingTarget) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeReadingTarget?.id]);
+
   return (
-    <div className={`edu-portal-root ${isFocusMode ? 'edu-focus-mode' : ''}`}>
+    <div className="edu-portal-root">
       
-      {/* ════════════ TOP HERO & PORTAL HEADER ════════════ */}
-      <header className="edu-hero-header no-print">
-        <div className="edu-hero-container">
+      {/* ════════════════════════════════════════════════════════════════
+          VIEW 1: FULLSCREEN READER MODE (Sol panel olmadan tam ekran)
+         ════════════════════════════════════════════════════════════════ */}
+      {activeReadingTarget ? (
+        <div className="edu-reader-view-fullscreen">
           
-          <div className="edu-hero-top-row">
-            <div className="edu-brand-badge">
-              <span className="edu-pulse-dot" />
-              <span>Ders Notları & Konu Anlatımları</span>
-            </div>
-            <div className="edu-grade-selector">
-              <span className="edu-selector-title">Sınıf:</span>
-              <div className="edu-grade-pills">
-                {grades.map(g => (
-                  <button
-                    key={g.id}
-                    className={`edu-grade-pill ${String(selectedGradeId) === String(g.id) ? 'active' : ''}`}
-                    onClick={() => { setSelectedGradeId(g.id); setSelectedTarget(null); }}
-                  >
-                    {g.name}
-                  </button>
-                ))}
+          {/* STICKY TOP READING APP BAR */}
+          <header className="edu-reader-topbar no-print">
+            <div className="edu-topbar-inner">
+              
+              {/* Back to Catalog Button */}
+              <button 
+                className="edu-back-to-catalog-btn"
+                onClick={() => setActiveReadingTarget(null)}
+              >
+                <ArrowLeft size={18} />
+                <span>Konu Listesi</span>
+              </button>
+
+              {/* Breadcrumbs */}
+              <div className="edu-topbar-breadcrumbs">
+                <span>{currentGrade?.name}</span>
+                <ChevronRight size={13} className="crumb-sep" />
+                <span style={{ color: activeTheme.color, fontWeight: 800 }}>{currentSubject?.name}</span>
+                <ChevronRight size={13} className="crumb-sep" />
+                <span>{currentUnit?.name}</span>
+                {activeReadingTarget.type === 'topic' && (
+                  <>
+                    <ChevronRight size={13} className="crumb-sep" />
+                    <strong className="crumb-active-title">{activeReadingTarget.name}</strong>
+                  </>
+                )}
               </div>
-            </div>
-          </div>
 
-          <div className="edu-hero-main-banner">
-            <div className="edu-banner-text">
-              <h1>{currentGrade?.name || 'Tüm Sınıflar'} Ders Özetleri & Konu Rehberi 📚</h1>
-              <p>Müfredata tam uyumlu ünite özetleri, formüller, önemli kavramlar ve sınav ipuçları parmaklarının ucunda.</p>
-            </div>
-          </div>
-
-          {/* SUBJECT SELECTOR HORIZONTAL TABS */}
-          <div className="edu-subjects-scroll-wrap">
-            <div className="edu-subjects-scroll-row">
-              {filteredSubjects.map(s => {
-                const theme = getSubjectTheme(s.name);
-                const isSelected = String(selectedSubjectId) === String(s.id);
+              {/* Action Controls */}
+              <div className="edu-topbar-controls">
                 
-                // Count available summaries
-                const subjectUnits = units.filter(u => String(u.subjectId) === String(s.id));
-                let summaryCount = 0;
-                subjectUnits.forEach(u => {
-                  if (hasSummary('unit', u.id)) summaryCount++;
-                  const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
-                  unitTopics.forEach(t => {
-                    if (hasSummary('topic', t.id)) summaryCount++;
-                  });
-                });
+                {/* Topic Drawer Trigger */}
+                <button 
+                  className="edu-drawer-toggle-btn"
+                  onClick={() => setIsDrawerOpen(true)}
+                  title="Diğer Konuları Görüntüle"
+                >
+                  <ListFilter size={16} />
+                  <span>Konular</span>
+                </button>
 
-                return (
-                  <button
-                    key={s.id}
-                    className={`edu-subject-card-btn ${isSelected ? 'selected' : ''}`}
-                    onClick={() => { setSelectedSubjectId(s.id); setSelectedTarget(null); }}
-                    style={{
-                      '--sub-color': theme.color,
-                      '--sub-bg': theme.lightBg,
-                      '--sub-border': theme.border
-                    }}
+                {/* Font Size Adjuster */}
+                <div className="edu-font-adjust-box">
+                  <button 
+                    onClick={() => setFontSize(prev => Math.max(14, prev - 1))}
+                    title="Yazı Boyutunu Küçült"
+                    className="edu-ctrl-btn"
                   >
-                    <span className="edu-subject-icon">{theme.icon}</span>
-                    <div className="edu-subject-info">
-                      <strong className="edu-subject-name">{s.name}</strong>
-                      <span className="edu-subject-count">{summaryCount > 0 ? `${summaryCount} Özet Hazır` : 'Müfredat'}</span>
+                    <ZoomOut size={14} /> A-
+                  </button>
+                  <span className="edu-font-val">{fontSize}px</span>
+                  <button 
+                    onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
+                    title="Yazı Boyutunu Büyüt"
+                    className="edu-ctrl-btn"
+                  >
+                    <ZoomIn size={14} /> A+
+                  </button>
+                </div>
+
+                {/* Print Button */}
+                <button onClick={handlePrint} className="edu-ctrl-btn" title="Yazdır / PDF Kaydet">
+                  <Printer size={15} />
+                  <span>Yazdır</span>
+                </button>
+              </div>
+
+            </div>
+          </header>
+
+          {/* MAIN FULL-WIDTH ARTICLE CONTAINER */}
+          <main className="edu-fullscreen-article-wrap">
+            <article className="edu-reader-card-full">
+              
+              {/* Article Hero Header */}
+              <div className="edu-article-header">
+                <div className="edu-header-meta">
+                  <span 
+                    className="edu-meta-badge"
+                    style={{ background: activeTheme.lightBg, color: activeTheme.color, borderColor: activeTheme.border }}
+                  >
+                    {activeReadingTarget.type === 'unit' ? '📁 ÜNİTE GENEL ÖZETİ' : '📄 KONU ANLATIMI & ÖZET'}
+                  </span>
+                  {currentSummary?.updatedAt && (
+                    <span className="edu-updated-date">
+                      Güncelleme: {new Date(currentSummary.updatedAt).toLocaleDateString('tr-TR')}
+                    </span>
+                  )}
+                </div>
+                <h1 className="edu-article-title">{activeReadingTarget.name}</h1>
+              </div>
+
+              {/* IFRAME HTML VIEWER */}
+              <div className="edu-iframe-container">
+                <SummaryHtmlViewer
+                  htmlContent={currentSummary?.contentHtml || ''}
+                  fontSize={fontSize}
+                  title={activeReadingTarget.name}
+                  targetType={activeReadingTarget.type}
+                  emptyMessage="Bu konu için henüz özet veya ders notu eklenmemiş. Çok yakında öğretmeniniz tarafından eklenecektir."
+                />
+              </div>
+
+              {/* PRACTICE CTA CARD */}
+              <div className="edu-practice-cta-card no-print">
+                <div className="edu-cta-left">
+                  <div className="edu-cta-icon">{activeTheme.icon}</div>
+                  <div>
+                    <h4>Konuyu Pekiştir & Test Çöz</h4>
+                    <p>Özeti tamamladın mı? Soru bankasından ve denemelerden ilgili soruları çözerek konuyu pekiştir.</p>
+                  </div>
+                </div>
+                <button 
+                  className="edu-cta-btn"
+                  onClick={() => navigate('/student/exams')}
+                >
+                  <span>Testlere Git</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+
+              {/* ARTICLE FOOTER NAVIGATION (PREV / NEXT) */}
+              <div className="edu-article-pagination no-print">
+                {prevItem ? (
+                  <button 
+                    className="edu-page-nav-btn prev"
+                    onClick={() => setActiveReadingTarget(prevItem)}
+                  >
+                    <ChevronLeft size={20} />
+                    <div className="edu-page-nav-text">
+                      <span className="edu-nav-sub">Önceki Konu</span>
+                      <strong>{prevItem.name}</strong>
                     </div>
                   </button>
-                );
-              })}
+                ) : <div />}
+
+                {nextItem ? (
+                  <button 
+                    className="edu-page-nav-btn next"
+                    onClick={() => setActiveReadingTarget(nextItem)}
+                  >
+                    <div className="edu-page-nav-text text-right">
+                      <span className="edu-nav-sub">Sonraki Konu</span>
+                      <strong>{nextItem.name}</strong>
+                    </div>
+                    <ChevronRight size={20} />
+                  </button>
+                ) : <div />}
+              </div>
+
+            </article>
+          </main>
+
+          {/* SLIDE-OVER TOPIC DRAWER (Off-canvas) */}
+          {isDrawerOpen && (
+            <div className="edu-drawer-backdrop no-print" onClick={() => setIsDrawerOpen(false)}>
+              <div className="edu-drawer-panel" onClick={e => e.stopPropagation()}>
+                <div className="edu-drawer-header">
+                  <div className="edu-drawer-title">
+                    <FolderOpen size={18} color="#4f46e5" />
+                    <span>Konu Listesi</span>
+                  </div>
+                  <button className="edu-drawer-close" onClick={() => setIsDrawerOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="edu-drawer-scroll custom-scrollbar">
+                  {filteredUnits.map((u, uIdx) => {
+                    const isUnitActive = activeReadingTarget?.type === 'unit' && String(activeReadingTarget?.id) === String(u.id);
+                    const unitHasSummary = hasSummary('unit', u.id);
+                    const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
+
+                    return (
+                      <div key={u.id} className="edu-drawer-unit-box">
+                        <div 
+                          className={`edu-drawer-unit-item ${isUnitActive ? 'active' : ''}`}
+                          onClick={() => {
+                            setActiveReadingTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id });
+                            setIsDrawerOpen(false);
+                          }}
+                        >
+                          <span className="edu-unit-num">{uIdx + 1}</span>
+                          <strong>{u.name} (Genel Özet)</strong>
+                          {unitHasSummary && <span className="edu-dot-badge">●</span>}
+                        </div>
+
+                        <div className="edu-drawer-topic-list">
+                          {unitTopics.map(t => {
+                            const isTopicActive = activeReadingTarget?.type === 'topic' && String(activeReadingTarget?.id) === String(t.id);
+                            const topicHasSummary = hasSummary('topic', t.id);
+
+                            return (
+                              <div
+                                key={t.id}
+                                className={`edu-drawer-topic-item ${isTopicActive ? 'active' : ''}`}
+                                onClick={() => {
+                                  setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id });
+                                  setIsDrawerOpen(false);
+                                }}
+                              >
+                                <span className="edu-topic-bullet" />
+                                <span>{t.name}</span>
+                                {topicHasSummary && <span className="edu-dot-badge">●</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
-      </header>
+      ) : (
 
-      {/* ════════════ MOBILE TOC TRIGGER BAR ════════════ */}
-      <div className="edu-mobile-toc-bar no-print">
-        <button 
-          className="edu-mobile-toc-btn"
-          onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)}
-        >
-          <Menu size={18} />
-          <span className="edu-toc-current-label">
-            {selectedTarget ? `${selectedTarget.name}` : 'İçindekiler / Konu Seç'}
-          </span>
-          <ChevronDown size={16} />
-        </button>
-      </div>
+        /* ════════════════════════════════════════════════════════════════
+            VIEW 2: CATALOG / TOPIC SELECTION VIEW (Katalog & Kartlar)
+           ════════════════════════════════════════════════════════════════ */
+        <div className="edu-catalog-view">
+          
+          {/* HERO HEADER */}
+          <header className="edu-hero-header">
+            <div className="edu-hero-container">
+              
+              <div className="edu-hero-top-row">
+                <div className="edu-brand-badge">
+                  <span className="edu-pulse-dot" />
+                  <span>Ders Notları & Konu Anlatımları</span>
+                </div>
+                <div className="edu-grade-selector">
+                  <span className="edu-selector-title">Sınıf:</span>
+                  <div className="edu-grade-pills">
+                    {grades.map(g => (
+                      <button
+                        key={g.id}
+                        className={`edu-grade-pill ${String(selectedGradeId) === String(g.id) ? 'active' : ''}`}
+                        onClick={() => setSelectedGradeId(g.id)}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-      {/* ════════════ MAIN PORTAL WORKSPACE ════════════ */}
-      <div className="edu-workspace-layout">
-        
-        {/* ──── LEFT SIDEBAR: STUDY TREE & TOC ──── */}
-        <aside className={`edu-toc-sidebar ${isMobileDrawerOpen ? 'drawer-active' : ''} no-print`}>
-          <div className="edu-toc-header">
-            <div className="edu-toc-title">
-              <FolderOpen size={18} color="#4f46e5" />
-              <span>Konu ve Ünite Ağacı</span>
+              <div className="edu-hero-main-banner">
+                <div className="edu-banner-text">
+                  <h1>{currentGrade?.name || 'Tüm Sınıflar'} Ders Özetleri & Konu Rehberi 📚</h1>
+                  <p>Müfredata tam uyumlu ünite özetleri, formüller, önemli kavramlar ve sınav ipuçları parmaklarının ucunda.</p>
+                </div>
+              </div>
+
+              {/* SUBJECT SELECTOR HORIZONTAL TABS */}
+              <div className="edu-subjects-scroll-wrap">
+                <div className="edu-subjects-scroll-row">
+                  {filteredSubjects.map(s => {
+                    const theme = getSubjectTheme(s.name);
+                    const isSelected = String(selectedSubjectId) === String(s.id);
+                    
+                    // Count available summaries
+                    const subjectUnits = units.filter(u => String(u.subjectId) === String(s.id));
+                    let summaryCount = 0;
+                    subjectUnits.forEach(u => {
+                      if (hasSummary('unit', u.id)) summaryCount++;
+                      const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
+                      unitTopics.forEach(t => {
+                        if (hasSummary('topic', t.id)) sumCount++;
+                      });
+                    });
+
+                    return (
+                      <button
+                        key={s.id}
+                        className={`edu-subject-card-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedSubjectId(s.id)}
+                        style={{
+                          '--sub-color': theme.color,
+                          '--sub-bg': theme.lightBg,
+                          '--sub-border': theme.border
+                        }}
+                      >
+                        <span className="edu-subject-icon">{theme.icon}</span>
+                        <div className="edu-subject-info">
+                          <strong className="edu-subject-name">{s.name}</strong>
+                          <span className="edu-subject-count">{summaryCount > 0 ? `${summaryCount} Özet Hazır` : 'Müfredat'}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
-            {isMobileDrawerOpen && (
-              <button className="edu-toc-close" onClick={() => setIsMobileDrawerOpen(false)}>
-                <X size={20} />
-              </button>
-            )}
+          </header>
+
+          {/* SEARCH & FILTER BAR */}
+          <div className="edu-catalog-toolbar">
+            <div className="edu-catalog-search">
+              <Search size={18} color="#64748b" />
+              <input
+                type="text"
+                placeholder={`${currentSubject?.name || 'Ders'} içinde konu veya ünite ara...`}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="edu-toc-search">
-            <Search size={15} color="#94a3b8" />
-            <input
-              type="text"
-              placeholder="Konu veya ünite ara..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="edu-toc-scroll custom-scrollbar">
+          {/* CURRICULUM UNITS & TOPICS CARDS GRID */}
+          <div className="edu-units-catalog-grid">
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
-                const isUnitActive = selectedTarget?.type === 'unit' && String(selectedTarget?.id) === String(u.id);
                 const unitHasSummary = hasSummary('unit', u.id);
                 const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
 
@@ -279,223 +477,85 @@ export default function StudentSummaryPage() {
                 }
 
                 return (
-                  <div key={u.id} className="edu-unit-group">
+                  <div key={u.id} className="edu-unit-card">
                     
-                    {/* Unit Row */}
-                    <div 
-                      className={`edu-unit-node ${isUnitActive ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id });
-                        setIsMobileDrawerOpen(false);
-                      }}
-                    >
-                      <div className="edu-unit-title-box">
-                        <span className="edu-unit-num">{uIdx + 1}</span>
-                        <div className="edu-unit-text">
-                          <strong>{u.name}</strong>
-                          <span className="edu-unit-sub">Ünite Genel Özeti</span>
+                    {/* Unit Card Header */}
+                    <div className="edu-unit-card-top">
+                      <div className="edu-unit-card-title-wrap">
+                        <span className="edu-unit-large-num" style={{ background: activeTheme.lightBg, color: activeTheme.color }}>
+                          {uIdx + 1}
+                        </span>
+                        <div>
+                          <span className="edu-unit-badge-sub">ÜNİTE {uIdx + 1}</span>
+                          <h3 className="edu-unit-heading">{u.name}</h3>
                         </div>
                       </div>
-                      {unitHasSummary ? (
-                        <span className="edu-status-pill filled">✓ Özet</span>
-                      ) : (
-                        <span className="edu-status-pill empty">Taslak</span>
-                      )}
+
+                      {/* General Unit Summary Button */}
+                      <button
+                        className={`edu-unit-summary-pill-btn ${unitHasSummary ? 'has-summary' : ''}`}
+                        onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id })}
+                      >
+                        <BookMarked size={15} />
+                        <span>{unitHasSummary ? 'Ünite Özetini Oku' : 'Ünite Özeti'}</span>
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
 
-                    {/* Topics Sub-list */}
-                    <div className="edu-topics-tree">
-                      {filteredTopicsList.map((t) => {
-                        const isTopicActive = selectedTarget?.type === 'topic' && String(selectedTarget?.id) === String(t.id);
-                        const topicHasSummary = hasSummary('topic', t.id);
+                    {/* Topic Items List */}
+                    <div className="edu-unit-card-topics">
+                      <div className="edu-topics-section-title">
+                        <span>Konular & Kazanımlar ({unitTopics.length})</span>
+                      </div>
 
-                        return (
-                          <div
-                            key={t.id}
-                            className={`edu-topic-node ${isTopicActive ? 'active' : ''}`}
-                            onClick={() => {
-                              setSelectedTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id });
-                              setIsMobileDrawerOpen(false);
-                            }}
-                          >
-                            <div className="edu-topic-title-box">
-                              <span className="edu-topic-line-bullet" />
-                              <span className="edu-topic-name">{t.name}</span>
+                      <div className="edu-topics-pill-grid">
+                        {filteredTopicsList.map((t, tIdx) => {
+                          const topicHasSummary = hasSummary('topic', t.id);
+
+                          return (
+                            <div
+                              key={t.id}
+                              className={`edu-topic-pill-card ${topicHasSummary ? 'ready' : ''}`}
+                              onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id })}
+                            >
+                              <div className="edu-topic-card-left">
+                                <span className="edu-topic-num-circle">{tIdx + 1}</span>
+                                <span className="edu-topic-card-name">{t.name}</span>
+                              </div>
+
+                              <div className="edu-topic-card-right">
+                                {topicHasSummary ? (
+                                  <span className="edu-ready-badge">
+                                    <CheckCircle2 size={13} />
+                                    <span>Özet Oku</span>
+                                  </span>
+                                ) : (
+                                  <span className="edu-browse-badge">
+                                    <span>İncele</span>
+                                  </span>
+                                )}
+                                <ChevronRight size={15} className="edu-topic-arrow" />
+                              </div>
                             </div>
-                            {topicHasSummary && (
-                              <span className="edu-topic-check" title="Özet Mevcut">●</span>
-                            )}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
 
                   </div>
                 );
               })
             ) : (
-              <div className="edu-empty-units-card">
-                <BookOpen size={32} color="#94a3b8" />
-                <p>Bu derse ait ünite kaydı bulunamadı.</p>
+              <div className="edu-empty-catalog">
+                <BookOpen size={48} color="#94a3b8" />
+                <h3>Bu Derse Ait Ünite Bulunamadı</h3>
+                <p>Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.</p>
               </div>
             )}
           </div>
-        </aside>
 
-        {/* ──── CENTER READING DESK ──── */}
-        <main className="edu-reading-desk">
-          
-          {/* ARTICLE TOP TOOLBAR */}
-          <div className="edu-article-toolbar no-print">
-            
-            {/* Breadcrumb Path */}
-            <div className="edu-breadcrumb">
-              <span className="edu-crumb-item">{currentGrade?.name || 'Sınıf'}</span>
-              <ChevronRight size={13} className="edu-crumb-arrow" />
-              <span className="edu-crumb-item" style={{ color: activeTheme.color, fontWeight: 700 }}>
-                {currentSubject?.name || 'Ders'}
-              </span>
-              <ChevronRight size={13} className="edu-crumb-arrow" />
-              <span className="edu-crumb-item">{currentUnit?.name || 'Ünite'}</span>
-              {selectedTarget?.type === 'topic' && (
-                <>
-                  <ChevronRight size={13} className="edu-crumb-arrow" />
-                  <span className="edu-crumb-current">{selectedTarget.name}</span>
-                </>
-              )}
-            </div>
-
-            {/* Controls (Font Size, Print, Fullscreen) */}
-            <div className="edu-reader-actions">
-              <div className="edu-font-control-group">
-                <button 
-                  onClick={() => setFontSize(prev => Math.max(14, prev - 1))}
-                  title="Yazı Boyutunu Küçült"
-                  className="edu-action-btn"
-                >
-                  <ZoomOut size={14} /> A-
-                </button>
-                <span className="edu-font-display">{fontSize}px</span>
-                <button 
-                  onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
-                  title="Yazı Boyutunu Büyüt"
-                  className="edu-action-btn"
-                >
-                  <ZoomIn size={14} /> A+
-                </button>
-              </div>
-
-              <button onClick={handlePrint} className="edu-action-btn" title="Yazdır / PDF Kaydet">
-                <Printer size={15} />
-                <span>Yazdır</span>
-              </button>
-
-              <button 
-                onClick={() => setIsFocusMode(!isFocusMode)}
-                className={`edu-action-btn ${isFocusMode ? 'focus-active' : ''}`}
-                title={isFocusMode ? 'Odak Modundan Çık' : 'Odak Modu (Tam Ekran)'}
-              >
-                {isFocusMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                <span>{isFocusMode ? 'Çık' : 'Odak'}</span>
-              </button>
-            </div>
-
-          </div>
-
-          {/* ARTICLE CONTENT CARD (PURE WHITE EDUCATION PAPER) */}
-          <article className="edu-article-card">
-            
-            {selectedTarget ? (
-              <>
-                {/* Article Header */}
-                <div className="edu-article-header">
-                  <div className="edu-header-meta">
-                    <span 
-                      className="edu-meta-badge"
-                      style={{ background: activeTheme.lightBg, color: activeTheme.color, borderColor: activeTheme.border }}
-                    >
-                      {selectedTarget.type === 'unit' ? '📁 ÜNİTE GENEL ÖZETİ' : '📄 KONU ANLATIMI & ÖZET'}
-                    </span>
-                    {currentSummary?.updatedAt && (
-                      <span className="edu-updated-date">
-                        Güncellenme: {new Date(currentSummary.updatedAt).toLocaleDateString('tr-TR')}
-                      </span>
-                    )}
-                  </div>
-                  <h1 className="edu-article-title">{selectedTarget.name}</h1>
-                </div>
-
-                {/* HTML VIEWER */}
-                <div className="edu-article-html-body">
-                  <SummaryHtmlViewer
-                    htmlContent={currentSummary?.contentHtml || ''}
-                    fontSize={fontSize}
-                    title={selectedTarget.name}
-                    targetType={selectedTarget.type}
-                    emptyMessage="Bu konu için henüz özet veya ders notu eklenmemiş. Çok yakında öğretmeniniz tarafından eklenecektir."
-                  />
-                </div>
-
-                {/* BOTTOM ACTION & TEST SHORTCUT */}
-                <div className="edu-practice-cta-card no-print">
-                  <div className="edu-cta-left">
-                    <div className="edu-cta-icon">{activeTheme.icon}</div>
-                    <div>
-                      <h4>Konuyu Pekiştir & Test Çöz</h4>
-                      <p>Özeti tamamladın mı? Soru bankasından ve denemelerden ilgili soruları çözerek konuyu pekiştir.</p>
-                    </div>
-                  </div>
-                  <button 
-                    className="edu-cta-btn"
-                    onClick={() => navigate('/student/exams')}
-                  >
-                    <span>Testlere Git</span>
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-
-                {/* ARTICLE NEXT / PREVIOUS FOOTER */}
-                <div className="edu-article-pagination no-print">
-                  {prevItem ? (
-                    <button 
-                      className="edu-page-nav-btn prev"
-                      onClick={() => setSelectedTarget(prevItem)}
-                    >
-                      <ChevronLeft size={20} />
-                      <div className="edu-page-nav-text">
-                        <span className="edu-nav-sub">Önceki Konu</span>
-                        <strong>{prevItem.name}</strong>
-                      </div>
-                    </button>
-                  ) : <div />}
-
-                  {nextItem ? (
-                    <button 
-                      className="edu-page-nav-btn next"
-                      onClick={() => setSelectedTarget(nextItem)}
-                    >
-                      <div className="edu-page-nav-text text-right">
-                        <span className="edu-nav-sub">Sonraki Konu</span>
-                        <strong>{nextItem.name}</strong>
-                      </div>
-                      <ChevronRight size={20} />
-                    </button>
-                  ) : <div />}
-                </div>
-              </>
-            ) : (
-              <div className="edu-empty-reader-state">
-                <BookOpen size={56} color="#6366f1" />
-                <h2>Okumak İstediğin Konuyu Seç</h2>
-                <p>Sol taraftaki ünite ve konu ağacından dilediğin derse tıklayarak zengin konu anlatımlarına ulaşabilirsin.</p>
-              </div>
-            )}
-
-          </article>
-
-        </main>
-
-      </div>
+        </div>
+      )}
 
     </div>
   );
