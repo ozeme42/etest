@@ -8,7 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import { BookOpen, ArrowLeft, CheckCircle2, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 import PdfViewerPanel from '../components/PdfViewerPanel';
 
@@ -391,17 +391,30 @@ export default function StudentBookDetailsPage() {
         let subjCorrect = 0;
         let subjWrong = 0;
         let subjBlank = 0;
+        let solvedTests = 0;
         
         subj.tests.forEach(test => {
-          if (test.isCompleted && test.bestSub) {
-             subjCorrect += test.bestSub.correctCount || 0;
-             subjWrong += test.bestSub.wrongCount || 0;
-             subjBlank += test.bestSub.blankCount || 0;
+          if (test.isCompleted) {
+            solvedTests++;
+            if (test.bestSub) {
+              subjCorrect += test.bestSub.correctCount || 0;
+              subjWrong += test.bestSub.wrongCount || 0;
+              subjBlank += test.bestSub.blankCount || 0;
+            }
           }
         });
         
+        const totalQ = subjCorrect + subjWrong + subjBlank;
+        const rate = totalQ > 0 ? Math.round((subjCorrect / totalQ) * 100) : 0;
+
         return {
+          id: subj.id,
           name: subj.name,
+          displayName: `${subj.name} (%${rate})`,
+          rate,
+          totalQ,
+          solvedTests,
+          totalTests: subj.totalCount || subj.tests.length,
           Doğru: subjCorrect,
           Yanlış: subjWrong,
           Boş: subjBlank
@@ -412,12 +425,23 @@ export default function StudentBookDetailsPage() {
       if (!subj) return [];
       
       return subj.tests.map(test => {
+        const d = (test.isCompleted && test.bestSub) ? (test.bestSub.correctCount || 0) : 0;
+        const y = (test.isCompleted && test.bestSub) ? (test.bestSub.wrongCount || 0) : 0;
+        const b = (test.isCompleted && test.bestSub) ? (test.bestSub.blankCount || 0) : 0;
+        const totalQ = d + y + b;
+        const rate = (test.isCompleted && test.bestScore !== null) ? test.bestScore : (totalQ > 0 ? Math.round((d / totalQ) * 100) : 0);
+
         return {
+          id: test.id,
           name: test.name || `Test ${test.index}`,
-          Doğru: (test.isCompleted && test.bestSub) ? (test.bestSub.correctCount || 0) : 0,
-          Yanlış: (test.isCompleted && test.bestSub) ? (test.bestSub.wrongCount || 0) : 0,
-          Boş: (test.isCompleted && test.bestSub) ? (test.bestSub.blankCount || 0) : 0,
-        }
+          displayName: `${test.name || `Test ${test.index}`} (%${rate})`,
+          rate,
+          totalQ,
+          isCompleted: test.isCompleted,
+          Doğru: d,
+          Yanlış: y,
+          Boş: b,
+        };
       });
     }
   }, [subjectProgress, selectedChartSubject]);
@@ -568,13 +592,68 @@ export default function StudentBookDetailsPage() {
               {subjectProgress.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
             </select>
           </div>
+
+          {/* Ders/Test Başarı Durumu Kartları (Grafiğin Üstünde) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem', marginBottom: '1.25rem' }}>
+            {subjectChartData.map((item, idx) => {
+              const rateColor = item.rate >= 70 ? '#059669' : item.rate >= 50 ? '#d97706' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
+              const rateBg = item.rate >= 70 ? '#f0fdf4' : item.rate >= 50 ? '#fffbeb' : item.totalQ === 0 ? '#f8fafc' : '#fef2f2';
+              const rateBorder = item.rate >= 70 ? '#bbf7d0' : item.rate >= 50 ? '#fde68a' : item.totalQ === 0 ? '#e2e8f0' : '#fecdd3';
+
+              return (
+                <div 
+                  key={idx} 
+                  style={{
+                    background: rateBg, 
+                    border: `1.5px solid ${rateBorder}`, 
+                    borderRadius: '0.75rem', 
+                    padding: '0.65rem 0.85rem',
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 3,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.name}>
+                      {item.name}
+                    </span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: rateColor }}>
+                      %{item.rate}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
+                    {selectedChartSubject === 'all' ? (
+                      <>
+                        <span>{item.solvedTests}/{item.totalTests} Test</span>
+                        <span style={{ color: '#059669' }}>{item.Doğru}D <span style={{ color: '#ef4444' }}>{item.Yanlış}Y</span></span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{item.isCompleted ? 'Çözüldü' : 'Çözülmedi'}</span>
+                        <span style={{ color: '#059669' }}>{item.Doğru}D <span style={{ color: '#ef4444' }}>{item.Yanlış}Y</span></span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer>
               <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} dy={10} tickFormatter={v => v.length > 14 ? v.substring(0, 14) + '…' : v} />
+                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} dy={10} tickFormatter={v => v.length > 18 ? v.substring(0, 18) + '…' : v} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px rgba(0,0,0,0.1)', fontWeight: 800, fontSize: '0.83rem' }} />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }} 
+                  contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px rgba(0,0,0,0.1)', fontWeight: 800, fontSize: '0.83rem' }} 
+                  formatter={(value, name, item) => [
+                    `${value} Soru`,
+                    name
+                  ]}
+                />
                 <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.82rem', fontWeight: 700 }} />
                 <Bar dataKey="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="Yanlış" stackId="a" fill="#ef4444" />
