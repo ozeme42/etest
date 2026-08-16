@@ -702,13 +702,19 @@ export default function StudentDashboard() {
       const bTestId = String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || '');
       if (bTestId && existingTestIds.has(bTestId)) return;
 
-      const testObj = bookTests.find(b => String(b.id) === bTestId);
+      const testObj = bookTests.find(b => String(b.id) === bTestId || (toUUID(b.id) && String(toUUID(b.id)) === bTestId));
       const bookObj = books.find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
       const cleanBookTitle = (bookObj?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
-      const testName = testObj?.name || 'Test';
+      const testName = testObj?.name || raw.testTitle || sub.testTitle || 'Test';
 
       const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
       const subjectName = subjObj?.name || bookObj?.subject || cleanBookTitle;
+      const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
+      const topicName = topicObj?.name || '';
+
+      const fullTestTitle = topicName
+        ? `${cleanBookTitle} — ${subjectName} · ${topicName} (${testName})`
+        : `${cleanBookTitle} — ${subjectName} (${testName})`;
 
       const total = Math.max(sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || 0, correct + wrong + blank, 1);
       const scorePct = sub.scorePercentage !== undefined && sub.scorePercentage !== null
@@ -727,7 +733,11 @@ export default function StudentDashboard() {
         sourceType: 'trackedBook',
         isBookAssignment: true,
         subject: subjectName,
-        title: sub.testTitle || raw.testTitle || `${cleanBookTitle} — ${testName}`,
+        bookTitle: cleanBookTitle,
+        subjectName,
+        topicName,
+        testName,
+        title: fullTestTitle,
         dueDate: sub.submittedAt || sub.completedAt || raw.submittedAt || new Date().toISOString(),
         status: 'Sonuçlandı',
         questionCount: total,

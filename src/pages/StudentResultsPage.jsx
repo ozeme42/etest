@@ -341,6 +341,13 @@ export default function StudentResultsPage() {
       const subjectName = subjObj?.name || bookObj?.subject || cleanBookTitle;
       const testName = testObj?.name || sub.testTitle || raw.testTitle || 'Test';
 
+      const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(testObj?.topicId || raw.topicId));
+      const topicName = topicObj?.name || '';
+
+      const fullTestTitle = topicName
+        ? `${cleanBookTitle} — ${subjectName} · ${topicName} (${testName})`
+        : `${cleanBookTitle} — ${subjectName} (${testName})`;
+
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank;
       const rawTotal = sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || 0;
@@ -361,7 +368,11 @@ export default function StudentResultsPage() {
           ...sub,
           id: subIdStr || `book_sub_${bTestId}_${selectedStudent.id}`,
           testId: bTestId,
-          testTitle: `${cleanBookTitle} — ${subjectName} (${testName})`,
+          bookTitle: cleanBookTitle,
+          subjectName,
+          topicName,
+          testName,
+          testTitle: fullTestTitle,
           subjectKey: getSubjectKey({ testTitle: testName, subjectKey: subjectName }),
           typeKey: 'book',
           isEvaluated: true,
@@ -640,13 +651,25 @@ export default function StudentResultsPage() {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.75rem 1rem', borderRadius: 14, background: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1rem', borderRadius: 14, background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <SubIcon size={18} color={th.color} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.testTitle}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, marginTop: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.35 }}>
+                          {s.bookTitle ? (
+                            <>
+                              <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                              <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
+                              <span>{s.subjectName || s.subjectKey}</span>
+                              {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                              <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
+                            </>
+                          ) : (
+                            s.testTitle
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
                           {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'} · {s.totalQuestions} Soru
                         </div>
                       </div>
@@ -701,42 +724,20 @@ export default function StudentResultsPage() {
                         📋 Konu / Test Bazlı Doğruluk Analizi
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {topicArray.map((t, i) => {
-                          const barColor = t.accuracy >= 80 ? '#10b981' : t.accuracy >= 60 ? '#f59e0b' : '#ef4444';
-                          return (
-                            <div key={i}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>{t.totalQ}s</span>
-                                  <span style={{ fontWeight: 900, fontSize: '0.82rem', color: barColor }}>%{t.accuracy}</span>
-                                </div>
-                              </div>
-                              <div style={{ width: '100%', height: 10, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
-                                <div style={{ width: `${t.accuracy}%`, height: '100%', background: barColor, borderRadius: 99, transition: 'width 0.6s ease' }} />
+                        {topicArray.map((top, idx) => (
+                          <div key={idx} style={{ background: '#f8fafc', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>{top.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>{top.correctQ}/{top.totalQ} Soru</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: top.accuracy >= 70 ? '#16a34a' : top.accuracy >= 50 ? '#d97706' : '#dc2626' }}>%{top.accuracy}</span>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Mini bar chart for subject */}
-                      <div style={{ marginTop: 20 }}>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>📊 Grafik Görünümü</div>
-                        <ResponsiveContainer width="100%" height={Math.max(120, topicArray.length * 28)}>
-                          <BarChart layout="vertical" data={topicArray} margin={{ top: 0, right: 50, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                            <XAxis type="number" domain={[0, 100]} style={{ fontSize: '0.68rem', fontWeight: 700 }} tick={{ fill: '#94a3b8' }} />
-                            <YAxis type="category" dataKey="name" width={130} style={{ fontSize: '0.68rem', fontWeight: 700 }} tick={{ fill: '#475569' }} />
-                            <Tooltip content={<ChartTooltip />} />
-                            <ReferenceLine x={60} stroke="#f59e0b" strokeDasharray="4 4" />
-                            <Bar dataKey="accuracy" name="% Doğruluk" radius={[0, 6, 6, 0]}>
-                              {topicArray.map((t, idx) => (
-                                <Cell key={idx} fill={t.accuracy >= 80 ? '#10b981' : t.accuracy >= 60 ? '#f59e0b' : '#ef4444'} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
+                            <div style={{ background: '#e2e8f0', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                              <div style={{ width: `${top.accuracy}%`, height: '100%', background: top.accuracy >= 70 ? '#16a34a' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.5s ease' }} />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -758,76 +759,63 @@ export default function StudentResultsPage() {
                 { key: 'physicalExam', label: '🏛️ Denemeler',      count: byTypeSubs.physicalExam.length },
                 { key: 'book',         label: '📕 Kitap Testleri', count: byTypeSubs.book.length },
                 { key: 'individual',   label: '⚡ Bireysel',        count: byTypeSubs.individual.length },
-              ].map(tab => (
-                <button key={tab.key} onClick={() => setByTypeTab(tab.key)} style={{ flex: '1 1 auto', padding: '0.5rem 0.85rem', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: byTypeTab === tab.key ? '#6366f1' : '#f8fafc', color: byTypeTab === tab.key ? 'white' : '#64748b', whiteSpace: 'nowrap' }}>
-                  {tab.label} <span style={{ background: byTypeTab === tab.key ? 'rgba(255,255,255,0.3)' : '#e2e8f0', color: byTypeTab === tab.key ? 'white' : '#475569', borderRadius: 99, padding: '0 6px', fontWeight: 900 }}>{tab.count}</span>
+              ].map(t => (
+                <button key={t.key} onClick={() => setByTypeTab(t.key)} style={{ padding: '0.45rem 0.9rem', borderRadius: 11, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: byTypeTab === t.key ? '#6366f1' : 'transparent', color: byTypeTab === t.key ? 'white' : '#64748b' }}>
+                  {t.label} ({t.count})
                 </button>
               ))}
             </div>
 
-            {/* Stats mini row */}
-            {(() => {
-              const subs = byTypeSubs[byTypeTab] || [];
-              const avg = subs.length > 0 ? Math.round(subs.reduce((a, s) => a + s.computedScore, 0) / subs.length) : 0;
-              const max = subs.length > 0 ? Math.max(...subs.map(s => s.computedScore)) : 0;
-              return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                  {[
-                    { label: 'Toplam', value: subs.length, icon: '📊', color: '#6366f1', bg: '#eef2ff' },
-                    { label: 'Ortalama', value: `%${avg}`, icon: '🎯', color: '#10b981', bg: '#f0fdf4' },
-                    { label: 'En Yüksek', value: `%${max}`, icon: '🏆', color: '#f59e0b', bg: '#fffbeb' },
-                  ].map((k, i) => (
-                    <div key={i} style={{ background: 'white', borderRadius: 16, padding: '0.85rem 1rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: '1.5rem' }}>{k.icon}</span>
-                      <div>
-                        <div style={{ fontSize: '1.2rem', fontWeight: 900, color: k.color }}>{k.value}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>{k.label}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* Cards list */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-              {(byTypeSubs[byTypeTab] || []).map((s, i) => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {byTypeSubs[byTypeTab].map((s, i) => {
                 const th = theme(s.subjectKey);
                 const SubIcon = th.icon;
                 return (
-                  <div key={i} style={{ background: 'white', borderRadius: 18, border: `1.5px solid ${th.border}`, padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ height: 4, background: th.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <SubIcon size={17} color={th.color} />
-                        </div>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 900, color: th.color, background: th.bg, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.18rem 0.5rem' }}>{s.subjectKey}</span>
+                  <div key={i} style={{ background: 'white', borderRadius: 16, padding: '1rem 1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 200 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <SubIcon size={20} color={th.color} />
                       </div>
-                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                          {s.bookTitle ? (
+                            <>
+                              <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                              <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
+                              <span>{s.subjectName || s.subjectKey}</span>
+                              {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                              <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
+                            </>
+                          ) : (
+                            s.testTitle
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2, display: 'flex', gap: 8 }}>
+                          <span>📅 {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : '—'}</span>
+                          <span>📝 {s.totalQuestions} Soru</span>
+                          <span style={{ color: '#16a34a', fontWeight: 800 }}>✓ {s.correctCount} D</span>
+                          <span style={{ color: '#dc2626', fontWeight: 800 }}>✗ {s.wrongCount} Y</span>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', lineHeight: 1.3 }}>{s.testTitle}</div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #86efac', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                      <span style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                      <span style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>⚪ {s.blankCount}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 8, marginTop: 2 }}>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
-                        {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'} · {s.totalQuestions} Soru
-                      </span>
-                      {s.type !== 'physicalExam' && (
-                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 9, padding: '0.3rem 0.75rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Eye size={12} /> İncele
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="md" />
+                      {s.type !== 'physicalExam' ? (
+                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Eye size={13} /> İncele
+                        </button>
+                      ) : (
+                        <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: '#4338ca', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Eye size={13} /> Karne
                         </button>
                       )}
                     </div>
                   </div>
                 );
               })}
-              {(byTypeSubs[byTypeTab] || []).length === 0 && (
-                <div style={{ gridColumn: '1/-1', background: 'white', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700, border: '1px solid #e2e8f0' }}>
-                  Bu türde henüz sonuç bulunmuyor
+              {byTypeSubs[byTypeTab].length === 0 && (
+                <div style={{ background: 'white', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                  Bu kategoride sonuç bulunmuyor
                 </div>
               )}
             </div>
@@ -945,7 +933,19 @@ export default function StudentResultsPage() {
                         return (
                           <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 1 ? '#fafafa' : 'white', transition: 'background 0.1s' }}>
                             <td style={{ padding: '0.8rem 1rem' }}>
-                              <div style={{ fontWeight: 800, color: '#0f172a', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.testTitle}</div>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem', lineHeight: 1.35 }}>
+                                {s.bookTitle ? (
+                                  <>
+                                    <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                                    <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
+                                    <span>{s.subjectName || s.subjectKey}</span>
+                                    {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                                    <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
+                                  </>
+                                ) : (
+                                  s.testTitle
+                                )}
+                              </div>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: th.bg, color: th.color, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.22rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
@@ -1011,7 +1011,19 @@ export default function StudentResultsPage() {
                           {typeConfig[s.typeKey]?.label || '⚡'}
                         </span>
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', lineHeight: 1.3 }}>{s.testTitle}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', lineHeight: 1.35 }}>
+                        {s.bookTitle ? (
+                          <>
+                            <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                            <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
+                            <span>{s.subjectName || s.subjectKey}</span>
+                            {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                            <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
+                          </>
+                        ) : (
+                          s.testTitle
+                        )}
+                      </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <span style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #86efac', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
                         <span style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
