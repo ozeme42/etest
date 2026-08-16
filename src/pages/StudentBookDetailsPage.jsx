@@ -119,17 +119,13 @@ export default function StudentBookDetailsPage() {
       // Find all tests in this subject
       const allSubjectTests = bookTests.filter(t => String(t.subjectId) === String(subject.id));
       
-      // Filter only those assigned to the student (sorted naturally by test name and number)
-      const assignedSubjTests = allSubjectTests
-        .filter(t => assignedTestIds.has(String(t.id)))
+      // Keep ALL tests in the subject (sorted naturally by test name and number)
+      const subjTests = (allSubjectTests || [])
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' }));
       
-      if (assignedSubjTests.length === 0) return null;
+      if (subjTests.length === 0) return null;
 
-      // Check completions
-      let hasFoundFirstUnfinished = false;
-      
-      const testsWithStatus = assignedSubjTests.map((t, index) => {
+      const testsWithStatus = subjTests.map((t, index) => {
         // Is it solved? Check submissions strictly matching this test ID
         const tIdStr = String(t.id);
         const tUuidStr = String(toUUID(t.id) || '');
@@ -185,24 +181,14 @@ export default function StudentBookDetailsPage() {
           testDueDate = matchingHw.testDueDates[t.id];
         }
 
-        // Lock logic: Tests with an assigned date (testDueDate) are UNLOCKED for students.
-        // Sequential progression lock applies only to tests without assigned dates.
-        let isLocked = false;
-        if (!isCompleted) {
-          if (testDueDate) {
-            isLocked = false;
-          } else if (hasFoundFirstUnfinished) {
-            isLocked = true;
-          } else {
-            hasFoundFirstUnfinished = true;
-          }
-        }
+        const isAssignedHomework = Boolean(testDueDate || assignedTestIds.has(String(t.id)));
 
         return {
           ...t,
           index: index + 1,
           isCompleted,
-          isLocked,
+          isLocked: false,
+          isAssignedHomework,
           bestScore,
           bestSub,
           testDueDate,
@@ -238,7 +224,7 @@ export default function StudentBookDetailsPage() {
         totalCount: testsWithStatus.length,
         pct: Math.round((completedCount / testsWithStatus.length) * 100)
       };
-    }).filter(Boolean); // Remove subjects that have 0 assigned tests
+    }).filter(Boolean);
   }, [book, bookTests, assignedTestIds, submissions, studentId, homeworks]);
 
   const [isBulkSettingsModalOpen, setIsBulkSettingsModalOpen] = useState(false);
@@ -610,7 +596,7 @@ export default function StudentBookDetailsPage() {
                               </div>
                               <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                 <span>{test.questionCount || 20} Soru</span>
-                                {test.testDueDate && (
+                                {test.testDueDate ? (
                                   <span style={{
                                     fontSize: '0.7rem',
                                     fontWeight: 800,
@@ -620,7 +606,19 @@ export default function StudentBookDetailsPage() {
                                     color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
                                     border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
                                   }}>
-                                    📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                    📅 Ödev Hedefi: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    padding: '2px 6px',
+                                    borderRadius: '6px',
+                                    background: '#f8fafc',
+                                    color: '#64748b',
+                                    border: '1px solid #e2e8f0'
+                                  }}>
+                                    📖 Kitap Testi
                                   </span>
                                 )}
                               </div>
@@ -712,7 +710,7 @@ export default function StudentBookDetailsPage() {
                                       </div>
                                       <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                         <span>{test.questionCount || 20} Soru</span>
-                                        {test.testDueDate && (
+                                        {test.testDueDate ? (
                                           <span style={{
                                             fontSize: '0.7rem',
                                             fontWeight: 800,
@@ -722,7 +720,19 @@ export default function StudentBookDetailsPage() {
                                             color: test.isCompleted ? '#059669' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#ef4444' : '#4f46e5'),
                                             border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fca5a5' : '#c7d2fe')}`
                                           }}>
-                                            📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                            📅 Ödev Hedefi: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                                          </span>
+                                        ) : (
+                                          <span style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: 700,
+                                            padding: '2px 6px',
+                                            borderRadius: '6px',
+                                            background: '#f8fafc',
+                                            color: '#64748b',
+                                            border: '1px solid #e2e8f0'
+                                          }}>
+                                            📖 Kitap Testi
                                           </span>
                                         )}
                                       </div>
