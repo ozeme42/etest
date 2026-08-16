@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 
@@ -88,25 +89,67 @@ export function EvaluationProvider({ children }) {
 
   const [isSyncing, setIsSyncing] = useState(true);
 
+  const syncFromSupabase = async () => {
+    setIsSyncing(true);
+    try {
+      const dbSubsList = await dbGetSubmissions();
+      if (dbSubsList && Array.isArray(dbSubsList)) {
+        setSubmissions(dbSubsList);
+        try {
+          localStorage.setItem('eTestSubmissions', JSON.stringify(dbSubsList));
+          localStorage.setItem('etest_submissions', JSON.stringify(dbSubsList));
+        } catch {}
+      }
+    } catch (err) {
+      console.warn('[Supabase] Submission sync error:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
-    async function syncFromSupabase() {
-      setIsSyncing(true);
+    syncFromSupabase();
+
+    // 1. Periodic background polling every 8 seconds
+    const interval = setInterval(() => {
+      syncFromSupabase();
+    }, 8000);
+
+    // 2. Refresh on window focus and tab visibility
+    const handleFocus = () => {
+      syncFromSupabase();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromSupabase();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 3. Supabase Realtime subscription on submissions table
+    let channel = null;
+    if (isSupabaseConfigured()) {
       try {
-        const dbSubsList = await dbGetSubmissions();
-        if (dbSubsList && Array.isArray(dbSubsList)) {
-          setSubmissions(dbSubsList);
-          try {
-            localStorage.setItem('eTestSubmissions', JSON.stringify(dbSubsList));
-            localStorage.setItem('etest_submissions', JSON.stringify(dbSubsList));
-          } catch {}
-        }
+        channel = supabase
+          .channel('public_submissions_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => {
+            syncFromSupabase();
+          })
+          .subscribe();
       } catch (err) {
-        console.warn('[Supabase] Submission sync error:', err);
-      } finally {
-        setIsSyncing(false);
+        console.warn('[Supabase] Realtime subscription error:', err);
       }
     }
-    syncFromSupabase();
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -561,6 +604,7 @@ export function EvaluationProvider({ children }) {
     <EvaluationContext.Provider value={{
       submissions,
       isSyncing,
+      refreshSubmissions: syncFromSupabase,
       addSubmission,
       evaluateAnswer,
       finalizeSubmission,

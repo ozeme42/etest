@@ -32,11 +32,18 @@ function sortTestsNaturally(testsArray) {
   });
 }
 
+function toUUID(val) {
+  if (!val) return null;
+  const s = String(val);
+  if (s.length === 36 && s.includes('-')) return s;
+  return null;
+}
+
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { books, bookTests, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, updateTrackedBookTest } = useTrackedBooks();
-  const { submissions, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
+  const { submissions, refreshSubmissions, isSyncing: isEvaluationSyncing, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
   const [editDateValue, setEditDateValue] = useState('');
@@ -103,7 +110,17 @@ export default function BookContentManager() {
   
   const [newSubjectName, setNewSubjectName] = useState("");
   const [newTopicName, setNewTopicName] = useState("");
-  const [testFormData, setTestFormData] = useState({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' });
+  
+  const [testForm, setTestForm] = useState({
+    id: null,
+    name: "",
+    pdfUrl: "",
+    questionCount: 20,
+    optionCount: 5,
+    answerKey: {},
+    timePerQuestion: 2,
+    questionType: 'coktan_secmeli'
+  });
   
   // Bulk Wizard Form States
   const [bulkTextInput, setBulkTextInput] = useState("");
@@ -119,9 +136,14 @@ export default function BookContentManager() {
   });
 
   // Assign Homework Modal Form States
-  const [assignTargetMode, setAssignTargetMode] = useState("class"); // "class" | "student"
+  const [assignTargetMode, setAssignTargetMode] = useState("student"); // "student" | "class"
   const [assignSelectedTargetIds, setAssignSelectedTargetIds] = useState([]);
   const [assignCustomTitle, setAssignCustomTitle] = useState("");
+  const [assignDueDate, setAssignDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+  });
   const [assignAsBook, setAssignAsBook] = useState(false);
   const [assignDueDateDays, setAssignDueDateDays] = useState(7);
   const [assignExactDueDate, setAssignExactDueDate] = useState("");
@@ -137,10 +159,10 @@ export default function BookContentManager() {
 
   // --- BOOK ASSIGNED HOMEWORKS ---
   const bookHomeworks = useMemo(() => {
-    return (allHomeworks || []).filter(hw => {
-      if (hw.bookId === id || hw.sourceType === 'trackedBook') return true;
-      if (hw.tests && Array.isArray(hw.tests)) {
-        return hw.tests.some(tId => tests.some(t => t.id === tId));
+    return allHomeworks.filter(hw => {
+      if (hw.bookId === id) return true;
+      if (hw.tests && hw.tests.length > 0) {
+        return tests.some(t => hw.tests.includes(t.id));
       }
       return false;
     });
@@ -150,31 +172,66 @@ export default function BookContentManager() {
   const homeworkAnalytics = useMemo(() => {
     let totalAssigned = bookHomeworks.length;
     let totalTargetStudents = 0;
+    let totalAssignedTestSlots = 0;
+    let totalSolvedTestSlots = 0;
     let completedCount = 0;
 
     bookHomeworks.forEach(hw => {
       let hwStudents = [];
       if (hw.targetType === 'grade' || hw.targetType === 'class') {
-        hwStudents = students.filter(s => (hw.targetIds || []).some(tid => s.gradeId === tid || s.grade === tid || s.className === tid));
+        hwStudents = students.filter(s => (hw.targetIds || []).some(tid => String(s.gradeId) === String(tid) || String(s.grade) === String(tid) || String(s.className) === String(tid)));
       } else {
-        hwStudents = students.filter(s => (hw.targetIds || []).some(tid => s.id === tid));
+        hwStudents = (hw.targetIds || []).map(tid => students.find(s => String(s.id) === String(tid)) || { id: tid, name: 'Öğrenci' });
+      }
+      if (hwStudents.length === 0 && students.length > 0 && (hw.targetType === 'all' || !hw.targetType)) {
+        hwStudents = students;
       }
       totalTargetStudents += hwStudents.length;
 
-      let hwTests = hw.tests || [];
-      if (hw.title && hw.title.includes('(Tüm Kitap Görevi)')) {
-        hwTests = tests.map(t => t.id);
-      }
+      let hwTests = (hw.tests && hw.tests.length > 0)
+        ? hw.tests
+        : (hw.testDueDates && Object.keys(hw.testDueDates).length > 0)
+          ? Object.keys(hw.testDueDates)
+          : tests.map(t => t.id);
+
+      const hwTestsSet = new Set(hwTests.map(String));
+      const hwTestsUuidSet = new Set(hwTests.map(tid => toUUID(tid)).filter(Boolean));
 
       hwStudents.forEach(st => {
-        const solved = submissions.filter(s => s.studentId === st.id && hwTests.includes(s.testId) && s.status === 'completed');
-        if (solved.length >= hwTests.length && hwTests.length > 0) completedCount++;
+        totalAssignedTestSlots += hwTests.length;
+        const stUuid = toUUID(st.id);
+
+        const solved = (submissions || []).filter(s => {
+          const isMatchStudent = String(s.studentId) === String(st.id) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
+          if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+
+          const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+          return candidateFields.some(cid => hwTestsSet.has(cid) || hwTestsUuidSet.has(cid) || hwTestsSet.has(toUUID(cid)) || hwTestsUuidSet.has(toUUID(cid)));
+        });
+
+        const uniqueSolved = new Set();
+        solved.forEach(s => {
+          const matched = hwTests.find(tid => {
+            const tu = toUUID(tid);
+            const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+            return candidateFields.some(cid => cid === String(tid) || (tu && cid === String(tu)) || (tu && toUUID(cid) === String(tu)) || toUUID(cid) === String(tid));
+          });
+          if (matched) uniqueSolved.add(String(matched));
+        });
+
+        totalSolvedTestSlots += uniqueSolved.size;
+        if (uniqueSolved.size >= hwTests.length && hwTests.length > 0) {
+          completedCount++;
+        }
       });
     });
 
-    const completionRate = totalTargetStudents > 0 ? Math.round((completedCount / totalTargetStudents) * 100) : 0;
-    return { totalAssigned, totalTargetStudents, completedCount, completionRate };
-  }, [bookHomeworks, students, submissions]);
+    const completionRate = totalAssignedTestSlots > 0
+      ? Math.round((totalSolvedTestSlots / totalAssignedTestSlots) * 100)
+      : (totalTargetStudents > 0 ? Math.round((completedCount / totalTargetStudents) * 100) : 0);
+
+    return { totalAssigned, totalTargetStudents, completedCount, completionRate, totalSolvedTestSlots, totalAssignedTestSlots };
+  }, [bookHomeworks, students, submissions, tests]);
 
   // --- PARSE TEXT LINES FOR BULK WIZARD ---
   const parsedBulkStructure = useMemo(() => {
@@ -1171,9 +1228,38 @@ export default function BookContentManager() {
 
           {/* HOMEWORKS LIST */}
           <div className="card glass" style={{ padding: '1.75rem' }}>
-            <h3 style={{ margin: '0 0 1.25rem 0', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
-              <CheckSquare size={22} /> Bu Kitaptan Atanan Ödevler & Öğrenci İlerlemeleri
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem' }}>
+                <CheckSquare size={22} /> Bu Kitaptan Atanan Ödevler & Öğrenci İlerlemeleri
+              </h3>
+              <button
+                onClick={async () => {
+                  if (typeof refreshSubmissions === 'function') {
+                    await refreshSubmissions();
+                    showToast('Öğrenci verileri veritabanından güncellendi!', 'success');
+                  }
+                }}
+                disabled={isEvaluationSyncing}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: isEvaluationSyncing ? '#e2e8f0' : '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: isEvaluationSyncing ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Supabase'den en güncel öğrenci çözümlerini canlı çek"
+              >
+                <RotateCcw size={14} style={{ animation: isEvaluationSyncing ? 'spin 1s linear infinite' : 'none' }} />
+                {isEvaluationSyncing ? 'Güncelleniyor...' : '🔄 Canlı Verileri Yenile'}
+              </button>
+            </div>
 
             {bookHomeworks.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1200,24 +1286,31 @@ export default function BookContentManager() {
 
                   const totalTestsInHw = hwTests.length || 1;
                   const hwTestsSet = new Set(hwTests.map(String));
+                  const hwTestsUuidSet = new Set(hwTests.map(tid => toUUID(tid)).filter(Boolean));
 
                   let completedStudentsCount = 0;
                   const studentProgressDetails = (targetStudents || []).map(st => {
                     if (!st) return null;
                     const stId = st.id;
+                    const stUuid = toUUID(stId);
                     const solvedSubmissions = (submissions || []).filter(s => {
-                      if (String(s.studentId) !== String(stId) || s.status === 'in_progress' || s.status === 'draft') return false;
-                      return hwTestsSet.has(String(s.testId)) || 
-                             hwTestsSet.has(String(s.bookTestId)) || 
-                             hwTestsSet.has(String(s.realTestId)) || 
-                             String(s.hwId) === String(hw.id) || 
-                             String(s.homeworkId) === String(hw.id) ||
-                             String(s.testId) === String(hw.id);
+                      const isMatchStudent = String(s.studentId) === String(stId) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
+                      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+
+                      const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+                      const isMatchingTest = candidateFields.some(cid => hwTestsSet.has(cid) || hwTestsUuidSet.has(cid) || hwTestsSet.has(toUUID(cid)) || hwTestsUuidSet.has(toUUID(cid)));
+                      const isMatchingHw = String(s.hwId) === String(hw.id) || String(s.homeworkId) === String(hw.id) || (toUUID(hw.id) && String(s.hwId) === String(toUUID(hw.id)));
+
+                      return isMatchingTest || isMatchingHw;
                     });
                     
                     const uniqueSolvedTests = new Set();
                     solvedSubmissions.forEach(s => {
-                      const matchedId = hwTests.find(tid => String(tid) === String(s.testId) || String(tid) === String(s.bookTestId) || String(tid) === String(s.realTestId));
+                      const matchedId = hwTests.find(tid => {
+                        const tu = toUUID(tid);
+                        const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+                        return candidateFields.some(cid => cid === String(tid) || (tu && cid === String(tu)) || (tu && toUUID(cid) === String(tu)) || toUUID(cid) === String(tid));
+                      });
                       if (matchedId) uniqueSolvedTests.add(String(matchedId));
                     });
 
@@ -1376,13 +1469,15 @@ export default function BookContentManager() {
                                 const parentTopic = parentSubject?.topics?.find(tp => tp.id === testDef.topicId);
                                 const subjName = testDef.subjectName || parentSubject?.name || '';
                                 const topicName = testDef.topicName || parentTopic?.name || '';
+                                const tUuid = toUUID(tId);
+                                const stUuid = toUUID(item.student?.id);
 
                                 const testSub = (submissions || []).find(s => {
-                                  if (String(s.studentId) !== String(item.student.id)) return false;
-                                  return String(s.testId) === String(tId) ||
-                                         String(s.bookTestId) === String(tId) ||
-                                         String(s.realTestId) === String(tId) ||
-                                         (Array.isArray(s.bookTestIds) && s.bookTestIds.includes(tId));
+                                  const isMatchStudent = String(s.studentId) === String(item.student?.id) || (stUuid && String(s.studentId) === String(stUuid)) || (stUuid && toUUID(s.studentId) === String(stUuid));
+                                  if (!isMatchStudent) return false;
+
+                                  const candidateFields = [s.testId, s.bookTestId, s.realTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+                                  return candidateFields.some(cid => cid === String(tId) || (tUuid && cid === String(tUuid)) || (tUuid && toUUID(cid) === String(tUuid)) || toUUID(cid) === String(tId));
                                 });
 
                                 const isSolved = Boolean(testSub && testSub.status !== 'in_progress' && testSub.status !== 'draft');
