@@ -15,23 +15,28 @@ import {
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle
 } from 'lucide-react';
 
-function getQuestionColumns(totalCount, maxPerCol = 10) {
-  let perCol = maxPerCol;
-  if (totalCount <= 10) perCol = totalCount;
-  else if (totalCount <= 14) perCol = Math.ceil(totalCount / 2);
-  else if (totalCount <= 20) perCol = 10;
-  else if (totalCount <= 30) perCol = 10;
-  else perCol = Math.ceil(totalCount / Math.ceil(totalCount / 10));
+function getQuestionColumns(totalCount, isMobile = false) {
+  if (totalCount <= 0) return [[]];
+  if (isMobile || totalCount <= 6) {
+    return [Array.from({ length: totalCount }, (_, i) => i + 1)];
+  }
 
-  const columns = [];
+  let numCols = 2;
+  if (totalCount <= 6) numCols = 1;
+  else if (totalCount <= 24) numCols = 2;
+  else if (totalCount <= 36) numCols = 3;
+  else numCols = 4;
+
+  const perCol = Math.ceil(totalCount / numCols);
+  const cols = [];
   for (let i = 0; i < totalCount; i += perCol) {
     const col = [];
     for (let j = i; j < Math.min(i + perCol, totalCount); j++) {
       col.push(j + 1);
     }
-    columns.push(col);
+    cols.push(col);
   }
-  return columns;
+  return cols;
 }
 
 export default function TrackedBookQuizRunner() {
@@ -183,8 +188,8 @@ export default function TrackedBookQuizRunner() {
   const isOpenEnded = resolvedBook?.bookType === 'open_ended' || resolvedTest?.questionType === 'acik_uclu';
 
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(questionCount, 10);
-  }, [questionCount]);
+    return getQuestionColumns(questionCount, isMobile);
+  }, [questionCount, isMobile]);
 
   // Timer calculation
   const perQuestionMins = Number(resolvedTest?.timePerQuestion || resolvedBook?.timePerQuestion) || 2;
@@ -896,182 +901,191 @@ export default function TrackedBookQuizRunner() {
                   )}
                 </div>
 
-                {/* Natural Question Grid (Büyük ve Çok Şık Şıklar) */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.85rem' }}>
-                  {Array.from({ length: questionCount }).map((_, idx) => {
-                    const qNo = idx + 1;
-                    const selected = answers[qNo] || answers[String(qNo)] || '';
+                {/* Natural Question Grid (1 2 3... yukarıdan aşağıya sıralı akış) */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
+                  gap: '1rem',
+                  alignItems: 'start'
+                }}>
+                  {questionColumns.map((col, colIdx) => (
+                    <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {col.map(qNo => {
+                        const idx = qNo - 1;
+                        const selected = answers[qNo] || answers[String(qNo)] || '';
 
-                    let isCorrect = false;
-                    let isWrong = false;
-                    let correctKey = '';
+                        let isCorrect = false;
+                        let isWrong = false;
+                        let correctKey = '';
 
-                    if (isSubmitted) {
-                      const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
-                      correctKey = Array.isArray(answerKey) 
-                        ? (answerKey[idx] || '') 
-                        : (answerKey[qNo] || answerKey[String(qNo)] || '');
-                      isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
-                      isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
-                    }
+                        if (isSubmitted) {
+                          const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+                          correctKey = Array.isArray(answerKey) 
+                            ? (answerKey[idx] || '') 
+                            : (answerKey[qNo] || answerKey[String(qNo)] || '');
+                          isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
+                          isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
+                        }
 
-                    if (isOpenEnded) {
-                      return (
-                        <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '1rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc' }}>
-                            Soru {qNo}
-                          </span>
-                          <textarea
-                            disabled={isSubmitted}
-                            value={selected}
-                            onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                            placeholder="Cevabınızı buraya yazınız..."
-                            rows={2}
-                            style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '0.5rem', color: 'white', fontSize: '0.85rem', resize: 'vertical' }}
-                          />
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div 
-                        key={qNo} 
-                        style={{
-                          background: selected ? 'rgba(8, 145, 178, 0.08)' : '#0f172a',
-                          padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
-                          borderRadius: '1rem',
-                          border: isCorrect 
-                            ? '1.5px solid #10b981' 
-                            : isWrong 
-                            ? '1.5px solid #ef4444' 
-                            : selected 
-                            ? '1.5px solid #0891b2' 
-                            : '1px solid #334155',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.75rem',
-                          transition: 'all 0.15s ease',
-                          boxShadow: selected ? '0 4px 14px rgba(8,145,178,0.15)' : 'none'
-                        }}
-                      >
-                        {/* Question Number Badge */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 60, flexShrink: 0 }}>
-                          <div style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '0.6rem',
-                            background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
-                            color: selected ? '#ffffff' : '#94a3b8',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 900,
-                            fontSize: '0.85rem',
-                            border: selected ? 'none' : '1px solid #334155',
-                            boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
-                          }}>
-                            {qNo}
-                          </div>
-
-                          {isSubmitted && (
-                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
-                              {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Large Option Bubbles (A, B, C, D, E) */}
-                        <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                          {optionsList.map((opt) => {
-                            const isSelected = selected === opt;
-                            const isThisOptCorrect = isSubmitted && correctKey === opt;
-
-                            let bubbleBg = '#1e293b';
-                            let bubbleBorder = '1.5px solid #475569';
-                            let bubbleColor = '#cbd5e1';
-                            let bubbleShadow = 'none';
-
-                            if (isSelected) {
-                              bubbleBg = 'linear-gradient(135deg, #0891b2, #06b6d4)';
-                              bubbleBorder = '2px solid #38bdf8';
-                              bubbleColor = '#ffffff';
-                              bubbleShadow = '0 4px 14px rgba(8,145,178,0.45)';
-                            }
-
-                            if (isSubmitted) {
-                              if (isThisOptCorrect) {
-                                bubbleBg = 'linear-gradient(135deg, #10b981, #059669)';
-                                bubbleBorder = '2px solid #34d399';
-                                bubbleColor = '#ffffff';
-                                bubbleShadow = '0 4px 12px rgba(16,185,129,0.4)';
-                              } else if (isSelected && isWrong) {
-                                bubbleBg = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                                bubbleBorder = '2px solid #f87171';
-                                bubbleColor = '#ffffff';
-                                bubbleShadow = '0 4px 12px rgba(239,68,68,0.4)';
-                              }
-                            }
-
-                            return (
-                              <button
-                                key={opt}
-                                type="button"
+                        if (isOpenEnded) {
+                          return (
+                            <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '1rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc' }}>
+                                Soru {qNo}
+                              </span>
+                              <textarea
                                 disabled={isSubmitted}
-                                onClick={() => handleSelectOption(qNo, opt)}
-                                style={{
-                                  width: isMobile ? 38 : 44,
-                                  height: isMobile ? 38 : 44,
-                                  borderRadius: '50%',
-                                  fontWeight: 900,
-                                  fontSize: isMobile ? '0.95rem' : '1.05rem',
-                                  cursor: isSubmitted ? 'default' : 'pointer',
-                                  border: bubbleBorder,
-                                  background: bubbleBg,
-                                  color: bubbleColor,
-                                  transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
-                                  boxShadow: bubbleShadow,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  padding: 0
-                                }}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
+                                value={selected}
+                                onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                                placeholder="Cevabınızı buraya yazınız..."
+                                rows={2}
+                                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '0.5rem', color: 'white', fontSize: '0.85rem', resize: 'vertical' }}
+                              />
+                            </div>
+                          );
+                        }
 
-                          {!isSubmitted && (
-                            <button
-                              type="button"
-                              onClick={() => handleClearOption(qNo)}
-                              disabled={!selected}
-                              title="İşareti Kaldır"
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '50%',
-                                background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                                border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
-                                color: selected ? '#f87171' : 'transparent',
-                                cursor: selected ? 'pointer' : 'default',
+                        return (
+                          <div 
+                            key={qNo} 
+                            style={{
+                              background: selected ? 'rgba(8, 145, 178, 0.08)' : '#0f172a',
+                              padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
+                              borderRadius: '1rem',
+                              border: isCorrect 
+                                ? '1.5px solid #10b981' 
+                                : isWrong 
+                                ? '1.5px solid #ef4444' 
+                                : selected 
+                                ? '1.5px solid #0891b2' 
+                                : '1px solid #334155',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.75rem',
+                              transition: 'all 0.15s ease',
+                              boxShadow: selected ? '0 4px 14px rgba(8,145,178,0.15)' : 'none'
+                            }}
+                          >
+                            {/* Question Number Badge */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 60, flexShrink: 0 }}>
+                              <div style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '0.6rem',
+                                background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
+                                color: selected ? '#ffffff' : '#94a3b8',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                pointerEvents: selected ? 'auto' : 'none',
-                                transition: 'all 0.12s ease',
-                                marginLeft: 2,
-                                padding: 0
-                              }}
-                            >
-                              <XIcon size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                                fontWeight: 900,
+                                fontSize: '0.85rem',
+                                border: selected ? 'none' : '1px solid #334155',
+                                boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
+                              }}>
+                                {qNo}
+                              </div>
+
+                              {isSubmitted && (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
+                                  {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Large Option Bubbles (A, B, C, D, E) */}
+                            <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                              {optionsList.map((opt) => {
+                                const isSelected = selected === opt;
+                                const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                                let bubbleBg = '#1e293b';
+                                let bubbleBorder = '1.5px solid #475569';
+                                let bubbleColor = '#cbd5e1';
+                                let bubbleShadow = 'none';
+
+                                if (isSelected) {
+                                  bubbleBg = 'linear-gradient(135deg, #0891b2, #06b6d4)';
+                                  bubbleBorder = '2px solid #38bdf8';
+                                  bubbleColor = '#ffffff';
+                                  bubbleShadow = '0 4px 14px rgba(8,145,178,0.45)';
+                                }
+
+                                if (isSubmitted) {
+                                  if (isThisOptCorrect) {
+                                    bubbleBg = 'linear-gradient(135deg, #10b981, #059669)';
+                                    bubbleBorder = '2px solid #34d399';
+                                    bubbleColor = '#ffffff';
+                                    bubbleShadow = '0 4px 12px rgba(16,185,129,0.4)';
+                                  } else if (isSelected && isWrong) {
+                                    bubbleBg = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                                    bubbleBorder = '2px solid #f87171';
+                                    bubbleColor = '#ffffff';
+                                    bubbleShadow = '0 4px 12px rgba(239,68,68,0.4)';
+                                  }
+                                }
+
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    disabled={isSubmitted}
+                                    onClick={() => handleSelectOption(qNo, opt)}
+                                    style={{
+                                      width: isMobile ? 38 : 44,
+                                      height: isMobile ? 38 : 44,
+                                      borderRadius: '50%',
+                                      fontWeight: 900,
+                                      fontSize: isMobile ? '0.95rem' : '1.05rem',
+                                      cursor: isSubmitted ? 'default' : 'pointer',
+                                      border: bubbleBorder,
+                                      background: bubbleBg,
+                                      color: bubbleColor,
+                                      transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
+                                      boxShadow: bubbleShadow,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: 0
+                                    }}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+
+                              {!isSubmitted && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClearOption(qNo)}
+                                  disabled={!selected}
+                                  title="İşareti Kaldır"
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                                    border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
+                                    color: selected ? '#f87171' : 'transparent',
+                                    cursor: selected ? 'pointer' : 'default',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    pointerEvents: selected ? 'auto' : 'none',
+                                    transition: 'all 0.12s ease',
+                                    marginLeft: 2,
+                                    padding: 0
+                                  }}
+                                >
+                                  <XIcon size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
