@@ -464,6 +464,20 @@ export default function BookContentManager() {
     }
   };
 
+  const handleOpenEditTest = (subject, topic, test) => {
+    setCurrentSubject(subject || null);
+    setCurrentTopic(topic || null);
+    setCurrentTest(test);
+    const qCount = Number(test.questionCount) || (test.answerKey ? Object.keys(test.answerKey).length : 0) || 20;
+    setTestFormData({
+      name: test.name || '',
+      questionCount: qCount,
+      answerKey: test.answerKey ? { ...test.answerKey } : {},
+      pdfUrl: test.pdfUrl || ''
+    });
+    setIsTestDialogOpen(true);
+  };
+
   const handleTestSave = async () => {
     if (!book || !testFormData.name?.trim()) {
       showToast('Lütfen test adını giriniz.', 'error');
@@ -1088,7 +1102,7 @@ export default function BookContentManager() {
                                     <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: '#4f46e5' }} onClick={() => handleAssignSingleTest(test)} title="Bu Teste Bitirme Tarihi / Ödev Ata">
                                       <Calendar size={14} />
                                     </button>
-                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {}, pdfUrl: test.pdfUrl || '' }); setIsTestDialogOpen(true); }}>
+                                    <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={(e) => { e.stopPropagation(); handleOpenEditTest(subject, null, test); }} title="Bu Testi Düzenle">
                                       <Edit size={14} />
                                     </button>
                                     <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
@@ -1152,7 +1166,7 @@ export default function BookContentManager() {
                                             <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: '#4f46e5' }} onClick={() => handleAssignSingleTest(test)} title="Bu Teste Bitirme Tarihi / Ödev Ata">
                                               <Calendar size={14} />
                                             </button>
-                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(test); setTestFormData({ name: test.name, questionCount: test.questionCount, answerKey: test.answerKey || {}, pdfUrl: test.pdfUrl || '' }); setIsTestDialogOpen(true); }}>
+                                            <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none' }} onClick={(e) => { e.stopPropagation(); handleOpenEditTest(subject, topic, test); }} title="Bu Testi Düzenle">
                                               <Edit size={14} />
                                             </button>
                                             <button className="btn btn-outline" style={{ padding: '0.3rem', border: 'none', color: 'var(--color-error)' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
@@ -2169,33 +2183,60 @@ export default function BookContentManager() {
 
       {/* Test Modal */}
       {isTestDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '450px' }}>
-            <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>{currentTest ? 'Testi Düzenle' : 'Yeni Test Ekle'}</h3>
-            <div className="form-group" style={{ margin: '1.5rem 0 1rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Test Adı</label>
-              <input type="text" className="input-field" value={testFormData.name} onChange={e => setTestFormData(p => ({...p, name: e.target.value}))} placeholder="Test 1, Zor Seviye..." style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }} autoFocus />
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', color: '#1e293b', padding: '1.75rem', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--color-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
+                {currentTest ? `✏️ Testi Düzenle: ${currentTest.name}` : '➕ Yeni Test Ekle'}
+              </h3>
+              <button onClick={() => setIsTestDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
             </div>
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Soru Sayısı</label>
-              <input type="number" className="input-field" value={testFormData.questionCount} onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value)||0}))} style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }} />
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem', color: '#334155' }}>Test Adı</label>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={testFormData.name} 
+                onChange={e => setTestFormData(p => ({...p, name: e.target.value}))} 
+                placeholder="Örn: Test 1, Kazanım Testi 1..." 
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.5rem', border: '1.5px solid #cbd5e1', fontWeight: 700, fontSize: '0.92rem' }} 
+                autoFocus 
+              />
             </div>
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>PDF Linki (İsteğe Bağlı)</label>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem', color: '#334155' }}>Soru Sayısı</label>
+              <input 
+                type="number" 
+                min="1"
+                max="100"
+                className="input-field" 
+                value={testFormData.questionCount} 
+                onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value) || 0}))} 
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.5rem', border: '1.5px solid #cbd5e1', fontWeight: 700, fontSize: '0.92rem' }} 
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.88rem', color: '#334155' }}>PDF Linki (İsteğe Bağlı)</label>
               <input
                 type="url"
                 className="input-field"
                 value={testFormData.pdfUrl || ''}
                 onChange={e => setTestFormData(p => ({...p, pdfUrl: e.target.value}))}
                 placeholder="https://drive.google.com/... veya PDF URL"
-                style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)' }}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.5rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem' }}
               />
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>Google Drive paylaşım linki veya direkt PDF linki. Öğrenci bu testi çözerken PDF'yi görebilir.</div>
             </div>
+
             {book.bookType !== 'open_ended' && (
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  <span>Cevap Anahtarı (İsteğe Bağlı)</span>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.88rem', color: '#334155' }}>
+                  <span>Cevap Anahtarı ({book.optionCount === 4 ? 'A, B, C, D' : 'A, B, C, D, E'})</span>
                   <input 
                     type="text" 
                     placeholder="Toplu Gir (Örn: ABC...)"
@@ -2207,19 +2248,20 @@ export default function BookContentManager() {
                       });
                       setTestFormData(p => ({...p, answerKey: newKey}));
                     }}
-                    style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.1)', width: '160px', outline: 'none' }}
+                    style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', borderRadius: '0.4rem', border: '1.5px solid #cbd5e1', width: '160px', outline: 'none', fontWeight: 700 }}
                   />
                 </label>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto', padding: '0.75rem', background: 'rgba(0,0,0,0.02)', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                  {Array.from({ length: testFormData.questionCount }).map((_, i) => {
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto', padding: '0.6rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
                     const qNum = i + 1;
                     const val = testFormData.answerKey?.[qNum] || '';
+                    const optList = book.optionCount === 4 ? ['A','B','C','D'] : ['A','B','C','D','E'];
                     return (
-                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'white', padding: '0.5rem 0.75rem', borderRadius: 'var(--border-radius-sm)', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        <div style={{ width: '20px', fontWeight: 'bold', color: 'var(--color-text-muted)' }}>{qNum}.</div>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          {['A','B','C','D','E'].map(opt => {
+                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.4rem 0.6rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: '#64748b' }}>{qNum}.</div>
+                        <div style={{ display: 'flex', gap: '0.2rem' }}>
+                          {optList.map(opt => {
                             const isSelected = val === opt;
                             return (
                               <button
@@ -2227,10 +2269,10 @@ export default function BookContentManager() {
                                 key={opt}
                                 onClick={() => setTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
                                 style={{
-                                  width: '28px', height: '28px', borderRadius: '50%', border: '1px solid rgba(0,0,0,0.2)',
+                                  width: '26px', height: '26px', borderRadius: '50%', border: '1px solid #cbd5e1',
                                   background: isSelected ? 'var(--color-primary)' : 'white',
-                                  color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                                  color: isSelected ? 'white' : '#1e293b', cursor: 'pointer', fontWeight: 800, fontSize: '0.72rem',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
                                 }}
                               >
                                 {opt}
@@ -2241,13 +2283,16 @@ export default function BookContentManager() {
                       </div>
                     );
                   })}
-                  {testFormData.questionCount === 0 && <span className="text-muted" style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center' }}>Önce soru sayısı girin.</span>}
+                  {(!testFormData.questionCount || testFormData.questionCount === 0) && (
+                    <span className="text-muted" style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0' }}>Önce soru sayısı girin.</span>
+                  )}
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)}>İptal</button>
-              <button className="btn btn-primary" onClick={handleTestSave}>Kaydet</button>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+              <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)} style={{ padding: '0.5rem 1rem', fontWeight: 700 }}>İptal</button>
+              <button className="btn btn-primary" onClick={handleTestSave} style={{ padding: '0.5rem 1.25rem', fontWeight: 800 }}>Kaydet</button>
             </div>
           </div>
         </div>
