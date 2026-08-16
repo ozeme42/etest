@@ -6,7 +6,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
-import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft } from 'lucide-react';
+import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft, Sparkles, Play, Layers, Calendar, ShieldCheck, Check, Zap } from 'lucide-react';
 import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 
@@ -37,6 +37,7 @@ export default function ModularQuizPage() {
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasStarted, setHasStarted] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
   const isSubmittingRef = useRef(false);
 
@@ -911,6 +912,166 @@ export default function ModularQuizPage() {
 
     return <StandardQuizRunner test={effectiveTest} questions={questions} onSubmit={handleSubmit} onAutoSave={handleAutoSave} submissionAnswers={draftSubmission?.answers} draftAnswers={draftSubmission?.answers} />;
   };
+
+  if (!hasStarted) {
+    const testTitle = activeHomework?.title || test?.title || test?.name || 'Ödev / Sınav';
+    const testSubject = activeHomework?.subject || test?.subject || bookForTest?.title || 'Genel Sınav';
+    const displayQuestionCount = test?.questionCount || test?.totalQuestions || (questions && questions.length > 0 ? questions.length : null) || activeHomework?.totalQuestions || 10;
+    const timePerQ = activeHomework?.timePerQuestion || test?.timePerQuestion || 2;
+    const totalMinutes = test?.durationMinutes || (displayQuestionCount * timePerQ);
+    const dueDateStr = activeHomework?.dueDate ? new Date(activeHomework.dueDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+    const formatLabel = isWritten ? 'Açık Uçlu / Yazılı' : isHtml ? 'İnteraktif HTML' : isPdf ? 'PDF Destekli Sınav' : isMultiSection ? 'Çok Bölümlü Ödev' : isPhysical ? 'Fiziksel Kitap Optik Formu' : 'Çoktan Seçmeli Test';
+    const hasExistingDraft = Boolean(draftSubmission && draftSubmission.answers && draftSubmission.answers.length > 0);
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', padding: '1.5rem', color: 'white' }}>
+        <div style={{
+          background: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: '1.5rem',
+          padding: '2.5rem 2rem',
+          maxWidth: '620px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.35rem'
+        }}>
+          {/* ICON BADGE */}
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'rgba(99, 102, 241, 0.15)',
+            border: '2px solid #6366f1',
+            color: '#818cf8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 0 25px rgba(99, 102, 241, 0.35)'
+          }}>
+            <Sparkles size={40} />
+          </div>
+
+          {/* BADGES & TITLE */}
+          <div>
+            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(99,102,241,0.2)', border: '1px solid #6366f1', color: '#a5b4fc', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {testSubject}
+              </span>
+              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', color: '#6ee7b7', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
+                {formatLabel}
+              </span>
+              {activeHomework && (
+                <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(245,158,11,0.2)', border: '1px solid #f59e0b', color: '#fcd34d', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
+                  Ödev Görevi
+                </span>
+              )}
+            </div>
+
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'white', lineHeight: 1.25 }}>
+              {testTitle}
+            </h1>
+            <p style={{ color: '#94a3b8', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
+              Sınavınız hazırlandı. Başlamaya hazır olduğunuzda <b>"{hasExistingDraft ? 'Kaldığın Yerden Devam Et' : 'Sınava Başla'}"</b> butonuna tıklayınız.
+            </p>
+          </div>
+
+          {/* STATS 4-CARD GRID */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: '0.75rem', width: '100%' }}>
+            <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
+              <div style={{ color: '#818cf8', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Layers size={17} /></div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'white' }}>{displayQuestionCount} Soru</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Toplam Soru</div>
+            </div>
+            
+            <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
+              <div style={{ color: '#34d399', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Clock3 size={17} /></div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#34d399' }}>{totalMinutes} Dk</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>{timePerQ} dk / soru</div>
+            </div>
+
+            {dueDateStr && (
+              <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
+                <div style={{ color: '#fbbf24', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Calendar size={17} /></div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1.2, marginTop: 3 }}>{dueDateStr}</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Son Teslim</div>
+              </div>
+            )}
+
+            <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
+              <div style={{ color: '#38bdf8', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><ShieldCheck size={17} /></div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#38bdf8', marginTop: 2 }}>Aktif</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Sınav Durumu</div>
+            </div>
+          </div>
+
+          {/* RULES / TIPS BOX */}
+          <div style={{ width: '100%', background: '#0f172a', borderRadius: '0.9rem', border: '1px solid #334155', padding: '0.9rem 1.15rem', textAlign: 'left' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#f8fafc', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              💡 Sınav Bilgilendirmesi
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <li>İşaretlediğiniz cevaplar anlık olarak otomatik kaydedilir.</li>
+              <li>Sorular arasında dilediğiniz gibi geçiş yapabilir, cevabınızı güncelleyebilirsiniz.</li>
+              <li>Testi bitirdikten sonra sağ üstteki <b>"Sınavı Tamamla"</b> butonuna basarak teslim ediniz.</li>
+            </ul>
+          </div>
+
+          {/* ACTION BUTTONS */}
+          <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setHasStarted(true)}
+              style={{
+                flex: 2,
+                minWidth: '200px',
+                padding: '0.9rem 1.5rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: '1rem',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.6rem',
+                boxShadow: '0 8px 24px rgba(79,70,229,0.45)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <Play size={18} fill="white" /> {hasExistingDraft ? 'Kaldığın Yerden Devam Et' : 'Sınava Başla'}
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              style={{
+                flex: 1,
+                minWidth: '110px',
+                padding: '0.9rem 1.1rem',
+                borderRadius: '0.85rem',
+                background: '#334155',
+                color: '#cbd5e1',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.15s'
+              }}
+            >
+              <ArrowLeft size={16} /> Geri Dön
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a' }}>
