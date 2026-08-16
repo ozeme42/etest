@@ -915,6 +915,7 @@ export default function ModularQuizPage() {
 
   if (!hasStarted) {
     const testTitle = activeHomework?.title || test?.title || test?.name || 'Ödev / Sınav';
+    const testSubject = activeHomework?.subject || test?.subject || bookForTest?.title || 'Genel Sınav';
     const displayQuestionCount = test?.questionCount || test?.totalQuestions || (questions && questions.length > 0 ? questions.length : null) || activeHomework?.totalQuestions || (Array.isArray(test?.answerKey) ? test.answerKey.length : 1);
     const timePerQ = activeHomework?.timePerQuestion || test?.timePerQuestion || 2;
     const totalMinutes = test?.durationMinutes || (displayQuestionCount * timePerQ);
