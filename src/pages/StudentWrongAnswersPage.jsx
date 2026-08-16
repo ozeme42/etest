@@ -17,51 +17,59 @@ import { useAuth } from '../context/AuthContext';
 
 const subjectThemes = {
   'all_subjects': {
-    bg: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+    bg: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)',
     icon: GraduationCap,
-    color: '#4f46e5',
-    shadow: '0 12px 28px -5px rgba(79,70,229,0.45)'
+    color: '#818cf8',
+    border: 'rgba(129,140,248,0.35)',
+    shadow: '0 12px 28px -5px rgba(99,102,241,0.4)'
   },
   'Matematik': {
-    bg: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+    bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
     icon: Ruler,
-    color: '#2563eb',
+    color: '#60a5fa',
+    border: 'rgba(96,165,250,0.35)',
     shadow: '0 10px 25px -5px rgba(37,99,235,0.4)'
   },
   'Fen Bilimleri': {
-    bg: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+    bg: 'linear-gradient(135deg, #064e3b 0%, #0d9488 100%)',
     icon: TestTube2,
-    color: '#0d9488',
+    color: '#34d399',
+    border: 'rgba(52,211,153,0.35)',
     shadow: '0 10px 25px -5px rgba(13,148,136,0.4)'
   },
   'Türkçe': {
-    bg: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+    bg: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
     icon: BookCopy,
-    color: '#ea580c',
+    color: '#fb923c',
+    border: 'rgba(251,146,60,0.35)',
     shadow: '0 10px 25px -5px rgba(234,88,12,0.4)'
   },
   'Sosyal Bilgiler': {
-    bg: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+    bg: 'linear-gradient(135deg, #581c87 0%, #9333ea 100%)',
     icon: Globe,
-    color: '#9333ea',
+    color: '#c084fc',
+    border: 'rgba(192,132,252,0.35)',
     shadow: '0 10px 25px -5px rgba(147,51,234,0.4)'
   },
   'İngilizce': {
-    bg: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+    bg: 'linear-gradient(135deg, #831843 0%, #e11d48 100%)',
     icon: MessageSquare,
-    color: '#e11d48',
+    color: '#fb7185',
+    border: 'rgba(251,113,133,0.35)',
     shadow: '0 10px 25px -5px rgba(225,29,72,0.4)'
   },
   'Genel Testler': {
-    bg: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+    bg: 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)',
     icon: Trophy,
-    color: '#4f46e5',
+    color: '#a5b4fc',
+    border: 'rgba(165,180,252,0.35)',
     shadow: '0 10px 25px -5px rgba(79,70,229,0.4)'
   },
   'Diğer': {
-    bg: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
+    bg: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
     icon: BookOpen,
-    color: '#475569',
+    color: '#cbd5e1',
+    border: 'rgba(255,255,255,0.15)',
     shadow: '0 10px 25px -5px rgba(71,85,105,0.4)'
   }
 };
@@ -604,11 +612,28 @@ export default function StudentWrongAnswersPage() {
   }, [selectedSubject, subjectCardStats, testGroupedSubmissions]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '1.75rem', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)', padding: '1.25rem 1rem', fontFamily: "'Inter', system-ui, sans-serif", color: '#f8fafc', boxSizing: 'border-box' }}>
+      <style>{`
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .wa-anim { animation: fadeSlideUp 0.3s ease both; }
+        .wa-card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        .wa-card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99,102,241,0.3) !important; }
+        @media (max-width: 768px) {
+          .wa-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .wa-tab-switcher { width: 100% !important; justify-content: stretch !important; }
+          .wa-tab-switcher button { flex: 1 !important; justify-content: center !important; font-size: 0.76rem !important; padding: 0.5rem 0.65rem !important; }
+          .wa-subject-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important; gap: 10px !important; }
+          .wa-filter-bar { flex-direction: column !important; align-items: stretch !important; }
+          .wa-filter-bar input, .wa-filter-bar select { width: 100% !important; }
+          .wa-cards-grid { grid-template-columns: 1fr !important; }
+          .wa-notebook-stats { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+        }
+      `}</style>
+
+      <div style={{ maxWidth: 1300, margin: '0 auto' }}>
 
         {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="wa-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <button
               onClick={() => {
@@ -618,15 +643,15 @@ export default function StudentWrongAnswersPage() {
                   navigate('/student');
                 }
               }}
-              style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.6rem 0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, color: '#334155', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', borderRadius: '0.75rem', padding: '0.55rem 0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, color: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}
             >
               <ArrowLeft size={18} /> {selectedSubject !== null ? 'Ders Portalı / Kartlara Dön' : 'Öğrenci Paneli'}
             </button>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <AlertCircle color="#ef4444" size={28} /> Yanlışlarım & Sınav Kontrol Takibi
+              <h1 style={{ margin: 0, fontSize: '1.55rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.6rem', textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>
+                <AlertCircle color="#f87171" size={26} /> Yanlışlarım & Sınav Kontrol Takibi
               </h1>
-              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
                 {activeMainTab === 'wrong_controls'
                   ? (selectedSubject === null
                       ? 'Ders kartlarına tıklayarak içerisine girin, hangi sınavların yanlışlarını kontrol ettiğinizi görün.'
@@ -637,8 +662,8 @@ export default function StudentWrongAnswersPage() {
           </div>
         </div>
 
-        {/* TOP LEVEL NAVIGATION TAB SWITCHER (HER İKİ GÖRÜNÜM DE MEVCUT) */}
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'white', padding: '0.4rem', borderRadius: '1.1rem', border: '1px solid #e2e8f0', marginBottom: '1.75rem', width: 'fit-content', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+        {/* TOP LEVEL NAVIGATION TAB SWITCHER */}
+        <div className="wa-tab-switcher" style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', padding: '0.4rem', borderRadius: '1.1rem', border: '1.5px solid rgba(255,255,255,0.12)', marginBottom: '1.75rem', width: 'fit-content', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)' }}>
           <button
             onClick={() => setActiveMainTab('wrong_controls')}
             style={{
@@ -648,17 +673,17 @@ export default function StudentWrongAnswersPage() {
               padding: '0.65rem 1.25rem',
               borderRadius: '0.85rem',
               border: 'none',
-              background: activeMainTab === 'wrong_controls' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'transparent',
-              color: activeMainTab === 'wrong_controls' ? 'white' : '#64748b',
+              background: activeMainTab === 'wrong_controls' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+              color: activeMainTab === 'wrong_controls' ? 'white' : 'rgba(255,255,255,0.7)',
               fontWeight: 900,
               fontSize: '0.88rem',
               cursor: 'pointer',
-              boxShadow: activeMainTab === 'wrong_controls' ? '0 4px 14px rgba(79,70,229,0.3)' : 'none',
+              boxShadow: activeMainTab === 'wrong_controls' ? '0 4px 14px rgba(99,102,241,0.4)' : 'none',
               transition: 'all 0.2s'
             }}
           >
             <Layers size={18} /> 🔴 Sınav & Ödev Kontrol Takibi
-            <span style={{ background: activeMainTab === 'wrong_controls' ? 'rgba(255,255,255,0.25)' : '#f1f5f9', color: activeMainTab === 'wrong_controls' ? 'white' : '#475569', fontSize: '0.72rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+            <span style={{ background: activeMainTab === 'wrong_controls' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
               {testGroupedSubmissions.length} Sınav
             </span>
           </button>
@@ -672,87 +697,89 @@ export default function StudentWrongAnswersPage() {
               padding: '0.65rem 1.25rem',
               borderRadius: '0.85rem',
               border: 'none',
-              background: activeMainTab === 'error_notebook' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'transparent',
-              color: activeMainTab === 'error_notebook' ? 'white' : '#64748b',
+              background: activeMainTab === 'error_notebook' ? 'linear-gradient(135deg, #e11d48, #f43f5e)' : 'transparent',
+              color: activeMainTab === 'error_notebook' ? 'white' : 'rgba(255,255,255,0.7)',
               fontWeight: 900,
               fontSize: '0.88rem',
               cursor: 'pointer',
-              boxShadow: activeMainTab === 'error_notebook' ? '0 4px 14px rgba(225,29,72,0.3)' : 'none',
+              boxShadow: activeMainTab === 'error_notebook' ? '0 4px 14px rgba(225,29,72,0.4)' : 'none',
               transition: 'all 0.2s'
             }}
           >
             <BookMarked size={18} /> 📕 Görsel Hata Defterim
-            <span style={{ background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : '#f1f5f9', color: activeMainTab === 'error_notebook' ? 'white' : '#475569', fontSize: '0.72rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+            <span style={{ background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99 }}>
               {studentErrors.length} Görsel
             </span>
           </button>
         </div>
 
         {/* ════════════════════════════════════════════
-           SEKME 1: ORİJİNAL SINAV & ÖDEV KONTROL TAKİBİ (VARSAYILAN)
+           SEKME 1: ORİJİNAL SINAV & ÖDEV KONTROL TAKİBİ
         ════════════════════════════════════════════ */}
         {activeMainTab === 'wrong_controls' && (
-          <div>
-            {/* LEVEL 1: COLORFUL SUBJECT CARDS PORTAL */}
-            <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FolderOpen size={22} color="#4f46e5" /> Ders Kartlarına Tıklayarak Filtreleyin:
+          <div className="wa-anim">
+            {/* LEVEL 1: SUMMARY STATS BAR */}
+            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', backdropFilter: 'blur(20px)' }}>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FolderOpen size={22} color="#a5b4fc" /> Ders Kartlarına Tıklayarak Filtreleyin:
               </div>
 
               <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1.5px solid #fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                <span style={{ background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1.5px solid rgba(253,164,175,0.35)', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
                   ❌ Yanlış: {globalWrongCount}
                 </span>
-                <span style={{ background: '#f8fafc', color: '#475569', border: '1.5px solid #cbd5e1', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                <span style={{ background: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: '1.5px solid rgba(255,255,255,0.15)', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
                   ⚪ Boş: {globalBlankCount}
                 </span>
-                <span style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #86efac', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                <span style={{ background: 'rgba(5,150,105,0.2)', color: '#4ade80', border: '1.5px solid rgba(52,211,153,0.35)', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem' }}>
                   ✅ Kontrol Edilen Sınav: {globalReviewedCount} / {testGroupedSubmissions.length}
                 </span>
               </div>
             </div>
 
             {/* VIBRANT COLORFUL SUBJECT CARDS GRID */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div className="wa-subject-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
               
               {/* SPECIAL "TÜM DERSLER" CARD */}
               <div
                 onClick={() => setSelectedSubject(null)}
+                className="wa-card-hover"
                 style={{
-                  background: selectedSubject === null || selectedSubject === 'all' ? subjectThemes['all_subjects'].bg : '#ffffff',
-                  color: selectedSubject === null || selectedSubject === 'all' ? 'white' : '#1e293b',
+                  background: selectedSubject === null || selectedSubject === 'all' ? subjectThemes['all_subjects'].bg : 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)',
+                  color: 'white',
                   borderRadius: '1.35rem',
                   padding: '1.35rem',
                   cursor: 'pointer',
-                  boxShadow: selectedSubject === null || selectedSubject === 'all' ? subjectThemes['all_subjects'].shadow : '0 2px 8px rgba(0,0,0,0.04)',
-                  border: selectedSubject === null || selectedSubject === 'all' ? '1px solid rgba(255,255,255,0.3)' : '1.5px solid #cbd5e1',
+                  boxShadow: selectedSubject === null || selectedSubject === 'all' ? subjectThemes['all_subjects'].shadow : '0 4px 16px rgba(0,0,0,0.25)',
+                  border: selectedSubject === null || selectedSubject === 'all' ? '1.5px solid rgba(255,255,255,0.4)' : '1.5px solid rgba(255,255,255,0.12)',
                   transition: 'all 0.25s ease',
                   position: 'relative',
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
-                  justify: 'space-between',
-                  minHeight: 150
+                  justifyContent: 'space-between',
+                  minHeight: 150,
+                  backdropFilter: 'blur(16px)'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <span style={{ background: selectedSubject === null || selectedSubject === 'all' ? 'rgba(255,255,255,0.2)' : '#f1f5f9', color: selectedSubject === null || selectedSubject === 'all' ? 'white' : '#64748b', padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                    <span style={{ background: 'rgba(255,255,255,0.15)', color: '#ffffff', padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
                       Tüm Portfolyo
                     </span>
-                    <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 900 }}>Tüm Dersler</h3>
+                    <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>Tüm Dersler</h3>
                   </div>
-                  <div style={{ background: selectedSubject === null || selectedSubject === 'all' ? 'rgba(255,255,255,0.25)' : '#4f46e515', color: selectedSubject === null || selectedSubject === 'all' ? 'white' : '#4f46e5', borderRadius: '0.85rem', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '0.85rem', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.2)' }}>
                     <GraduationCap size={22} />
                   </div>
                 </div>
 
-                <div style={{ marginTop: '1rem', background: selectedSubject === null || selectedSubject === 'all' ? 'rgba(0,0,0,0.15)' : '#f8fafc', borderRadius: '0.85rem', padding: '0.5rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '0.85rem', padding: '0.55rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div>
-                    <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700 }}>TOPLAM SINAV</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 900 }}>{testGroupedSubmissions.length} Sınav</div>
+                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>TOPLAM SINAV</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff' }}>{testGroupedSubmissions.length} Sınav</div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 800, color: '#a5b4fc' }}>
                     {selectedSubject === null ? 'Tümü Seçili' : 'Seç'} <ChevronRight size={14} />
                   </div>
                 </div>
@@ -768,43 +795,45 @@ export default function StudentWrongAnswersPage() {
                   <div
                     key={subjName}
                     onClick={() => setSelectedSubject(isSelected ? null : subjName)}
+                    className="wa-card-hover"
                     style={{
-                      background: isSelected ? theme.bg : '#ffffff',
-                      color: isSelected ? 'white' : '#1e293b',
+                      background: isSelected ? theme.bg : 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)',
+                      color: 'white',
                       borderRadius: '1.35rem',
                       padding: '1.35rem',
                       cursor: 'pointer',
-                      boxShadow: isSelected ? theme.shadow : '0 2px 8px rgba(0,0,0,0.04)',
-                      border: isSelected ? '1px solid rgba(255,255,255,0.25)' : '1.5px solid #cbd5e1',
+                      boxShadow: isSelected ? theme.shadow : '0 4px 16px rgba(0,0,0,0.25)',
+                      border: isSelected ? `1.5px solid ${theme.border}` : '1.5px solid rgba(255,255,255,0.12)',
                       transition: 'all 0.25s ease',
                       position: 'relative',
                       overflow: 'hidden',
                       display: 'flex',
                       flexDirection: 'column',
-                      justify: 'space-between',
-                      minHeight: 150
+                      justifyContent: 'space-between',
+                      minHeight: 150,
+                      backdropFilter: 'blur(16px)'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <span style={{ background: isSelected ? 'rgba(255,255,255,0.2)' : '#f1f5f9', color: isSelected ? 'white' : '#64748b', padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                        <span style={{ background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)', color: '#ffffff', padding: '0.25rem 0.65rem', borderRadius: 99, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
                           Ders Klasörü
                         </span>
-                        <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.2rem', fontWeight: 900 }}>{subjName}</h3>
+                        <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>{subjName}</h3>
                       </div>
-                      <div style={{ background: isSelected ? 'rgba(255,255,255,0.25)' : theme.color + '15', color: isSelected ? 'white' : theme.color, borderRadius: '0.85rem', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)', color: isSelected ? 'white' : theme.color, borderRadius: '0.85rem', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${theme.border}` }}>
                         <IconComp size={22} />
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '1rem', background: isSelected ? 'rgba(0,0,0,0.15)' : '#f8fafc', borderRadius: '0.85rem', padding: '0.5rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '0.85rem', padding: '0.55rem 0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
                       <div>
-                        <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700 }}>SINAV / KONTROL</div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 900 }}>
+                        <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>SINAV / KONTROL</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
                           {stats.testCount} Sınav ({stats.wrongCount} Yanlış)
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: 800, color: theme.color }}>
                         {isSelected ? 'Seçili' : 'Filtrele'} <ChevronRight size={14} />
                       </div>
                     </div>
@@ -815,14 +844,14 @@ export default function StudentWrongAnswersPage() {
 
             {/* BREADCRUMB / ACTIVE FILTER INDICATOR */}
             {selectedSubject && selectedSubject !== 'all' && (
-              <div style={{ background: '#eef2ff', padding: '0.85rem 1.25rem', borderRadius: '1rem', border: '1.5px solid #c7d2fe', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#3730a3', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FolderOpen size={18} color="#4f46e5" />
-                  <span>Şu an sadece <strong>{selectedSubject}</strong> dersine ait sınavlar listeleniyor ({filteredTestSubmissions.length} Sınav)</span>
+              <div style={{ background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.95) 100%)', padding: '0.85rem 1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(165,180,252,0.35)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, backdropFilter: 'blur(16px)' }}>
+                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#c7d2fe', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FolderOpen size={18} color="#a5b4fc" />
+                  <span>Şu an sadece <strong style={{ color: '#ffffff' }}>{selectedSubject}</strong> dersine ait sınavlar listeleniyor ({filteredTestSubmissions.length} Sınav)</span>
                 </div>
                 <button
                   onClick={() => setSelectedSubject(null)}
-                  style={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.6rem', padding: '0.35rem 0.75rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', color: '#475569' }}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', padding: '0.35rem 0.75rem', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', color: '#ffffff' }}
                 >
                   ✕ Tüm Dersleri Göster
                 </button>
@@ -830,17 +859,17 @@ export default function StudentWrongAnswersPage() {
             )}
 
             {/* SEARCH & FILTERS BAR INSIDE FOLDER */}
-            <div style={{ background: 'white', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="wa-filter-bar" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', padding: '1.15rem 1.35rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(20px)' }}>
               
               {/* Live Search Bar */}
               <div style={{ flex: '1 1 280px', position: 'relative' }}>
-                <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                <Search size={18} color="rgba(255,255,255,0.5)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Sınav adı veya ders ara..."
-                  style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 600, outline: 'none' }}
+                  style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.9rem', fontWeight: 600, outline: 'none', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -849,34 +878,34 @@ export default function StudentWrongAnswersPage() {
                 <select
                   value={reviewFilter}
                   onChange={e => setReviewFilter(e.target.value)}
-                  style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                  style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.85rem', fontWeight: 800, color: '#ffffff', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', outline: 'none' }}
                 >
-                  <option value="all">Tüm İnceleme Durumları</option>
-                  <option value="unreviewed">⚠️ Kontrol Edilmeyen Sınavlar</option>
-                  <option value="reviewed">✅ Kontrol Edilen Sınavlar</option>
+                  <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>Tüm İnceleme Durumları</option>
+                  <option value="unreviewed" style={{ background: '#0f172a', color: '#ffffff' }}>⚠️ Kontrol Edilmeyen Sınavlar</option>
+                  <option value="reviewed" style={{ background: '#0f172a', color: '#ffffff' }}>✅ Kontrol Edilen Sınavlar</option>
                 </select>
 
                 {/* Answer Type Filter */}
                 <select
                   value={ansTypeFilter}
                   onChange={e => setAnsTypeFilter(e.target.value)}
-                  style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer' }}
+                  style={{ padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.85rem', fontWeight: 800, color: '#ffffff', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', outline: 'none' }}
                 >
-                  <option value="all">Tüm Yanlış ve Boşlar</option>
-                  <option value="wrong">❌ Sadece Yanlış Yapılanlar</option>
-                  <option value="blank">⚪ Sadece Boş Bırakılanlar</option>
+                  <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>Tüm Yanlış ve Boşlar</option>
+                  <option value="wrong" style={{ background: '#0f172a', color: '#ffffff' }}>❌ Sadece Yanlış Yapılanlar</option>
+                  <option value="blank" style={{ background: '#0f172a', color: '#ffffff' }}>⚪ Sadece Boş Bırakılanlar</option>
                 </select>
 
                 {/* View Switcher */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                   <button
                     onClick={() => setViewMode('table')}
                     style={{
                       padding: '0.45rem 0.75rem',
                       borderRadius: '0.6rem',
                       border: 'none',
-                      background: viewMode === 'table' ? '#4f46e5' : 'transparent',
-                      color: viewMode === 'table' ? 'white' : '#64748b',
+                      background: viewMode === 'table' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: viewMode === 'table' ? 'white' : 'rgba(255,255,255,0.6)',
                       fontWeight: 900,
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -894,8 +923,8 @@ export default function StudentWrongAnswersPage() {
                       padding: '0.45rem 0.75rem',
                       borderRadius: '0.6rem',
                       border: 'none',
-                      background: viewMode === 'cards' ? '#4f46e5' : 'transparent',
-                      color: viewMode === 'cards' ? 'white' : '#64748b',
+                      background: viewMode === 'cards' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                      color: viewMode === 'cards' ? 'white' : 'rgba(255,255,255,0.6)',
                       fontWeight: 900,
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -910,254 +939,75 @@ export default function StudentWrongAnswersPage() {
               </div>
             </div>
 
-                {/* INSIDE FOLDER MODE 1: EXCEL SINGLE-ROW TABLE VIEW */}
-                {viewMode === 'table' && (
-                  <div style={{ background: 'white', borderRadius: '1.25rem', border: '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                      <thead>
-                        <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1', fontSize: '0.82rem', color: '#334155' }}>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>SINAV / ÖDEV BAŞLIĞI</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>DERS</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>TARİH</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>TÜR</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>❌ YANLIŞ SORULAR</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>⚪ BOŞ SORULAR</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900 }}>KONTROL DURUMU</th>
-                          <th style={{ padding: '1rem 1.15rem', fontWeight: 900, textAlign: 'right' }}>İŞLEM</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredTestSubmissions.map((sub, idx) => {
-                          const theme = subjectThemes[sub.subject] || subjectThemes['Diğer'];
-                          const SubjectIcon = theme.icon;
+            {/* INSIDE FOLDER MODE 1: EXCEL SINGLE-ROW TABLE VIEW */}
+            {viewMode === 'table' && (
+              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: '1.25rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', overflow: 'hidden', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.88rem', minWidth: 800 }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1.5px solid rgba(255,255,255,0.12)', fontSize: '0.74rem', color: '#c7d2fe' }}>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>SINAV / ÖDEV BAŞLIĞI</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>DERS</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>TARİH</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>TÜR</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>❌ YANLIŞ SORULAR</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>⚪ BOŞ SORULAR</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, whiteSpace: 'nowrap' }}>KONTROL DURUMU</th>
+                        <th style={{ padding: '1rem 1.15rem', fontWeight: 900, textAlign: 'right', whiteSpace: 'nowrap' }}>İŞLEM</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTestSubmissions.map((sub, idx) => {
+                        const theme = subjectThemes[sub.subject] || subjectThemes['Diğer'];
+                        const SubjectIcon = theme.icon;
 
-                          return (
-                            <tr
-                              key={sub.id || idx}
-                              style={{
-                                borderBottom: '1px solid #f1f5f9',
-                                background: sub.isReviewed ? '#faf5ff' : 'white',
-                                transition: 'background 0.15s'
-                              }}
-                            >
-                              <td style={{ padding: '1rem 1.15rem', fontWeight: 900, color: '#0f172a' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  <SubjectIcon size={16} color={theme.color} />
-                                  <span>{sub.testTitle || 'Test Sınavı'}</span>
-                                </div>
-                              </td>
+                        return (
+                          <tr
+                            key={sub.id || idx}
+                            style={{
+                              borderBottom: '1px solid rgba(255,255,255,0.06)',
+                              background: sub.isReviewed ? 'rgba(99,102,241,0.08)' : (idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent'),
+                              transition: 'background 0.15s'
+                            }}
+                          >
+                            <td style={{ padding: '1rem 1.15rem', fontWeight: 900, color: '#ffffff' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <SubjectIcon size={16} color={theme.color} />
+                                <span>{sub.testTitle || 'Test Sınavı'}</span>
+                              </div>
+                            </td>
 
-                              <td style={{ padding: '1rem 1.15rem' }}>
-                                <span style={{ background: theme.color + '15', color: theme.color, fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '0.5rem' }}>
-                                  {sub.subject}
-                                </span>
-                              </td>
-
-                              <td style={{ padding: '1rem 1.15rem', color: '#64748b', fontSize: '0.82rem', fontWeight: 700 }}>
-                                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
-                              </td>
-
-                              <td style={{ padding: '1rem 1.15rem' }}>
-                                <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '0.5rem' }}>
-                                  {sub.isHomework ? '📝 Ödev' : '⚡ Bireysel'}
-                                </span>
-                              </td>
-
-                              <td style={{ padding: '1rem 1.15rem' }}>
-                                {sub.wrongQuestions.length > 0 ? (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                    {sub.wrongQuestions.map(qObj => (
-                                      <button
-                                        key={qObj.qNum}
-                                        onClick={(e) => handleOpenReview(sub.id, e)}
-                                        style={{
-                                          background: '#fef2f2',
-                                          color: '#b91c1c',
-                                          border: '1.5px solid #fca5a5',
-                                          padding: '0.2rem 0.55rem',
-                                          borderRadius: '0.5rem',
-                                          fontWeight: 900,
-                                          fontSize: '0.78rem',
-                                          cursor: 'pointer'
-                                        }}
-                                      >
-                                        Soru {qObj.qNum}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.8rem' }}>✓ Yanlış Yok</span>
-                                )}
-                              </td>
-
-                              <td style={{ padding: '1rem 1.15rem' }}>
-                                {sub.blankQuestions.length > 0 ? (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                    {sub.blankQuestions.map(qObj => (
-                                      <button
-                                        key={qObj.qNum}
-                                        onClick={(e) => handleOpenReview(sub.id, e)}
-                                        style={{
-                                          background: '#ffffff',
-                                          color: '#475569',
-                                          border: '1.5px solid #cbd5e1',
-                                          padding: '0.2rem 0.55rem',
-                                          borderRadius: '0.5rem',
-                                          fontWeight: 900,
-                                          fontSize: '0.78rem',
-                                          cursor: 'pointer'
-                                        }}
-                                      >
-                                        Soru {qObj.qNum}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
-                                )}
-                              </td>
-
-                              <td style={{ padding: '1rem 1.15rem' }}>
-                                <button
-                                  onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
-                                  style={{
-                                    background: sub.isReviewed ? '#dcfce7' : '#fffbe6',
-                                    color: sub.isReviewed ? '#166534' : '#92400e',
-                                    border: sub.isReviewed ? '1.5px solid #86efac' : '1.5px solid #fde68a',
-                                    fontSize: '0.78rem',
-                                    fontWeight: 900,
-                                    padding: '0.35rem 0.75rem',
-                                    borderRadius: '0.65rem',
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem'
-                                  }}
-                                >
-                                  {sub.isReviewed ? <CheckCircle2 size={14} color="#10b981" /> : <Clock size={14} color="#d97706" />}
-                                  <span>{sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}</span>
-                                </button>
-                              </td>
-
-                              <td style={{ padding: '1rem 1.15rem', textAlign: 'right' }}>
-                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                                  <button
-                                    onClick={(e) => handleOpenAddModalForTest(sub, e)}
-                                    title="Soru Görseli Ekle"
-                                    style={{
-                                      background: '#fff1f2',
-                                      color: '#e11d48',
-                                      border: '1px solid #fecdd3',
-                                      padding: '0.5rem 0.75rem',
-                                      borderRadius: '0.65rem',
-                                      fontWeight: 800,
-                                      fontSize: '0.78rem',
-                                      cursor: 'pointer',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '0.3rem'
-                                    }}
-                                  >
-                                    <Camera size={14} /> + Görsel Ekle
-                                  </button>
-
-                                  <button
-                                    onClick={(e) => handleOpenReview(sub.id, e)}
-                                    style={{
-                                      background: '#4f46e5',
-                                      color: 'white',
-                                      border: 'none',
-                                      padding: '0.5rem 0.95rem',
-                                      borderRadius: '0.65rem',
-                                      fontWeight: 900,
-                                      fontSize: '0.8rem',
-                                      cursor: 'pointer',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '0.35rem',
-                                      boxShadow: '0 2px 6px rgba(79,70,229,0.2)'
-                                    }}
-                                  >
-                                    <Eye size={15} /> Sınavı Aç
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* INSIDE FOLDER MODE 2: TEST CARDS VIEW */}
-                {viewMode === 'cards' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '1.25rem' }}>
-                    {filteredTestSubmissions.map((sub, idx) => {
-                      const theme = subjectThemes[sub.subject] || subjectThemes['Diğer'];
-                      const SubjectIcon = theme.icon;
-
-                      return (
-                        <div
-                          key={sub.id || idx}
-                          style={{
-                            background: 'white',
-                            borderRadius: '1.25rem',
-                            padding: '1.35rem',
-                            border: '1.5px solid #e2e8f0',
-                            boxShadow: '0 4px 10px rgba(0,0,0,0.03)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justify: 'space-between',
-                            gap: '1.15rem',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.color }} />
-
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
-                              <span style={{ background: theme.bg, color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                                <SubjectIcon size={14} color="white" /> {sub.subject}
+                            <td style={{ padding: '1rem 1.15rem', whiteSpace: 'nowrap' }}>
+                              <span style={{ background: theme.color + '22', color: theme.color, border: `1px solid ${theme.border}`, fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
+                                {sub.subject}
                               </span>
+                            </td>
 
-                              <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
-                                {sub.isHomework ? '📝 Ödev Sınavı' : '⚡ Bireysel Sınav'}
+                            <td style={{ padding: '1rem 1.15rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                            </td>
+
+                            <td style={{ padding: '1rem 1.15rem', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
+                                {sub.isHomework ? '📝 Ödev' : '⚡ Bireysel'}
                               </span>
-                            </div>
+                            </td>
 
-                            <h3 style={{ margin: '0.35rem 0', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.35 }}>
-                              {sub.testTitle || 'Test Sınavı'}
-                            </h3>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginTop: '0.4rem' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <Calendar size={14} /> {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
-                              </span>
-                              <span>✓ {sub.correctCount} / {sub.totalQuestions} Doğru</span>
-                            </div>
-                          </div>
-
-                          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                            {sub.wrongQuestions.length > 0 && (
-                              <div>
-                                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b91c1c', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                  <XCircle size={14} color="#ef4444" /> Yanlış Yapılan Sorular:
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            <td style={{ padding: '1rem 1.15rem' }}>
+                              {sub.wrongQuestions.length > 0 ? (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                                   {sub.wrongQuestions.map(qObj => (
                                     <button
                                       key={qObj.qNum}
                                       onClick={(e) => handleOpenReview(sub.id, e)}
                                       style={{
-                                        background: '#fef2f2',
-                                        color: '#b91c1c',
-                                        border: '1.5px solid #fca5a5',
-                                        padding: '0.25rem 0.65rem',
+                                        background: 'rgba(225,29,72,0.2)',
+                                        color: '#f87171',
+                                        border: '1.5px solid rgba(253,164,175,0.4)',
+                                        padding: '0.2rem 0.55rem',
                                         borderRadius: '0.5rem',
                                         fontWeight: 900,
-                                        fontSize: '0.8rem',
+                                        fontSize: '0.78rem',
                                         cursor: 'pointer'
                                       }}
                                     >
@@ -1165,27 +1015,26 @@ export default function StudentWrongAnswersPage() {
                                     </button>
                                   ))}
                                 </div>
-                              </div>
-                            )}
+                              ) : (
+                                <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '0.8rem' }}>✓ Yanlış Yok</span>
+                              )}
+                            </td>
 
-                            {sub.blankQuestions.length > 0 && (
-                              <div>
-                                <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#475569', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                  <HelpCircle size={14} color="#64748b" /> Boş Bırakılan Sorular:
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            <td style={{ padding: '1rem 1.15rem' }}>
+                              {sub.blankQuestions.length > 0 ? (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                                   {sub.blankQuestions.map(qObj => (
                                     <button
                                       key={qObj.qNum}
                                       onClick={(e) => handleOpenReview(sub.id, e)}
                                       style={{
-                                        background: '#ffffff',
-                                        color: '#475569',
-                                        border: '1.5px solid #cbd5e1',
-                                        padding: '0.25rem 0.65rem',
+                                        background: 'rgba(255,255,255,0.08)',
+                                        color: '#cbd5e1',
+                                        border: '1.5px solid rgba(255,255,255,0.15)',
+                                        padding: '0.2rem 0.55rem',
                                         borderRadius: '0.5rem',
                                         fontWeight: 900,
-                                        fontSize: '0.8rem',
+                                        fontSize: '0.78rem',
                                         cursor: 'pointer'
                                       }}
                                     >
@@ -1193,122 +1042,313 @@ export default function StudentWrongAnswersPage() {
                                     </button>
                                   ))}
                                 </div>
-                              </div>
-                            )}
-                          </div>
+                              ) : (
+                                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>—</span>
+                              )}
+                            </td>
 
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
-                            <button
-                              onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
-                              style={{
-                                background: sub.isReviewed ? '#dcfce7' : '#fffbe6',
-                                color: sub.isReviewed ? '#166534' : '#92400e',
-                                border: sub.isReviewed ? '1.5px solid #86efac' : '1.5px solid #fde68a',
-                                fontSize: '0.78rem',
-                                fontWeight: 900,
-                                padding: '0.3rem 0.75rem',
-                                borderRadius: '0.65rem',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.35rem'
-                              }}
-                            >
-                              {sub.isReviewed ? <CheckCircle2 size={14} color="#10b981" /> : <Clock size={14} color="#d97706" />}
-                              <span>{sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}</span>
-                            </button>
-
-                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <td style={{ padding: '1rem 1.15rem', whiteSpace: 'nowrap' }}>
                               <button
-                                onClick={(e) => handleOpenAddModalForTest(sub, e)}
+                                onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
                                 style={{
-                                  background: '#fff1f2',
-                                  color: '#e11d48',
-                                  border: '1px solid #fecdd3',
-                                  padding: '0.55rem 0.85rem',
-                                  borderRadius: '0.75rem',
-                                  fontWeight: 800,
-                                  fontSize: '0.8rem',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.3rem'
-                                }}
-                              >
-                                <Camera size={14} /> + Görsel Ekle
-                              </button>
-
-                              <button
-                                onClick={(e) => handleOpenReview(sub.id, e)}
-                                style={{
-                                  background: '#4f46e5',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '0.55rem 1.15rem',
-                                  borderRadius: '0.75rem',
+                                  background: sub.isReviewed ? 'rgba(5,150,105,0.25)' : 'rgba(245,158,11,0.25)',
+                                  color: sub.isReviewed ? '#4ade80' : '#fbbf24',
+                                  border: sub.isReviewed ? '1.5px solid rgba(52,211,153,0.4)' : '1.5px solid rgba(253,186,116,0.4)',
+                                  fontSize: '0.78rem',
                                   fontWeight: 900,
-                                  fontSize: '0.85rem',
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: '0.65rem',
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '0.4rem',
-                                  boxShadow: '0 4px 10px rgba(79,70,229,0.25)'
+                                  gap: '0.35rem'
                                 }}
                               >
-                                <Eye size={16} /> Sınavı Aç
+                                {sub.isReviewed ? <CheckCircle2 size={14} color="#4ade80" /> : <Clock size={14} color="#fbbf24" />}
+                                <span>{sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}</span>
                               </button>
+                            </td>
+
+                            <td style={{ padding: '1rem 1.15rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={(e) => handleOpenAddModalForTest(sub, e)}
+                                  title="Soru Görseli Ekle"
+                                  style={{
+                                    background: 'rgba(225,29,72,0.2)',
+                                    color: '#fb7185',
+                                    border: '1.5px solid rgba(251,113,133,0.35)',
+                                    padding: '0.5rem 0.75rem',
+                                    borderRadius: '0.65rem',
+                                    fontWeight: 800,
+                                    fontSize: '0.78rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                >
+                                  <Camera size={14} /> + Görsel Ekle
+                                </button>
+
+                                <button
+                                  onClick={(e) => handleOpenReview(sub.id, e)}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.5rem 0.95rem',
+                                    borderRadius: '0.65rem',
+                                    fontWeight: 900,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    boxShadow: '0 4px 12px rgba(99,102,241,0.35)'
+                                  }}
+                                >
+                                  <Eye size={15} /> Sınavı Aç
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredTestSubmissions.length === 0 && (
+                        <tr>
+                          <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+                            Sonuç bulunamadı. Filtreleri değiştirmeyi deneyin.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* INSIDE FOLDER MODE 2: TEST CARDS VIEW */}
+            {viewMode === 'cards' && (
+              <div className="wa-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.25rem' }}>
+                {filteredTestSubmissions.map((sub, idx) => {
+                  const theme = subjectThemes[sub.subject] || subjectThemes['Diğer'];
+                  const SubjectIcon = theme.icon;
+
+                  return (
+                    <div
+                      key={sub.id || idx}
+                      className="wa-card-hover"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                        borderRadius: '1.25rem',
+                        padding: '1.35rem',
+                        border: '1.5px solid rgba(255, 255, 255, 0.14)',
+                        boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '1.15rem',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        backdropFilter: 'blur(20px)'
+                      }}
+                    >
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.color }} />
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                          <span style={{ background: theme.color + '22', color: theme.color, border: `1px solid ${theme.border}`, fontSize: '0.75rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <SubjectIcon size={14} color={theme.color} /> {sub.subject}
+                          </span>
+
+                          <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '0.5rem' }}>
+                            {sub.isHomework ? '📝 Ödev Sınavı' : '⚡ Bireysel Sınav'}
+                          </span>
+                        </div>
+
+                        <h3 style={{ margin: '0.35rem 0', fontSize: '1.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.35 }}>
+                          {sub.testTitle || 'Test Sınavı'}
+                        </h3>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginTop: '0.4rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Calendar size={14} /> {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                          </span>
+                          <span style={{ color: '#4ade80', fontWeight: 800 }}>✓ {sub.correctCount} / {sub.totalQuestions} Doğru</span>
+                        </div>
+                      </div>
+
+                      <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {sub.wrongQuestions.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#f87171', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <XCircle size={14} color="#f87171" /> Yanlış Yapılan Sorular:
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {sub.wrongQuestions.map(qObj => (
+                                <button
+                                  key={qObj.qNum}
+                                  onClick={(e) => handleOpenReview(sub.id, e)}
+                                  style={{
+                                    background: 'rgba(225,29,72,0.2)',
+                                    color: '#f87171',
+                                    border: '1.5px solid rgba(253,164,175,0.4)',
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '0.5rem',
+                                    fontWeight: 900,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Soru {qObj.qNum}
+                                </button>
+                              ))}
                             </div>
                           </div>
+                        )}
+
+                        {sub.blankQuestions.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#cbd5e1', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <HelpCircle size={14} color="#cbd5e1" /> Boş Bırakılan Sorular:
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {sub.blankQuestions.map(qObj => (
+                                <button
+                                  key={qObj.qNum}
+                                  onClick={(e) => handleOpenReview(sub.id, e)}
+                                  style={{
+                                    background: 'rgba(255,255,255,0.08)',
+                                    color: '#cbd5e1',
+                                    border: '1.5px solid rgba(255,255,255,0.15)',
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '0.5rem',
+                                    fontWeight: 900,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Soru {qObj.qNum}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: 8 }}>
+                        <button
+                          onClick={(e) => toggleSubmissionReviewed(sub.id, e)}
+                          style={{
+                            background: sub.isReviewed ? 'rgba(5,150,105,0.25)' : 'rgba(245,158,11,0.25)',
+                            color: sub.isReviewed ? '#4ade80' : '#fbbf24',
+                            border: sub.isReviewed ? '1.5px solid rgba(52,211,153,0.4)' : '1.5px solid rgba(253,186,116,0.4)',
+                            fontSize: '0.78rem',
+                            fontWeight: 900,
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '0.65rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          {sub.isReviewed ? <CheckCircle2 size={14} color="#4ade80" /> : <Clock size={14} color="#fbbf24" />}
+                          <span>{sub.isReviewed ? '✓ Kontrol Edildi' : '⚠️ Kontrol Et'}</span>
+                        </button>
+
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button
+                            onClick={(e) => handleOpenAddModalForTest(sub, e)}
+                            style={{
+                              background: 'rgba(225,29,72,0.2)',
+                              color: '#fb7185',
+                              border: '1.5px solid rgba(251,113,133,0.35)',
+                              padding: '0.55rem 0.85rem',
+                              borderRadius: '0.75rem',
+                              fontWeight: 800,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
+                            }}
+                          >
+                            <Camera size={14} /> + Görsel Ekle
+                          </button>
+
+                          <button
+                            onClick={(e) => handleOpenReview(sub.id, e)}
+                            style={{
+                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.55rem 1.15rem',
+                              borderRadius: '0.75rem',
+                              fontWeight: 900,
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              boxShadow: '0 4px 12px rgba(99,102,241,0.35)'
+                            }}
+                          >
+                            <Eye size={16} /> Sınavı Aç
+                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
         {/* ════════════════════════════════════════════
-           SEKME 2: GÖRSEL HATA DEFTERİM (SORA DEPOSU)
+           SEKME 2: GÖRSEL HATA DEFTERİM (SORU DEPOSU)
         ════════════════════════════════════════════ */}
         {activeMainTab === 'error_notebook' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="wa-anim" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
             {/* ÖZET STAT KARTLARI & EYLEM BUTONU */}
-            <div style={{ background: 'white', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="wa-notebook-stats" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', backdropFilter: 'blur(20px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: '#fff1f2', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: 'rgba(99,102,241,0.2)', color: '#818cf8', border: '1px solid rgba(129,140,248,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ImageIcon size={22} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Toplam Görsel</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{studentErrors.length} Soru</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Toplam Görsel</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff' }}>{studentErrors.length} Soru</div>
                   </div>
                 </div>
 
-                <div style={{ width: 1, height: 32, background: '#e2e8f0' }} />
+                <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.12)' }} />
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <AlertCircle size={22} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>🔴 Çözülecek</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>🔴 Çözülecek</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f87171' }}>
                       {studentErrors.filter(e => e.status !== 'resolved').length} Soru
                     </div>
                   </div>
                 </div>
 
-                <div style={{ width: 1, height: 32, background: '#e2e8f0' }} />
+                <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.12)' }} />
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: 'rgba(5,150,105,0.2)', color: '#4ade80', border: '1px solid rgba(52,211,153,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <CheckCircle2 size={22} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>✅ Öğrenildi</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>✅ Öğrenildi</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4ade80' }}>
                       {studentErrors.filter(e => e.status === 'resolved').length} Soru
                     </div>
                   </div>
@@ -1318,7 +1358,7 @@ export default function StudentWrongAnswersPage() {
               <button
                 onClick={() => handleOpenAddModal()}
                 style={{
-                  background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                  background: 'linear-gradient(135deg, #e11d48, #f43f5e)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.85rem',
@@ -1329,7 +1369,7 @@ export default function StudentWrongAnswersPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  boxShadow: '0 4px 14px rgba(225,29,72,0.3)',
+                  boxShadow: '0 4px 14px rgba(225,29,72,0.4)',
                   transition: 'transform 0.15s'
                 }}
               >
@@ -1338,12 +1378,12 @@ export default function StudentWrongAnswersPage() {
             </div>
 
             {/* FİLTRE VE ARAMA ÇUBUĞU */}
-            <div style={{ background: 'white', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', gap: '0.85rem', backdropFilter: 'blur(20px)' }}>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
                 
                 {/* Search Bar */}
                 <div style={{ position: 'relative', minWidth: 260, flex: 1 }}>
-                  <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                  <Search size={16} color="rgba(255,255,255,0.5)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="text"
                     placeholder="Sınav adı, konu veya notlarda ara..."
@@ -1353,40 +1393,44 @@ export default function StudentWrongAnswersPage() {
                       width: '100%',
                       padding: '0.55rem 0.85rem 0.55rem 2.3rem',
                       borderRadius: '0.75rem',
-                      border: '1px solid #cbd5e1',
+                      border: '1.5px solid rgba(255,255,255,0.16)',
                       fontSize: '0.82rem',
                       fontWeight: 600,
-                      outline: 'none'
+                      outline: 'none',
+                      background: 'rgba(255,255,255,0.06)',
+                      color: '#ffffff',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
 
                 {/* Ödev / Sınav Seçimi Filtresi */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>Ödev/Sınav:</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)' }}>Ödev/Sınav:</span>
                   <select
                     value={notebookHomeworkFilter}
                     onChange={e => setNotebookHomeworkFilter(e.target.value)}
                     style={{
                       padding: '0.5rem 0.75rem',
                       borderRadius: '0.75rem',
-                      border: '1px solid #cbd5e1',
+                      border: '1.5px solid rgba(255,255,255,0.16)',
                       fontSize: '0.82rem',
                       fontWeight: 700,
-                      color: '#1e293b',
+                      color: '#ffffff',
                       outline: 'none',
-                      background: '#f8fafc'
+                      background: 'rgba(255,255,255,0.08)',
+                      cursor: 'pointer'
                     }}
                   >
-                    <option value="all">🎯 Tüm Ödev & Sınavlar</option>
+                    <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>🎯 Tüm Ödev & Sınavlar</option>
                     {availableHomeworkOptions.map(hw => (
-                      <option key={hw.id} value={hw.id}>{hw.title} ({hw.subject})</option>
+                      <option key={hw.id} value={hw.id} style={{ background: '#0f172a', color: '#ffffff' }}>{hw.title} ({hw.subject})</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Durum Filtresi */}
-                <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: '0.65rem', gap: 2 }}>
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', padding: 3, borderRadius: '0.65rem', gap: 2, border: '1px solid rgba(255,255,255,0.1)' }}>
                   {[
                     { id: 'all', label: 'Tümü' },
                     { id: 'active', label: '🔴 Çözülecek' },
@@ -1397,8 +1441,8 @@ export default function StudentWrongAnswersPage() {
                       onClick={() => setNotebookStatusFilter(st.id)}
                       style={{
                         border: 'none',
-                        background: notebookStatusFilter === st.id ? '#e11d48' : 'transparent',
-                        color: notebookStatusFilter === st.id ? 'white' : '#64748b',
+                        background: notebookStatusFilter === st.id ? 'linear-gradient(135deg, #e11d48, #f43f5e)' : 'transparent',
+                        color: notebookStatusFilter === st.id ? 'white' : 'rgba(255,255,255,0.7)',
                         fontSize: '0.75rem',
                         fontWeight: 800,
                         padding: '0.35rem 0.7rem',
@@ -1413,8 +1457,8 @@ export default function StudentWrongAnswersPage() {
               </div>
 
               {/* Ders Pills */}
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.4rem', borderTop: '1px solid #f1f5f9' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', marginRight: 4 }}>DERS:</span>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', marginRight: 4 }}>DERS:</span>
                 {['all', 'Genel Testler', 'Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Diğer'].map(subj => {
                   const active = notebookSubjectFilter === subj;
                   return (
@@ -1422,9 +1466,9 @@ export default function StudentWrongAnswersPage() {
                       key={subj}
                       onClick={() => setNotebookSubjectFilter(subj)}
                       style={{
-                        border: active ? 'none' : '1px solid #cbd5e1',
-                        background: active ? '#4f46e5' : 'white',
-                        color: active ? 'white' : '#475569',
+                        border: active ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                        background: active ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(255,255,255,0.06)',
+                        color: active ? 'white' : 'rgba(255,255,255,0.7)',
                         fontSize: '0.72rem',
                         fontWeight: 800,
                         padding: '0.25rem 0.65rem',
@@ -1441,14 +1485,14 @@ export default function StudentWrongAnswersPage() {
 
             {/* GÖRSEL SORU KARTLARI GRID */}
             {filteredStudentErrors.length === 0 ? (
-              <div style={{ background: 'white', borderRadius: '1.25rem', padding: '3rem 2rem', textAlign: 'center', border: '2px dashed #cbd5e1' }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff1f2', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: '1.25rem', padding: '3rem 2rem', textAlign: 'center', border: '2px dashed rgba(255,255,255,0.18)' }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(225,29,72,0.2)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', border: '1px solid rgba(253,164,175,0.35)' }}>
                   <ImageIcon size={32} />
                 </div>
-                <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+                <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
                   {studentErrors.length === 0 ? 'Hata Defteriniz Henüz Boş' : 'Aramanızla Eşleşen Soru Bulunamadı'}
                 </h3>
-                <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, maxWidth: 460, marginInline: 'auto' }}>
+                <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, maxWidth: 460, marginInline: 'auto' }}>
                   {studentErrors.length === 0
                     ? 'Yanlış yaptığınız veya çözemediğiniz soruların fotoğraflarını çekip ödevlerinizle eşleştirerek hemen ekleyebilirsiniz.'
                     : 'Filtreleri sıfırlayarak tüm hata defteri görsellerinizi inceleyebilirsiniz.'}
@@ -1456,14 +1500,14 @@ export default function StudentWrongAnswersPage() {
                 {studentErrors.length === 0 ? (
                   <button
                     onClick={() => setShowAddModal(true)}
-                    style={{ background: '#e11d48', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(225,29,72,0.4)' }}
                   >
                     <Plus size={16} /> İlk Soru Görselini Ekle
                   </button>
                 ) : (
                   <button
                     onClick={() => { setNotebookSubjectFilter('all'); setNotebookHomeworkFilter('all'); setNotebookStatusFilter('all'); setNotebookSearchQuery(''); }}
-                    style={{ background: '#4f46e5', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer' }}
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
                   >
                     Filtreleri Temizle
                   </button>
@@ -1478,16 +1522,17 @@ export default function StudentWrongAnswersPage() {
                   return (
                     <div
                       key={err.id}
+                      className="wa-card-hover"
                       style={{
-                        background: 'white',
+                        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
                         borderRadius: '1.25rem',
-                        border: isResolved ? '1.5px solid #86efac' : '1px solid #e2e8f0',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+                        border: isResolved ? '1.5px solid rgba(52,211,153,0.5)' : '1.5px solid rgba(255,255,255,0.14)',
+                        boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
                         overflow: 'hidden',
                         display: 'flex',
                         flexDirection: 'column',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        position: 'relative'
+                        position: 'relative',
+                        backdropFilter: 'blur(20px)'
                       }}
                     >
                       {/* Görsel Thumbnail Alanı */}
@@ -1495,13 +1540,13 @@ export default function StudentWrongAnswersPage() {
                         onClick={() => setViewingErrorModal(err)}
                         style={{
                           height: 180,
-                          background: '#0f172a',
+                          background: '#070a12',
                           position: 'relative',
                           cursor: 'pointer',
                           overflow: 'hidden',
                           display: 'flex',
                           alignItems: 'center',
-                          justify: 'center'
+                          justifyContent: 'center'
                         }}
                       >
                         <img
@@ -1511,7 +1556,7 @@ export default function StudentWrongAnswersPage() {
                         />
 
                         {/* Overlay Zoom Hint */}
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.3)', opacity: 0, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, gap: 6 }}
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.5)', opacity: 0, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, gap: 6 }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '0'}
                         >
@@ -1521,11 +1566,11 @@ export default function StudentWrongAnswersPage() {
                         {/* Durum Rozeti */}
                         <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 2 }}>
                           {isResolved ? (
-                            <span style={{ background: '#10b981', color: 'white', fontSize: '0.68rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
+                            <span style={{ background: '#10b981', color: 'white', fontSize: '0.68rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }}>
                               <CheckCircle2 size={12} /> Öğrenildi
                             </span>
                           ) : (
-                            <span style={{ background: '#e11d48', color: 'white', fontSize: '0.68rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
+                            <span style={{ background: '#e11d48', color: 'white', fontSize: '0.68rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }}>
                               <AlertCircle size={12} /> Çözülecek
                             </span>
                           )}
@@ -1535,7 +1580,7 @@ export default function StudentWrongAnswersPage() {
                         <button
                           onClick={e => handleDeleteErrorRecord(err.id, e)}
                           title="Sil"
-                          style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 3 }}
+                          style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 3 }}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -1546,11 +1591,11 @@ export default function StudentWrongAnswersPage() {
                         
                         {/* Ders & Ödev Rozeti */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                          <span style={{ background: theme.color + '15', color: theme.color, fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 6, textTransform: 'uppercase' }}>
+                          <span style={{ background: theme.color + '22', color: theme.color, border: `1px solid ${theme.border}`, fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 6, textTransform: 'uppercase' }}>
                             {err.subject}
                           </span>
                           {err.testTitle && (
-                            <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: 6, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={err.testTitle}>
+                            <span style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: 6, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={err.testTitle}>
                               📌 {err.testTitle}
                             </span>
                           )}
@@ -1558,11 +1603,11 @@ export default function StudentWrongAnswersPage() {
 
                         {/* Başlık / Konu */}
                         <div>
-                          <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.3 }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', lineHeight: 1.3 }}>
                             {err.topic || 'Konu Belirtilmedi'} {err.questionNo ? `(${err.questionNo})` : ''}
                           </div>
                           {err.reason && (
-                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', marginTop: 2 }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f87171', marginTop: 2 }}>
                               {err.reason}
                             </div>
                           )}
@@ -1570,16 +1615,16 @@ export default function StudentWrongAnswersPage() {
 
                         {/* Öğrenci Notu */}
                         {err.note && (
-                          <div style={{ fontSize: '0.78rem', color: '#475569', background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #f1f5f9', lineHeight: 1.3 }}>
+                          <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.75)', background: 'rgba(0,0,0,0.3)', padding: '0.45rem 0.65rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.08)', lineHeight: 1.3 }}>
                             💬 {err.note}
                           </div>
                         )}
 
                         {/* Bottom Actions */}
-                        <div style={{ marginTop: 'auto', paddingTop: '0.6rem', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ marginTop: 'auto', paddingTop: '0.6rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '0.5rem' }}>
                           <button
                             onClick={() => setViewingErrorModal(err)}
-                            style={{ flex: 1, background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '0.6rem', padding: '0.45rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                            style={{ flex: 1, background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.6rem', padding: '0.45rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
                           >
                             <ZoomIn size={14} /> İncele
                           </button>
@@ -1587,9 +1632,9 @@ export default function StudentWrongAnswersPage() {
                             onClick={e => handleToggleStatus(err.id, err.status, e)}
                             style={{
                               flex: 1.3,
-                              background: isResolved ? '#f0fdf4' : '#fff1f2',
-                              color: isResolved ? '#16a34a' : '#e11d48',
-                              border: isResolved ? '1px solid #86efac' : '1px solid #fecdd3',
+                              background: isResolved ? 'rgba(5,150,105,0.25)' : 'rgba(225,29,72,0.25)',
+                              color: isResolved ? '#4ade80' : '#f87171',
+                              border: isResolved ? '1px solid rgba(52,211,153,0.4)' : '1px solid rgba(253,164,175,0.4)',
                               borderRadius: '0.6rem',
                               padding: '0.45rem',
                               fontWeight: 900,
@@ -1597,7 +1642,7 @@ export default function StudentWrongAnswersPage() {
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              justify: 'center',
+                              justifyContent: 'center',
                               gap: 4
                             }}
                           >
@@ -1610,6 +1655,9 @@ export default function StudentWrongAnswersPage() {
                 })}
               </div>
             )}
+
+            {/* Bottom padding */}
+            <div style={{ height: '2.5rem' }} />
           </div>
         )}
 
@@ -1619,37 +1667,37 @@ export default function StudentWrongAnswersPage() {
          MODAL 1: + YANLIŞ SORU GÖRSELİ EKLE
       ════════════════════════════════════════════ */}
       {showAddModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', border: '1px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '0.65rem', background: '#fff1f2', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '0.65rem', background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Camera size={20} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Yanlış Soru Görseli Ekle</h3>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sorunun fotoğrafını yükleyin ve ait olduğu ödevi seçin.</p>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>Yanlış Soru Görseli Ekle</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Sorunun fotoğrafını yükleyin ve ait olduğu ödevi seçin.</p>
                 </div>
               </div>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><X size={20} /></button>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' }}><X size={20} /></button>
             </div>
 
             <form onSubmit={handleSaveNewError} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
               {/* 1. ÖDEV / SINAV SEÇİMİ */}
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>
                   📌 Ait Olduğu Ödev / Sınav
                 </label>
                 <select
                   value={newErrorForm.homeworkId}
                   onChange={e => handleSelectHomeworkForModal(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, outline: 'none', background: '#f8fafc' }}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', background: 'rgba(255,255,255,0.08)', color: '#ffffff', boxSizing: 'border-box', cursor: 'pointer' }}
                 >
-                  <option value="">-- Ödev / Sınav Seçin --</option>
-                  <option value="custom">✏️ Diğer / Ödev Dışı Özel Soru</option>
+                  <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Ödev / Sınav Seçin --</option>
+                  <option value="custom" style={{ background: '#0f172a', color: '#ffffff' }}>✏️ Diğer / Ödev Dışı Özel Soru</option>
                   {availableHomeworkOptions.map(hw => (
-                    <option key={hw.id} value={hw.id}>
+                    <option key={hw.id} value={hw.id} style={{ background: '#0f172a', color: '#ffffff' }}>
                       {hw.title} ({hw.subject}) {hw.wrongCount > 0 ? `— ❌ ${hw.wrongCount} Yanlış` : ''}
                     </option>
                   ))}
@@ -1659,13 +1707,13 @@ export default function StudentWrongAnswersPage() {
               {/* Özel Sınav Adı Girişi (Custom seçilirse) */}
               {newErrorForm.homeworkId === 'custom' && (
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Özel Sınav / Kaynak Adı</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>Özel Sınav / Kaynak Adı</label>
                   <input
                     type="text"
                     placeholder="Örn: 3D Yayınları TYT Denemesi"
                     value={newErrorForm.testTitle}
                     onChange={e => setNewErrorForm(p => ({ ...p, testTitle: e.target.value }))}
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.82rem', fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                   />
                 </div>
               )}
@@ -1673,40 +1721,40 @@ export default function StudentWrongAnswersPage() {
               {/* 2. DERS VE KONU SEÇİMİ */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Ders</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>Ders</label>
                   <select
                     value={newErrorForm.subject}
                     onChange={e => setNewErrorForm(p => ({ ...p, subject: e.target.value }))}
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.82rem', fontWeight: 700, background: 'rgba(255,255,255,0.08)', color: '#ffffff', outline: 'none', cursor: 'pointer' }}
                   >
-                    <option value="Genel Testler">🏆 Genel Testler (Tüm Dersler)</option>
-                    <option value="Matematik">Matematik</option>
-                    <option value="Fen Bilimleri">Fen Bilimleri</option>
-                    <option value="Türkçe">Türkçe</option>
-                    <option value="Sosyal Bilgiler">Sosyal Bilgiler</option>
-                    <option value="İngilizce">İngilizce</option>
-                    <option value="Diğer">Diğer</option>
+                    <option value="Genel Testler" style={{ background: '#0f172a', color: '#ffffff' }}>🏆 Genel Testler (Tüm Dersler)</option>
+                    <option value="Matematik" style={{ background: '#0f172a', color: '#ffffff' }}>Matematik</option>
+                    <option value="Fen Bilimleri" style={{ background: '#0f172a', color: '#ffffff' }}>Fen Bilimleri</option>
+                    <option value="Türkçe" style={{ background: '#0f172a', color: '#ffffff' }}>Türkçe</option>
+                    <option value="Sosyal Bilgiler" style={{ background: '#0f172a', color: '#ffffff' }}>Sosyal Bilgiler</option>
+                    <option value="İngilizce" style={{ background: '#0f172a', color: '#ffffff' }}>İngilizce</option>
+                    <option value="Diğer" style={{ background: '#0f172a', color: '#ffffff' }}>Diğer</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Konu / Ünite (İsteğe Bağlı)</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>Konu / Ünite (İsteğe Bağlı)</label>
                   <input
                     type="text"
                     placeholder="Örn: Çarpanlar ve Katlar"
                     value={newErrorForm.topic}
                     onChange={e => setNewErrorForm(p => ({ ...p, topic: e.target.value }))}
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600 }}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.82rem', fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               {/* 3. SORU GÖRSELİ YÜKLEME (FOTOĞRAF / KAMERA) */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>
                   📸 Soru Fotoğrafı Yükleyin
                 </label>
                 {newErrorForm.imageUrl ? (
-                  <div style={{ position: 'relative', height: 160, borderRadius: '0.85rem', overflow: 'hidden', border: '2px solid #e11d48', background: '#0f172a' }}>
+                  <div style={{ position: 'relative', height: 160, borderRadius: '0.85rem', overflow: 'hidden', border: '2px solid #e11d48', background: '#070a12' }}>
                     <img src={newErrorForm.imageUrl} alt="Soru Önizleme" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     <button
                       type="button"
@@ -1717,10 +1765,10 @@ export default function StudentWrongAnswersPage() {
                     </button>
                   </div>
                 ) : (
-                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '0.85rem', cursor: 'pointer', transition: 'border-color 0.2s' }}>
-                    <Upload size={28} color="#e11d48" style={{ marginBottom: 6 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Fotoğraf Seç veya Kamera İle Çek</span>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 2 }}>PNG, JPG (Maks 8MB)</span>
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.2)', borderRadius: '0.85rem', cursor: 'pointer', transition: 'border-color 0.2s' }}>
+                    <Upload size={28} color="#f87171" style={{ marginBottom: 6 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff' }}>Fotoğraf Seç veya Kamera İle Çek</span>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>PNG, JPG (Maks 8MB)</span>
                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                   </label>
                 )}
@@ -1728,7 +1776,7 @@ export default function StudentWrongAnswersPage() {
 
               {/* 4. HATA SEBEBİ PRESETS */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>
                   ⚡ Hata Sebebi / Nedeni
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
@@ -1738,9 +1786,9 @@ export default function StudentWrongAnswersPage() {
                       type="button"
                       onClick={() => setNewErrorForm(p => ({ ...p, reason: preset }))}
                       style={{
-                        border: newErrorForm.reason === preset ? 'none' : '1px solid #cbd5e1',
-                        background: newErrorForm.reason === preset ? '#e11d48' : '#f8fafc',
-                        color: newErrorForm.reason === preset ? 'white' : '#475569',
+                        border: newErrorForm.reason === preset ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                        background: newErrorForm.reason === preset ? 'linear-gradient(135deg, #e11d48, #f43f5e)' : 'rgba(255,255,255,0.06)',
+                        color: newErrorForm.reason === preset ? 'white' : 'rgba(255,255,255,0.7)',
                         fontSize: '0.72rem',
                         fontWeight: 800,
                         padding: '0.25rem 0.55rem',
@@ -1756,19 +1804,19 @@ export default function StudentWrongAnswersPage() {
 
               {/* 5. ÖĞRENCİ NOTU VE ÇÖZÜM NOTU */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', display: 'block', marginBottom: 4 }}>Notunuz / Çözüm Açıklaması</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#c7d2fe', display: 'block', marginBottom: 4 }}>Notunuz / Çözüm Açıklaması</label>
                 <textarea
                   rows={2}
                   placeholder="Soru hakkında unutulmaması gereken notlar, doğru cevap veya çözüm adımları..."
                   value={newErrorForm.note}
                   onChange={e => setNewErrorForm(p => ({ ...p, note: e.target.value }))}
-                  style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600, outline: 'none', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.82rem', fontWeight: 600, outline: 'none', resize: 'vertical', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>İptal</button>
-                <button type="submit" style={{ background: '#e11d48', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(225,29,72,0.3)' }}>Hata Defterine Kaydet</button>
+                <button type="button" onClick={() => setShowAddModal(false)} style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>İptal</button>
+                <button type="submit" style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(225,29,72,0.4)' }}>Hata Defterine Kaydet</button>
               </div>
             </form>
           </div>
@@ -1779,49 +1827,49 @@ export default function StudentWrongAnswersPage() {
          MODAL 2: GÖRSEL DETAY & YÜKSEK ÇÖZÜNÜRLÜK İNCELEME
       ════════════════════════════════════════════ */}
       {viewingErrorModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: 840, maxHeight: '92vh', overflowY: 'auto', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,10,18,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: 840, maxHeight: '92vh', overflowY: 'auto', border: '1.5px solid rgba(255,255,255,0.18)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
               <div>
-                <span style={{ background: '#e11d48', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 6, textTransform: 'uppercase' }}>
+                <span style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)', color: 'white', fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 6, textTransform: 'uppercase' }}>
                   {viewingErrorModal.subject}
                 </span>
-                <h3 style={{ margin: '0.3rem 0 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                <h3 style={{ margin: '0.3rem 0 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>
                   {viewingErrorModal.testTitle} {viewingErrorModal.topic ? `· ${viewingErrorModal.topic}` : ''}
                 </h3>
               </div>
-              <button onClick={() => setViewingErrorModal(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}><X size={18} /></button>
+              <button onClick={() => setViewingErrorModal(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}><X size={18} /></button>
             </div>
 
             {/* Büyük Görsel */}
-            <div style={{ background: '#0f172a', borderRadius: '1rem', overflow: 'hidden', minHeight: 320, maxHeight: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem' }}>
+            <div style={{ background: '#070a12', borderRadius: '1rem', overflow: 'hidden', minHeight: 320, maxHeight: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
               <img src={viewingErrorModal.imageUrl} alt="Büyük Soru Görseli" style={{ maxWidth: '100%', maxHeight: 460, objectFit: 'contain', borderRadius: '0.5rem' }} />
             </div>
 
             {/* Detaylar */}
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {viewingErrorModal.reason && (
-                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#dc2626' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#f87171' }}>
                   ⚡ Hata Nedeni: {viewingErrorModal.reason}
                 </div>
               )}
               {viewingErrorModal.note && (
-                <div style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
                   💬 Not: {viewingErrorModal.note}
                 </div>
               )}
               {viewingErrorModal.solutionNote && (
-                <div style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: 700, background: '#f0fdf4', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #86efac' }}>
+                <div style={{ fontSize: '0.85rem', color: '#4ade80', fontWeight: 700, background: 'rgba(5,150,105,0.2)', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(52,211,153,0.35)' }}>
                   ✅ Çözüm Adımları: {viewingErrorModal.solutionNote}
                 </div>
               )}
             </div>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap', gap: 8 }}>
               <button
                 onClick={e => handleDeleteErrorRecord(viewingErrorModal.id, e)}
-                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.6rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                style={{ background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.35)', borderRadius: '0.75rem', padding: '0.6rem 1rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
               >
                 <Trash2 size={15} /> Görseli Sil
               </button>
@@ -1830,9 +1878,9 @@ export default function StudentWrongAnswersPage() {
                 <button
                   onClick={e => handleToggleStatus(viewingErrorModal.id, viewingErrorModal.status, e)}
                   style={{
-                    background: viewingErrorModal.status === 'resolved' ? '#f0fdf4' : '#fff1f2',
-                    color: viewingErrorModal.status === 'resolved' ? '#16a34a' : '#e11d48',
-                    border: viewingErrorModal.status === 'resolved' ? '1.5px solid #86efac' : '1.5px solid #fecdd3',
+                    background: viewingErrorModal.status === 'resolved' ? 'rgba(5,150,105,0.25)' : 'rgba(225,29,72,0.25)',
+                    color: viewingErrorModal.status === 'resolved' ? '#4ade80' : '#f87171',
+                    border: viewingErrorModal.status === 'resolved' ? '1.5px solid rgba(52,211,153,0.4)' : '1.5px solid rgba(253,164,175,0.4)',
                     borderRadius: '0.75rem',
                     padding: '0.6rem 1.25rem',
                     fontWeight: 900,
@@ -1843,10 +1891,10 @@ export default function StudentWrongAnswersPage() {
                     gap: 6
                   }}
                 >
-                  {viewingErrorModal.status === 'resolved' ? <><RotateCcwIcon size={16} /> Tekrar Et (Çözülecek Yap)</> : <><CheckCircle2 size={16} /> ✅ Öğrenildilarak İşaretle</>}
+                  {viewingErrorModal.status === 'resolved' ? <><RotateCcwIcon size={16} /> Tekrar Et (Çözülecek Yap)</> : <><CheckCircle2 size={16} /> ✅ Öğrenildi Olarak İşaretle</>}
                 </button>
 
-                <button onClick={() => setViewingErrorModal(null)} style={{ background: '#0f172a', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer' }}>Kapat</button>
+                <button onClick={() => setViewingErrorModal(null)} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.75rem', padding: '0.6rem 1.25rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer' }}>Kapat</button>
               </div>
             </div>
           </div>
