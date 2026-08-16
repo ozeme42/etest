@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Layers, Award, User, ClipboardList, CheckSquare, BarChart3, Calendar } from 'lucide-react';
+import { Home, BookOpen, Layers, Award, User, ClipboardList, CheckSquare, BarChart3, Calendar, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { triggerHapticFeedback } from '../services/nativeMobileService';
 
@@ -15,7 +15,7 @@ export default function MobileBottomNav() {
 
   const studentTabs = [
     { label: 'Ana Sayfa', path: '/student', icon: Home },
-    { label: 'Denemelerim', path: '/student/exams', icon: Award },
+    { label: 'Hedeflerim', path: '/goals', icon: Target },
     { label: 'Kitaplarım', path: '/student/books', icon: BookOpen },
     { label: 'Programım', path: '/my-program', icon: Calendar },
     { label: 'Sonuçlarım', path: '/student-results', icon: BarChart3 },
