@@ -24,16 +24,25 @@ export default function SummaryHtmlViewer({
 
     const customStyles = `
       * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 10px 14px !important;
+        box-sizing: border-box !important;
+      }
       body {
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: ${fontSize}px;
         line-height: 1.8;
         color: #334155;
         background: #ffffff;
-        padding: 8px 2px;
-        width: 100%;
         word-break: break-word;
         overflow-wrap: break-word;
+      }
+      div, table, p, h1, h2, h3, h4, h5, h6, ul, ol, li, pre, blockquote, img, .callout, .note, .box-info {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
       }
       h1, h2, h3, h4, h5, h6 {
         color: #0f172a;
