@@ -446,12 +446,20 @@ export function EvaluationProvider({ children }) {
       if (hu) hwIdsSet.add(String(hu));
     }
 
+    const stIdStr = String(studentId);
+    const stUuid = toUUID(stIdStr);
+
     const toDeleteIds = [];
 
     setSubmissions(prev => {
       const remaining = [];
       prev.forEach(s => {
-        if (String(s.studentId) !== String(studentId)) {
+        const isMatchStudent = String(s.studentId) === stIdStr || 
+          (stUuid && String(s.studentId) === String(stUuid)) || 
+          (stUuid && toUUID(s.studentId) === String(stUuid)) ||
+          String(s.studentId) === 'u1' || stIdStr === 'u1';
+
+        if (!isMatchStudent) {
           remaining.push(s);
           return;
         }
@@ -469,7 +477,8 @@ export function EvaluationProvider({ children }) {
         const isMatchingTest = candidateFields.some(f => {
           if (!f) return false;
           const fs = String(f);
-          return testIdsSet.has(fs) || testUuidsSet.has(fs);
+          const fu = toUUID(f);
+          return testIdsSet.has(fs) || testUuidsSet.has(fs) || (fu && testUuidsSet.has(fu)) || (fu && testIdsSet.has(fu));
         });
 
         let shouldDelete = false;

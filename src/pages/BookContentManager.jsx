@@ -806,6 +806,9 @@ export default function BookContentManager() {
       if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
         await deleteStudentSubmissionsForBookOrHw(stId, hw?.id, book?.id, [testId]);
       }
+      if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+        await clearHomeworkSubmissionsForStudent(hw?.id, stId, book?.id, [testId]);
+      }
       showToast(`${stName || 'Öğrenci'} için "${testName}" testi başarıyla sıfırlandı.`, 'success');
     } catch (e) {
       console.error(e);

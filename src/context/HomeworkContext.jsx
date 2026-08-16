@@ -239,15 +239,46 @@ useEffect(() => {
     }));
   };
 
-  const clearHomeworkSubmissionsForStudent = async (hwId, studentId, bookId) => {
-    setHomeworks(prev => prev.map(hw => {
-      const isTargetHw = hwId && String(hw.id) === String(hwId);
-      const isTargetBookHw = bookId && hw.isBookAssignment && String(hw.bookId) === String(bookId);
+  const clearHomeworkSubmissionsForStudent = async (hwId, studentId, bookId, testIds = []) => {
+    const testIdsSet = new Set((testIds || []).map(String));
+    (testIds || []).forEach(tid => {
+      const u = toUUID(tid);
+      if (u) testIdsSet.add(String(u));
+    });
+    const hasSpecificTests = testIdsSet.size > 0;
 
-      if (isTargetHw || isTargetBookHw) {
-        const updatedSubs = (hw.submissions || []).filter(s => String(s.studentId) !== String(studentId));
-        const updatedHw = { ...hw, submissions: updatedSubs };
-        dbAddHomework(updatedHw);
+    const stIdStr = String(studentId);
+    const stUuid = toUUID(stIdStr);
+
+    setHomeworks(prev => prev.map(hw => {
+      const isTargetHw = hwId && (String(hw.id) === String(hwId) || String(toUUID(hw.id)) === String(hwId));
+      const isTargetBookHw = bookId && (
+        String(hw.bookId) === String(bookId) || 
+        (hw.raw_data && String(hw.raw_data.bookId) === String(bookId)) ||
+        (hw.title && bookId && hw.title.includes(bookId))
+      );
+
+      if (isTargetHw || isTargetBookHw || (!hwId && !bookId)) {
+        const updatedSubs = (hw.submissions || []).filter(s => {
+          const isMatchStudent = String(s.studentId) === stIdStr || (stUuid && String(s.studentId) === stUuid) || (stUuid && toUUID(s.studentId) === stUuid) || String(s.studentId) === 'u1' || stIdStr === 'u1';
+          if (!isMatchStudent) return true; // keep other students
+
+          if (hasSpecificTests) {
+            const isMatchingTest = testIdsSet.has(String(s.testId)) || testIdsSet.has(String(s.bookTestId)) || testIdsSet.has(toUUID(s.testId));
+            return !isMatchingTest; // drop matching test
+          }
+          return false; // drop all for this student in this homework
+        });
+
+        const updatedHw = {
+          ...hw,
+          submissions: updatedSubs,
+          raw_data: {
+            ...(hw.raw_data || {}),
+            submissions: updatedSubs
+          }
+        };
+        dbAddHomework(updatedHw).catch(console.error);
         return updatedHw;
       }
       return hw;

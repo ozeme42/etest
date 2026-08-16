@@ -704,7 +704,18 @@ export default function StudentBookDetailsPage() {
                                           if (test.latestSubId) {
                                             await deleteSubmission(test.latestSubId);
                                           }
-                                          await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                          if (test.bestSub?.id) {
+                                            await deleteSubmission(test.bestSub.id);
+                                          }
+                                          if (test.bestSub?.supabaseId) {
+                                            await deleteSubmission(test.bestSub.supabaseId);
+                                          }
+                                          if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+                                            await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                          }
+                                          if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+                                            await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
+                                          }
                                         }
                                       }}
                                     >
@@ -837,7 +848,18 @@ export default function StudentBookDetailsPage() {
                                                   if (test.latestSubId) {
                                                     await deleteSubmission(test.latestSubId);
                                                   }
-                                                  await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                                  if (test.bestSub?.id) {
+                                                    await deleteSubmission(test.bestSub.id);
+                                                  }
+                                                  if (test.bestSub?.supabaseId) {
+                                                    await deleteSubmission(test.bestSub.supabaseId);
+                                                  }
+                                                  if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+                                                    await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                                  }
+                                                  if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+                                                    await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
+                                                  }
                                                 }
                                               }}
                                             >
@@ -936,7 +958,18 @@ export default function StudentBookDetailsPage() {
                                         if (test.latestSubId) {
                                           await deleteSubmission(test.latestSubId);
                                         }
-                                        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                        if (test.bestSub?.id) {
+                                          await deleteSubmission(test.bestSub.id);
+                                        }
+                                        if (test.bestSub?.supabaseId) {
+                                          await deleteSubmission(test.bestSub.supabaseId);
+                                        }
+                                        if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+                                          await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
+                                        }
+                                        if (typeof clearHomeworkSubmissionsForStudent === 'function') {
+                                          await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, [test.id]);
+                                        }
                                       }
                                     }}
                                   >
