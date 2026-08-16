@@ -98,7 +98,7 @@ function isImageSection(bankQ) {
 }
 
 export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}, resolvedQuestions = [], secImages = []) {
-  // 1. Answer Key check (from all sources)
+  // 1. Answer Key check (Authoritative! If a test has 2 answers in answer key, it is a 2-question test)
   const getAkCount = (obj) => {
     if (!obj || !obj.answerKey) return 0;
     const ak = obj.answerKey;
@@ -113,6 +113,7 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     getAkCount(foundInBank),
     getAkCount(bankQ?.bankQ)
   );
+  if (akCount > 0) return akCount;
 
   // 2. Direct question lists
   const listCount = Math.max(
@@ -127,8 +128,25 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     Array.isArray(foundInBank?.questionIds) ? foundInBank.questionIds.length : 0,
     Array.isArray(resolvedQuestions) ? resolvedQuestions.length : 0
   );
+  if (listCount > 0) return listCount;
 
-  // 3. Question Count field (numeric)
+  // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
+  const titles = [sec?.title, bankQ?.title, bankQ?.name, foundInBank?.title, foundInBank?.name];
+  for (const t of titles) {
+    if (t) {
+      const m = String(t).match(/(\d+)\s*Soru/i);
+      if (m) {
+        const num = parseInt(m[1], 10);
+        if (!isNaN(num) && num > 0) return num;
+      }
+    }
+  }
+
+  // 4. Visual images count
+  const imgCount = Array.isArray(secImages) ? secImages.length : 0;
+  if (imgCount > 0) return imgCount;
+
+  // 5. Question Count field (numeric)
   const getRawCount = (obj) => {
     if (!obj) return 0;
     const val = obj.questionCount ?? obj.totalQuestions ?? obj.questionsCount ?? obj.qCount ?? obj.soruSayisi;
@@ -139,32 +157,14 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
     return 0;
   };
   const countField = Math.max(
-    getRawCount(sec),
     getRawCount(bankQ),
     getRawCount(foundInBank),
-    getRawCount(bankQ?.bankQ)
+    getRawCount(bankQ?.bankQ),
+    getRawCount(sec)
   );
+  if (countField > 0) return countField;
 
-  // 4. Title regex (e.g. "(4 Soru)" or "4 Soru")
-  const titleMatch = (() => {
-    const titles = [sec?.title, bankQ?.title, bankQ?.name, foundInBank?.title, foundInBank?.name];
-    for (const t of titles) {
-      if (t) {
-        const m = String(t).match(/(\d+)\s*Soru/i);
-        if (m) {
-          const num = parseInt(m[1], 10);
-          if (!isNaN(num) && num > 0) return num;
-        }
-      }
-    }
-    return 0;
-  })();
-
-  // 5. Visual images count
-  const imgCount = Array.isArray(secImages) ? secImages.length : 0;
-
-  // Final exact resolution (no hardcoded 10, exact count from test data)
-  return Math.max(countField, akCount, listCount, titleMatch, imgCount, 1);
+  return 1;
 }
 
 // ─── STABLE HTML VIEWER — React.memo ile sarılmış, sectionAnswers değişiminden TAMAMEN izole ──────

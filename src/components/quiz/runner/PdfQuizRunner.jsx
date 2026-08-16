@@ -47,7 +47,7 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
 
   // Exact question count calculation
   const qCount = useMemo(() => {
-    // 1. Direct answer key length
+    // 1. Direct answer key length (Most authoritative!)
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) {
       return keyArray.length;
@@ -70,7 +70,19 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
       return questions.length;
     }
 
-    // 3. Question Count fields on test or first question
+    // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
+    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
+    for (const t of titles) {
+      if (t) {
+        const m = String(t).match(/(\d+)\s*Soru/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > 0) return num;
+        }
+      }
+    }
+
+    // 4. Question Count fields on test or first question
     const rawCount = Number(
       test.questionCount ||
       test.totalQuestions ||
@@ -84,30 +96,8 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
       return rawCount;
     }
 
-    // 4. Title regex (e.g. "(2 Soru)" or "2 Soru")
-    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name];
-    for (const t of titles) {
-      if (t) {
-        const m = String(t).match(/(\d+)\s*Soru/i);
-        if (m) {
-          const num = parseInt(m[1], 10);
-          if (!isNaN(num) && num > 0) return num;
-        }
-      }
-    }
-
-    // 5. Answers in state
-    const maxAnsKey = Math.max(
-      ...Object.keys(answers).map(Number).filter(n => !isNaN(n)),
-      ...Object.keys(openEndedText).map(Number).filter(n => !isNaN(n)),
-      0
-    );
-    if (maxAnsKey > 0) {
-      return maxAnsKey;
-    }
-
     return 1;
-  }, [test, questions, answers, openEndedText]);
+  }, [test, questions]);
 
   const [idbPdf, setIdbPdf] = useState(null);
   const loadedRef = useRef(null);
