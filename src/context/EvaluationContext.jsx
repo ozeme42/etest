@@ -92,41 +92,16 @@ export function EvaluationProvider({ children }) {
     async function syncFromSupabase() {
       setIsSyncing(true);
       try {
-        const dbSubsList = await dbGetSubmissions() || [];
-        setSubmissions(prev => {
-          const map = new Map();
-          dbSubsList.forEach(s => map.set(String(s.id), s));
-          prev.forEach(s => {
-            const existing = map.get(String(s.id));
-
-            // Yüksek boyutlu verileri temizle (eski kayıtlar için)
-            delete s.contentPayload;
-            delete s.pdfPayload;
-            delete s.htmlPayload;
-            delete s.imageUrl;
-            delete s.imageUrls;
-            if (s.questionsList) {
-              s.questionsList = s.questionsList.map(q => {
-                const qCopy = { ...q };
-                delete qCopy.contentPayload;
-                delete qCopy.htmlPayload;
-                delete qCopy.imageUrls;
-                delete qCopy.imageUrl;
-                return qCopy;
-              });
-            }
-
-            if (!existing) {
-              if (!s.id.startsWith('sub_sample')) {
-                dbSaveSubmission(s).catch(err => console.warn('Background sync failed:', err));
-              }
-              map.set(String(s.id), s);
-            } else if (s.isEvaluatedByTeacher || s.status === 'completed' || s.status === 'evaluated') {
-              map.set(String(s.id), { ...existing, ...s });
-            }
-          });
-          return Array.from(map.values());
-        });
+        const dbSubsList = await dbGetSubmissions();
+        if (dbSubsList && Array.isArray(dbSubsList)) {
+          setSubmissions(dbSubsList);
+          try {
+            localStorage.setItem('eTestSubmissions', JSON.stringify(dbSubsList));
+            localStorage.setItem('etest_submissions', JSON.stringify(dbSubsList));
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('[Supabase] Submission sync error:', err);
       } finally {
         setIsSyncing(false);
       }
