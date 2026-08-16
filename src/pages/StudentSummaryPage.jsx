@@ -12,28 +12,50 @@ import {
 } from 'lucide-react';
 import './StudentSummaryPage.css';
 
-// Helper to determine subject icon and color theme
+// Helper to determine subject icon and vibrant color theme
 const getSubjectTheme = (subjectName = '') => {
   const s = subjectName.toLowerCase();
   if (s.includes('matematik') || s.includes('geometri')) {
-    return { icon: '📐', color: '#4f46e5', lightBg: '#eef2ff', border: '#c7d2fe', badge: 'Matematik' };
+    return { icon: '📐', color: '#2563eb', gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', lightBg: '#eff6ff', border: '#bfdbfe', badge: 'Matematik' };
   }
   if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) {
-    return { icon: '🔬', color: '#059669', lightBg: '#ecfdf5', border: '#a7f3d0', badge: 'Fen Bilimleri' };
+    return { icon: '🔬', color: '#059669', gradient: 'linear-gradient(135deg, #059669, #10b981)', lightBg: '#ecfdf5', border: '#a7f3d0', badge: 'Fen Bilimleri' };
   }
   if (s.includes('türkçe') || s.includes('edebiyat') || s.includes('dil')) {
-    return { icon: '📖', color: '#d97706', lightBg: '#fffbeb', border: '#fde68a', badge: 'Türkçe' };
+    return { icon: '📖', color: '#d97706', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', lightBg: '#fffbeb', border: '#fde68a', badge: 'Türkçe' };
   }
   if (s.includes('inkılap') || s.includes('tarih') || s.includes('sosyal') || s.includes('coğrafya')) {
-    return { icon: '🏛️', color: '#e11d48', lightBg: '#fff1f2', border: '#fecdd3', badge: 'Sosyal / Tarih' };
+    return { icon: '🏛️', color: '#e11d48', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', lightBg: '#fff1f2', border: '#fecdd3', badge: 'Sosyal / Tarih' };
   }
   if (s.includes('ingilizce') || s.includes('yabancı') || s.includes('almanca')) {
-    return { icon: '🌍', color: '#0284c7', lightBg: '#f0f9ff', border: '#bae6fd', badge: 'İngilizce' };
+    return { icon: '🌍', color: '#0284c7', gradient: 'linear-gradient(135deg, #0284c7, #0ea5e9)', lightBg: '#f0f9ff', border: '#bae6fd', badge: 'İngilizce' };
   }
   if (s.includes('din') || s.includes('ahlak')) {
-    return { icon: '🕌', color: '#0d9488', lightBg: '#f0fdfa', border: '#99f6e4', badge: 'Din Kültürü' };
+    return { icon: '🕌', color: '#0d9488', gradient: 'linear-gradient(135deg, #0d9488, #14b8a6)', lightBg: '#f0fdfa', border: '#99f6e4', badge: 'Din Kültürü' };
   }
-  return { icon: '📚', color: '#6366f1', lightBg: '#eef2ff', border: '#c7d2fe', badge: 'Ders' };
+  return { icon: '📚', color: '#4f46e5', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: '#eef2ff', border: '#c7d2fe', badge: 'Ders' };
+};
+
+// Format clean unit display name (prevents duplicate "Ü1 1" outputs)
+const formatUnitDisplayName = (unit, index) => {
+  if (!unit) return `${index + 1}. Ünite`;
+  const raw = String(unit.name || '').trim();
+  if (!raw) return `${index + 1}. Ünite`;
+  
+  // If raw is just a number like "1", "2", "3"
+  if (/^\d+$/.test(raw)) {
+    return `${raw}. Ünite`;
+  }
+  // If raw is "Ünite 1" or "1. Ünite"
+  if (/^(\d+)\.\s*ünite$/i.test(raw) || /^ünite\s*(\d+)$/i.test(raw)) {
+    const num = raw.replace(/\D/g, '');
+    return `${num || index + 1}. Ünite`;
+  }
+  // If raw already starts with "1. Ünite" or "Ünite 1"
+  if (/^(\d+\.|\d+\s*-\s*|ünite\s*\d+)/i.test(raw)) {
+    return raw;
+  }
+  return `${index + 1}. Ünite: ${raw}`;
 };
 
 export default function StudentSummaryPage() {
@@ -87,14 +109,15 @@ export default function StudentSummaryPage() {
   // Linear list of all reading items for next / previous navigation
   const readingItemList = useMemo(() => {
     const list = [];
-    filteredUnits.forEach(u => {
+    filteredUnits.forEach((u, uIdx) => {
+      const uTitle = formatUnitDisplayName(u, uIdx);
       list.push({
         type: 'unit',
         id: u.id,
-        name: u.name,
+        name: uTitle,
         unitId: u.id,
-        unitName: u.name,
-        label: `${u.name} (Ünite Genel Özeti)`
+        unitName: uTitle,
+        label: `${uTitle} (Genel Özet)`
       });
       const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
       unitTopics.forEach(t => {
@@ -103,7 +126,7 @@ export default function StudentSummaryPage() {
           id: t.id,
           name: t.name,
           unitId: u.id,
-          unitName: u.name,
+          unitName: uTitle,
           label: t.name
         });
       });
@@ -168,7 +191,7 @@ export default function StudentSummaryPage() {
                 <ChevronRight size={12} className="crumb-sep" />
                 <span style={{ color: activeTheme.color, fontWeight: 800 }}>{currentSubject?.name}</span>
                 <ChevronRight size={12} className="crumb-sep" />
-                <span>{currentUnit?.name}</span>
+                <span>{activeReadingTarget.unitName || currentUnit?.name}</span>
                 {activeReadingTarget.type === 'topic' && (
                   <>
                     <ChevronRight size={12} className="crumb-sep" />
@@ -308,7 +331,7 @@ export default function StudentSummaryPage() {
               <div className="edu-drawer-panel" onClick={e => e.stopPropagation()}>
                 <div className="edu-drawer-header">
                   <div className="edu-drawer-title">
-                    <FolderOpen size={17} color="#4f46e5" />
+                    <FolderOpen size={17} color="#2563eb" />
                     <span>Konu Listesi</span>
                   </div>
                   <button className="edu-drawer-close" onClick={() => setIsDrawerOpen(false)}>
@@ -318,6 +341,7 @@ export default function StudentSummaryPage() {
 
                 <div className="edu-drawer-scroll custom-scrollbar">
                   {filteredUnits.map((u, uIdx) => {
+                    const uTitle = formatUnitDisplayName(u, uIdx);
                     const isUnitActive = activeReadingTarget?.type === 'unit' && String(activeReadingTarget?.id) === String(u.id);
                     const unitHasSummary = hasSummary('unit', u.id);
                     const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
@@ -327,12 +351,12 @@ export default function StudentSummaryPage() {
                         <div 
                           className={`edu-drawer-unit-item ${isUnitActive ? 'active' : ''}`}
                           onClick={() => {
-                            setActiveReadingTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id });
+                            setActiveReadingTarget({ type: 'unit', id: u.id, name: uTitle, unitId: u.id, unitName: uTitle });
                             setIsDrawerOpen(false);
                           }}
                         >
                           <span className="edu-unit-num">{uIdx + 1}</span>
-                          <strong>{u.name} (Genel Özet)</strong>
+                          <strong>{uTitle} (Genel Özet)</strong>
                           {unitHasSummary && <span className="edu-dot-badge">●</span>}
                         </div>
 
@@ -346,7 +370,7 @@ export default function StudentSummaryPage() {
                                 key={t.id}
                                 className={`edu-drawer-topic-item ${isTopicActive ? 'active' : ''}`}
                                 onClick={() => {
-                                  setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id });
+                                  setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id, unitName: uTitle });
                                   setIsDrawerOpen(false);
                                 }}
                               >
@@ -369,12 +393,12 @@ export default function StudentSummaryPage() {
       ) : (
 
         /* ════════════════════════════════════════════════════════════════
-            VIEW 2: CATALOG VIEW (Çok Küçük & Kompakt Ünite Kartları)
+            VIEW 2: VIBRANT COLORFUL CATALOG VIEW
            ════════════════════════════════════════════════════════════════ */
         <div className="edu-catalog-view">
           
           {/* HERO HEADER */}
-          <header className="edu-hero-header">
+          <header className="edu-hero-header" style={{ borderTop: `4px solid ${activeTheme.color}` }}>
             <div className="edu-hero-container">
               
               <div className="edu-hero-top-row">
@@ -431,7 +455,8 @@ export default function StudentSummaryPage() {
                         style={{
                           '--sub-color': theme.color,
                           '--sub-bg': theme.lightBg,
-                          '--sub-border': theme.border
+                          '--sub-border': theme.border,
+                          '--sub-gradient': theme.gradient
                         }}
                       >
                         <span className="edu-subject-icon">{theme.icon}</span>
@@ -461,67 +486,100 @@ export default function StudentSummaryPage() {
             </div>
           </div>
 
-          {/* COMPACT & MINIMAL UNITS & TOPICS LIST */}
+          {/* VIBRANT & COLORFUL UNIT LIST */}
           <div className="edu-units-catalog-grid">
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
+                const uTitle = formatUnitDisplayName(u, uIdx);
                 const unitHasSummary = hasSummary('unit', u.id);
                 const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
 
                 const filteredTopicsList = searchQuery
-                  ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || uTitle.toLowerCase().includes(searchQuery.toLowerCase()))
                   : unitTopics;
 
-                if (searchQuery && !u.name.toLowerCase().includes(searchQuery.toLowerCase()) && filteredTopicsList.length === 0) {
+                if (searchQuery && !uTitle.toLowerCase().includes(searchQuery.toLowerCase()) && filteredTopicsList.length === 0) {
                   return null;
                 }
 
                 return (
-                  <div key={u.id} className="edu-unit-card-compact">
+                  <div key={u.id} className="edu-unit-vibrant-card">
                     
-                    {/* Compact Unit Card Header */}
-                    <div className="edu-unit-compact-header">
-                      <div className="edu-unit-compact-left">
-                        <span className="edu-unit-badge-pill" style={{ background: activeTheme.lightBg, color: activeTheme.color, borderColor: activeTheme.border }}>
-                          Ü{uIdx + 1}
+                    {/* Colorful Unit Header Bar */}
+                    <div 
+                      className="edu-unit-vibrant-bar"
+                      style={{
+                        background: activeTheme.lightBg,
+                        borderLeftColor: activeTheme.color
+                      }}
+                    >
+                      <div className="edu-unit-vibrant-left">
+                        <span 
+                          className="edu-unit-tag-badge"
+                          style={{
+                            background: activeTheme.color,
+                            color: '#ffffff'
+                          }}
+                        >
+                          {uIdx + 1}. ÜNİTE
                         </span>
-                        <h3 className="edu-unit-compact-title">{u.name}</h3>
+                        <h3 className="edu-unit-vibrant-title">{uTitle}</h3>
                       </div>
 
-                      {/* General Unit Summary Pill */}
+                      {/* General Unit Summary Button */}
                       <button
-                        className={`edu-unit-compact-pill-btn ${unitHasSummary ? 'has-summary' : ''}`}
-                        onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id })}
+                        className={`edu-unit-summary-action-btn ${unitHasSummary ? 'has-summary' : ''}`}
+                        onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: uTitle, unitId: u.id, unitName: uTitle })}
+                        style={{
+                          '--action-color': activeTheme.color,
+                          '--action-bg': activeTheme.lightBg
+                        }}
                       >
-                        <BookMarked size={13} />
-                        <span>{unitHasSummary ? 'Ünite Özeti' : 'Özet'}</span>
-                        <ChevronRight size={13} />
+                        <BookMarked size={14} />
+                        <span>{unitHasSummary ? 'Ünite Özeti Oku' : 'Ünite Özeti'}</span>
+                        <ChevronRight size={14} />
                       </button>
                     </div>
 
-                    {/* Compact Topics Chips List */}
-                    <div className="edu-unit-compact-topics-wrap">
-                      <div className="edu-compact-topics-grid">
-                        {filteredTopicsList.map((t, tIdx) => {
-                          const topicHasSummary = hasSummary('topic', t.id);
+                    {/* Colorful Topics Grid */}
+                    <div className="edu-unit-topics-container">
+                      {filteredTopicsList.length > 0 ? (
+                        <div className="edu-vibrant-topics-grid">
+                          {filteredTopicsList.map((t, tIdx) => {
+                            const topicHasSummary = hasSummary('topic', t.id);
+                            const topicTitle = t.name || `Konu ${tIdx + 1}`;
 
-                          return (
-                            <div
-                              key={t.id}
-                              className={`edu-topic-compact-chip ${topicHasSummary ? 'has-content' : ''}`}
-                              onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id })}
-                            >
-                              <span className="edu-topic-dot-bullet" />
-                              <span className="edu-topic-compact-name">{t.name}</span>
-                              {topicHasSummary ? (
-                                <span className="edu-chip-ready-tag">Özet</span>
-                              ) : (
-                                <ChevronRight size={12} className="edu-chip-arrow" />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                            return (
+                              <div
+                                key={t.id}
+                                className={`edu-topic-vibrant-chip ${topicHasSummary ? 'has-content' : ''}`}
+                                onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: uTitle })}
+                              >
+                                <div className="edu-topic-chip-left">
+                                  <span className="edu-topic-pill-num">{tIdx + 1}</span>
+                                  <span className="edu-topic-pill-title">{topicTitle}</span>
+                                </div>
+
+                                <div className="edu-topic-chip-right">
+                                  {topicHasSummary ? (
+                                    <span className="edu-badge-ready">
+                                      <span>Özet Oku</span>
+                                      <ChevronRight size={12} />
+                                    </span>
+                                  ) : (
+                                    <span className="edu-badge-plain">
+                                      <span>İncele</span>
+                                      <ChevronRight size={12} />
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="edu-no-topics-hint">Bu ünitede kayıtlı konu bulunmuyor.</div>
+                      )}
                     </div>
 
                   </div>
