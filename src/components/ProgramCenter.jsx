@@ -8,6 +8,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
+import { toUUID } from '../services/supabaseService';
 
 /* ─── Constants ─── */
 export const DAYS = [
