@@ -47,18 +47,37 @@ export default function ModularQuizReviewPage() {
 
     // 1. Search in EvaluationContext (global submissions)
     if (submissions && Array.isArray(submissions)) {
-      const candidates = submissions.filter(s =>
-        String(s.id) === String(targetId) ||
-        String(s.testId) === String(targetId) ||
-        String(s.hwId) === String(targetId) ||
-        String(s.homeworkId) === String(targetId) ||
-        (studentId && String(s.studentId) === String(studentId) && (
-          String(s.testId) === String(targetId) ||
-          String(s.hwId) === String(targetId) ||
-          String(s.homeworkId) === String(targetId) ||
-          String(s.id) === String(targetId)
-        ))
-      );
+      // Check if targetId is composite (e.g. bt_hw_..._tbt_...)
+      const compMatchLocal = String(targetId || '').match(/^(?:bt_|book_test_)?(hw_[^_]+)_(.+)$/);
+      const subCandidateLocal = compMatchLocal ? compMatchLocal[2] : null;
+      const effectiveSearchIds = [
+        String(targetId),
+        subCandidateLocal ? String(subCandidateLocal) : null,
+        subCandidateLocal ? toUUID(subCandidateLocal) : null,
+        toUUID(targetId)
+      ].filter(Boolean);
+
+      const candidates = submissions.filter(s => {
+        if (studentId && String(s.studentId) !== String(studentId)) return false;
+        const matchFields = [
+          String(s.id || ''),
+          String(s.testId || ''),
+          String(s.realTestId || ''),
+          String(s.bookTestId || '')
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+          matchFields.push(...s.bookTestIds.map(String));
+        }
+        // Direct test match
+        if (effectiveSearchIds.some(searchId => matchFields.includes(searchId))) return true;
+
+        // Fallback to hwId ONLY if searchId was the hwId directly
+        if (String(s.hwId) === String(targetId) || String(s.homeworkId) === String(targetId)) {
+          return true;
+        }
+        return false;
+      });
+
       if (candidates.length > 0) {
         candidates.sort((a, b) => {
           const aEval = Boolean(a.isEvaluatedByTeacher || a.status === 'evaluated' || a.status === 'graded' || a.teacherFeedback);
@@ -79,7 +98,7 @@ export default function ModularQuizReviewPage() {
             const matched = hw.submissions.find(s =>
               String(s.id) === String(targetId) ||
               String(s.submissionId) === String(targetId) ||
-              (studentId && String(s.studentId) === String(studentId))
+              (studentId && String(s.studentId) === String(studentId) && (!s.testId || String(s.testId) === String(targetId)))
             ) || hw.submissions[hw.submissions.length - 1];
 
             if (matched) {

@@ -256,15 +256,26 @@ export default function TrackedBookQuizRunner() {
     }
 
     const testIdStr = String(resolvedTest.id);
-    const existingSub = (submissions || []).find(s => 
-      String(s.studentId) === String(studentId) && 
-      (
-        String(s.testId) === testIdStr || 
-        String(s.bookTestId) === testIdStr || 
-        (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === testIdStr)) ||
-        (resolvedHw && (String(s.hwId) === String(resolvedHw.id) || String(s.testId) === String(resolvedHw.id)))
-      )
-    );
+    const testUuidStr = String(toUUID(resolvedTest.id) || '');
+
+    const existingSub = (submissions || []).find(s => {
+      if (String(s.studentId) !== String(studentId)) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+
+      const matchFields = [
+        String(s.testId || ''),
+        String(s.realTestId || ''),
+        String(s.bookTestId || ''),
+        String(s.metadata?.realTestId || ''),
+        String(s.metadata?.bookTestId || ''),
+        String(s.metadata?.realId || '')
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        matchFields.push(...s.bookTestIds.map(String));
+      }
+
+      return matchFields.some(f => f && (f === testIdStr || (testUuidStr && f === testUuidStr)));
+    });
 
     if (existingSub) {
       setIsSubmitted(true);

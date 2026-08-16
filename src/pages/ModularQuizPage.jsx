@@ -106,11 +106,26 @@ export default function ModularQuizPage() {
     if (isRetake || isNewOrReassigned) return null;
     if (!submissions || submissions.length === 0) return null;
     const hwCreatedTime = activeHomework?.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
+    const currentTId = String(test?.id || testId);
+    const currentTUUID = String(toUUID(test?.id || testId) || '');
 
     return submissions.find(s => {
       if (String(s.studentId) !== String(studentId)) return false;
       if (s.status !== 'in_progress' && s.status !== 'draft') return false;
-      const matches = (String(s.testId) === String(testId) || String(s.hwId) === String(testId) || toUUID(s.testId) === toUUID(testId) || (activeHomework && (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id))));
+
+      const matchFields = [
+        String(s.testId || ''),
+        String(s.realTestId || ''),
+        String(s.bookTestId || '')
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        matchFields.push(...s.bookTestIds.map(String));
+      }
+      if (activeHomework && (!activeHomework.tests || activeHomework.tests.length <= 1)) {
+        matchFields.push(String(activeHomework.id));
+      }
+
+      const matches = matchFields.some(f => f && (f === currentTId || (currentTUUID && f === currentTUUID)));
       if (!matches) return false;
       if (hwCreatedTime && (s.updatedAt || s.submittedAt || s.createdAt)) {
         const subTime = new Date(s.updatedAt || s.submittedAt || s.createdAt).getTime();
@@ -118,36 +133,71 @@ export default function ModularQuizPage() {
       }
       return true;
     });
-  }, [submissions, testId, studentId, activeHomework, isRetake, isNewOrReassigned]);
+  }, [submissions, testId, test?.id, studentId, activeHomework, isRetake, isNewOrReassigned]);
 
-  // Prevent taking the exam again ONLY IF this specific assignment was already submitted AFTER it was assigned
+  // Prevent taking the exam again ONLY IF this specific test was already submitted AFTER it was assigned
   const completedSub = useMemo(() => {
     if (isRetake) return null;
     if (!submissions || submissions.length === 0) return null;
 
+    const currentTId = String(test?.id || testId);
+    const currentTUUID = String(toUUID(test?.id || testId) || '');
+
     if (activeHomework) {
       const hwCreatedTime = activeHomework.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
-      
-      // Look for a submission that belongs specifically to this active homework
-      const subInHw = (activeHomework.submissions || []).find(s => 
-        String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft'
-      );
+
+      // Look for a submission that belongs specifically to this active homework AND this specific test
+      const subInHw = (activeHomework.submissions || []).find(s => {
+        if (String(s.studentId) !== String(studentId) || s.status === 'in_progress' || s.status === 'draft') return false;
+        if (activeHomework.tests && activeHomework.tests.length > 1) {
+          const sTId = String(s.testId || s.bookTestId || '');
+          return sTId === currentTId || (currentTUUID && sTId === currentTUUID);
+        }
+        return true;
+      });
       if (subInHw) return subInHw;
 
-      // Look in global submissions submitted AFTER the homework was created
-      const subAfterHw = submissions.find(s => 
-        (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id) || String(s.testId) === String(testId)) && 
-        String(s.studentId) === String(studentId) && 
-        s.status !== 'in_progress' && s.status !== 'draft' &&
-        (s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false)
-      );
-      
+      // Look in global submissions submitted AFTER the homework was created matching THIS test ID
+      const subAfterHw = submissions.find(s => {
+        if (String(s.studentId) !== String(studentId) || s.status === 'in_progress' || s.status === 'draft') return false;
+
+        const matchFields = [
+          String(s.testId || ''),
+          String(s.realTestId || ''),
+          String(s.bookTestId || ''),
+          String(s.metadata?.realTestId || ''),
+          String(s.metadata?.bookTestId || ''),
+          String(s.metadata?.realId || '')
+        ];
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+          matchFields.push(...s.bookTestIds.map(String));
+        }
+
+        const isExactTestMatch = matchFields.some(f => f && (f === currentTId || (currentTUUID && f === currentTUUID)));
+        const isSingleHwMatch = (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id)) && (!activeHomework.tests || activeHomework.tests.length <= 1);
+
+        if (!isExactTestMatch && !isSingleHwMatch) return false;
+
+        return s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false;
+      });
+
       return subAfterHw || null;
     }
 
-    // If there is no active homework, the student is taking or retaking a test directly -> do not block
-    return null;
-  }, [submissions, testId, studentId, activeHomework, isRetake]);
+    // If there is no active homework, check if there is a completed submission specifically for this test
+    return submissions.find(s => {
+      if (String(s.studentId) !== String(studentId) || s.status === 'in_progress' || s.status === 'draft') return false;
+      const matchFields = [
+        String(s.testId || ''),
+        String(s.realTestId || ''),
+        String(s.bookTestId || '')
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        matchFields.push(...s.bookTestIds.map(String));
+      }
+      return matchFields.some(f => f && (f === currentTId || (currentTUUID && f === currentTUUID)));
+    }) || null;
+  }, [submissions, testId, test?.id, studentId, activeHomework, isRetake]);
 
   const bookForTest = useMemo(() => {
     if (!test) return null;
