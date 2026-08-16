@@ -195,15 +195,26 @@ useEffect(() => {
     }));
   };
 
-  const updateHomeworkSubmission = (hwId, studentId, updatedSubData) => {
+  const updateHomeworkSubmission = (hwId, studentOrSubId, updatedSubData) => {
     setHomeworks(prev => prev.map(hw => {
       if (String(hw.id) === String(hwId)) {
-        const nextSubmissions = (hw.submissions || []).map(s => {
-          if (String(s.studentId) === String(studentId) || String(s.id) === String(updatedSubData.id)) {
-            return { ...s, ...updatedSubData, status: 'completed', isEvaluatedByTeacher: true };
-          }
-          return s;
-        });
+        const existingList = Array.isArray(hw.submissions) ? [...hw.submissions] : [];
+        const foundIdx = existingList.findIndex(s =>
+          String(s.studentId) === String(studentOrSubId) ||
+          String(s.studentId) === String(updatedSubData?.studentId) ||
+          String(s.id) === String(studentOrSubId) ||
+          String(s.id) === String(updatedSubData?.id)
+        );
+
+        let nextSubmissions;
+        if (foundIdx >= 0) {
+          nextSubmissions = existingList.map((s, idx) =>
+            idx === foundIdx ? { ...s, ...updatedSubData, status: updatedSubData.status || 'completed' } : s
+          );
+        } else {
+          nextSubmissions = [...existingList, { ...updatedSubData, status: updatedSubData.status || 'completed' }];
+        }
+
         const updatedHw = { ...hw, submissions: nextSubmissions };
         dbAddHomework(updatedHw);
         return updatedHw;

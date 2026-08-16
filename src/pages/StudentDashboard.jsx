@@ -390,7 +390,6 @@ const DASHBOARD_QUOTES = [
   { quote: "Başarı, her gün biraz daha iyi olmakla gelir.", author: "Günün Mottosu", category: "Gelişim", emoji: "🌱" },
   { quote: "Dün senden daha iyi ol. Bugün kendini geç.", author: "Miyamoto Musashi", category: "Gelişim", emoji: "🌱" },
   { quote: "Bilgi, hiçbir zaman sırt çantandan daha ağır gelmez.", author: "Anonim", category: "Gelişim", emoji: "🌱" },
-  { quote: "Beyin de bir kas gibidir — ne kadar kullanırsan o kadar güçlenir.", author: "Nörobilim Gerçeği", category: "Gelişim", emoji: "🌱" },
   { quote: "Okumak, yerinde duran bir zihin için tek seyahattir.", author: "Gustave Flaubert", category: "Gelişim", emoji: "🌱" },
 
   /* ─── Özgüven ─── */
@@ -490,10 +489,16 @@ export default function StudentDashboard() {
       if (isExam) {
         const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft') ||
           submissions.find(s => {
-            if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status === 'draft') return false;
-            const matches = (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id) || (bookObj && s.testId === bookObj.id));
+            if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status !== 'draft') return false;
+            const matches = (
+              String(s.hwId) === String(hw.id) ||
+              String(s.homeworkId) === String(hw.id) ||
+              String(s.testId) === String(hw.id) ||
+              String(s.id) === String(hw.id) ||
+              (bookObj && (String(s.testId) === String(bookObj.id) || String(s.bookId) === String(bookObj.id)))
+            );
             if (!matches) return false;
-            if (hwCreatedTime && s.submittedAt) {
+            if (hwCreatedTime && s.submittedAt && hw.retakeCount && hw.retakeCount > 0) {
               return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
             }
             return true;
@@ -520,11 +525,20 @@ export default function StudentDashboard() {
 
           return Object.entries(hw.testDueDates).map(([testId, tDateStr]) => {
             const testObj = bookTests.find(b => String(b.id) === String(testId));
-            const sub = submissions.find(s => {
+            const sub = (hw.submissions || []).find(s =>
+              String(s.studentId) === String(selectedStudent.id) &&
+              (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId)))) &&
+              s.status !== 'in_progress' && s.status !== 'draft'
+            ) || submissions.find(s => {
               if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status !== 'draft') return false;
-              const matches = (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))));
+              const matches = (
+                String(s.testId) === String(testId) ||
+                String(s.bookTestId) === String(testId) ||
+                (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))) ||
+                (String(s.hwId) === String(hw.id) && String(s.testId) === String(testId))
+              );
               if (!matches) return false;
-              if (hwCreatedTime && s.submittedAt) {
+              if (hwCreatedTime && s.submittedAt && hw.retakeCount && hw.retakeCount > 0) {
                 return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
               }
               return true;
@@ -554,18 +568,40 @@ export default function StudentDashboard() {
       const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft') ||
         submissions.find(s => {
           if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status !== 'draft') return false;
-          const matches = (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id));
+          const matches = (
+            String(s.hwId) === String(hw.id) ||
+            String(s.homeworkId) === String(hw.id) ||
+            String(s.testId) === String(hw.id) ||
+            String(s.id) === String(hw.id) ||
+            (hw.questionIds && Array.isArray(hw.questionIds) && hw.questionIds.some(qid => String(s.testId) === String(qid) || String(s.realTestId) === String(qid))) ||
+            (hw.sections && Array.isArray(hw.sections) && hw.sections.some(sec => String(s.testId) === String(sec.id || sec.questionId))) ||
+            (bookObj && (String(s.testId) === String(bookObj.id) || String(s.bookId) === String(bookObj.id)))
+          );
           if (!matches) return false;
-          if (hwCreatedTime && s.submittedAt) {
+          if (hwCreatedTime && s.submittedAt && hw.retakeCount && hw.retakeCount > 0) {
             return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
           }
           return true;
-        });
+        }) || (() => {
+          try {
+            const keys = [`quiz_submission_${hw.id}`, `homework_sub_${hw.id}`, `submission_${hw.id}`];
+            for (const k of keys) {
+              const raw = localStorage.getItem(k);
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && (parsed.answers || parsed.score !== undefined) && parsed.status !== 'in_progress' && parsed.status !== 'draft') {
+                  return parsed;
+                }
+              }
+            }
+          } catch (e) {}
+          return null;
+        })();
 
-      return [{ 
-        ...hw, 
-        status: sub ? 'Sonuçlandı' : 'Atandı', 
-        questionCount: hw.totalQuestions || 10, 
+      return [{
+        ...hw,
+        status: sub ? 'Sonuçlandı' : 'Atandı',
+        questionCount: hw.totalQuestions || 10,
         correctAnswers: sub ? (sub.score || 0) : 0,
         submissionId: sub?.id
       }];

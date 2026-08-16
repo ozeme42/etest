@@ -580,10 +580,12 @@ export default function ModularQuizPage() {
     const finalStatus = isAcikUclu ? 'pending' : 'completed';
     const newSubId = `sub_${Date.now()}`;
 
+    const effectiveHwId = activeHomework ? activeHomework.id : (String(testId || '').startsWith('hw_') ? testId : null);
     const submissionData = {
       id: draftSubmission ? draftSubmission.id : newSubId,
       testId: test.id,
-      hwId: String(test.id) !== String(testId) ? testId : null,
+      hwId: effectiveHwId || (String(test.id) !== String(testId) ? testId : null),
+      homeworkId: effectiveHwId || (String(test.id) !== String(testId) ? testId : null),
       testTitle: test.title || test.name || 'Sınav',
       studentId: studentId,
       studentName: searchParams.get('studentName') || 'Öğrenci',
@@ -630,10 +632,17 @@ export default function ModularQuizPage() {
         const hId = submissionData.hwId || submissionData.testId;
         try {
           if (updateHomeworkSubmission) {
-            updateHomeworkSubmission(hId, submissionData.id, submissionData);
+            updateHomeworkSubmission(hId, studentId, submissionData);
           }
         } catch (e) {}
       }
+
+      try {
+        localStorage.setItem(`quiz_submission_${testId}`, JSON.stringify(submissionData));
+        if (effectiveHwId) {
+          localStorage.setItem(`homework_sub_${effectiveHwId}`, JSON.stringify(submissionData));
+        }
+      } catch (e) {}
 
       setSubmissionResult({
         submissionId: newSubId,
