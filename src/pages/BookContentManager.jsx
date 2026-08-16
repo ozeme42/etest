@@ -6,10 +6,11 @@ import { useHomework } from '../context/HomeworkContext';
 import { useUser } from '../context/UserContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { 
-  ArrowLeft, BookMarked, Layers, FileText, CheckCircle, 
-  ChevronDown, ChevronRight, Plus, Edit, Trash2, 
+  ArrowLeft, BookMarked, Layers, FileText, CheckCircle, CheckCircle2,
+  ChevronDown, ChevronRight, ChevronUp, Plus, Edit, Trash2, 
   ListX, Send, XCircle, FileOutput, Filter, AlertTriangle, FileJson, CheckSquare, Zap,
-  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings, RotateCcw, RefreshCw
+  Users, GraduationCap, Clock, Calendar, Award, BarChart2, Check, BookOpen, Settings, RotateCcw, RefreshCw,
+  Search, Eye
 } from 'lucide-react';
 
 function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
@@ -81,8 +82,10 @@ export default function BookContentManager() {
   // Accordion States (Expanded by default)
   const [collapsedSubjects, setCollapsedSubjects] = useState({});
   const [collapsedTopics, setCollapsedTopics] = useState({});
-  const [selectedTests, setSelectedTests] = useState([]);
   const [expandedHomeworkDetails, setExpandedHomeworkDetails] = useState({});
+  const [expandedStudentTests, setExpandedStudentTests] = useState({});
+  const [studentTestSearch, setStudentTestSearch] = useState({});
+  const [studentTestFilter, setStudentTestFilter] = useState({});
 
   // Modal States
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
@@ -733,6 +736,22 @@ export default function BookContentManager() {
     }
   };
 
+  const handleResetSingleBookTestForStudent = async (hw, stId, testId, testName, stName) => {
+    if (!stId || !testId) return;
+    if (!window.confirm(`${stName || 'Öğrenci'} adlı öğrencinin "${testName || 'Test'}" testindeki tüm yanıtlarını sıfırlamak istiyor musunuz? Öğrenci bu testi baştan çözebilecek.`)) {
+      return;
+    }
+    try {
+      if (typeof deleteStudentSubmissionsForBookOrHw === 'function') {
+        await deleteStudentSubmissionsForBookOrHw(stId, hw?.id, book?.id, [testId]);
+      }
+      showToast(`${stName || 'Öğrenci'} için "${testName}" testi başarıyla sıfırlandı.`, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Sıfırlama sırasında bir hata oluştu.', 'error');
+    }
+  };
+
   const handleResetEntireHomework = async (hw) => {
     if (!window.confirm(`"${hw.title}" ödevine ait TÜM öğrencilerin çözümlerini ve yanıtlarını sıfırlamak istediğinize emin misiniz?`)) {
       return;
@@ -1330,51 +1349,280 @@ export default function BookContentManager() {
                           <h5 style={{ margin: '0 0 0.75rem 0', fontSize: '0.88rem', color: '#475569', fontWeight: 800 }}>
                             Öğrenci Bazlı İlerleme Tablosu ({targetStudents.length} Öğrenci)
                           </h5>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-                            {studentProgressDetails.map(item => (
-                              <div key={item.student.id} style={{ background: 'white', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
-                                    {item.student.name}
-                                  </div>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: '0.3rem', background: item.isDone ? '#ecfdf5' : '#fff7ed', color: item.isDone ? '#047857' : '#c2410c' }}>
-                                    {item.isDone ? '✅ Tamamladı' : `⏳ %${item.pct}`}
-                                  </span>
-                                </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                            {studentProgressDetails.map(item => {
+                              const stKey = `${hw.id}_${item.student.id}`;
+                              const isTestsOpen = expandedStudentTests[stKey];
+                              const searchQuery = (studentTestSearch[stKey] || '').toLowerCase().trim();
+                              const filterTab = studentTestFilter[stKey] || 'all';
 
-                                <div style={{ background: '#f1f5f9', borderRadius: 99, height: 6, overflow: 'hidden' }}>
-                                  <div style={{ width: `${item.pct}%`, background: item.isDone ? '#10b981' : '#38bdf8', height: '100%' }} />
-                                </div>
+                              // Map all tests in this homework for this student
+                              const allHwTestsWithStatus = hwTests.map((tId, idx) => {
+                                const testDef = bookTests.find(bt => String(bt.id) === String(tId)) || { id: tId, name: `Test ${idx + 1}` };
+                                const parentSubject = book?.subjects?.find(s => s.id === testDef.subjectId || s.topics?.some(tp => tp.id === testDef.topicId));
+                                const parentTopic = parentSubject?.topics?.find(tp => tp.id === testDef.topicId);
+                                const subjName = testDef.subjectName || parentSubject?.name || '';
+                                const topicName = testDef.topicName || parentTopic?.name || '';
 
-                                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
-                                  <span>Çözülen: {item.solvedCount} / {item.totalTestsInHw} Test</span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                    {item.solvedSubmissions.length > 0 && (
-                                      <>
-                                        <span style={{ color: '#059669', fontWeight: 800 }}>
-                                          {Math.round(item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length)}% Başarı
-                                        </span>
+                                const testSub = (submissions || []).find(s => {
+                                  if (String(s.studentId) !== String(item.student.id)) return false;
+                                  return String(s.testId) === String(tId) ||
+                                         String(s.bookTestId) === String(tId) ||
+                                         String(s.realTestId) === String(tId) ||
+                                         (Array.isArray(s.bookTestIds) && s.bookTestIds.includes(tId));
+                                });
+
+                                const isSolved = Boolean(testSub && testSub.status !== 'in_progress' && testSub.status !== 'draft');
+                                const isDraft = Boolean(testSub && (testSub.status === 'in_progress' || testSub.status === 'draft'));
+                                const testDueDate = hw.testDueDates?.[tId] || null;
+                                const questionCount = testDef.questionCount || (testDef.answerKey ? Object.keys(testDef.answerKey).length : null);
+
+                                return {
+                                  id: tId,
+                                  testDef,
+                                  subjName,
+                                  topicName,
+                                  testSub,
+                                  isSolved,
+                                  isDraft,
+                                  testDueDate,
+                                  questionCount
+                                };
+                              });
+
+                              const solvedTestsCount = allHwTestsWithStatus.filter(t => t.isSolved).length;
+                              const unsolvedTestsCount = allHwTestsWithStatus.length - solvedTestsCount;
+                              const mistakeTestsCount = allHwTestsWithStatus.filter(t => t.isSolved && (t.testSub?.wrongCount > 0)).length;
+
+                              const filteredHwTests = allHwTestsWithStatus.filter(t => {
+                                if (searchQuery) {
+                                  const nameMatch = (t.testDef?.name || '').toLowerCase().includes(searchQuery);
+                                  const subjMatch = (t.subjName || '').toLowerCase().includes(searchQuery);
+                                  const topicMatch = (t.topicName || '').toLowerCase().includes(searchQuery);
+                                  if (!nameMatch && !subjMatch && !topicMatch) return false;
+                                }
+                                if (filterTab === 'solved') return t.isSolved;
+                                if (filterTab === 'unsolved') return !t.isSolved;
+                                if (filterTab === 'mistakes') return t.isSolved && (t.testSub?.wrongCount > 0);
+                                return true;
+                              });
+
+                              return (
+                                <div key={item.student.id} style={{ background: 'white', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                  
+                                  {/* Top Student Header */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                      <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>
+                                        {item.student.name?.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>
+                                          {item.student.name}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                          Çözülen: <strong style={{ color: '#4f46e5' }}>{item.solvedCount}</strong> / {item.totalTestsInHw} Test
+                                          {item.solvedSubmissions.length > 0 && (
+                                            <> • Ortalama Başarı: <strong style={{ color: '#059669' }}>{Math.round(item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length)}%</strong></>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '0.4rem', background: item.isDone ? '#ecfdf5' : '#fff7ed', color: item.isDone ? '#047857' : '#c2410c', border: `1px solid ${item.isDone ? '#a7f3d0' : '#fed7aa'}` }}>
+                                        {item.isDone ? '✅ Tamamladı' : `⏳ %${item.pct}`}
+                                      </span>
+
+                                      {item.solvedCount > 0 && (
                                         <button 
-                                          onClick={() => navigate(`/review/${item.solvedSubmissions[item.solvedSubmissions.length - 1].id}`)}
-                                          style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '0.2rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}
+                                          onClick={() => handleResetStudentBookHomework(hw, item.student.id, item.student.name)}
+                                          style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.3rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                          title="Öğrencinin bu ödevdeki tüm yanıtlarını sıfırla ve yeniden çözmesini sağla"
                                         >
-                                          İncele
+                                          <RotateCcw size={13} /> Tümünü Sıfırla
                                         </button>
-                                      </>
-                                    )}
-                                    {item.solvedCount > 0 && (
-                                      <button 
-                                        onClick={() => handleResetStudentBookHomework(hw, item.student.id, item.student.name)}
-                                        style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.2rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                        title="Öğrencinin bu ödevdeki yanıtlarını sıfırla ve yeniden çözmesini sağla"
-                                      >
-                                        <RotateCcw size={11} /> Sıfırla
-                                      </button>
-                                    )}
+                                      )}
+                                    </div>
                                   </div>
+
+                                  {/* Progress Bar */}
+                                  <div style={{ background: '#f1f5f9', borderRadius: 99, height: 7, overflow: 'hidden' }}>
+                                    <div style={{ width: `${item.pct}%`, background: item.isDone ? '#10b981' : '#38bdf8', height: '100%', borderRadius: 99, transition: 'width 0.3s' }} />
+                                  </div>
+
+                                  {/* TOGGLE TEST BREAKDOWN BUTTON */}
+                                  <button
+                                    onClick={() => setExpandedStudentTests(prev => ({ ...prev, [stKey]: !prev[stKey] }))}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '0.5rem 0.85rem',
+                                      borderRadius: '0.55rem',
+                                      background: isTestsOpen ? '#eef2ff' : '#f8fafc',
+                                      border: `1px solid ${isTestsOpen ? '#c7d2fe' : '#e2e8f0'}`,
+                                      color: isTestsOpen ? '#4338ca' : '#475569',
+                                      fontWeight: 800,
+                                      fontSize: '0.8rem',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                      <FileText size={15} style={{ color: '#4f46e5' }} />
+                                      <span>📋 Test Bazlı Başarı & Durum Listesi ({allHwTestsWithStatus.length} Test)</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 800 }}>
+                                      <span>{isTestsOpen ? 'Listeyi Gizle' : 'Testleri İncele'}</span>
+                                      {isTestsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </div>
+                                  </button>
+
+                                  {/* EXPANDED TEST-BY-TEST BREAKDOWN */}
+                                  {isTestsOpen && (
+                                    <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                      
+                                      {/* Filter and Search Bar */}
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+                                          <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                          <input
+                                            type="text"
+                                            placeholder="Test veya ünite ara..."
+                                            value={studentTestSearch[stKey] || ''}
+                                            onChange={e => setStudentTestSearch(prev => ({ ...prev, [stKey]: e.target.value }))}
+                                            style={{ width: '100%', padding: '0.35rem 0.65rem 0.35rem 2rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: 'white', boxSizing: 'border-box' }}
+                                          />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                          <button
+                                            onClick={() => setStudentTestFilter(prev => ({ ...prev, [stKey]: 'all' }))}
+                                            style={{ padding: '0.25rem 0.55rem', borderRadius: '0.35rem', fontSize: '0.72rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: filterTab === 'all' ? '#4f46e5' : '#e2e8f0', color: filterTab === 'all' ? 'white' : '#475569' }}
+                                          >
+                                            Tümü ({allHwTestsWithStatus.length})
+                                          </button>
+                                          <button
+                                            onClick={() => setStudentTestFilter(prev => ({ ...prev, [stKey]: 'solved' }))}
+                                            style={{ padding: '0.25rem 0.55rem', borderRadius: '0.35rem', fontSize: '0.72rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: filterTab === 'solved' ? '#059669' : '#e2e8f0', color: filterTab === 'solved' ? 'white' : '#475569' }}
+                                          >
+                                            ✅ Çözülenler ({solvedTestsCount})
+                                          </button>
+                                          <button
+                                            onClick={() => setStudentTestFilter(prev => ({ ...prev, [stKey]: 'unsolved' }))}
+                                            style={{ padding: '0.25rem 0.55rem', borderRadius: '0.35rem', fontSize: '0.72rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: filterTab === 'unsolved' ? '#d97706' : '#e2e8f0', color: filterTab === 'unsolved' ? 'white' : '#475569' }}
+                                          >
+                                            ⏳ Çözülmeyenler ({unsolvedTestsCount})
+                                          </button>
+                                          {mistakeTestsCount > 0 && (
+                                            <button
+                                              onClick={() => setStudentTestFilter(prev => ({ ...prev, [stKey]: 'mistakes' }))}
+                                              style={{ padding: '0.25rem 0.55rem', borderRadius: '0.35rem', fontSize: '0.72rem', fontWeight: 800, border: 'none', cursor: 'pointer', background: filterTab === 'mistakes' ? '#dc2626' : '#fee2e2', color: filterTab === 'mistakes' ? 'white' : '#991b1b' }}
+                                            >
+                                              ❌ Yanlışı Olanlar ({mistakeTestsCount})
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Scrollable Test List */}
+                                      <div style={{ maxHeight: '380px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', paddingRight: '0.2rem' }} className="custom-scrollbar">
+                                        {filteredHwTests.map((t, tIdx) => {
+                                          return (
+                                            <div 
+                                              key={t.id}
+                                              style={{
+                                                background: 'white',
+                                                padding: '0.65rem 0.85rem',
+                                                borderRadius: '0.5rem',
+                                                border: `1px solid ${t.isSolved ? '#bbf7d0' : t.isDraft ? '#fef08a' : '#e2e8f0'}`,
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                flexWrap: 'wrap',
+                                                gap: '0.5rem',
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                              }}
+                                            >
+                                              {/* Test Title & Subject */}
+                                              <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                  <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#1e293b' }}>
+                                                    {t.testDef?.name || `Test ${tIdx + 1}`}
+                                                  </span>
+                                                  {t.testDueDate && (
+                                                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '0.1rem 0.4rem', borderRadius: '0.3rem', border: '1px solid #bae6fd' }}>
+                                                      📅 {new Date(t.testDueDate).toLocaleDateString('tr-TR')}
+                                                    </span>
+                                                  )}
+                                                  {t.questionCount && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>
+                                                      {t.questionCount} Soru
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                {(t.subjName || t.topicName) && (
+                                                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                                    {t.subjName}{t.topicName ? ` / ${t.topicName}` : ''}
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              {/* Performance / Status Badges & Actions */}
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                {t.isSolved ? (
+                                                  <>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: '0.35rem', background: (t.testSub?.score >= 70) ? '#ecfdf5' : (t.testSub?.score >= 50) ? '#eff6ff' : '#fef2f2', color: (t.testSub?.score >= 70) ? '#059669' : (t.testSub?.score >= 50) ? '#2563eb' : '#dc2626', border: `1px solid ${(t.testSub?.score >= 70) ? '#a7f3d0' : (t.testSub?.score >= 50) ? '#bfdbfe' : '#fecaca'}` }}>
+                                                        %{t.testSub?.score ?? 0} Başarı
+                                                      </span>
+                                                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                                        <strong style={{ color: '#059669' }}>{t.testSub?.correctCount ?? 0}D</strong> • <strong style={{ color: '#dc2626' }}>{t.testSub?.wrongCount ?? 0}Y</strong> • <strong style={{ color: '#64748b' }}>{t.testSub?.emptyCount ?? 0}B</strong>
+                                                      </div>
+                                                    </div>
+
+                                                    <button
+                                                      onClick={() => navigate(`/review/${t.testSub.id}`)}
+                                                      style={{ background: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '0.25rem 0.6rem', borderRadius: '0.4rem', fontSize: '0.73rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                      title="Bu testin optik ve cevap detaylarını incele"
+                                                    >
+                                                      <Eye size={12} /> İncele
+                                                    </button>
+
+                                                    <button
+                                                      onClick={() => handleResetSingleBookTestForStudent(hw, item.student.id, t.id, t.testDef?.name, item.student.name)}
+                                                      style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', padding: '0.25rem 0.55rem', borderRadius: '0.4rem', fontSize: '0.73rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                      title="Sadece bu testin yanıtını sıfırla"
+                                                    >
+                                                      <RotateCcw size={11} /> Sıfırla
+                                                    </button>
+                                                  </>
+                                                ) : t.isDraft ? (
+                                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '0.35rem', background: '#fefce8', color: '#a16207', border: '1px solid #fef08a' }}>
+                                                    🔄 Devam Ediyor
+                                                  </span>
+                                                ) : (
+                                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '0.35rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }}>
+                                                    ⏳ Çözülmedi
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+
+                                        {filteredHwTests.length === 0 && (
+                                          <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.8rem' }}>
+                                            Arama kriterine uygun test bulunamadı.
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
 
                             {targetStudents.length === 0 && (
                               <p className="text-muted" style={{ fontSize: '0.85rem', margin: 0 }}>Bu ödev için atanmış öğrenci bulunamadı.</p>
