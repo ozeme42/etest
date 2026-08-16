@@ -141,6 +141,7 @@ export default function StudentBookDetailsPage() {
       const testsWithStatus = subjTests.map((t, index) => {
         // Is it solved? Check submissions strictly matching this test ID
         const tIdStr = String(t.id);
+        const tUuidStr = String(toUUID(t.id) || '');
         const studentIdStr = String(studentId);
         const studentUuidStr = String(toUUID(studentId) || '');
 
