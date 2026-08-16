@@ -674,29 +674,48 @@ export default function StudentDashboard() {
       }];
     });
 
-    // Also include completed standalone tracked book tests (Kitap takibindeki çözümler)
+    // Also include completed standalone tracked book tests (Kitap takibindeki gerçek çözümler)
     const existingTestIds = new Set(hwTests.map(t => String(t.realTestId || t.testId || t.id)));
     const standaloneBookTests = [];
 
     (submissions || []).forEach(sub => {
-      if (!sub || String(sub.studentId) !== String(selectedStudent.id)) return;
-      if (sub.status === 'in_progress' || sub.status === 'draft') return;
+      if (!sub) return;
+      const studentIdStr = String(selectedStudent.id);
+      const studentUuidStr = String(toUUID(selectedStudent.id) || '');
+      const isMatchStudent = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr) || (studentUuidStr && toUUID(sub.studentId) === studentUuidStr);
+      if (!isMatchStudent) return;
+
+      // Filter out drafts & in-progress
+      const subIdStr = String(sub.id || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+      if (sub.status === 'draft' || sub.status === 'in_progress') return;
+      const raw = sub.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
       if (sub.sourceType !== 'trackedBook' && !sub.bookId && !sub.bookTestId) return;
 
-      const bTestId = String(sub.bookTestId || sub.testId || '');
+      const correct = sub.correctCount ?? raw.correctCount ?? 0;
+      const wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
+      const blank = sub.blankCount ?? raw.blankCount ?? 0;
+      if (correct === 0 && wrong === 0 && blank === 0 && (!sub.answers || sub.answers.length === 0)) return;
+
+      const bTestId = String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || '');
       if (bTestId && existingTestIds.has(bTestId)) return;
 
       const testObj = bookTests.find(b => String(b.id) === bTestId);
-      const bookObj = books.find(b => String(b.id) === String(sub.bookId || testObj?.bookId));
+      const bookObj = books.find(b => String(b.id) === String(sub.bookId || raw.bookId || testObj?.bookId));
       const cleanBookTitle = (bookObj?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
       const testName = testObj?.name || 'Test';
 
       const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
       const subjectName = subjObj?.name || bookObj?.subject || cleanBookTitle;
 
-      let correct = sub.correctCount ?? 0;
-      let total = sub.totalQuestions || testObj?.questionCount || 20;
-      let score = sub.scorePercentage !== undefined ? Math.round(sub.scorePercentage) : (total > 0 ? Math.round((correct / total) * 100) : 0);
+      const total = Math.max(sub.totalQuestions || raw.totalQuestions || testObj?.questionCount || 0, correct + wrong + blank, 1);
+      const scorePct = sub.scorePercentage !== undefined && sub.scorePercentage !== null
+        ? Math.round(sub.scorePercentage)
+        : (raw.scorePercentage !== undefined && raw.scorePercentage !== null
+          ? Math.round(raw.scorePercentage)
+          : Math.min(100, Math.round((correct / total) * 100)));
 
       if (bTestId) existingTestIds.add(bTestId);
       standaloneBookTests.push({
@@ -704,15 +723,15 @@ export default function StudentDashboard() {
         realTestId: bTestId,
         testId: bTestId,
         bookTestId: bTestId,
-        bookId: sub.bookId || bookObj?.id,
+        bookId: sub.bookId || raw.bookId || bookObj?.id,
         sourceType: 'trackedBook',
         isBookAssignment: true,
         subject: subjectName,
-        title: sub.testTitle || `${cleanBookTitle} — ${testName}`,
-        dueDate: sub.submittedAt || sub.completedAt || sub.createdAt || new Date().toISOString(),
+        title: sub.testTitle || raw.testTitle || `${cleanBookTitle} — ${testName}`,
+        dueDate: sub.submittedAt || sub.completedAt || raw.submittedAt || new Date().toISOString(),
         status: 'Sonuçlandı',
         questionCount: total,
-        correctAnswers: score,
+        correctAnswers: scorePct,
         submissionId: sub.id || sub.supabaseId
       });
     });
@@ -791,7 +810,11 @@ export default function StudentDashboard() {
       if (!sub || (subInHw && isEval(subInHw) && !isEval(subInGlobal))) {
         sub = subInHw || subInGlobal;
       }
-      if (!sub || sub.status === 'in_progress' || sub.status === 'draft') return;
+      if (!sub) return;
+
+      const subIdStr = String(sub.id || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+      if (sub.status === 'in_progress' || sub.status === 'draft') return;
 
       const isEvaluated = isEval(sub);
       const isOpenEnded = Boolean(
@@ -825,13 +848,15 @@ export default function StudentDashboard() {
       const rawTotal = hw.totalQuestions || hw.questionCount || sub.totalQuestions || 0;
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
 
-      let score = 0;
-      if (isEvaluated && sub.score !== undefined && sub.score !== null) {
-        score = Math.min(100, Math.max(0, sub.score));
+      if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
+
+      let scorePct = 0;
+      if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+        scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
+      } else if (isEvaluated && sub.score !== undefined && sub.score !== null) {
+        scorePct = Math.min(100, Math.max(0, Math.round(sub.score)));
       } else if (!isPendingEval && total > 0) {
-        score = Math.min(100, Math.round((correct / total) * 100));
-      } else if (sub.score !== undefined && sub.score !== null && !isPendingEval) {
-        score = Math.min(100, Math.max(0, sub.score));
+        scorePct = Math.min(100, Math.round((correct / total) * 100));
       }
 
       const subId = String(sub.id || `hw_sub_${hw.id}_${selectedStudent?.id}`);
@@ -848,24 +873,32 @@ export default function StudentDashboard() {
         wrongCount: wrong,
         blankCount: blank,
         totalQuestions: total,
-        computedScore: score
+        computedScore: scorePct
       });
     });
 
     // 2. Process all standalone & tracked book submissions from submissions (Kitap takibindeki çözümler)
     (submissions || []).forEach(sub => {
-      if (!sub || String(sub.studentId) !== String(selectedStudent?.id)) return;
-      if (sub.status === 'in_progress' || sub.status === 'draft') return;
+      if (!sub) return;
+      const studentIdStr = String(selectedStudent?.id);
+      const studentUuidStr = String(toUUID(selectedStudent?.id) || '');
+      const isMatchStudent = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr) || (studentUuidStr && toUUID(sub.studentId) === studentUuidStr);
+      if (!isMatchStudent) return;
 
       const subId = String(sub.id || sub.supabaseId || '');
-      const testId = String(sub.bookTestId || sub.testId || '');
+      if (subId.startsWith('draft_') || subId.startsWith('64726166')) return;
+      if (sub.status === 'in_progress' || sub.status === 'draft') return;
+      const raw = sub.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
+      const testId = String(sub.bookTestId || sub.testId || raw.bookTestId || raw.testId || '');
 
       if (subId && processedSubIds.has(subId)) return;
       if (testId && processedBookTestIds.has(testId)) return;
 
-      let correct = sub.correctCount ?? 0;
-      let wrong = sub.wrongCount ?? 0;
-      let blank = sub.blankCount ?? 0;
+      let correct = sub.correctCount ?? raw.correctCount ?? 0;
+      let wrong = sub.wrongCount ?? raw.wrongCount ?? 0;
+      let blank = sub.blankCount ?? raw.blankCount ?? 0;
 
       if (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.correctCount === undefined) {
         correct = 0; wrong = 0; blank = 0;
@@ -880,20 +913,18 @@ export default function StudentDashboard() {
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
       const sumCount = correct + wrong + blank;
-      const rawTotal = sub.totalQuestions || sub.questionCount || 0;
+      const rawTotal = sub.totalQuestions || raw.totalQuestions || sub.questionCount || 0;
       const total = Math.max(rawTotal, ansCount, sumCount, 1);
 
-      let score = 0;
+      if (correct === 0 && wrong === 0 && blank === 0 && ansCount === 0) return;
+
+      let scorePct = 0;
       if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
-        score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
-      } else if (sub.score !== undefined && sub.score !== null) {
-        if (sub.score > 0 && sub.score <= 100 && total > 0 && sub.score !== correct) {
-          score = Math.min(100, Math.round(sub.score));
-        } else if (total > 0) {
-          score = Math.min(100, Math.round((Math.max(0, correct) / total) * 100));
-        }
+        scorePct = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
+      } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
+        scorePct = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
       } else if (total > 0) {
-        score = Math.min(100, Math.round((correct / total) * 100));
+        scorePct = Math.min(100, Math.round((correct / total) * 100));
       }
 
       if (subId) processedSubIds.add(subId);
@@ -907,8 +938,8 @@ export default function StudentDashboard() {
         wrongCount: wrong,
         blankCount: blank,
         totalQuestions: total,
-        computedScore: score,
-        isTrackedBook: Boolean(sub.sourceType === 'trackedBook' || sub.bookId || sub.bookTestId)
+        computedScore: scorePct,
+        isTrackedBook: Boolean(sub.sourceType === 'trackedBook' || sub.bookId || sub.bookTestId || raw.sourceType === 'trackedBook')
       });
     });
 
@@ -928,12 +959,13 @@ export default function StudentDashboard() {
     unifiedSubmissions.forEach(s => {
       sumScore += s.computedScore || 0;
       globalCorrect += s.correctCount || 0;
-      globalTotal += s.totalQuestions || 0;
+      const qSum = (s.correctCount || 0) + (s.wrongCount || 0) + (s.blankCount || 0);
+      globalTotal += Math.max(qSum, s.totalQuestions || 0);
     });
 
-    const successRate = unifiedSubmissions.length > 0
-      ? Math.round(sumScore / unifiedSubmissions.length)
-      : 0;
+    const successRate = globalTotal > 0
+      ? Math.round((globalCorrect / globalTotal) * 100)
+      : (unifiedSubmissions.length > 0 ? Math.round(sumScore / unifiedSubmissions.length) : 0);
 
     const overdueCount = tests.filter(t => t.status === 'Atandı' && isPast(parseSafeDate(t.dueDate)) && !isToday(parseSafeDate(t.dueDate))).length;
     return {
