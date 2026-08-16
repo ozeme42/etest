@@ -111,15 +111,11 @@ export default function BookContentManager() {
   const [newSubjectName, setNewSubjectName] = useState("");
   const [newTopicName, setNewTopicName] = useState("");
   
-  const [testForm, setTestForm] = useState({
-    id: null,
+  const [testFormData, setTestFormData] = useState({
     name: "",
     pdfUrl: "",
     questionCount: 20,
-    optionCount: 5,
-    answerKey: {},
-    timePerQuestion: 2,
-    questionType: 'coktan_secmeli'
+    answerKey: {}
   });
   
   // Bulk Wizard Form States
