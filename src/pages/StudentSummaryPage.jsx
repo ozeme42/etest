@@ -16,24 +16,24 @@ import './StudentSummaryPage.css';
 const getSubjectTheme = (subjectName = '') => {
   const s = subjectName.toLowerCase();
   if (s.includes('matematik') || s.includes('geometri')) {
-    return { icon: '📐', color: '#2563eb', gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', lightBg: '#eff6ff', border: '#bfdbfe', badge: 'Matematik' };
+    return { icon: '📐', color: '#38bdf8', gradient: 'linear-gradient(135deg, #0284c7, #38bdf8)', lightBg: 'rgba(14, 165, 233, 0.16)', border: 'rgba(56, 189, 248, 0.4)', shadow: 'rgba(14, 165, 233, 0.35)', badge: 'Matematik' };
   }
   if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) {
-    return { icon: '🔬', color: '#059669', gradient: 'linear-gradient(135deg, #059669, #10b981)', lightBg: '#ecfdf5', border: '#a7f3d0', badge: 'Fen Bilimleri' };
+    return { icon: '🔬', color: '#34d399', gradient: 'linear-gradient(135deg, #059669, #10b981)', lightBg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(52, 211, 153, 0.4)', shadow: 'rgba(16, 185, 129, 0.35)', badge: 'Fen Bilimleri' };
   }
   if (s.includes('türkçe') || s.includes('edebiyat') || s.includes('dil')) {
-    return { icon: '📖', color: '#d97706', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', lightBg: '#fffbeb', border: '#fde68a', badge: 'Türkçe' };
+    return { icon: '📖', color: '#fb7185', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', lightBg: 'rgba(244, 63, 94, 0.16)', border: 'rgba(251, 113, 133, 0.4)', shadow: 'rgba(244, 63, 94, 0.35)', badge: 'Türkçe' };
   }
   if (s.includes('inkılap') || s.includes('tarih') || s.includes('sosyal') || s.includes('coğrafya')) {
-    return { icon: '🏛️', color: '#e11d48', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', lightBg: '#fff1f2', border: '#fecdd3', badge: 'Sosyal / Tarih' };
+    return { icon: '🏛️', color: '#fb923c', gradient: 'linear-gradient(135deg, #ea580c, #f97316)', lightBg: 'rgba(234, 88, 12, 0.16)', border: 'rgba(251, 146, 60, 0.4)', shadow: 'rgba(234, 88, 12, 0.35)', badge: 'Sosyal / Tarih' };
   }
   if (s.includes('ingilizce') || s.includes('yabancı') || s.includes('almanca')) {
-    return { icon: '🌍', color: '#0284c7', gradient: 'linear-gradient(135deg, #0284c7, #0ea5e9)', lightBg: '#f0f9ff', border: '#bae6fd', badge: 'İngilizce' };
+    return { icon: '🌍', color: '#818cf8', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: 'rgba(99, 102, 241, 0.16)', border: 'rgba(129, 140, 248, 0.4)', shadow: 'rgba(99, 102, 241, 0.35)', badge: 'İngilizce' };
   }
   if (s.includes('din') || s.includes('ahlak')) {
-    return { icon: '🕌', color: '#0d9488', gradient: 'linear-gradient(135deg, #0d9488, #14b8a6)', lightBg: '#f0fdfa', border: '#99f6e4', badge: 'Din Kültürü' };
+    return { icon: '🕌', color: '#2dd4bf', gradient: 'linear-gradient(135deg, #0d9488, #14b8a6)', lightBg: 'rgba(13, 148, 136, 0.16)', border: 'rgba(45, 212, 191, 0.4)', shadow: 'rgba(13, 148, 136, 0.35)', badge: 'Din Kültürü' };
   }
-  return { icon: '📚', color: '#4f46e5', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: '#eef2ff', border: '#c7d2fe', badge: 'Ders' };
+  return { icon: '📚', color: '#c084fc', gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)', lightBg: 'rgba(168, 85, 247, 0.16)', border: 'rgba(192, 132, 252, 0.4)', shadow: 'rgba(168, 85, 247, 0.35)', badge: 'Ders' };
 };
 
 // Natural alphanumeric / unit number extractor and sorter
@@ -567,7 +567,7 @@ export default function StudentSummaryPage() {
                         <span 
                           className="edu-unit-tag-badge"
                           style={{
-                            background: activeTheme.color,
+                            background: activeTheme.gradient,
                             color: '#ffffff'
                           }}
                         >
@@ -584,7 +584,8 @@ export default function StudentSummaryPage() {
                         onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName })}
                         style={{
                           '--action-color': activeTheme.color,
-                          '--action-bg': activeTheme.lightBg
+                          '--action-bg': activeTheme.lightBg,
+                          background: unitHasSummary ? activeTheme.gradient : 'rgba(255,255,255,0.1)'
                         }}
                       >
                         <BookMarked size={14} />
