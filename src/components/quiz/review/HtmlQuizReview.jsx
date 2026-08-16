@@ -30,31 +30,58 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
   const answers = submission.answers || [];
 
   const qCount = useMemo(() => {
-    let count = Number(
-      submission.totalQuestions ||
-      test.questionCount ||
-      test.totalQuestions ||
-      test.questionsCount ||
-      questions[0]?.questionCount ||
-      questions[0]?.totalQuestions ||
-      answers.length
-    );
-
+    // 1. Direct answer key length (Most authoritative!)
     const keyArray = test.answerKey || questions[0]?.answerKey;
     if (Array.isArray(keyArray) && keyArray.length > 0) {
-      return Math.max(keyArray.length, answers.length);
+      return keyArray.length;
+    }
+    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
+      return keyArray.trim().length;
+    }
+    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
+      return Object.keys(keyArray).length;
     }
 
-    if (answers.length > 0) {
-      return Math.max(answers.length, count || 1);
-    }
-
-    if (test.questionsList && test.questionsList.length > 0) {
+    // 2. Direct question list length if explicitly provided
+    if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {
       return test.questionsList.length;
     }
+    if (Array.isArray(test.questionIds) && test.questionIds.length > 0) {
+      return test.questionIds.length;
+    }
+    if (Array.isArray(questions) && questions.length > 0) {
+      return questions.length;
+    }
 
-    return (count && count > 0) ? count : (answers.length || 1);
-  }, [submission.totalQuestions, test, questions, answers]);
+    // 3. Title regex (e.g. "(2 Soru)" or "2 Soru")
+    const titles = [test.title, test.name, questions[0]?.title, questions[0]?.name, submission?.testTitle, submission?.title];
+    for (const t of titles) {
+      if (typeof t === 'string') {
+        const match = t.match(/(\d+)\s*soru/i);
+        if (match && Number(match[1]) > 0) {
+          return Number(match[1]);
+        }
+      }
+    }
+
+    // 4. If submission has recorded actual answers list
+    if (Array.isArray(answers) && answers.length > 0) {
+      return answers.length;
+    }
+
+    // 5. Explicit question count properties on test / question / submission
+    const explicit = Number(
+      test.questionCount ||
+      questions[0]?.questionCount ||
+      submission?.totalQuestions ||
+      test.totalQuestions ||
+      test.questionsCount ||
+      questions[0]?.totalQuestions
+    );
+    if (explicit && explicit > 0) return explicit;
+
+    return 1;
+  }, [test, questions, answers, submission]);
 
   const [idbHtml, setIdbHtml] = useState(null);
   const loadedRef = useRef(null);

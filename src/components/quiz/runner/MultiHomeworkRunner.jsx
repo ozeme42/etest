@@ -902,12 +902,13 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     
     const resolvedQuestions = resolveTestQuestions(test, allBankQuestions);
     const finalQs = (resolvedQuestions && resolvedQuestions.length > 0) ? resolvedQuestions : (questions || []);
+    const directAnsCount = safeMaxAns(test) || (finalQs && finalQs.length > 0 ? finalQs.length : 0);
     return [{
       id: test.id || 'sec_1',
       title: test.title || test.name || '1. Bölüm',
       bankQ: test,
       resolvedQuestions: finalQs,
-      qCount: test.questionCount || test.totalQuestions || (finalQs && finalQs.length > 0 ? finalQs.length : null) || safeMaxAns(test) || 1
+      qCount: directAnsCount > 0 ? directAnsCount : (test.questionCount || test.totalQuestions || 1)
     }];
   }, [test, questions, allBankQuestions, findInAllSources, isReviewMode, userAnswers]);
 

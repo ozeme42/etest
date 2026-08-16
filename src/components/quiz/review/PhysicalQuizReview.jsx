@@ -35,13 +35,14 @@ export default function PhysicalQuizReview({ submission, test, questions, onClos
   };
 
   const answers = submission.answers || [];
-  const expectedCount = Math.max(
-    questions?.length || 0,
-    submission?.totalQuestions || 0,
-    test?.questionCount || 0,
-    test?.totalQuestions || 0
-  );
-  const qCount = expectedCount > 0 ? expectedCount : 20;
+  const qCount = useMemo(() => {
+    if (Array.isArray(questions) && questions.length > 0) return questions.length;
+    if (Array.isArray(answers) && answers.length > 0) return answers.length;
+    if (test?.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
+    if (submission?.totalQuestions && Number(submission.totalQuestions) > 0) return Number(submission.totalQuestions);
+    if (test?.totalQuestions && Number(test.totalQuestions) > 0) return Number(test.totalQuestions);
+    return 20;
+  }, [questions, answers, test, submission]);
 
   const correctCount = submission.correctCount || answers.filter(a => a.isCorrect === true).length;
   const wrongCount = submission.wrongCount || answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined).length;
