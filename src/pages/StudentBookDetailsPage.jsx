@@ -26,6 +26,7 @@ export default function StudentBookDetailsPage() {
 
   const queryStudentId = searchParams.get('studentId');
   const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
+  const isTeacherViewing = currentUser?.role === 'teacher' || currentUser?.role === 'admin' || isFromTeacher;
 
   const targetStudent = useMemo(() => {
     if (queryStudentId) {
@@ -693,21 +694,23 @@ export default function StudentBookDetailsPage() {
                                   >
                                     <Eye size={13} /> Sonucu İncele
                                   </button>
-                                  <button
-                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                    title="Bu testi sıfırla"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                        if (test.latestSubId) {
-                                          await deleteSubmission(test.latestSubId);
+                                  {isTeacherViewing && (
+                                    <button
+                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      title="Bu testi sıfırla (Sadece Öğretmen)"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                          if (test.latestSubId) {
+                                            await deleteSubmission(test.latestSubId);
+                                          }
+                                          await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
                                         }
-                                        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                      }
-                                    }}
-                                  >
-                                    <RotateCcw size={12} /> Sıfırla
-                                  </button>
+                                      }}
+                                    >
+                                      <RotateCcw size={12} /> Sıfırla
+                                    </button>
+                                  )}
                                 </div>
                               ) : test.isLocked ? (
                                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -824,21 +827,23 @@ export default function StudentBookDetailsPage() {
                                           >
                                             <Eye size={13} /> Sonucu İncele
                                           </button>
-                                          <button
-                                            style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                            title="Bu testi sıfırla"
-                                            onClick={async (e) => {
-                                              e.stopPropagation();
-                                              if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                                if (test.latestSubId) {
-                                                  await deleteSubmission(test.latestSubId);
+                                          {isTeacherViewing && (
+                                            <button
+                                              style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                              title="Bu testi sıfırla"
+                                              onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                                  if (test.latestSubId) {
+                                                    await deleteSubmission(test.latestSubId);
+                                                  }
+                                                  await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
                                                 }
-                                                await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                              }
-                                            }}
-                                          >
-                                            <RotateCcw size={12} /> Sıfırla
-                                          </button>
+                                              }}
+                                            >
+                                              <RotateCcw size={12} /> Sıfırla
+                                            </button>
+                                          )}
                                         </div>
                                       ) : test.isLocked ? (
                                         <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -921,21 +926,23 @@ export default function StudentBookDetailsPage() {
                                 >
                                   <Eye size={13} /> Sonucu İncele
                                 </button>
-                                <button
-                                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                  title="Bu testi sıfırla"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
-                                      if (test.latestSubId) {
-                                        await deleteSubmission(test.latestSubId);
+                                {isTeacherViewing && (
+                                  <button
+                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecdd3', color: '#e11d48', background: '#fff1f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    title="Bu testi sıfırla (Sadece Öğretmen)"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (window.confirm(`"${test.name}" testinin sonucunu sıfırlamak istiyor musunuz?`)) {
+                                        if (test.latestSubId) {
+                                          await deleteSubmission(test.latestSubId);
+                                        }
+                                        await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
                                       }
-                                      await deleteStudentSubmissionsForBookOrHw(studentId, null, book?.id, [test.id]);
-                                    }
-                                  }}
-                                >
-                                  <RotateCcw size={12} /> Sıfırla
-                                </button>
+                                    }}
+                                  >
+                                    <RotateCcw size={12} /> Sıfırla
+                                  </button>
+                                )}
                               </div>
                             ) : test.isLocked ? (
                               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
