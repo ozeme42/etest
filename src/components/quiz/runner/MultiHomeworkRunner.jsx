@@ -1510,34 +1510,49 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#f8fafc', overflow: 'hidden' }}>
       
       {/* ── HEADER BAR ── */}
-      <header style={{ padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isMobile ? '0.5rem' : '0.75rem', flexShrink: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', overflow: 'hidden' }}>
+      <header style={{
+        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1rem',
+        background: '#1e293b',
+        borderBottom: '1px solid #334155',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'nowrap',
+        gap: isMobile ? '0.4rem' : '0.75rem',
+        flexShrink: 0,
+        zIndex: 10,
+        minHeight: isMobile ? '48px' : '58px',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', overflow: 'hidden', minWidth: 0, flex: 1 }}>
           {!isMobile && (
-            <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ padding: '0.35rem 0.65rem', background: isReviewMode ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
               <Layers size={14} /> {isReviewMode ? '🔍 İNCELEME' : 'TOPLU ÖDEV RUNNER'}
             </span>
           )}
-          <h2 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 900, margin: 0, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <h2 style={{ fontSize: isMobile ? '0.85rem' : '1.05rem', fontWeight: 900, margin: 0, color: '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
             {test.title || test.name}
           </h2>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.75rem', flexShrink: 0 }}>
           {isReviewMode ? (
-            <div style={{ padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#312e81', border: '1.5px solid #6366f1', color: '#c7d2fe', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <CheckCircle2 size={isMobile ? 14 : 16} color="#818cf8" />
-              {!isMobile && <span>🏁 İnceleme Raporu</span>}
-            </div>
+            !isMobile && (
+              <div style={{ padding: '0.4rem 0.85rem', borderRadius: '0.65rem', background: '#312e81', border: '1.5px solid #6366f1', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <CheckCircle2 size={16} color="#818cf8" />
+                <span>🏁 İnceleme Raporu</span>
+              </div>
+            )
           ) : (
-            <div style={{ padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#7f1d1d' : '#0f172a', border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`, color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
+            <div style={{ padding: isMobile ? '0.25rem 0.45rem' : '0.4rem 0.85rem', borderRadius: '0.65rem', background: timeLeft < 300 ? '#7f1d1d' : '#0f172a', border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`, color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff', fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Clock size={isMobile ? 13 : 16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
               <span>{formatTime(timeLeft)}</span>
             </div>
           )}
 
           <button
             onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-            style={{ padding: isMobile ? '0.4rem 0.6rem' : '0.5rem 1rem', borderRadius: '0.75rem', background: isDrawingOpen ? '#eab308' : '#0f172a', border: '1px solid #334155', color: isDrawingOpen ? 'white' : '#e2e8f0', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: isMobile ? '0.35rem 0.55rem' : '0.5rem 1rem', borderRadius: '0.75rem', background: isDrawingOpen ? '#eab308' : '#0f172a', border: '1px solid #334155', color: isDrawingOpen ? 'white' : '#e2e8f0', fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
             title="Çizim Aracı"
           >
             <Pencil size={isMobile ? 14 : 16} /> 
@@ -1547,7 +1562,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           {isReviewMode ? (
             <button
               onClick={() => onSubmit && onSubmit()}
-              style={{ padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+              style={{ padding: isMobile ? '0.35rem 0.65rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
             >
               <CheckCircle2 size={isMobile ? 14 : 18} /> 
               {!isMobile && "İncelemeyi Kapat"}
@@ -1556,7 +1571,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
           ) : (
             <button
               onClick={handleSubmit}
-              style={{ padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+              style={{ padding: isMobile ? '0.35rem 0.65rem' : '0.55rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: isMobile ? '0.75rem' : '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
             >
               <CheckCircle2 size={isMobile ? 14 : 18} /> 
               {!isMobile && "Sınavı Bitir ve Gönder"}

@@ -138,12 +138,12 @@ export default function QuizPanelLayout({
             }}
           >
             {/* Header / Controls */}
-            <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a' }}>
-              <div style={{ minWidth: 0, flex: 1, paddingRight: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#38bdf8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ padding: isMobile ? '0.45rem 0.75rem' : '0.85rem 1.25rem', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a', flexShrink: 0 }}>
+              <div style={{ minWidth: 0, flex: 1, paddingRight: isMobile ? '0.4rem' : '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? '0.82rem' : '0.95rem', fontWeight: 900, color: '#38bdf8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {icon} {panelTitle}
                 </h3>
-                {panelSubtitle && (
+                {!isMobile && panelSubtitle && (
                   <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {panelSubtitle}
                   </p>

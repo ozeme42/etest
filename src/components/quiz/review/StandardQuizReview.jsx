@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'luci
 import { useNavigate, useLocation } from 'react-router-dom';
 import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
 import { extractQuestionText, extractQuestionOptions } from '../../../utils/testResolver';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function StandardQuizReview({ submission, test, questions = [], onClose }) {
   const navigate = useNavigate();
@@ -305,31 +306,65 @@ export default function StandardQuizReview({ submission, test, questions = [], o
     return hasOEQuestions;
   }, [test, questions, resolvedQuestions]);
 
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <header style={{
+        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
+        background: '#1e293b',
+        borderBottom: '1px solid #334155',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        gap: isMobile ? '0.4rem' : '1rem',
+        minHeight: isMobile ? '48px' : '62px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
             onClick={handleGoBack}
             style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '0.75rem',
+              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+              borderRadius: '0.65rem',
               background: 'rgba(255,255,255,0.1)',
               border: 'none',
               color: 'white',
               fontWeight: 800,
-              fontSize: '0.8rem',
+              fontSize: isMobile ? '0.75rem' : '0.8rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.3rem',
+              flexShrink: 0
             }}
+            title="Geri Dön"
           >
-            <ArrowLeft size={16} /> Geri Dön
+            <ArrowLeft size={isMobile ? 15 : 16} />
+            {!isMobile && "Geri Dön"}
           </button>
-          <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title} — İnceleme Raporu</h2>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>📝 Standart Metin Sınav İncelemesi</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 style={{
+              fontSize: isMobile ? '0.85rem' : '1.1rem',
+              fontWeight: 900,
+              margin: 0,
+              color: '#f8fafc',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {test.title || test.name || 'Sınav İncelemesi'}
+              {!isMobile && " — İnceleme Raporu"}
+            </h2>
+            {!isMobile && (
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                📝 Standart Metin Sınav İncelemesi
+              </div>
+            )}
           </div>
         </div>
 
@@ -337,31 +372,77 @@ export default function StandardQuizReview({ submission, test, questions = [], o
           <div style={{
             background: 'linear-gradient(135deg, #78350f, #92400e)',
             color: '#fef3c7',
-            padding: '0.45rem 1.1rem',
-            borderRadius: '0.75rem',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.45rem 1.1rem',
+            borderRadius: '0.65rem',
             fontWeight: 900,
-            fontSize: '0.85rem',
+            fontSize: isMobile ? '0.72rem' : '0.85rem',
             border: '1px solid #f59e0b',
             boxShadow: '0 2px 10px rgba(245,158,11,0.25)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem'
+            gap: '0.3rem',
+            flexShrink: 0
           }}>
-            ✍️ Değerlendirme Bekliyor
+            ✍️ {isMobile ? 'Bekliyor' : 'Değerlendirme Bekliyor'}
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{ background: '#064e3b', color: '#34d399', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #059669' }}>
-              ✓ {correctCount} Doğru
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
+            <div style={{
+              background: '#064e3b',
+              color: '#34d399',
+              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+              borderRadius: '0.5rem',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              border: '1px solid #059669',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem'
+            }}>
+              <span>✓ {correctCount}</span>
+              {!isMobile && <span>Doğru</span>}
             </div>
-            <div style={{ background: '#7f1d1d', color: '#f87171', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #dc2626' }}>
-              ✕ {wrongCount} Yanlış
+            <div style={{
+              background: '#7f1d1d',
+              color: '#f87171',
+              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+              borderRadius: '0.5rem',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              border: '1px solid #dc2626',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem'
+            }}>
+              <span>✕ {wrongCount}</span>
+              {!isMobile && <span>Yanlış</span>}
             </div>
-            <div style={{ background: '#334155', color: '#94a3b8', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
-              ○ {blankCount} Boş
+            <div style={{
+              background: '#334155',
+              color: '#94a3b8',
+              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+              borderRadius: '0.5rem',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              border: '1px solid #475569',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem'
+            }}>
+              <span>○ {blankCount}</span>
+              {!isMobile && <span>Boş</span>}
             </div>
-            <div style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: '#e0e7ff', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #6366f1', boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }}>
-              🎯 %{scorePercentage} Başarı
+            <div style={{
+              background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+              color: '#e0e7ff',
+              padding: isMobile ? '0.2rem 0.5rem' : '0.35rem 0.85rem',
+              borderRadius: '0.5rem',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              border: '1px solid #6366f1',
+              boxShadow: '0 2px 8px rgba(79,70,229,0.35)'
+            }}>
+              %{scorePercentage}
             </div>
           </div>
         )}

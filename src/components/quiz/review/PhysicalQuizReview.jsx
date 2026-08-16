@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, CheckCircle, XCircle, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 function getAnsIndex(val) {
   if (val === null || val === undefined || val === '') return null;
@@ -13,6 +14,7 @@ function getAnsIndex(val) {
 }
 
 export default function PhysicalQuizReview({ submission, test, questions, onClose }) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -49,42 +51,110 @@ export default function PhysicalQuizReview({ submission, test, questions, onClos
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
       
       {/* HEADER */}
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <header style={{
+        padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
+        background: '#1e293b',
+        borderBottom: '1px solid #334155',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        gap: isMobile ? '0.4rem' : '1rem',
+        minHeight: isMobile ? '48px' : '62px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
             onClick={handleGoBack}
             style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '0.75rem',
+              padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
+              borderRadius: '0.65rem',
               background: '#0f172a',
               border: '1px solid #334155',
               color: '#e2e8f0',
               fontWeight: 800,
-              fontSize: '0.8rem',
+              fontSize: isMobile ? '0.75rem' : '0.8rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.3rem',
+              flexShrink: 0
             }}
+            title="Geri Dön"
           >
-            <ArrowLeft size={16} /> Geri Dön
+            <ArrowLeft size={isMobile ? 15 : 16} />
+            {!isMobile && "Geri Dön"}
           </button>
-          <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name} — Optik Form İnceleme</h2>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>📋 İşaretlenmiş Optik Form Karşılaştırma Analizi</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2 style={{
+              fontSize: isMobile ? '0.85rem' : '1.1rem',
+              fontWeight: 900,
+              margin: 0,
+              color: '#f8fafc',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {test.title || test.name}
+              {!isMobile && " — Optik Form İnceleme"}
+            </h2>
+            {!isMobile && (
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                📋 İşaretlenmiş Optik Form Karşılaştırma Analizi
+              </div>
+            )}
           </div>
         </div>
 
         {/* SCORE & BADGES */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #10b981' }}>
-            ✓ {correctCount} Doğru
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
+          <div style={{
+            background: 'rgba(16,185,129,0.15)',
+            color: '#34d399',
+            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+            borderRadius: '0.5rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.72rem' : '0.82rem',
+            border: '1px solid #10b981',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <span>✓ {correctCount}</span>
+            {!isMobile && <span>Doğru</span>}
           </div>
-          <div style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #ef4444' }}>
-            ✕ {wrongCount} Yanlış
+          <div style={{
+            background: 'rgba(239,68,68,0.15)',
+            color: '#fca5a5',
+            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+            borderRadius: '0.5rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.72rem' : '0.82rem',
+            border: '1px solid #ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <span>✕ {wrongCount}</span>
+            {!isMobile && <span>Yanlış</span>}
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #334155' }}>
-            ○ {blankCount} Boş
+          <div style={{
+            background: 'rgba(255,255,255,0.05)',
+            color: '#94a3b8',
+            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
+            borderRadius: '0.5rem',
+            fontWeight: 900,
+            fontSize: isMobile ? '0.72rem' : '0.82rem',
+            border: '1px solid #334155',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <span>○ {blankCount}</span>
+            {!isMobile && <span>Boş</span>}
           </div>
         </div>
       </header>
