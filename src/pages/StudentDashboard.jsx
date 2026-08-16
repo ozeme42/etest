@@ -1567,20 +1567,50 @@ export default function StudentDashboard() {
                   <div style={{ fontSize:'0.73rem', color:'#94a3b8' }}>Harika iş çıkardın!</div>
                 </div>
               ) : (
-                <div style={{ display:'flex', flexDirection:'column', gap:'0.65rem' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
                   {pendingTasks.map(task => {
-                    const conf = getSubConf(getThemeKey(task.subject));
                     const dueDate = task.dueDateObj;
                     const overdue = isPast(dueDate) && !isToday(dueDate);
                     const dueToday = isToday(dueDate);
                     const daysDiff = differenceInDays(dueDate, new Date());
                     const subIcon = subjectIcons[task.subject] || '📝';
-                    const urgencyColor = overdue ? '#dc2626' : dueToday ? '#d97706' : '#059669';
-                    const urgencyBg = overdue ? 'rgba(239,68,68,0.1)' : dueToday ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)';
-                    const urgencyText = overdue ? `${differenceInDays(new Date(), dueDate)}g Gecikti 🔥` : dueToday ? 'Bugün Son ⚡' : `${daysDiff+1} Gün Kaldı`;
 
                     const matchingBook = books?.find(b => String(b.id) === String(task.bookId));
                     const isExam = task.type === 'physicalExam' || task.contentType === 'physicalExam' || task.bookType === 'exam' || matchingBook?.bookType === 'exam' || task.isPhysical;
+                    const isBook = task.sourceType === 'trackedBook' || task.isBookAssignment || task.bookId;
+
+                    // Subject / Type Gradient Palette (Deep rich premium cards like the focus room)
+                    let cardGradient = 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%)';
+                    let iconBadgeGradient = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+                    let borderHighlight = 'rgba(165, 180, 252, 0.3)';
+
+                    const subjLower = (task.subject || '').toLowerCase();
+                    if (isExam) {
+                      cardGradient = 'linear-gradient(135deg, #3b0764 0%, #581c87 60%, #6b21a8 100%)';
+                      iconBadgeGradient = 'linear-gradient(135deg, #a855f7, #c084fc)';
+                      borderHighlight = 'rgba(216, 180, 254, 0.35)';
+                    } else if (subjLower.includes('matematik')) {
+                      cardGradient = 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 60%, #0284c7 100%)';
+                      iconBadgeGradient = 'linear-gradient(135deg, #38bdf8, #60a5fa)';
+                      borderHighlight = 'rgba(125, 211, 252, 0.35)';
+                    } else if (subjLower.includes('türkçe')) {
+                      cardGradient = 'linear-gradient(135deg, #831843 0%, #9d174d 60%, #be185d 100%)';
+                      iconBadgeGradient = 'linear-gradient(135deg, #f43f5e, #fb7185)';
+                      borderHighlight = 'rgba(253, 164, 175, 0.35)';
+                    } else if (subjLower.includes('fen')) {
+                      cardGradient = 'linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%)';
+                      iconBadgeGradient = 'linear-gradient(135deg, #10b981, #34d399)';
+                      borderHighlight = 'rgba(110, 231, 183, 0.35)';
+                    } else if (subjLower.includes('sosyal') || subjLower.includes('tarih')) {
+                      cardGradient = 'linear-gradient(135deg, #7c2d12 0%, #9a3412 60%, #c2410c 100%)';
+                      iconBadgeGradient = 'linear-gradient(135deg, #f97316, #fb923c)';
+                      borderHighlight = 'rgba(253, 186, 116, 0.35)';
+                    } else if (isBook) {
+                      cardGradient = 'linear-gradient(135deg, #134e4a 0%, #115e59 60%, #0f766e 100%)';
+                      iconBadgeGradient = 'linear-gradient(135deg, #14b8a6, #2dd4bf)';
+                      borderHighlight = 'rgba(94, 234, 212, 0.35)';
+                    }
+
                     const handleOpenPendingTask = (e) => {
                       if (e) e.stopPropagation();
                       const targetTestId = task.realTestId || task.testId || task.id;
@@ -1590,38 +1620,125 @@ export default function StudentDashboard() {
                       navigate(path);
                     };
 
+                    const typeBadgeText = isExam ? '🏛️ FİZİKİ DENEME' : isBook ? `📕 KİTAP TESTİ • ${task.subject || 'DERS'}` : `📝 ÖDEV • ${task.subject || 'DERS'}`;
+
                     return (
-                      <div key={task.id} className="sd-hw-card"
-                        onClick={() => handleOpenPendingTask()}
-                        style={{ background:'white', borderRadius:18, boxShadow: overdue ? '0 8px 24px rgba(239,68,68,0.1)' : dueToday ? '0 8px 24px rgba(245,158,11,0.1)' : '0 6px 20px rgba(0,0,0,0.05)', border: overdue ? '1.5px solid rgba(239,68,68,0.25)' : dueToday ? '1.5px solid rgba(245,158,11,0.25)' : '1.5px solid rgba(226,232,240,0.8)', overflow:'hidden', position:'relative' }}>
-                        <div style={{ height:3, background: overdue ? 'linear-gradient(90deg,#ef4444,#dc2626)' : dueToday ? 'linear-gradient(90deg,#f59e0b,#d97706)' : `linear-gradient(90deg,${conf.color},#6366f1)` }} />
-                        <div style={{ padding: isMobile ? '0.85rem' : '1rem 1.1rem' }}>
-                          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom:10 }}>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:6, flexWrap:'wrap' }}>
-                                <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:conf.bg, border:`1.5px solid ${conf.border}`, borderRadius:99, padding:'0.2rem 0.6rem', fontWeight:800, fontSize:'0.68rem', color:conf.badge }}>
-                                  {subIcon} {task.subject}
-                                </div>
-                                <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:urgencyBg, border:`1px solid ${urgencyColor}30`, borderRadius:99, padding:'0.2rem 0.5rem', fontWeight:900, fontSize:'0.62rem', color:urgencyColor }}>
-                                  {urgencyText}
-                                </div>
-                              </div>
-                              <div style={{ fontWeight:900, fontSize: isMobile ? '0.9rem' : '0.96rem', color:'#0f172a', lineHeight:1.35 }}>{task.title}</div>
+                      <div
+                        key={task.id}
+                        className="sd-tile"
+                        onClick={handleOpenPendingTask}
+                        style={{
+                          background: cardGradient,
+                          borderRadius: 22,
+                          padding: isMobile ? '1rem' : '1.15rem 1.35rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.18)',
+                          border: `1.5px solid ${borderHighlight}`,
+                          position: 'relative',
+                          overflow: 'hidden',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {/* Glow orb */}
+                        <div style={{ position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 2, flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            width: isMobile ? 44 : 52,
+                            height: isMobile ? 44 : 52,
+                            borderRadius: 16,
+                            background: iconBadgeGradient,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: isMobile ? '1.35rem' : '1.6rem',
+                            boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
+                            flexShrink: 0,
+                            border: '1.5px solid rgba(255,255,255,0.3)'
+                          }}>
+                            {isExam ? '🏛️' : isBook ? '📕' : subIcon}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 900,
+                                color: 'white',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                background: 'rgba(255,255,255,0.18)',
+                                padding: '0.12rem 0.5rem',
+                                borderRadius: 99,
+                                border: '1px solid rgba(255,255,255,0.2)'
+                              }}>
+                                {typeBadgeText}
+                              </span>
+                              {overdue && (
+                                <span style={{ fontSize: '0.62rem', fontWeight: 900, color: 'white', background: '#ef4444', padding: '0.12rem 0.5rem', borderRadius: 99, boxShadow: '0 2px 8px rgba(239,68,68,0.4)' }}>
+                                  🔥 {differenceInDays(new Date(), dueDate)}g Gecikti
+                                </span>
+                              )}
+                              {dueToday && !overdue && (
+                                <span style={{ fontSize: '0.62rem', fontWeight: 900, color: 'white', background: '#f59e0b', padding: '0.12rem 0.5rem', borderRadius: 99, boxShadow: '0 2px 8px rgba(245,158,11,0.4)' }}>
+                                  ⚡ Bugün Son
+                                </span>
+                              )}
+                              {!overdue && !dueToday && daysDiff >= 0 && (
+                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.12)', padding: '0.12rem 0.45rem', borderRadius: 99 }}>
+                                  ⏰ {daysDiff + 1} Gün Kaldı
+                                </span>
+                              )}
                             </div>
-                            <div style={{ width:40, height:40, borderRadius:12, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                              <conf.icon size={17} color={conf.color} />
+
+                            <div style={{
+                              fontSize: isMobile ? '0.95rem' : '1.1rem',
+                              fontWeight: 900,
+                              color: 'white',
+                              marginTop: 3,
+                              lineHeight: 1.25,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {task.title}
+                            </div>
+
+                            <div style={{
+                              fontSize: isMobile ? '0.68rem' : '0.74rem',
+                              color: 'rgba(255,255,255,0.85)',
+                              fontWeight: 600,
+                              marginTop: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              flexWrap: 'wrap'
+                            }}>
+                              <span>📝 {task.questionCount || 0} Soru</span>
+                              <span>📅 Son: {task.dueDateStr}</span>
                             </div>
                           </div>
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:9, borderTop:'1px solid #f1f5f9' }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                              <span style={{ fontSize:'0.68rem', color:'#64748b', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}><Calendar size={12} color="#94a3b8" /> {task.dueDateStr}</span>
-                              <span style={{ fontSize:'0.68rem', color:'#64748b', fontWeight:700, display:'flex', alignItems:'center', gap:3 }}><BookOpen size={12} color="#94a3b8" /> {task.questionCount || 0} Soru</span>
-                            </div>
-                            <button onClick={handleOpenPendingTask} className="sd-btn"
-                              style={{ background:`linear-gradient(135deg,${conf.color},#6366f1)`, color:'white', border:'none', borderRadius:12, padding:'0.45rem 0.9rem', fontSize:'0.73rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:5, boxShadow:`0 4px 12px ${conf.color}40`, whiteSpace:'nowrap', flexShrink:0 }}>
-                              <PlayCircle size={13} /> Hemen Çöz
-                            </button>
-                          </div>
+                        </div>
+
+                        <div style={{
+                          background: 'white',
+                          color: '#0f172a',
+                          borderRadius: 14,
+                          padding: isMobile ? '0.45rem 0.8rem' : '0.55rem 1rem',
+                          fontWeight: 900,
+                          fontSize: isMobile ? '0.72rem' : '0.78rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                          flexShrink: 0,
+                          zIndex: 2,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {isExam ? 'Karneyi Gir ➔' : 'Testi Çöz ➔'}
                         </div>
                       </div>
                     );
