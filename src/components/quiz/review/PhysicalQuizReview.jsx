@@ -239,145 +239,135 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
           </div>
         </div>
 
-        {/* COLUMN-BY-COLUMN COMPACT OPTICAL FORM */}
+        {/* NATURAL COMPACT OPTICAL FORM */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(auto-fit, minmax(280px, 1fr))`,
-          gap: '1rem',
+          gridTemplateColumns: `repeat(auto-fit, minmax(300px, 1fr))`,
+          gap: '0.85rem',
           alignItems: 'start'
         }}>
-          {questionColumns.map((col, colIdx) => (
-            <div
-              key={colIdx}
-              style={{
-                background: '#1e293b',
-                borderRadius: '0.85rem',
-                padding: '0.75rem 0.85rem',
-                border: '1px solid #334155',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.35rem',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-              }}
-            >
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: '0.35rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#38bdf8', fontWeight: 900 }}>Sütun {colIdx + 1}</span>
-                <span>Soru {col[0]} – {col[col.length - 1]}</span>
-              </div>
+          {Array.from({ length: qCount }).map((_, idx) => {
+            const qNo = idx + 1;
+            const qObj = questions[idx] || {};
+            const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[idx] || {};
 
-              {col.map(qNo => {
-                const idx = qNo - 1;
-                const qObj = questions[idx] || {};
-                const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[idx] || {};
+            const userAnsIndex = getAnsIndex(ansObj.userAnswer);
+            const textAns = ansObj.userAnswerText;
 
-                const userAnsIndex = getAnsIndex(ansObj.userAnswer);
-                const textAns = ansObj.userAnswerText;
+            let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
+            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
+            if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
+            if (correctAnsIndex === null && test?.answerKey) {
+              const ak = test.answerKey;
+              const keyVal = Array.isArray(ak) ? ak[idx] : (ak[qNo] || ak[String(qNo)]);
+              correctAnsIndex = getAnsIndex(keyVal);
+            }
 
-                let correctAnsIndex = getAnsIndex(qObj.correctAnswer);
-                if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(qObj.correctAnswerLetter);
-                if (correctAnsIndex === null) correctAnsIndex = getAnsIndex(ansObj.correctAnswer);
-                if (correctAnsIndex === null && test?.answerKey) {
-                  const ak = test.answerKey;
-                  const keyVal = Array.isArray(ak) ? ak[idx] : (ak[qNo] || ak[String(qNo)]);
-                  correctAnsIndex = getAnsIndex(keyVal);
-                }
+            const isBlank = userAnsIndex === null && !textAns;
+            let isCorrect = ansObj.isCorrect;
+            if (isCorrect === null || isCorrect === undefined) {
+              if (userAnsIndex !== null && correctAnsIndex !== null) {
+                isCorrect = userAnsIndex === correctAnsIndex;
+              }
+            }
 
-                const isBlank = userAnsIndex === null && !textAns;
-                let isCorrect = ansObj.isCorrect;
-                if (isCorrect === null || isCorrect === undefined) {
-                  if (userAnsIndex !== null && correctAnsIndex !== null) {
-                    isCorrect = userAnsIndex === correctAnsIndex;
-                  }
-                }
+            const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
 
-                const correctLetter = correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '';
-
-                return (
-                  <div
-                    key={qNo}
-                    style={{
-                      background: '#0f172a',
-                      padding: '0.35rem 0.6rem',
-                      borderRadius: '0.6rem',
-                      border: `1.5px solid ${isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : '#334155'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.4rem',
-                      minHeight: '34px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 50, flexShrink: 0 }}>
-                      <span style={{
-                        fontWeight: 900,
-                        fontSize: '0.8rem',
-                        color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#f8fafc'
-                      }}>
-                        {qNo}.
-                      </span>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#94a3b8' }}>
-                        {isCorrect === true ? '✓' : isCorrect === false ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
-                      </span>
-                    </div>
-
-                    {textAns ? (
-                      <div style={{ fontSize: '0.75rem', color: '#cbd5e1', background: '#1e293b', padding: '0.2rem 0.5rem', borderRadius: '0.4rem', flex: 1 }}>
-                        {textAns}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                        {optionsList.map((opt, optIdx) => {
-                          const isUserMarked = userAnsIndex === optIdx;
-                          const isAnswerKey = correctAnsIndex === optIdx;
-
-                          let bg = '#1e293b';
-                          let color = '#94a3b8';
-                          let border = '1px solid #334155';
-
-                          if (isUserMarked && isAnswerKey) {
-                            bg = '#10b981';
-                            color = '#ffffff';
-                            border = '2px solid #059669';
-                          } else if (isUserMarked && !isAnswerKey) {
-                            bg = '#ef4444';
-                            color = '#ffffff';
-                            border = '2px solid #dc2626';
-                          } else if (!isUserMarked && isAnswerKey) {
-                            bg = 'rgba(16, 185, 129, 0.2)';
-                            color = '#34d399';
-                            border = '2px solid #10b981';
-                          }
-
-                          return (
-                            <div
-                              key={opt}
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '50%',
-                                background: bg,
-                                color: color,
-                                border: border,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 900,
-                                fontSize: '0.78rem',
-                                boxShadow: (isUserMarked || isAnswerKey) ? '0 2px 6px rgba(0,0,0,0.3)' : 'none'
-                              }}
-                              title={isUserMarked && isAnswerKey ? 'Doğru işaretlendi' : isUserMarked ? 'Hatalı işaretlendi' : isAnswerKey ? 'Doğru cevap' : ''}
-                            >
-                              {opt}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+            return (
+              <div
+                key={qNo}
+                style={{
+                  background: '#1e293b',
+                  padding: isMobile ? '0.5rem 0.75rem' : '0.6rem 0.9rem',
+                  borderRadius: '0.85rem',
+                  border: `1.5px solid ${isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : '#334155'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.6rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 50, flexShrink: 0 }}>
+                  <div style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: '0.5rem',
+                    background: '#0f172a',
+                    color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '0.85rem',
+                    border: '1px solid #334155'
+                  }}>
+                    {qNo}
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#94a3b8' }}>
+                    {isCorrect === true ? '✓' : isCorrect === false ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
+                  </span>
+                </div>
+
+                {textAns ? (
+                  <div style={{ fontSize: '0.8rem', color: '#cbd5e1', background: '#0f172a', padding: '0.35rem 0.6rem', borderRadius: '0.5rem', flex: 1 }}>
+                    {textAns}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: isMobile ? '0.3rem' : '0.45rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {optionsList.map((opt, optIdx) => {
+                      const isUserMarked = userAnsIndex === optIdx;
+                      const isAnswerKey = correctAnsIndex === optIdx;
+
+                      let bg = '#0f172a';
+                      let color = '#94a3b8';
+                      let border = '1.5px solid #334155';
+                      let shadow = 'none';
+
+                      if (isUserMarked && isAnswerKey) {
+                        bg = 'linear-gradient(135deg, #10b981, #059669)';
+                        color = '#ffffff';
+                        border = '2px solid #34d399';
+                        shadow = '0 3px 10px rgba(16,185,129,0.4)';
+                      } else if (isUserMarked && !isAnswerKey) {
+                        bg = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                        color = '#ffffff';
+                        border = '2px solid #f87171';
+                        shadow = '0 3px 10px rgba(239,68,68,0.4)';
+                      } else if (!isUserMarked && isAnswerKey) {
+                        bg = 'rgba(16, 185, 129, 0.15)';
+                        color = '#34d399';
+                        border = '2px dashed #10b981';
+                      }
+
+                      return (
+                        <div
+                          key={opt}
+                          style={{
+                            width: isMobile ? 32 : 38,
+                            height: isMobile ? 32 : 38,
+                            borderRadius: '50%',
+                            background: bg,
+                            color: color,
+                            border: border,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 900,
+                            fontSize: isMobile ? '0.85rem' : '0.95rem',
+                            boxShadow: shadow
+                          }}
+                          title={isUserMarked && isAnswerKey ? 'Doğru işaretlendi' : isUserMarked ? 'Hatalı işaretlendi' : isAnswerKey ? 'Doğru cevap anahtarı' : ''}
+                        >
+                          {opt}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

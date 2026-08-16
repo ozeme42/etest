@@ -859,167 +859,219 @@ export default function TrackedBookQuizRunner() {
               )}
 
               {/* 2. OPTICAL BUBBLES / OPEN-ENDED FORM */}
-              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#0891b2' }} />
-                    <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#f8fafc' }}>
-                      Optik Cevap Listesi
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
-                      ({questionCount} Soru)
-                    </span>
+                {/* Header & Progress Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#06b6d4', boxShadow: '0 0 10px #06b6d4' }} />
+                      <span style={{ fontWeight: 900, fontSize: '1.05rem', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                        Optik Form
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 800, background: '#0f172a', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
+                        {questionCount} Soru
+                      </span>
+                    </div>
+
+                    {!isSubmitted && (
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: answeredCount === questionCount ? '#34d399' : '#38bdf8' }}>
+                        {answeredCount}/{questionCount} Kodlandı {questionCount > 0 ? `(%${Math.round((answeredCount / questionCount) * 100)})` : ''}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Progress Bar */}
+                  {!isSubmitted && questionCount > 0 && (
+                    <div style={{ width: '100%', height: 6, background: '#0f172a', borderRadius: 99, overflow: 'hidden', border: '1px solid #334155' }}>
+                      <div 
+                        style={{ 
+                          width: `${Math.min(100, Math.round((answeredCount / questionCount) * 100))}%`, 
+                          height: '100%', 
+                          background: answeredCount === questionCount ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #0891b2, #06b6d4)', 
+                          transition: 'width 0.25s ease' 
+                        }} 
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {/* Question Columns (Sütun Sütun Sıralama: 1. sütun 1-10, 2. sütun 11-20...) */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', alignItems: 'start' }}>
-                  {questionColumns.map((col, colIdx) => (
-                    <div
-                      key={colIdx}
-                      style={{
-                        background: '#0f172a',
-                        borderRadius: '0.85rem',
-                        padding: '0.75rem 0.85rem',
-                        border: '1px solid #334155',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.35rem',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                      }}
-                    >
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', borderBottom: '1px solid #1e293b', paddingBottom: '0.35rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#38bdf8', fontWeight: 900 }}>Sütun {colIdx + 1}</span>
-                        <span>Soru {col[0]} – {col[col.length - 1]}</span>
-                      </div>
+                {/* Natural Question Grid (Büyük ve Çok Şık Şıklar) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.85rem' }}>
+                  {Array.from({ length: questionCount }).map((_, idx) => {
+                    const qNo = idx + 1;
+                    const selected = answers[qNo] || answers[String(qNo)] || '';
 
-                      {col.map(qNo => {
-                        const idx = qNo - 1;
-                        const selected = answers[qNo] || answers[String(qNo)] || '';
+                    let isCorrect = false;
+                    let isWrong = false;
+                    let correctKey = '';
 
-                        let isCorrect = false;
-                        let isWrong = false;
-                        let correctKey = '';
+                    if (isSubmitted) {
+                      const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+                      correctKey = Array.isArray(answerKey) 
+                        ? (answerKey[idx] || '') 
+                        : (answerKey[qNo] || answerKey[String(qNo)] || '');
+                      isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
+                      isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
+                    }
 
-                        if (isSubmitted) {
-                          const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
-                          correctKey = Array.isArray(answerKey) 
-                            ? (answerKey[idx] || '') 
-                            : (answerKey[qNo] || answerKey[String(qNo)] || '');
-                          isCorrect = selected && String(selected).toUpperCase() === String(correctKey).toUpperCase();
-                          isWrong = selected && String(selected).toUpperCase() !== String(correctKey).toUpperCase();
-                        }
+                    if (isOpenEnded) {
+                      return (
+                        <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '1rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc' }}>
+                            Soru {qNo}
+                          </span>
+                          <textarea
+                            disabled={isSubmitted}
+                            value={selected}
+                            onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                            placeholder="Cevabınızı buraya yazınız..."
+                            rows={2}
+                            style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '0.5rem', color: 'white', fontSize: '0.85rem', resize: 'vertical' }}
+                          />
+                        </div>
+                      );
+                    }
 
-                        if (isOpenEnded) {
-                          return (
-                            <div key={qNo} style={{ background: '#1e293b', padding: '0.6rem 0.75rem', borderRadius: '0.65rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              <span style={{ fontWeight: 900, fontSize: '0.8rem', color: '#f8fafc' }}>
-                                Soru {qNo}
-                              </span>
-                              <textarea
-                                disabled={isSubmitted}
-                                value={selected}
-                                onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                                placeholder="Cevabınızı yazınız..."
-                                rows={2}
-                                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 6, padding: '0.4rem', color: 'white', fontSize: '0.78rem', resize: 'vertical' }}
-                              />
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div 
-                            key={qNo} 
-                            style={{
-                              background: '#1e293b',
-                              padding: '0.35rem 0.6rem',
-                              borderRadius: '0.6rem',
-                              border: isCorrect ? '1.5px solid #10b981' : isWrong ? '1.5px solid #ef4444' : selected ? '1.5px solid #0891b2' : '1px solid #334155',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '0.4rem',
-                              minHeight: '36px'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 50, flexShrink: 0 }}>
-                              <span style={{
-                                fontWeight: 900,
-                                fontSize: '0.8rem',
-                                color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#f8fafc'
-                              }}>
-                                {qNo}.
-                              </span>
-                              {isSubmitted && (
-                                <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
-                                  {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
-                                </span>
-                              )}
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {optionsList.map((opt) => {
-                                const isSelected = selected === opt;
-                                const isThisOptCorrect = isSubmitted && correctKey === opt;
-
-                                return (
-                                  <button
-                                    key={opt}
-                                    type="button"
-                                    disabled={isSubmitted}
-                                    onClick={() => handleSelectOption(qNo, opt)}
-                                    style={{
-                                      width: 28,
-                                      height: 28,
-                                      borderRadius: '50%',
-                                      fontWeight: 900,
-                                      fontSize: '0.78rem',
-                                      cursor: isSubmitted ? 'default' : 'pointer',
-                                      border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #10b981' : '1px solid #475569',
-                                      background: isSubmitted && isThisOptCorrect ? '#059669' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#0891b2' : '#0f172a',
-                                      color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : '#cbd5e1',
-                                      transition: 'all 0.12s ease',
-                                      boxShadow: isSelected ? '0 2px 6px rgba(8,145,178,0.4)' : 'none',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      padding: 0
-                                    }}
-                                  >
-                                    {opt}
-                                  </button>
-                                );
-                              })}
-
-                              {!isSubmitted && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleClearOption(qNo)}
-                                  disabled={!selected}
-                                  title="İşareti Kaldır"
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: selected ? '#ef4444' : 'transparent',
-                                    cursor: selected ? 'pointer' : 'default',
-                                    padding: 2,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    pointerEvents: selected ? 'auto' : 'none'
-                                  }}
-                                >
-                                  <XIcon size={13} />
-                                </button>
-                              )}
-                            </div>
+                    return (
+                      <div 
+                        key={qNo} 
+                        style={{
+                          background: selected ? 'rgba(8, 145, 178, 0.08)' : '#0f172a',
+                          padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
+                          borderRadius: '1rem',
+                          border: isCorrect 
+                            ? '1.5px solid #10b981' 
+                            : isWrong 
+                            ? '1.5px solid #ef4444' 
+                            : selected 
+                            ? '1.5px solid #0891b2' 
+                            : '1px solid #334155',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                          transition: 'all 0.15s ease',
+                          boxShadow: selected ? '0 4px 14px rgba(8,145,178,0.15)' : 'none'
+                        }}
+                      >
+                        {/* Question Number Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 60, flexShrink: 0 }}>
+                          <div style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '0.6rem',
+                            background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
+                            color: selected ? '#ffffff' : '#94a3b8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 900,
+                            fontSize: '0.85rem',
+                            border: selected ? 'none' : '1px solid #334155',
+                            boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
+                          }}>
+                            {qNo}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+
+                          {isSubmitted && (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
+                              {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Large Option Bubbles (A, B, C, D, E) */}
+                        <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {optionsList.map((opt) => {
+                            const isSelected = selected === opt;
+                            const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                            let bubbleBg = '#1e293b';
+                            let bubbleBorder = '1.5px solid #475569';
+                            let bubbleColor = '#cbd5e1';
+                            let bubbleShadow = 'none';
+
+                            if (isSelected) {
+                              bubbleBg = 'linear-gradient(135deg, #0891b2, #06b6d4)';
+                              bubbleBorder = '2px solid #38bdf8';
+                              bubbleColor = '#ffffff';
+                              bubbleShadow = '0 4px 14px rgba(8,145,178,0.45)';
+                            }
+
+                            if (isSubmitted) {
+                              if (isThisOptCorrect) {
+                                bubbleBg = 'linear-gradient(135deg, #10b981, #059669)';
+                                bubbleBorder = '2px solid #34d399';
+                                bubbleColor = '#ffffff';
+                                bubbleShadow = '0 4px 12px rgba(16,185,129,0.4)';
+                              } else if (isSelected && isWrong) {
+                                bubbleBg = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                                bubbleBorder = '2px solid #f87171';
+                                bubbleColor = '#ffffff';
+                                bubbleShadow = '0 4px 12px rgba(239,68,68,0.4)';
+                              }
+                            }
+
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                disabled={isSubmitted}
+                                onClick={() => handleSelectOption(qNo, opt)}
+                                style={{
+                                  width: isMobile ? 38 : 44,
+                                  height: isMobile ? 38 : 44,
+                                  borderRadius: '50%',
+                                  fontWeight: 900,
+                                  fontSize: isMobile ? '0.95rem' : '1.05rem',
+                                  cursor: isSubmitted ? 'default' : 'pointer',
+                                  border: bubbleBorder,
+                                  background: bubbleBg,
+                                  color: bubbleColor,
+                                  transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
+                                  boxShadow: bubbleShadow,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: 0
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+
+                          {!isSubmitted && (
+                            <button
+                              type="button"
+                              onClick={() => handleClearOption(qNo)}
+                              disabled={!selected}
+                              title="İşareti Kaldır"
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                                border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
+                                color: selected ? '#f87171' : 'transparent',
+                                cursor: selected ? 'pointer' : 'default',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                pointerEvents: selected ? 'auto' : 'none',
+                                transition: 'all 0.12s ease',
+                                marginLeft: 2,
+                                padding: 0
+                              }}
+                            >
+                              <XIcon size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1158,69 +1210,101 @@ export default function TrackedBookQuizRunner() {
             </div>
 
             <div style={{ padding: '0.85rem', overflowY: 'auto', flex: 1, background: '#0f172a' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: questionColumns.length > 1 ? 'repeat(auto-fit, minmax(240px, 1fr))' : '1fr', gap: '0.75rem', alignItems: 'start' }}>
-                {questionColumns.map((col, colIdx) => (
-                  <div
-                    key={colIdx}
-                    style={{
-                      background: '#1e293b',
-                      borderRadius: '0.75rem',
-                      padding: '0.65rem 0.75rem',
-                      border: '1px solid #334155',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.35rem'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', borderBottom: '1px solid #334155', paddingBottom: '0.25rem', marginBottom: '0.15rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#38bdf8', fontWeight: 900 }}>Sütun {colIdx + 1}</span>
-                      <span>Soru {col[0]} – {col[col.length - 1]}</span>
-                    </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {Array.from({ length: questionCount }).map((_, idx) => {
+                  const qNo = idx + 1;
+                  const selected = answers[qNo] || answers[String(qNo)] || '';
 
-                    {col.map(qNo => {
-                      const selected = answers[qNo] || answers[String(qNo)] || '';
-
-                      return (
-                        <div key={qNo} style={{ background: '#0f172a', padding: '0.35rem 0.6rem', borderRadius: '0.6rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', minHeight: '36px' }}>
-                          <span style={{ fontWeight: 900, fontSize: '0.8rem', color: '#f8fafc', minWidth: 45 }}>
-                            {qNo}.
-                          </span>
-
-                          <div style={{ display: 'flex', gap: '0.25rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            {optionsList.map((opt) => {
-                              const isSelected = selected === opt;
-                              return (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={() => handleSelectOption(qNo, opt)}
-                                  style={{
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: '50%',
-                                    fontWeight: 900,
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer',
-                                    border: isSelected ? 'none' : '1px solid #475569',
-                                    background: isSelected ? '#0891b2' : '#1e293b',
-                                    color: isSelected ? 'white' : '#cbd5e1',
-                                    transition: 'all 0.12s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: 0
-                                  }}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
+                  return (
+                    <div 
+                      key={qNo} 
+                      style={{ 
+                        background: selected ? 'rgba(8, 145, 178, 0.08)' : '#1e293b', 
+                        padding: '0.55rem 0.85rem', 
+                        borderRadius: '0.85rem', 
+                        border: selected ? '1.5px solid #0891b2' : '1px solid #334155', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        gap: '0.5rem' 
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 45 }}>
+                        <div style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '0.5rem',
+                          background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#0f172a',
+                          color: selected ? '#ffffff' : '#94a3b8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 900,
+                          fontSize: '0.8rem',
+                          border: selected ? 'none' : '1px solid #334155'
+                        }}>
+                          {qNo}
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {optionsList.map((opt) => {
+                          const isSelected = selected === opt;
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => handleSelectOption(qNo, opt)}
+                              style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: '50%',
+                                fontWeight: 900,
+                                fontSize: '0.95rem',
+                                cursor: 'pointer',
+                                border: isSelected ? '2px solid #38bdf8' : '1.5px solid #475569',
+                                background: isSelected ? 'linear-gradient(135deg, #0891b2, #06b6d4)' : '#0f172a',
+                                color: isSelected ? 'white' : '#cbd5e1',
+                                transition: 'all 0.12s ease',
+                                boxShadow: isSelected ? '0 4px 12px rgba(8,145,178,0.45)' : 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0
+                              }}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+
+                        {selected && (
+                          <button
+                            type="button"
+                            onClick={() => handleClearOption(qNo)}
+                            title="İşareti Kaldır"
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: '50%',
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#f87171',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginLeft: 2,
+                              padding: 0
+                            }}
+                          >
+                            <XIcon size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
