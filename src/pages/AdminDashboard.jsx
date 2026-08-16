@@ -5,10 +5,11 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { dbAddUser } from '../services/supabaseService';
 import { FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users, GraduationCap, ShieldCheck, FileJson } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
+import SummaryManagerPage from './SummaryManagerPage';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum', 'users', 'matrix', 'homeworks'
+  const [activeTab, setActiveTab] = useState('curriculum'); // 'curriculum', 'summaries', 'users', 'matrix', 'homeworks'
 
   return (
     <div className="container dashboard">
@@ -25,6 +26,12 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('curriculum')}
         >
           Müfredat Yönetimi
+        </button>
+        <button 
+          className={`admin-tab ${activeTab === 'summaries' ? 'active' : ''}`}
+          onClick={() => setActiveTab('summaries')}
+        >
+          📖 Ders Özetleri Modülü
         </button>
         <button 
           className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
@@ -47,6 +54,7 @@ export default function AdminDashboard() {
       </div>
 
       {activeTab === 'curriculum' && <CurriculumManager />}
+      {activeTab === 'summaries' && <SummaryManagerPage />}
       {activeTab === 'users' && <UserManager />}
       {activeTab === 'matrix' && <TeacherStudentMatrix />}
       {activeTab === 'homeworks' && <AdminHomeworkTracker />}

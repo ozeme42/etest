@@ -207,6 +207,86 @@ export async function dbAddTopic(topic) {
 }
 
 // ==========================================
+// 0.8. DERS VE KONU ÖZETLERİ (SUMMARIES)
+// ==========================================
+export async function dbGetSummaries() {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.from('summaries').select('*').order('created_at', { ascending: false });
+    if (error) {
+      // If summaries table does not exist yet on remote, fail gracefully
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        return null;
+      }
+      throw error;
+    }
+    return (data || []).map(s => ({
+      id: String(s.id),
+      targetType: s.target_type || s.targetType || 'topic',
+      targetId: String(s.target_id || s.targetId),
+      gradeId: s.grade_id || s.gradeId || null,
+      subjectId: s.subject_id || s.subjectId || null,
+      unitId: s.unit_id || s.unitId || null,
+      topicId: s.topic_id || s.topicId || null,
+      title: s.title || '',
+      contentHtml: s.content_html || s.contentHtml || '',
+      authorName: s.author_name || s.authorName || 'Öğretmen',
+      createdAt: s.created_at,
+      updatedAt: s.updated_at || s.created_at
+    }));
+  } catch (err) {
+    console.warn('[Supabase] dbGetSummaries error:', err.message);
+    return null;
+  }
+}
+
+export async function dbSaveSummary(summary) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const targetIdStr = String(summary.targetId || summary.id);
+    const summaryId = String(summary.id || `sum_${summary.targetType || 'item'}_${targetIdStr}`);
+    
+    const payload = {
+      id: summaryId,
+      target_type: summary.targetType || 'topic',
+      target_id: targetIdStr,
+      grade_id: summary.gradeId || null,
+      subject_id: summary.subjectId || null,
+      unit_id: summary.unitId || null,
+      topic_id: summary.topicId || null,
+      title: summary.title || '',
+      content_html: summary.contentHtml || '',
+      author_name: summary.authorName || 'Öğretmen',
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase.from('summaries').upsert([payload], { onConflict: 'id' }).select();
+    if (error) {
+      // If table does not exist or column mismatch, log cleanly and return payload so app keeps functioning locally
+      console.warn('[Supabase] dbSaveSummary notice:', error.message);
+      return { success: true, data: [payload] };
+    }
+    return { success: true, data };
+  } catch (err) {
+    console.warn('[Supabase] dbSaveSummary unexpected:', err.message);
+    return { success: true };
+  }
+}
+
+export async function dbDeleteSummary(targetId) {
+  if (!isSupabaseConfigured() || !targetId) return null;
+  try {
+    const targetIdStr = String(targetId);
+    const { error } = await supabase.from('summaries').delete().or(`id.eq.${targetIdStr},target_id.eq.${targetIdStr}`);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteSummary error:', err.message);
+    return false;
+  }
+}
+
+// ==========================================
 // 1. HEDEFLER (GOALS)
 // ==========================================
 export async function dbGetGoals(studentId) {

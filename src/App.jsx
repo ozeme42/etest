@@ -40,6 +40,8 @@ import TrackedBookQuizRunner from './pages/TrackedBookQuizRunner';
 import StudentProgramPage from './pages/StudentProgramPage';
 import LoginPage from './pages/LoginPage';
 import ScalePage from './pages/ScalePage';
+import SummaryManagerPage from './pages/SummaryManagerPage';
+import StudentSummaryPage from './pages/StudentSummaryPage';
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
 import './App.css';
@@ -130,8 +132,11 @@ function Sidebar() {
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
                 <GraduationCap size={20} /> Öğrenci Paneli
               </NavLink>
+              <NavLink to="/student/summaries" className="nav-link" onClick={closeSidebar}>
+                <BookOpen size={20} /> Ders Özetleri
+              </NavLink>
               <NavLink to="/student/books" className="nav-link" onClick={closeSidebar}>
-                <BookOpen size={20} /> Kitaplarım
+                <BookMarked size={20} /> Kitaplarım
               </NavLink>
               <NavLink to="/student/exams" className="nav-link" onClick={closeSidebar}>
                 <ClipboardCheck size={20} /> Denemelerim
@@ -167,6 +172,9 @@ function Sidebar() {
           {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
             <>
               <div className="nav-section-title">Modüller</div>
+              <NavLink to="/summaries" className="nav-link" onClick={closeSidebar}>
+                <BookOpen size={20} /> Ders Özetleri
+              </NavLink>
               <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
                 <ClipboardCheck size={20} /> Fiziki Deneme & Optik
               </NavLink>
@@ -174,7 +182,7 @@ function Sidebar() {
                 <BarChart2 size={20} /> İstatistik & Analiz
               </NavLink>
               <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
-                <BookOpen size={20} /> Ödevler
+                <BookMarked size={20} /> Ödevler
               </NavLink>
               <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
                 <ClipboardCheck size={20} /> Değerlendirmeler
@@ -239,6 +247,8 @@ function AppContent() {
           <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/student" element={<StudentDashboard />} />
+          <Route path="/student/summaries" element={<StudentSummaryPage />} />
+          <Route path="/summaries" element={<SummaryManagerPage />} />
           <Route path="/student/books" element={<StudentBooksPage />} />
           <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
           <Route path="/student/exams" element={<StudentExamsPage />} />

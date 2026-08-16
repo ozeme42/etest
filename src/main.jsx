@@ -15,6 +15,7 @@ import { GoalProvider } from './context/GoalContext.jsx'
 import { ScheduleProvider } from './context/ScheduleContext.jsx'
 import { CoachingProvider } from './context/CoachingContext.jsx'
 import { ScaleProvider } from './context/ScaleContext.jsx'
+import { SummaryProvider } from './context/SummaryContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -22,25 +23,27 @@ createRoot(document.getElementById('root')).render(
       <UserProvider>
         <AuthProvider>
           <CurriculumProvider>
-            <QuestionBankProvider>
-              <HomeworkProvider>
-                <EvaluationProvider>
-                  <TrackedBookProvider>
-                    <StudyPlanProvider>
-                      <GoalProvider>
-                        <ScheduleProvider>
-                          <CoachingProvider>
-                            <ScaleProvider>
-                              <App />
-                            </ScaleProvider>
-                          </CoachingProvider>
-                        </ScheduleProvider>
-                      </GoalProvider>
-                    </StudyPlanProvider>
-                  </TrackedBookProvider>
-                </EvaluationProvider>
-              </HomeworkProvider>
-            </QuestionBankProvider>
+            <SummaryProvider>
+              <QuestionBankProvider>
+                <HomeworkProvider>
+                  <EvaluationProvider>
+                    <TrackedBookProvider>
+                      <StudyPlanProvider>
+                        <GoalProvider>
+                          <ScheduleProvider>
+                            <CoachingProvider>
+                              <ScaleProvider>
+                                <App />
+                              </ScaleProvider>
+                            </CoachingProvider>
+                          </ScheduleProvider>
+                        </GoalProvider>
+                      </StudyPlanProvider>
+                    </TrackedBookProvider>
+                  </EvaluationProvider>
+                </HomeworkProvider>
+              </QuestionBankProvider>
+            </SummaryProvider>
           </CurriculumProvider>
         </AuthProvider>
       </UserProvider>
