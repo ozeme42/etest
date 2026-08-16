@@ -82,6 +82,7 @@ export default function HomeworkManager() {
   const [selContentType, setSelContentType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [assignmentMode, setAssignmentMode] = useState('separate'); // 'separate' (ayrı ayrı tekli ödevler) | 'combined' (birleşik tek ödev)
+  const [selectedHwListIds, setSelectedHwListIds] = useState([]);
 
   useEffect(() => {
     if (location.state?.autoSelectQuestionId) {
@@ -410,6 +411,37 @@ export default function HomeworkManager() {
       if (activeTab === 'expired') return past;
       return true;
     });
+
+    const isAllHwSelected = filteredHw.length > 0 && selectedHwListIds.length === filteredHw.length;
+
+    const handleToggleSelectAllHw = () => {
+      if (isAllHwSelected) {
+        setSelectedHwListIds([]);
+      } else {
+        setSelectedHwListIds(filteredHw.map(h => h.id));
+      }
+    };
+
+    const handleToggleHwSelect = (id, e) => {
+      if (e) e.stopPropagation();
+      setSelectedHwListIds(prev => 
+        prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      );
+    };
+
+    const handleDeleteSelectedHw = () => {
+      if (selectedHwListIds.length === 0) return;
+      const count = selectedHwListIds.length;
+      if (!window.confirm(`Seçilen ${count} adet ödevi ve bunlara ait tüm öğrenci yanıtlarını silmek istediğinize emin misiniz?`)) return;
+
+      selectedHwListIds.forEach(id => {
+        deleteHomework(id);
+        deleteSubmissionsByTestId(id);
+      });
+      setSelectedHwListIds([]);
+      showToast(`🗑️ ${count} adet ödev başarıyla silindi!`);
+    };
+
     return (
       <div style={C.page}>
         <Toast msg={toast} />
@@ -427,27 +459,27 @@ export default function HomeworkManager() {
             <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}><BookOpen size={20} color="#fff" /></div>
             <div>
               <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.1em' }}>E-Test LMS</div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#1e293b' }}>Odev Yonetim Merkezi</div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#1e293b' }}>Ödev Yönetim Merkezi</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
             {currentUser?.role === 'admin' && (
-              <button onClick={() => { if (window.confirm('Tum odevleri silmek istediginize emin misiniz?')) { if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks(); if (typeof deleteAllSubmissions === 'function') deleteAllSubmissions(); }}} style={{ padding: '0.5rem 0.9rem', borderRadius: '0.65rem', background: '#fff1f2', border: '1.5px solid #fecaca', color: '#dc2626', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Trash2 size={14} /> Tumunu Sil
+              <button onClick={() => { if (window.confirm('Tüm ödevleri silmek istediğinize emin misiniz?')) { if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks(); if (typeof deleteAllSubmissions === 'function') deleteAllSubmissions(); }}} style={{ padding: '0.5rem 0.9rem', borderRadius: '0.65rem', background: '#fff1f2', border: '1.5px solid #fecaca', color: '#dc2626', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Trash2 size={14} /> Tümünü Sil
               </button>
             )}
             <button onClick={() => { resetForm(); setViewMode('create'); }} style={C.primaryBtn}>
-              <Sparkles size={16} /> Yeni Odev Sihirbazi
+              <Sparkles size={16} /> Yeni Ödev Sihirbazı
             </button>
           </div>
         </header>
         <main style={{ maxWidth: 1100, margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '0.85rem' }}>
             {[
-              { label: 'Yeni Odev', val: '+ Olustur', bg: 'linear-gradient(135deg,#4f46e5,#7c3aed)', Icon: Zap, onClick: () => { resetForm(); setViewMode('create'); } },
-              { label: 'Aktif Odev', val: globalAnalytics.active, bg: 'linear-gradient(135deg,#059669,#047857)', Icon: Clock },
-              { label: 'Ort. Katilim', val: '%' + globalAnalytics.avgRate, bg: 'linear-gradient(135deg,#2563eb,#1d4ed8)', Icon: Trophy },
-              { label: 'Suresi Biten', val: globalAnalytics.expired, bg: 'linear-gradient(135deg,#e11d48,#9f1239)', Icon: AlertCircle },
+              { label: 'Yeni Ödev', val: '+ Oluştur', bg: 'linear-gradient(135deg,#4f46e5,#7c3aed)', Icon: Zap, onClick: () => { resetForm(); setViewMode('create'); } },
+              { label: 'Aktif Ödev', val: globalAnalytics.active, bg: 'linear-gradient(135deg,#059669,#047857)', Icon: Clock },
+              { label: 'Ort. Katılım', val: '%' + globalAnalytics.avgRate, bg: 'linear-gradient(135deg,#2563eb,#1d4ed8)', Icon: Trophy },
+              { label: 'Süresi Biten', val: globalAnalytics.expired, bg: 'linear-gradient(135deg,#e11d48,#9f1239)', Icon: AlertCircle },
             ].map(sc => (
               <div key={sc.label} onClick={sc.onClick} style={{ background: sc.bg, borderRadius: '1rem', padding: '1rem 1.15rem', color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: '0.45rem', cursor: sc.onClick ? 'pointer' : 'default', transition: 'transform 0.15s' }}
                 onMouseEnter={e => sc.onClick && (e.currentTarget.style.transform = 'scale(1.03)')}
@@ -461,32 +493,112 @@ export default function HomeworkManager() {
             ))}
           </div>
           <div style={{ ...C.card, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ClipboardList size={17} color="#4f46e5" /> Odev Listesi
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ClipboardList size={18} color="#4f46e5" /> Ödev Listesi
+                </div>
+
+                {filteredHw.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAllHw}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '0.6rem',
+                      border: isAllHwSelected ? '1.5px solid #4f46e5' : '1.5px solid #cbd5e1',
+                      background: isAllHwSelected ? '#4f46e5' : '#fff',
+                      color: isAllHwSelected ? '#fff' : '#475569',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <CheckCheck size={14} />
+                    {isAllHwSelected ? 'Tüm Seçimi Kaldır' : `Tümünü Seç (${filteredHw.length})`}
+                  </button>
+                )}
+
+                {selectedHwListIds.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', animation: 'hwFadeUp 0.2s ease' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#4f46e5', background: '#eef2ff', padding: '0.3rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #c7d2fe' }}>
+                      {selectedHwListIds.length} Ödev Seçildi
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedHw}
+                      style={{
+                        padding: '0.38rem 0.85rem',
+                        borderRadius: '0.6rem',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                        color: '#fff',
+                        fontWeight: 900,
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        boxShadow: '0 2px 8px rgba(220,38,38,0.35)'
+                      }}
+                    >
+                      <Trash2 size={13} /> Seçilenleri Sil ({selectedHwListIds.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedHwListIds([])}
+                      style={{
+                        padding: '0.35rem 0.6rem',
+                        borderRadius: '0.6rem',
+                        border: '1px solid #cbd5e1',
+                        background: '#f8fafc',
+                        color: '#64748b',
+                        fontWeight: 800,
+                        fontSize: '0.72rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      İptal
+                    </button>
+                  </div>
+                )}
               </div>
+
               <div style={{ display: 'flex', gap: '0.3rem', background: '#f8fafc', borderRadius: '0.65rem', padding: '0.28rem' }}>
                 {[
-                  { key: 'all', label: 'Tumu (' + globalAnalytics.total + ')' },
+                  { key: 'all', label: 'Tümü (' + globalAnalytics.total + ')' },
                   { key: 'active', label: 'Aktif (' + globalAnalytics.active + ')' },
                   { key: 'expired', label: 'Biten (' + globalAnalytics.expired + ')' }
                 ].map(t => (
-                  <button key={t.key} onClick={() => setActiveTab(t.key)} style={{ padding: '0.32rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap', background: activeTab === t.key ? (t.key === 'expired' ? '#dc2626' : '#4f46e5') : 'transparent', color: activeTab === t.key ? '#fff' : '#64748b' }}>{t.label}</button>
+                  <button key={t.key} onClick={() => { setActiveTab(t.key); setSelectedHwListIds([]); }} style={{ padding: '0.32rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap', background: activeTab === t.key ? (t.key === 'expired' ? '#dc2626' : '#4f46e5') : 'transparent', color: activeTab === t.key ? '#fff' : '#64748b' }}>{t.label}</button>
                 ))}
               </div>
             </div>
             {filteredHw.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
                 <BookOpen size={44} style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.25 }} />
-                <div style={{ fontWeight: 700 }}>Bu kategoride odev bulunamadi.</div>
-                <div style={{ fontSize: '0.8rem', marginTop: '0.35rem', color: '#cbd5e1' }}>Yeni Odev Sihirbazi araciligiyla odev olusturun!</div>
+                <div style={{ fontWeight: 700 }}>Bu kategoride ödev bulunamadı.</div>
+                <div style={{ fontSize: '0.8rem', marginTop: '0.35rem', color: '#cbd5e1' }}>Yeni Ödev Sihirbazı aracılığıyla ödev oluşturun!</div>
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                      {['Odev', 'Hedef Kitle', 'Son Tarih', 'Ilerleme', 'Islemler'].map((h, i) => (
+                      <th style={{ width: 44, padding: '0.8rem 0.5rem 0.8rem 1rem', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={isAllHwSelected}
+                          onChange={handleToggleSelectAllHw}
+                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4f46e5' }}
+                          title="Tümünü Seç / Kaldır"
+                        />
+                      </th>
+                      {['Ödev', 'Hedef Kitle', 'Son Tarih', 'İlerleme', 'İşlemler'].map((h, i) => (
                         <th key={h} style={{ padding: '0.8rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                       ))}
                     </tr>
@@ -496,8 +608,26 @@ export default function HomeworkManager() {
                       const stats = getHomeworkStats(hw);
                       const isPast = new Date(hw.dueDate) < now;
                       const theme = getTheme(hw.subject);
+                      const isSelected = selectedHwListIds.includes(hw.id);
+
                       return (
-                        <tr key={hw.id} className="hw-tr" style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.13s' }}>
+                        <tr 
+                          key={hw.id} 
+                          className="hw-tr" 
+                          style={{ 
+                            borderBottom: '1px solid #f8fafc', 
+                            transition: 'background 0.13s',
+                            background: isSelected ? '#f5f3ff' : 'transparent'
+                          }}
+                        >
+                          <td style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => handleToggleHwSelect(hw.id, e)}
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4f46e5' }}
+                            />
+                          </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                               <div style={{ width: 36, height: 36, borderRadius: '0.6rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><BookOpen size={15} color="#fff" /></div>
@@ -514,7 +644,7 @@ export default function HomeworkManager() {
                             <div style={{ fontWeight: 800, color: isPast ? '#dc2626' : '#374151', display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.8rem' }}>
                               <Calendar size={12} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
                             </div>
-                            <div style={{ fontSize: '0.67rem', fontWeight: 800, color: isPast ? '#dc2626' : '#059669', marginTop: 2 }}>{isPast ? 'Suresi Doldu' : 'Aktif'}</div>
+                            <div style={{ fontSize: '0.67rem', fontWeight: 800, color: isPast ? '#dc2626' : '#059669', marginTop: 2 }}>{isPast ? 'Süresi Doldu' : 'Aktif'}</div>
                           </td>
                           <td style={{ padding: '0.85rem 1rem', minWidth: 170 }}>
                             <ProgressBar value={stats.completed} max={stats.total} color={theme.color} />
@@ -523,7 +653,7 @@ export default function HomeworkManager() {
                             <div className="hw-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
                               <button onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }} style={{ padding: '0.38rem 0.7rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}><BarChart2 size={12} /> Rapor</button>
                               <button onClick={() => openEditPage(hw)} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex' }}><Edit2 size={14} color="#475569" /></button>
-                              <button onClick={() => { if (window.confirm('Bu odevi silmek istediginize emin misiniz?')) { deleteHomework(hw.id); deleteSubmissionsByTestId(hw.id); } }} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#fff1f2', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={14} color="#dc2626" /></button>
+                              <button onClick={() => { if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) { deleteHomework(hw.id); deleteSubmissionsByTestId(hw.id); } }} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#fff1f2', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={14} color="#dc2626" /></button>
                             </div>
                           </td>
                         </tr>
