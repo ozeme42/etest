@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useSummaries } from '../context/SummaryContext';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +7,8 @@ import SummaryHtmlViewer from '../components/summary/SummaryHtmlViewer';
 import { 
   BookOpen, Plus, Save, Trash2, CheckCircle2, AlertCircle, 
   Code, Eye, FileText, Sparkles, Layers, ChevronRight, 
-  Search, ArrowRight, ExternalLink, HelpCircle, Columns
+  Search, ArrowRight, ExternalLink, HelpCircle, Columns,
+  ArrowLeft, Check, Heading, Info, AlertTriangle, Pi, Table
 } from 'lucide-react';
 import './SummaryManagerPage.css';
 
@@ -52,6 +54,7 @@ const TEMPLATES = {
 };
 
 export default function SummaryManagerPage() {
+  const navigate = useNavigate();
   const { data: curriculumData } = useCurriculum();
   const { summaries, saveSummary, deleteSummary, getSummary, hasSummary } = useSummaries();
   const { currentUser } = useAuth();
@@ -219,12 +222,36 @@ export default function SummaryManagerPage() {
       
       {/* HEADER */}
       <header className="summary-header">
-        <div>
-          <div className="summary-badge">
-            <Sparkles size={16} /> Ders & Konu Özetleri Yönetimi
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              borderRadius: '0.75rem',
+              padding: '0.55rem 0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 800,
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+              backdropFilter: 'blur(8px)'
+            }}
+          >
+            <ArrowLeft size={18} /> Geri Dön
+          </button>
+          <div>
+            <div className="summary-badge">
+              <Sparkles size={14} /> Ders & Konu Özetleri Yönetimi
+            </div>
+            <h1>Müfredat Özet Modülü Editörü 📝</h1>
+            <p>Müfredattaki derslerin ünite ve konularına HTML formatında zengin ders notları ve konu özetleri ekleyin.</p>
           </div>
-          <h1>Müfredat Özet Modülü Editörü 📝</h1>
-          <p>Müfredattaki derslerin ünite ve konularına HTML formatında zengin ders notları ve konu özetleri ekleyin.</p>
         </div>
 
         {/* Global Progress Pill */}
@@ -243,7 +270,7 @@ export default function SummaryManagerPage() {
       </header>
 
       {/* FILTER BAR: GRADES & SUBJECTS */}
-      <div className="summary-filters-card glass">
+      <div className="summary-filters-card">
         <div className="filter-group">
           <label>Kademe / Sınıf:</label>
           <div className="pill-group">
@@ -273,7 +300,7 @@ export default function SummaryManagerPage() {
                 </button>
               ))
             ) : (
-              <span className="text-muted">Bu sınıfa ait ders bulunamadı.</span>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontStyle: 'italic' }}>Bu sınıfa ait ders bulunamadı.</span>
             )}
           </div>
         </div>
@@ -283,7 +310,7 @@ export default function SummaryManagerPage() {
       <div className="summary-workspace-grid">
         
         {/* LEFT COLUMN: CURRICULUM TREE */}
-        <aside className="curriculum-tree-sidebar glass">
+        <aside className="curriculum-tree-sidebar">
           <div className="sidebar-search-box">
             <Search size={16} />
             <input 
@@ -294,7 +321,7 @@ export default function SummaryManagerPage() {
             />
           </div>
 
-          <div className="curriculum-list custom-scrollbar">
+          <div className="curriculum-list">
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
                 const isUnitSelected = selectedTarget?.type === 'unit' && String(selectedTarget?.id) === String(u.id);
@@ -335,7 +362,7 @@ export default function SummaryManagerPage() {
 
                     {/* Topics Sub-Tree */}
                     <div className="topics-sub-list">
-                      {filteredUnitTopics.map((t, tIdx) => {
+                      {filteredUnitTopics.map((t) => {
                         const isTopicSelected = selectedTarget?.type === 'topic' && String(selectedTarget?.id) === String(t.id);
                         const topicHasSummary = hasSummary('topic', t.id);
 
@@ -375,7 +402,7 @@ export default function SummaryManagerPage() {
         </aside>
 
         {/* RIGHT COLUMN: RICH HTML EDITOR & PREVIEW */}
-        <main className="summary-editor-panel glass">
+        <main className="summary-editor-panel">
           {selectedTarget ? (
             <>
               {/* TARGET BANNER */}
@@ -395,21 +422,21 @@ export default function SummaryManagerPage() {
                       onClick={() => setEditorMode('code')}
                       title="Sadece HTML Kod Editörü"
                     >
-                      <Code size={16} /> Kod
+                      <Code size={15} /> Kod
                     </button>
                     <button
                       className={`mode-btn ${editorMode === 'split' ? 'active' : ''}`}
                       onClick={() => setEditorMode('split')}
                       title="Çift Panel (Kod + Önizleme)"
                     >
-                      <Columns size={16} /> Yan Yana
+                      <Columns size={15} /> Yan Yana
                     </button>
                     <button
                       className={`mode-btn ${editorMode === 'preview' ? 'active' : ''}`}
                       onClick={() => setEditorMode('preview')}
                       title="Sadece Canlı Önizleme"
                     >
-                      <Eye size={16} /> Önizleme
+                      <Eye size={15} /> Önizleme
                     </button>
                   </div>
 
@@ -447,21 +474,21 @@ export default function SummaryManagerPage() {
 
               {/* QUICK INSERT TEMPLATES */}
               <div className="template-shortcuts-bar">
-                <span className="tpl-lbl">Hızlı Şablonlar:</span>
+                <span className="tpl-lbl">Hızlı Şablon:</span>
                 <button className="tpl-btn" onClick={() => insertTemplate('heading')}>
                   + Başlık & Madde
                 </button>
                 <button className="tpl-btn" onClick={() => insertTemplate('note')}>
-                  + Önemli Not Kutusu
+                  + 📌 Önemli Not
                 </button>
                 <button className="tpl-btn" onClick={() => insertTemplate('warning')}>
-                  + Dikkat / Uyarı Kutusu
+                  + ⚠️ Dikkat Kutusu
                 </button>
                 <button className="tpl-btn" onClick={() => insertTemplate('formula')}>
-                  + Formül Kutusu
+                  + 📐 Formül
                 </button>
                 <button className="tpl-btn" onClick={() => insertTemplate('table')}>
-                  + Karşılaştırma Tablosu
+                  + 📊 Tablo
                 </button>
               </div>
 
@@ -472,11 +499,11 @@ export default function SummaryManagerPage() {
                 {(editorMode === 'code' || editorMode === 'split') && (
                   <div className="editor-pane code-pane">
                     <div className="pane-header">
-                      <span>HTML Kaynak Kodu (Dışarıdan veya Word'den Yapıştırabilirsiniz)</span>
+                      <span>HTML Kaynak Kodu (Word veya harici HTML yapıştırabilirsiniz)</span>
                       <span className="char-count">{htmlCode.length} karakter</span>
                     </div>
                     <textarea
-                      className="html-code-input custom-scrollbar"
+                      className="html-code-input"
                       placeholder="Buraya HTML formatında konu anlatımınızı veya özetinizi yapıştırın... (Örn: <h2>Başlık</h2><p>İçerik...</p>)"
                       value={htmlCode}
                       onChange={e => setHtmlCode(e.target.value)}
@@ -491,7 +518,7 @@ export default function SummaryManagerPage() {
                       <span>👁️ Canlı Öğrenci Önizlemesi</span>
                       <span className="preview-status">{htmlCode ? 'Biçimlendirilmiş' : 'İçerik Boş'}</span>
                     </div>
-                    <div className="preview-content-box custom-scrollbar">
+                    <div className="preview-content-box">
                       <SummaryHtmlViewer
                         htmlContent={htmlCode}
                         title={selectedTarget.name}
@@ -506,7 +533,7 @@ export default function SummaryManagerPage() {
             </>
           ) : (
             <div className="no-target-selected">
-              <BookOpen size={48} />
+              <BookOpen size={48} style={{ opacity: 0.3 }} />
               <h3>Düzenlemek İçin Bir Ünite veya Konu Seçin</h3>
               <p>Sol taraftaki müfredat ağacından özet eklemek veya düzenlemek istediğiniz ünite ya da konuyu seçin.</p>
             </div>
