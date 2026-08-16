@@ -1197,8 +1197,8 @@ export default function StudentDashboard() {
   /* ─── Design Tokens ─── */
   const S = {
     section: { marginBottom: '1.25rem' },
-    sectionTitle: { fontSize: '0.68rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 },
-    card: { background: '#ffffff', borderRadius: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden' },
+    sectionTitle: { fontSize: '0.74rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, textShadow: '0 2px 8px rgba(0,0,0,0.4)' },
+    card: { background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', backdropFilter: 'blur(20px)', borderRadius: 22, boxShadow: '0 12px 36px rgba(0,0,0,0.35)', border: '1.5px solid rgba(255,255,255,0.14)', overflow: 'hidden' },
   };
 
   const subjectIcons = {
@@ -1207,23 +1207,23 @@ export default function StudentDashboard() {
   };
 
   const statChips = [
-    { label: 'Toplam', value: tests.length, color: '#6366f1', bg: '#eef2ff', icon: '📋' },
-    { label: 'Tamamlandı', value: completedCount, color: '#16a34a', bg: '#dcfce7', icon: '✅' },
-    { label: 'Bekliyor', value: pendingCount, color: '#ea580c', bg: '#ffedd5', icon: '⏳' },
-    { label: 'Gecikti', value: overdueCount, color: '#dc2626', bg: '#fee2e2', icon: '🔥' },
+    { label: 'Toplam', value: tests.length, g: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)', sh: 'rgba(67, 56, 202, 0.4)', border: '1.5px solid rgba(165, 180, 252, 0.35)', icon: '📋' },
+    { label: 'Tamamlandı', value: completedCount, g: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', sh: 'rgba(5, 150, 105, 0.4)', border: '1.5px solid rgba(110, 231, 183, 0.35)', icon: '✅' },
+    { label: 'Bekliyor', value: pendingCount, g: 'linear-gradient(135deg, #7c2d12 0%, #d97706 100%)', sh: 'rgba(217, 119, 6, 0.4)', border: '1.5px solid rgba(253, 186, 116, 0.35)', icon: '⏳' },
+    { label: 'Gecikti', value: overdueCount, g: 'linear-gradient(135deg, #831843 0%, #e11d48 100%)', sh: 'rgba(225, 29, 72, 0.4)', border: '1.5px solid rgba(253, 164, 175, 0.35)', icon: '🔥' },
   ];
 
   const quickTiles = [
-    { icon: '📖', label: 'Ders Özetleri', sub: 'Konu anlatımları', to: '/student/summaries', g: 'linear-gradient(135deg,#059669,#10b981)', sh: 'rgba(16,185,129,0.3)' },
-    { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)', sh: 'rgba(99,102,241,0.3)' },
-    { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)', sh: 'rgba(219,39,119,0.28)' },
-    { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)', sh: 'rgba(8,145,178,0.28)' },
-    { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)', sh: 'rgba(234,88,12,0.28)' },
-    { icon: '📅', label: 'Programım', sub: 'Haftalık plan', to: '/my-program', g: 'linear-gradient(135deg,#8b5cf6,#a855f7)', sh: 'rgba(139,92,246,0.28)' },
+    { icon: '📖', label: 'Ders Özetleri', sub: 'Konu anlatımları', to: '/student/summaries', g: 'linear-gradient(135deg,#059669,#10b981)', sh: 'rgba(16,185,129,0.35)' },
+    { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)', sh: 'rgba(99,102,241,0.35)' },
+    { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)', sh: 'rgba(219,39,119,0.32)' },
+    { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)', sh: 'rgba(8,145,178,0.32)' },
+    { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)', sh: 'rgba(234,88,12,0.32)' },
+    { icon: '📅', label: 'Programım', sub: 'Haftalık plan', to: '/my-program', g: 'linear-gradient(135deg,#8b5cf6,#a855f7)', sh: 'rgba(139,92,246,0.32)' },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#f8faff 0%,#f1f5f9 50%,#eef2ff 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", color: '#f8fafc' }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -1233,19 +1233,19 @@ export default function StudentDashboard() {
         @keyframes sdShimmer { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
         @keyframes aurora { 0%,100%{transform:translate(0,0) scale(1);opacity:.6} 33%{transform:translate(28px,-18px) scale(1.1);opacity:.8} 66%{transform:translate(-18px,14px) scale(.95);opacity:.5} }
         .sd-tile { transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); cursor:pointer; }
-        .sd-tile:hover { transform: translateY(-4px) scale(1.02); }
+        .sd-tile:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.08); }
         .sd-tile:active { transform: scale(0.97); }
         .sd-btn { transition: all 0.18s ease; }
-        .sd-btn:hover { filter: brightness(1.06); }
+        .sd-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
         .sd-btn:active { transform: scale(0.97); }
         .sd-stat-chip { transition: all 0.2s ease; }
-        .sd-stat-chip:hover { transform: translateY(-3px); }
+        .sd-stat-chip:hover { transform: translateY(-3px); filter: brightness(1.1); }
         .sd-hw-card { transition: all 0.2s ease; cursor:pointer; }
-        .sd-hw-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.1) !important; }
+        .sd-hw-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.3) !important; filter: brightness(1.05); }
         .sd-hw-card:active { transform: scale(0.99); }
         .sd-section { animation: sdFadeUp 0.5s ease both; }
         .sd-task-row { transition: all 0.15s ease; }
-        .sd-task-row:hover { background: #f0f4ff !important; }
+        .sd-task-row:hover { filter: brightness(1.1); }
         .scroll-hide { scrollbar-width:none; -ms-overflow-style:none; }
         .scroll-hide::-webkit-scrollbar { display:none; }
         @media(min-width:900px) {
@@ -1262,32 +1262,32 @@ export default function StudentDashboard() {
       `}</style>
 
       {/* ════ HERO ════ */}
-      <div style={{ background:'linear-gradient(135deg,#1e1b4b 0%,#312e81 25%,#4c1d95 55%,#6d28d9 80%,#7c3aed 100%)', padding: isMobile ? '1.5rem 1rem 5.5rem' : '2.25rem 2rem 5rem', position:'relative', overflow:'hidden' }}>
-        <div style={{ position:'absolute', top:-80, right:-60, width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(167,139,250,0.35) 0%,transparent 70%)', animation:'aurora 8s ease infinite', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:-60, left:-40, width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.2) 0%,transparent 70%)', animation:'aurora 12s ease infinite reverse', pointerEvents:'none' }} />
+      <div style={{ background:'linear-gradient(135deg,rgba(30,27,75,0.9) 0%,rgba(49,46,129,0.92) 25%,rgba(76,29,149,0.95) 55%,rgba(109,40,217,0.95) 80%,rgba(124,58,237,0.95) 100%)', padding: isMobile ? '1.5rem 1rem 3.5rem' : '2.25rem 2rem 4rem', position:'relative', overflow:'hidden', borderBottom:'1.5px solid rgba(165,180,252,0.25)', backdropFilter:'blur(20px)' }}>
+        <div style={{ position:'absolute', top:-80, right:-60, width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(167,139,250,0.4) 0%,transparent 70%)', animation:'aurora 8s ease infinite', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:-60, left:-40, width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.25) 0%,transparent 70%)', animation:'aurora 12s ease infinite reverse', pointerEvents:'none' }} />
 
         <div className="sd-hero-inner" style={{ position:'relative', zIndex:2 }}>
 
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:14 }}>
             <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 12 : 16, flex:1, minWidth:0 }}>
               <div style={{ position:'relative', flexShrink:0 }}>
-                <div style={{ width: isMobile ? 62 : 76, height: isMobile ? 62 : 76, borderRadius:'50%', background: avatarColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.55rem' : '1.9rem', fontWeight:900, color:'white', border:'3px solid rgba(255,255,255,0.4)', boxShadow:'0 8px 28px rgba(0,0,0,0.3)', animation:'sdPulseRing 3s ease infinite' }}>
+                <div style={{ width: isMobile ? 62 : 76, height: isMobile ? 62 : 76, borderRadius:'50%', background: avatarColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.55rem' : '1.9rem', fontWeight:900, color:'white', border:'3px solid rgba(255,255,255,0.4)', boxShadow:'0 8px 28px rgba(0,0,0,0.4)', animation:'sdPulseRing 3s ease infinite' }}>
                   {selectedStudent?.name?.charAt(0) || 'Ö'}
                 </div>
-                <div style={{ position:'absolute', bottom:2, right:2, width:14, height:14, borderRadius:'50%', background:'#4ade80', border:'2.5px solid rgba(255,255,255,0.85)' }} />
+                <div style={{ position:'absolute', bottom:2, right:2, width:14, height:14, borderRadius:'50%', background:'#4ade80', border:'2.5px solid rgba(255,255,255,0.85)', boxShadow:'0 0 8px #4ade80' }} />
               </div>
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.65)', fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:3 }}>Hoş Geldin 👋</div>
-                <h1 style={{ fontSize: isMobile ? '1.45rem' : '1.9rem', fontWeight:900, color:'white', margin:0, lineHeight:1.05, letterSpacing:'-0.025em', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.75)', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:3 }}>Hoş Geldin 👋</div>
+                <h1 style={{ fontSize: isMobile ? '1.45rem' : '1.9rem', fontWeight:900, color:'white', margin:0, lineHeight:1.05, letterSpacing:'-0.025em', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textShadow:'0 2px 10px rgba(0,0,0,0.3)' }}>
                   {selectedStudent?.name || 'Öğrenci'}
                 </h1>
                 <div style={{ marginTop:7, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.14)', borderRadius:99, padding:'0.22rem 0.65rem', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.18)' }}>
-                    <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.9)', fontWeight:700 }}>📅 {todayStr}</span>
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.18)', borderRadius:99, padding:'0.22rem 0.65rem', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.25)' }}>
+                    <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.95)', fontWeight:800 }}>📅 {todayStr}</span>
                   </div>
                   {hasCoach && (
-                    <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(74,222,128,0.18)', borderRadius:99, padding:'0.22rem 0.65rem', border:'1px solid rgba(74,222,128,0.3)' }}>
-                      <span style={{ fontSize:'0.62rem', color:'#4ade80', fontWeight:800 }}>🎓 Koçum Var</span>
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(74,222,128,0.22)', borderRadius:99, padding:'0.22rem 0.65rem', border:'1px solid rgba(74,222,128,0.4)', boxShadow:'0 0 10px rgba(74,222,128,0.2)' }}>
+                      <span style={{ fontSize:'0.62rem', color:'#4ade80', fontWeight:900 }}>🎓 Koçum Var</span>
                     </div>
                   )}
                 </div>
@@ -1303,48 +1303,42 @@ export default function StudentDashboard() {
                   style={{ transition:'stroke-dasharray 1.2s ease' }}
                 />
               </svg>
-              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.1)', borderRadius:'50%', backdropFilter:'blur(8px)', border:'1.5px solid rgba(255,255,255,0.25)' }}>
-                <div style={{ fontSize: isMobile ? '1.1rem' : '1.3rem', fontWeight:900, color:'white', lineHeight:1 }}>%{successPct}</div>
-                <div style={{ fontSize:'0.48rem', fontWeight:800, color:'rgba(255,255,255,0.8)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Başarı</div>
+              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.12)', borderRadius:'50%', backdropFilter:'blur(10px)', border:'1.5px solid rgba(255,255,255,0.3)', boxShadow:'0 0 20px rgba(99,102,241,0.35)' }}>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.3rem', fontWeight:900, color:'white', lineHeight:1, textShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>%{successPct}</div>
+                <div style={{ fontSize:'0.48rem', fontWeight:900, color:'rgba(255,255,255,0.9)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>Başarı</div>
               </div>
             </div>
           </div>
         </div>
-
-        <div style={{ position:'absolute', bottom:-1, left:0, right:0, lineHeight:0 }}>
-          <svg viewBox="0 0 1440 48" preserveAspectRatio="none" style={{ width:'100%', height:48, display:'block' }}>
-            <path d="M0,48 C480,10 960,10 1440,48 L1440,48 L0,48 Z" fill="#f8faff" />
-          </svg>
-        </div>
       </div>
 
       {/* ════ STAT CHIPS ════ */}
-      <div className="sd-stat-outer" style={{ marginTop: isMobile ? -36 : -42, marginBottom:'1.25rem', position:'relative', zIndex:10 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap: isMobile ? 5 : 10 }}>
+      <div className="sd-stat-outer" style={{ marginTop: isMobile ? -28 : -32, marginBottom:'1.4rem', position:'relative', zIndex:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap: isMobile ? 6 : 12 }}>
           {statChips.map((c, i) => (
-            <div key={i} className="sd-stat-chip" style={{ background:'white', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.55rem 0.15rem' : '0.85rem 0.6rem', boxShadow:'0 6px 20px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:`1.5px solid ${c.bg}`, animation:`sdFadeUp 0.4s ease ${i*0.06}s both`, minWidth:0 }}>
-              <div style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', lineHeight:1, marginBottom:2 }}>{c.icon}</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight:900, color:c.color, lineHeight:1 }}>{c.value}</div>
-              <div style={{ fontSize: isMobile ? '0.48rem' : '0.58rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.01em', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{c.label}</div>
+            <div key={i} className="sd-stat-chip sd-tile" style={{ background: c.g, borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.65rem 0.2rem' : '0.95rem 0.7rem', boxShadow:`0 8px 24px ${c.sh}`, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border: c.border, animation:`sdFadeUp 0.4s ease ${i*0.06}s both`, minWidth:0, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ fontSize: isMobile ? '0.95rem' : '1.15rem', lineHeight:1, marginBottom:3 }}>{c.icon}</div>
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', fontWeight:900, color:'#ffffff', lineHeight:1, textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{c.value}</div>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight:900, color:'rgba(255,255,255,0.88)', textTransform:'uppercase', letterSpacing:'0.04em', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{c.label}</div>
             </div>
           ))}
-          <div className="sd-stat-chip" style={{ background:'white', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.55rem 0.15rem' : '0.85rem 0.6rem', boxShadow:'0 6px 20px rgba(0,0,0,0.08)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:'1.5px solid #f3e8ff', animation:'sdFadeUp 0.4s ease 0.3s both', minWidth:0 }}>
-            <div style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', lineHeight:1, marginBottom:2 }}>🏆</div>
-            <div style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight:900, color:'#9333ea', lineHeight:1 }}>%{progressPct}</div>
-            <div style={{ fontSize: isMobile ? '0.48rem' : '0.58rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.01em', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>Tamamlanma</div>
+          <div className="sd-stat-chip sd-tile" style={{ background:'linear-gradient(135deg, #581c87 0%, #9333ea 100%)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.65rem 0.2rem' : '0.95rem 0.7rem', boxShadow:'0 8px 24px rgba(147, 51, 234, 0.4)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:'1.5px solid rgba(216, 180, 254, 0.35)', animation:'sdFadeUp 0.4s ease 0.3s both', minWidth:0, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ fontSize: isMobile ? '0.95rem' : '1.15rem', lineHeight:1, marginBottom:3 }}>🏆</div>
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', fontWeight:900, color:'#ffffff', lineHeight:1, textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>%{progressPct}</div>
+            <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight:900, color:'rgba(255,255,255,0.88)', textTransform:'uppercase', letterSpacing:'0.04em', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>Tamamlanma</div>
           </div>
         </div>
       </div>
 
       {/* ════ CONTENT WRAP ════ */}
-      <div className="sd-content-outer" style={{ paddingBottom:'1rem' }}>
+      <div className="sd-content-outer" style={{ paddingBottom:'2rem' }}>
 
         {coachingNote && (
-          <div className="sd-section" style={{ background:'linear-gradient(135deg,#fffbeb,#fef3c7)', borderRadius:16, padding:'0.85rem 1rem', border:'1.5px solid #fde68a', boxShadow:'0 4px 16px rgba(245,158,11,0.1)', display:'flex', alignItems:'flex-start', gap:10, marginBottom:'1.25rem' }}>
-            <div style={{ fontSize:'1.1rem', flexShrink:0 }}>💬</div>
+          <div className="sd-section" style={{ background:'linear-gradient(135deg,#451a03 0%,#78350f 50%,#b45309 100%)', borderRadius:20, padding:'0.95rem 1.2rem', border:'1.5px solid rgba(251,191,36,0.4)', boxShadow:'0 8px 28px rgba(180,83,9,0.35)', display:'flex', alignItems:'flex-start', gap:12, marginBottom:'1.4rem' }}>
+            <div style={{ fontSize:'1.3rem', flexShrink:0 }}>💬</div>
             <div>
-              <div style={{ fontSize:'0.62rem', fontWeight:900, color:'#b45309', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>Koç Notunuz</div>
-              <div style={{ fontSize:'0.8rem', color:'#78350f', fontWeight:600, lineHeight:1.5 }}>{typeof coachingNote === 'string' ? coachingNote : coachingNote?.note || ''}</div>
+              <div style={{ fontSize:'0.64rem', fontWeight:900, color:'#fde68a', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Koç Notunuz</div>
+              <div style={{ fontSize:'0.86rem', color:'#ffffff', fontWeight:700, lineHeight:1.5 }}>{typeof coachingNote === 'string' ? coachingNote : coachingNote?.note || ''}</div>
             </div>
           </div>
         )}
@@ -1442,38 +1436,38 @@ export default function StudentDashboard() {
             {/* TODAY'S PROGRAM */}
             <div className="sd-section">
               <div style={{ ...S.card, overflow:'hidden' }}>
-                <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', padding:'0.9rem 1.1rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', padding:'0.95rem 1.2rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div>
-                    <div style={{ fontSize:'0.58rem', fontWeight:800, color:'rgba(255,255,255,0.7)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Programı</div>
-                    <div style={{ fontSize:'0.95rem', fontWeight:900, color:'white', marginTop:1 }}>{todayProgramInfo.dayName}</div>
+                    <div style={{ fontSize:'0.6rem', fontWeight:800, color:'rgba(255,255,255,0.75)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Programı</div>
+                    <div style={{ fontSize:'1rem', fontWeight:900, color:'white', marginTop:1 }}>{todayProgramInfo.dayName}</div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     {todayProgramInfo.totalCount > 0 && (
-                      <div style={{ background:'rgba(255,255,255,0.2)', borderRadius:99, padding:'0.18rem 0.6rem', backdropFilter:'blur(8px)' }}>
-                        <span style={{ fontSize:'0.65rem', fontWeight:900, color:'white' }}>{todayProgramInfo.completedCount}/{todayProgramInfo.totalCount}</span>
+                      <div style={{ background:'rgba(255,255,255,0.22)', borderRadius:99, padding:'0.2rem 0.65rem', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.3)' }}>
+                        <span style={{ fontSize:'0.68rem', fontWeight:900, color:'white' }}>{todayProgramInfo.completedCount}/{todayProgramInfo.totalCount}</span>
                       </div>
                     )}
-                    <Link to="/my-program" style={{ textDecoration:'none', background:'rgba(255,255,255,0.18)', borderRadius:8, padding:'0.28rem 0.6rem', fontSize:'0.65rem', fontWeight:800, color:'white', display:'flex', alignItems:'center', gap:3, border:'1px solid rgba(255,255,255,0.25)' }}>
-                      Tümü <ChevronRight size={12} />
+                    <Link to="/my-program" style={{ textDecoration:'none', background:'rgba(255,255,255,0.2)', borderRadius:10, padding:'0.32rem 0.7rem', fontSize:'0.68rem', fontWeight:800, color:'white', display:'flex', alignItems:'center', gap:4, border:'1px solid rgba(255,255,255,0.3)', backdropFilter:'blur(6px)' }}>
+                      Tümü <ChevronRight size={13} />
                     </Link>
                   </div>
                 </div>
 
-                <div style={{ padding:'0.6rem' }}>
+                <div style={{ padding:'0.75rem' }}>
                   {todayProgramInfo.items.length === 0 ? (
                     todayProgramInfo.hasAllCompleted ? (
-                      <div style={{ textAlign:'center', padding:'1.75rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-                        <div style={{ fontSize:'2rem' }}>🎉</div>
-                        <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#15803d' }}>Bugünkü Görevler Tamamlandı!</div>
-                        <div style={{ fontSize:'0.73rem', color:'#64748b' }}>Harika iş çıkardın, bugünün tüm hedeflerini bitirdin.</div>
-                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'white', borderRadius:12, padding:'0.45rem 1.1rem', fontWeight:800, fontSize:'0.75rem', marginTop:4, boxShadow:'0 4px 12px rgba(22,163,74,0.3)' }}>📅 Haftalık Programa Git</Link>
+                      <div style={{ textAlign:'center', padding:'2rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                        <div style={{ fontSize:'2.2rem' }}>🎉</div>
+                        <div style={{ fontWeight:900, fontSize:'0.95rem', color:'#4ade80' }}>Bugünkü Görevler Tamamlandı!</div>
+                        <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.8)' }}>Harika iş çıkardın, bugünün tüm hedeflerini bitirdin.</div>
+                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'white', borderRadius:12, padding:'0.5rem 1.2rem', fontWeight:800, fontSize:'0.78rem', marginTop:6, boxShadow:'0 4px 14px rgba(22,163,74,0.4)' }}>📅 Haftalık Programa Git</Link>
                       </div>
                     ) : (
-                      <div style={{ textAlign:'center', padding:'1.75rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-                        <div style={{ fontSize:'2rem' }}>✨</div>
-                        <div style={{ fontWeight:800, fontSize:'0.88rem', color:'#1e293b' }}>Bugün için program yok</div>
-                        <div style={{ fontSize:'0.73rem', color:'#64748b' }}>Haftalık programını düzenlemek için tıkla.</div>
-                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', borderRadius:12, padding:'0.45rem 1.1rem', fontWeight:800, fontSize:'0.75rem', marginTop:4, boxShadow:'0 4px 12px rgba(79,70,229,0.3)' }}>📅 Programa Git</Link>
+                      <div style={{ textAlign:'center', padding:'2rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                        <div style={{ fontSize:'2.2rem' }}>✨</div>
+                        <div style={{ fontWeight:900, fontSize:'0.95rem', color:'white' }}>Bugün için program yok</div>
+                        <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.75)' }}>Haftalık programını düzenlemek için tıkla.</div>
+                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', borderRadius:12, padding:'0.5rem 1.2rem', fontWeight:800, fontSize:'0.78rem', marginTop:6, boxShadow:'0 4px 14px rgba(79,70,229,0.4)' }}>📅 Programa Git</Link>
                       </div>
                     )
                   ) : (() => {
@@ -1484,7 +1478,7 @@ export default function StudentDashboard() {
                     const taskColors = { konu:'#6366f1', soru:'#0891b2', tekrar:'#059669', kitap:'#7c3aed', deneme:'#ea580c', ödev:'#db2777', diger:'#64748b' };
                     const taskIcons = { konu:'📖', soru:'✏️', tekrar:'🔄', kitap:'📚', deneme:'📊', ödev:'📝', diger:'📌' };
                     return (
-                      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                         {visibleItems.map((item, idx) => {
                           const taskColor = taskColors[item.taskType] || '#6366f1';
                           const icon = taskIcons[item.taskType] || '📌';
@@ -1506,31 +1500,31 @@ export default function StudentDashboard() {
                           return (
                             <div key={item.id || idx} className="sd-task-row"
                               onClick={handleTaskClick}
-                              style={{ background: item.done ? '#f0fdf4' : '#fafaff', borderRadius:11, padding:'0.6rem 0.7rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, cursor:'pointer', borderLeft:`4px solid ${item.done ? '#22c55e' : taskColor}`, border:`1px solid ${item.done ? '#bbf7d0' : '#e8ecff'}`, borderLeft:`4px solid ${item.done ? '#22c55e' : taskColor}`, opacity: item.done ? 0.85 : 1 }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
-                                <div style={{ width:30, height:30, borderRadius:8, background: item.done ? '#22c55e' : `${taskColor}15`, border:`1.5px solid ${item.done ? '#22c55e' : taskColor}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem', flexShrink:0 }}>
-                                  {item.done ? <Check size={13} color="white" strokeWidth={3} /> : icon}
+                              style={{ background: item.done ? 'rgba(6,78,59,0.5)' : 'rgba(255,255,255,0.08)', borderRadius:14, padding:'0.7rem 0.85rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, cursor:'pointer', border:`1.5px solid ${item.done ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.14)'}`, borderLeft:`4px solid ${item.done ? '#22c55e' : taskColor}`, opacity: item.done ? 0.88 : 1 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+                                <div style={{ width:34, height:34, borderRadius:10, background: item.done ? '#22c55e' : `${taskColor}30`, border:`1.5px solid ${item.done ? '#22c55e' : taskColor}60`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem', flexShrink:0, boxShadow: item.done ? '0 0 10px rgba(34,197,94,0.4)' : 'none' }}>
+                                  {item.done ? <Check size={15} color="white" strokeWidth={3} /> : icon}
                                 </div>
                                 <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:'0.82rem', fontWeight:800, color: item.done ? '#166534' : '#0f172a', textDecoration: item.done ? 'line-through' : 'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                  <div style={{ fontSize:'0.86rem', fontWeight:800, color: item.done ? '#86efac' : '#ffffff', textDecoration: item.done ? 'line-through' : 'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                                     {item.subject || item.bookName || 'Ders Görevi'}
                                   </div>
-                                  {item.topic && <div style={{ fontSize:'0.66rem', color:'#64748b', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.topic}</div>}
+                                  {item.topic && <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.75)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1 }}>{item.topic}</div>}
                                   {(item.time || item.questionCount) && (
-                                    <div style={{ display:'flex', gap:5, marginTop:2 }}>
-                                      {item.time && <span style={{ fontSize:'0.58rem', fontWeight:800, color:'#4f46e5', background:'#eef2ff', padding:'0.08rem 0.4rem', borderRadius:99 }}>⏰ {item.time}</span>}
-                                      {item.questionCount && <span style={{ fontSize:'0.58rem', fontWeight:800, color:'#0891b2', background:'#ecfeff', padding:'0.08rem 0.4rem', borderRadius:99 }}>✏️ {item.questionCount}</span>}
+                                    <div style={{ display:'flex', gap:5, marginTop:3 }}>
+                                      {item.time && <span style={{ fontSize:'0.6rem', fontWeight:800, color:'#c7d2fe', background:'rgba(99,102,241,0.25)', border:'1px solid rgba(165,180,252,0.3)', padding:'0.1rem 0.45rem', borderRadius:99 }}>⏰ {item.time}</span>}
+                                      {item.questionCount && <span style={{ fontSize:'0.6rem', fontWeight:800, color:'#a5f3fc', background:'rgba(8,145,178,0.25)', border:'1px solid rgba(103,232,249,0.3)', padding:'0.1rem 0.45rem', borderRadius:99 }}>✏️ {item.questionCount}</span>}
                                     </div>
                                   )}
                                 </div>
                               </div>
                               {isQuizTask ? (
                                 <button onClick={e => { e.stopPropagation(); handleTaskClick(); }} className="sd-btn"
-                                  style={{ background:`linear-gradient(135deg,${taskColor},#6366f1)`, color:'white', border:'none', borderRadius:9, padding:'0.3rem 0.65rem', fontSize:'0.66rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:3, whiteSpace:'nowrap', boxShadow:`0 3px 10px ${taskColor}40`, flexShrink:0 }}>
-                                  <PlayCircle size={11} /> Çöz
+                                  style={{ background:`linear-gradient(135deg,${taskColor},#6366f1)`, color:'white', border:'none', borderRadius:10, padding:'0.38rem 0.8rem', fontSize:'0.72rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap', boxShadow:`0 4px 12px ${taskColor}60`, flexShrink:0 }}>
+                                  <PlayCircle size={13} /> Çöz
                                 </button>
                               ) : (
-                                <div style={{ fontSize:'0.6rem', fontWeight:900, padding:'0.2rem 0.5rem', borderRadius:99, background: item.done ? '#dcfce7' : '#eef2ff', color: item.done ? '#15803d' : '#4f46e5', flexShrink:0, whiteSpace:'nowrap' }}>
+                                <div style={{ fontSize:'0.64rem', fontWeight:900, padding:'0.24rem 0.6rem', borderRadius:99, background: item.done ? 'rgba(34,197,94,0.25)' : 'rgba(99,102,241,0.25)', border: item.done ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(99,102,241,0.4)', color: item.done ? '#4ade80' : '#c7d2fe', flexShrink:0, whiteSpace:'nowrap' }}>
                                   {item.done ? '✓ Tamam' : 'Tamamla'}
                                 </div>
                               )}
@@ -1539,8 +1533,8 @@ export default function StudentDashboard() {
                         })}
                         {hasMore && (
                           <button onClick={() => setShowAllTodayTasks(p => !p)} className="sd-btn"
-                            style={{ width:'100%', padding:'0.5rem', borderRadius:10, background: showAllTodayTasks ? '#f1f5f9' : 'linear-gradient(135deg,#eef2ff,#e0e7ff)', border: showAllTodayTasks ? '1px solid #cbd5e1' : '1.5px solid #c7d2fe', color:'#4f46e5', fontWeight:800, fontSize:'0.72rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:2 }}>
-                            {showAllTodayTasks ? <><ChevronUp size={13} /> Daha Az Göster</> : <><ChevronDown size={13} /> {hiddenCount} görev daha</>}
+                            style={{ width:'100%', padding:'0.55rem', borderRadius:12, background:'rgba(255,255,255,0.08)', border:'1.5px solid rgba(255,255,255,0.18)', color:'#c7d2fe', fontWeight:800, fontSize:'0.75rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:3, backdropFilter:'blur(8px)' }}>
+                            {showAllTodayTasks ? <><ChevronUp size={14} /> Daha Az Göster</> : <><ChevronDown size={14} /> {hiddenCount} görev daha</>}
                           </button>
                         )}
                       </div>
@@ -1553,18 +1547,18 @@ export default function StudentDashboard() {
             {/* PENDING HOMEWORKS */}
             <div className="sd-section">
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
-                <div style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(135deg,#ef4444,#dc2626)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.85rem' }}>📋</div>
-                <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Bekleyen Ödevler</span>
+                <div style={{ width:28, height:28, borderRadius:9, background:'linear-gradient(135deg,#ef4444,#dc2626)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem', boxShadow:'0 4px 12px rgba(239,68,68,0.4)' }}>📋</div>
+                <span style={{ fontSize:'0.82rem', fontWeight:900, color:'#ffffff', textTransform:'uppercase', letterSpacing:'0.06em' }}>Bekleyen Ödevler</span>
                 {pendingCount > 0 && (
-                  <span style={{ background:'#ef4444', color:'white', borderRadius:99, padding:'0.1rem 0.5rem', fontSize:'0.62rem', fontWeight:900, animation:'sdShimmer 2s infinite' }}>{pendingCount}</span>
+                  <span style={{ background:'#ef4444', color:'white', borderRadius:99, padding:'0.12rem 0.55rem', fontSize:'0.65rem', fontWeight:900, animation:'sdShimmer 2s infinite', boxShadow:'0 2px 8px rgba(239,68,68,0.5)' }}>{pendingCount}</span>
                 )}
               </div>
 
               {pendingTasks.length === 0 ? (
-                <div style={{ ...S.card, padding:'2rem 1rem', textAlign:'center' }}>
-                  <div style={{ fontSize:'2.5rem', marginBottom:8 }}>🎉</div>
-                  <div style={{ fontWeight:900, color:'#0f172a', fontSize:'0.9rem', marginBottom:4 }}>Tüm ödevler tamamlandı!</div>
-                  <div style={{ fontSize:'0.73rem', color:'#94a3b8' }}>Harika iş çıkardın!</div>
+                <div style={{ ...S.card, padding:'2.5rem 1rem', textAlign:'center' }}>
+                  <div style={{ fontSize:'2.8rem', marginBottom:8 }}>🎉</div>
+                  <div style={{ fontWeight:900, color:'white', fontSize:'1rem', marginBottom:4 }}>Tüm ödevler tamamlandı!</div>
+                  <div style={{ fontSize:'0.78rem', color:'rgba(255,255,255,0.75)' }}>Harika iş çıkardın!</div>
                 </div>
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
@@ -1635,7 +1629,7 @@ export default function StudentDashboard() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 12,
-                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.18)',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
                           border: `1.5px solid ${borderHighlight}`,
                           position: 'relative',
                           overflow: 'hidden',
@@ -1750,10 +1744,10 @@ export default function StudentDashboard() {
             {/* COMPLETED EXAMS */}
             {completedCount > 0 && (
               <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
-                <div style={{ padding:'0.85rem 1.1rem', borderBottom:'1px solid #f8fafc', display:'flex', alignItems:'center', gap:6 }}>
-                  <CheckCircle2 size={16} color="#22c55e" />
-                  <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Tamamlanan Sınavlar</span>
-                  <span style={{ background:'#dcfce7', color:'#16a34a', borderRadius99:99, padding:'0.1rem 0.45rem', fontSize:'0.62rem', fontWeight:900 }}>{completedCount}</span>
+                <div style={{ background:'linear-gradient(135deg,#059669,#10b981)', padding:'0.9rem 1.2rem', display:'flex', alignItems:'center', gap:8 }}>
+                  <CheckCircle2 size={18} color="white" />
+                  <span style={{ fontSize:'0.82rem', fontWeight:900, color:'white', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tamamlanan Sınavlar</span>
+                  <span style={{ background:'rgba(255,255,255,0.25)', color:'white', borderRadius:99, padding:'0.12rem 0.55rem', fontSize:'0.65rem', fontWeight:900 }}>{completedCount}</span>
                 </div>
                 {tests.filter(t => t.status === 'Sonuçlandı').slice(0, 5).map((test, i, arr) => {
                   const conf = getSubConf(getThemeKey(getCategoryName(test)));
@@ -1773,17 +1767,17 @@ export default function StudentDashboard() {
                           navigate(`/quiz-review/${targetTestId}?studentId=${selectedStudent.id}`);
                         }
                       }}
-                      style={{ display:'flex', alignItems:'center', gap:10, padding:'0.75rem 1.1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none', cursor: 'pointer' }}>
-                      <div style={{ width:34, height:34, borderRadius:10, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><conf.icon size={14} color={conf.color} /></div>
+                      style={{ display:'flex', alignItems:'center', gap:12, padding:'0.85rem 1.2rem', borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none', cursor: 'pointer', background:'rgba(255,255,255,0.04)' }}>
+                      <div style={{ width:36, height:36, borderRadius:12, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><conf.icon size={16} color={conf.color} /></div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:700, fontSize:'0.8rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
-                        <div style={{ fontSize:'0.62rem', color:'#94a3b8', fontWeight:600 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
+                        <div style={{ fontWeight:800, fontSize:'0.84rem', color:'#ffffff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
+                        <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.7)', fontWeight:600, marginTop:1 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
                       </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
                         <div style={{ textAlign:'right' }}>
-                          <div style={{ fontWeight:900, fontSize:'0.88rem', color: good ? '#16a34a' : '#dc2626' }}>%{score}</div>
-                          <div style={{ width:40, height:3, background: good ? '#dcfce7' : '#fee2e2', borderRadius:99, marginTop:3 }}>
-                            <div style={{ height:'100%', width:`${score}%`, background: good ? '#22c55e' : '#ef4444', borderRadius:99 }} />
+                          <div style={{ fontWeight:900, fontSize:'0.92rem', color: good ? '#4ade80' : '#f87171' }}>%{score}</div>
+                          <div style={{ width:44, height:4, background: 'rgba(255,255,255,0.15)', borderRadius:99, marginTop:3 }}>
+                            <div style={{ height:'100%', width:`${score}%`, background: good ? '#22c55e' : '#ef4444', borderRadius:99, boxShadow: good ? '0 0 6px #22c55e' : 'none' }} />
                           </div>
                         </div>
                         <button onClick={e => {
@@ -1796,8 +1790,8 @@ export default function StudentDashboard() {
                             navigate(`/quiz-review/${targetTestId}?studentId=${selectedStudent.id}`);
                           }
                         }} className="sd-btn"
-                          style={{ padding:'0.32rem', borderRadius:8, background:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', display:'flex' }} title="Sonucu İncele">
-                          <Eye size={13} color="#475569" />
+                          style={{ padding:'0.38rem', borderRadius:10, background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', cursor:'pointer', display:'flex', color:'white' }} title="Sonucu İncele">
+                          <Eye size={14} color="white" />
                         </button>
                       </div>
                     </div>
@@ -1814,11 +1808,11 @@ export default function StudentDashboard() {
             {/* ROADMAPS */}
             {myRoadmaps.length > 0 && (
               <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
-                <div style={{ padding:'0.85rem 1.1rem', borderBottom:'1px solid #f8fafc', display:'flex', alignItems:'center', gap:6 }}>
-                  <div style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem' }}>🗺️</div>
-                  <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Yol Haritalarım</span>
+                <div style={{ background:'linear-gradient(135deg,#6d28d9,#9333ea)', padding:'0.9rem 1.2rem', display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ width:28, height:28, borderRadius:9, background:'rgba(255,255,255,0.22)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.88rem' }}>🗺️</div>
+                  <span style={{ fontSize:'0.82rem', fontWeight:900, color:'white', textTransform:'uppercase', letterSpacing:'0.06em' }}>Yol Haritalarım</span>
                 </div>
-                <div style={{ padding:'0.5rem' }}>
+                <div style={{ padding:'0.75rem' }}>
                   {myRoadmaps.map(({ assignment, plan }) => {
                     const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
                     const done = assignment.completedTopics?.length || 0;
@@ -1826,18 +1820,18 @@ export default function StudentDashboard() {
                     return (
                       <div key={assignment.id} className="sd-hw-card"
                         onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
-                        style={{ padding:'0.85rem', borderRadius:14, display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-                        <div style={{ width:40, height:40, borderRadius:12, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Target size={18} color="white" /></div>
+                        style={{ padding:'0.95rem', borderRadius:16, display:'flex', alignItems:'center', gap:12, marginBottom:6, background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(216,180,254,0.25)' }}>
+                        <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,#6d28d9,#9333ea)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 14px rgba(109,40,217,0.4)' }}><Target size={20} color="white" /></div>
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontWeight:800, fontSize:'0.84rem', color:'#0f172a', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
-                          <div style={{ height:5, background:'#f1f5f9', borderRadius:99, overflow:'hidden', marginBottom:3 }}>
-                            <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 1s' }} />
+                          <div style={{ fontWeight:800, fontSize:'0.88rem', color:'white', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
+                          <div style={{ height:6, background:'rgba(255,255,255,0.15)', borderRadius:99, overflow:'hidden', marginBottom:4 }}>
+                            <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#38bdf8,#c084fc)', borderRadius:99, transition:'width 1s', boxShadow:'0 0 8px rgba(192,132,252,0.6)' }} />
                           </div>
-                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.62rem', fontWeight:700, color:'#94a3b8' }}>
-                            <span>{done}/{total} konu</span><span style={{ color:'#6366f1' }}>%{pct}</span>
+                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:800, color:'rgba(255,255,255,0.8)' }}>
+                            <span>{done}/{total} konu</span><span style={{ color:'#c084fc', fontWeight:900 }}>%{pct}</span>
                           </div>
                         </div>
-                        <ChevronRight size={14} color="#cbd5e1" />
+                        <ChevronRight size={16} color="rgba(255,255,255,0.6)" />
                       </div>
                     );
                   })}
@@ -1847,22 +1841,22 @@ export default function StudentDashboard() {
 
             {/* GOALS */}
             <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
-              <div style={{ padding:'0.85rem 1.1rem', borderBottom:'1px solid #f8fafc', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <div style={{ width:26, height:26, borderRadius:8, background:'linear-gradient(135deg,#ea580c,#dc2626)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem' }}>🎯</div>
-                  <span style={{ fontSize:'0.78rem', fontWeight:900, color:'#0f172a' }}>Hedeflerim ({studentGoals.length})</span>
+              <div style={{ background:'linear-gradient(135deg,#c2410c,#ea580c)', padding:'0.9rem 1.2rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ width:28, height:28, borderRadius:9, background:'rgba(255,255,255,0.22)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.88rem' }}>🎯</div>
+                  <span style={{ fontSize:'0.82rem', fontWeight:900, color:'white', textTransform:'uppercase', letterSpacing:'0.06em' }}>Hedeflerim ({studentGoals.length})</span>
                 </div>
                 <button onClick={() => setShowGoalModal(true)} className="sd-btn"
-                  style={{ display:'flex', alignItems:'center', gap:3, fontSize:'0.68rem', fontWeight:800, color:'#6366f1', background:'#eef2ff', border:'none', borderRadius:8, padding:'0.28rem 0.65rem', cursor:'pointer' }}>
-                  <Plus size={11} /> Ekle
+                  style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.72rem', fontWeight:900, color:'white', background:'rgba(255,255,255,0.22)', border:'1px solid rgba(255,255,255,0.35)', borderRadius:10, padding:'0.32rem 0.75rem', cursor:'pointer', backdropFilter:'blur(8px)' }}>
+                  <Plus size={13} /> Ekle
                 </button>
               </div>
               {studentGoals.length === 0 ? (
-                <div style={{ padding:'1.5rem 1rem', textAlign:'center' }}>
-                  <div style={{ fontSize:'1.75rem', marginBottom:6 }}>🎯</div>
-                  <div style={{ fontWeight:700, color:'#64748b', fontSize:'0.8rem', marginBottom:8 }}>Henüz hedef yok</div>
+                <div style={{ padding:'2rem 1rem', textAlign:'center' }}>
+                  <div style={{ fontSize:'2.2rem', marginBottom:6 }}>🎯</div>
+                  <div style={{ fontWeight:800, color:'white', fontSize:'0.88rem', marginBottom:8 }}>Henüz hedef yok</div>
                   <button onClick={() => setShowGoalModal(true)} className="sd-btn"
-                    style={{ background:'#eef2ff', color:'#6366f1', border:'none', borderRadius:10, padding:'0.42rem 0.9rem', fontWeight:800, fontSize:'0.74rem', cursor:'pointer' }}>İlk hedefini ekle →</button>
+                    style={{ background:'linear-gradient(135deg,#ea580c,#f97316)', color:'white', border:'none', borderRadius:12, padding:'0.5rem 1.1rem', fontWeight:800, fontSize:'0.78rem', cursor:'pointer', boxShadow:'0 4px 14px rgba(234,88,12,0.4)' }}>İlk hedefini ekle →</button>
                 </div>
               ) : (
                 <>
@@ -1870,34 +1864,34 @@ export default function StudentDashboard() {
                     const pct = Math.min(100, Math.round(((g.current || 0) / (g.target || 1)) * 100));
                     const done = pct >= 100;
                     return (
-                      <div key={g.id} style={{ padding:'0.75rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid #f8fafc' : 'none' }}>
+                      <div key={g.id} style={{ padding:'0.85rem 1.1rem', borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none', background:'rgba(255,255,255,0.04)' }}>
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontWeight:700, fontSize:'0.8rem', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3 }}>{g.title}</div>
-                            <div style={{ display:'flex', gap:4 }}>
-                              <span style={{ fontSize:'0.56rem', fontWeight:800, background:'#eff6ff', color:'#2563eb', padding:'0.08rem 0.4rem', borderRadius:99 }}>{g.period}</span>
-                              <span style={{ fontSize:'0.56rem', fontWeight:800, background:'#fef3c7', color:'#b45309', padding:'0.08rem 0.4rem', borderRadius:99 }}>{g.type}</span>
+                            <div style={{ fontWeight:800, fontSize:'0.85rem', color:'white', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3 }}>{g.title}</div>
+                            <div style={{ display:'flex', gap:5 }}>
+                              <span style={{ fontSize:'0.6rem', fontWeight:800, background:'rgba(59,130,246,0.25)', border:'1px solid rgba(147,197,253,0.3)', color:'#93c5fd', padding:'0.1rem 0.45rem', borderRadius:99 }}>{g.period}</span>
+                              <span style={{ fontSize:'0.6rem', fontWeight:800, background:'rgba(245,158,11,0.25)', border:'1px solid rgba(253,230,138,0.3)', color:'#fde68a', padding:'0.1rem 0.45rem', borderRadius:99 }}>{g.type}</span>
                             </div>
                           </div>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                            <span style={{ fontSize:'0.78rem', fontWeight:900, color: done ? '#16a34a' : '#6366f1' }}>%{pct}</span>
-                            <button onClick={() => deleteGoal(g.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#cbd5e1', padding:2, display:'flex' }}><X size={13} /></button>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                            <span style={{ fontSize:'0.85rem', fontWeight:900, color: done ? '#4ade80' : '#fb923c' }}>%{pct}</span>
+                            <button onClick={() => deleteGoal(g.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.4)', padding:2, display:'flex' }}><X size={14} /></button>
                           </div>
                         </div>
-                        <div style={{ height:5, background:'#f1f5f9', borderRadius:99, overflow:'hidden' }}>
-                          <div style={{ height:'100%', width:`${pct}%`, background: done ? '#22c55e' : 'linear-gradient(90deg,#6366f1,#a855f7)', borderRadius:99, transition:'width 0.8s' }} />
+                        <div style={{ height:6, background:'rgba(255,255,255,0.15)', borderRadius:99, overflow:'hidden' }}>
+                          <div style={{ height:'100%', width:`${pct}%`, background: done ? '#22c55e' : 'linear-gradient(90deg,#f97316,#fbbf24)', borderRadius:99, transition:'width 0.8s', boxShadow: done ? '0 0 8px #22c55e' : 'none' }} />
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.6rem', color:'#94a3b8', fontWeight:600, marginTop:3 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', color:'rgba(255,255,255,0.75)', fontWeight:700, marginTop:4 }}>
                           <span>{g.current || 0} / {g.target} {g.type}</span>
-                          {done && <span style={{ color:'#16a34a', fontWeight:800 }}>✓ Tamamlandı</span>}
+                          {done && <span style={{ color:'#4ade80', fontWeight:900 }}>✓ Tamamlandı</span>}
                         </div>
                       </div>
                     );
                   })}
-                  <div style={{ padding:'0.7rem', background:'#fafafa', borderTop:'1px solid #f1f5f9' }}>
+                  <div style={{ padding:'0.75rem', background:'rgba(0,0,0,0.15)', borderTop:'1px solid rgba(255,255,255,0.08)' }}>
                     <button onClick={() => navigate('/goals')} className="sd-btn"
-                      style={{ width:'100%', background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', border:'none', borderRadius:12, padding:'0.58rem', fontWeight:800, fontSize:'0.77rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, boxShadow:'0 4px 12px rgba(99,102,241,0.25)' }}>
-                      Tüm Hedefler <ChevronRight size={13} />
+                      style={{ width:'100%', background:'linear-gradient(135deg,#ea580c,#f97316)', color:'white', border:'none', borderRadius:14, padding:'0.65rem', fontWeight:900, fontSize:'0.8rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, boxShadow:'0 4px 14px rgba(234,88,12,0.35)' }}>
+                      Tüm Hedefler <ChevronRight size={14} />
                     </button>
                   </div>
                 </>
@@ -1912,84 +1906,84 @@ export default function StudentDashboard() {
                 const currentDayIdx = (new Date().getDay() + 6) % 7;
                 const quoteNum = (dashQuoteIdx % DASHBOARD_QUOTES.length) + 1;
                 const catColors = {
-                  'Disiplin':  { bg:'#fef3c7', text:'#b45309', dot:'#f59e0b' },
-                  'Odak':      { bg:'#ede9fe', text:'#6d28d9', dot:'#8b5cf6' },
-                  'Mücadele':  { bg:'#fee2e2', text:'#b91c1c', dot:'#ef4444' },
-                  'İnanç':     { bg:'#dbeafe', text:'#1e40af', dot:'#3b82f6' },
-                  'Eylem':     { bg:'#dcfce7', text:'#166534', dot:'#22c55e' },
-                  'Zafer':     { bg:'#fef9c3', text:'#854d0e', dot:'#eab308' },
-                  'Gelişim':   { bg:'#d1fae5', text:'#065f46', dot:'#10b981' },
-                  'Özgüven':   { bg:'#fce7f3', text:'#9d174d', dot:'#ec4899' },
-                  'Sabır':     { bg:'#e0f2fe', text:'#075985', dot:'#0ea5e9' },
+                  'Disiplin':  { bg:'rgba(245,158,11,0.25)', text:'#fde68a', dot:'#f59e0b' },
+                  'Odak':      { bg:'rgba(139,92,246,0.25)', text:'#ddd6fe', dot:'#8b5cf6' },
+                  'Mücadele':  { bg:'rgba(239,68,68,0.25)', text:'#fecaca', dot:'#ef4444' },
+                  'İnanç':     { bg:'rgba(59,130,246,0.25)', text:'#bfdbfe', dot:'#3b82f6' },
+                  'Eylem':     { bg:'rgba(34,197,94,0.25)', text:'#bbf7d0', dot:'#22c55e' },
+                  'Zafer':     { bg:'rgba(234,179,8,0.25)', text:'#fef08a', dot:'#eab308' },
+                  'Gelişim':   { bg:'rgba(16,185,129,0.25)', text:'#a7f3d0', dot:'#10b981' },
+                  'Özgüven':   { bg:'rgba(236,72,153,0.25)', text:'#fbcfe8', dot:'#ec4899' },
+                  'Sabır':     { bg:'rgba(14,165,233,0.25)', text:'#bae6fd', dot:'#0ea5e9' },
                 };
                 const cat = catColors[currentDashQuote.category] || catColors['Disiplin'];
                 return (
-                  <div style={{ borderRadius:20, overflow:'hidden', boxShadow:'0 8px 32px rgba(245,158,11,0.15)', border:'1px solid rgba(253,230,138,0.6)' }}>
+                  <div style={{ borderRadius:22, overflow:'hidden', boxShadow:'0 12px 36px rgba(245,158,11,0.25)', border:'1.5px solid rgba(253,230,138,0.4)', background:'linear-gradient(135deg,rgba(28,25,23,0.95) 0%,rgba(69,26,3,0.92) 50%,rgba(120,53,15,0.95) 100%)' }}>
                     {/* Card Header */}
-                    <div style={{ background:'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)', padding:'0.75rem 1rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                        <div style={{ width:30, height:30, borderRadius:9, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem' }}>
+                    <div style={{ background:'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)', padding:'0.85rem 1.2rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <div style={{ width:32, height:32, borderRadius:10, background:'rgba(255,255,255,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.1rem' }}>
                           {currentDashQuote.emoji || '✨'}
                         </div>
                         <div>
-                          <div style={{ fontSize:'0.56rem', fontWeight:800, color:'rgba(255,255,255,0.75)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Motivasyonu</div>
-                          <div style={{ fontSize:'0.78rem', fontWeight:900, color:'white' }}>İlham Al, Harekete Geç</div>
+                          <div style={{ fontSize:'0.6rem', fontWeight:800, color:'rgba(255,255,255,0.8)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Motivasyonu</div>
+                          <div style={{ fontSize:'0.84rem', fontWeight:900, color:'white' }}>İlham Al, Harekete Geç</div>
                         </div>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <div style={{ fontSize:'0.58rem', fontWeight:800, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', borderRadius:99, padding:'0.18rem 0.55rem', border:'1px solid rgba(255,255,255,0.25)' }}>
+                        <div style={{ fontSize:'0.62rem', fontWeight:900, color:'white', background:'rgba(255,255,255,0.2)', borderRadius:99, padding:'0.2rem 0.6rem', border:'1px solid rgba(255,255,255,0.3)' }}>
                           {quoteNum}/{DASHBOARD_QUOTES.length}
                         </div>
                         <button type="button" onClick={() => setDashQuoteIdx(p => p + 1)}
-                          style={{ background:'rgba(255,255,255,0.2)', border:'1px solid rgba(255,255,255,0.35)', borderRadius:10, padding:'0.28rem 0.6rem', color:'white', fontSize:'0.62rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:4, backdropFilter:'blur(8px)' }}>
-                          <RefreshCw size={10} /> Yeni Söz
+                          style={{ background:'rgba(255,255,255,0.25)', border:'1px solid rgba(255,255,255,0.4)', borderRadius:10, padding:'0.3rem 0.65rem', color:'white', fontSize:'0.66rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:4, backdropFilter:'blur(8px)' }}>
+                          <RefreshCw size={11} /> Yeni Söz
                         </button>
                       </div>
                     </div>
 
                     {/* Quote Body */}
-                    <div style={{ background:'linear-gradient(180deg,#fffbeb 0%,#fefce8 100%)', padding:'1rem 1.1rem' }}>
+                    <div style={{ padding:'1.1rem 1.2rem' }}>
                       {/* Category badge */}
-                      <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:cat.bg, borderRadius:99, padding:'0.18rem 0.65rem', border:`1px solid ${cat.dot}30`, marginBottom:10 }}>
-                        <div style={{ width:6, height:6, borderRadius:'50%', background:cat.dot }} />
-                        <span style={{ fontSize:'0.6rem', fontWeight:900, color:cat.text, textTransform:'uppercase', letterSpacing:'0.08em' }}>{currentDashQuote.category}</span>
+                      <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:cat.bg, borderRadius:99, padding:'0.2rem 0.7rem', border:`1px solid ${cat.dot}60`, marginBottom:10 }}>
+                        <div style={{ width:7, height:7, borderRadius:'50%', background:cat.dot, boxShadow:`0 0 6px ${cat.dot}` }} />
+                        <span style={{ fontSize:'0.64rem', fontWeight:900, color:cat.text, textTransform:'uppercase', letterSpacing:'0.08em' }}>{currentDashQuote.category}</span>
                       </div>
 
                       {/* Quote text */}
-                      <div style={{ position:'relative', paddingLeft:14, marginBottom:10 }}>
+                      <div style={{ position:'relative', paddingLeft:14, marginBottom:12 }}>
                         <div style={{ position:'absolute', left:0, top:0, bottom:0, width:3, borderRadius:99, background:`linear-gradient(180deg,${cat.dot},${cat.dot}44)` }} />
-                        <div style={{ fontSize:'0.83rem', color:'#1c1917', lineHeight:1.7, fontWeight:600, fontStyle:'italic' }}>
+                        <div style={{ fontSize:'0.88rem', color:'#ffffff', lineHeight:1.7, fontWeight:600, fontStyle:'italic' }}>
                           "{currentDashQuote.quote}"
                         </div>
-                        <div style={{ marginTop:6, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:5 }}>
-                          <div style={{ height:1, flex:1, background:'linear-gradient(90deg,transparent,#d97706)' }} />
-                          <span style={{ fontSize:'0.65rem', fontWeight:900, color:'#b45309' }}>— {currentDashQuote.author}</span>
+                        <div style={{ marginTop:8, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
+                          <div style={{ height:1, flex:1, background:'linear-gradient(90deg,transparent,rgba(253,230,138,0.5))' }} />
+                          <span style={{ fontSize:'0.72rem', fontWeight:900, color:'#fde68a' }}>— {currentDashQuote.author}</span>
                         </div>
                       </div>
 
                       {/* Week Tracker */}
-                      <div style={{ background:'rgba(245,158,11,0.08)', borderRadius:12, padding:'0.65rem 0.75rem', border:'1px solid rgba(245,158,11,0.2)' }}>
-                        <div style={{ fontSize:'0.55rem', fontWeight:900, color:'#92400e', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:7 }}>📅 Haftalık Çalışma Serisi</div>
-                        <div style={{ display:'flex', gap:4 }}>
+                      <div style={{ background:'rgba(0,0,0,0.3)', borderRadius:14, padding:'0.75rem 0.85rem', border:'1px solid rgba(251,191,36,0.25)' }}>
+                        <div style={{ fontSize:'0.58rem', fontWeight:900, color:'#fde68a', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>📅 Haftalık Çalışma Serisi</div>
+                        <div style={{ display:'flex', gap:5 }}>
                           {dayLetters.map((d, i) => {
                             const isPast = i < currentDayIdx;
                             const isToday = i === currentDayIdx;
                             const isFuture = i > currentDayIdx;
                             return (
                               <div key={i} style={{ flex:1, textAlign:'center' }}>
-                                <div style={{ fontSize:'0.44rem', fontWeight:900, color: isToday ? '#92400e' : '#b45309', marginBottom:3, letterSpacing:'-0.02em' }}>{d}</div>
+                                <div style={{ fontSize:'0.48rem', fontWeight:900, color: isToday ? '#fbbf24' : 'rgba(255,255,255,0.7)', marginBottom:3, letterSpacing:'-0.02em' }}>{d}</div>
                                 <div style={{
                                   aspectRatio:1,
-                                  borderRadius:6,
-                                  background: isToday ? '#f59e0b' : isPast ? '#fbbf24' : 'rgba(245,158,11,0.12)',
-                                  border: isToday ? '2px solid #d97706' : isPast ? '1px solid #fcd34d' : '1px solid rgba(245,158,11,0.2)',
+                                  borderRadius:8,
+                                  background: isToday ? '#f59e0b' : isPast ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.06)',
+                                  border: isToday ? '2px solid #fbbf24' : isPast ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(255,255,255,0.1)',
                                   display:'flex', alignItems:'center', justifyContent:'center',
-                                  boxShadow: isToday ? '0 0 0 3px rgba(245,158,11,0.25)' : 'none',
+                                  boxShadow: isToday ? '0 0 12px rgba(245,158,11,0.6)' : 'none',
                                   transition:'all 0.2s'
                                 }}>
-                                  {isPast && <span style={{ fontSize:'0.55rem' }}>✓</span>}
-                                  {isToday && <Star size={9} color="white" fill="white" />}
-                                  {isFuture && <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(245,158,11,0.3)' }} />}
+                                  {isPast && <span style={{ fontSize:'0.6rem', color:'white', fontWeight:900 }}>✓</span>}
+                                  {isToday && <Star size={11} color="white" fill="white" />}
+                                  {isFuture && <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,0.2)' }} />}
                                 </div>
                               </div>
                             );
@@ -2022,31 +2016,31 @@ export default function StudentDashboard() {
 
       {/* GOAL MODAL */}
       {showGoalModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.65)', backdropFilter:'blur(10px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
-          <div style={{ background:'white', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.5rem', width:'100%', maxWidth: isMobile ? '100%' : 420, boxShadow:'0 32px 80px rgba(0,0,0,0.25)', animation:'sdFadeUp 0.3s ease' }}>
-            {isMobile && <div style={{ width:40, height:4, background:'#e2e8f0', borderRadius:99, margin:'0 auto 1.25rem' }} />}
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.8)', backdropFilter:'blur(12px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
+          <div style={{ background:'linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%)', border:'1.5px solid rgba(255,255,255,0.18)', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.5)', animation:'sdFadeUp 0.3s ease' }}>
+            {isMobile && <div style={{ width:40, height:4, background:'rgba(255,255,255,0.2)', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
-              <h2 style={{ fontWeight:900, fontSize:'1rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'none', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex' }}><X size={16} color="#64748b" /></button>
+              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'white', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
+              <button onClick={() => setShowGoalModal(false)} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'white' }}><X size={16} /></button>
             </div>
-            <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
-              <input placeholder="Hedef başlığı..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.65rem' }}>
+            <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+              <input placeholder="Hedef başlığı (örn: Günde 50 Matematik Sorusu)..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.08)', color:'white', width:'100%' }} required />
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
                 <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                  style={{ padding:'0.7rem 0.85rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
-                  {['Soru','Sayfa','Dakika'].map(v => <option key={v}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e1b4b', color:'white' }}>
+                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#1e1b4b', color:'white' }}>{v}</option>)}
                 </select>
                 <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                  style={{ padding:'0.7rem 0.85rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
-                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e1b4b', color:'white' }}>
+                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'#1e1b4b', color:'white' }}>{v}</option>)}
                 </select>
               </div>
               <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))}
-                style={{ padding:'0.75rem 1rem', borderRadius:14, border:'1.5px solid #e2e8f0', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.08)', color:'white', width:'100%' }} required />
               <button type="submit" className="sd-btn"
-                style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(99,102,241,0.35)' }}>
-                Hedef Kaydet ✓
+                style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#ea580c,#f97316)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(234,88,12,0.4)', marginTop:4 }}>
+                Hedefi Kaydet ✓
               </button>
             </form>
           </div>
