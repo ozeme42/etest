@@ -764,10 +764,66 @@ export async function dbDeleteSubmissionsForStudentAndTests(studentId, testIds =
         }
       }
     }
-
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteSubmissionsForStudentAndTests error:', err.message);
+    return false;
+  }
+}
+
+export async function dbDeleteSubmissionsByIds(ids = []) {
+  if (!isSupabaseConfigured() || !ids || ids.length === 0) return null;
+  try {
+    const rawIds = Array.from(new Set(ids.map(String).filter(Boolean)));
+    const uuidSet = new Set();
+    rawIds.forEach(id => {
+      const u = toUUID(id);
+      if (u) uuidSet.add(u);
+    });
+    const allIds = Array.from(new Set([...rawIds, ...uuidSet]));
+    if (allIds.length > 0) {
+      await supabase.from('submissions').delete().in('id', allIds);
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteSubmissionsByIds error:', err.message);
+    return false;
+  }
+}
+
+export async function dbDeleteBookSubmissionsForEveryone(testIds = [], hwId = null) {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const allTestIdentifiers = new Set();
+    if (hwId) {
+      allTestIdentifiers.add(String(hwId));
+      const hu = toUUID(hwId);
+      if (hu) allTestIdentifiers.add(String(hu));
+    }
+    (testIds || []).forEach(tid => {
+      if (tid) {
+        allTestIdentifiers.add(String(tid));
+        const u = toUUID(tid);
+        if (u) allTestIdentifiers.add(String(u));
+      }
+    });
+
+    const targetList = Array.from(allTestIdentifiers);
+    if (targetList.length > 0) {
+      await supabase.from('submissions').delete().in('test_id', targetList);
+    }
+    if (hwId) {
+      const hwStr = String(hwId);
+      const hwUuid = toUUID(hwStr);
+      await supabase.from('submissions').delete().eq('homework_id', hwStr);
+      if (hwUuid) {
+        await supabase.from('submissions').delete().eq('homework_id', hwUuid);
+        await supabase.from('submissions').delete().eq('test_id', hwUuid);
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteBookSubmissionsForEveryone error:', err.message);
     return false;
   }
 }

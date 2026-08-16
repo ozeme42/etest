@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsForStudentAndTests, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
+import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 
 const EvaluationContext = createContext();
@@ -452,8 +452,8 @@ export function EvaluationProvider({ children }) {
     });
 
     // 1. Delete all collected submission IDs from Supabase
-    for (const id of toDeleteIds) {
-      await dbDeleteSubmission(id);
+    if (toDeleteIds.length > 0) {
+      await dbDeleteSubmissionsByIds(toDeleteIds);
     }
     // 2. Direct batch delete in Supabase by student + test/homework IDs
     await dbDeleteSubmissionsForStudentAndTests(studentId, testIds, hwId);
@@ -533,26 +533,10 @@ export function EvaluationProvider({ children }) {
       return remaining;
     });
 
-    for (const id of toDeleteIds) {
-      await dbDeleteSubmission(id);
+    if (toDeleteIds.length > 0) {
+      await dbDeleteSubmissionsByIds(toDeleteIds);
     }
-
-    // Direct batch delete in Supabase by test IDs and homework IDs
-    if (testIds && testIds.length > 0) {
-      const allUuids = Array.from(testUuidsSet);
-      if (allUuids.length > 0) {
-        await supabase.from('submissions').delete().in('test_id', allUuids);
-      }
-      await supabase.from('submissions').delete().in('test_id', Array.from(testIdsSet));
-    }
-    if (hwId) {
-      await supabase.from('submissions').delete().eq('homework_id', String(hwId));
-      const hu = toUUID(hwId);
-      if (hu) {
-        await supabase.from('submissions').delete().eq('homework_id', hu);
-        await supabase.from('submissions').delete().eq('test_id', hu);
-      }
-    }
+    await dbDeleteBookSubmissionsForEveryone(testIds, hwId);
   };
 
   const deleteAllSubmissions = async () => {
