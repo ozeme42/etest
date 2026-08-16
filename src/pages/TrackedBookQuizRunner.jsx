@@ -823,18 +823,9 @@ export default function TrackedBookQuizRunner() {
                     {resolvedBook && (
                       <button 
                         onClick={() => navigate(`/student/books/${resolvedBook.id}`)}
-                        style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                        style={{ padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(79,70,229,0.4)' }}
                       >
-                        <BookOpen size={14} /> Kitaba Dön
-                      </button>
-                    )}
-                    {nextTest && (
-                      <button 
-                        onClick={() => navigate(`/book-quiz/${nextTest.id}?studentId=${studentId}`)}
-                        style={{ padding: '0.5rem 1.1rem', borderRadius: '0.65rem', background: '#3b82f6', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}
-                      >
-                        <span>Sonraki Test: {nextTest.name}</span>
-                        <ChevronRight size={14} />
+                        <BookOpen size={16} /> Kitaba Dön
                       </button>
                     )}
                   </div>
