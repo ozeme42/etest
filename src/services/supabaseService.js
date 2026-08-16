@@ -50,16 +50,16 @@ export async function dbGetUsers() {
   }
 }
 
-export async function dbUpdateUser(userId, updates) {
+export async function dbUpdateUser(userId, updates = {}) {
   if (!isSupabaseConfigured() || !userId) return null;
   try {
     const payload = {};
     if (updates.name !== undefined) payload.name = updates.name;
-    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.email !== undefined) payload.email = updates.email.trim().toLowerCase();
     if (updates.role !== undefined) payload.role = updates.role;
     if (updates.gradeId !== undefined || updates.grade_id !== undefined || updates.classId !== undefined || updates.grade !== undefined) {
       const gVal = updates.gradeId || updates.grade_id || updates.classId || updates.grade;
-      payload.grade_id = gVal;
+      payload.grade_id = String(gVal);
     }
     if (updates.teacherId !== undefined || updates.teacher_id !== undefined) {
       payload.teacher_id = updates.teacherId || updates.teacher_id || null;
@@ -69,37 +69,70 @@ export async function dbUpdateUser(userId, updates) {
       payload.is_approved = Boolean(updates.isApproved ?? updates.is_approved);
     }
 
-    // Direct UPDATE by id
-    let { data, error } = await supabase.from('users').update(payload).eq('id', String(userId)).select();
-    
-    // If error because optional column doesn't exist, remove and retry
-    if (error) {
+    let updatedRows = null;
+
+    // 1. Try update by id
+    const resId = await supabase.from('users').update(payload).eq('id', String(userId)).select();
+    if (!resId.error && resId.data && resId.data.length > 0) {
+      updatedRows = resId.data;
+    }
+
+    // 2. If 0 rows updated and email exists, try update by email!
+    if (!updatedRows && (updates.email || payload.email)) {
+      const mail = (updates.email || payload.email).trim().toLowerCase();
+      const resEmail = await supabase.from('users').update(payload).eq('email', mail).select();
+      if (!resEmail.error && resEmail.data && resEmail.data.length > 0) {
+        updatedRows = resEmail.data;
+      }
+    }
+
+    // 3. If column error occurred on retry, filter unknown columns
+    if (!updatedRows && resId.error) {
       const safePayload = { ...payload };
-      if (error.message && error.message.includes('is_approved')) delete safePayload.is_approved;
-      if (error.message && error.message.includes('teacher_id')) delete safePayload.teacher_id;
-      if (error.message && error.message.includes('grade_id')) delete safePayload.grade_id;
-      if (error.message && error.message.includes('password')) delete safePayload.password;
-      
-      const retry = await supabase.from('users').update(safePayload).eq('id', String(userId)).select();
-      data = retry.data;
-      error = retry.error;
+      if (resId.error.message && resId.error.message.includes('is_approved')) delete safePayload.is_approved;
+      if (resId.error.message && resId.error.message.includes('teacher_id')) delete safePayload.teacher_id;
+      if (resId.error.message && resId.error.message.includes('grade_id')) delete safePayload.grade_id;
+      if (resId.error.message && resId.error.message.includes('password')) delete safePayload.password;
+
+      const retryId = await supabase.from('users').update(safePayload).eq('id', String(userId)).select();
+      if (!retryId.error && retryId.data && retryId.data.length > 0) {
+        updatedRows = retryId.data;
+      } else if (updates.email || payload.email) {
+        const mail = (updates.email || payload.email).trim().toLowerCase();
+        const retryEmail = await supabase.from('users').update(safePayload).eq('email', mail).select();
+        if (!retryEmail.error && retryEmail.data && retryEmail.data.length > 0) {
+          updatedRows = retryEmail.data;
+        }
+      }
     }
 
-    // Fallback: If no rows updated by id and email exists, update by email
-    if (!error && (!data || data.length === 0) && updates.email) {
-      const emailUpdate = await supabase.from('users').update(payload).eq('email', updates.email).select();
-      data = emailUpdate.data;
+    // 4. If row still doesn't exist in Supabase users table, upsert it!
+    if (!updatedRows) {
+      const insertPayload = {
+        id: String(userId),
+        email: (updates.email || `${String(userId).toLowerCase()}@etest.com`).trim().toLowerCase(),
+        name: updates.name || 'Öğrenci',
+        role: updates.role || 'student',
+        grade_id: payload.grade_id || 'g1',
+        teacher_id: payload.teacher_id || null,
+        password: updates.password || '123456',
+        is_approved: payload.is_approved !== undefined ? payload.is_approved : true
+      };
+      const upsertRes = await supabase.from('users').upsert([insertPayload], { onConflict: 'id' }).select();
+      if (upsertRes.data && upsertRes.data.length > 0) {
+        updatedRows = upsertRes.data;
+      }
     }
 
-    return { success: !error, data };
+    return { success: Boolean(updatedRows), data: updatedRows };
   } catch (err) {
-    console.warn('[Supabase] dbUpdateUser error:', err.message);
+    console.error('[Supabase] dbUpdateUser error:', err);
     return { success: false, error: err.message };
   }
 }
 
 export async function dbAddUser(user) {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured() || !user) return null;
   try {
     const isApprovedVal = user.isApproved !== undefined 
       ? Boolean(user.isApproved) 
@@ -107,25 +140,32 @@ export async function dbAddUser(user) {
 
     const payload = {
       id: String(user.id || `u_${Date.now()}`),
-      email: user.email,
-      name: user.name,
+      email: (user.email || '').trim().toLowerCase(),
+      name: user.name || 'Kullanıcı',
       role: user.role || 'student',
-      grade_id: user.gradeId || user.grade || user.classId || 'g1',
+      grade_id: String(user.gradeId || user.grade || user.classId || 'g1'),
       teacher_id: user.teacherId || null,
       password: user.password || null,
       is_approved: isApprovedVal
     };
 
-    // Try direct update by id first if user exists
+    // 1. Try update by id first
     const { data: updateData, error: updateErr } = await supabase.from('users').update(payload).eq('id', payload.id).select();
     if (!updateErr && updateData && updateData.length > 0) {
       return { success: true, data: updateData };
     }
 
-    // Otherwise upsert
+    // 2. Try update by email if email exists
+    if (payload.email) {
+      const { data: emailData, error: emailErr } = await supabase.from('users').update(payload).eq('email', payload.email).select();
+      if (!emailErr && emailData && emailData.length > 0) {
+        return { success: true, data: emailData };
+      }
+    }
+
+    // 3. Otherwise upsert
     const { data, error } = await supabase.from('users').upsert([payload], { onConflict: 'id' }).select();
     if (error) {
-      // If conflict on email, update by email
       if (payload.email && (error.code === '23505' || (error.message && error.message.includes('unique')))) {
         const updateByEmail = await supabase.from('users').update(payload).eq('email', payload.email).select();
         return { success: true, data: updateByEmail.data };

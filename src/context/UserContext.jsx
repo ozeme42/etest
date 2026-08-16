@@ -85,10 +85,21 @@ export function UserProvider({ children }) {
 
   const updateUser = async (id, updatedData) => {
     let updatedUserObj = null;
+    const targetEmail = (updatedData.email || '').trim().toLowerCase();
+
     setUsers(prev => {
       const newList = prev.map(u => {
-        if (String(u.id) === String(id)) {
+        const isMatch = String(u.id) === String(id) || 
+          (targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail);
+        
+        if (isMatch) {
           updatedUserObj = { ...u, ...updatedData };
+          if (updatedData.gradeId) {
+            updatedUserObj.gradeId = updatedData.gradeId;
+            updatedUserObj.classId = updatedData.classId || updatedData.gradeId;
+            if (updatedData.grade) updatedUserObj.grade = updatedData.grade;
+            if (updatedData.className) updatedUserObj.className = updatedData.className;
+          }
           return updatedUserObj;
         }
         return u;
@@ -98,7 +109,7 @@ export function UserProvider({ children }) {
     });
 
     if (updatedUserObj) {
-      await dbUpdateUser(id, updatedData);
+      await dbUpdateUser(updatedUserObj.id || id, updatedUserObj);
       await dbAddUser(updatedUserObj);
     }
     return updatedUserObj;
