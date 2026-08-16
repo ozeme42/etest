@@ -1214,12 +1214,13 @@ export default function StudentDashboard() {
   ];
 
   const quickTiles = [
+    { icon: '🎧', label: 'Çalışma Odası', sub: 'Pomodoro & Odaklanma', to: '/study-room', g: 'linear-gradient(135deg,#6366f1,#4f46e5)', sh: 'rgba(99,102,241,0.35)' },
     { icon: '📖', label: 'Ders Özetleri', sub: 'Konu anlatımları', to: '/student/summaries', g: 'linear-gradient(135deg,#059669,#10b981)', sh: 'rgba(16,185,129,0.3)' },
     { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)', sh: 'rgba(99,102,241,0.3)' },
     { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)', sh: 'rgba(219,39,119,0.28)' },
     { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)', sh: 'rgba(8,145,178,0.28)' },
     { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)', sh: 'rgba(234,88,12,0.28)' },
-    { icon: '📅', label: 'Programım', sub: 'Haftalık plan', to: '/my-program', g: 'linear-gradient(135deg,#6366f1,#8b5cf6)', sh: 'rgba(99,102,241,0.28)' },
+    { icon: '📅', label: 'Programım', sub: 'Haftalık plan', to: '/my-program', g: 'linear-gradient(135deg,#8b5cf6,#a855f7)', sh: 'rgba(139,92,246,0.28)' },
   ];
 
   return (
@@ -1353,6 +1354,74 @@ export default function StudentDashboard() {
 
           {/* ──── LEFT COLUMN ──── */}
           <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
+
+            {/* STUDY ROOM / POMODORO HERO LAUNCH CARD */}
+            <div className="sd-section">
+              <div
+                onClick={() => navigate('/study-room')}
+                className="sd-tile"
+                style={{
+                  background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%)',
+                  borderRadius: 22,
+                  padding: isMobile ? '1rem' : '1.15rem 1.35rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  boxShadow: '0 10px 30px rgba(49, 46, 129, 0.35)',
+                  border: '1.5px solid rgba(165, 180, 252, 0.3)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 2, flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    width: isMobile ? 44 : 52,
+                    height: isMobile ? 44 : 52,
+                    borderRadius: 16,
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: isMobile ? '1.35rem' : '1.6rem',
+                    boxShadow: '0 6px 18px rgba(99, 102, 241, 0.4)',
+                    flexShrink: 0
+                  }}>
+                    🎧
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(255,255,255,0.1)', padding: '0.12rem 0.45rem', borderRadius: 99 }}>
+                        YENİ ALAN
+                      </span>
+                    </div>
+                    <div style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'white', marginTop: 2, lineHeight: 1.2 }}>
+                      Odaklı Çalışma Odası & Pomodoro
+                    </div>
+                    <div style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', color: '#c7d2fe', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      25 dk Pomodoro · Arka Plan Odak Sesleri · Soru Sayacı
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'white',
+                  color: '#312e81',
+                  borderRadius: 14,
+                  padding: isMobile ? '0.45rem 0.8rem' : '0.55rem 1rem',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                  flexShrink: 0,
+                  zIndex: 2
+                }}>
+                  Odaya Gir ➔
+                </div>
+              </div>
+            </div>
 
             {/* QUICK TILES (mobile: shown in left column at top) */}
             <div className="sd-section">

@@ -5,7 +5,7 @@ import MobileBottomNav from './components/MobileBottomNav';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen, Headphones
 } from 'lucide-react';
 
 import Landing from './pages/Landing';
@@ -43,6 +43,7 @@ import LoginPage from './pages/LoginPage';
 import ScalePage from './pages/ScalePage';
 import SummaryManagerPage from './pages/SummaryManagerPage';
 import StudentSummaryPage from './pages/StudentSummaryPage';
+import StudyRoomPage from './pages/StudyRoomPage';
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
 import './App.css';
@@ -156,6 +157,9 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
           {/* Öğrenciye Özel Menüler (Öğretmen ve Admin Göremez) */}
           {currentUser?.role === 'student' && (
             <>
+              <NavLink to="/study-room" className="nav-link" onClick={closeSidebar}>
+                <Headphones size={20} /> Çalışma Odası (Pomodoro)
+              </NavLink>
               <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
                 <GraduationCap size={20} /> Öğrenci Paneli
               </NavLink>
@@ -263,7 +267,7 @@ function AppContent() {
     }
   });
 
-  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/'];
+  const hideSidebarRoutes = ['/quiz/', '/book-quiz/', '/review/', '/login', '/physical-exam/', '/study-room'];
   const isLandingPage = location.pathname === '/';
   const isQuizRoute = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
   const shouldHideSidebar = !currentUser || isLandingPage || isQuizRoute;
@@ -287,6 +291,8 @@ function AppContent() {
           <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/student" element={<StudentDashboard />} />
+          <Route path="/study-room" element={<StudyRoomPage />} />
+          <Route path="/student/study-room" element={<StudyRoomPage />} />
           <Route path="/student/summaries" element={<StudentSummaryPage />} />
           <Route path="/summaries" element={<SummaryManagerPage />} />
           <Route path="/student/books" element={<StudentBooksPage />} />
