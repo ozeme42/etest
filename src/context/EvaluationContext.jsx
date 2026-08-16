@@ -442,6 +442,13 @@ export function EvaluationProvider({ children }) {
     } catch {}
   };
 
+  const deleteAllSubmissions = async () => {
+    setSubmissions(prev => {
+      prev.forEach(s => dbDeleteSubmission(s.id));
+      return [];
+    });
+  };
+
   return (
     <EvaluationContext.Provider value={{
       submissions,
