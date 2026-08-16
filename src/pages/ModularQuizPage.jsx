@@ -47,24 +47,106 @@ export default function ModularQuizPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const draftSubmission = useMemo(() => {
-    if (!submissions || submissions.length === 0) return null;
-    return submissions.find(
-      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId) || toUUID(s.testId) === toUUID(testId)) && 
-           String(s.studentId) === String(studentId) && 
-           (s.status === 'in_progress' || s.status === 'draft')
-    );
-  }, [submissions, testId, studentId]);
+  const location = useLocation();
+  const isRetake = searchParams.get('retake') === 'true' || searchParams.get('mode') === 'solve' || Boolean(location?.state?.retake);
 
-  // Prevent taking the exam again if already submitted (protects against F5 refresh after submit)
-  const completedSub = useMemo(() => {
-    if (!submissions || submissions.length === 0) return null;
-    return submissions.find(
-      s => (String(s.testId) === String(testId) || String(s.hwId) === String(testId) || toUUID(s.testId) === toUUID(testId)) && 
-           String(s.studentId) === String(studentId) && 
-           s.status !== 'in_progress' && s.status !== 'draft'
+  // Check if there is an active homework assigned to this student that matches this test
+  const activeHomework = useMemo(() => {
+    if (!homeworks || homeworks.length === 0) return null;
+    const cleanId = String(testId || '').trim();
+    return homeworks.find(h => {
+      const match = String(h.id) === cleanId || 
+                    (h.questionIds && h.questionIds.map(String).includes(cleanId)) ||
+                    (h.tests && h.tests.map(String).includes(cleanId));
+      return Boolean(match);
+    });
+  }, [homeworks, testId]);
+
+  const isNewOrReassigned = useMemo(() => {
+    if (!activeHomework) return false;
+    const hwCreatedTime = activeHomework.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
+    const subInHw = (activeHomework.submissions || []).find(s => 
+      String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft'
     );
-  }, [submissions, testId, studentId]);
+    if (subInHw) return false;
+
+    const subAfterHw = (submissions || []).find(s => 
+      (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id) || String(s.testId) === String(testId)) && 
+      String(s.studentId) === String(studentId) && 
+      s.status !== 'in_progress' && s.status !== 'draft' &&
+      (s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false)
+    );
+    return !subAfterHw;
+  }, [activeHomework, submissions, studentId, testId]);
+
+  // If this is a new or re-assigned homework, clear any old localStorage draft keys so student gets a fresh blank test
+  useEffect(() => {
+    if (isNewOrReassigned || isRetake) {
+      try {
+        const cleanId = String(testId || '').trim();
+        const keysToClean = [
+          cleanId,
+          activeHomework?.id,
+          test?.id,
+          test?.realTestId
+        ].filter(Boolean);
+
+        keysToClean.forEach(k => {
+          localStorage.removeItem(`draft_quiz_${k}_ans`);
+          localStorage.removeItem(`draft_quiz_${k}_txt`);
+          localStorage.removeItem(`draft_quiz_${k}_time`);
+          localStorage.removeItem(`quiz_draft_${k}`);
+        });
+      } catch (e) {}
+    }
+  }, [isNewOrReassigned, isRetake, testId, activeHomework?.id, test?.id, test?.realTestId]);
+
+  const draftSubmission = useMemo(() => {
+    if (isRetake || isNewOrReassigned) return null;
+    if (!submissions || submissions.length === 0) return null;
+    const hwCreatedTime = activeHomework?.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
+
+    return submissions.find(s => {
+      if (String(s.studentId) !== String(studentId)) return false;
+      if (s.status !== 'in_progress' && s.status !== 'draft') return false;
+      const matches = (String(s.testId) === String(testId) || String(s.hwId) === String(testId) || toUUID(s.testId) === toUUID(testId) || (activeHomework && (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id))));
+      if (!matches) return false;
+      if (hwCreatedTime && (s.updatedAt || s.submittedAt || s.createdAt)) {
+        const subTime = new Date(s.updatedAt || s.submittedAt || s.createdAt).getTime();
+        if (subTime < (hwCreatedTime - 60000)) return false;
+      }
+      return true;
+    });
+  }, [submissions, testId, studentId, activeHomework, isRetake, isNewOrReassigned]);
+
+  // Prevent taking the exam again ONLY IF this specific assignment was already submitted AFTER it was assigned
+  const completedSub = useMemo(() => {
+    if (isRetake) return null;
+    if (!submissions || submissions.length === 0) return null;
+
+    if (activeHomework) {
+      const hwCreatedTime = activeHomework.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
+      
+      // Look for a submission that belongs specifically to this active homework
+      const subInHw = (activeHomework.submissions || []).find(s => 
+        String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft'
+      );
+      if (subInHw) return subInHw;
+
+      // Look in global submissions submitted AFTER the homework was created
+      const subAfterHw = submissions.find(s => 
+        (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id) || String(s.testId) === String(testId)) && 
+        String(s.studentId) === String(studentId) && 
+        s.status !== 'in_progress' && s.status !== 'draft' &&
+        (s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false)
+      );
+      
+      return subAfterHw || null;
+    }
+
+    // If there is no active homework, the student is taking or retaking a test directly -> do not block
+    return null;
+  }, [submissions, testId, studentId, activeHomework, isRetake]);
 
   const bookForTest = useMemo(() => {
     if (!test) return null;
@@ -796,11 +878,10 @@ export default function ModularQuizPage() {
   );
 
   const isMultiSection = Boolean(
-    (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
-    (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
-    (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1) ||
-    (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 1) ||
-    (test.items && Array.isArray(test.items) && test.items.length > 1) ||
+    String(testId || '').trim().startsWith('hw_') ||
+    (test.sections && Array.isArray(test.sections) && test.sections.length > 0) ||
+    (test.tests && Array.isArray(test.tests) && test.tests.length > 0) ||
+    (test.items && Array.isArray(test.items) && test.items.length > 0) ||
     test.isBulk ||
     test.isMulti
   );

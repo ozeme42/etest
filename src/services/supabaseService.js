@@ -611,6 +611,9 @@ export async function dbUploadFileToStorage(fileOrDataUrl, filenamePrefix = 'fil
         u8arr[n] = bstr.charCodeAt(n);
       }
       fileBlob = new Blob([u8arr], { type: mime.includes('html') ? 'text/html; charset=utf-8' : mime });
+    } else if (typeof fileOrDataUrl === 'string' && (fileOrDataUrl.includes('<!DOCTYPE') || fileOrDataUrl.includes('<html') || fileOrDataUrl.includes('<body') || fileOrDataUrl.includes('<head'))) {
+      fileBlob = new Blob([fileOrDataUrl], { type: 'text/html; charset=utf-8' });
+      fileExt = 'html';
     } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
       fileBlob = fileOrDataUrl;
       if (fileOrDataUrl.name) {
@@ -655,11 +658,22 @@ export async function dbAddQuestion(q) {
 
     const safeRaw = { ...q, id: qId };
 
-    // Helper to upload or strip base64
+    const isHtmlPayload = (val) => {
+      return typeof val === 'string' && (
+        q.contentType === 'html' || q.content_type === 'html' ||
+        val.includes('<!DOCTYPE') || val.includes('<html') || val.includes('<head') || val.includes('<body') ||
+        val.startsWith('data:text/html')
+      );
+    };
+
+    // Helper to upload or strip base64 or large HTML
     const processBase64String = async (val, suffix) => {
-      if (typeof val === 'string' && val.startsWith('data:')) {
-        const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
-        return publicUrl || (val.length > 50000 ? '[STORED_IN_INDEXEDDB]' : val);
+      if (typeof val === 'string' && (val.startsWith('data:') || isHtmlPayload(val))) {
+        if (val.length > 50000) {
+          const publicUrl = await dbUploadFileToStorage(val, `q_${dbId}_${suffix}`);
+          return publicUrl || '[STORED_IN_INDEXEDDB]';
+        }
+        return val;
       }
       return val;
     };
@@ -667,6 +681,9 @@ export async function dbAddQuestion(q) {
     // Helper to process joined or single payload strings
     const processPayload = async (payload, suffix) => {
       if (typeof payload === 'string') {
+        if (isHtmlPayload(payload)) {
+          return await processBase64String(payload, suffix);
+        }
         if (payload.includes('\n') || payload.includes('|')) {
           const parts = payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);
           const processedParts = [];

@@ -170,7 +170,7 @@ export function resolveExactQuestionCount(sec = {}, bankQ = {}, foundInBank = {}
 // ─── STABLE HTML VIEWER — React.memo ile sarılmış, sectionAnswers değişiminden TAMAMEN izole ──────
 // Bu bileşen sadece activeSec.id veya bankQ.id değiştiğinde yeniden yüklenir.
 // sectionAnswers, optik panel cevapları gibi değişkenlerden etkilenmez, iframe titremez.
-const StableHtmlViewer = memo(function StableHtmlViewer({ bankQ, secId, title }) {
+const StableHtmlViewer = memo(function StableHtmlViewer({ test, bankQ, secId, testId, title, idbPayload }) {
   const [iframeSrc, setIframeSrc] = useState(null);
   const loadedRef = useRef(null);
   const blobUrlRef = useRef(null);
@@ -186,6 +186,8 @@ const StableHtmlViewer = memo(function StableHtmlViewer({ bankQ, secId, title })
   }, [secId]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const makeBlob = (raw) => {
       try {
         let html = raw.startsWith('data:') ? atob(raw.split(',')[1] || '') : raw;
@@ -202,42 +204,65 @@ const StableHtmlViewer = memo(function StableHtmlViewer({ bankQ, secId, title })
       }
     };
 
-    // 1. Önce direkt payload'dan dene
-    const candidates = [bankQ?.contentPayload, bankQ?.htmlPayload, bankQ?.pdfUrl, bankQ?.url];
-    const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
-    if (direct) {
-      if (direct.startsWith('http')) {
-        setIframeSrc(direct);
-        return;
-      }
-      if (direct.startsWith('data:text/html') || direct.startsWith('<!DOCTYPE') || direct.startsWith('<html') || direct.includes('<html')) {
-        const url = makeBlob(direct);
-        if (url) { setIframeSrc(url); return; }
-      }
-    }
+    const cacheKey = bankQ?.id || secId || testId;
 
-    // 2. IndexedDB'den yükle
-    const cacheKey = bankQ?.id || secId;
-    if (loadedRef.current === cacheKey) return;
+    async function init() {
+      const isHtmlContent = (str) => typeof str === 'string' && (str.includes('<!DOCTYPE') || str.includes('<html') || str.includes('<body') || str.includes('<head') || str.startsWith('data:text/html'));
 
-    let isMounted = true;
-    async function loadFromIdb() {
-      const idsToTry = [bankQ?.id, bankQ?.questionId, secId].filter(Boolean);
+      // 0. Önce MultiHomeworkRunner'ın bizim için fuzzy-match ile bulduğu idbPayload'ı dene
+      if (idbPayload && typeof idbPayload === 'string' && idbPayload !== '[STORED_IN_INDEXEDDB]') {
+        if (isHtmlContent(idbPayload) || idbPayload.startsWith('http')) {
+          loadedRef.current = cacheKey;
+          if (idbPayload.startsWith('http')) { setIframeSrc(idbPayload); return; }
+          const url = makeBlob(idbPayload);
+          if (url) { setIframeSrc(url); return; }
+        }
+      }
+
+      // 1. Kendi IDB kontrolümüz (kullanıcı editlemiş olabilir)
+      const idsToTry = [bankQ?.id, bankQ?.questionId, secId, testId].filter(Boolean);
       for (const id of idsToTry) {
         const val = await idbGetPayload(id);
         if (val && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]' && isMounted) {
+          // Eğer IDB'den gelen veri düz metin (eski veri) ise ama biz HTML arıyorsak, bunu atla.
+          if (!isHtmlContent(val) && !val.startsWith('http')) {
+            continue; // Atla ve diğer kimliklere bak, veya proplara düş
+          }
           loadedRef.current = cacheKey;
-          if (val.startsWith('http')) { setIframeSrc(val); break; }
+          if (val.startsWith('http')) { setIframeSrc(val); return; }
           const url = makeBlob(val);
-          if (url) { setIframeSrc(url); break; }
+          if (url) { setIframeSrc(url); return; }
+        }
+      }
+
+      // 2. IDB'de yoksa veya geçerli HTML değilse proplardan geleni kullan
+      if (loadedRef.current === cacheKey) return;
+
+      const candidates = [
+        bankQ?.contentPayload, bankQ?.htmlPayload, bankQ?.pdfUrl, bankQ?.url,
+        test?.contentPayload, test?.htmlPayload, test?.pdfUrl, test?.url
+      ];
+      const direct = candidates.find(c => c && c !== '[STORED_IN_INDEXEDDB]' && c !== '[LOCALSTORAGE_CACHE]');
+      
+      if (direct && isMounted) {
+        if (direct.startsWith('http')) {
+          setIframeSrc(direct);
+          return;
+        }
+        const url = makeBlob(direct);
+        if (url) { 
+          setIframeSrc(url); 
+          return; 
         }
       }
     }
-    loadFromIdb();
+    
+    init();
+
     return () => { isMounted = false; };
   // Sadece bölüm kimliği değiştiğinde yeniden çalış — cevap state'i burada YOK
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secId, bankQ?.id, bankQ?.contentPayload, bankQ?.htmlPayload]);
+  }, [secId, bankQ?.id, bankQ?.contentPayload, bankQ?.htmlPayload, idbPayload]);
 
   if (!iframeSrc) {
     return (
@@ -1351,7 +1376,27 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
   // Section type MUST be determined strictly for the ACTIVE SECTION (not parent container)
   const isPdf = isPdfSection(activeBankQ) || isPdfSection(activeSec) || isPdfSection(test) || Boolean(activePdfPayload && typeof activePdfPayload === 'string' && (activePdfPayload.startsWith('data:application/pdf') || activePdfPayload.includes('.pdf')));
-  const isHtml = !isPdf && (isHtmlSection(activeBankQ) || isHtmlSection(activeSec));
+  
+  // Güçlü HTML Tespiti - Herhangi bir kaynakta HTML varsa zorla HTML moduna geç
+  const stringToSearch = [
+    activeBankQ?.contentPayload, activeSec?.contentPayload, test?.contentPayload,
+    activeBankQ?.htmlPayload, activeSec?.htmlPayload, test?.htmlPayload,
+    idbPayload
+  ].filter(c => typeof c === 'string' && c.length > 10).join(' ');
+
+  const isHtml = !isPdf && (
+    isHtmlSection(activeBankQ) || 
+    isHtmlSection(activeSec) || 
+    isHtmlSection(test) || 
+    stringToSearch.includes('<!DOCTYPE') || 
+    stringToSearch.includes('<html') || 
+    stringToSearch.includes('<body') || 
+    stringToSearch.includes('<head') ||
+    stringToSearch.startsWith('data:text/html') ||
+    test?.contentType === 'html' ||
+    activeBankQ?.contentType === 'html'
+  );
+
   const isImage = !isPdf && !isHtml && (isImageSection(activeBankQ) || isImageSection(activeSec) || isImageSection(test) || Boolean(idbPayload && typeof idbPayload === 'string' && idbPayload.startsWith('data:image')));
 
   const effectiveSecImages = useMemo(() => {
@@ -1635,9 +1680,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             documentContent={
               <div style={{ flex: 1, minWidth: 0, minHeight: 0, background: '#0f172a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <StableHtmlViewer
+                  test={test}
                   bankQ={activeBankQ}
                   secId={activeSec.id}
-                  title={activeSec.title}
+                  testId={test?.id}
+                  title={activeSec.title || activeBankQ?.title || 'Doküman / Soru'}
+                  idbPayload={idbPayload}
                 />
               </div>
             }

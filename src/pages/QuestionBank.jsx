@@ -10,8 +10,9 @@ import {
   ChevronRight, GraduationCap, School, Search, Calendar
 } from 'lucide-react';
 import './QuestionBank.css';
-import { idbSetPayload } from '../services/indexedDbService';
+import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
+import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
 
 const JSON_TEMPLATE = `[
   {
@@ -161,6 +162,43 @@ export default function QuestionBank() {
 
   // Preview State for Error Checking
   const [previewQuestion, setPreviewQuestion] = useState(null);
+
+  const handlePreviewQuestion = async (q) => {
+    if (!q) return;
+
+    let richPayload = null;
+    const isHtmlOrPdf = q.contentType === 'html' || q.contentType === 'pdf' || 
+      (typeof q.contentPayload === 'string' && (q.contentPayload.includes('[STORED_IN_INDEXEDDB]') || q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE')));
+
+    if (isHtmlOrPdf) {
+      const candidates = [
+        q.id,
+        String(q.id).replace(/^q_?/, ''),
+        `q_${String(q.id).replace(/^q_?/, '')}`,
+        `q${String(q.id).replace(/^q_?/, '')}`,
+        q.realTestId,
+        q.testId
+      ].filter(Boolean);
+
+      for (const key of candidates) {
+        try {
+          const idbData = await idbGetPayload(key);
+          if (idbData && (typeof idbData === 'string' ? idbData.length > 50 : true)) {
+            richPayload = idbData;
+            break;
+          }
+        } catch (e) {
+          console.warn('[QuestionBank] idbGetPayload check error:', e);
+        }
+      }
+    }
+
+    if (richPayload) {
+      setPreviewQuestion({ ...q, contentPayload: richPayload, htmlPayload: richPayload });
+    } else {
+      setPreviewQuestion(q);
+    }
+  };
 
   // View mode: 'card' (rich cards) | 'row' (compact table rows)
   const [viewMode, setViewMode] = useState('card');
@@ -1360,7 +1398,7 @@ const getAnswerKeyCount = (answerKey) => {
           {/* ROW 3: ACTIONS */}
           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.5rem', borderTop: `1px solid ${cfg.border}55`, flexWrap: 'wrap' }}>
             <button
-              onClick={() => setPreviewQuestion(q)}
+              onClick={() => handlePreviewQuestion(q)}
               style={{ flex: 1, minWidth: '80px', background: cfg.iconBg, color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: `0 3px 8px ${cfg.accent}33` }}
             >
               <Eye size={14} /> Önizle
@@ -1450,7 +1488,7 @@ const getAnswerKeyCount = (answerKey) => {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={() => setPreviewQuestion(q)} title="Önizle" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: cfg.iconBg, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <button onClick={() => handlePreviewQuestion(q)} title="Önizle" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: cfg.iconBg, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Eye size={13} /> Önizle
           </button>
           <button onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })} title="Ödev Ata" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -2114,7 +2152,7 @@ const getAnswerKeyCount = (answerKey) => {
           1. ULTRA WIDE & CENTERED EDIT / CREATE MODAL WINDOW
       ═════════════════════════════════════════════════════════════════════ */}
       {showModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
           <div className="modal-content card glass" style={{ width: '94vw', maxWidth: '1200px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '1.75rem', padding: '2.5rem', background: 'white', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
             
             {/* Modal Header */}
@@ -2979,7 +3017,7 @@ const getAnswerKeyCount = (answerKey) => {
         const gradeObj = subjectObj ? curData.grades.find(g => g.id === subjectObj.gradeId) : null;
 
         return (
-          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
             <div className="modal-content card glass" style={{ width: '94vw', maxWidth: '1150px', maxHeight: '92vh', overflowY: 'auto', padding: '2.5rem', borderRadius: '1.75rem', background: 'white' }}>
               
               {/* Header */}
@@ -3236,8 +3274,8 @@ const getAnswerKeyCount = (answerKey) => {
                   </div>
                 )}
 
-                {/* 3. HTML DOCUMENT PREVIEW (LIVE RENDERED IFRAME) */}
-                {!q.questionsList && q.contentType === 'html' && (
+                {/* 3. HTML DOCUMENT PREVIEW (LIVE RENDERED VIEWER) */}
+                {!q.questionsList && (q.contentType === 'html' || q.contentType === 'htm' || (typeof q.contentPayload === 'string' && (q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE')))) && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
                       <p style={{ margin: 0, fontWeight: 800, color: '#334155', fontSize: '0.95rem' }}>
@@ -3251,20 +3289,12 @@ const getAnswerKeyCount = (answerKey) => {
                     </div>
 
                     {/* Live Rendered HTML Frame */}
-                    <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '1.25rem' }}>
-                      {q.contentPayload?.startsWith('http') ? (
-                        <iframe
-                          src={q.contentPayload}
-                          title="HTML Döküman"
-                          style={{ width: '100%', height: '480px', border: 'none' }}
-                        />
-                      ) : (
-                        <iframe
-                          srcDoc={q.contentPayload}
-                          title="HTML Görsel Önizleme"
-                          style={{ width: '100%', height: '480px', border: 'none', background: 'white' }}
-                        />
-                      )}
+                    <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '1.25rem', height: '520px' }}>
+                      <HtmlViewerWithControls
+                        payload={q.htmlPayload || q.contentPayload}
+                        title={q.title || 'HTML Test Paketi'}
+                        height="520px"
+                      />
                     </div>
 
                     {/* Optical Answer Key Grid */}
@@ -3354,7 +3384,7 @@ const getAnswerKeyCount = (answerKey) => {
       })()}
 
       {previewImage && (
-        <div onClick={() => setPreviewImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem', cursor: 'pointer' }}>
+        <div onClick={() => setPreviewImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem', cursor: 'pointer' }}>
           <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
             <img src={previewImage} alt="Büyük Görsel" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
             <button onClick={() => setPreviewImage(null)} style={{ position: 'absolute', top: -15, right: -15, background: 'white', color: '#0f172a', border: 'none', borderRadius: '50%', width: 36, height: 36, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>

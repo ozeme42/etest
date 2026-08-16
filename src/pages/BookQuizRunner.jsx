@@ -47,9 +47,14 @@ export default function BookQuizRunner() {
     return <div className="container" style={{ padding: '4rem', textAlign: 'center' }}>Test yüklenirken bir sorun oluştu. Geçersiz bağlantı.</div>;
   }
 
-  const existingSubmission = (submissions || []).find(s => 
+  const isRetake = searchParams.get('retake') === 'true' || searchParams.get('mode') === 'solve' || Boolean(location?.state?.retake);
+  const hwCreatedTime = hw?.createdAt ? new Date(hw.createdAt).getTime() : 0;
+
+  const existingSubmission = isRetake ? null : (submissions || []).find(s => 
     String(s.studentId) === String(studentId) && 
-    (String(s.testId) === String(hw.id) || String(s.hwId) === String(hw.id))
+    (String(s.testId) === String(hw.id) || String(s.hwId) === String(hw.id) || String(s.testId) === String(testId)) &&
+    s.status !== 'in_progress' && s.status !== 'draft' &&
+    (hwCreatedTime && s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false)
   );
 
   useEffect(() => {

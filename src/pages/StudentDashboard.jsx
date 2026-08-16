@@ -485,9 +485,20 @@ export default function StudentDashboard() {
       const bookObj = books.find(b => String(b.id) === String(hw.bookId));
       const isExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || bookObj?.bookType === 'exam' || hw.isPhysical;
 
+      const hwCreatedTime = hw.createdAt ? new Date(hw.createdAt).getTime() : 0;
+
       if (isExam) {
         const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft') ||
-          submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id) || (bookObj && s.testId === bookObj.id)) && String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft');
+          submissions.find(s => {
+            if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status === 'draft') return false;
+            const matches = (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id) || (bookObj && s.testId === bookObj.id));
+            if (!matches) return false;
+            if (hwCreatedTime && s.submittedAt) {
+              return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
+            }
+            return true;
+          });
+
         return [{
           ...hw,
           type: 'physicalExam',
@@ -509,7 +520,15 @@ export default function StudentDashboard() {
 
           return Object.entries(hw.testDueDates).map(([testId, tDateStr]) => {
             const testObj = bookTests.find(b => String(b.id) === String(testId));
-            const sub = submissions.find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft' && (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId)))));
+            const sub = submissions.find(s => {
+              if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status !== 'draft') return false;
+              const matches = (String(s.testId) === String(testId) || String(s.bookTestId) === String(testId) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === String(testId))));
+              if (!matches) return false;
+              if (hwCreatedTime && s.submittedAt) {
+                return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
+              }
+              return true;
+            });
             const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(testObj?.subjectId));
             const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
 
@@ -533,7 +552,16 @@ export default function StudentDashboard() {
       }
 
       const sub = (hw.submissions || []).find(s => String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft') ||
-        submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(selectedStudent.id) && s.status !== 'in_progress' && s.status !== 'draft');
+        submissions.find(s => {
+          if (String(s.studentId) !== String(selectedStudent.id) || s.status === 'in_progress' || s.status !== 'draft') return false;
+          const matches = (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id));
+          if (!matches) return false;
+          if (hwCreatedTime && s.submittedAt) {
+            return new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000);
+          }
+          return true;
+        });
+
       return [{ 
         ...hw, 
         status: sub ? 'Sonuçlandı' : 'Atandı', 
