@@ -42,6 +42,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ScalePage = lazy(() => import('./pages/ScalePage'));
 const SummaryManagerPage = lazy(() => import('./pages/SummaryManagerPage'));
 const StudentSummaryPage = lazy(() => import('./pages/StudentSummaryPage'));
+const StudentHomeworksPage = lazy(() => import('./pages/StudentHomeworksPage'));
 const StudyRoomPage = lazy(() => import('./pages/StudyRoomPage'));
 
 function PageLoader() {
@@ -197,6 +198,12 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                   <GraduationCap size={16} color="white" />
                 </div>
                 <span>Öğrenci Paneli</span>
+              </NavLink>
+              <NavLink to="/student/homeworks" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ef4444, #f97316)', boxShadow: '0 2px 10px rgba(239,68,68,0.35)' }}>
+                  <BookMarked size={16} color="white" />
+                </div>
+                <span>Ödevlerim</span>
               </NavLink>
               <NavLink to="/student/summaries" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
@@ -380,6 +387,7 @@ function AppContent() {
               <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
               <Route path="/teacher" element={<TeacherDashboard />} />
               <Route path="/student" element={<StudentDashboard />} />
+              <Route path="/student/homeworks" element={<StudentHomeworksPage />} />
               <Route path="/study-room" element={<StudyRoomPage />} />
               <Route path="/student/study-room" element={<StudyRoomPage />} />
               <Route path="/student/summaries" element={<StudentSummaryPage />} />

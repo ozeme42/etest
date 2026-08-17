@@ -428,6 +428,38 @@ export default function StudentDashboard() {
     return hwTests;
   }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
 
+  /* ─── Homework Summary Groups for Dashboard Card (Yol Haritası style) ─── */
+  const homeworkSummaryGroups = useMemo(() => {
+    if (!tests || tests.length === 0) return [];
+    const groups = {};
+    tests.forEach(item => {
+      const groupKey = item.bookId ? `book_${item.bookId}` : `hw_${item.hwId || item.id}`;
+      const groupTitle = item.bookTitle || item.title?.split('—')?.[0]?.trim() || item.name || 'Ödev Seti';
+      const subject = item.subject || '';
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          id: groupKey,
+          title: groupTitle,
+          subject,
+          totalCount: 0,
+          doneCount: 0,
+          pendingCount: 0,
+          pct: 0
+        };
+      }
+      groups[groupKey].totalCount++;
+      const isDone = item.status === 'Sonuçlandı' || item.status === 'Tamamlandı';
+      if (isDone) groups[groupKey].doneCount++;
+      else groups[groupKey].pendingCount++;
+    });
+
+    return Object.values(groups).map(g => ({
+      ...g,
+      pct: g.totalCount > 0 ? Math.round((g.doneCount / g.totalCount) * 100) : 0
+    }));
+  }, [tests]);
+
   /* ─── 1-Click Resume Book & Next Test ─── */
   const resumeBookTest = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return null;
@@ -1446,7 +1478,7 @@ export default function StudentDashboard() {
           {/* ──── SOL KOLON: ÖDEVLER & YOL HARİTASI ──── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-            {/* 📋 BÖLÜM 1: BEKLEYEN ÖDEVLERİM */}
+            {/* 📋 BÖLÜM 1: ÖDEVLERİM & GÖREV TAKİBİ (YOL HARİTASI STİLİ) */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
               border: '1.5px solid rgba(255, 255, 255, 0.14)',
@@ -1462,126 +1494,89 @@ export default function StudentDashboard() {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
-                      Bekleyen Ödevlerim
+                      Ödevlerim & Görev Takibi
                     </h2>
                     <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
-                      Öğretmeniniz veya koçunuz tarafından atanan görevler
+                      Öğretmeniniz veya koçunuz tarafından atanan ödevlerin tamamlama durumu
                     </span>
                   </div>
                 </div>
 
-                {pendingCount > 0 && (
-                  <span style={{ background: '#ef4444', color: 'white', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900, boxShadow: '0 2px 10px rgba(239,68,68,0.5)' }}>
-                    {pendingCount} Ödev
-                  </span>
-                )}
+                <button
+                  onClick={() => navigate('/student/homeworks')}
+                  style={{
+                    background: pendingCount > 0 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(34, 197, 94, 0.25)',
+                    color: pendingCount > 0 ? '#fca5a5' : '#86efac',
+                    border: pendingCount > 0 ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(34,197,94,0.35)',
+                    borderRadius: 99,
+                    padding: '0.25rem 0.75rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  {pendingCount > 0 ? `${pendingCount} Bekleyen Ödev` : 'Tümü Tamamlandı 🎉'}
+                  <ChevronRight size={12} />
+                </button>
               </div>
 
-              {pendingTasks.length === 0 ? (
-                <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎉</div>
-                  <div style={{ fontWeight: 900, color: '#ffffff', fontSize: '1.05rem', marginBottom: 4 }}>
-                    Tüm ödevler tamamlandı!
+              {homeworkSummaryGroups.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎉</div>
+                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz atanmış bir ödeviniz yok
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                    Harika bir iş çıkardın. Yeni ödevler atandığında burada görünecektir.
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir.
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {pendingTasks.map(task => {
-                    const dueDate = task.dueDateObj;
-                    const overdue = isPast(dueDate) && !isToday(dueDate);
-                    const dueToday = isToday(dueDate);
-                    const daysDiff = differenceInDays(dueDate, new Date());
-                    const conf = getSubConf(getThemeKey(task.subject));
-                    const Icon = conf.icon;
-
-                    const handleStart = () => {
-                      const targetId = task.realTestId || task.testId || task.id;
-                      if (task.type === 'physicalExam' || task.isPhysical) {
-                        navigate(`/physical-exam/${task.hwId || targetId}?studentId=${selectedStudent.id}`);
-                      } else if (task.sourceType === 'trackedBook' || task.isBookAssignment) {
-                        navigate(`/book-quiz/${targetId}?studentId=${selectedStudent.id}`);
-                      } else {
-                        navigate(`/quiz/${targetId}?studentId=${selectedStudent.id}`);
-                      }
-                    };
-
-                    return (
-                      <div
-                        key={task.id}
-                        onClick={handleStart}
-                        className="sd-card"
-                        style={{
-                          background: 'rgba(15, 23, 42, 0.75)',
-                          border: overdue ? '1.5px solid rgba(239, 68, 68, 0.5)' : dueToday ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1.5px solid rgba(255, 255, 255, 0.12)',
-                          borderRadius: 16,
-                          padding: '0.9rem 1.1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 12,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 12, background: conf.bg, border: `1.5px solid ${conf.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Icon size={20} color={conf.color} />
-                          </div>
-
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: conf.color, background: 'rgba(255,255,255,0.1)', padding: '1px 6px', borderRadius: 4 }}>
-                                {task.subject}
-                              </span>
-
-                              {overdue ? (
-                                <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '1px 6px', borderRadius: 99 }}>
-                                  ⚡ Gecikti
-                                </span>
-                              ) : dueToday ? (
-                                <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'rgba(245,158,11,0.2)', color: '#fbbf24', padding: '1px 6px', borderRadius: 99 }}>
-                                  ⚠️ Bugün Son
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#94a3b8' }}>
-                                  {daysDiff + 1} gün kaldı
-                                </span>
-                              )}
-                            </div>
-
-                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {task.title}
-                            </div>
-                          </div>
+                  {homeworkSummaryGroups.map(group => (
+                    <div
+                      key={group.id}
+                      onClick={() => navigate('/student/homeworks')}
+                      className="sd-card"
+                      style={{
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        border: '1.5px solid rgba(239, 68, 68, 0.25)',
+                        borderRadius: 16,
+                        padding: '1rem 1.15rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                          {group.title}
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleStart(); }}
-                          className="sd-btn"
-                          style={{
-                            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: 10,
-                            padding: '0.45rem 0.95rem',
-                            fontSize: '0.78rem',
-                            fontWeight: 900,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            flexShrink: 0,
-                            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
-                          }}
-                        >
-                          <PlayCircle size={14} /> Başla
-                        </button>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#4ade80' : '#f87171' }}>
+                          %{group.pct}
+                        </span>
                       </div>
-                    );
-                  })}
+
+                      {/* Progress Bar */}
+                      <div style={{ height: 7, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${group.pct}%`,
+                          background: group.pct === 100 ? 'linear-gradient(90deg, #22c55e, #10b981)' : 'linear-gradient(90deg, #f97316, #ef4444)',
+                          borderRadius: 99,
+                          transition: 'width 0.8s ease'
+                        }} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+                        <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#f87171', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
+                        <span style={{ color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
+                          Detayları Gör <ChevronRight size={13} />
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
