@@ -401,7 +401,14 @@ export async function dbGetGoals(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
     let query = supabase.from('goals').select('*').order('created_at', { ascending: false });
-    if (studentId) query = query.eq('student_id', studentId);
+    if (studentId) {
+      const sUuid = toUUID(studentId);
+      if (sUuid) {
+        query = query.or(`student_id.eq.${studentId},student_id.eq.${sUuid}`);
+      } else {
+        query = query.eq('student_id', studentId);
+      }
+    }
     const { data, error } = await query;
     if (error) throw error;
     return data.map(g => ({
@@ -424,19 +431,25 @@ export async function dbGetGoals(studentId) {
 export async function dbAddGoal(goal) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const safeId = toUUID(goal.id) || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : toUUID(`g_${Date.now()}_${Math.random()}`));
+    const safeStudentId = toUUID(goal.studentId) || goal.studentId || 'u1';
     const payload = {
-      id: String(goal.id || `g_${Date.now()}`),
-      student_id: goal.studentId || 'u1',
-      title: goal.title,
-      type: goal.type,
-      period: goal.period,
-      target: goal.target,
-      current: goal.current || 0,
+      id: safeId,
+      student_id: safeStudentId,
+      title: goal.title || 'Hedef',
+      type: goal.type || 'Soru',
+      period: goal.period || 'Günlük',
+      target: Number(goal.target) || 0,
+      current: Number(goal.current) || 0,
       link: goal.link || ''
     };
     const { data, error } = await supabase.from('goals').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
-    return data;
+    return {
+      ...goal,
+      id: String(data.id),
+      studentId: data.student_id
+    };
   } catch (err) {
     console.warn('[Supabase] dbAddGoal error:', err.message);
     return null;
@@ -446,7 +459,8 @@ export async function dbAddGoal(goal) {
 export async function dbUpdateGoalProgress(goalId, newCurrent) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data, error } = await supabase.from('goals').update({ current: newCurrent }).eq('id', String(goalId)).select();
+    const safeId = toUUID(goalId) || String(goalId);
+    const { data, error } = await supabase.from('goals').update({ current: Number(newCurrent) || 0 }).eq('id', safeId).select();
     if (error) throw error;
     return data;
   } catch (err) {
@@ -458,7 +472,8 @@ export async function dbUpdateGoalProgress(goalId, newCurrent) {
 export async function dbDeleteGoal(goalId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { error } = await supabase.from('goals').delete().eq('id', String(goalId));
+    const safeId = toUUID(goalId) || String(goalId);
+    const { error } = await supabase.from('goals').delete().eq('id', safeId);
     if (error) throw error;
     return true;
   } catch (err) {
@@ -474,7 +489,14 @@ export async function dbGetSchedules(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
     let query = supabase.from('schedules').select('*').order('created_at', { ascending: true });
-    if (studentId) query = query.eq('student_id', studentId);
+    if (studentId) {
+      const sUuid = toUUID(studentId);
+      if (sUuid) {
+        query = query.or(`student_id.eq.${studentId},student_id.eq.${sUuid}`);
+      } else {
+        query = query.eq('student_id', studentId);
+      }
+    }
     const { data, error } = await query;
     if (error) throw error;
     return data.map(s => ({
@@ -494,9 +516,11 @@ export async function dbGetSchedules(studentId) {
 export async function dbAddSchedule(sch) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const safeId = toUUID(sch.id) || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : toUUID(`s_${Date.now()}_${Math.random()}`));
+    const safeStudentId = toUUID(sch.studentId) || sch.studentId || 'u1';
     const payload = {
-      id: String(sch.id || `s_${Date.now()}`),
-      student_id: sch.studentId || 'u1',
+      id: safeId,
+      student_id: safeStudentId,
       day: sch.day,
       time: sch.time,
       title: sch.title,
@@ -514,7 +538,8 @@ export async function dbAddSchedule(sch) {
 export async function dbToggleSchedule(schId, newDone) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data, error } = await supabase.from('schedules').update({ done: newDone }).eq('id', String(schId)).select();
+    const safeId = toUUID(schId) || String(schId);
+    const { data, error } = await supabase.from('schedules').update({ done: Boolean(newDone) }).eq('id', safeId).select();
     if (error) throw error;
     return data;
   } catch (err) {
@@ -526,7 +551,8 @@ export async function dbToggleSchedule(schId, newDone) {
 export async function dbDeleteSchedule(schId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { error } = await supabase.from('schedules').delete().eq('id', String(schId));
+    const safeId = toUUID(schId) || String(schId);
+    const { error } = await supabase.from('schedules').delete().eq('id', safeId);
     if (error) throw error;
     return true;
   } catch (err) {

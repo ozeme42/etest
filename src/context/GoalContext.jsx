@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { dbGetGoals, dbAddGoal, dbUpdateGoalProgress, dbDeleteGoal } from '../services/supabaseService';
+import { dbGetGoals, dbAddGoal, dbUpdateGoalProgress, dbDeleteGoal, toUUID } from '../services/supabaseService';
 
 const GoalContext = createContext();
 
@@ -18,8 +18,27 @@ export function GoalProvider({ children }) {
   useEffect(() => {
     async function syncFromSupabase() {
       const dbGoals = await dbGetGoals();
-      if (dbGoals && dbGoals.length > 0) {
-        setGoals(dbGoals);
+      if (dbGoals && Array.isArray(dbGoals)) {
+        if (dbGoals.length > 0) {
+          setGoals(dbGoals);
+        } else {
+          // If Supabase is empty, check localStorage and push to DB
+          const saved = localStorage.getItem('eTestGoals');
+          if (saved) {
+            try {
+              const localGoals = JSON.parse(saved);
+              if (Array.isArray(localGoals) && localGoals.length > 0) {
+                for (const g of localGoals) {
+                  await dbAddGoal(g);
+                }
+                const refreshed = await dbGetGoals();
+                if (refreshed && refreshed.length > 0) {
+                  setGoals(refreshed);
+                }
+              }
+            } catch (e) {}
+          }
+        }
       }
     }
     syncFromSupabase();
@@ -30,21 +49,28 @@ export function GoalProvider({ children }) {
   }, [goals]);
 
   const addGoal = async (goalData) => {
+    const rawId = goalData.id || `goal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const uuidId = toUUID(rawId) || rawId;
     const newGoal = {
-      id: `goal-${Date.now()}`,
       ...goalData,
-      current: 0,
+      id: uuidId,
+      current: Number(goalData.current) || 0,
       createdAt: new Date().toISOString()
     };
-    setGoals(prev => [...prev, newGoal]);
+    setGoals(prev => {
+      const exists = prev.some(g => g.id === newGoal.id);
+      if (exists) return prev.map(g => g.id === newGoal.id ? newGoal : g);
+      return [...prev, newGoal];
+    });
     await dbAddGoal(newGoal);
+    return newGoal;
   };
 
   const updateGoalProgress = async (goalId, addedAmount) => {
     let targetGoal = null;
     setGoals(prev => prev.map(g => {
-      if (g.id === goalId) {
-        const newCurrent = Math.min(g.target, g.current + Number(addedAmount));
+      if (g.id === goalId || toUUID(g.id) === toUUID(goalId)) {
+        const newCurrent = Math.min(g.target, (Number(g.current) || 0) + Number(addedAmount));
         targetGoal = { ...g, current: newCurrent };
         return targetGoal;
       }
@@ -56,7 +82,7 @@ export function GoalProvider({ children }) {
   };
 
   const deleteGoal = async (goalId) => {
-    setGoals(prev => prev.filter(g => g.id !== goalId));
+    setGoals(prev => prev.filter(g => g.id !== goalId && toUUID(g.id) !== toUUID(goalId)));
     await dbDeleteGoal(goalId);
   };
 
