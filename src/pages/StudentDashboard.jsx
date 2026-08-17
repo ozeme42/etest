@@ -1416,53 +1416,51 @@ export default function StudentDashboard() {
       `}</style>
 
       {/* ════════════════════════════════════════════
-          1. HERO BANNER: ÖĞRENCİ KİMLİK & 5'Lİ KPI KARTLARI
+          1. HERO BANNER: ÖĞRENCİ KİMLİK & TEK SATIRDA 5'Lİ KPI KARTLARI
       ════════════════════════════════════════════ */}
       <div style={{
-        padding: isMobile ? '1rem 0.75rem 0' : '1.5rem 1.5rem 0'
+        background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 35%, #7c3aed 70%, #9333ea 100%)',
+        borderBottom: '1.5px solid rgba(255, 255, 255, 0.18)',
+        padding: isMobile ? '1rem 0.75rem 1rem' : '1.35rem 1.75rem 1.45rem',
+        boxShadow: '0 10px 30px rgba(79, 70, 229, 0.3)'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '0.9rem' }}>
           
-          {/* ÜST VİOLET HERO BANNER */}
+          {/* ÜST SATIR: SOL PROFİL BİLGİSİ <---------> SAĞ YUVARLAK BAŞARI DİSKİ */}
           <div style={{
-            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 35%, #7c3aed 70%, #9333ea 100%)',
-            border: '1.5px solid rgba(255, 255, 255, 0.22)',
-            borderRadius: 24,
-            padding: isMobile ? '1.25rem 1rem' : '1.65rem 2rem',
-            boxShadow: '0 12px 36px rgba(99, 102, 241, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1rem',
-            flexWrap: 'wrap'
+            gap: '0.75rem',
+            width: '100%'
           }}>
             {/* SOL: AVATAR + HOŞ GELDİN + İSİM + ROZETLER */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.25rem', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', minWidth: 0 }}>
               
-              {/* Yuvarlak Avatar + Yeşil Online Rozeti */}
+              {/* Yuvarlak Avatar + Yeşil Online Noktası */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div style={{
-                  width: isMobile ? 56 : 72,
-                  height: isMobile ? 56 : 72,
+                  width: isMobile ? 52 : 68,
+                  height: isMobile ? 52 : 68,
                   borderRadius: '50%',
                   background: 'rgba(255, 255, 255, 0.22)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: isMobile ? '1.5rem' : '1.95rem',
+                  fontSize: isMobile ? '1.4rem' : '1.85rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   border: '3px solid rgba(255, 255, 255, 0.55)',
-                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)'
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
                 }}>
                   {selectedStudent?.name?.charAt(0) || 'Ö'}
                 </div>
                 <div style={{
                   position: 'absolute',
-                  bottom: 2,
-                  right: 2,
-                  width: isMobile ? 14 : 16,
-                  height: isMobile ? 14 : 16,
+                  bottom: 1,
+                  right: 1,
+                  width: isMobile ? 13 : 15,
+                  height: isMobile ? 13 : 15,
                   borderRadius: '50%',
                   background: '#22c55e',
                   border: '2.5px solid #ffffff',
@@ -1473,20 +1471,20 @@ export default function StudentDashboard() {
               {/* İsim ve Başlık Bilgisi */}
               <div style={{ minWidth: 0 }}>
                 <div style={{
-                  fontSize: isMobile ? '0.7rem' : '0.76rem',
+                  fontSize: isMobile ? '0.66rem' : '0.72rem',
                   fontWeight: 800,
                   color: 'rgba(255, 255, 255, 0.9)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
-                  marginBottom: 2
+                  marginBottom: 1
                 }}>
                   HOŞ GELDİN 👋
                 </div>
                 <h1 style={{
-                  fontSize: isMobile ? '1.35rem' : '1.85rem',
+                  fontSize: isMobile ? '1.25rem' : '1.75rem',
                   fontWeight: 900,
                   color: '#ffffff',
-                  margin: '0 0 6px 0',
+                  margin: '0 0 4px 0',
                   lineHeight: 1.15,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -1496,13 +1494,13 @@ export default function StudentDashboard() {
                 </h1>
                 
                 {/* Tarih ve Koçluk Rozetleri */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.16)',
                     border: '1px solid rgba(255, 255, 255, 0.28)',
                     borderRadius: 99,
-                    padding: '3px 10px',
-                    fontSize: '0.74rem',
+                    padding: '2px 9px',
+                    fontSize: isMobile ? '0.68rem' : '0.72rem',
                     fontWeight: 800,
                     color: '#ffffff',
                     display: 'inline-flex',
@@ -1518,8 +1516,8 @@ export default function StudentDashboard() {
                     border: hasCoach ? '1px solid rgba(74, 222, 128, 0.45)' : '1px solid rgba(255, 255, 255, 0.28)',
                     color: hasCoach ? '#4ade80' : '#ffffff',
                     borderRadius: 99,
-                    padding: '3px 10px',
-                    fontSize: '0.74rem',
+                    padding: '2px 9px',
+                    fontSize: isMobile ? '0.68rem' : '0.72rem',
                     fontWeight: 800,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1538,8 +1536,8 @@ export default function StudentDashboard() {
               title="Detaylı Sonuçlar ve Başarı Analizini İncele"
               className="sd-btn"
               style={{
-                width: isMobile ? 74 : 96,
-                height: isMobile ? 74 : 96,
+                width: isMobile ? 68 : 88,
+                height: isMobile ? 68 : 88,
                 borderRadius: '50%',
                 background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 100%)',
                 border: '2px solid rgba(255, 255, 255, 0.45)',
@@ -1553,7 +1551,7 @@ export default function StudentDashboard() {
               }}
             >
               <div style={{
-                fontSize: isMobile ? '1.25rem' : '1.65rem',
+                fontSize: isMobile ? '1.15rem' : '1.5rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 lineHeight: 1
@@ -1561,11 +1559,11 @@ export default function StudentDashboard() {
                 %{overallSuccessRate}
               </div>
               <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.68rem',
+                fontSize: isMobile ? '0.54rem' : '0.64rem',
                 fontWeight: 900,
                 color: 'rgba(255, 255, 255, 0.95)',
                 letterSpacing: '0.08em',
-                marginTop: 3,
+                marginTop: 2,
                 textTransform: 'uppercase'
               }}>
                 BAŞARI
@@ -1573,36 +1571,38 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* 5'Lİ RENKLİ KPI KARTLARI SATIRI */}
+          {/* ALT SATIR: TEK SATIRDA SIRALANAN 5'Lİ CANLI KPI KARTLARI */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-            gap: isMobile ? '0.65rem' : '0.9rem',
-            marginTop: '0.85rem'
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: isMobile ? '0.35rem' : '0.65rem',
+            width: '100%',
+            marginTop: '0.15rem'
           }}>
             {/* 1. TOPLAM */}
             <div
               onClick={() => navigate('/student/homeworks')}
-              className="sd-card"
+              className="sd-btn"
               style={{
                 background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 18,
-                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                borderRadius: isMobile ? 10 : 14,
+                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: '0 6px 20px rgba(79, 70, 229, 0.35)',
-                cursor: 'pointer'
+                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
+                cursor: 'pointer',
+                minWidth: 0
               }}
             >
-              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>📜</div>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>📜</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                 {taskStats.totalCount}
               </div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 TOPLAM
               </div>
             </div>
@@ -1610,26 +1610,27 @@ export default function StudentDashboard() {
             {/* 2. TAMAMLANDI */}
             <div
               onClick={() => navigate('/student/results')}
-              className="sd-card"
+              className="sd-btn"
               style={{
                 background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 18,
-                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                borderRadius: isMobile ? 10 : 14,
+                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
-                cursor: 'pointer'
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+                minWidth: 0
               }}
             >
-              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>✅</div>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>✅</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                 {taskStats.completedCount}
               </div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 TAMAMLANDI
               </div>
             </div>
@@ -1637,26 +1638,27 @@ export default function StudentDashboard() {
             {/* 3. BEKLİYOR */}
             <div
               onClick={() => navigate('/student/homeworks')}
-              className="sd-card"
+              className="sd-btn"
               style={{
                 background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 18,
-                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                borderRadius: isMobile ? 10 : 14,
+                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.35)',
-                cursor: 'pointer'
+                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)',
+                cursor: 'pointer',
+                minWidth: 0
               }}
             >
-              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>⏳</div>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>⏳</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                 {taskStats.pendingCount}
               </div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 BEKLİYOR
               </div>
             </div>
@@ -1664,26 +1666,27 @@ export default function StudentDashboard() {
             {/* 4. GECİKTİ */}
             <div
               onClick={() => navigate('/student/homeworks')}
-              className="sd-card"
+              className="sd-btn"
               style={{
                 background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 18,
-                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                borderRadius: isMobile ? 10 : 14,
+                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: '0 6px 20px rgba(239, 68, 68, 0.35)',
-                cursor: 'pointer'
+                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
+                cursor: 'pointer',
+                minWidth: 0
               }}
             >
-              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>🔥</div>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>🔥</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                 {taskStats.overdueCount}
               </div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 GECİKTİ
               </div>
             </div>
@@ -1691,27 +1694,27 @@ export default function StudentDashboard() {
             {/* 5. TAMAMLANMA */}
             <div
               onClick={() => navigate('/student/results')}
-              className="sd-card"
+              className="sd-btn"
               style={{
                 background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: 18,
-                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                borderRadius: isMobile ? 10 : 14,
+                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: '0 6px 20px rgba(139, 92, 246, 0.35)',
+                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
                 cursor: 'pointer',
-                gridColumn: isMobile ? 'span 2' : 'auto'
+                minWidth: 0
               }}
             >
-              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>🏆</div>
-              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>🏆</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                 %{taskStats.completionRate}
               </div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 TAMAMLANMA
               </div>
             </div>
@@ -1719,7 +1722,7 @@ export default function StudentDashboard() {
 
           {/* Teacher Selector if viewed by teacher/admin */}
           {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-            <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ marginTop: '0.4rem', paddingTop: '0.55rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
               <select
                 value={selectedStudent?.id || ''}
