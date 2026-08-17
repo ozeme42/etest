@@ -612,22 +612,48 @@ export default function TrackedBookQuizRunner() {
         {/* Right: Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           
-          {/* Timer */}
+          {/* Large Stylish Countdown Timer in Navbar */}
           {!isSubmitted && !isTeacherReviewing && (
             <div style={{
-              padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.75rem',
-              borderRadius: '0.65rem',
-              background: timeLeft < 300 ? '#7f1d1d' : '#0f172a',
-              border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`,
-              color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.75rem' : '0.85rem',
+              padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1.15rem',
+              borderRadius: '0.85rem',
+              background: timeLeft < 300
+                ? 'linear-gradient(135deg, rgba(153, 27, 27, 0.95), rgba(225, 29, 72, 0.95))'
+                : 'linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 27, 75, 0.96) 100%)',
+              border: timeLeft < 300 ? '2px solid #ef4444' : '1.5px solid rgba(129, 140, 248, 0.45)',
+              boxShadow: timeLeft < 300 ? '0 0 20px rgba(239, 68, 68, 0.5)' : '0 4px 18px rgba(99, 102, 241, 0.35)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: isMobile ? '0.45rem' : '0.65rem',
+              transition: 'all 0.2s ease'
             }}>
-              <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
-              <span>{formatTime(timeLeft)}</span>
+              <div style={{
+                width: isMobile ? 26 : 30,
+                height: isMobile ? 26 : 30,
+                borderRadius: '50%',
+                background: timeLeft < 300 ? 'rgba(255,255,255,0.2)' : 'rgba(99,102,241,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Clock size={isMobile ? 15 : 18} color={timeLeft < 300 ? '#ffffff' : '#38bdf8'} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: timeLeft < 300 ? '#fecdd3' : '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {timeLeft < 300 ? '⚠️ AZ KALDI' : 'SÜRE'}
+                </span>
+                <span style={{
+                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace",
+                  fontSize: isMobile ? '1.05rem' : '1.25rem',
+                  fontWeight: 900,
+                  color: timeLeft < 300 ? '#ffffff' : '#38bdf8',
+                  letterSpacing: '0.06em',
+                  marginTop: 2,
+                  textShadow: timeLeft < 300 ? '0 0 10px rgba(255,255,255,0.6)' : '0 0 10px rgba(56,189,248,0.4)'
+                }}>
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
             </div>
           )}
 
@@ -894,20 +920,56 @@ export default function TrackedBookQuizRunner() {
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 
                 {/* Header & Progress Bar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#06b6d4', boxShadow: '0 0 10px #06b6d4' }} />
-                      <span style={{ fontWeight: 900, fontSize: '1.05rem', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#06b6d4', boxShadow: '0 0 12px #06b6d4' }} />
+                      <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#f8fafc', letterSpacing: '-0.01em' }}>
                         Optik Form
                       </span>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 800, background: '#0f172a', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 800, background: '#0f172a', padding: '0.25rem 0.7rem', borderRadius: '0.6rem', border: '1px solid #334155' }}>
                         {questionCount} Soru
                       </span>
                     </div>
 
+                    {/* Prominent Optical Form Countdown Widget */}
+                    {!isSubmitted && !isTeacherReviewing && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.65rem',
+                        background: timeLeft < 300
+                          ? 'linear-gradient(135deg, rgba(153, 27, 27, 0.95), rgba(225, 29, 72, 0.95))'
+                          : 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 27, 75, 0.96))',
+                        border: timeLeft < 300 ? '2px solid #ef4444' : '1.5px solid rgba(165, 180, 252, 0.35)',
+                        borderRadius: '0.9rem',
+                        padding: '0.45rem 1rem',
+                        boxShadow: timeLeft < 300 ? '0 0 18px rgba(239, 68, 68, 0.45)' : '0 4px 16px rgba(0,0,0,0.3)'
+                      }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: timeLeft < 300 ? 'rgba(255,255,255,0.2)' : 'rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Clock size={16} color={timeLeft < 300 ? '#ffffff' : '#38bdf8'} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 900, color: timeLeft < 300 ? '#fecdd3' : '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {timeLeft < 300 ? '⚠️ AZ KALDI' : 'KALAN SÜRE'}
+                          </span>
+                          <span style={{
+                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace",
+                            fontSize: '1.25rem',
+                            fontWeight: 900,
+                            color: timeLeft < 300 ? '#ffffff' : '#38bdf8',
+                            letterSpacing: '0.06em',
+                            marginTop: 2,
+                            textShadow: timeLeft < 300 ? '0 0 10px rgba(255,255,255,0.6)' : '0 0 10px rgba(56,189,248,0.4)'
+                          }}>
+                            {formatTime(timeLeft)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {!isSubmitted && (
-                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: answeredCount === questionCount ? '#34d399' : '#38bdf8' }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 900, color: answeredCount === questionCount ? '#34d399' : '#38bdf8', background: 'rgba(255,255,255,0.06)', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                         {answeredCount}/{questionCount} Kodlandı {questionCount > 0 ? `(%${Math.round((answeredCount / questionCount) * 100)})` : ''}
                       </div>
                     )}
@@ -1225,19 +1287,44 @@ export default function TrackedBookQuizRunner() {
           }} onClick={e => e.stopPropagation()}>
 
             <div style={{
-              padding: '1rem 1.25rem',
+              padding: '0.9rem 1.25rem',
               background: '#1e293b',
               borderBottom: '1px solid #334155',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem'
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#f8fafc' }}>
                   📝 {resolvedTest.name}
                 </h3>
-                <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>
                   {answeredCount}/{questionCount} soru kodlandı
                 </p>
               </div>
+
+              {!isSubmitted && !isTeacherReviewing && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: timeLeft < 300
+                    ? 'linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(225, 29, 72, 0.9))'
+                    : 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.95))',
+                  border: timeLeft < 300 ? '1.5px solid #ef4444' : '1.5px solid rgba(129, 140, 248, 0.4)',
+                  borderRadius: '0.75rem',
+                  padding: '0.35rem 0.75rem'
+                }}>
+                  <Clock size={15} color={timeLeft < 300 ? '#ffffff' : '#38bdf8'} />
+                  <span style={{
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    fontSize: '1.05rem',
+                    fontWeight: 900,
+                    color: timeLeft < 300 ? '#ffffff' : '#38bdf8'
+                  }}>
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+              )}
+
               <button
                 onClick={() => setShowMobileOpticModal(false)}
                 style={{
