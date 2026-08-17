@@ -118,15 +118,15 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
         </div>
 
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.12)', padding: '0.65rem 0.65rem', borderRadius: '0.85rem', border: '1px solid rgba(99,102,241,0.25)' }}>
-              <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.22) 0%, rgba(168,85,247,0.18) 100%)', padding: '0.65rem 0.75rem', borderRadius: '0.95rem', border: '1.5px solid rgba(165,180,252,0.35)', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+              <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
                 {currentUser.name?.charAt(0).toUpperCase()}
               </div>
               <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#a5b4fc', textTransform: 'uppercase', tracking: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
               </div>
               <button 
                 onClick={() => { logout(); closeSidebar(); navigate('/'); }}
