@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronDown, ChevronUp, Star, TrendingUp, BookMarked, CalendarDays,
   Ruler, TestTube2, BookCopy, Globe, MessageSquare,
   FileText, ClipboardList, ArrowRight, RefreshCw, ClipboardCheck, Eye, RotateCcw,
-  CheckSquare, Award, ArrowUpRight
+  CheckSquare, Award, ArrowUpRight, Brain
 } from 'lucide-react';
 import { parse, isPast, isToday, differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -78,6 +78,15 @@ const DAYS_OF_WEEK = [
   { key: 'Cts', name: 'Cumartesi', short: 'Cts' },
   { key: 'Paz', name: 'Pazar', short: 'Paz' }
 ];
+
+const GOAL_TYPE_THEMES = {
+  Soru:   { color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.18)',    text: '#fb7185', border: 'rgba(244, 63, 94, 0.35)', icon: Target,      unit: 'soru', step: 10 },
+  Sayfa:  { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.18)',   text: '#38bdf8', border: 'rgba(56, 189, 248, 0.35)', icon: BookOpen,    unit: 'sayfa', step: 5 },
+  Konu:   { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.18)', text: '#c084fc', border: 'rgba(192, 132, 252, 0.35)', icon: Brain,       unit: 'konu', step: 1 },
+  Dakika: { color: '#34d399', bg: 'rgba(52, 211, 153, 0.18)',  text: '#34d399', border: 'rgba(52, 211, 153, 0.35)', icon: Timer,       unit: 'dk', step: 15 },
+  Net:    { color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.18)',   text: '#22d3ee', border: 'rgba(34, 211, 238, 0.35)', icon: TrendingUp, unit: 'net', step: 1 },
+  Puan:   { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.18)',   text: '#fbbf24', border: 'rgba(251, 191, 36, 0.35)', icon: Trophy,     unit: 'puan', step: 5 },
+};
 
 const DASHBOARD_QUOTES = [
   { quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", author: "Robert Collier", category: "Disiplin", emoji: "🔥" },
@@ -1035,6 +1044,81 @@ export default function StudentDashboard() {
     return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
   }, [goals, selectedStudent]);
 
+  /* ─── Hedef Takip Panosu Verileri (Sınav, Net, Soru, Alışkanlıklar) ─── */
+  const goalTrackingData = useMemo(() => {
+    if (!selectedStudent?.id) {
+      return { hasAnyGoals: false, visualGoals: [], monthly: [], weekly: [], daily: [], totalItemsCount: 0 };
+    }
+    const profile = getCoachingProfileForStudent(selectedStudent.id) || {};
+    const g = profile.goals || {};
+
+    const examType = profile.examGoalType || g.examGoalType || '';
+    const customExam = profile.customExamName || g.customExamName || '';
+    const school = profile.targetSchool || g.targetSchool || '';
+    const score = profile.targetScore || g.targetScore || '';
+    const net = (profile.targetNet !== undefined && String(profile.targetNet) !== '0') ? String(profile.targetNet) : (g.targetNet || '');
+    const gradeTarget = profile.gradeTarget || g.gradeTarget || '';
+
+    const hasExamOrTarget = Boolean(examType || school || score || (net && net !== '0') || gradeTarget);
+
+    // Monthly goals
+    let monthly = [];
+    const rawM = profile.monthlyGoals || g.monthlyGoals;
+    if (Array.isArray(rawM)) {
+      monthly = rawM.map((item, idx) => typeof item === 'string' ? { id: `m_${idx}`, text: item, done: false } : item);
+    } else if (typeof rawM === 'string' && rawM.trim()) {
+      monthly = rawM.split('\n').filter(Boolean).map((line, idx) => ({
+        id: `m_${idx}`,
+        text: line.replace(/^[•\-\*\d\.\s]+/, '').trim(),
+        done: false
+      }));
+    }
+
+    // Weekly goals / habits
+    let weekly = [];
+    const rawW = profile.weeklyGoals || g.weeklyGoals;
+    if (Array.isArray(rawW)) {
+      weekly = rawW.map((item, idx) => typeof item === 'string' ? { id: `w_${idx}`, text: item } : item);
+    } else if (typeof rawW === 'string' && rawW.trim()) {
+      weekly = rawW.split('\n').filter(Boolean).map((line, idx) => ({
+        id: `w_${idx}`,
+        text: line.replace(/^[•\-\*\d\.\s]+/, '').trim()
+      }));
+    }
+
+    // Daily goals / habits
+    let daily = [];
+    const rawD = profile.dailyGoals || g.dailyGoals;
+    if (Array.isArray(rawD)) {
+      daily = rawD.map((item, idx) => typeof item === 'string' ? { id: `d_${idx}`, text: item } : item);
+    } else if (typeof rawD === 'string' && rawD.trim()) {
+      daily = rawD.split('\n').filter(Boolean).map((line, idx) => ({
+        id: `d_${idx}`,
+        text: line.replace(/^[•\-\*\d\.\s]+/, '').trim()
+      }));
+    }
+
+    // Custom visual progress goals from GoalContext
+    const visualGoals = (goals || []).filter(item => String(item.studentId) === String(selectedStudent.id));
+
+    const totalItemsCount = visualGoals.length + monthly.length + weekly.length + daily.length + (hasExamOrTarget ? 1 : 0);
+
+    return {
+      hasAnyGoals: totalItemsCount > 0,
+      examType: customExam || examType,
+      school,
+      score,
+      net,
+      gradeTarget,
+      hasExamOrTarget,
+      monthly,
+      weekly,
+      daily,
+      visualGoals,
+      totalItemsCount
+    };
+  }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals]);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -1820,7 +1904,286 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* 🎯 BÖLÜM 4: GÜNÜN MOTİVASYONU & HEDEFLERİM */}
+            {/* 🎯 BÖLÜM 4: HEDEF TAKİP PANOSU (HEDEFLERİM & ALIŞKANLIKLAR) */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
+              border: '1.5px solid rgba(168, 85, 247, 0.35)',
+              borderRadius: 22,
+              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
+              boxShadow: '0 8px 30px rgba(168, 85, 247, 0.15)',
+              backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.4)'
+                  }}>
+                    🎯
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                        Hedef Takip Panosu
+                      </h2>
+                      {goalTrackingData.totalItemsCount > 0 && (
+                        <span style={{
+                          background: 'rgba(168, 85, 247, 0.25)',
+                          color: '#e9d5ff',
+                          border: '1px solid rgba(192, 132, 252, 0.4)',
+                          borderRadius: 99,
+                          fontSize: '0.65rem',
+                          fontWeight: 900,
+                          padding: '1px 7px'
+                        }}>
+                          {goalTrackingData.totalItemsCount} Hedef
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: '#c084fc', fontWeight: 600 }}>
+                      Sınav, net, soru ve alışkanlık hedefleriniz
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/goals')}
+                  className="sd-btn"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.25))',
+                    border: '1px solid rgba(192, 132, 252, 0.45)',
+                    color: '#f3e8ff',
+                    borderRadius: 8,
+                    padding: '0.28rem 0.7rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <span>Panoya Git</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+
+              {/* 1. HEDEF SINAV / OKUL / BELGE AFİŞİ */}
+              {goalTrackingData.hasExamOrTarget && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(126, 34, 206, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                  border: '1.5px solid rgba(192, 132, 252, 0.4)',
+                  borderRadius: 16,
+                  padding: '0.85rem 1rem',
+                  marginBottom: '0.85rem',
+                  boxShadow: '0 4px 16px rgba(126, 34, 206, 0.2)'
+                }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#d8b4fe', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+                    🏛️ HEDEF SINAV & BELGE
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff', marginBottom: 6 }}>
+                    {goalTrackingData.examType || 'Hedef Sınav Belirlendi'}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {goalTrackingData.school && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#a7f3d0', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(52, 211, 153, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
+                        🏫 {goalTrackingData.school}
+                      </span>
+                    )}
+                    {goalTrackingData.score && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fde047', background: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(250, 204, 21, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
+                        🎯 {goalTrackingData.score} Puan
+                      </span>
+                    )}
+                    {goalTrackingData.net && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#67e8f9', background: 'rgba(6, 182, 212, 0.2)', border: '1px solid rgba(103, 232, 249, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
+                        📈 {goalTrackingData.net} Net
+                      </span>
+                    )}
+                    {goalTrackingData.gradeTarget && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f472b6', background: 'rgba(236, 72, 153, 0.2)', border: '1px solid rgba(244, 114, 182, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
+                        🎓 {goalTrackingData.gradeTarget}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. GÖRSEL İLERLEME HEDEFLERİ (SORU, SAYFA, DAKİKA, KONU VB.) */}
+              {goalTrackingData.visualGoals.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '0.85rem' }}>
+                  {goalTrackingData.visualGoals.map(g => {
+                    const t = GOAL_TYPE_THEMES[g.type] || GOAL_TYPE_THEMES.Soru;
+                    const IconComp = t.icon || Target;
+                    const pct = g.target > 0 ? Math.min(100, Math.round(((g.current || 0) / g.target) * 100)) : 0;
+                    const isDone = (g.current || 0) >= g.target;
+
+                    return (
+                      <div
+                        key={g.id}
+                        className="sd-card"
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          border: `1.5px solid ${t.border}`,
+                          borderRadius: 14,
+                          padding: '0.75rem 0.95rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              background: t.bg,
+                              color: t.text,
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              padding: '1px 6px',
+                              borderRadius: 6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              <IconComp size={11} /> {g.type}
+                            </span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ffffff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {g.title}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDone ? '#4ade80' : t.text }}>
+                              %{pct}
+                            </span>
+                            {!isDone && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateGoalProgress(g.id, t.step || 10);
+                                }}
+                                title={`+${t.step} ${t.unit} İlerleme Ekle`}
+                                style={{
+                                  background: t.bg,
+                                  border: `1px solid ${t.border}`,
+                                  color: t.text,
+                                  borderRadius: 6,
+                                  padding: '1px 6px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                +{t.step}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div style={{ height: 6, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${pct}%`,
+                            background: isDone ? 'linear-gradient(90deg, #22c55e, #10b981)' : `linear-gradient(90deg, ${t.color}, #a855f7)`,
+                            borderRadius: 99,
+                            transition: 'width 0.8s ease'
+                          }} />
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
+                          <span>{g.current || 0} / {g.target} {t.unit}</span>
+                          <span style={{ color: isDone ? '#4ade80' : '#cbd5e1' }}>
+                            {isDone ? '🎉 Hedefe Ulaşıldı' : `${g.target - (g.current || 0)} ${t.unit} kaldı`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 3. ALIŞKANLIK & GÖREV MADDELERİ (GÜNLÜK & HAFTALIK) */}
+              {(goalTrackingData.daily.length > 0 || goalTrackingData.weekly.length > 0 || goalTrackingData.monthly.length > 0) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {goalTrackingData.daily.slice(0, 2).map((item, idx) => (
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#f1f5f9' }}>
+                      <span style={{ fontSize: '0.85rem' }}>⚡</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
+                        {item.text}
+                      </span>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f43f5e', background: 'rgba(244,63,94,0.15)', padding: '1px 5px', borderRadius: 4 }}>
+                        Günlük
+                      </span>
+                    </div>
+                  ))}
+
+                  {goalTrackingData.weekly.slice(0, 2).map((item, idx) => (
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#f1f5f9' }}>
+                      <span style={{ fontSize: '0.85rem' }}>✨</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
+                        {item.text}
+                      </span>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#c084fc', background: 'rgba(192,132,252,0.15)', padding: '1px 5px', borderRadius: 4 }}>
+                        Haftalık
+                      </span>
+                    </div>
+                  ))}
+
+                  {goalTrackingData.monthly.slice(0, 2).map((item, idx) => (
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#f1f5f9' }}>
+                      <span style={{ fontSize: '0.85rem' }}>📅</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
+                        {item.text}
+                      </span>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.15)', padding: '1px 5px', borderRadius: 4 }}>
+                        Aylık
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 4. BOŞ DURUM (HENÜZ HİÇ HEDEF YOKSA) */}
+              {!goalTrackingData.hasAnyGoals && (
+                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(168, 85, 247, 0.3)' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 4 }}>🎯</div>
+                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.88rem', marginBottom: 3 }}>
+                    Henüz Hedef Belirlenmedi
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 10 }}>
+                    Sınav, soru ve çalışma hedeflerinizi belirleyerek başarı yolculuğunuzu takip edin!
+                  </div>
+                  <button
+                    onClick={() => navigate('/goals')}
+                    className="sd-btn"
+                    style={{
+                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                      border: 'none',
+                      color: '#ffffff',
+                      borderRadius: 10,
+                      padding: '0.35rem 0.85rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Plus size={13} /> Hedef Belirle 🎯
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 🎯 BÖLÜM 5: GÜNÜN MOTİVASYONU & İLHAMI */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
               border: '1.5px solid rgba(255, 255, 255, 0.14)',
