@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useUser } from '../context/UserContext';
@@ -46,14 +47,14 @@ function detectSubject(title = '', existingSubject = '') {
 }
 
 const subjectThemes = {
-  'Matematik': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', icon: '📐' },
-  'Fen Bilimleri': { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', icon: '🔬' },
-  'Türkçe': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: '📚' },
-  'Sosyal Bilgiler': { bg: '#faf5ff', color: '#7e22ce', border: '#e9d5ff', icon: '🌍' },
-  'İngilizce': { bg: '#fff1f2', color: '#be123c', border: '#fecdd3', icon: '🇬🇧' },
-  'Din Kültürü': { bg: '#f0fdfa', color: '#0f766e', border: '#99f6e4', icon: '🌙' },
-  'Genel Deneme': { bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe', icon: '🏛️' },
-  'Genel Testler': { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1', icon: '📝' }
+  'Matematik': { bg: 'rgba(59, 130, 246, 0.18)', color: '#60a5fa', border: 'rgba(96, 165, 250, 0.35)', icon: '📐' },
+  'Fen Bilimleri': { bg: 'rgba(16, 185, 129, 0.18)', color: '#34d399', border: 'rgba(52, 211, 153, 0.35)', icon: '🔬' },
+  'Türkçe': { bg: 'rgba(244, 114, 182, 0.18)', color: '#f472b6', border: 'rgba(244, 114, 182, 0.35)', icon: '📚' },
+  'Sosyal Bilgiler': { bg: 'rgba(192, 132, 252, 0.18)', color: '#c084fc', border: 'rgba(192, 132, 252, 0.35)', icon: '🌍' },
+  'İngilizce': { bg: 'rgba(251, 113, 133, 0.18)', color: '#fb7185', border: 'rgba(251, 113, 133, 0.35)', icon: '🇬🇧' },
+  'Din Kültürü': { bg: 'rgba(45, 212, 191, 0.18)', color: '#2dd4bf', border: 'rgba(45, 212, 191, 0.35)', icon: '🌙' },
+  'Genel Deneme': { bg: 'rgba(99, 102, 241, 0.18)', color: '#a5b4fc', border: 'rgba(165, 180, 252, 0.35)', icon: '🏛️' },
+  'Genel Testler': { bg: 'rgba(148, 163, 184, 0.18)', color: '#cbd5e1', border: 'rgba(203, 213, 225, 0.35)', icon: '📝' }
 };
 
 const QUICK_FEEDBACK_PRESETS = [
@@ -151,22 +152,12 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
       let pdfPayload = isValidPayloadString(submission.pdfPayload) ? submission.pdfPayload : (isValidPayloadString(resolved?.pdfPayload) ? resolved.pdfPayload : null);
       let htmlPayload = isValidPayloadString(submission.htmlPayload) ? submission.htmlPayload : (isValidPayloadString(resolved?.htmlPayload) ? resolved.htmlPayload : null);
 
-      // Deep IndexedDB candidate lookup
       if (!contentPayload && !pdfPayload && !htmlPayload) {
         const rawCandidateIds = [
-          targetId,
-          normTargetId,
-          submission.id,
-          submission.testId,
-          submission.homeworkId,
-          submission.questionId,
-          resolved?.id,
-          resolved?.questionId,
-          resolved?.testId,
-          foundHw?.id,
-          foundHw?.questionId,
-          foundBankQ?.id,
-          titleMatchBankQ?.id
+          targetId, normTargetId, submission.id, submission.testId,
+          submission.homeworkId, submission.questionId, resolved?.id,
+          resolved?.questionId, resolved?.testId, foundHw?.id,
+          foundHw?.questionId, foundBankQ?.id, titleMatchBankQ?.id
         ];
 
         const expandedIds = new Set();
@@ -178,8 +169,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
           expandedIds.add(`q_${clean}`);
           expandedIds.add(`hw_${clean}`);
           expandedIds.add(`test_${clean}`);
-          expandedIds.add(`q${clean}`);
-          expandedIds.add(`hw${clean}`);
         });
 
         for (const cid of expandedIds) {
@@ -198,7 +187,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         }
       }
 
-      // If contentPayload has PDF or HTML markers, propagate them
       if (contentPayload && !pdfPayload && (contentPayload.startsWith('data:application/pdf') || contentPayload.includes('.pdf') || contentPayload.startsWith('%PDF'))) {
         pdfPayload = contentPayload;
       }
@@ -206,7 +194,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         htmlPayload = contentPayload;
       }
 
-      // Check sections for multi-section tests
       let sections = resolved?.sections || resolved?.tests || null;
       let generatedQuestions = [];
 
@@ -226,15 +213,12 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
           const secResolvedQs = secBankQ ? resolveTestQuestions(secBankQ, allBankQuestions) : [];
           const secImages = (secBankQ?.imageUrls && Array.isArray(secBankQ.imageUrls)) ? secBankQ.imageUrls : [];
-          
-          // Exact question count for this section
           const secCount = resolveExactQuestionCount(sec, secBankQ, secBankQ, secResolvedQs, secImages);
 
           const secPdf = (isValidPayloadString(secBankQ?.pdfPayload) ? secBankQ.pdfPayload : null) || (secPayload && (secPayload.startsWith('data:application/pdf') || secPayload.includes('.pdf')) ? secPayload : null) || pdfPayload;
           const secHtml = (isValidPayloadString(secBankQ?.htmlPayload) ? secBankQ.htmlPayload : null) || (secPayload && secPayload.includes('<html') ? secPayload : null) || htmlPayload;
           const isSecOE = isItemOpenEnded(secBankQ) || isItemOpenEnded(sec);
 
-          // Generate each question of this section
           for (let qIdx = 0; qIdx < secCount; qIdx++) {
             runningQIndex++;
             const existingQ = secResolvedQs[qIdx] || {};
@@ -272,12 +256,10 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         }
         sections = mappedSections;
       } else {
-        // Single Test (PDF, HTML, Visual, or Standard)
         const baseResolvedQs = resolveTestQuestions(resolved || submission, allBankQuestions);
         const ansList = Array.isArray(submission.answers) ? submission.answers : [];
         const baseImages = (resolved?.imageUrls && Array.isArray(resolved.imageUrls)) ? resolved.imageUrls : [];
         
-        // Exact question count
         const exactCount = Math.max(
           resolveExactQuestionCount(resolved || {}, resolved || {}, resolved || {}, baseResolvedQs, baseImages),
           ansList.length,
@@ -356,7 +338,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     return () => { isMounted = false; };
   }, [submission, targetId, normTargetId, allBankQuestions, homeworks, curriculumData, bookTests]);
 
-  // Global Media available for whole test (Only true if actual payload string exists)
   const globalMedia = useMemo(() => {
     const isPdfStr = (val) => isValidPayloadString(val) && (val.startsWith('data:application/pdf') || val.includes('.pdf') || val.startsWith('%PDF'));
     const isHtmlStr = (val) => isValidPayloadString(val) && (val.includes('<html') || val.startsWith('<!DOCTYPE') || val.startsWith('data:text/html'));
@@ -386,7 +367,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     return { hasPdf, hasHtml, pdfSrc, htmlSrc };
   }, [test]);
 
-  // Separate Open-Ended (Manual Teacher Grade) vs Multiple-Choice (Auto Graded)
   const categorizedQuestions = useMemo(() => {
     const totalQ = Math.max(1, questions?.length || submission?.answers?.length || 1);
     const oeList = [];
@@ -414,14 +394,12 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
     return { oeList, mcList, totalQ };
   }, [questions, submission, test]);
 
-  // If there are NO open ended questions, default viewTab to 'full_exam'
   useEffect(() => {
     if (!loading && categorizedQuestions.oeList.length === 0) {
       setViewTab('full_exam');
     }
   }, [loading, categorizedQuestions.oeList.length]);
 
-  // Live Score Breakdown
   const scoreStats = useMemo(() => {
     const { oeList, mcList, totalQ } = categorizedQuestions;
 
@@ -508,8 +486,8 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
   if (loading || !test) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
-        Sınav ve Değerlendirme Ekranı Hazırlanıyor...
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#070a12', color: 'white', fontWeight: 800 }}>
+        <Sparkles size={20} className="animate-spin" style={{ marginRight: 8 }} /> Sınav ve Değerlendirme Ekranı Hazırlanıyor...
       </div>
     );
   }
@@ -544,34 +522,32 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#090d16', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
-      {/* Lightbox for zooming question images */}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.92)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
       {lightboxSrc && (
         <ImageLightbox src={lightboxSrc} alt="Soru Görseli" onClose={() => setLightboxSrc(null)} />
       )}
 
       {/* ── TOP CONTROL BAR ── */}
       <div style={{
-        background: '#131c2e',
-        borderBottom: '1px solid #1e293b',
-        padding: '0.65rem 1.25rem',
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)',
+        borderBottom: '1.5px solid rgba(255, 255, 255, 0.12)',
+        padding: '0.85rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '0.75rem',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         zIndex: 10
       }}>
-        {/* Left: Back + Student Badge + Test Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <button
             type="button"
             onClick={onClose}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.35rem',
-              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '0.6rem', padding: '0.45rem 0.85rem',
+              background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)',
+              borderRadius: '0.65rem', padding: '0.45rem 0.85rem',
               color: 'white', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer'
             }}
           >
@@ -579,11 +555,11 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
           </button>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span style={{
                 background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                color: 'white', padding: '0.15rem 0.55rem', borderRadius: '50px',
-                fontWeight: 900, fontSize: '0.75rem'
+                color: 'white', padding: '0.2rem 0.6rem', borderRadius: 99,
+                fontWeight: 900, fontSize: '0.75rem', border: '1px solid rgba(165,180,252,0.35)'
               }}>
                 🎓 {submission.studentName || 'Öğrenci'}
               </span>
@@ -595,61 +571,47 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
         </div>
 
         {/* Center: Mode Switcher Tabs */}
-        <div style={{ display: 'flex', background: '#090d16', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid #1e293b' }}>
+        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '0.3rem', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.1)' }}>
           <button
             type="button"
             onClick={() => setViewTab('focused_oe')}
             style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '0.55rem',
-              border: 'none',
+              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', border: 'none',
               background: viewTab === 'focused_oe' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
-              color: viewTab === 'focused_oe' ? '#0f172a' : '#94a3b8',
-              fontWeight: 900,
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem'
+              color: viewTab === 'focused_oe' ? '#0f172a' : 'rgba(255,255,255,0.7)',
+              fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.35rem'
             }}
           >
-            <Zap size={14} /> Puanlanacak Açık Uçlular ({categorizedQuestions.oeList.length})
+            <Edit3 size={14} /> Açık Uçlu Notlama ({categorizedQuestions.oeList.length})
           </button>
 
           <button
             type="button"
             onClick={() => setViewTab('full_exam')}
             style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '0.55rem',
-              border: 'none',
-              background: viewTab === 'full_exam' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-              color: viewTab === 'full_exam' ? 'white' : '#94a3b8',
-              fontWeight: 900,
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem'
+              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', border: 'none',
+              background: viewTab === 'full_exam' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+              color: 'white', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.35rem'
             }}
           >
-            <Eye size={14} /> Tüm Sınav &amp; Dokümanlar ({categorizedQuestions.totalQ})
+            <Eye size={14} /> Tüm Sınav & Doküman ({categorizedQuestions.totalQ} Soru)
           </button>
         </div>
 
-        {/* Right: Score Breakdown & Save Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        {/* Right: Live Score & Save Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            background: '#090d16', border: '1px solid #1e293b',
-            borderRadius: '0.75rem', padding: '0.35rem 0.75rem',
-            display: 'flex', alignItems: 'center', gap: '0.6rem'
+            background: scoreStats.percentage >= 70 ? 'rgba(16,185,129,0.2)' : (scoreStats.percentage >= 50 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)'),
+            border: `1.5px solid ${scoreStats.percentage >= 70 ? '#10b981' : (scoreStats.percentage >= 50 ? '#f59e0b' : '#ef4444')}`,
+            borderRadius: '0.75rem', padding: '0.4rem 0.85rem', textAlign: 'center'
           }}>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
-              Çoktan Seçmeli: <span style={{ color: '#34d399', fontWeight: 900 }}>{scoreStats.mcCorrect}/{scoreStats.mcCount} D</span> (Oto)
+            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: scoreStats.percentage >= 70 ? '#34d399' : (scoreStats.percentage >= 50 ? '#fbbf24' : '#f87171'), lineHeight: 1 }}>
+              %{scoreStats.percentage}
             </div>
-            <div style={{ width: 1, height: 16, background: '#334155' }} />
-            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: scoreStats.percentage >= 70 ? '#34d399' : (scoreStats.percentage >= 50 ? '#fbbf24' : '#f87171') }}>
-              Toplam: %{scoreStats.percentage}
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+              {scoreStats.totalPoints} / {scoreStats.maxPoints} Puan
             </div>
           </div>
 
@@ -658,184 +620,138 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
             onClick={handleSaveEvaluation}
             disabled={isSaving}
             style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              display: 'flex', alignItems: 'center', gap: '0.45rem',
               background: 'linear-gradient(135deg, #10b981, #059669)',
-              border: 'none', borderRadius: '0.75rem',
-              padding: '0.5rem 1.25rem',
-              color: 'white', fontWeight: 900, fontSize: '0.84rem',
+              border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.25rem',
+              color: 'white', fontWeight: 900, fontSize: '0.85rem',
               cursor: isSaving ? 'wait' : 'pointer',
-              boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
-              opacity: isSaving ? 0.7 : 1
+              boxShadow: '0 4px 14px rgba(16,185,129,0.4)'
             }}
           >
-            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet & Bitir'}
+            <Save size={15} /> {isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Kaydet'}
           </button>
         </div>
       </div>
 
-      {/* ── MAIN CONTENT BODY ── */}
-      <div style={{ flex: 1, overflowY: 'auto', background: '#090d16', position: 'relative' }}>
+      {/* ── MODAL BODY CONTENT ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         
-        {/* TAB 1: SADECE PUANLANACAK AÇIK UÇLU SORULAR */}
         {viewTab === 'focused_oe' ? (
-          <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.25rem 1rem 5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ maxWidth: 900, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             
-            {/* SINGLE DEDICATED PDF / HTML DOCUMENT VIEWER AT THE TOP (SADECE GERÇEK PAYLOAD VARSA GÖSTERİLİR) */}
+            {/* Global Media (PDF / HTML Document) Preview Card */}
             {(globalMedia.hasPdf || globalMedia.hasHtml) && (
-              <div style={{ background: '#131c2e', border: '1.5px solid #334155', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
-                <div
-                  onClick={() => setShowTopMedia(p => !p)}
-                  style={{
-                    padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    cursor: 'pointer', background: 'rgba(255,255,255,0.03)', borderBottom: showTopMedia ? '1px solid #1e293b' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, fontSize: '0.88rem', color: globalMedia.hasPdf ? '#f43f5e' : '#10b981' }}>
-                    {globalMedia.hasPdf ? <FileText size={18} /> : <Globe size={18} />}
-                    <span>📄 {globalMedia.hasPdf ? 'Sınav PDF Dokümanı (Tüm Sorular)' : 'Sınav HTML / Web Dokümanı (Tüm Sorular)'}</span>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.14)',
+                borderRadius: '1.25rem', padding: '1rem',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showTopMedia ? '0.75rem' : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#38bdf8' }}>
+                      📄 Sınav Dokümanı ({globalMedia.hasPdf ? 'PDF Kitapçığı' : 'HTML Metni'})
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                      Soruların tam metnini buradan görüntüleyebilirsiniz
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>
-                    <span>{showTopMedia ? 'Dokümanı Gizle' : 'Dokümanı Görüntüle'}</span>
-                    {showTopMedia ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTopMedia(p => !p)}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '0.5rem', padding: '0.3rem 0.65rem',
+                      color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
+                    }}
+                  >
+                    {showTopMedia ? 'Gizle ▲' : 'Dokümanı Göster ▼'}
+                  </button>
                 </div>
 
                 {showTopMedia && (
-                  <div style={{ background: '#090d16', padding: '0.5rem' }}>
-                    {globalMedia.pdfSrc ? (
-                      <div style={{ height: '460px', borderRadius: '0.65rem', overflow: 'hidden', border: '1px solid #1e293b' }}>
-                        <PdfViewerWithControls payload={globalMedia.pdfSrc} title="Sınav PDF Dokümanı" height="100%" />
-                      </div>
-                    ) : globalMedia.htmlSrc ? (
-                      <div style={{ height: '420px', borderRadius: '0.65rem', overflow: 'hidden', border: '1px solid #1e293b' }}>
-                        <HtmlViewerWithControls payload={globalMedia.htmlSrc} title="Sınav HTML Dokümanı" height="100%" />
-                      </div>
-                    ) : null}
+                  <div style={{ height: '380px', borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {globalMedia.hasPdf && <PdfViewerWithControls src={globalMedia.pdfSrc} title={test.title} />}
+                    {globalMedia.hasHtml && <HtmlViewerWithControls htmlContent={globalMedia.htmlSrc} title={test.title} />}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Auto-Graded Summary Banner */}
-            {scoreStats.mcCount > 0 && (
-              <div style={{
-                background: 'rgba(30, 41, 59, 0.6)',
-                border: '1px solid #334155',
-                borderRadius: '1rem',
-                padding: '0.75rem 1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.75rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(16,185,129,0.2)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CheckCircle2 size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc' }}>
-                      {scoreStats.mcCount} Adet Çoktan Seçmeli Soru Otomatik Puanlandı
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                      Öğrenci bu sorulardan {scoreStats.mcCorrect} doğru yaptı ({scoreStats.mcCount > 0 ? Math.round((scoreStats.mcCorrect/scoreStats.mcCount)*100) : 0}%). Aşağıda sadece not vermeniz gereken açık uçlu sorular listelenmiştir.
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setViewTab('full_exam')}
-                  style={{
-                    background: 'transparent', border: '1px solid #475569',
-                    borderRadius: '0.5rem', padding: '0.35rem 0.75rem',
-                    color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
-                  }}
-                >
-                  Çoktan Seçmelileri İncele →
-                </button>
-              </div>
-            )}
-
-            {/* List of Open-Ended Questions to Grade */}
+            {/* Open Ended Questions Cards List */}
             {categorizedQuestions.oeList.length === 0 ? (
               <div style={{
-                background: '#131c2e', borderRadius: '1.25rem', padding: '3.5rem 1.5rem',
-                textAlign: 'center', border: '1px solid #1e293b'
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.14)',
+                borderRadius: '1.25rem', padding: '3rem 1.5rem', textAlign: 'center',
+                color: 'rgba(255,255,255,0.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem'
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
-                  Puanlama Gerektiren Açık Uçlu Soru Yok!
-                </h3>
-                <p style={{ margin: '0.5rem 0 1.25rem', color: '#94a3b8', fontSize: '0.85rem' }}>
-                  Bu sınavdaki tüm sorular çoktan seçmelidir ve sistem tarafından otomatik olarak puanlanmıştır.
+                <CheckCircle2 size={42} color="#34d399" />
+                <h3 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.1rem' }}>Açık Uçlu Soru Bulunmuyor</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', maxWidth: 420 }}>
+                  Bu sınavdaki tüm sorular çoktan seçmeli formatta olduğundan sistem tarafından otomatik olarak puanlanmıştır.
                 </p>
                 <button
                   type="button"
                   onClick={() => setViewTab('full_exam')}
                   style={{
-                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                    color: 'white', border: 'none', borderRadius: '0.75rem',
-                    padding: '0.6rem 1.25rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer'
+                    marginTop: 6, padding: '0.55rem 1.25rem', borderRadius: '0.75rem',
+                    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                    border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer'
                   }}
                 >
-                  Sınavın Tamamını &amp; Cevapları Gör
+                  Tüm Sınav Çözümünü İncele
                 </button>
               </div>
             ) : (
               categorizedQuestions.oeList.map((oeItem, idx) => {
                 const qNo = oeItem.qNo;
                 const currentScore = questionScores[qNo] ?? (oeItem.answer?.score !== undefined ? Number(oeItem.answer.score) : 0);
-                const currentNote = teacherNotes[qNo] ?? (oeItem.answer?.teacherNote || '');
+                const currentNote = teacherNotes[qNo] || '';
 
                 return (
                   <div
                     key={qNo}
                     style={{
-                      background: '#131c2e',
-                      border: '1.5px solid rgba(245,158,11,0.4)',
-                      borderRadius: '1.25rem',
-                      padding: '1.25rem',
-                      boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '1rem'
+                      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                      border: '1.5px solid rgba(255, 255, 255, 0.14)',
+                      borderRadius: '1.25rem', padding: '1.25rem',
+                      display: 'flex', flexDirection: 'column', gap: '0.85rem',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
                     }}
                   >
-                    {/* Question Header & Section Tag */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{
-                          background: '#f59e0b', color: '#0f172a',
-                          padding: '0.2rem 0.6rem', borderRadius: '0.5rem',
+                          background: 'rgba(245,158,11,0.25)', color: '#fbbf24',
+                          border: '1px solid rgba(245,158,11,0.4)',
+                          padding: '0.2rem 0.65rem', borderRadius: '0.5rem',
                           fontWeight: 900, fontSize: '0.8rem'
                         }}>
                           ✍️ Açık Uçlu Soru {idx + 1} / {categorizedQuestions.oeList.length} (Soru #{qNo})
                         </span>
                         {oeItem.sectionTitle && (
-                          <span style={{ background: '#1e293b', color: '#94a3b8', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
+                          <span style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', fontSize: '0.72rem', fontWeight: 700 }}>
                             {oeItem.sectionTitle}
                           </span>
                         )}
                       </div>
 
-                      {/* Current Score Tag */}
                       <div style={{
-                        background: currentScore === 10 ? 'rgba(16,185,129,0.2)' : (currentScore >= 5 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)'),
+                        background: currentScore === 10 ? 'rgba(16,185,129,0.25)' : (currentScore >= 5 ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)'),
                         color: currentScore === 10 ? '#34d399' : (currentScore >= 5 ? '#fbbf24' : '#f87171'),
                         border: `1px solid ${currentScore === 10 ? '#059669' : (currentScore >= 5 ? '#d97706' : '#dc2626')}`,
-                        padding: '0.25rem 0.75rem', borderRadius: '50px', fontWeight: 900, fontSize: '0.82rem'
+                        padding: '0.25rem 0.75rem', borderRadius: 99, fontWeight: 900, fontSize: '0.82rem'
                       }}>
                         Verilen Puan: {currentScore} / 10 Puan
                       </div>
                     </div>
 
-                    {/* Distinct Question Image (Sadece tekil resimli sorularda görsel gelir, HTML/PDF tekrarı gelmez) */}
                     {oeItem.imageUrl && !globalMedia.hasHtml && !globalMedia.hasPdf && (
-                      <div style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '0 auto', background: '#090d16', borderRadius: '0.85rem', padding: '0.5rem', border: '1px solid #334155' }}>
+                      <div style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '0 auto', background: 'rgba(0,0,0,0.3)', borderRadius: '0.85rem', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ padding: '0.2rem 0.5rem 0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#c084fc' }}>
                           <span>🖼️ Soru {qNo} Görseli</span>
-                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>🔍 Büyütmek için tıkla</span>
+                          <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>🔍 Büyütmek için tıkla</span>
                         </div>
                         <img
                           src={oeItem.imageUrl}
@@ -846,23 +762,21 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                       </div>
                     )}
 
-                    {/* Question Text Prompt (Varsa) */}
                     {oeItem.question?.questionText && oeItem.question.questionText !== `Soru ${qNo}` && (
-                      <div style={{ background: '#090d16', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #1e293b', fontSize: '0.88rem', color: '#f1f5f9', fontWeight: 600 }}>
+                      <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.08)', fontSize: '0.88rem', color: '#f1f5f9', fontWeight: 600 }}>
                         <span style={{ color: '#38bdf8', fontWeight: 800 }}>❓ Soru Metni: </span>
                         {oeItem.question.questionText}
                       </div>
                     )}
 
-                    {/* Student Written Response Box */}
+                    {/* Student Written Response */}
                     <div style={{
-                      background: '#1e293b',
-                      border: '1.5px solid #3b82f6',
-                      borderRadius: '0.85rem',
-                      padding: '1rem',
-                      boxShadow: '0 4px 16px rgba(59,130,246,0.15)'
+                      background: 'rgba(99, 102, 241, 0.12)',
+                      border: '1.5px solid rgba(165, 180, 252, 0.4)',
+                      borderRadius: '0.85rem', padding: '1rem',
+                      boxShadow: '0 4px 16px rgba(99,102,241,0.15)'
                     }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', textTransform: 'uppercase', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         📝 Öğrencinin Soru {qNo} İçin Yazılı Yanıtı:
                       </div>
                       <div style={{ fontSize: '0.95rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
@@ -870,22 +784,17 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                       </div>
                     </div>
 
-                    {/* Teacher Quick Grading Controls (3 BIG BUTTONS) */}
+                    {/* Grading Controls */}
                     <div style={{
-                      background: '#090d16',
-                      padding: '0.85rem',
-                      borderRadius: '0.85rem',
-                      border: '1px solid #1e293b',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.75rem'
+                      background: 'rgba(0,0,0,0.25)', padding: '0.85rem',
+                      borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex', flexDirection: 'column', gap: '0.75rem'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#fbbf24' }}>
                           🎯 Soru {qNo} Puanı:
                         </span>
 
-                        {/* Big 3 Buttons */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button
                             type="button"
@@ -894,7 +803,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                               padding: '0.5rem 1rem', borderRadius: '0.65rem',
                               border: currentScore === 10 ? '2px solid #34d399' : '1px solid #059669',
                               background: currentScore === 10 ? '#059669' : 'rgba(6,78,59,0.35)',
-                              color: 'white', fontWeight: 900, fontSize: '0.84rem', cursor: 'pointer',
+                              color: 'white', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer',
                               display: 'flex', alignItems: 'center', gap: '0.35rem'
                             }}
                           >
@@ -908,7 +817,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                               padding: '0.5rem 1rem', borderRadius: '0.65rem',
                               border: currentScore === 5 ? '2px solid #fbbf24' : '1px solid #d97706',
                               background: currentScore === 5 ? '#d97706' : 'rgba(120,53,15,0.35)',
-                              color: 'white', fontWeight: 900, fontSize: '0.84rem', cursor: 'pointer',
+                              color: 'white', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer',
                               display: 'flex', alignItems: 'center', gap: '0.35rem'
                             }}
                           >
@@ -922,15 +831,14 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                               padding: '0.5rem 1rem', borderRadius: '0.65rem',
                               border: currentScore === 0 ? '2px solid #f87171' : '1px solid #dc2626',
                               background: currentScore === 0 ? '#dc2626' : 'rgba(127,29,29,0.35)',
-                              color: 'white', fontWeight: 900, fontSize: '0.84rem', cursor: 'pointer',
+                              color: 'white', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer',
                               display: 'flex', alignItems: 'center', gap: '0.35rem'
                             }}
                           >
                             ✕ 0 Puan
                           </button>
 
-                          {/* Custom Manual Stepper */}
-                          <div style={{ display: 'flex', alignItems: 'center', background: '#1e293b', borderRadius: '0.65rem', border: '1px solid #334155', padding: '0.2rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.15)', padding: '0.2rem' }}>
                             <button
                               type="button"
                               onClick={() => setQuestionScores(p => ({ ...p, [qNo]: Math.max(0, currentScore - 1) }))}
@@ -952,7 +860,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                         </div>
                       </div>
 
-                      {/* Question Note Input */}
                       <input
                         type="text"
                         placeholder={`Soru ${qNo} için öğretmenin geri bildirim notu...`}
@@ -960,7 +867,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                         onChange={e => setTeacherNotes(p => ({ ...p, [qNo]: e.target.value }))}
                         style={{
                           width: '100%', padding: '0.55rem 0.85rem', borderRadius: '0.65rem',
-                          background: '#131c2e', border: '1px solid #334155', color: '#f8fafc',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#f8fafc',
                           fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box'
                         }}
                       />
@@ -972,13 +879,10 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
             {/* Overall Feedback Card */}
             <div style={{
-              background: '#131c2e',
-              borderRadius: '1.25rem',
-              padding: '1.25rem',
-              border: '1px solid #1e293b',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.65rem'
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+              borderRadius: '1.25rem', padding: '1.25rem',
+              border: '1.5px solid rgba(255,255,255,0.14)',
+              display: 'flex', flexDirection: 'column', gap: '0.65rem'
             }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 💬 Sınavın Geneli İçin Öğrenciye Karne Mesajı:
@@ -992,12 +896,9 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                     onClick={() => setOverallFeedback(preset)}
                     style={{
                       background: 'rgba(99, 102, 241, 0.15)',
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
-                      color: '#a5b4fc',
-                      fontSize: '0.72rem',
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '50px',
-                      cursor: 'pointer'
+                      border: '1px solid rgba(165, 180, 252, 0.3)',
+                      color: '#c7d2fe', fontSize: '0.72rem',
+                      padding: '0.25rem 0.65rem', borderRadius: 99, cursor: 'pointer'
                     }}
                   >
                     {preset}
@@ -1012,7 +913,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                 onChange={e => setOverallFeedback(e.target.value)}
                 style={{
                   width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem',
-                  background: '#090d16', border: '1px solid #334155', color: '#f8fafc',
+                  background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.14)', color: '#f8fafc',
                   fontSize: '0.85rem', outline: 'none', resize: 'none', boxSizing: 'border-box'
                 }}
               />
@@ -1025,8 +926,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.45rem',
                     background: 'linear-gradient(135deg, #10b981, #059669)',
-                    border: 'none', borderRadius: '0.75rem',
-                    padding: '0.65rem 1.5rem',
+                    border: 'none', borderRadius: '0.75rem', padding: '0.65rem 1.5rem',
                     color: 'white', fontWeight: 900, fontSize: '0.9rem',
                     cursor: isSaving ? 'wait' : 'pointer',
                     boxShadow: '0 4px 16px rgba(16,185,129,0.45)'
@@ -1039,7 +939,6 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
           </div>
         ) : (
-          /* TAB 2: TÜM SINAVI VE DOKÜMANLARI İNCELE */
           <div style={{ height: '100%', overflowY: 'auto' }}>
             {renderFullExamScreen()}
           </div>
@@ -1052,6 +951,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
 // ─── MAIN EVALUATION MANAGER PAGE ─────────────────────────────────────────────
 export default function EvaluationManager() {
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { users } = useUser();
   const { homeworks } = useHomework();
@@ -1061,7 +961,7 @@ export default function EvaluationManager() {
   const { bookTests, books } = useTrackedBooks();
 
   const [activeSubmission, setActiveSubmission] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'all' | 'completed'
+  const [activeTab, setActiveTab] = useState('pending');
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('all');
@@ -1069,13 +969,11 @@ export default function EvaluationManager() {
   const isAdmin = currentUser?.role === 'admin';
   const teacherId = currentUser?.id;
 
-  // 1. COMBINE & DEDUPLICATE SUBMISSIONS (Yalnızca aktif tanımlı ödevler)
   const combinedSubmissions = useMemo(() => {
     const activeHws = (homeworks || []).filter(hw => hw && hw.id);
     const map = new Map();
 
     activeHws.forEach(hw => {
-      // 1. Submissions directly in hw.submissions
       (hw.submissions || []).forEach(sub => {
         if (!sub || !sub.studentId) return;
         const subKey = String(sub.id || `hw_sub_${hw.id}_${sub.studentId}`);
@@ -1092,7 +990,6 @@ export default function EvaluationManager() {
         });
       });
 
-      // 2. Global submissions in allSubmissions matching this active homework
       (allSubmissions || []).forEach(sub => {
         if (!sub || !sub.studentId) return;
         const targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.id || '');
@@ -1127,10 +1024,8 @@ export default function EvaluationManager() {
     return Array.from(map.values());
   }, [allSubmissions, homeworks]);
 
-  // 2. ENRICH EACH SUBMISSION
   const enrichedSubmissions = useMemo(() => {
     return combinedSubmissions.map(sub => {
-      // A) Student Name
       let studentName = sub.studentName;
       const sId = String(sub.studentId || sub.userId || sub.user_id || '');
       if (!studentName || studentName === 'Öğrenci' || !studentName.trim()) {
@@ -1144,7 +1039,6 @@ export default function EvaluationManager() {
         }
       }
 
-      // B) Test Title
       let targetId = String(sub.homeworkId || sub.hwId || sub.testId || sub.questionId || sub.id || '');
       let normTargetId = targetId.replace(/^q_?|^hw_?|^test_?|^sub_?/, '');
 
@@ -1183,16 +1077,13 @@ export default function EvaluationManager() {
         else title = 'Ödev / Sınav';
       }
 
-      // C) Subject
       let subject = detectSubject(title, sub.subject || matchedHw?.subject || matchedBankQ?.subject || matchedCurTest?.subjectName);
 
-      // D) Question Count
       const ansList = Array.isArray(sub.answers) ? sub.answers : [];
       let totalQ = resolveExactQuestionCount(matchedHw || {}, matchedBankQ || {}, matchedBankQ || {}, [], matchedBankQ?.imageUrls || []);
       if (totalQ <= 1 && ansList.length > 1) totalQ = ansList.length;
       if (totalQ <= 1 && sub.totalQuestions) totalQ = sub.totalQuestions;
 
-      // E) Score (0-100%)
       let score = sub.score;
       if (score !== undefined && score !== null) {
         score = Number(score);
@@ -1204,7 +1095,6 @@ export default function EvaluationManager() {
         }
       }
 
-      // F) Determine isPending
       const isAlreadyEvaluated = sub.status === 'evaluated' || sub.status === 'graded' || sub.isEvaluatedByTeacher === true;
       let hasWrittenAnswers = false;
       if (Array.isArray(sub.answers)) {
@@ -1228,7 +1118,6 @@ export default function EvaluationManager() {
     });
   }, [combinedSubmissions, users, homeworks, allBankQuestions, bookTests, curriculumData]);
 
-  // 3. FILTER BY TEACHER / ADMIN PERMISSION
   const scopedSubmissions = useMemo(() => {
     return enrichedSubmissions.filter(sub => {
       if (sub.status === 'draft' || sub.status === 'in_progress') return false;
@@ -1264,13 +1153,14 @@ export default function EvaluationManager() {
     }).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
   }, [enrichedSubmissions, homeworks, isAdmin, teacherId]);
 
-  const pendingList = useMemo(() => {
-    return scopedSubmissions.filter(s => s.isPending);
-  }, [scopedSubmissions]);
+  const pendingList = useMemo(() => scopedSubmissions.filter(s => s.isPending), [scopedSubmissions]);
+  const completedList = useMemo(() => scopedSubmissions.filter(s => !s.isPending), [scopedSubmissions]);
 
-  const completedList = useMemo(() => {
-    return scopedSubmissions.filter(s => !s.isPending);
-  }, [scopedSubmissions]);
+  const avgEvaluatedScore = useMemo(() => {
+    const scored = completedList.filter(s => s.score !== null && s.score !== undefined);
+    if (scored.length === 0) return 0;
+    return Math.round(scored.reduce((acc, s) => acc + s.score, 0) / scored.length);
+  }, [completedList]);
 
   const activeDisplayList = useMemo(() => {
     let list = [];
@@ -1295,7 +1185,21 @@ export default function EvaluationManager() {
   const studentUsers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc', padding: '1rem', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      maxWidth: '100%',
+      margin: 0,
+      padding: '1.25rem 1.5rem 5rem 1.5rem',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      color: '#f8fafc',
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1.25rem'
+    }}>
+
       {/* Smart Evaluation Modal */}
       {activeSubmission && (
         <SmartEvaluationModal
@@ -1310,362 +1214,366 @@ export default function EvaluationManager() {
         />
       )}
 
-      {/* Main Evaluations List Dashboard */}
-      <div style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        
-        {/* Header Title & Summary Banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          borderRadius: '1.25rem',
-          padding: '1.25rem 1.5rem',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
+      {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
+      <header style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+        border: '1.5px solid rgba(255, 255, 255, 0.14)',
+        borderRadius: '1.5rem',
+        padding: '1.25rem 1.75rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(20px)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              borderRadius: '0.75rem',
+              padding: '0.55rem 0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 800,
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+              backdropFilter: 'blur(8px)'
+            }}
+          >
+            <ArrowLeft size={16} /> Geri Dön
+          </button>
+
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.25rem' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}>
-                <ClipboardCheck size={22} color="white" />
-              </div>
-              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.02em' }}>
-                Öğrenci Sınav &amp; Ödev Değerlendirme Merkezi
-              </h1>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.35)', color: '#c7d2fe', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+              <Sparkles size={13} /> LMS Sınav & Ödev Değerlendirme Merkezi
             </div>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', fontWeight: 500 }}>
-              Çoktan seçmeli sorular otomatik puanlanır; PDF, HTML ve görsel soru dokümanlarını inceleyerek açık uçlu yanıtları tek tıkla puanlayın.
+            <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+              Öğrenci Sınav & Ödev Değerlendirme Masası 🎯
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)' }}>
+              Çoktan seçmeli sorular otomatik puanlanır; açık uçlu yazılı yanıtları tek tıkla inceleyip puanlayın.
             </p>
           </div>
-
-          {/* Quick Stat Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.85rem', padding: '0.55rem 1rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1 }}>{pendingList.length}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#fef3c7', textTransform: 'uppercase', marginTop: '0.2rem' }}>✍️ Not Bekleyen</div>
-            </div>
-
-            <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '0.85rem', padding: '0.55rem 1rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#34d399', lineHeight: 1 }}>{completedList.length}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#d1fae5', textTransform: 'uppercase', marginTop: '0.2rem' }}>✅ Tamamlanan</div>
-            </div>
-
-            <div style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '0.85rem', padding: '0.55rem 1rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#818cf8', lineHeight: 1 }}>{scopedSubmissions.length}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#e0e7ff', textTransform: 'uppercase', marginTop: '0.2rem' }}>📊 Toplam Sınav</div>
-            </div>
-          </div>
         </div>
+      </header>
 
-        {/* Tabs & Filter Bar */}
+      {/* ══════════ 4 LIVE KPI HERO METRIC CARDS ══════════ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-          background: '#1e293b',
-          padding: '0.75rem 1rem',
-          borderRadius: '1.1rem',
-          border: '1px solid #334155'
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          border: '1.5px solid rgba(251, 191, 36, 0.35)',
+          borderRadius: '1.25rem', padding: '1rem 1.25rem',
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
         }}>
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setActiveTab('pending')}
-              style={{
-                padding: '0.5rem 0.95rem',
-                borderRadius: '0.7rem',
-                border: 'none',
-                background: activeTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.05)',
-                color: activeTab === 'pending' ? '#0f172a' : '#cbd5e1',
-                fontWeight: 900,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: activeTab === 'pending' ? '0 4px 12px rgba(245,158,11,0.3)' : 'none'
-              }}
-            >
-              <Edit3 size={14} /> Not Bekleyenler ({pendingList.length})
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('all')}
-              style={{
-                padding: '0.5rem 0.95rem',
-                borderRadius: '0.7rem',
-                border: 'none',
-                background: activeTab === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.05)',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: activeTab === 'all' ? '0 4px 12px rgba(99,102,241,0.3)' : 'none'
-              }}
-            >
-              <ClipboardList size={14} /> Tüm Sınavlar ({scopedSubmissions.length})
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('completed')}
-              style={{
-                padding: '0.5rem 0.95rem',
-                borderRadius: '0.7rem',
-                border: 'none',
-                background: activeTab === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: activeTab === 'completed' ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
-              }}
-            >
-              <CheckCircle2 size={14} /> Tamamlananlar ({completedList.length})
-            </button>
+          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Edit3 size={24} />
           </div>
-
-          {/* Search and Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
-            <div style={{ position: 'relative', flex: '1 1 180px' }}>
-              <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder="Öğrenci / sınav ara..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.45rem 0.85rem 0.45rem 2rem',
-                  borderRadius: '0.65rem',
-                  background: '#0f172a',
-                  border: '1px solid #334155',
-                  color: 'white',
-                  fontSize: '0.8rem',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <select
-              value={subjectFilter}
-              onChange={e => setSubjectFilter(e.target.value)}
-              style={{
-                padding: '0.45rem 0.75rem',
-                borderRadius: '0.65rem',
-                background: '#0f172a',
-                border: '1px solid #334155',
-                color: 'white',
-                fontSize: '0.8rem',
-                outline: 'none'
-              }}
-            >
-              <option value="all">Tüm Dersler</option>
-              {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-
-            <select
-              value={studentFilter}
-              onChange={e => setStudentFilter(e.target.value)}
-              style={{
-                padding: '0.45rem 0.75rem',
-                borderRadius: '0.65rem',
-                background: '#0f172a',
-                border: '1px solid #334155',
-                color: 'white',
-                fontSize: '0.8rem',
-                outline: 'none'
-              }}
-            >
-              <option value="all">Tüm Öğrenciler</option>
-              {studentUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Not Bekleyen</span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{pendingList.length} Sınav</span>
+            <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Açık uçlu yanıtlar</span>
           </div>
         </div>
 
-        {/* Submissions Card Grid */}
-        {activeDisplayList.length === 0 ? (
-          <div style={{
-            background: '#1e293b',
-            borderRadius: '1.25rem',
-            padding: '3rem 1.5rem',
-            textAlign: 'center',
-            border: '1px solid #334155',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ fontSize: '2.5rem' }}>✨</div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#f8fafc' }}>
-              {activeTab === 'pending' ? 'Not Bekleyen Sınav Bulunmuyor' : 'Kayıtlı Sınav Bulunamadı'}
-            </h3>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', maxWidth: 380 }}>
-              {activeTab === 'pending'
-                ? 'Harika! Tüm öğrenci yazılı yanıtları başarıyla değerlendirilmiş durumda.'
-                : 'Arama kriterlerinize uygun sınav kaydı bulunamadı.'}
-            </p>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          border: '1.5px solid rgba(52, 211, 153, 0.35)',
+          borderRadius: '1.25rem', padding: '1rem 1.25rem',
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CheckCircle2 size={24} />
           </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '1rem'
-          }}>
-            {activeDisplayList.map((sub) => {
-              const isPending = sub.isPending;
-              const scoreVal = sub.score !== undefined && sub.score !== null ? sub.score : null;
-              const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Tamamlandı';
-              const totalQ = sub.totalQuestions || 1;
-              const subConf = subjectThemes[sub.subject] || subjectThemes['Genel Testler'];
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Tamamlanan</span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{completedList.length} Sınav</span>
+            <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Puanlaması bitti</span>
+          </div>
+        </div>
 
-              return (
-                <div
-                  key={sub.id}
-                  style={{
-                    background: '#1e293b',
-                    border: isPending ? '1.5px solid rgba(245,158,11,0.6)' : '1px solid #334155',
-                    borderRadius: '1.1rem',
-                    padding: '1.1rem',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '0.85rem',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {isPending && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: 3.5,
-                      background: 'linear-gradient(90deg, #f59e0b, #d97706)'
-                    }} />
-                  )}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          border: '1.5px solid rgba(99, 102, 241, 0.35)',
+          borderRadius: '1.25rem', padding: '1rem 1.25rem',
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ClipboardCheck size={24} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam Teslim</span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{scopedSubmissions.length} Sınav</span>
+            <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 700 }}>Öğrenci sınav kağıdı</span>
+          </div>
+        </div>
 
-                  <div>
-                    {/* Student & Date Row */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <div style={{
-                          width: 36, height: 36, borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'white', fontWeight: 900, fontSize: '0.88rem',
-                          boxShadow: '0 2px 8px rgba(99,102,241,0.3)'
-                        }}>
-                          {sub.studentName?.charAt(0) || 'Ö'}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          border: '1.5px solid rgba(56, 189, 248, 0.35)',
+          borderRadius: '1.25rem', padding: '1rem 1.25rem',
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Trophy size={24} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Genel Ortalama</span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>%{avgEvaluatedScore}</span>
+            <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Değerlendirilen başarı</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════ TABS & FILTERS BAR ══════════ */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+        border: '1.5px solid rgba(255, 255, 255, 0.14)',
+        borderRadius: '1.25rem', padding: '1rem 1.25rem',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '0.75rem',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)'
+      }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('pending')}
+            style={{
+              padding: '0.5rem 0.95rem', borderRadius: '0.7rem', border: 'none',
+              background: activeTab === 'pending' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.06)',
+              color: activeTab === 'pending' ? '#0f172a' : '#ffffff',
+              fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              boxShadow: activeTab === 'pending' ? '0 4px 12px rgba(245,158,11,0.35)' : 'none'
+            }}
+          >
+            <Edit3 size={14} /> Not Bekleyenler ({pendingList.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            style={{
+              padding: '0.5rem 0.95rem', borderRadius: '0.7rem', border: 'none',
+              background: activeTab === 'all' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'rgba(255,255,255,0.06)',
+              color: 'white', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              boxShadow: activeTab === 'all' ? '0 4px 12px rgba(99,102,241,0.35)' : 'none'
+            }}
+          >
+            <ClipboardList size={14} /> Tüm Sınavlar ({scopedSubmissions.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('completed')}
+            style={{
+              padding: '0.5rem 0.95rem', borderRadius: '0.7rem', border: 'none',
+              background: activeTab === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.06)',
+              color: 'white', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              boxShadow: activeTab === 'completed' ? '0 4px 12px rgba(16,185,129,0.35)' : 'none'
+            }}
+          >
+            <CheckCircle2 size={14} /> Tamamlananlar ({completedList.length})
+          </button>
+        </div>
+
+        {/* Search & Select Filters */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
+          <div style={{ position: 'relative', flex: '1 1 180px' }}>
+            <Search size={14} color="rgba(255,255,255,0.4)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Öğrenci veya sınav ara..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '0.5rem 0.85rem 0.5rem 2rem', borderRadius: '0.65rem',
+                background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(255,255,255,0.16)',
+                color: 'white', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          <select
+            value={subjectFilter}
+            onChange={e => setSubjectFilter(e.target.value)}
+            style={{
+              padding: '0.5rem 0.75rem', borderRadius: '0.65rem',
+              background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.16)',
+              color: 'white', fontSize: '0.8rem', outline: 'none'
+            }}
+          >
+            <option value="all">Tüm Dersler</option>
+            {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+
+          <select
+            value={studentFilter}
+            onChange={e => setStudentFilter(e.target.value)}
+            style={{
+              padding: '0.5rem 0.75rem', borderRadius: '0.65rem',
+              background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.16)',
+              color: 'white', fontSize: '0.8rem', outline: 'none'
+            }}
+          >
+            <option value="all">Tüm Öğrenciler</option>
+            {studentUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* ══════════ SUBMISSIONS CARD GRID ══════════ */}
+      {activeDisplayList.length === 0 ? (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          borderRadius: '1.5rem', padding: '3.5rem 1.5rem', textAlign: 'center',
+          border: '1.5px solid rgba(255, 255, 255, 0.14)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem'
+        }}>
+          <Sparkles size={44} style={{ opacity: 0.3 }} />
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
+            {activeTab === 'pending' ? 'Not Bekleyen Sınav Bulunmuyor' : 'Kayıtlı Sınav Bulunamadı'}
+          </h3>
+          <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', maxWidth: 380 }}>
+            {activeTab === 'pending'
+              ? 'Harika! Tüm öğrenci yazılı yanıtları başarıyla değerlendirilmiş durumda.'
+              : 'Arama kriterlerinize uygun sınav kaydı bulunamadı.'}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+          {activeDisplayList.map((sub) => {
+            const isPending = sub.isPending;
+            const scoreVal = sub.score !== undefined && sub.score !== null ? sub.score : null;
+            const dateStr = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Tamamlandı';
+            const totalQ = sub.totalQuestions || 1;
+            const subConf = subjectThemes[sub.subject] || subjectThemes['Genel Testler'];
+
+            return (
+              <div
+                key={sub.id}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                  border: isPending ? '1.5px solid rgba(245,158,11,0.6)' : '1.5px solid rgba(255,255,255,0.12)',
+                  borderRadius: '1.25rem', padding: '1.25rem',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)',
+                  display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.85rem',
+                  transition: 'transform 0.15s ease, border-color 0.15s ease',
+                  position: 'relative', overflow: 'hidden'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+              >
+                {isPending && (
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 3.5,
+                    background: 'linear-gradient(90deg, #f59e0b, #d97706)'
+                  }} />
+                )}
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontWeight: 900, fontSize: '0.88rem',
+                        boxShadow: '0 2px 8px rgba(99,102,241,0.3)', border: '1.5px solid rgba(255,255,255,0.2)'
+                      }}>
+                        {sub.studentName?.charAt(0) || 'Ö'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#ffffff' }}>
+                          {sub.studentName || 'Öğrenci'}
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#f8fafc' }}>
-                            {sub.studentName || 'Öğrenci'}
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Clock3 size={11} /> {dateStr}
-                          </div>
+                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Clock3 size={11} /> {dateStr}
                         </div>
                       </div>
-
-                      {/* Status Tag */}
-                      {isPending ? (
-                        <span style={{
-                          background: 'rgba(245,158,11,0.15)',
-                          color: '#fbbf24',
-                          border: '1px solid rgba(245,158,11,0.4)',
-                          padding: '0.18rem 0.55rem',
-                          borderRadius: '50px',
-                          fontWeight: 900,
-                          fontSize: '0.68rem'
-                        }}>
-                          ✍️ Not Bekliyor
-                        </span>
-                      ) : (
-                        <span style={{
-                          background: 'rgba(16,185,129,0.15)',
-                          color: '#34d399',
-                          border: '1px solid rgba(16,185,129,0.4)',
-                          padding: '0.18rem 0.55rem',
-                          borderRadius: '50px',
-                          fontWeight: 900,
-                          fontSize: '0.68rem'
-                        }}>
-                          ✓ Tamamlandı
-                        </span>
-                      )}
                     </div>
 
-                    {/* Exam Title */}
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f1f5f9', lineHeight: 1.35, marginBottom: '0.45rem' }}>
-                      {sub.testTitle || 'Ödev / Sınav'}
-                    </div>
-
-                    {/* Info Badges */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      <span style={{ background: '#0f172a', color: '#94a3b8', padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 700, border: '1px solid #334155' }}>
-                        📝 {totalQ} Soru
+                    {isPending ? (
+                      <span style={{
+                        background: 'rgba(245,158,11,0.18)', color: '#fbbf24',
+                        border: '1px solid rgba(245,158,11,0.4)',
+                        padding: '0.2rem 0.6rem', borderRadius: 99,
+                        fontWeight: 900, fontSize: '0.68rem'
+                      }}>
+                        ✍️ Not Bekliyor
                       </span>
-                      <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
-                        {subConf.icon} {sub.subject}
+                    ) : (
+                      <span style={{
+                        background: 'rgba(16,185,129,0.18)', color: '#34d399',
+                        border: '1px solid rgba(16,185,129,0.4)',
+                        padding: '0.2rem 0.6rem', borderRadius: 99,
+                        fontWeight: 900, fontSize: '0.68rem'
+                      }}>
+                        ✓ Tamamlandı
                       </span>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Bottom Action & Score Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #334155', paddingTop: '0.75rem' }}>
-                    <div>
-                      {scoreVal !== null && (
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: scoreVal >= 70 ? '#34d399' : (scoreVal >= 50 ? '#fbbf24' : '#f87171') }}>
-                          %{scoreVal}
-                        </div>
-                      )}
-                    </div>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', lineHeight: 1.35, marginBottom: '0.45rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {sub.testTitle || 'Ödev / Sınav'}
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveSubmission(sub)}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.7rem',
-                        border: 'none',
-                        background: isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                        color: isPending ? '#0f172a' : 'white',
-                        fontWeight: 900,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        boxShadow: isPending ? '0 4px 12px rgba(245,158,11,0.35)' : '0 4px 12px rgba(99,102,241,0.3)'
-                      }}
-                    >
-                      {isPending ? <Edit3 size={14} /> : <Eye size={14} />}
-                      <span>{isPending ? 'Değerlendir & Not Ver' : 'Sınavı & Çözümü İncele'}</span>
-                    </button>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    <span style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.1)' }}>
+                      📝 {totalQ} Soru
+                    </span>
+                    <span style={{ background: subConf.bg, color: subConf.color, padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontSize: '0.68rem', fontWeight: 800, border: `1px solid ${subConf.border}` }}>
+                      {subConf.icon} {sub.subject}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
+                  <div>
+                    {scoreVal !== null && (
+                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: scoreVal >= 70 ? '#34d399' : (scoreVal >= 50 ? '#fbbf24' : '#f87171') }}>
+                        %{scoreVal}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubmission(sub)}
+                    style={{
+                      padding: '0.5rem 1rem', borderRadius: '0.7rem', border: 'none',
+                      background: isPending ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                      color: isPending ? '#0f172a' : 'white',
+                      fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '0.35rem',
+                      boxShadow: isPending ? '0 4px 12px rgba(245,158,11,0.35)' : '0 4px 12px rgba(99,102,241,0.3)'
+                    }}
+                  >
+                    {isPending ? <Edit3 size={14} /> : <Eye size={14} />}
+                    <span>{isPending ? 'Değerlendir & Not Ver' : 'Sınavı & Çözümü İncele'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
     </div>
   );
 }
