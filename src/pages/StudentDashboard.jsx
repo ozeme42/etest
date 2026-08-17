@@ -1282,6 +1282,45 @@ export default function StudentDashboard() {
     },
   ];
 
+  const renderRoadmaps = () => {
+    if (myRoadmaps.length === 0) return null;
+    return (
+      <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
+        <div style={{ background:'linear-gradient(135deg,#6d28d9,#9333ea)', padding:'0.9rem 1.2rem', display:'flex', alignItems:'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width:28, height:28, borderRadius:9, background:'rgba(255,255,255,0.22)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.88rem' }}>🗺️</div>
+            <span style={{ fontSize:'0.82rem', fontWeight:900, color:'white', textTransform:'uppercase', letterSpacing:'0.06em' }}>Yol Haritalarım</span>
+          </div>
+          <span style={{ fontSize: '0.64rem', fontWeight: 900, color: '#ffffff', background: 'rgba(255,255,255,0.2)', padding: '0.15rem 0.55rem', borderRadius: 99 }}>{myRoadmaps.length} Plan</span>
+        </div>
+        <div style={{ padding:'0.75rem' }}>
+          {myRoadmaps.map(({ assignment, plan }) => {
+            const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
+            const done = assignment.completedTopics?.length || 0;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            return (
+              <div key={assignment.id} className="sd-hw-card"
+                onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
+                style={{ padding:'0.95rem', borderRadius:16, display:'flex', alignItems:'center', gap:12, marginBottom:6, background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(216,180,254,0.25)' }}>
+                <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,#6d28d9,#9333ea)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 14px rgba(109,40,217,0.4)' }}><Target size={20} color="white" /></div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:800, fontSize:'0.88rem', color:'white', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
+                  <div style={{ height:6, background:'rgba(255,255,255,0.15)', borderRadius:99, overflow:'hidden', marginBottom:4 }}>
+                    <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#38bdf8,#c084fc)', borderRadius:99, transition:'width 1s', boxShadow:'0 0 8px rgba(192,132,252,0.6)' }} />
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:800, color:'rgba(255,255,255,0.8)' }}>
+                    <span>{done}/{total} konu</span><span style={{ color:'#c084fc', fontWeight:900 }}>%{pct}</span>
+                  </div>
+                </div>
+                <ChevronRight size={16} color="rgba(255,255,255,0.6)" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.38) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.30) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.30) 0%, transparent 55%), linear-gradient(180deg, #111e38 0%, #18284e 35%, #1f3363 70%, #14213d 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", color: '#f8fafc' }}>
 
@@ -1487,109 +1526,111 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* QUICK TILES (PRO BENTO GLASS HUB) */}
-            <div className="sd-section">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={S.sectionTitle}><Zap size={15} color="#38bdf8" /> Hızlı Erişim Merkezi</div>
-                <span style={{ fontSize: '0.64rem', fontWeight: 900, color: '#c7d2fe', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '0.15rem 0.5rem', borderRadius: 99, letterSpacing: '0.04em' }}>6 Modül</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: isMobile ? '0.75rem' : '0.85rem' }}>
-                {quickTiles.map((t, i) => {
-                  const Icon = t.icon;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => navigate(t.to)}
-                      className="sd-tile"
-                      style={{
-                        background: `radial-gradient(ellipse at 15% 20%, ${t.glow} 0%, transparent 70%), linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%)`,
-                        backdropFilter: 'blur(20px)',
-                        borderRadius: 20,
-                        padding: isMobile ? '0.95rem 0.85rem' : '1.05rem 1.1rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: '0.75rem',
-                        border: `1.5px solid ${t.border}`,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        animation: `sdFadeUp 0.4s ease ${i * 0.05}s both`,
-                        minHeight: isMobile ? 116 : 124
-                      }}
-                    >
-                      {/* Ambient Glow Orb */}
-                      <div style={{ position: 'absolute', right: -15, top: -15, width: 70, height: 70, borderRadius: '50%', background: t.glow, filter: 'blur(20px)', pointerEvents: 'none' }} />
-
-                      {/* Top Row: Icon Badge + Mini Pill Badge */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', zIndex: 2 }}>
-                        <div style={{
-                          width: isMobile ? 38 : 42,
-                          height: isMobile ? 38 : 42,
-                          borderRadius: 13,
-                          background: t.iconGradient,
+            {/* QUICK TILES (PRO BENTO GLASS HUB - Desktop only) */}
+            {!isMobile && (
+              <div className="sd-section">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={S.sectionTitle}><Zap size={15} color="#38bdf8" /> Hızlı Erişim Merkezi</div>
+                  <span style={{ fontSize: '0.64rem', fontWeight: 900, color: '#c7d2fe', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '0.15rem 0.5rem', borderRadius: 99, letterSpacing: '0.04em' }}>6 Modül</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.85rem' }}>
+                  {quickTiles.map((t, i) => {
+                    const Icon = t.icon;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => navigate(t.to)}
+                        className="sd-tile"
+                        style={{
+                          background: `radial-gradient(ellipse at 15% 20%, ${t.glow} 0%, transparent 70%), linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%)`,
+                          backdropFilter: 'blur(20px)',
+                          borderRadius: 20,
+                          padding: '1.05rem 1.1rem',
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: `0 4px 14px ${t.glow}`,
-                          border: '1.5px solid rgba(255, 255, 255, 0.35)',
-                          flexShrink: 0
-                        }}>
-                          <Icon size={isMobile ? 18 : 20} color="#ffffff" strokeWidth={2.3} />
-                        </div>
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: '0.75rem',
+                          border: `1.5px solid ${t.border}`,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          animation: `sdFadeUp 0.4s ease ${i * 0.05}s both`,
+                          minHeight: 124
+                        }}
+                      >
+                        {/* Ambient Glow Orb */}
+                        <div style={{ position: 'absolute', right: -15, top: -15, width: 70, height: 70, borderRadius: '50%', background: t.glow, filter: 'blur(20px)', pointerEvents: 'none' }} />
 
-                        {t.badgeText && (
-                          <span style={{
-                            fontSize: '0.56rem',
-                            fontWeight: 900,
-                            color: '#ffffff',
-                            background: 'rgba(255, 255, 255, 0.12)',
-                            border: '1px solid rgba(255, 255, 255, 0.22)',
-                            padding: '0.15rem 0.45rem',
-                            borderRadius: 99,
-                            letterSpacing: '0.03em',
-                            textTransform: 'uppercase',
-                            backdropFilter: 'blur(8px)'
+                        {/* Top Row: Icon Badge + Mini Pill Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', zIndex: 2 }}>
+                          <div style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: 13,
+                            background: t.iconGradient,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: `0 4px 14px ${t.glow}`,
+                            border: '1.5px solid rgba(255, 255, 255, 0.35)',
+                            flexShrink: 0
                           }}>
-                            {t.badgeText}
-                          </span>
-                        )}
-                      </div>
+                            <Icon size={20} color="#ffffff" strokeWidth={2.3} />
+                          </div>
 
-                      {/* Bottom Info: Title, Subtitle, Arrow */}
-                      <div style={{ width: '100%', zIndex: 2, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: isMobile ? '0.84rem' : '0.92rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
-                            {t.label}
-                          </div>
-                          <div style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.72)', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {t.sub}
-                          </div>
+                          {t.badgeText && (
+                            <span style={{
+                              fontSize: '0.56rem',
+                              fontWeight: 900,
+                              color: '#ffffff',
+                              background: 'rgba(255, 255, 255, 0.12)',
+                              border: '1px solid rgba(255, 255, 255, 0.22)',
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: 99,
+                              letterSpacing: '0.03em',
+                              textTransform: 'uppercase',
+                              backdropFilter: 'blur(8px)'
+                            }}>
+                              {t.badgeText}
+                            </span>
+                          )}
                         </div>
 
-                        <div style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 7,
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          border: '1px solid rgba(255, 255, 255, 0.18)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#ffffff',
-                          flexShrink: 0
-                        }}>
-                          <ChevronRight size={13} color="rgba(255, 255, 255, 0.85)" />
+                        {/* Bottom Info: Title, Subtitle, Arrow */}
+                        <div style={{ width: '100%', zIndex: 2, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                              {t.label}
+                            </div>
+                            <div style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.72)', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {t.sub}
+                            </div>
+                          </div>
+
+                          <div style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 7,
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.18)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            flexShrink: 0
+                          }}>
+                            <ChevronRight size={13} color="rgba(255, 255, 255, 0.85)" />
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* TODAY'S PROGRAM */}
             <div className="sd-section">
@@ -1915,6 +1956,9 @@ export default function StudentDashboard() {
               )}
             </div>
 
+            {/* ROADMAPS (Mobile view: directly under Pending Homeworks for maximum focus) */}
+            {isMobile && renderRoadmaps()}
+
             {/* COMPLETED EXAMS */}
             {completedCount > 0 && (
               <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
@@ -1979,39 +2023,8 @@ export default function StudentDashboard() {
           {/* ──── RIGHT COLUMN ──── */}
           <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
 
-            {/* ROADMAPS */}
-            {myRoadmaps.length > 0 && (
-              <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
-                <div style={{ background:'linear-gradient(135deg,#6d28d9,#9333ea)', padding:'0.9rem 1.2rem', display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ width:28, height:28, borderRadius:9, background:'rgba(255,255,255,0.22)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.88rem' }}>🗺️</div>
-                  <span style={{ fontSize:'0.82rem', fontWeight:900, color:'white', textTransform:'uppercase', letterSpacing:'0.06em' }}>Yol Haritalarım</span>
-                </div>
-                <div style={{ padding:'0.75rem' }}>
-                  {myRoadmaps.map(({ assignment, plan }) => {
-                    const total = plan.subjects?.reduce((sum, s) => sum + (s.topics?.length || 0), 0) || 0;
-                    const done = assignment.completedTopics?.length || 0;
-                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                    return (
-                      <div key={assignment.id} className="sd-hw-card"
-                        onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
-                        style={{ padding:'0.95rem', borderRadius:16, display:'flex', alignItems:'center', gap:12, marginBottom:6, background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(216,180,254,0.25)' }}>
-                        <div style={{ width:44, height:44, borderRadius:14, background:'linear-gradient(135deg,#6d28d9,#9333ea)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 14px rgba(109,40,217,0.4)' }}><Target size={20} color="white" /></div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontWeight:800, fontSize:'0.88rem', color:'white', marginBottom:6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{plan.title}</div>
-                          <div style={{ height:6, background:'rgba(255,255,255,0.15)', borderRadius:99, overflow:'hidden', marginBottom:4 }}>
-                            <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#38bdf8,#c084fc)', borderRadius:99, transition:'width 1s', boxShadow:'0 0 8px rgba(192,132,252,0.6)' }} />
-                          </div>
-                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:800, color:'rgba(255,255,255,0.8)' }}>
-                            <span>{done}/{total} konu</span><span style={{ color:'#c084fc', fontWeight:900 }}>%{pct}</span>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} color="rgba(255,255,255,0.6)" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* ROADMAPS (Desktop) */}
+            {!isMobile && renderRoadmaps()}
 
             {/* GOALS */}
             <div className="sd-section" style={{ ...S.card, overflow:'hidden' }}>
