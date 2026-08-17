@@ -563,8 +563,11 @@ export default function StudentDashboard() {
                     testId: testId,
                     isAutoHomework: true,
                     taskType: 'kitap',
-                    subject: displayHeader,
-                    topic: displaySub,
+                    subject: subjectName,
+                    unitTopic: topicName,
+                    bookTitle: cleanBookTitle,
+                    testName: testName,
+                    title: `${testName}${topicName ? ` (${topicName})` : ''}`,
                     questionCount: `${qCount} soru`,
                     time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
                     done: false
@@ -593,7 +596,7 @@ export default function StudentDashboard() {
               isAutoHomework: true,
               taskType: hw.isBookAssignment ? 'kitap' : 'ödev',
               subject: hw.subject || 'Atanan Ödev',
-              topic: hw.title || hw.name || 'Ödev Görevi',
+              title: hw.title || hw.name || 'Ödev Görevi',
               questionCount: hw.totalQuestions ? `${hw.totalQuestions} soru` : null,
               time: 'Bugün Son',
               done: false
@@ -1019,7 +1022,7 @@ export default function StudentDashboard() {
               </div>
 
               {dayProgramInfo.items.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: '160px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
                   {dayProgramInfo.items.map((task, idx) => {
                     const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
                     const handleTaskClick = () => {
@@ -1045,22 +1048,23 @@ export default function StudentDashboard() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          gap: 8,
+                          gap: 10,
                           background: task.done ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
                           border: task.done ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)',
-                          padding: '0.5rem 0.8rem',
+                          padding: '0.6rem 0.8rem',
                           borderRadius: 12,
                           cursor: 'pointer',
                           transition: 'all 0.15s'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 0 }}>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
                             style={{
                               width: 20,
                               height: 20,
+                              marginTop: 2,
                               borderRadius: 6,
                               border: task.done ? 'none' : '1.5px solid #64748b',
                               background: task.done ? '#22c55e' : 'transparent',
@@ -1076,22 +1080,50 @@ export default function StudentDashboard() {
                           </button>
 
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              color: task.done ? '#94a3b8' : '#f8fafc',
-                              textDecoration: task.done ? 'line-through' : 'none',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {task.title || task.subject || 'Ders Çalışması'} {task.topic ? `(${task.topic})` : ''}
+                            {/* Satır 1: Ders / Rozet + Test Başlığı */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 2 }}>
+                              {task.subject && (
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 900,
+                                  color: '#93c5fd',
+                                  background: 'rgba(59, 130, 246, 0.2)',
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  flexShrink: 0
+                                }}>
+                                  {task.subject}
+                                </span>
+                              )}
+                              <span style={{
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                color: task.done ? '#94a3b8' : '#ffffff',
+                                textDecoration: task.done ? 'line-through' : 'none',
+                                wordBreak: 'break-word',
+                                lineHeight: 1.3
+                              }}>
+                                {task.title || task.testName || task.topic || 'Ders Çalışması'}
+                              </span>
                             </div>
-                            {task.time && (
-                              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>
-                                ⏰ {task.time}
-                              </div>
-                            )}
+
+                            {/* Satır 2: Kitap Adı & Hedef Tarihi */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.66rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                              {task.bookTitle && (
+                                <span style={{ color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
+                                  📖 {task.bookTitle}
+                                </span>
+                              )}
+                              {task.unitTopic && !task.bookTitle && (
+                                <span>📌 {task.unitTopic}</span>
+                              )}
+                              {task.questionCount && (
+                                <span>• {task.questionCount}</span>
+                              )}
+                              {task.time && (
+                                <span>• ⏰ {task.time}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -1104,17 +1136,18 @@ export default function StudentDashboard() {
                               color: '#ffffff',
                               border: 'none',
                               borderRadius: 8,
-                              padding: '0.22rem 0.55rem',
-                              fontSize: '0.68rem',
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.72rem',
                               fontWeight: 900,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 3,
-                              flexShrink: 0
+                              gap: 4,
+                              flexShrink: 0,
+                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
                             }}
                           >
-                            <PlayCircle size={12} /> Çöz
+                            <PlayCircle size={13} /> Çöz
                           </button>
                         )}
                       </div>
