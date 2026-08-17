@@ -508,6 +508,44 @@ export default function StudentDashboard() {
     return 85;
   }, [tests, selectedStudent, submissions]);
 
+  /* ─── Hero Date & Task Stats for Top KPI Cards ─── */
+  const heroDateStr = useMemo(() => {
+    const d = new Date();
+    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
+  }, []);
+
+  const taskStats = useMemo(() => {
+    const totalCount = tests.length;
+    const completedCount = tests.filter(t => t.status === 'Sonuçlandı' || t.status === 'Tamamlandı').length;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    let overdueCount = 0;
+    let pendingCount = 0;
+
+    tests.forEach(t => {
+      const isDone = t.status === 'Sonuçlandı' || t.status === 'Tamamlandı';
+      if (!isDone) {
+        const dueDateObj = parseSafeDate(t.dueDate);
+        if (dueDateObj && dueDateObj < now) {
+          overdueCount++;
+        } else {
+          pendingCount++;
+        }
+      }
+    });
+
+    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : (completedCount > 0 ? 100 : 0);
+
+    return {
+      totalCount,
+      completedCount,
+      pendingCount,
+      overdueCount,
+      completionRate
+    };
+  }, [tests]);
+
   /* ─── 1-Click Resume Book & Next Test ─── */
   const resumeBookTest = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return null;
@@ -1378,147 +1416,325 @@ export default function StudentDashboard() {
       `}</style>
 
       {/* ════════════════════════════════════════════
-          1. HERO BANNER: ÖĞRENCİ KİMLİK & HIZLI ERİŞİM
+          1. HERO BANNER: ÖĞRENCİ KİMLİK & 5'Lİ KPI KARTLARI
       ════════════════════════════════════════════ */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-        borderBottom: '1.5px solid rgba(255, 255, 255, 0.12)',
-        padding: isMobile ? '1.25rem 1rem' : '2rem 1.5rem',
-        backdropFilter: 'blur(20px)'
+        padding: isMobile ? '1rem 0.75rem 0' : '1.5rem 1.5rem 0'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem' }}>
-          {/* ÜST SATIR: SOLDA İSİM/PROFİL <------> SAĞ KÖŞEDE YUVARLAK BAŞARI GRAFİĞİ */}
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          
+          {/* ÜST VİOLET HERO BANNER */}
           <div style={{
+            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 35%, #7c3aed 70%, #9333ea 100%)',
+            border: '1.5px solid rgba(255, 255, 255, 0.22)',
+            borderRadius: 24,
+            padding: isMobile ? '1.25rem 1rem' : '1.65rem 2rem',
+            boxShadow: '0 12px 36px rgba(99, 102, 241, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '0.75rem',
-            width: '100%'
+            gap: '1rem',
+            flexWrap: 'wrap'
           }}>
-            {/* SOL: ÖĞRENCİ PROFİL KİMLİĞİ */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0 }}>
-              <div style={{
-                width: isMobile ? 48 : 64,
-                height: isMobile ? 48 : 64,
-                borderRadius: isMobile ? 16 : 20,
-                background: `linear-gradient(135deg, ${avatarColor}, #4338ca)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '1.35rem' : '1.85rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                border: '2px solid rgba(255,255,255,0.35)',
-                boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                flexShrink: 0
-              }}>
-                {selectedStudent?.name?.charAt(0) || 'Ö'}
+            {/* SOL: AVATAR + HOŞ GELDİN + İSİM + ROZETLER */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.25rem', minWidth: 0 }}>
+              
+              {/* Yuvarlak Avatar + Yeşil Online Rozeti */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{
+                  width: isMobile ? 56 : 72,
+                  height: isMobile ? 56 : 72,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.22)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: isMobile ? '1.5rem' : '1.95rem',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  border: '3px solid rgba(255, 255, 255, 0.55)',
+                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)'
+                }}>
+                  {selectedStudent?.name?.charAt(0) || 'Ö'}
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: 2,
+                  right: 2,
+                  width: isMobile ? 14 : 16,
+                  height: isMobile ? 14 : 16,
+                  borderRadius: '50%',
+                  background: '#22c55e',
+                  border: '2.5px solid #ffffff',
+                  boxShadow: '0 0 8px rgba(34, 197, 94, 0.8)'
+                }} />
               </div>
 
+              {/* İsim ve Başlık Bilgisi */}
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: isMobile ? '0.64rem' : '0.68rem', color: '#a5b4fc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {gradeLabel ? `${gradeLabel} Öğrenci Portalı` : 'Öğrenci Portalı'}
+                <div style={{
+                  fontSize: isMobile ? '0.7rem' : '0.76rem',
+                  fontWeight: 800,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: 2
+                }}>
+                  HOŞ GELDİN 👋
                 </div>
-                <h1 style={{ fontSize: isMobile ? '1.2rem' : '1.75rem', fontWeight: 900, color: '#ffffff', margin: '2px 0 0 0', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <h1 style={{
+                  fontSize: isMobile ? '1.35rem' : '1.85rem',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  margin: '0 0 6px 0',
+                  lineHeight: 1.15,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
                   {selectedStudent?.name || 'Öğrenci'}
                 </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
-                    📅 {todayStr}
-                  </span>
-                  {hasCoach && (
-                    <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#4ade80', background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.35)', padding: '1px 6px', borderRadius: 99 }}>
-                      🎓 Koçluk
-                    </span>
-                  )}
+                
+                {/* Tarih ve Koçluk Rozetleri */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.16)',
+                    border: '1px solid rgba(255, 255, 255, 0.28)',
+                    borderRadius: 99,
+                    padding: '3px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}>
+                    <span>🗓</span>
+                    <span>{heroDateStr}</span>
+                  </div>
+
+                  <div style={{
+                    background: hasCoach ? 'rgba(34, 197, 94, 0.22)' : 'rgba(255, 255, 255, 0.16)',
+                    border: hasCoach ? '1px solid rgba(74, 222, 128, 0.45)' : '1px solid rgba(255, 255, 255, 0.28)',
+                    color: hasCoach ? '#4ade80' : '#ffffff',
+                    borderRadius: 99,
+                    padding: '3px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}>
+                    <span>🎓</span>
+                    <span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* SAĞ KÖŞE: YUVARLAK BAŞARI TAMAMLAMA GRAFİĞİ (MOBİLDE VE MASAÜSTÜNDE SAĞDA) */}
+            {/* SAĞ: YUVARLAK BÜYÜK BAŞARI DİSKİ */}
             <div
-              onClick={() => navigate('/student-results')}
+              onClick={() => navigate('/student/results')}
               title="Detaylı Sonuçlar ve Başarı Analizini İncele"
               className="sd-btn"
               style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(15, 23, 42, 0.95) 100%)',
-                border: overallSuccessRate >= 80 ? '1.5px solid rgba(52, 211, 153, 0.55)' : '1.5px solid rgba(99, 102, 241, 0.45)',
-                borderRadius: isMobile ? 14 : 16,
-                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.95rem',
-                cursor: 'pointer',
+                width: isMobile ? 74 : 96,
+                height: isMobile ? 74 : 96,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 100%)',
+                border: '2px solid rgba(255, 255, 255, 0.45)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 2px 6px rgba(255, 255, 255, 0.35)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: isMobile ? 6 : 10,
-                boxShadow: overallSuccessRate >= 80 ? '0 6px 20px rgba(16, 185, 129, 0.3)' : '0 6px 20px rgba(99, 102, 241, 0.25)',
-                transition: 'all 0.2s ease',
+                justifyContent: 'center',
+                cursor: 'pointer',
                 flexShrink: 0
               }}
             >
-              {/* Circular SVG Ring */}
-              <div style={{ position: 'relative', width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width={isMobile ? 38 : 44} height={isMobile ? 38 : 44} viewBox={isMobile ? "0 0 38 38" : "0 0 44 44"} style={{ transform: 'rotate(-90deg)' }}>
-                  <circle
-                    cx={isMobile ? 19 : 22}
-                    cy={isMobile ? 19 : 22}
-                    r={isMobile ? 15 : 17}
-                    fill="transparent"
-                    stroke="rgba(255, 255, 255, 0.12)"
-                    strokeWidth={isMobile ? 3.5 : 4}
-                  />
-                  <circle
-                    cx={isMobile ? 19 : 22}
-                    cy={isMobile ? 19 : 22}
-                    r={isMobile ? 15 : 17}
-                    fill="transparent"
-                    stroke={overallSuccessRate >= 80 ? '#10b981' : overallSuccessRate >= 60 ? '#38bdf8' : '#f59e0b'}
-                    strokeWidth={isMobile ? 3.5 : 4}
-                    strokeDasharray={2 * Math.PI * (isMobile ? 15 : 17)}
-                    strokeDashoffset={2 * Math.PI * (isMobile ? 15 : 17) * (1 - (overallSuccessRate || 0) / 100)}
-                    strokeLinecap="round"
-                    style={{ transition: 'stroke-dashoffset 1s ease' }}
-                  />
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  fontSize: isMobile ? '0.64rem' : '0.72rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  lineHeight: 1,
-                  textAlign: 'center'
-                }}>
-                  %{overallSuccessRate}
-                </div>
+              <div style={{
+                fontSize: isMobile ? '1.25rem' : '1.65rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                lineHeight: 1
+              }}>
+                %{overallSuccessRate}
               </div>
-
-              {/* Text Info */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: isMobile ? '0.58rem' : '0.62rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Başarı Oranı
-                </span>
-                <span style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: overallSuccessRate >= 80 ? '#4ade80' : overallSuccessRate >= 60 ? '#38bdf8' : '#fbbf24', lineHeight: 1.15, marginTop: 1 }}>
-                  {overallSuccessRate >= 80 ? '🏆 Yüksek' : overallSuccessRate >= 60 ? '📈 İyi' : '⚡ Geliştir'}
-                </span>
+              <div style={{
+                fontSize: isMobile ? '0.58rem' : '0.68rem',
+                fontWeight: 900,
+                color: 'rgba(255, 255, 255, 0.95)',
+                letterSpacing: '0.08em',
+                marginTop: 3,
+                textTransform: 'uppercase'
+              }}>
+                BAŞARI
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Teacher Selector if viewed by teacher/admin */}
-        {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
-            <select
-              value={selectedStudent?.id || ''}
-              onChange={e => {
-                const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                if (s) setSelectedStudent(s);
+          {/* 5'Lİ RENKLİ KPI KARTLARI SATIRI */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+            gap: isMobile ? '0.65rem' : '0.9rem',
+            marginTop: '0.85rem'
+          }}>
+            {/* 1. TOPLAM */}
+            <div
+              onClick={() => navigate('/student/homeworks')}
+              className="sd-card"
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 18,
+                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: '0 6px 20px rgba(79, 70, 229, 0.35)',
+                cursor: 'pointer'
               }}
-              style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.8rem', fontWeight: 700 }}
             >
-              {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
-            </select>
+              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>📜</div>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                {taskStats.totalCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+                TOPLAM
+              </div>
+            </div>
+
+            {/* 2. TAMAMLANDI */}
+            <div
+              onClick={() => navigate('/student/results')}
+              className="sd-card"
+              style={{
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 18,
+                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>✅</div>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                {taskStats.completedCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+                TAMAMLANDI
+              </div>
+            </div>
+
+            {/* 3. BEKLİYOR */}
+            <div
+              onClick={() => navigate('/student/homeworks')}
+              className="sd-card"
+              style={{
+                background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 18,
+                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.35)',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>⏳</div>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                {taskStats.pendingCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+                BEKLİYOR
+              </div>
+            </div>
+
+            {/* 4. GECİKTİ */}
+            <div
+              onClick={() => navigate('/student/homeworks')}
+              className="sd-card"
+              style={{
+                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 18,
+                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: '0 6px 20px rgba(239, 68, 68, 0.35)',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>🔥</div>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                {taskStats.overdueCount}
+              </div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+                GECİKTİ
+              </div>
+            </div>
+
+            {/* 5. TAMAMLANMA */}
+            <div
+              onClick={() => navigate('/student/results')}
+              className="sd-card"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
+                border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 18,
+                padding: isMobile ? '0.85rem 0.6rem' : '1.1rem 0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: '0 6px 20px rgba(139, 92, 246, 0.35)',
+                cursor: 'pointer',
+                gridColumn: isMobile ? 'span 2' : 'auto'
+              }}
+            >
+              <div style={{ fontSize: isMobile ? '1.2rem' : '1.45rem', marginBottom: 4 }}>🏆</div>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '1.75rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                %{taskStats.completionRate}
+              </div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.06em', marginTop: 4, textTransform: 'uppercase' }}>
+                TAMAMLANMA
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Teacher Selector if viewed by teacher/admin */}
+          {currentUser?.role !== 'student' && studentMembers.length > 1 && (
+            <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
+              <select
+                value={selectedStudent?.id || ''}
+                onChange={e => {
+                  const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                  if (s) setSelectedStudent(s);
+                }}
+                style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.8rem', fontWeight: 700 }}
+              >
+                {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
+              </select>
+            </div>
+          )}
+
+        </div>
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '1rem 0.75rem 3rem' : '1.5rem 1.5rem 4rem' }}>
