@@ -492,17 +492,28 @@ export default function StudentDashboard() {
     const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
     const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff);
 
+    const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const MONTHS_SHORT_TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+
     const dayDateMap = {};
     DAYS_OF_WEEK.forEach((d, idx) => {
       const dObj = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + idx);
       const ymd = dObj.toISOString().split('T')[0];
+      const dayNum = dObj.getDate();
+      const mShort = MONTHS_SHORT_TR[dObj.getMonth()];
+      const mLong = MONTHS_TR[dObj.getMonth()];
+
       dayDateMap[d.key] = {
         key: d.key,
         name: d.name,
         short: d.short,
         ymd,
         time: dObj.getTime(),
-        dateLabel: `${dObj.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][dObj.getMonth()]}`
+        dayNumber: dayNum,
+        monthShort: mShort,
+        monthLong: mLong,
+        dateLabel: `${dayNum} ${mShort}`,
+        fullDateLabel: `${dayNum} ${mLong} ${d.name}`
       };
     });
 
@@ -544,6 +555,11 @@ export default function StudentDashboard() {
         const found = rawProg.find(r => r.day === dayMeta.key);
         if (found && Array.isArray(found.items)) {
           dayManualItems = found.items.filter(item => {
+            const itemDate = item.date || item.targetDate || item.dueDate;
+            if (itemDate) {
+              const itYMD = String(itemDate).split('T')[0];
+              if (itYMD !== dayYMD) return false;
+            }
             if (item.createdYMD && dayYMD < item.createdYMD) return false;
             if (item.repeatEndDate && dayYMD > item.repeatEndDate) return false;
             return true;
@@ -563,7 +579,12 @@ export default function StudentDashboard() {
       // C) Schedule Context Items (from useSchedule)
       const scheduleItems = (schedules || []).filter(s => {
         if (String(s.studentId) !== String(studentId)) return false;
-        return s.day === dayMeta.key || s.dayOfWeek === dayMeta.key || s.dayName === dayMeta.name || s.day === dayMeta.name || (s.date && s.date.split('T')[0] === dayYMD);
+        const sDate = s.date || s.targetDate || s.dueDate;
+        const sYMD = sDate ? String(sDate).split('T')[0] : null;
+        if (sYMD) {
+          return sYMD === dayYMD;
+        }
+        return s.day === dayMeta.key || s.dayOfWeek === dayMeta.key || s.dayName === dayMeta.name || s.day === dayMeta.name;
       }).map(s => ({
         id: s.id,
         title: s.title || s.subject || 'Ders Çalışması',
@@ -744,6 +765,7 @@ export default function StudentDashboard() {
         dayName: dayMeta.name,
         short: dayMeta.short,
         dateLabel: dayInfo?.dateLabel || '',
+        fullDateLabel: dayInfo?.fullDateLabel || '',
         ymd: dayYMD,
         isToday: dayMeta.key === todayDayKey,
         items: allItems,
@@ -820,163 +842,157 @@ export default function StudentDashboard() {
   }, [goals, selectedStudent]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.35) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.28) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", color: '#f8fafc', boxSizing: 'border-box', overflowX: 'hidden' }}>
-
+    <div style={{
+      minHeight: '100vh',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.16) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 55%), linear-gradient(180deg, #0b1120 0%, #0f172a 40%, #172554 80%, #0b1120 100%)',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      color: '#f8fafc',
+      paddingBottom: '5rem'
+    }}>
       <style>{`
-        @keyframes sdFadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        .sd-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .sd-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,0.3) !important; }
-        .sd-btn { transition: all 0.15s ease; user-select: none; }
-        .sd-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .sd-btn:active { transform: scale(0.97); }
-        .sd-anim { animation: sdFadeUp 0.35s ease both; }
-        @media(min-width:900px) {
-          .sd-grid-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.25rem; align-items: start; }
+        @keyframes pulseGlow {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.04); opacity: 1; }
         }
-        @media(max-width:899px) {
-          .sd-grid-layout { display: flex; flex-direction: column; gap: 1.25rem; }
-        }
+        .sd-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sd-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
+        .sd-btn:active { transform: translateY(0); }
+        .sd-card { transition: all 0.25s ease; }
+        .sd-card:hover { transform: translateY(-2px); border-color: rgba(165, 180, 252, 0.45) !important; }
       `}</style>
 
       {/* ════════════════════════════════════════════
-          1. HEADER (ÖĞRENCİ PROFİLİ & HIZLI ERİŞİM)
+          1. HERO BANNER: ÖĞRENCİ KİMLİK & HIZLI ERİŞİM
       ════════════════════════════════════════════ */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.95) 50%, rgba(15, 23, 42, 0.98) 100%)',
-        borderBottom: '1.5px solid rgba(255, 255, 255, 0.15)',
-        padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem',
-        backdropFilter: 'blur(20px)',
-        position: 'relative'
+        background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
+        borderBottom: '1.5px solid rgba(255, 255, 255, 0.12)',
+        padding: isMobile ? '1.25rem 1rem' : '2rem 1.5rem',
+        backdropFilter: 'blur(20px)'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          
-          {/* Top Row: Avatar + Student Switcher (If Teacher) + Quick Links */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-            
-            {/* Student Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 16 }}>
-              <div style={{
-                width: isMobile ? 54 : 64,
-                height: isMobile ? 54 : 64,
-                borderRadius: '50%',
-                background: avatarColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '1.4rem' : '1.7rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                border: '2.5px solid rgba(255, 255, 255, 0.4)',
-                boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                flexShrink: 0
-              }}>
-                {selectedStudent?.name?.charAt(0) || 'Ö'}
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.68rem', color: '#a5b4fc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {gradeLabel ? `${gradeLabel} Öğrenci Portalı` : 'Öğrenci Portalı'}
-                </div>
-                <h1 style={{ fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight: 900, color: '#ffffff', margin: '2px 0 0 0', lineHeight: 1.1 }}>
-                  {selectedStudent?.name || 'Öğrenci'}
-                </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
-                    📅 {todayStr}
-                  </span>
-                  {hasCoach && (
-                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#4ade80', background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.35)', padding: '1px 7px', borderRadius: 99 }}>
-                      🎓 Koçluk Aktif
-                    </span>
-                  )}
-                </div>
-              </div>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem' }}>
+            <div style={{
+              width: isMobile ? 50 : 64,
+              height: isMobile ? 50 : 64,
+              borderRadius: 20,
+              background: `linear-gradient(135deg, ${avatarColor}, #4338ca)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: isMobile ? '1.4rem' : '1.8rem',
+              fontWeight: 900,
+              color: '#ffffff',
+              border: '2px solid rgba(255,255,255,0.35)',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+              flexShrink: 0
+            }}>
+              {selectedStudent?.name?.charAt(0) || 'Ö'}
             </div>
 
-            {/* Quick Action Navigation Pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => navigate('/wrong-answers')}
-                className="sd-btn"
-                style={{
-                  background: 'rgba(244, 63, 94, 0.18)',
-                  border: '1.5px solid rgba(251, 113, 133, 0.4)',
-                  color: '#fecdd3',
-                  borderRadius: 12,
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                <AlertCircle size={15} color="#fb7185" />
-                <span>Yanlışlarım ({tests.filter(t => t.status === 'Sonuçlandı').length})</span>
-              </button>
-
-              <button
-                onClick={() => navigate('/student/books')}
-                className="sd-btn"
-                style={{
-                  background: 'rgba(8, 145, 178, 0.18)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.4)',
-                  color: '#bae6fd',
-                  borderRadius: 12,
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                <BookOpen size={15} color="#38bdf8" />
-                <span>Kitaplarım ({assignedBooksList.length})</span>
-              </button>
-
-              <button
-                onClick={() => navigate('/student-results')}
-                className="sd-btn"
-                style={{
-                  background: 'rgba(99, 102, 241, 0.22)',
-                  border: '1.5px solid rgba(165, 180, 252, 0.4)',
-                  color: '#c7d2fe',
-                  borderRadius: 12,
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                <BarChart3 size={15} color="#818cf8" />
-                <span>Sonuçlarım</span>
-              </button>
+            <div>
+              <div style={{ fontSize: '0.68rem', color: '#a5b4fc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {gradeLabel ? `${gradeLabel} Öğrenci Portalı` : 'Öğrenci Portalı'}
+              </div>
+              <h1 style={{ fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight: 900, color: '#ffffff', margin: '2px 0 0 0', lineHeight: 1.1 }}>
+                {selectedStudent?.name || 'Öğrenci'}
+              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
+                  📅 {todayStr}
+                </span>
+                {hasCoach && (
+                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#4ade80', background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.35)', padding: '1px 7px', borderRadius: 99 }}>
+                    🎓 Koçluk Aktif
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Teacher Selector if viewed by teacher/admin */}
-          {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-            <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
-              <select
-                value={selectedStudent?.id || ''}
-                onChange={e => {
-                  const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                  if (s) setSelectedStudent(s);
-                }}
-                style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.8rem', fontWeight: 700 }}
-              >
-                {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
-              </select>
-            </div>
-          )}
+          {/* Quick Action Navigation Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/wrong-answers')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(244, 63, 94, 0.18)',
+                border: '1.5px solid rgba(251, 113, 133, 0.4)',
+                color: '#fecdd3',
+                borderRadius: 12,
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <AlertCircle size={15} color="#fb7185" />
+              <span>Yanlışlarım ({tests.filter(t => t.status === 'Sonuçlandı').length})</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/student/books')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(8, 145, 178, 0.18)',
+                border: '1.5px solid rgba(56, 189, 248, 0.4)',
+                color: '#bae6fd',
+                borderRadius: 12,
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <BookOpen size={15} color="#38bdf8" />
+              <span>Kitaplarım ({assignedBooksList.length})</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/student-results')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(99, 102, 241, 0.22)',
+                border: '1.5px solid rgba(165, 180, 252, 0.4)',
+                color: '#c7d2fe',
+                borderRadius: 12,
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <BarChart3 size={15} color="#818cf8" />
+              <span>Sonuçlarım</span>
+            </button>
+          </div>
         </div>
+
+        {/* Teacher Selector if viewed by teacher/admin */}
+        {currentUser?.role !== 'student' && studentMembers.length > 1 && (
+          <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
+            <select
+              value={selectedStudent?.id || ''}
+              onChange={e => {
+                const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                if (s) setSelectedStudent(s);
+              }}
+              style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.8rem', fontWeight: 700 }}
+            >
+              {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '1rem 0.75rem 3rem' : '1.5rem 1.5rem 4rem' }}>
@@ -1026,12 +1042,13 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {/* 7-Day Week Buttons Grid */}
+          {/* 7-Day Week Buttons Grid with clear Day and Date */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: isMobile ? 4 : 8 }}>
             {DAYS_OF_WEEK.map(day => {
               const isSelected = activeDayKey === day.key;
               const isCurrentToday = todayDayKey === day.key;
               const taskCount = weekTasksCountMap[day.key] || 0;
+              const dayDate = weekInfo.dayDateMap[day.key];
 
               return (
                 <button
@@ -1042,14 +1059,14 @@ export default function StudentDashboard() {
                     background: isSelected
                       ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                       : isCurrentToday
-                      ? 'rgba(99, 102, 241, 0.18)'
+                      ? 'rgba(99, 102, 241, 0.22)'
                       : 'rgba(255, 255, 255, 0.05)',
                     border: isSelected
                       ? '2px solid #818cf8'
                       : isCurrentToday
                       ? '1.5px solid #6366f1'
                       : '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: 12,
+                    borderRadius: 14,
                     padding: isMobile ? '0.45rem 0.15rem' : '0.65rem 0.5rem',
                     color: isSelected ? '#ffffff' : isCurrentToday ? '#a5b4fc' : '#94a3b8',
                     cursor: 'pointer',
@@ -1058,21 +1075,37 @@ export default function StudentDashboard() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 3,
-                    boxShadow: isSelected ? '0 4px 14px rgba(99, 102, 241, 0.45)' : 'none',
+                    boxShadow: isSelected ? '0 6px 18px rgba(99, 102, 241, 0.45)' : 'none',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.8rem', fontWeight: 900 }}>
+                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.82rem', fontWeight: 900 }}>
                     {day.short}
                   </span>
-                  {isCurrentToday && (
-                    <span style={{ fontSize: isMobile ? '0.52rem' : '0.6rem', fontWeight: 900, color: isSelected ? '#fbbf24' : '#f59e0b' }}>
+
+                  {/* Günün Tarihi (örn: 17 Ağu) */}
+                  <span style={{
+                    fontSize: isMobile ? '0.58rem' : '0.72rem',
+                    fontWeight: 800,
+                    color: isSelected ? '#ffffff' : isCurrentToday ? '#c7d2fe' : '#cbd5e1',
+                    background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+                    padding: isMobile ? '1px 3px' : '2px 6px',
+                    borderRadius: 6
+                  }}>
+                    {dayDate?.dateLabel || ''}
+                  </span>
+
+                  {isCurrentToday ? (
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.60rem', fontWeight: 900, color: isSelected ? '#fde047' : '#f59e0b' }}>
                       ● Bugün
                     </span>
-                  )}
-                  {taskCount > 0 && !isCurrentToday && (
-                    <span style={{ fontSize: isMobile ? '0.52rem' : '0.6rem', fontWeight: 800, opacity: 0.85 }}>
+                  ) : taskCount > 0 ? (
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.60rem', fontWeight: 800, opacity: 0.85 }}>
                       {taskCount} g.
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.60rem', opacity: 0.4 }}>
+                      -
                     </span>
                   )}
                 </button>
@@ -1105,12 +1138,19 @@ export default function StudentDashboard() {
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <CheckSquare size={20} color="#818cf8" />
-                  <span style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff' }}>
-                    {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
-                  </span>
+                  <div>
+                    <span style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff' }}>
+                      {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
+                    </span>
+                    {dayProgramInfo.fullDateLabel && (
+                      <div style={{ fontSize: '0.7rem', color: '#a5b4fc', fontWeight: 700, marginTop: 1 }}>
+                        📌 {dayProgramInfo.fullDateLabel}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {dayProgramInfo.totalCount > 0 && (
