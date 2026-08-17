@@ -1115,18 +1115,18 @@ export default function TrackedBookQuizRunner() {
                             {/* Top Question Row */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.75rem' }}>
                               {/* Question Number Badge & Flag */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 70, flexShrink: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, minWidth: isMobile ? 48 : 70, flexShrink: 0 }}>
                                 <div style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: '0.6rem',
+                                  width: isMobile ? 26 : 32,
+                                  height: isMobile ? 26 : 32,
+                                  borderRadius: isMobile ? '0.45rem' : '0.6rem',
                                   background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
                                   color: selected ? '#ffffff' : '#94a3b8',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   fontWeight: 900,
-                                  fontSize: '0.85rem',
+                                  fontSize: isMobile ? '0.78rem' : '0.85rem',
                                   border: selected ? 'none' : '1px solid #334155',
                                   boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
                                 }}>
@@ -1142,7 +1142,7 @@ export default function TrackedBookQuizRunner() {
                                       background: flagged[qNo] ? 'rgba(245,158,11,0.25)' : 'transparent',
                                       border: flagged[qNo] ? '1px solid #f59e0b' : 'none',
                                       borderRadius: '0.4rem',
-                                      padding: '4px',
+                                      padding: isMobile ? '2px' : '4px',
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
@@ -1150,19 +1150,19 @@ export default function TrackedBookQuizRunner() {
                                       color: flagged[qNo] ? '#fbbf24' : '#64748b'
                                     }}
                                   >
-                                    <Flag size={14} fill={flagged[qNo] ? '#fbbf24' : 'none'} />
+                                    <Flag size={isMobile ? 12 : 14} fill={flagged[qNo] ? '#fbbf24' : 'none'} />
                                   </button>
                                 )}
 
                                 {isSubmitted && (
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
+                                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
                                     {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
                                   </span>
                                 )}
                               </div>
 
                               {/* Large Option Bubbles (A, B, C, D, E) */}
-                              <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: isMobile ? '0.22rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
                                 {optionsList.map((opt) => {
                                   const isSelected = selected === opt;
                                   const isThisOptCorrect = isSubmitted && correctKey === opt;
@@ -1200,11 +1200,11 @@ export default function TrackedBookQuizRunner() {
                                       disabled={isSubmitted}
                                       onClick={() => handleSelectOption(qNo, opt)}
                                       style={{
-                                        width: isMobile ? 38 : 44,
-                                        height: isMobile ? 38 : 44,
+                                        width: isMobile ? 32 : 44,
+                                        height: isMobile ? 32 : 44,
                                         borderRadius: '50%',
                                         fontWeight: 900,
-                                        fontSize: isMobile ? '0.95rem' : '1.05rem',
+                                        fontSize: isMobile ? '0.85rem' : '1.05rem',
                                         cursor: isSubmitted ? 'default' : 'pointer',
                                         border: bubbleBorder,
                                         background: bubbleBg,
@@ -1229,8 +1229,8 @@ export default function TrackedBookQuizRunner() {
                                     disabled={!selected}
                                     title="İşareti Kaldır"
                                     style={{
-                                      width: 28,
-                                      height: 28,
+                                      width: isMobile ? 24 : 28,
+                                      height: isMobile ? 24 : 28,
                                       borderRadius: '50%',
                                       background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
                                       border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
@@ -1241,11 +1241,11 @@ export default function TrackedBookQuizRunner() {
                                       justifyContent: 'center',
                                       pointerEvents: selected ? 'auto' : 'none',
                                       transition: 'all 0.12s ease',
-                                      marginLeft: 2,
+                                      marginLeft: 1,
                                       padding: 0
                                     }}
                                   >
-                                    <XIcon size={14} />
+                                    <XIcon size={isMobile ? 12 : 14} />
                                   </button>
                                 )}
                               </div>
@@ -1262,12 +1262,12 @@ export default function TrackedBookQuizRunner() {
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 flexWrap: 'wrap',
-                                gap: '0.4rem'
+                                gap: '0.35rem'
                               }}>
-                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   🤔 Yanlış Sebebi:
                                 </span>
-                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                   {[
                                     { label: '⚡ İşlem Hatası', color: '#f59e0b' },
                                     { label: '⚠️ Dikkat Kaybı', color: '#fb7185' },
@@ -1282,8 +1282,8 @@ export default function TrackedBookQuizRunner() {
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(qNo, r.label); }}
                                         style={{
-                                          padding: '0.18rem 0.5rem',
-                                          fontSize: '0.62rem',
+                                          padding: isMobile ? '0.15rem 0.4rem' : '0.18rem 0.5rem',
+                                          fontSize: isMobile ? '0.58rem' : '0.62rem',
                                           fontWeight: 800,
                                           borderRadius: 6,
                                           border: isSelected ? `1.5px solid ${r.color}` : '1px solid rgba(255,255,255,0.12)',

@@ -264,7 +264,7 @@ export default function CoachingReportModal({
             </div>
 
             {/* Core Metrics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '0.85rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>PROGRAM BAŞARISI</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#15803d', marginTop: 4 }}>%{completionPct}</div>

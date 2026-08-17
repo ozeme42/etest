@@ -793,7 +793,7 @@ export default function StudentWrongAnswersPage() {
               </div>
 
               {/* Reason Pills Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
                 {Object.entries(mistakeReasonDistribution.counts).map(([key, item]) => {
                   const pct = mistakeReasonDistribution.totalTagged > 0
                     ? Math.round((item.count / mistakeReasonDistribution.totalTagged) * 100)
