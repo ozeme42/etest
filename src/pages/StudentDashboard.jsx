@@ -1197,8 +1197,8 @@ export default function StudentDashboard() {
   /* ─── Design Tokens ─── */
   const S = {
     section: { marginBottom: '1.25rem' },
-    sectionTitle: { fontSize: '0.74rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, textShadow: '0 2px 8px rgba(0,0,0,0.4)' },
-    card: { background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', backdropFilter: 'blur(20px)', borderRadius: 22, boxShadow: '0 12px 36px rgba(0,0,0,0.35)', border: '1.5px solid rgba(255,255,255,0.14)', overflow: 'hidden' },
+    sectionTitle: { fontSize: '0.76rem', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, textShadow: '0 2px 8px rgba(0,0,0,0.3)' },
+    card: { background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(49, 46, 129, 0.88) 100%)', backdropFilter: 'blur(20px)', borderRadius: 22, boxShadow: '0 12px 36px rgba(0,0,0,0.25)', border: '1.5px solid rgba(255,255,255,0.20)', overflow: 'hidden' },
   };
 
   const subjectIcons = {
@@ -1207,10 +1207,10 @@ export default function StudentDashboard() {
   };
 
   const statChips = [
-    { label: 'Toplam', value: tests.length, g: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)', sh: 'rgba(67, 56, 202, 0.4)', border: '1.5px solid rgba(165, 180, 252, 0.35)', icon: '📋' },
-    { label: 'Tamamlandı', value: completedCount, g: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', sh: 'rgba(5, 150, 105, 0.4)', border: '1.5px solid rgba(110, 231, 183, 0.35)', icon: '✅' },
-    { label: 'Bekliyor', value: pendingCount, g: 'linear-gradient(135deg, #7c2d12 0%, #d97706 100%)', sh: 'rgba(217, 119, 6, 0.4)', border: '1.5px solid rgba(253, 186, 116, 0.35)', icon: '⏳' },
-    { label: 'Gecikti', value: overdueCount, g: 'linear-gradient(135deg, #831843 0%, #e11d48 100%)', sh: 'rgba(225, 29, 72, 0.4)', border: '1.5px solid rgba(253, 164, 175, 0.35)', icon: '🔥' },
+    { label: 'Toplam', value: tests.length, g: 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)', sh: 'rgba(99, 102, 241, 0.35)', border: '1.5px solid rgba(199, 210, 254, 0.45)', icon: '📋' },
+    { label: 'Tamamlandı', value: completedCount, g: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', sh: 'rgba(16, 185, 129, 0.35)', border: '1.5px solid rgba(167, 243, 208, 0.45)', icon: '✅' },
+    { label: 'Bekliyor', value: pendingCount, g: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)', sh: 'rgba(245, 158, 11, 0.35)', border: '1.5px solid rgba(254, 215, 170, 0.45)', icon: '⏳' },
+    { label: 'Gecikti', value: overdueCount, g: 'linear-gradient(135deg, #dc2626 0%, #f43f5e 100%)', sh: 'rgba(244, 63, 94, 0.35)', border: '1.5px solid rgba(254, 205, 211, 0.45)', icon: '🔥' },
   ];
 
   const quickTiles = [
@@ -1223,7 +1223,7 @@ export default function StudentDashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", color: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.38) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.30) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.30) 0%, transparent 55%), linear-gradient(180deg, #111e38 0%, #18284e 35%, #1f3363 70%, #14213d 100%)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", color: '#f8fafc' }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -1262,7 +1262,7 @@ export default function StudentDashboard() {
       `}</style>
 
       {/* ════ HERO ════ */}
-      <div style={{ background:'linear-gradient(135deg,rgba(30,27,75,0.9) 0%,rgba(49,46,129,0.92) 25%,rgba(76,29,149,0.95) 55%,rgba(109,40,217,0.95) 80%,rgba(124,58,237,0.95) 100%)', padding: isMobile ? '1.5rem 1rem 3.5rem' : '2.25rem 2rem 4rem', position:'relative', overflow:'hidden', borderBottom:'1.5px solid rgba(165,180,252,0.25)', backdropFilter:'blur(20px)' }}>
+      <div style={{ background:'linear-gradient(135deg, #3730a3 0%, #4f46e5 25%, #7c3aed 55%, #9333ea 80%, #a855f7 100%)', padding: isMobile ? '1.5rem 1rem 3.5rem' : '2.25rem 2rem 4rem', position:'relative', overflow:'hidden', borderBottom:'1.5px solid rgba(255,255,255,0.25)', backdropFilter:'blur(20px)' }}>
         <div style={{ position:'absolute', top:-80, right:-60, width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(167,139,250,0.4) 0%,transparent 70%)', animation:'aurora 8s ease infinite', pointerEvents:'none' }} />
         <div style={{ position:'absolute', bottom:-60, left:-40, width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.25) 0%,transparent 70%)', animation:'aurora 12s ease infinite reverse', pointerEvents:'none' }} />
 
@@ -1322,7 +1322,7 @@ export default function StudentDashboard() {
               <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight:900, color:'rgba(255,255,255,0.88)', textTransform:'uppercase', letterSpacing:'0.04em', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{c.label}</div>
             </div>
           ))}
-          <div className="sd-stat-chip sd-tile" style={{ background:'linear-gradient(135deg, #581c87 0%, #9333ea 100%)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.65rem 0.2rem' : '0.95rem 0.7rem', boxShadow:'0 8px 24px rgba(147, 51, 234, 0.4)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:'1.5px solid rgba(216, 180, 254, 0.35)', animation:'sdFadeUp 0.4s ease 0.3s both', minWidth:0, position: 'relative', overflow: 'hidden' }}>
+          <div className="sd-stat-chip sd-tile" style={{ background:'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', borderRadius: isMobile ? 14 : 18, padding: isMobile ? '0.65rem 0.2rem' : '0.95rem 0.7rem', boxShadow:'0 8px 24px rgba(168, 85, 247, 0.4)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:'1.5px solid rgba(233, 213, 255, 0.45)', animation:'sdFadeUp 0.4s ease 0.3s both', minWidth:0, position: 'relative', overflow: 'hidden' }}>
             <div style={{ fontSize: isMobile ? '0.95rem' : '1.15rem', lineHeight:1, marginBottom:3 }}>🏆</div>
             <div style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', fontWeight:900, color:'#ffffff', lineHeight:1, textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>%{progressPct}</div>
             <div style={{ fontSize: isMobile ? '0.52rem' : '0.62rem', fontWeight:900, color:'rgba(255,255,255,0.88)', textTransform:'uppercase', letterSpacing:'0.04em', marginTop:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>Tamamlanma</div>
@@ -1334,7 +1334,7 @@ export default function StudentDashboard() {
       <div className="sd-content-outer" style={{ paddingBottom:'2rem' }}>
 
         {coachingNote && (
-          <div className="sd-section" style={{ background:'linear-gradient(135deg,#451a03 0%,#78350f 50%,#b45309 100%)', borderRadius:20, padding:'0.95rem 1.2rem', border:'1.5px solid rgba(251,191,36,0.4)', boxShadow:'0 8px 28px rgba(180,83,9,0.35)', display:'flex', alignItems:'flex-start', gap:12, marginBottom:'1.4rem' }}>
+          <div className="sd-section" style={{ background:'linear-gradient(135deg,#78350f 0%,#b45309 50%,#d97706 100%)', borderRadius:20, padding:'0.95rem 1.2rem', border:'1.5px solid rgba(251,191,36,0.5)', boxShadow:'0 8px 28px rgba(180,83,9,0.35)', display:'flex', alignItems:'flex-start', gap:12, marginBottom:'1.4rem' }}>
             <div style={{ fontSize:'1.3rem', flexShrink:0 }}>💬</div>
             <div>
               <div style={{ fontSize:'0.64rem', fontWeight:900, color:'#fde68a', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Koç Notunuz</div>
@@ -1354,15 +1354,15 @@ export default function StudentDashboard() {
                 onClick={() => navigate('/study-room')}
                 className="sd-tile"
                 style={{
-                  background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%)',
+                  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(67, 56, 202, 0.9) 100%)',
                   borderRadius: 22,
                   padding: isMobile ? '1rem' : '1.15rem 1.35rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 12,
-                  boxShadow: '0 10px 30px rgba(49, 46, 129, 0.35)',
-                  border: '1.5px solid rgba(165, 180, 252, 0.3)',
+                  boxShadow: '0 10px 30px rgba(67, 56, 202, 0.35)',
+                  border: '1.5px solid rgba(165, 180, 252, 0.45)',
                   position: 'relative',
                   overflow: 'hidden'
                 }}
@@ -1372,19 +1372,20 @@ export default function StudentDashboard() {
                     width: isMobile ? 44 : 52,
                     height: isMobile ? 44 : 52,
                     borderRadius: 16,
-                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: isMobile ? '1.35rem' : '1.6rem',
                     boxShadow: '0 6px 18px rgba(99, 102, 241, 0.4)',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    border: '1.5px solid rgba(255,255,255,0.35)'
                   }}>
                     🎧
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(255,255,255,0.1)', padding: '0.12rem 0.45rem', borderRadius: 99 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(255,255,255,0.15)', padding: '0.12rem 0.45rem', borderRadius: 99, border: '1px solid rgba(255,255,255,0.2)' }}>
                         YENİ ALAN
                       </span>
                     </div>
@@ -1398,16 +1399,17 @@ export default function StudentDashboard() {
                 </div>
 
                 <div style={{
-                  background: 'white',
-                  color: '#312e81',
+                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                  color: '#ffffff',
                   borderRadius: 14,
-                  padding: isMobile ? '0.45rem 0.8rem' : '0.55rem 1rem',
+                  padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.15rem',
                   fontWeight: 900,
-                  fontSize: isMobile ? '0.72rem' : '0.78rem',
+                  fontSize: isMobile ? '0.74rem' : '0.8rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                  boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+                  border: '1.5px solid rgba(255,255,255,0.3)',
                   flexShrink: 0,
                   zIndex: 2
                 }}>
@@ -1934,7 +1936,7 @@ export default function StudentDashboard() {
                 };
                 const cat = catColors[currentDashQuote.category] || catColors['Disiplin'];
                 return (
-                  <div style={{ borderRadius:22, overflow:'hidden', boxShadow:'0 12px 36px rgba(245,158,11,0.25)', border:'1.5px solid rgba(253,230,138,0.4)', background:'linear-gradient(135deg,rgba(28,25,23,0.95) 0%,rgba(69,26,3,0.92) 50%,rgba(120,53,15,0.95) 100%)' }}>
+                  <div style={{ borderRadius:22, overflow:'hidden', boxShadow:'0 12px 36px rgba(245,158,11,0.25)', border:'1.5px solid rgba(253,230,138,0.5)', background:'linear-gradient(135deg,rgba(45,35,28,0.9) 0%,rgba(120,53,15,0.9) 100%)', backdropFilter:'blur(16px)' }}>
                     {/* Card Header */}
                     <div style={{ background:'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)', padding:'0.85rem 1.2rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -1978,7 +1980,7 @@ export default function StudentDashboard() {
                       </div>
 
                       {/* Week Tracker */}
-                      <div style={{ background:'rgba(0,0,0,0.3)', borderRadius:14, padding:'0.75rem 0.85rem', border:'1px solid rgba(251,191,36,0.25)' }}>
+                      <div style={{ background:'rgba(255,255,255,0.08)', borderRadius:14, padding:'0.75rem 0.85rem', border:'1px solid rgba(251,191,36,0.35)', backdropFilter:'blur(8px)' }}>
                         <div style={{ fontSize:'0.58rem', fontWeight:900, color:'#fde68a', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>📅 Haftalık Çalışma Serisi</div>
                         <div style={{ display:'flex', gap:5 }}>
                           {dayLetters.map((d, i) => {
@@ -2033,7 +2035,7 @@ export default function StudentDashboard() {
       {/* GOAL MODAL */}
       {showGoalModal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.8)', backdropFilter:'blur(12px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
-          <div style={{ background:'linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%)', border:'1.5px solid rgba(255,255,255,0.18)', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.5)', animation:'sdFadeUp 0.3s ease' }}>
+          <div style={{ background:'linear-gradient(135deg, rgba(30,41,59,0.98) 0%, rgba(49,46,129,0.98) 100%)', border:'1.5px solid rgba(255,255,255,0.25)', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.5)', animation:'sdFadeUp 0.3s ease', color: '#ffffff' }}>
             {isMobile && <div style={{ width:40, height:4, background:'rgba(255,255,255,0.2)', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
               <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'white', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
@@ -2041,19 +2043,19 @@ export default function StudentDashboard() {
             </div>
             <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
               <input placeholder="Hedef başlığı (örn: Günde 50 Matematik Sorusu)..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.08)', color:'white', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.1)', color:'white', width:'100%' }} required />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
                 <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e1b4b', color:'white' }}>
-                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#1e1b4b', color:'white' }}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e293b', color:'white' }}>
+                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#1e293b', color:'white' }}>{v}</option>)}
                 </select>
                 <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e1b4b', color:'white' }}>
-                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'#1e1b4b', color:'white' }}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e293b', color:'white' }}>
+                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'#1e293b', color:'white' }}>{v}</option>)}
                 </select>
               </div>
               <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))}
-                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.18)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.08)', color:'white', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.1)', color:'white', width:'100%' }} required />
               <button type="submit" className="sd-btn"
                 style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#ea580c,#f97316)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(234,88,12,0.4)', marginTop:4 }}>
                 Hedefi Kaydet ✓
