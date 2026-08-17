@@ -579,6 +579,50 @@ export default function StudentWrongAnswersPage() {
   const globalBlankCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [testGroupedSubmissions]);
   const globalReviewedCount = useMemo(() => testGroupedSubmissions.filter(sub => sub.isReviewed).length, [testGroupedSubmissions]);
 
+  const mistakeReasonDistribution = useMemo(() => {
+    const counts = {
+      '⚡ İşlem Hatası': { count: 0, color: '#f59e0b', label: 'İşlem Hatası' },
+      '⚠️ Dikkat Kaybı / Yanlış Okuma': { count: 0, color: '#fb7185', label: 'Dikkat / Yanlış Okuma' },
+      '📖 Formül / Bilgi Unutuldu': { count: 0, color: '#38bdf8', label: 'Formül / Bilgi Eksik' },
+      '🧠 Konu Eksiği Var': { count: 0, color: '#a855f7', label: 'Konu Eksiği' },
+      '⏱️ Zaman Yetmedi': { count: 0, color: '#ec4899', label: 'Zaman Yetmedi' },
+    };
+    let totalTagged = 0;
+
+    studentErrors.forEach(err => {
+      if (err.reason && counts[err.reason]) {
+        counts[err.reason].count += 1;
+        totalTagged += 1;
+      } else if (err.reason) {
+        const foundKey = Object.keys(counts).find(k => k.includes(err.reason) || err.reason.includes(counts[k].label));
+        if (foundKey) {
+          counts[foundKey].count += 1;
+          totalTagged += 1;
+        }
+      }
+    });
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('mistake_reasons_')) {
+          const val = JSON.parse(localStorage.getItem(key) || '{}');
+          Object.values(val).forEach(reason => {
+            if (reason) {
+              const matched = Object.keys(counts).find(k => k.includes(reason) || reason.includes(counts[k].label));
+              if (matched) {
+                counts[matched].count += 1;
+                totalTagged += 1;
+              }
+            }
+          });
+        }
+      }
+    } catch {}
+
+    return { counts, totalTagged };
+  }, [studentErrors]);
+
   // Filtered Test Submissions (Returns all tests when selectedSubject is null or 'all')
   const filteredTestSubmissions = useMemo(() => {
     return testGroupedSubmissions.filter(sub => {
@@ -718,6 +762,79 @@ export default function StudentWrongAnswersPage() {
         ════════════════════════════════════════════ */}
         {activeMainTab === 'wrong_controls' && (
           <div className="wa-anim">
+            {/* HATA SEBEBİ ANALİZİ (MISTAKE DIAGNOSTICS BAR) */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%)',
+              border: '1.5px solid rgba(148, 163, 184, 0.2)',
+              borderRadius: '1.25rem',
+              padding: '1.15rem 1.4rem',
+              marginBottom: '1.5rem',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(244, 63, 94, 0.2)', border: '1px solid rgba(251, 113, 133, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={18} color="#fb7185" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#ffffff' }}>
+                      🧠 Hata Sebebi Dağılımı (Neden Yanlış Yaptım?)
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
+                      Optik testlerde ve hata defterinde etiketlenen yanlış sebeplerinin analizi
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '0.25rem 0.75rem', borderRadius: 99, border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.72rem', fontWeight: 800, color: '#e2e8f0' }}>
+                  Toplam {mistakeReasonDistribution.totalTagged} Etiketli Yanlış
+                </div>
+              </div>
+
+              {/* Reason Pills Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
+                {Object.entries(mistakeReasonDistribution.counts).map(([key, item]) => {
+                  const pct = mistakeReasonDistribution.totalTagged > 0
+                    ? Math.round((item.count / mistakeReasonDistribution.totalTagged) * 100)
+                    : 0;
+
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        background: 'rgba(15, 23, 42, 0.7)',
+                        border: `1.5px solid ${item.count > 0 ? `${item.color}40` : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: '0.85rem',
+                        padding: '0.75rem 0.95rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: 6
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: item.color }}>
+                          {item.label}
+                        </span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff' }}>
+                          {item.count}
+                        </span>
+                      </div>
+
+                      <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: item.color, borderRadius: 99, transition: 'width 0.6s ease' }} />
+                      </div>
+
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textAlign: 'right' }}>
+                        %{pct}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* LEVEL 1: SUMMARY STATS BAR */}
             <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', padding: '1.25rem 1.5rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', backdropFilter: 'blur(20px)' }}>
               <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

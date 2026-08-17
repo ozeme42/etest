@@ -208,6 +208,27 @@ export default function TrackedBookQuizRunner() {
     return Object.values(flagged).filter(Boolean).length;
   }, [flagged]);
 
+  const [mistakeReasons, setMistakeReasons] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    return {};
+  });
+
+  const handleSetMistakeReason = (qNo, reason) => {
+    setMistakeReasons(prev => {
+      const next = { ...prev, [qNo]: prev[qNo] === reason ? null : reason };
+      try {
+        localStorage.setItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [results, setResults] = useState(null);
 
@@ -1085,148 +1106,201 @@ export default function TrackedBookQuizRunner() {
                                 ? '1.5px solid #0891b2' 
                                 : '1px solid #334155',
                               display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '0.75rem',
+                              flexDirection: 'column',
+                              gap: '0.45rem',
                               transition: 'all 0.15s ease',
                               boxShadow: selected ? '0 4px 14px rgba(8,145,178,0.15)' : 'none'
                             }}
                           >
-                            {/* Question Number Badge & Flag */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 70, flexShrink: 0 }}>
-                              <div style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: '0.6rem',
-                                background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
-                                color: selected ? '#ffffff' : '#94a3b8',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: 900,
-                                fontSize: '0.85rem',
-                                border: selected ? 'none' : '1px solid #334155',
-                                boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
-                              }}>
-                                {qNo}
-                              </div>
+                            {/* Top Question Row */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.75rem' }}>
+                              {/* Question Number Badge & Flag */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 70, flexShrink: 0 }}>
+                                <div style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: '0.6rem',
+                                  background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
+                                  color: selected ? '#ffffff' : '#94a3b8',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 900,
+                                  fontSize: '0.85rem',
+                                  border: selected ? 'none' : '1px solid #334155',
+                                  boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
+                                }}>
+                                  {qNo}
+                                </div>
 
-                              {!isSubmitted && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
-                                  title={flagged[qNo] ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
-                                  style={{
-                                    background: flagged[qNo] ? 'rgba(245,158,11,0.25)' : 'transparent',
-                                    border: flagged[qNo] ? '1px solid #f59e0b' : 'none',
-                                    borderRadius: '0.4rem',
-                                    padding: '4px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: flagged[qNo] ? '#fbbf24' : '#64748b'
-                                  }}
-                                >
-                                  <Flag size={14} fill={flagged[qNo] ? '#fbbf24' : 'none'} />
-                                </button>
-                              )}
-
-                              {isSubmitted && (
-                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
-                                  {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Large Option Bubbles (A, B, C, D, E) */}
-                            <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {optionsList.map((opt) => {
-                                const isSelected = selected === opt;
-                                const isThisOptCorrect = isSubmitted && correctKey === opt;
-
-                                let bubbleBg = '#1e293b';
-                                let bubbleBorder = '1.5px solid #475569';
-                                let bubbleColor = '#cbd5e1';
-                                let bubbleShadow = 'none';
-
-                                if (isSelected) {
-                                  bubbleBg = 'linear-gradient(135deg, #0891b2, #06b6d4)';
-                                  bubbleBorder = '2px solid #38bdf8';
-                                  bubbleColor = '#ffffff';
-                                  bubbleShadow = '0 4px 14px rgba(8,145,178,0.45)';
-                                }
-
-                                if (isSubmitted) {
-                                  if (isThisOptCorrect) {
-                                    bubbleBg = 'linear-gradient(135deg, #10b981, #059669)';
-                                    bubbleBorder = '2px solid #34d399';
-                                    bubbleColor = '#ffffff';
-                                    bubbleShadow = '0 4px 12px rgba(16,185,129,0.4)';
-                                  } else if (isSelected && isWrong) {
-                                    bubbleBg = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                                    bubbleBorder = '2px solid #f87171';
-                                    bubbleColor = '#ffffff';
-                                    bubbleShadow = '0 4px 12px rgba(239,68,68,0.4)';
-                                  }
-                                }
-
-                                return (
+                                {!isSubmitted && (
                                   <button
-                                    key={opt}
                                     type="button"
-                                    disabled={isSubmitted}
-                                    onClick={() => handleSelectOption(qNo, opt)}
+                                    onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
+                                    title={flagged[qNo] ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
                                     style={{
-                                      width: isMobile ? 38 : 44,
-                                      height: isMobile ? 38 : 44,
-                                      borderRadius: '50%',
-                                      fontWeight: 900,
-                                      fontSize: isMobile ? '0.95rem' : '1.05rem',
-                                      cursor: isSubmitted ? 'default' : 'pointer',
-                                      border: bubbleBorder,
-                                      background: bubbleBg,
-                                      color: bubbleColor,
-                                      transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
-                                      boxShadow: bubbleShadow,
+                                      background: flagged[qNo] ? 'rgba(245,158,11,0.25)' : 'transparent',
+                                      border: flagged[qNo] ? '1px solid #f59e0b' : 'none',
+                                      borderRadius: '0.4rem',
+                                      padding: '4px',
+                                      cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
+                                      color: flagged[qNo] ? '#fbbf24' : '#64748b'
+                                    }}
+                                  >
+                                    <Flag size={14} fill={flagged[qNo] ? '#fbbf24' : 'none'} />
+                                  </button>
+                                )}
+
+                                {isSubmitted && (
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
+                                    {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Large Option Bubbles (A, B, C, D, E) */}
+                              <div style={{ display: 'flex', gap: isMobile ? '0.35rem' : '0.5rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {optionsList.map((opt) => {
+                                  const isSelected = selected === opt;
+                                  const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                                  let bubbleBg = '#1e293b';
+                                  let bubbleBorder = '1.5px solid #475569';
+                                  let bubbleColor = '#cbd5e1';
+                                  let bubbleShadow = 'none';
+
+                                  if (isSelected) {
+                                    bubbleBg = 'linear-gradient(135deg, #0891b2, #06b6d4)';
+                                    bubbleBorder = '2px solid #38bdf8';
+                                    bubbleColor = '#ffffff';
+                                    bubbleShadow = '0 4px 14px rgba(8,145,178,0.45)';
+                                  }
+
+                                  if (isSubmitted) {
+                                    if (isThisOptCorrect) {
+                                      bubbleBg = 'linear-gradient(135deg, #10b981, #059669)';
+                                      bubbleBorder = '2px solid #34d399';
+                                      bubbleColor = '#ffffff';
+                                      bubbleShadow = '0 4px 12px rgba(16,185,129,0.4)';
+                                    } else if (isSelected && !isThisOptCorrect) {
+                                      bubbleBg = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                                      bubbleBorder = '2px solid #f87171';
+                                      bubbleColor = '#ffffff';
+                                      bubbleShadow = '0 4px 12px rgba(239,68,68,0.4)';
+                                    }
+                                  }
+
+                                  return (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      disabled={isSubmitted}
+                                      onClick={() => handleSelectOption(qNo, opt)}
+                                      style={{
+                                        width: isMobile ? 38 : 44,
+                                        height: isMobile ? 38 : 44,
+                                        borderRadius: '50%',
+                                        fontWeight: 900,
+                                        fontSize: isMobile ? '0.95rem' : '1.05rem',
+                                        cursor: isSubmitted ? 'default' : 'pointer',
+                                        border: bubbleBorder,
+                                        background: bubbleBg,
+                                        color: bubbleColor,
+                                        transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: bubbleShadow,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 0
+                                      }}
+                                    >
+                                      {opt}
+                                    </button>
+                                  );
+                                })}
+
+                                {!isSubmitted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearOption(qNo)}
+                                    disabled={!selected}
+                                    title="İşareti Kaldır"
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: '50%',
+                                      background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                                      border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
+                                      color: selected ? '#f87171' : 'transparent',
+                                      cursor: selected ? 'pointer' : 'default',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      pointerEvents: selected ? 'auto' : 'none',
+                                      transition: 'all 0.12s ease',
+                                      marginLeft: 2,
                                       padding: 0
                                     }}
                                   >
-                                    {opt}
+                                    <XIcon size={14} />
                                   </button>
-                                );
-                              })}
-
-                              {!isSubmitted && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleClearOption(qNo)}
-                                  disabled={!selected}
-                                  title="İşareti Kaldır"
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: '50%',
-                                    background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                                    border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
-                                    color: selected ? '#f87171' : 'transparent',
-                                    cursor: selected ? 'pointer' : 'default',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    pointerEvents: selected ? 'auto' : 'none',
-                                    transition: 'all 0.12s ease',
-                                    marginLeft: 2,
-                                    padding: 0
-                                  }}
-                                >
-                                  <XIcon size={14} />
-                                </button>
-                              )}
+                                )}
+                              </div>
                             </div>
+
+                            {/* Mistake Diagnostic Selector (Why did I get it wrong?) */}
+                            {isSubmitted && isWrong && (
+                              <div style={{
+                                width: '100%',
+                                marginTop: '0.45rem',
+                                paddingTop: '0.45rem',
+                                borderTop: '1px dashed rgba(239, 68, 68, 0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.4rem'
+                              }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  🤔 Yanlış Sebebi:
+                                </span>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                  {[
+                                    { label: '⚡ İşlem Hatası', color: '#f59e0b' },
+                                    { label: '⚠️ Dikkat Kaybı', color: '#fb7185' },
+                                    { label: '📖 Formül / Bilgi', color: '#38bdf8' },
+                                    { label: '🧠 Konu Eksiği', color: '#a855f7' },
+                                    { label: '⏱️ Zaman Yetmedi', color: '#ec4899' }
+                                  ].map(r => {
+                                    const isSelected = mistakeReasons[qNo] === r.label;
+                                    return (
+                                      <button
+                                        key={r.label}
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(qNo, r.label); }}
+                                        style={{
+                                          padding: '0.18rem 0.5rem',
+                                          fontSize: '0.62rem',
+                                          fontWeight: 800,
+                                          borderRadius: 6,
+                                          border: isSelected ? `1.5px solid ${r.color}` : '1px solid rgba(255,255,255,0.12)',
+                                          background: isSelected ? `${r.color}33` : 'rgba(15,23,42,0.6)',
+                                          color: isSelected ? r.color : 'rgba(255,255,255,0.7)',
+                                          cursor: 'pointer',
+                                          boxShadow: isSelected ? `0 2px 8px ${r.color}40` : 'none',
+                                          transition: 'all 0.15s'
+                                        }}
+                                      >
+                                        {r.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

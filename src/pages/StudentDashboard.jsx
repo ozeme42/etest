@@ -473,6 +473,7 @@ export default function StudentDashboard() {
     }
   };
 
+
   /* ── Computed Data ── */
   const tests = useMemo(() => {
     if (!selectedStudent) return [];
@@ -750,6 +751,48 @@ export default function StudentDashboard() {
 
     return [...hwTests, ...standaloneBookTests];
   }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
+
+  const resumeBookTest = useMemo(() => {
+    if (!selectedStudent || !books || books.length === 0) return null;
+    const studentSubs = (submissions || []).filter(s => {
+      if (String(s.studentId) !== String(selectedStudent.id)) return false;
+      return s.sourceType === 'trackedBook' || s.bookId || s.bookTestId;
+    });
+
+    // 1. Most recently submitted book
+    if (studentSubs.length > 0) {
+      const latestSub = [...studentSubs].sort((a, b) => new Date(b.submittedAt || b.createdAt || 0) - new Date(a.submittedAt || a.createdAt || 0))[0];
+      const targetBook = books.find(b => String(b.id) === String(latestSub.bookId));
+      if (targetBook) {
+        const testsInBook = (bookTests || []).filter(t => String(t.bookId) === String(targetBook.id));
+        const uncompletedTest = testsInBook.find(t => !studentSubs.some(s => String(s.bookTestId || s.testId) === String(t.id)));
+        if (uncompletedTest) {
+          return { book: targetBook, test: uncompletedTest, reason: 'Kaldığın Yerden Devam Et' };
+        }
+      }
+    }
+
+    // 2. Pending assigned book homework
+    const pendingHw = (tests || []).find(t => t.status !== 'Sonuçlandı' && t.status !== 'Tamamlandı' && t.bookId);
+    if (pendingHw) {
+      const targetBook = books.find(b => String(b.id) === String(pendingHw.bookId));
+      const targetTest = (bookTests || []).find(t => String(t.id) === String(pendingHw.realTestId || pendingHw.id));
+      if (targetBook && targetTest) {
+        return { book: targetBook, test: targetTest, reason: 'Öncelikli Ödev Testi' };
+      }
+    }
+
+    // 3. Fallback to first book with tests
+    if (books.length > 0) {
+      const firstBook = books[0];
+      const testsInBook = (bookTests || []).filter(t => String(t.bookId) === String(firstBook.id));
+      if (testsInBook.length > 0) {
+        return { book: firstBook, test: testsInBook[0], reason: 'Önerilen Test' };
+      }
+    }
+
+    return null;
+  }, [selectedStudent, books, bookTests, submissions, tests]);
 
   const assignments = useMemo(() => {
     if (!selectedStudent) return [];
@@ -1454,6 +1497,195 @@ export default function StudentDashboard() {
             </div>
           </div>
         )}
+
+        {/* ════ 🎯 BUGÜNÜN AKILLI AJANDASI & DEVAM ET VİTRİNİ ════ */}
+        <div className="sd-section" style={{ marginBottom: '1.4rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr',
+            gap: '1rem'
+          }}>
+            {/* 1. KART: KALDIĞIN YERDEN DEVAM ET */}
+            {resumeBookTest && (
+              <div
+                className="sd-hw-card"
+                onClick={() => navigate(`/book-quiz/${resumeBookTest.book.id}/${resumeBookTest.test.id}`)}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                  border: '1.5px solid rgba(52, 211, 153, 0.4)',
+                  borderRadius: 20,
+                  padding: '1.15rem 1.3rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 14,
+                  boxShadow: '0 12px 30px rgba(6, 78, 59, 0.35)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(52, 211, 153, 0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)'
+                  }}>
+                    <PlayCircle size={24} color="#ffffff" />
+                  </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ background: 'rgba(52, 211, 153, 0.2)', color: '#6ee7b7', fontSize: '0.62rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        ⚡ {resumeBookTest.reason}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
+                        {resumeBookTest.book.subject || 'Ders'}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {resumeBookTest.book.title}
+                    </div>
+
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#34d399', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>▶️</span> {resumeBookTest.test.name}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '0.78rem',
+                  padding: '0.55rem 1rem',
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                  flexShrink: 0
+                }}>
+                  Çöz <ArrowRight size={14} />
+                </div>
+              </div>
+            )}
+
+            {/* 2. KART: BUGÜNÜN KOÇLUK GÖREVLERİ */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1.5px solid rgba(165, 180, 252, 0.35)',
+                borderRadius: 20,
+                padding: '1.15rem 1.3rem',
+                boxShadow: '0 12px 30px rgba(49, 46, 129, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Calendar size={18} color="#818cf8" />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#ffffff' }}>
+                    Bugünün Görevleri ({todayProgramInfo.dayName})
+                  </span>
+                </div>
+
+                {todayProgramInfo.totalCount > 0 && (
+                  <span style={{
+                    fontSize: '0.66rem',
+                    fontWeight: 900,
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    background: todayProgramInfo.hasAllCompleted ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)',
+                    color: todayProgramInfo.hasAllCompleted ? '#4ade80' : '#a5b4fc',
+                    border: '1px solid rgba(255,255,255,0.15)'
+                  }}>
+                    {todayProgramInfo.completedCount}/{todayProgramInfo.totalCount} Tamam
+                  </span>
+                )}
+              </div>
+
+              {todayProgramInfo.items.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '120px', overflowY: 'auto' }}>
+                  {todayProgramInfo.items.map((task, idx) => (
+                    <div
+                      key={task.id || idx}
+                      onClick={(e) => { e.stopPropagation(); handleToggleTodayTask(task.id); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        background: task.done ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                        border: task.done ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                        padding: '0.45rem 0.75rem',
+                        borderRadius: 10,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <div style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 6,
+                        border: task.done ? 'none' : '1.5px solid #64748b',
+                        background: task.done ? '#22c55e' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {task.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                      </div>
+
+                      <span style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        color: task.done ? '#94a3b8' : '#f8fafc',
+                        textDecoration: task.done ? 'line-through' : 'none',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {task.title || task.subject} {task.topic ? `(${task.topic})` : ''} {task.hours ? `• ${task.hours}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px dashed rgba(255,255,255,0.15)' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                    Bugün için bekleyen görev yok. Harika gidiyorsun! 🎉
+                  </span>
+                  <button
+                    onClick={() => navigate('/my-coaching')}
+                    style={{
+                      background: 'rgba(99,102,241,0.25)',
+                      border: '1px solid #818cf8',
+                      color: '#c7d2fe',
+                      borderRadius: 8,
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Programa Git
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         <div className="sd-main-grid">
 
