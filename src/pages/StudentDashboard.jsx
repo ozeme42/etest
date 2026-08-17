@@ -492,15 +492,29 @@ export default function StudentDashboard() {
     let manualItems = [];
     if (Array.isArray(rawProg)) {
       const foundProg = rawProg.find(r => r.day === selectedDayObj.key);
-      manualItems = foundProg?.items || [];
+      manualItems = (foundProg?.items || []).map(item => ({ ...item, isWeeklyProgItem: true }));
     }
+
+    const studentId = selectedStudent?.id;
+    // Schedules from ScheduleContext
+    const scheduleItems = (schedules || []).filter(s => {
+      if (String(s.studentId) !== String(studentId)) return false;
+      return s.day === selectedDayObj.key || s.dayOfWeek === selectedDayObj.key || s.dayName === selectedDayObj.name || s.day === selectedDayObj.name;
+    }).map(s => ({
+      id: s.id,
+      title: s.title || s.subject || 'Ders Çalışması',
+      subject: s.subject || 'Çalışma Planı',
+      topic: s.topic || '',
+      time: s.time || '',
+      done: !!(s.done || s.completed),
+      isScheduleContextItem: true
+    }));
 
     const autoHwItems = [];
     const now = new Date();
     const todayYMD = now.toISOString().split('T')[0];
-    const studentId = selectedStudent?.id;
 
-    // Auto-populate homeworks for activeDayKey
+    // Auto-populate homeworks and roadmaps for today
     const isViewingToday = activeDayKey === todayDayKey;
 
     if (isViewingToday) {
@@ -587,9 +601,44 @@ export default function StudentDashboard() {
           }
         }
       });
+
+      // Study plan / roadmap topic milestones for today
+      (studyAssignments || []).filter(a => String(a.studentId) === String(studentId)).forEach(assignment => {
+        if (assignment.status === 'completed' || assignment.status === 'done') return;
+        const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+        if (!plan) return;
+
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+        }
+        const completedTopicsSet = new Set(compTopics.map(String));
+
+        (plan.subjects || []).forEach(subject => {
+          (subject.topics || []).forEach(topic => {
+            if (topic.dueDate) {
+              const tYMD = topic.dueDate.split('T')[0];
+              if (todayYMD === tYMD && !completedTopicsSet.has(String(topic.id)) && !completedTopicsSet.has(topic.name)) {
+                autoHwItems.push({
+                  id: `roadmap_top_${assignment.id}_${topic.id}`,
+                  roadmapAssignmentId: assignment.id,
+                  isAutoHomework: true,
+                  isRoadmapTask: true,
+                  taskType: 'konu',
+                  subject: `${plan.title} • ${subject.name}`,
+                  topic: topic.name,
+                  time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                  done: false
+                });
+              }
+            }
+          });
+        });
+      });
     }
 
-    const allItems = [...autoHwItems, ...manualItems];
+    const allItems = [...autoHwItems, ...manualItems, ...scheduleItems];
     const completedItems = allItems.filter(i => i.done);
 
     return {
@@ -601,37 +650,52 @@ export default function StudentDashboard() {
       items: allItems,
       hasAllCompleted: allItems.length > 0 && completedItems.length === allItems.length
     };
-  }, [activeDayKey, todayDayKey, coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests]);
+  }, [activeDayKey, todayDayKey, coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, schedules, studyAssignments, studyPlans]);
 
   /* ─── Toggle Task Done Status ─── */
-  const handleToggleTask = async (taskId) => {
-    if (!coachingProfile || !coachingProfile.weeklyProgram) return;
-    const updatedWeeklyProgram = coachingProfile.weeklyProgram.map(dayRow => {
-      if (dayRow.day === activeDayKey) {
-        return {
-          ...dayRow,
-          items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: !item.done } : item)
-        };
-      }
-      return dayRow;
-    });
-    await saveCoachingProfile({
-      ...coachingProfile,
-      studentId: selectedStudent?.id,
-      weeklyProgram: updatedWeeklyProgram
-    });
+  const handleToggleTask = async (taskOrId) => {
+    if (!taskOrId) return;
+    const isObj = typeof taskOrId === 'object';
+    const taskId = isObj ? taskOrId.id : taskOrId;
+    const isScheduleItem = isObj && taskOrId.isScheduleContextItem;
+
+    if (isScheduleItem) {
+      await toggleScheduleDone(taskId);
+      return;
+    }
+
+    if (coachingProfile && coachingProfile.weeklyProgram) {
+      const updatedWeeklyProgram = coachingProfile.weeklyProgram.map(dayRow => {
+        if (dayRow.day === activeDayKey) {
+          return {
+            ...dayRow,
+            items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: !item.done } : item)
+          };
+        }
+        return dayRow;
+      });
+      await saveCoachingProfile({
+        ...coachingProfile,
+        studentId: selectedStudent?.id,
+        weeklyProgram: updatedWeeklyProgram
+      });
+    }
   };
 
   /* ─── Task Count Per Day in Mini Navigator ─── */
   const weekTasksCountMap = useMemo(() => {
     const map = {};
     const rawProg = coachingProfile?.weeklyProgram || [];
+    const studentId = selectedStudent?.id;
+
     DAYS_OF_WEEK.forEach(d => {
       const found = rawProg.find(r => r.day === d.key);
-      map[d.key] = found?.items?.length || 0;
+      const manualCount = found?.items?.length || 0;
+      const schedCount = (schedules || []).filter(s => String(s.studentId) === String(studentId) && (s.day === d.key || s.dayOfWeek === d.key || s.dayName === d.name || s.day === d.name)).length;
+      map[d.key] = manualCount + schedCount;
     });
     return map;
-  }, [coachingProfile]);
+  }, [coachingProfile, schedules, selectedStudent]);
 
   const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
   const overdueCount = pendingTasks.filter(t => isPast(t.dueDateObj) && !isToday(t.dueDateObj)).length;
@@ -970,7 +1034,7 @@ export default function StudentDashboard() {
                         else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
                         return;
                       }
-                      handleToggleTask(task.id);
+                      handleToggleTask(task);
                     };
 
                     return (
@@ -993,7 +1057,7 @@ export default function StudentDashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                           <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); handleToggleTask(task.id); }}
+                            onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
                             style={{
                               width: 20,
                               height: 20,
