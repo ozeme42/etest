@@ -1238,15 +1238,12 @@ export default function StudentDashboard() {
         </div>
 
         {/* ════════════════════════════════════════════
-            3. İKİLİ EYLEM MERKEZİ (GÜNÜN GÖREVLERİ & 1-TIKLA DEVAM ET)
+            3. EYLEM MERKEZİ (GÜNÜN GÖREVLERİ)
         ════════════════════════════════════════════ */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-          gap: '1.25rem',
           marginBottom: '1.5rem'
         }}>
-          {/* KART 1: SEÇİLEN GÜNÜN GÖREVLERİ & ÖDEVLERİ */}
+          {/* SEÇİLEN GÜNÜN GÖREVLERİ & ÖDEVLERİ */}
           <div
             className="sd-card"
             style={{
@@ -1436,93 +1433,6 @@ export default function StudentDashboard() {
             <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
               <Link to="/my-program" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                 Haftalık Programa Git <ChevronRight size={12} />
-              </Link>
-            </div>
-          </div>
-
-          {/* KART 2: KALDIĞIN YERDEN DEVAM ET (KİTAP & TEST) */}
-          <div
-            className="sd-card"
-            style={{
-              background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%)',
-              border: '1.5px solid rgba(52, 211, 153, 0.35)',
-              borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.25rem 1.4rem',
-              boxShadow: '0 12px 30px rgba(6, 78, 59, 0.3)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            {resumeBookTest ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <BookMarked size={20} color="#34d399" />
-                    <span style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff' }}>
-                      📚 Kaldığın Yerden Devam Et
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#6ee7b7', background: 'rgba(52, 211, 153, 0.2)', padding: '2px 8px', borderRadius: 99 }}>
-                    {resumeBookTest.reason}
-                  </span>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: '0.85rem 1rem', border: '1px solid rgba(52, 211, 153, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase' }}>
-                      {resumeBookTest.book.subject || 'Ders Kitabı'}
-                    </div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
-                      {resumeBookTest.book.title}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#34d399', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span>▶️</span> {resumeBookTest.test.name}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/book-quiz/${resumeBookTest.book.id}/${resumeBookTest.test.id}`)}
-                    className="sd-btn"
-                    style={{
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      color: '#ffffff',
-                      fontWeight: 900,
-                      fontSize: '0.82rem',
-                      padding: '0.6rem 1.15rem',
-                      borderRadius: 12,
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
-                      flexShrink: 0
-                    }}
-                  >
-                    Hemen Çöz <ArrowRight size={14} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <BookMarked size={20} color="#34d399" />
-                  <span style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff' }}>
-                    📚 Kitaplarım & Testler
-                  </span>
-                </div>
-                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: 14, textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-                    Henüz aktif bir test kaydınız bulunmuyor. Kitaplar sekmesinden dilediğiniz testi başlatabilirsiniz.
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-              <Link to="/student/books" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6ee7b7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                Tüm Kitaplarımı Gör ({assignedBooksList.length}) <ChevronRight size={12} />
               </Link>
             </div>
           </div>
