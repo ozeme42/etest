@@ -567,12 +567,13 @@ export default function StudentDashboard() {
         }
       }
 
-      // B) Inject Daily Repeating Items if not already present
+      // B) Inject Daily Repeating Items (start fresh done: false on new days unless specifically completed for this day)
       allDailyItems.forEach(dItem => {
         if (dItem.createdYMD && dayYMD < dItem.createdYMD) return;
         if (dItem.repeatEndDate && dayYMD > dItem.repeatEndDate) return;
-        if (!dayManualItems.some(i => i.id === dItem.id)) {
-          dayManualItems.push({ ...dItem, isWeeklyProgItem: true });
+        const alreadyInDay = dayManualItems.find(i => i.id === dItem.id);
+        if (!alreadyInDay) {
+          dayManualItems.push({ ...dItem, done: false, isWeeklyProgItem: true });
         }
       });
 
@@ -608,6 +609,7 @@ export default function StudentDashboard() {
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
             const tYMD = tDateStr.split('T')[0];
+            // Only place this test on its EXACT target date
             if (dayYMD === tYMD) {
               const tObj = bookTests.find(b => String(b.id) === String(testId));
               const testName = tObj?.name || 'Test';
@@ -658,13 +660,27 @@ export default function StudentDashboard() {
         const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
         const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
+        // Check if student submitted / completed this homework
+        const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
+          submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
+        const isDone = !!sub;
+        const subYMD = (sub?.createdAt || sub?.submittedAt) ? new Date(sub.submittedAt || sub.createdAt).toISOString().split('T')[0] : null;
+
         let isForThisDay = false;
-        if (dueTime && startTime) {
-          isForThisDay = dayTime >= startTime && dayTime <= dueTime;
-        } else if (dueYMD) {
-          isForThisDay = dayYMD === dueYMD;
-        } else if (startTime) {
-          isForThisDay = dayTime === startTime;
+        if (isDone) {
+          // If already completed, it ONLY shows on its submission date or original target date!
+          // It will NEVER appear on subsequent days.
+          const completionDay = subYMD || dueYMD || startYMD;
+          isForThisDay = (completionDay === dayYMD);
+        } else {
+          // Pending homework: show strictly on its due date, or within its active period
+          if (dueYMD) {
+            isForThisDay = (dayYMD === dueYMD);
+          } else if (dueTime && startTime) {
+            isForThisDay = (dayTime >= startTime && dayTime <= dueTime);
+          } else if (startTime) {
+            isForThisDay = (dayTime === startTime);
+          }
         }
 
         if (isForThisDay) {
@@ -698,10 +714,6 @@ export default function StudentDashboard() {
             });
             return;
           }
-
-          const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
-            submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
-          const isDone = !!sub;
 
           const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}` || m.hwId === hw.id);
           if (!exists) {
@@ -802,16 +814,36 @@ export default function StudentDashboard() {
       return;
     }
 
-    if (coachingProfile && coachingProfile.weeklyProgram) {
-      const updatedWeeklyProgram = coachingProfile.weeklyProgram.map(dayRow => {
-        if (dayRow.day === activeDayKey) {
-          return {
-            ...dayRow,
-            items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: !item.done } : item)
-          };
-        }
-        return dayRow;
-      });
+    if (coachingProfile) {
+      const rawWeekly = Array.isArray(coachingProfile.weeklyProgram) ? coachingProfile.weeklyProgram : [];
+      const currentDayRow = rawWeekly.find(r => r.day === activeDayKey);
+      const existingItem = (currentDayRow?.items || []).find(i => i.id === taskId);
+
+      let updatedWeeklyProgram;
+      if (existingItem) {
+        updatedWeeklyProgram = rawWeekly.map(dayRow => {
+          if (dayRow.day === activeDayKey) {
+            return {
+              ...dayRow,
+              items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: !item.done } : item)
+            };
+          }
+          return dayRow;
+        });
+      } else {
+        const baseItem = isObj ? taskOrId : { id: taskId };
+        updatedWeeklyProgram = DAYS_OF_WEEK.map(dMeta => {
+          const row = rawWeekly.find(r => r.day === dMeta.key) || { day: dMeta.key, items: [] };
+          if (dMeta.key === activeDayKey) {
+            return {
+              ...row,
+              items: [...(row.items || []), { ...baseItem, done: true }]
+            };
+          }
+          return row;
+        });
+      }
+
       await saveCoachingProfile({
         ...coachingProfile,
         studentId: selectedStudent?.id,
