@@ -932,42 +932,6 @@ export default function TrackedBookQuizRunner() {
                       </span>
                     </div>
 
-                    {/* Prominent Optical Form Countdown Widget */}
-                    {!isSubmitted && !isTeacherReviewing && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.65rem',
-                        background: timeLeft < 300
-                          ? 'linear-gradient(135deg, rgba(153, 27, 27, 0.95), rgba(225, 29, 72, 0.95))'
-                          : 'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 27, 75, 0.96))',
-                        border: timeLeft < 300 ? '2px solid #ef4444' : '1.5px solid rgba(165, 180, 252, 0.35)',
-                        borderRadius: '0.9rem',
-                        padding: '0.45rem 1rem',
-                        boxShadow: timeLeft < 300 ? '0 0 18px rgba(239, 68, 68, 0.45)' : '0 4px 16px rgba(0,0,0,0.3)'
-                      }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: timeLeft < 300 ? 'rgba(255,255,255,0.2)' : 'rgba(99,102,241,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Clock size={16} color={timeLeft < 300 ? '#ffffff' : '#38bdf8'} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                          <span style={{ fontSize: '0.62rem', fontWeight: 900, color: timeLeft < 300 ? '#fecdd3' : '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            {timeLeft < 300 ? '⚠️ AZ KALDI' : 'KALAN SÜRE'}
-                          </span>
-                          <span style={{
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace",
-                            fontSize: '1.25rem',
-                            fontWeight: 900,
-                            color: timeLeft < 300 ? '#ffffff' : '#38bdf8',
-                            letterSpacing: '0.06em',
-                            marginTop: 2,
-                            textShadow: timeLeft < 300 ? '0 0 10px rgba(255,255,255,0.6)' : '0 0 10px rgba(56,189,248,0.4)'
-                          }}>
-                            {formatTime(timeLeft)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     {!isSubmitted && (
                       <div style={{ fontSize: '0.84rem', fontWeight: 900, color: answeredCount === questionCount ? '#34d399' : '#38bdf8', background: 'rgba(255,255,255,0.06)', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                         {answeredCount}/{questionCount} Kodlandı {questionCount > 0 ? `(%${Math.round((answeredCount / questionCount) * 100)})` : ''}
