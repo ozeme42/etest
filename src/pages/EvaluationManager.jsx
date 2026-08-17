@@ -486,7 +486,7 @@ function SmartEvaluationModal({ submission, allBankQuestions, homeworks, curricu
 
   if (loading || !test) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#070a12', color: 'white', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0d1527', color: 'white', fontWeight: 800 }}>
         <Sparkles size={20} className="animate-spin" style={{ marginRight: 8 }} /> Sınav ve Değerlendirme Ekranı Hazırlanıyor...
       </div>
     );
@@ -1191,7 +1191,7 @@ export default function EvaluationManager() {
       maxWidth: '100%',
       margin: 0,
       padding: '1.25rem 1.5rem 5rem 1.5rem',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       color: '#f8fafc',
       boxSizing: 'border-box',

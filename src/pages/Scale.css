@@ -1,4 +1,4 @@
-/* Cosmic Aurora Glassmorphism Design Tokens for Scales & Rubrics Suite */
+/* Luminous Cosmic Aurora Glassmorphism Design Tokens for Scales & Rubrics Suite */
 .scales-page-container {
   min-height: 100vh;
   width: 100%;
@@ -6,12 +6,12 @@
   box-sizing: border-box;
   margin: 0;
   padding: 1.25rem 1.5rem 5rem 1.5rem;
-  background-color: #070a12;
+  background-color: #0d1527;
   background-image: 
-    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%),
-    linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%);
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%);
   background-attachment: fixed;
   color: #f8fafc;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -19,18 +19,18 @@
 
 /* Glass Card */
 .scale-glass-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 27, 75, 0.88) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 1.25rem;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scale-glass-card:hover {
-  border-color: rgba(165, 180, 252, 0.35);
-  box-shadow: 0 16px 44px rgba(99, 102, 241, 0.2);
+  border-color: rgba(165, 180, 252, 0.45);
+  box-shadow: 0 16px 44px rgba(99, 102, 241, 0.25);
 }
 
 /* KPI Grid */
@@ -42,8 +42,8 @@
 }
 
 .scale-kpi-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: 1.15rem;
   padding: 1.25rem 1.4rem;
   display: flex;
@@ -55,8 +55,8 @@
 
 .scale-kpi-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
 }
 
 .scale-kpi-icon {
@@ -80,7 +80,7 @@
 .scale-kpi-lbl {
   font-size: 0.8rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   margin-top: 0.2rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -93,17 +93,17 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* Print Styling for Student Report Cards */
