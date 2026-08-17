@@ -1062,128 +1062,56 @@ export default function StudentDashboard() {
         padding: isMobile ? '1.25rem 1rem' : '2rem 1.5rem',
         backdropFilter: 'blur(20px)'
       }}>
-        <div style={{
-          maxWidth: 1280,
-          margin: '0 auto',
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'flex-start' : 'center',
-          justifyContent: 'space-between',
-          gap: '1.25rem'
-        }}>
-          {/* SOL: ÖĞRENCİ PROFİL KİMLİĞİ */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.25rem' }}>
-            <div style={{
-              width: isMobile ? 52 : 64,
-              height: isMobile ? 52 : 64,
-              borderRadius: 20,
-              background: `linear-gradient(135deg, ${avatarColor}, #4338ca)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: isMobile ? '1.45rem' : '1.85rem',
-              fontWeight: 900,
-              color: '#ffffff',
-              border: '2px solid rgba(255,255,255,0.35)',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-              flexShrink: 0
-            }}>
-              {selectedStudent?.name?.charAt(0) || 'Ö'}
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.68rem', color: '#a5b4fc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {gradeLabel ? `${gradeLabel} Öğrenci Portalı` : 'Öğrenci Portalı'}
-              </div>
-              <h1 style={{ fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight: 900, color: '#ffffff', margin: '2px 0 0 0', lineHeight: 1.1 }}>
-                {selectedStudent?.name || 'Öğrenci'}
-              </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
-                  📅 {todayStr}
-                </span>
-                {hasCoach && (
-                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#4ade80', background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.35)', padding: '1px 7px', borderRadius: 99 }}>
-                    🎓 Koçluk Aktif
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* SAĞ: HIZLI ERİŞİM BUTONLARI & SAĞ KÖŞEDE YUVARLAK BAŞARI GRAFİĞİ */}
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem' }}>
+          {/* ÜST SATIR: SOLDA İSİM/PROFİL <------> SAĞ KÖŞEDE YUVARLAK BAŞARI GRAFİĞİ */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '0.75rem',
-            flexWrap: 'wrap',
-            width: isMobile ? '100%' : 'auto',
-            justifyContent: isMobile ? 'flex-start' : 'flex-end'
+            width: '100%'
           }}>
-            <button
-              onClick={() => navigate('/wrong-answers')}
-              className="sd-btn"
-              style={{
-                background: 'rgba(244, 63, 94, 0.18)',
-                border: '1.5px solid rgba(251, 113, 133, 0.4)',
-                color: '#fecdd3',
-                borderRadius: 12,
-                padding: '0.5rem 0.85rem',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
+            {/* SOL: ÖĞRENCİ PROFİL KİMLİĞİ */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0 }}>
+              <div style={{
+                width: isMobile ? 48 : 64,
+                height: isMobile ? 48 : 64,
+                borderRadius: isMobile ? 16 : 20,
+                background: `linear-gradient(135deg, ${avatarColor}, #4338ca)`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <AlertCircle size={15} color="#fb7185" />
-              <span>Yanlışlarım ({tests.filter(t => t.status === 'Sonuçlandı').length})</span>
-            </button>
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.35rem' : '1.85rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                border: '2px solid rgba(255,255,255,0.35)',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+                flexShrink: 0
+              }}>
+                {selectedStudent?.name?.charAt(0) || 'Ö'}
+              </div>
 
-            <button
-              onClick={() => navigate('/student/books')}
-              className="sd-btn"
-              style={{
-                background: 'rgba(8, 145, 178, 0.18)',
-                border: '1.5px solid rgba(56, 189, 248, 0.4)',
-                color: '#bae6fd',
-                borderRadius: 12,
-                padding: '0.5rem 0.85rem',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <BookOpen size={15} color="#38bdf8" />
-              <span>Kitaplarım ({assignedBooksList.length})</span>
-            </button>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: isMobile ? '0.64rem' : '0.68rem', color: '#a5b4fc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {gradeLabel ? `${gradeLabel} Öğrenci Portalı` : 'Öğrenci Portalı'}
+                </div>
+                <h1 style={{ fontSize: isMobile ? '1.2rem' : '1.75rem', fontWeight: 900, color: '#ffffff', margin: '2px 0 0 0', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedStudent?.name || 'Öğrenci'}
+                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
+                    📅 {todayStr}
+                  </span>
+                  {hasCoach && (
+                    <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#4ade80', background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.35)', padding: '1px 6px', borderRadius: 99 }}>
+                      🎓 Koçluk
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
-            <button
-              onClick={() => navigate('/student-results')}
-              className="sd-btn"
-              style={{
-                background: 'rgba(99, 102, 241, 0.18)',
-                border: '1.5px solid rgba(165, 180, 252, 0.4)',
-                color: '#c7d2fe',
-                borderRadius: 12,
-                padding: '0.5rem 0.85rem',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <BarChart3 size={15} color="#818cf8" />
-              <span>Sonuçlarım</span>
-            </button>
-
-            {/* 🌟 EN SAĞ KÖŞEDE YUVARLAK BAŞARI GRAFİĞİ */}
+            {/* SAĞ KÖŞE: YUVARLAK BAŞARI TAMAMLAMA GRAFİĞİ (MOBİLDE VE MASAÜSTÜNDE SAĞDA) */}
             <div
               onClick={() => navigate('/student-results')}
               title="Detaylı Sonuçlar ve Başarı Analizini İncele"
@@ -1191,44 +1119,44 @@ export default function StudentDashboard() {
               style={{
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(15, 23, 42, 0.95) 100%)',
                 border: overallSuccessRate >= 80 ? '1.5px solid rgba(52, 211, 153, 0.55)' : '1.5px solid rgba(99, 102, 241, 0.45)',
-                borderRadius: 16,
-                padding: '0.45rem 0.95rem',
+                borderRadius: isMobile ? 14 : 16,
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.95rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                gap: isMobile ? 6 : 10,
                 boxShadow: overallSuccessRate >= 80 ? '0 6px 20px rgba(16, 185, 129, 0.3)' : '0 6px 20px rgba(99, 102, 241, 0.25)',
                 transition: 'all 0.2s ease',
                 flexShrink: 0
               }}
             >
               {/* Circular SVG Ring */}
-              <div style={{ position: 'relative', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="44" height="44" viewBox="0 0 44 44" style={{ transform: 'rotate(-90deg)' }}>
+              <div style={{ position: 'relative', width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width={isMobile ? 38 : 44} height={isMobile ? 38 : 44} viewBox={isMobile ? "0 0 38 38" : "0 0 44 44"} style={{ transform: 'rotate(-90deg)' }}>
                   <circle
-                    cx="22"
-                    cy="22"
-                    r="17"
+                    cx={isMobile ? 19 : 22}
+                    cy={isMobile ? 19 : 22}
+                    r={isMobile ? 15 : 17}
                     fill="transparent"
                     stroke="rgba(255, 255, 255, 0.12)"
-                    strokeWidth="4"
+                    strokeWidth={isMobile ? 3.5 : 4}
                   />
                   <circle
-                    cx="22"
-                    cy="22"
-                    r="17"
+                    cx={isMobile ? 19 : 22}
+                    cy={isMobile ? 19 : 22}
+                    r={isMobile ? 15 : 17}
                     fill="transparent"
                     stroke={overallSuccessRate >= 80 ? '#10b981' : overallSuccessRate >= 60 ? '#38bdf8' : '#f59e0b'}
-                    strokeWidth="4"
-                    strokeDasharray={2 * Math.PI * 17}
-                    strokeDashoffset={2 * Math.PI * 17 * (1 - (overallSuccessRate || 0) / 100)}
+                    strokeWidth={isMobile ? 3.5 : 4}
+                    strokeDasharray={2 * Math.PI * (isMobile ? 15 : 17)}
+                    strokeDashoffset={2 * Math.PI * (isMobile ? 15 : 17) * (1 - (overallSuccessRate || 0) / 100)}
                     strokeLinecap="round"
                     style={{ transition: 'stroke-dashoffset 1s ease' }}
                   />
                 </svg>
                 <div style={{
                   position: 'absolute',
-                  fontSize: '0.72rem',
+                  fontSize: isMobile ? '0.64rem' : '0.72rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   lineHeight: 1,
@@ -1240,14 +1168,85 @@ export default function StudentDashboard() {
 
               {/* Text Info */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ fontSize: isMobile ? '0.58rem' : '0.62rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Başarı Oranı
                 </span>
-                <span style={{ fontSize: '0.84rem', fontWeight: 900, color: overallSuccessRate >= 80 ? '#4ade80' : overallSuccessRate >= 60 ? '#38bdf8' : '#fbbf24', lineHeight: 1.15, marginTop: 1 }}>
-                  {overallSuccessRate >= 80 ? '🏆 Yüksek' : overallSuccessRate >= 60 ? '📈 İyi Seviye' : '⚡ Geliştirilmeli'}
+                <span style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: overallSuccessRate >= 80 ? '#4ade80' : overallSuccessRate >= 60 ? '#38bdf8' : '#fbbf24', lineHeight: 1.15, marginTop: 1 }}>
+                  {overallSuccessRate >= 80 ? '🏆 Yüksek' : overallSuccessRate >= 60 ? '📈 İyi' : '⚡ Geliştir'}
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* ALT SATIR: HIZLI ERİŞİM BUTONLARI */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? '0.45rem' : '0.65rem',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => navigate('/wrong-answers')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(244, 63, 94, 0.18)',
+                border: '1.5px solid rgba(251, 113, 133, 0.4)',
+                color: '#fecdd3',
+                borderRadius: 12,
+                padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.74rem' : '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <AlertCircle size={14} color="#fb7185" />
+              <span>Yanlışlarım ({tests.filter(t => t.status === 'Sonuçlandı').length})</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/student/books')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(8, 145, 178, 0.18)',
+                border: '1.5px solid rgba(56, 189, 248, 0.4)',
+                color: '#bae6fd',
+                borderRadius: 12,
+                padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.74rem' : '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <BookOpen size={14} color="#38bdf8" />
+              <span>Kitaplarım ({assignedBooksList.length})</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/student-results')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(99, 102, 241, 0.18)',
+                border: '1.5px solid rgba(165, 180, 252, 0.4)',
+                color: '#c7d2fe',
+                borderRadius: 12,
+                padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.74rem' : '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <BarChart3 size={14} color="#818cf8" />
+              <span>Sonuçlarım</span>
+            </button>
           </div>
         </div>
 
