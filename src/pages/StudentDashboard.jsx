@@ -1214,12 +1214,72 @@ export default function StudentDashboard() {
   ];
 
   const quickTiles = [
-    { icon: '📖', label: 'Ders Özetleri', sub: 'Konu anlatımları', to: '/student/summaries', g: 'linear-gradient(135deg,#059669,#10b981)', sh: 'rgba(16,185,129,0.35)' },
-    { icon: '📊', label: 'Sonuçlarım', sub: 'Karne & analiz', to: '/student-results', g: 'linear-gradient(135deg,#4f46e5,#7c3aed)', sh: 'rgba(99,102,241,0.35)' },
-    { icon: '❌', label: 'Yanlışlarım', sub: 'Hata havuzu', to: '/wrong-answers', g: 'linear-gradient(135deg,#db2777,#e11d48)', sh: 'rgba(219,39,119,0.32)' },
-    { icon: '📚', label: 'Kitaplarım', sub: 'Kitap ilerlemesi', to: '/student/books', g: 'linear-gradient(135deg,#0891b2,#0d9488)', sh: 'rgba(8,145,178,0.32)' },
-    { icon: '🎯', label: 'Hedeflerim', sub: 'Hedef takip', to: '/goals', g: 'linear-gradient(135deg,#ea580c,#dc2626)', sh: 'rgba(234,88,12,0.32)' },
-    { icon: '📅', label: 'Programım', sub: 'Haftalık plan', to: '/my-program', g: 'linear-gradient(135deg,#8b5cf6,#a855f7)', sh: 'rgba(139,92,246,0.32)' },
+    {
+      icon: BookOpen,
+      label: 'Ders Özetleri',
+      sub: 'Konu anlatımları & flashcard',
+      to: '/student/summaries',
+      accentColor: '#10b981',
+      iconGradient: 'linear-gradient(135deg, #059669, #10b981)',
+      glow: 'rgba(16, 185, 129, 0.25)',
+      border: 'rgba(52, 211, 153, 0.35)',
+      badgeText: 'Kütüphane'
+    },
+    {
+      icon: BarChart3,
+      label: 'Sonuçlarım',
+      sub: 'Karne, grafik & net analizi',
+      to: '/student-results',
+      accentColor: '#6366f1',
+      iconGradient: 'linear-gradient(135deg, #4f46e5, #818cf8)',
+      glow: 'rgba(99, 102, 241, 0.25)',
+      border: 'rgba(165, 180, 252, 0.35)',
+      badgeText: `${tests.length} Sınav`
+    },
+    {
+      icon: AlertCircle,
+      label: 'Hata Defterim',
+      sub: 'Yanlış soru havuzu & tekrar',
+      to: '/wrong-answers',
+      accentColor: '#f43f5e',
+      iconGradient: 'linear-gradient(135deg, #e11d48, #fb7185)',
+      glow: 'rgba(244, 63, 94, 0.25)',
+      border: 'rgba(251, 113, 133, 0.35)',
+      badgeText: 'Analiz Havuzu'
+    },
+    {
+      icon: BookMarked,
+      label: 'Kitaplarım',
+      sub: 'Soru bankası & ilerleme',
+      to: '/student/books',
+      accentColor: '#06b6d4',
+      iconGradient: 'linear-gradient(135deg, #0891b2, #22d3ee)',
+      glow: 'rgba(6, 182, 212, 0.25)',
+      border: 'rgba(103, 232, 249, 0.35)',
+      badgeText: `${books?.length || 0} Kitap`
+    },
+    {
+      icon: Target,
+      label: 'Hedeflerim',
+      sub: 'Günlük & haftalık takip',
+      to: '/goals',
+      accentColor: '#f97316',
+      iconGradient: 'linear-gradient(135deg, #ea580c, #fb923c)',
+      glow: 'rgba(249, 115, 22, 0.25)',
+      border: 'rgba(253, 186, 116, 0.35)',
+      badgeText: `${studentGoals?.length || 0} Hedef`
+    },
+    {
+      icon: CalendarDays,
+      label: 'Programım',
+      sub: 'Haftalık ders planı',
+      to: '/my-program',
+      accentColor: '#a855f7',
+      iconGradient: 'linear-gradient(135deg, #7c3aed, #c084fc)',
+      glow: 'rgba(168, 85, 247, 0.25)',
+      border: 'rgba(216, 180, 254, 0.35)',
+      badgeText: todayProgramInfo.totalCount > 0 ? `${todayProgramInfo.completedCount}/${todayProgramInfo.totalCount} Görev` : 'Haftalık'
+    },
   ];
 
   return (
@@ -1418,20 +1478,107 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* QUICK TILES (mobile: shown in left column at top) */}
+            {/* QUICK TILES (PRO BENTO GLASS HUB) */}
             <div className="sd-section">
-              <div style={S.sectionTitle}><span style={{ fontSize:14 }}>⚡</span> Hızlı Erişim</div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.7rem' }}>
-                {quickTiles.map((t, i) => (
-                  <button key={i} onClick={() => navigate(t.to)} className="sd-tile"
-                    style={{ background:t.g, borderRadius:18, padding: isMobile ? '0.8rem' : '1rem', display:'flex', alignItems:'center', gap:'0.65rem', border:'none', cursor:'pointer', textAlign:'left', boxShadow:`0 6px 18px ${t.sh}`, animation:`sdFadeUp 0.4s ease ${i*0.07}s both` }}>
-                    <div style={{ width: isMobile ? 38 : 42, height: isMobile ? 38 : 42, borderRadius:12, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: isMobile ? '1.2rem' : '1.4rem', flexShrink:0, backdropFilter:'blur(6px)' }}>{t.icon}</div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize: isMobile ? '0.82rem' : '0.9rem', fontWeight:900, color:'white', lineHeight:1.2 }}>{t.label}</div>
-                      <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.78)', fontWeight:600, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.sub}</div>
-                    </div>
-                  </button>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={S.sectionTitle}><Zap size={15} color="#38bdf8" /> Hızlı Erişim Merkezi</div>
+                <span style={{ fontSize: '0.64rem', fontWeight: 900, color: '#c7d2fe', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '0.15rem 0.5rem', borderRadius: 99, letterSpacing: '0.04em' }}>6 Modül</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: isMobile ? '0.75rem' : '0.85rem' }}>
+                {quickTiles.map((t, i) => {
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => navigate(t.to)}
+                      className="sd-tile"
+                      style={{
+                        background: `radial-gradient(ellipse at 15% 20%, ${t.glow} 0%, transparent 70%), linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%)`,
+                        backdropFilter: 'blur(20px)',
+                        borderRadius: 20,
+                        padding: isMobile ? '0.95rem 0.85rem' : '1.05rem 1.1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: '0.75rem',
+                        border: `1.5px solid ${t.border}`,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        animation: `sdFadeUp 0.4s ease ${i * 0.05}s both`,
+                        minHeight: isMobile ? 116 : 124
+                      }}
+                    >
+                      {/* Ambient Glow Orb */}
+                      <div style={{ position: 'absolute', right: -15, top: -15, width: 70, height: 70, borderRadius: '50%', background: t.glow, filter: 'blur(20px)', pointerEvents: 'none' }} />
+
+                      {/* Top Row: Icon Badge + Mini Pill Badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', zIndex: 2 }}>
+                        <div style={{
+                          width: isMobile ? 38 : 42,
+                          height: isMobile ? 38 : 42,
+                          borderRadius: 13,
+                          background: t.iconGradient,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: `0 4px 14px ${t.glow}`,
+                          border: '1.5px solid rgba(255, 255, 255, 0.35)',
+                          flexShrink: 0
+                        }}>
+                          <Icon size={isMobile ? 18 : 20} color="#ffffff" strokeWidth={2.3} />
+                        </div>
+
+                        {t.badgeText && (
+                          <span style={{
+                            fontSize: '0.56rem',
+                            fontWeight: 900,
+                            color: '#ffffff',
+                            background: 'rgba(255, 255, 255, 0.12)',
+                            border: '1px solid rgba(255, 255, 255, 0.22)',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: 99,
+                            letterSpacing: '0.03em',
+                            textTransform: 'uppercase',
+                            backdropFilter: 'blur(8px)'
+                          }}>
+                            {t.badgeText}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Bottom Info: Title, Subtitle, Arrow */}
+                      <div style={{ width: '100%', zIndex: 2, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: isMobile ? '0.84rem' : '0.92rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                            {t.label}
+                          </div>
+                          <div style={{ fontSize: '0.62rem', color: 'rgba(255, 255, 255, 0.72)', fontWeight: 600, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {t.sub}
+                          </div>
+                        </div>
+
+                        <div style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 7,
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          border: '1px solid rgba(255, 255, 255, 0.18)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                          flexShrink: 0
+                        }}>
+                          <ChevronRight size={13} color="rgba(255, 255, 255, 0.85)" />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
