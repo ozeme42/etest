@@ -1579,7 +1579,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* 2. KART: BUGÜNÜN KOÇLUK GÖREVLERİ */}
+            {/* 2. KART: BUGÜNÜN KOÇLUK & ÇALIŞMA GÖREVLERİ */}
             <div
               style={{
                 background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
@@ -1592,74 +1592,151 @@ export default function StudentDashboard() {
                 justifyContent: 'space-between'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Calendar size={18} color="#818cf8" />
-                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#ffffff' }}>
+                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
                     Bugünün Görevleri ({todayProgramInfo.dayName})
                   </span>
                 </div>
 
-                {todayProgramInfo.totalCount > 0 && (
-                  <span style={{
-                    fontSize: '0.66rem',
-                    fontWeight: 900,
-                    padding: '2px 8px',
-                    borderRadius: 99,
-                    background: todayProgramInfo.hasAllCompleted ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)',
-                    color: todayProgramInfo.hasAllCompleted ? '#4ade80' : '#a5b4fc',
-                    border: '1px solid rgba(255,255,255,0.15)'
-                  }}>
-                    {todayProgramInfo.completedCount}/{todayProgramInfo.totalCount} Tamam
-                  </span>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {todayProgramInfo.totalCount > 0 && (
+                    <span style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 900,
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      background: todayProgramInfo.hasAllCompleted ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)',
+                      color: todayProgramInfo.hasAllCompleted ? '#4ade80' : '#a5b4fc',
+                      border: '1px solid rgba(255,255,255,0.15)'
+                    }}>
+                      {todayProgramInfo.completedCount}/{todayProgramInfo.totalCount} Tamam
+                    </span>
+                  )}
+                  <Link
+                    to="/my-program"
+                    style={{
+                      textDecoration: 'none',
+                      background: 'rgba(255,255,255,0.12)',
+                      borderRadius: 8,
+                      padding: '0.2rem 0.55rem',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      color: '#c7d2fe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      border: '1px solid rgba(255,255,255,0.15)'
+                    }}
+                  >
+                    Tümü <ChevronRight size={12} />
+                  </Link>
+                </div>
               </div>
 
               {todayProgramInfo.items.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '120px', overflowY: 'auto' }}>
-                  {todayProgramInfo.items.map((task, idx) => (
-                    <div
-                      key={task.id || idx}
-                      onClick={(e) => { e.stopPropagation(); handleToggleTodayTask(task.id); }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        background: task.done ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                        border: task.done ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
-                        padding: '0.45rem 0.75rem',
-                        borderRadius: 10,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      <div style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 6,
-                        border: task.done ? 'none' : '1.5px solid #64748b',
-                        background: task.done ? '#22c55e' : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        {task.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
-                      </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '140px', overflowY: 'auto' }}>
+                  {todayProgramInfo.items.map((task, idx) => {
+                    const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                    const handleTaskClick = () => {
+                      if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
+                      if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
+                      if (task.hwId) {
+                        const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
+                        const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
+                        const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                        if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
+                        else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
+                        else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
+                        return;
+                      }
+                      handleToggleTodayTask(task.id);
+                    };
 
-                      <span style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        color: task.done ? '#94a3b8' : '#f8fafc',
-                        textDecoration: task.done ? 'line-through' : 'none',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {task.title || task.subject} {task.topic ? `(${task.topic})` : ''} {task.hours ? `• ${task.hours}` : ''}
-                      </span>
-                    </div>
-                  ))}
+                    return (
+                      <div
+                        key={task.id || idx}
+                        onClick={handleTaskClick}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          background: task.done ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                          border: task.done ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: 10,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleToggleTodayTask(task.id); }}
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 6,
+                              border: task.done ? 'none' : '1.5px solid #64748b',
+                              background: task.done ? '#22c55e' : 'transparent',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              cursor: 'pointer',
+                              padding: 0
+                            }}
+                          >
+                            {task.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                          </button>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              color: task.done ? '#94a3b8' : '#f8fafc',
+                              textDecoration: task.done ? 'line-through' : 'none',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {task.title || task.subject || 'Ders Çalışması'} {task.topic ? `(${task.topic})` : ''}
+                            </div>
+                            {task.hours && (
+                              <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>
+                                ⏰ {task.hours}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {isQuizTask && !task.done && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleTaskClick(); }}
+                            style={{
+                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '0.22rem 0.55rem',
+                              fontSize: '0.68rem',
+                              fontWeight: 900,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              flexShrink: 0
+                            }}
+                          >
+                            <PlayCircle size={12} /> Çöz
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px dashed rgba(255,255,255,0.15)' }}>
@@ -1667,7 +1744,7 @@ export default function StudentDashboard() {
                     Bugün için bekleyen görev yok. Harika gidiyorsun! 🎉
                   </span>
                   <button
-                    onClick={() => navigate('/my-coaching')}
+                    onClick={() => navigate('/my-program')}
                     style={{
                       background: 'rgba(99,102,241,0.25)',
                       border: '1px solid #818cf8',
@@ -1798,116 +1875,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* TODAY'S PROGRAM */}
-            <div className="sd-section">
-              <div style={{ ...S.card, overflow:'hidden' }}>
-                <div style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', padding:'0.95rem 1.2rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <div>
-                    <div style={{ fontSize:'0.6rem', fontWeight:800, color:'rgba(255,255,255,0.75)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Günün Programı</div>
-                    <div style={{ fontSize:'1rem', fontWeight:900, color:'white', marginTop:1 }}>{todayProgramInfo.dayName}</div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    {todayProgramInfo.totalCount > 0 && (
-                      <div style={{ background:'rgba(255,255,255,0.22)', borderRadius:99, padding:'0.2rem 0.65rem', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.3)' }}>
-                        <span style={{ fontSize:'0.68rem', fontWeight:900, color:'white' }}>{todayProgramInfo.completedCount}/{todayProgramInfo.totalCount}</span>
-                      </div>
-                    )}
-                    <Link to="/my-program" style={{ textDecoration:'none', background:'rgba(255,255,255,0.2)', borderRadius:10, padding:'0.32rem 0.7rem', fontSize:'0.68rem', fontWeight:800, color:'white', display:'flex', alignItems:'center', gap:4, border:'1px solid rgba(255,255,255,0.3)', backdropFilter:'blur(6px)' }}>
-                      Tümü <ChevronRight size={13} />
-                    </Link>
-                  </div>
-                </div>
 
-                <div style={{ padding:'0.75rem' }}>
-                  {todayProgramInfo.items.length === 0 ? (
-                    todayProgramInfo.hasAllCompleted ? (
-                      <div style={{ textAlign:'center', padding:'2rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-                        <div style={{ fontSize:'2.2rem' }}>🎉</div>
-                        <div style={{ fontWeight:900, fontSize:'0.95rem', color:'#4ade80' }}>Bugünkü Görevler Tamamlandı!</div>
-                        <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.8)' }}>Harika iş çıkardın, bugünün tüm hedeflerini bitirdin.</div>
-                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'white', borderRadius:12, padding:'0.5rem 1.2rem', fontWeight:800, fontSize:'0.78rem', marginTop:6, boxShadow:'0 4px 14px rgba(22,163,74,0.4)' }}>📅 Haftalık Programa Git</Link>
-                      </div>
-                    ) : (
-                      <div style={{ textAlign:'center', padding:'2rem 1rem', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-                        <div style={{ fontSize:'2.2rem' }}>✨</div>
-                        <div style={{ fontWeight:900, fontSize:'0.95rem', color:'white' }}>Bugün için program yok</div>
-                        <div style={{ fontSize:'0.76rem', color:'rgba(255,255,255,0.75)' }}>Haftalık programını düzenlemek için tıkla.</div>
-                        <Link to="/my-program" style={{ textDecoration:'none', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', borderRadius:12, padding:'0.5rem 1.2rem', fontWeight:800, fontSize:'0.78rem', marginTop:6, boxShadow:'0 4px 14px rgba(79,70,229,0.4)' }}>📅 Programa Git</Link>
-                      </div>
-                    )
-                  ) : (() => {
-                    const MAX_VISIBLE = 3;
-                    const hasMore = todayProgramInfo.items.length > MAX_VISIBLE;
-                    const visibleItems = (hasMore && !showAllTodayTasks) ? todayProgramInfo.items.slice(0, MAX_VISIBLE) : todayProgramInfo.items;
-                    const hiddenCount = todayProgramInfo.items.length - MAX_VISIBLE;
-                    const taskColors = { konu:'#6366f1', soru:'#0891b2', tekrar:'#059669', kitap:'#7c3aed', deneme:'#ea580c', ödev:'#db2777', diger:'#64748b' };
-                    const taskIcons = { konu:'📖', soru:'✏️', tekrar:'🔄', kitap:'📚', deneme:'📊', ödev:'📝', diger:'📌' };
-                    return (
-                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                        {visibleItems.map((item, idx) => {
-                          const taskColor = taskColors[item.taskType] || '#6366f1';
-                          const icon = taskIcons[item.taskType] || '📌';
-                          const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId;
-                          const handleTaskClick = () => {
-                            if (item.roadmapAssignmentId) { navigate(`/student/study-plan/${item.roadmapAssignmentId}`); return; }
-                            if (item.testId) { navigate(`/book-quiz/${item.testId}?studentId=${selectedStudent.id}`); return; }
-                            if (item.hwId) {
-                              const hwObj = (homeworks || []).find(h => String(h.id) === String(item.hwId));
-                              const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
-                              const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-                              if (isExam) navigate(`/physical-exam/${item.hwId}?studentId=${selectedStudent.id}`);
-                              else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
-                              else navigate(`/quiz/${item.hwId}?studentId=${selectedStudent.id}`);
-                              return;
-                            }
-                            handleToggleTodayTask(item.id);
-                          };
-                          return (
-                            <div key={item.id || idx} className="sd-task-row"
-                              onClick={handleTaskClick}
-                              style={{ background: item.done ? 'rgba(6,78,59,0.5)' : 'rgba(255,255,255,0.08)', borderRadius:14, padding:'0.7rem 0.85rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, cursor:'pointer', border:`1.5px solid ${item.done ? 'rgba(16,185,129,0.5)' : 'rgba(255,255,255,0.14)'}`, borderLeft:`4px solid ${item.done ? '#22c55e' : taskColor}`, opacity: item.done ? 0.88 : 1 }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
-                                <div style={{ width:34, height:34, borderRadius:10, background: item.done ? '#22c55e' : `${taskColor}30`, border:`1.5px solid ${item.done ? '#22c55e' : taskColor}60`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem', flexShrink:0, boxShadow: item.done ? '0 0 10px rgba(34,197,94,0.4)' : 'none' }}>
-                                  {item.done ? <Check size={15} color="white" strokeWidth={3} /> : icon}
-                                </div>
-                                <div style={{ flex:1, minWidth:0 }}>
-                                  <div style={{ fontSize:'0.86rem', fontWeight:800, color: item.done ? '#86efac' : '#ffffff', textDecoration: item.done ? 'line-through' : 'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                                    {item.subject || item.bookName || 'Ders Görevi'}
-                                  </div>
-                                  {item.topic && <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.75)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1 }}>{item.topic}</div>}
-                                  {(item.time || item.questionCount) && (
-                                    <div style={{ display:'flex', gap:5, marginTop:3 }}>
-                                      {item.time && <span style={{ fontSize:'0.6rem', fontWeight:800, color:'#c7d2fe', background:'rgba(99,102,241,0.25)', border:'1px solid rgba(165,180,252,0.3)', padding:'0.1rem 0.45rem', borderRadius:99 }}>⏰ {item.time}</span>}
-                                      {item.questionCount && <span style={{ fontSize:'0.6rem', fontWeight:800, color:'#a5f3fc', background:'rgba(8,145,178,0.25)', border:'1px solid rgba(103,232,249,0.3)', padding:'0.1rem 0.45rem', borderRadius:99 }}>✏️ {item.questionCount}</span>}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              {isQuizTask ? (
-                                <button onClick={e => { e.stopPropagation(); handleTaskClick(); }} className="sd-btn"
-                                  style={{ background:`linear-gradient(135deg,${taskColor},#6366f1)`, color:'white', border:'none', borderRadius:10, padding:'0.38rem 0.8rem', fontSize:'0.72rem', fontWeight:900, cursor:'pointer', display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap', boxShadow:`0 4px 12px ${taskColor}60`, flexShrink:0 }}>
-                                  <PlayCircle size={13} /> Çöz
-                                </button>
-                              ) : (
-                                <div style={{ fontSize:'0.64rem', fontWeight:900, padding:'0.24rem 0.6rem', borderRadius:99, background: item.done ? 'rgba(34,197,94,0.25)' : 'rgba(99,102,241,0.25)', border: item.done ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(99,102,241,0.4)', color: item.done ? '#4ade80' : '#c7d2fe', flexShrink:0, whiteSpace:'nowrap' }}>
-                                  {item.done ? '✓ Tamam' : 'Tamamla'}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {hasMore && (
-                          <button onClick={() => setShowAllTodayTasks(p => !p)} className="sd-btn"
-                            style={{ width:'100%', padding:'0.55rem', borderRadius:12, background:'rgba(255,255,255,0.08)', border:'1.5px solid rgba(255,255,255,0.18)', color:'#c7d2fe', fontWeight:800, fontSize:'0.75rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:3, backdropFilter:'blur(8px)' }}>
-                            {showAllTodayTasks ? <><ChevronUp size={14} /> Daha Az Göster</> : <><ChevronDown size={14} /> {hiddenCount} görev daha</>}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
 
             {/* PENDING HOMEWORKS */}
             <div className="sd-section">
