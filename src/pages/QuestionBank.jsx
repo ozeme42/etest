@@ -1256,23 +1256,23 @@ export default function QuestionBank() {
 
   // ─── Content type config ────────────────────────────────────────────────────
   const contentConfig = {
-    gorsel: { label: 'Görselli Test',   icon: '🖼️', bgFrom: '#f0fdf4', bgTo: '#dcfce7', border: '#86efac', accent: '#16a34a', badge: 'bg-green-100 text-green-800',  iconBg: 'linear-gradient(135deg,#22c55e,#16a34a)' },
-    pdf:    { label: 'PDF Test',        icon: '📄', bgFrom: '#fff7ed', bgTo: '#ffedd5', border: '#fdba74', accent: '#ea580c', badge: 'bg-orange-100 text-orange-800', iconBg: 'linear-gradient(135deg,#f97316,#ea580c)' },
-    html:   { label: 'Web Test',        icon: '🌐', bgFrom: '#f0f9ff', bgTo: '#e0f2fe', border: '#7dd3fc', accent: '#0284c7', badge: 'bg-sky-100 text-sky-800',        iconBg: 'linear-gradient(135deg,#38bdf8,#0284c7)' },
-    json:   { label: 'Metin Testi',     icon: '📚', bgFrom: '#faf5ff', bgTo: '#ede9fe', border: '#c4b5fd', accent: '#7c3aed', badge: 'bg-violet-100 text-violet-800',  iconBg: 'linear-gradient(135deg,#a78bfa,#7c3aed)' },
-    text:   { label: 'Tek Soru',        icon: '📝', bgFrom: '#fefce8', bgTo: '#fef9c3', border: '#fde047', accent: '#ca8a04', badge: 'bg-yellow-100 text-yellow-800', iconBg: 'linear-gradient(135deg,#facc15,#ca8a04)' },
+    gorsel: { label: 'Görselli Test',   icon: '🖼️', bgFrom: 'rgba(16, 185, 129, 0.12)', bgTo: 'rgba(5, 150, 105, 0.18)', border: 'rgba(52, 211, 153, 0.35)', accent: '#34d399', badge: 'bg-emerald-500/20 text-emerald-300',  iconBg: 'linear-gradient(135deg,#10b981,#059669)' },
+    pdf:    { label: 'PDF Test',        icon: '📄', bgFrom: 'rgba(244, 63, 94, 0.12)', bgTo: 'rgba(225, 29, 72, 0.18)', border: 'rgba(251, 113, 133, 0.35)', accent: '#fb7185', badge: 'bg-rose-500/20 text-rose-300', iconBg: 'linear-gradient(135deg,#f43f5e,#e11d48)' },
+    html:   { label: 'Web Test',        icon: '🌐', bgFrom: 'rgba(14, 165, 233, 0.12)', bgTo: 'rgba(2, 132, 199, 0.18)', border: 'rgba(56, 189, 248, 0.35)', accent: '#38bdf8', badge: 'bg-sky-500/20 text-sky-300',        iconBg: 'linear-gradient(135deg,#38bdf8,#0284c7)' },
+    json:   { label: 'Metin Testi',     icon: '📚', bgFrom: 'rgba(139, 92, 246, 0.12)', bgTo: 'rgba(124, 58, 237, 0.18)', border: 'rgba(167, 139, 250, 0.35)', accent: '#c084fc', badge: 'bg-violet-500/20 text-violet-300',  iconBg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)' },
+    text:   { label: 'Tek Soru',        icon: '📝', bgFrom: 'rgba(245, 158, 11, 0.12)', bgTo: 'rgba(217, 119, 6, 0.18)', border: 'rgba(251, 191, 36, 0.35)', accent: '#fbbf24', badge: 'bg-amber-500/20 text-amber-300', iconBg: 'linear-gradient(135deg,#f59e0b,#d97706)' },
   };
 
-const getAnswerKeyCount = (answerKey) => {
-  if (!answerKey) return 0;
-  if (Array.isArray(answerKey)) {
-    return answerKey.filter(k => k && k !== ' ').length;
-  }
-  if (typeof answerKey === 'string') {
-    return answerKey.replace(/\s+/g, '').length;
-  }
-  return 0;
-};
+  const getAnswerKeyCount = (answerKey) => {
+    if (!answerKey) return 0;
+    if (Array.isArray(answerKey)) {
+      return answerKey.filter(k => k && k !== ' ').length;
+    }
+    if (typeof answerKey === 'string') {
+      return answerKey.replace(/\s+/g, '').length;
+    }
+    return 0;
+  };
 
   const renderQuestionCard = (q) => {
     const hierarchyBadge = getQuestionHierarchyBadge(q);
@@ -1298,17 +1298,18 @@ const getAnswerKeyCount = (answerKey) => {
       <div
         key={q.id}
         style={{
-          background: `linear-gradient(145deg, ${cfg.bgFrom} 0%, ${cfg.bgTo} 100%)`,
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
           border: `1.5px solid ${cfg.border}`,
           borderRadius: '1.25rem',
           overflow: 'hidden',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          backdropFilter: 'blur(16px)',
           transition: 'all 0.2s ease',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
         }}
-        className="qbank-question-card hover:shadow-lg hover:-translate-y-0.5"
+        className="qbank-question-card hover:shadow-2xl hover:-translate-y-1"
       >
         {/* ── TOP COLOURED STRIPE ── */}
         <div style={{ height: '4px', background: `linear-gradient(90deg,${cfg.accent},${cfg.border})` }} />
@@ -1323,14 +1324,14 @@ const getAnswerKeyCount = (answerKey) => {
             <div style={{
               width: '48px', height: '48px', borderRadius: '1rem', flexShrink: 0,
               background: cfg.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.5rem', boxShadow: `0 4px 12px ${cfg.accent}33`
+              fontSize: '1.5rem', boxShadow: `0 4px 14px ${cfg.accent}44`
             }}>
               {cfg.icon}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
               {/* Title */}
-              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', lineHeight: 1.3, marginBottom: '0.35rem' }}>
+              <div style={{ fontWeight: 900, fontSize: '1rem', color: '#ffffff', lineHeight: 1.3, marginBottom: '0.35rem' }}>
                 {q.title || q.name || cfg.label}
               </div>
 
@@ -1345,15 +1346,16 @@ const getAnswerKeyCount = (answerKey) => {
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 <span style={{
                   background: cfg.iconBg, color: 'white',
-                  fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: '20px',
+                  fontSize: '0.7rem', fontWeight: 900, padding: '0.18rem 0.55rem', borderRadius: '20px',
                   letterSpacing: '0.02em'
                 }}>
                   {cfg.label}
                 </span>
                 <span style={{
-                  background: q.type === 'coktan_secmeli' ? '#dcfce7' : '#fef3c7',
-                  color: q.type === 'coktan_secmeli' ? '#166534' : '#92400e',
-                  fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: '20px'
+                  background: q.type === 'coktan_secmeli' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)',
+                  color: q.type === 'coktan_secmeli' ? '#34d399' : '#fbbf24',
+                  border: `1px solid ${q.type === 'coktan_secmeli' ? 'rgba(52,211,153,0.35)' : 'rgba(251,191,36,0.35)'}`,
+                  fontSize: '0.7rem', fontWeight: 900, padding: '0.18rem 0.55rem', borderRadius: '20px'
                 }}>
                   {q.type === 'coktan_secmeli' ? '🔘 Çoktan Seçmeli' : '📝 Açık Uçlu'}
                 </span>
@@ -1362,7 +1364,7 @@ const getAnswerKeyCount = (answerKey) => {
 
             {/* Thumbnail (image tests only) */}
             {thumbUrl && (
-              <div style={{ width: '56px', height: '56px', borderRadius: '0.75rem', overflow: 'hidden', border: `2px solid ${cfg.border}`, flexShrink: 0 }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '0.75rem', overflow: 'hidden', border: `1.5px solid ${cfg.border}`, flexShrink: 0 }}>
                 <img src={thumbUrl} alt="önizleme" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
               </div>
             )}
@@ -1371,53 +1373,53 @@ const getAnswerKeyCount = (answerKey) => {
           {/* ROW 2: STATS CHIPS */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {qCount && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>📊</span>
                 <span>{qCount} Soru</span>
               </div>
             )}
             {q.contentType === 'gorsel' && imgCount > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>🖼️</span>
                 <span>{imgCount} Görsel</span>
               </div>
             )}
             {getAnswerKeyCount(q.answerKey) > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.75)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', border: `1px solid ${cfg.border}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>🗝️</span>
                 <span>Cevap Anahtarlı</span>
               </div>
             )}
             {q.contentType === 'text' && q.questionText && (
-              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, background: 'rgba(255,255,255,0.7)', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '0.25rem 0.7rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '0.25rem 0.7rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 "{q.questionText}"
               </div>
             )}
           </div>
 
           {/* ROW 3: ACTIONS */}
-          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.5rem', borderTop: `1px solid ${cfg.border}55`, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
             <button
               onClick={() => handlePreviewQuestion(q)}
-              style={{ flex: 1, minWidth: '80px', background: cfg.iconBg, color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: `0 3px 8px ${cfg.accent}33` }}
+              style={{ flex: 1, minWidth: '80px', background: cfg.iconBg, color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: `0 3px 8px ${cfg.accent}44` }}
             >
               <Eye size={14} /> Önizle
             </button>
             <button
               onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })}
-              style={{ flex: 1, minWidth: '80px', background: '#10b981', color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 3px 8px rgba(16,185,129,0.3)' }}
+              style={{ flex: 1, minWidth: '80px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 3px 8px rgba(16,185,129,0.4)' }}
             >
               <Calendar size={14} /> Ödev Ata
             </button>
             <button
               onClick={() => openEditModal(q)}
-              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.8)', color: '#334155', border: `1.5px solid ${cfg.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
+              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
             >
               <Edit2 size={14} /> Düzenle
             </button>
             <button
               onClick={() => deleteQuestion(q.id)}
-              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
+              style={{ padding: '0.55rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(239,68,68,0.18)', color: '#f87171', border: '1px solid rgba(239,68,68,0.35)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '0.78rem' }}
             >
               <Trash2 size={14} />
             </button>
@@ -1441,15 +1443,15 @@ const getAnswerKeyCount = (answerKey) => {
         gridTemplateColumns: '32px 44px 1fr auto auto auto auto auto',
         alignItems: 'center',
         gap: '0.75rem',
-        padding: '0.6rem 1rem',
-        borderBottom: '1px solid #f1f5f9',
-        background: idx % 2 === 0 ? 'white' : '#fafbff',
+        padding: '0.65rem 1rem',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
         transition: 'background 0.15s',
       }}
-      className="qbank-row-item hover:bg-indigo-50/50"
+      className="qbank-row-item hover:bg-indigo-500/10"
       >
         {/* # */}
-        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textAlign: 'right' }}>{idx + 1}</span>
+        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textAlign: 'right' }}>{idx + 1}</span>
 
         {/* Type icon badge */}
         <div style={{ width: '36px', height: '36px', borderRadius: '0.6rem', background: cfg.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
@@ -1460,7 +1462,7 @@ const getAnswerKeyCount = (answerKey) => {
 
         {/* Title + breadcrumb */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {q.title || q.name || cfg.label}
           </div>
           {hierarchyBadge && (
@@ -1476,13 +1478,13 @@ const getAnswerKeyCount = (answerKey) => {
         </span>
 
         {/* Question type chip */}
-        <span style={{ background: q.type === 'coktan_secmeli' ? '#dcfce7' : '#fef3c7', color: q.type === 'coktan_secmeli' ? '#166534' : '#92400e', fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span style={{ background: q.type === 'coktan_secmeli' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', color: q.type === 'coktan_secmeli' ? '#34d399' : '#fbbf24', border: `1px solid ${q.type === 'coktan_secmeli' ? 'rgba(52,211,153,0.35)' : 'rgba(251,191,36,0.35)'}`, fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
           {q.type === 'coktan_secmeli' ? '🔘 ÇS' : '📝 AÇ'}
         </span>
 
         {/* Soru sayısı */}
         {qCount
-          ? <span style={{ fontSize: '0.72rem', fontWeight: 900, color: cfg.accent, background: `${cfg.border}55`, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>📊 {qCount}</span>
+          ? <span style={{ fontSize: '0.72rem', fontWeight: 900, color: cfg.accent, background: 'rgba(255,255,255,0.06)', border: `1px solid ${cfg.border}`, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>📊 {qCount}</span>
           : <span />
         }
 
@@ -1491,13 +1493,13 @@ const getAnswerKeyCount = (answerKey) => {
           <button onClick={() => handlePreviewQuestion(q)} title="Önizle" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: cfg.iconBg, color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Eye size={13} /> Önizle
           </button>
-          <button onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })} title="Ödev Ata" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <button onClick={() => navigate('/homeworks', { state: { autoSelectQuestionId: q.id } })} title="Ödev Ata" style={{ padding: '0.35rem 0.6rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Calendar size={13} /> Ata
           </button>
-          <button onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: '#f1f5f9', color: '#334155', border: '1.5px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => openEditModal(q)} title="Düzenle" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Edit2 size={13} />
           </button>
-          <button onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => deleteQuestion(q.id)} title="Sil" style={{ padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(239,68,68,0.18)', color: '#f87171', border: '1px solid rgba(239,68,68,0.35)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <Trash2 size={13} />
           </button>
         </div>
@@ -1506,115 +1508,235 @@ const getAnswerKeyCount = (answerKey) => {
   };
 
   // Helper: wraps items in either card grid or table
-  const renderQList = (items, bgColor = '#fafafa') => {
+  const renderQList = (items, bgColor = 'transparent') => {
     if (viewMode === 'row') {
       return (
-        <div style={{ background: bgColor, borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+        <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '1rem', overflow: 'hidden', border: '1.5px solid rgba(255,255,255,0.1)' }}>
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '32px 44px 1fr auto auto auto auto', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', background: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', textAlign: 'right' }}>#</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tür</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Başlık / Konu</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İçerik</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Format</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soru</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İşlemler</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '32px 44px 1fr auto auto auto auto', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.06)', borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.5)', textAlign: 'right' }}>#</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tür</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Başlık / Konu</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İçerik</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Format</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Soru</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İşlemler</span>
           </div>
           {items.map((q, idx) => renderQuestionRow(q, idx))}
         </div>
       );
     }
     return (
-      <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', background: bgColor }}>
+      <div style={{ padding: '0.5rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
         {items.map(q => renderQuestionCard(q))}
       </div>
     );
   };
 
-
   const renderSearchResults = () => (
-    <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto 2.5rem auto' }}>
-      <div style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)', border: '1px solid #a5b4fc', padding: '1.25rem 1.75rem', borderRadius: '1.25rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 12px rgba(79,70,229,0.1)' }}>
+    <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto 2.5rem auto' }}>
+      <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', border: '1.5px solid rgba(165, 180, 252, 0.3)', padding: '1.25rem 1.75rem', borderRadius: '1.25rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Search size={22} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontWeight: 900, color: '#312e81', fontSize: '1.25rem' }}>
+            <h3 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.25rem' }}>
               "{searchQuery}" Arama Sonuçları
             </h3>
-            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#3730a3', fontWeight: 700 }}>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
               {filteredQuestions.length} içerik/test bulundu.
             </p>
           </div>
         </div>
-        <button onClick={() => setSearchQuery('')} style={{ background: 'white', border: '1.5px solid #818cf8', color: '#3730a3', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <button onClick={() => setSearchQuery('')} style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', color: '#ffffff', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <X size={16} /> Aramayı Temizle
         </button>
       </div>
       {filteredQuestions.length === 0 ? (
-        <div style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1' }}>
-          <Search size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-          <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>Sonuç bulunamadı.</h3>
+        <div style={{ padding: '3.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: '1.5rem', border: '1.5px dashed rgba(255,255,255,0.16)' }}>
+          <Search size={48} color="rgba(255,255,255,0.4)" style={{ marginBottom: '1rem' }} />
+          <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#ffffff' }}>Sonuç bulunamadı.</h3>
         </div>
       ) : renderQList(filteredQuestions, 'transparent')}
     </div>
   );
 
   return (
-    <div className="container dashboard">
+    <div className="qbank-page">
       
       {/* ═════════════════════════════════════════════════════════════════════
           SCREEN A: MAIN PORTAL OVERVIEW (activeSubjectId === null && activeGradeId === null)
       ═════════════════════════════════════════════════════════════════════ */}
       {!activeSubjectId && !activeGradeId ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
           
-          {/* Centered Header */}
-          <header style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem', width: '100%' }}>
-            <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem 0', textAlign: 'center' }}>
-              Soru Bankası &amp; Ders Portalı 📚
-            </h2>
-            <p style={{ fontSize: '1.05rem', color: '#64748b', margin: 0, fontWeight: 600, textAlign: 'center', maxWidth: '650px' }}>
-              Soruları görüntülemek, yönetmek ve yeni içerik eklemek için bir ders veya sınıf kartına giriş yapın.
-            </p>
+          {/* Top Sticky Header */}
+          <header style={{
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+            border: '1.5px solid rgba(255, 255, 255, 0.14)',
+            borderRadius: '1.5rem',
+            padding: '1.25rem 1.75rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(20px)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  if (window.history.length > 1) navigate(-1);
+                  else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1.5px solid rgba(255,255,255,0.18)',
+                  borderRadius: '0.75rem',
+                  padding: '0.55rem 0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                  backdropFilter: 'blur(8px)'
+                }}
+              >
+                <ArrowLeft size={16} /> Geri Dön
+              </button>
+
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.35)', color: '#c7d2fe', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  <Sparkles size={13} /> LMS Akıllı Soru Havuzu & Test Merkezi
+                </div>
+                <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                  Soru Bankası &amp; Ders Portalı 📚
+                </h1>
+                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)' }}>
+                  Soruları görüntülemek, yönetmek ve yeni içerik eklemek için bir ders veya sınıf kartına giriş yapın.
+                </p>
+              </div>
+            </div>
 
             {currentUser?.role === 'teacher' && (
-              <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#eff6ff', border: '1px solid #93c5fd', color: '#1e40af', padding: '0.35rem 0.85rem', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 800 }}>
-                <span>🔒 Öğretmen Özel Bankası: Sadece kendi eklediğiniz soru ve test içeriklerini görüyorsunuz.</span>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(165, 180, 252, 0.3)', color: '#c7d2fe', padding: '0.4rem 0.9rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 800 }}>
+                <span>🔒 Öğretmen Özel Bankası: Yalnızca kendi içerikleriniz</span>
               </div>
             )}
+          </header>
 
-            {/* SEARCH BAR ON MAIN PORTAL */}
-            <div style={{ position: 'relative', width: '100%', maxWidth: '540px', marginTop: '1.25rem' }}>
-              <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#818cf8', pointerEvents: 'none' }} />
+          {/* 4 LIVE KPI HERO METRIC CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+              border: '1.5px solid rgba(99, 102, 241, 0.35)',
+              borderRadius: '1.25rem', padding: '1rem 1.25rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <BookOpen size={24} />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam İçerik</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{questions.length} Soru / Test</span>
+                <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 700 }}>Aktif soru havuzu</span>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+              border: '1.5px solid rgba(52, 211, 153, 0.35)',
+              borderRadius: '1.25rem', padding: '1rem 1.25rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GraduationCap size={24} />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Sınıf Seviyeleri</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{curData.grades.length} Kademe</span>
+                <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>5, 6, 7, 8 & LGS</span>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+              border: '1.5px solid rgba(251, 191, 36, 0.35)',
+              borderRadius: '1.25rem', padding: '1rem 1.25rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FolderTree size={24} />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Müfredat Dersleri</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{curData.subjects.length} Branş</span>
+                <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Tüm ünite & konular</span>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+              border: '1.5px solid rgba(244, 114, 182, 0.35)',
+              borderRadius: '1.25rem', padding: '1rem 1.25rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(244, 114, 182, 0.15)', color: '#f472b6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Layers size={24} />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Format Desteği</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>5 Farklı Tür</span>
+                <span style={{ fontSize: '0.72rem', color: '#f472b6', fontWeight: 700 }}>Görsel, PDF, HTML, Metin</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SEARCH BAR ON MAIN PORTAL */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+            border: '1.5px solid rgba(255, 255, 255, 0.14)',
+            borderRadius: '1.25rem', padding: '0.85rem 1.25rem',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)'
+          }}>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="🔍 Soru metni, test başlığı veya konuya göre ara..."
+                placeholder="🔍 Soru metni, test başlığı, ünite veya konuya göre ara..."
                 style={{
                   width: '100%',
-                  padding: '0.85rem 2.75rem 0.85rem 2.85rem',
-                  borderRadius: '1rem',
-                  border: '2px solid #a5b4fc',
-                  fontSize: '0.95rem',
+                  padding: '0.75rem 2.75rem 0.75rem 2.85rem',
+                  borderRadius: '0.85rem',
+                  border: '1.5px solid rgba(255, 255, 255, 0.16)',
+                  fontSize: '0.92rem',
                   fontWeight: 700,
-                  background: 'white',
-                  boxShadow: '0 8px 20px -4px rgba(79,70,229,0.15)',
-                  outline: 'none'
+                  background: 'rgba(255, 255, 255, 0.07)',
+                  color: '#ffffff',
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: '#f1f5f9', border: 'none', borderRadius: '50%', cursor: 'pointer', color: '#64748b', padding: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <X size={16} />
                 </button>
               )}
             </div>
-          </header>
+          </div>
 
           {/* IF SEARCH QUERY IS ACTIVE -> RENDER LINE-BY-LINE SEARCH RESULTS */}
           {searchQuery.trim() !== '' ? (
@@ -1622,113 +1744,113 @@ const getAnswerKeyCount = (answerKey) => {
           ) : (
             <>
               {/* TAB: GRADE CARDS GRID (SINIF KARTLARI) */}
-                <div className="qbank-grid">
-                  <div
-                    onClick={() => {
-                      setActiveSubjectId('all_subjects');
-                      setActiveGradeId(null);
-                      setSelectedSubject('all');
-                      setSelectedUnit('all');
-                      setSelectedTopic('all');
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
-                      borderRadius: '1.5rem',
-                      padding: '1.75rem',
-                      color: 'white',
-                      cursor: 'pointer',
-                      boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)',
-                      border: '2px solid rgba(255,255,255,0.4)',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justify: 'space-between',
-                      minHeight: '190px'
-                    }}
-                    className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
-                  >
-                    <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.22, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
-                      <Layers size={130} />
-                    </div>
-
-                    <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-                      <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Layers size={28} color="white" />
-                      </div>
-
-                      <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
-                        ⚡ {questions.length} İçerik / Test
-                      </span>
-                    </div>
-
-                    <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm İçerikler</h3>
-                      <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
-                        <span>Sistemdeki Tüm İçerikleri Göster</span>
-                        <ChevronRight size={16} />
-                      </div>
-                    </div>
+              <div className="qbank-grid">
+                <div
+                  onClick={() => {
+                    setActiveSubjectId('all_subjects');
+                    setActiveGradeId(null);
+                    setSelectedSubject('all');
+                    setSelectedUnit('all');
+                    setSelectedTopic('all');
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                    borderRadius: '1.5rem',
+                    padding: '1.75rem',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 12px 30px rgba(79, 70, 229, 0.4)',
+                    border: '1.5px solid rgba(255,255,255,0.3)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: '190px'
+                  }}
+                  className="qbank-card"
+                >
+                  <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.2, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                    <Layers size={130} />
                   </div>
 
-                  {curData.grades.map(g => {
-                    const theme = gradeThemes[g.name] || gradeThemes['Diğer'];
-                    const Icon = theme.icon;
-                    const count = gradeCounts[g.id] || 0;
+                  <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                    <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Layers size={28} color="white" />
+                    </div>
 
-                    return (
-                      <div
-                        key={g.id}
-                        onClick={() => {
-                          setActiveGradeId(g.id);
-                          setSelectedSubject('all');
-                          setSelectedUnit('all');
-                          setSelectedTopic('all');
-                        }}
-                        style={{
-                          background: theme.bg,
-                          borderRadius: '1.5rem',
-                          padding: '1.75rem',
-                          color: 'white',
-                          cursor: 'pointer',
-                          boxShadow: theme.shadow,
-                          border: '1px solid rgba(255,255,255,0.2)',
-                          transition: 'all 0.3s ease',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justify: 'space-between',
-                          minHeight: '190px'
-                        }}
-                        className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
-                      >
-                        <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
-                          <Icon size={120} />
+                    <span className="card-badge" style={{ background: 'white', color: '#4f46e5', fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                      ⚡ {questions.length} İçerik / Test
+                    </span>
+                  </div>
+
+                  <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🌟 Tüm İçerikler</h3>
+                    <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.95 }}>
+                      <span>Sistemdeki Tüm İçerikleri Göster</span>
+                      <ChevronRight size={16} />
+                    </div>
+                  </div>
+                </div>
+
+                {curData.grades.map(g => {
+                  const theme = gradeThemes[g.name] || gradeThemes['Diğer'];
+                  const Icon = theme.icon;
+                  const count = gradeCounts[g.id] || 0;
+
+                  return (
+                    <div
+                      key={g.id}
+                      onClick={() => {
+                        setActiveGradeId(g.id);
+                        setSelectedSubject('all');
+                        setSelectedUnit('all');
+                        setSelectedTopic('all');
+                      }}
+                      style={{
+                        background: theme.bg,
+                        borderRadius: '1.5rem',
+                        padding: '1.75rem',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: theme.shadow,
+                        border: '1.5px solid rgba(255,255,255,0.25)',
+                        transition: 'all 0.3s ease',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        minHeight: '190px'
+                      }}
+                      className="qbank-card"
+                    >
+                      <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+                        <Icon size={120} />
+                      </div>
+
+                      <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                        <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={28} color="white" />
                         </div>
 
-                        <div className="card-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-                          <div className="card-icon-box" style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon size={28} color="white" />
-                          </div>
+                        <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                          ⚡ {count} İçerik / Test
+                        </span>
+                      </div>
 
-                          <span className="card-badge" style={{ background: 'white', color: theme.color, fontSize: '0.85rem', fontWeight: 900, padding: '0.35rem 0.85rem', borderRadius: '20px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
-                            ⚡ {count} İçerik / Test
-                          </span>
-                        </div>
-
-                        <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🎓 {g.name}</h3>
-                          <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.9 }}>
-                            <span>Sınıf Sayfasına Git</span>
-                            <ChevronRight size={16} />
-                          </div>
+                      <div className="card-bottom-row" style={{ position: 'relative', zIndex: 2, marginTop: '1.5rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, lineHeight: 1.2 }}>🎓 {g.name}</h3>
+                        <div className="card-footer-text" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, opacity: 0.9 }}>
+                          <span>Sınıf Sayfasına Git</span>
+                          <ChevronRight size={16} />
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
 
@@ -1737,13 +1859,13 @@ const getAnswerKeyCount = (answerKey) => {
         /* ═════════════════════════════════════════════════════════════════════
             SCREEN B1: DEDICATED GRADE PAGE (activeGradeId !== null)
         ═════════════════════════════════════════════════════════════════════ */
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
           
           {/* Top Bar with Back Button */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <button
               onClick={() => setActiveGradeId(null)}
-              style={{ background: 'white', border: '1.5px solid #cbd5e1', padding: '0.65rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', padding: '0.6rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}
             >
               <ArrowLeft size={18} /> Tüm Sınıf Portalı'na Dön
             </button>
@@ -1751,7 +1873,7 @@ const getAnswerKeyCount = (answerKey) => {
             <button
               className="btn btn-primary"
               onClick={() => { resetForm(); setShowModal(true); }}
-              style={{ background: activeGradeTheme.color, borderColor: activeGradeTheme.color, padding: '0.75rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeGradeTheme.shadow }}
+              style={{ background: activeGradeTheme.color, borderColor: activeGradeTheme.color, padding: '0.7rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeGradeTheme.shadow }}
             >
               <Plus size={18} /> {activeGrade?.name} İçin Yeni Soru / Test Ekle
             </button>
@@ -1767,15 +1889,15 @@ const getAnswerKeyCount = (answerKey) => {
                   borderRadius: '1.75rem',
                   padding: '2rem 2.5rem',
                   color: 'white',
-                  marginBottom: '2rem',
                   position: 'relative',
                   overflow: 'hidden',
                   boxShadow: activeGradeTheme.shadow,
                   display: 'flex',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: '1.5rem'
+                  gap: '1.5rem',
+                  border: '1.5px solid rgba(255,255,255,0.25)'
                 }}
               >
                 <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.18, transform: 'rotate(-10deg)', pointerEvents: 'none' }}>
@@ -1819,19 +1941,19 @@ const getAnswerKeyCount = (answerKey) => {
                 padding: '1.75rem',
                 color: 'white',
                 cursor: 'pointer',
-                boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)',
-                border: '2px solid rgba(255,255,255,0.4)',
+                boxShadow: '0 12px 30px rgba(16, 185, 129, 0.4)',
+                border: '1.5px solid rgba(255,255,255,0.3)',
                 transition: 'all 0.3s ease',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 minHeight: '190px'
               }}
-              className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
+              className="qbank-card"
             >
-              <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.22, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
+              <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.2, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
                 <BookOpen size={130} />
               </div>
 
@@ -1874,16 +1996,16 @@ const getAnswerKeyCount = (answerKey) => {
                     color: 'white',
                     cursor: 'pointer',
                     boxShadow: theme.shadow,
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    border: '1.5px solid rgba(255,255,255,0.25)',
                     transition: 'all 0.3s ease',
                     position: 'relative',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
-                    justify: 'space-between',
+                    justifyContent: 'space-between',
                     minHeight: '190px'
                   }}
-                  className="qbank-card hover:scale-[1.03] hover:shadow-2xl transition-all"
+                  className="qbank-card"
                 >
                   <div className="card-bg-icon" style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.18, transform: 'rotate(-12px)', pointerEvents: 'none' }}>
                     <Icon size={120} />
@@ -1915,10 +2037,10 @@ const getAnswerKeyCount = (answerKey) => {
             })}
             
             {curData.subjects.filter(s => s.gradeId === activeGradeId).length === 0 && (
-              <div style={{ padding: '3.5rem', textAlign: 'center', background: 'white', borderRadius: '1.5rem', border: '2px dashed #cbd5e1', gridColumn: '1 / -1' }}>
-                <BookOpen size={48} color="#94a3b8" style={{ marginBottom: '1rem' }} />
-                <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#334155' }}>Bu sınıfa ait ders bulunamadı.</h3>
-                <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: '#64748b' }}>
+              <div style={{ padding: '3.5rem', textAlign: 'center', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: '1.5rem', border: '1.5px dashed rgba(255,255,255,0.16)', gridColumn: '1 / -1' }}>
+                <BookOpen size={48} color="rgba(255,255,255,0.4)" style={{ marginBottom: '1rem' }} />
+                <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#ffffff' }}>Bu sınıfa ait ders bulunamadı.</h3>
+                <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
                   Yönetici panelinden bu sınıfa yeni dersler ekleyebilirsiniz.
                 </p>
               </div>
@@ -1929,13 +2051,13 @@ const getAnswerKeyCount = (answerKey) => {
         /* ═════════════════════════════════════════════════════════════════════
             SCREEN B2: DEDICATED SUBJECT PAGE (activeSubjectId !== null)
         ═════════════════════════════════════════════════════════════════════ */
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
           
           {/* Top Bar with Back Button */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <button
               onClick={() => setActiveSubjectId(null)}
-              style={{ background: 'white', border: '1.5px solid #cbd5e1', padding: '0.65rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', padding: '0.6rem 1.25rem', borderRadius: '0.85rem', fontWeight: 800, color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}
             >
               <ArrowLeft size={18} /> Tüm Ders Portalı'na Dön
             </button>
@@ -1943,7 +2065,7 @@ const getAnswerKeyCount = (answerKey) => {
             <button
               className="btn btn-primary"
               onClick={() => { resetForm(); setShowModal(true); }}
-              style={{ background: activeSubjectTheme.color, borderColor: activeSubjectTheme.color, padding: '0.75rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeSubjectTheme.shadow }}
+              style={{ background: activeSubjectTheme.color, borderColor: activeSubjectTheme.color, padding: '0.7rem 1.25rem', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: activeSubjectTheme.shadow }}
             >
               <Plus size={18} /> {activeSubject?.name} İçin Yeni Soru / Test Ekle
             </button>
@@ -1959,15 +2081,15 @@ const getAnswerKeyCount = (answerKey) => {
                   borderRadius: '1.75rem',
                   padding: '2rem 2.5rem',
                   color: 'white',
-                  marginBottom: '2rem',
                   position: 'relative',
                   overflow: 'hidden',
                   boxShadow: activeSubjectTheme.shadow,
                   display: 'flex',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: '1.5rem'
+                  gap: '1.5rem',
+                  border: '1.5px solid rgba(255,255,255,0.25)'
                 }}
               >
                 <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.18, transform: 'rotate(-10deg)', pointerEvents: 'none' }}>
@@ -1998,7 +2120,7 @@ const getAnswerKeyCount = (answerKey) => {
           })()}
 
           {/* Subject Filter Bar */}
-          <div className="card glass top-filter-bar" style={{ marginBottom: '1.75rem' }}>
+          <div className="top-filter-bar">
             <div className="filter-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Filter size={18} /> {activeSubject?.name} Filtreleri
@@ -2006,7 +2128,7 @@ const getAnswerKeyCount = (answerKey) => {
 
               {/* SEARCH INPUT BAR */}
               <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} />
                 <input
                   type="text"
                   value={searchQuery}
@@ -2014,18 +2136,21 @@ const getAnswerKeyCount = (answerKey) => {
                   placeholder="Bu derste soru / test ara..."
                   style={{
                     width: '100%',
-                    padding: '0.45rem 2rem 0.45rem 2.25rem',
-                    borderRadius: '0.65rem',
-                    border: '1.5px solid #cbd5e1',
+                    padding: '0.55rem 2rem 0.55rem 2.25rem',
+                    borderRadius: '0.75rem',
+                    border: '1.5px solid rgba(255, 255, 255, 0.16)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                    background: 'white'
+                    background: 'rgba(255, 255, 255, 0.07)',
+                    color: '#ffffff',
+                    outline: 'none',
+                    boxSizing: 'border-box'
                   }}
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0.2rem' }}
+                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0.2rem' }}
                   >
                     <X size={14} />
                   </button>
@@ -2034,7 +2159,6 @@ const getAnswerKeyCount = (answerKey) => {
             </div>
             <div className="filter-grid">
               
-              {/* Sınıf Dropdown: Sadece 'Tüm İçerikler'den gelindiyse (activeGradeId null) göster */}
               {!activeGradeId && (
                 <select value={selectedGrade} onChange={e => { setSelectedGrade(e.target.value); setSelectedSubject('all'); setSelectedUnit('all'); setSelectedTopic('all'); }}>
                   <option value="all">Tüm Sınıflar (Genel)</option>
@@ -2042,7 +2166,6 @@ const getAnswerKeyCount = (answerKey) => {
                 </select>
               )}
 
-              {/* Ders Dropdown: Sadece 'Tüm Dersler'den veya 'Tüm İçerikler'den gelindiyse (activeSubjectId all_subjects) göster */}
               {activeSubjectId === 'all_subjects' && (
                 <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setSelectedUnit('all'); setSelectedTopic('all'); }}>
                   <option value="all">Tüm Dersler (Genel)</option>
@@ -2050,7 +2173,6 @@ const getAnswerKeyCount = (answerKey) => {
                 </select>
               )}
 
-              {/* Ünite ve Konu Dropdown'ları: Yalnızca bir ders seçiliyse göster (Karttan ya da Dropdown'dan) */}
               {(activeSubjectId !== 'all_subjects' || (selectedSubject && selectedSubject !== 'all')) && (
                 <>
                   <select value={selectedUnit} onChange={e => { setSelectedUnit(e.target.value); setSelectedTopic('all'); }}>
@@ -2067,7 +2189,7 @@ const getAnswerKeyCount = (answerKey) => {
 
               <div className="filter-divider"></div>
 
-              <select value={selectedContentType} onChange={e => setSelectedContentType(e.target.value)} style={{ background: 'var(--color-surface-hover)', borderColor: 'var(--color-primary-light)' }}>
+              <select value={selectedContentType} onChange={e => setSelectedContentType(e.target.value)}>
                 <option value="all">Tüm İçerik Türleri</option>
                 <option value="text">Sadece Metin</option>
                 <option value="json">Yazılı Test Paketleri</option>
@@ -2077,11 +2199,11 @@ const getAnswerKeyCount = (answerKey) => {
               </select>
 
               {/* View toggle */}
-              <div style={{ display: 'flex', gap: '0.3rem', background: '#f1f5f9', borderRadius: '0.65rem', padding: '0.25rem' }}>
-                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'white' : 'transparent', color: viewMode === 'card' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'card' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+              <div style={{ display: 'flex', gap: '0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <button onClick={() => setViewMode('card')} title="Kart Görünümü" style={{ padding: '0.4rem 0.75rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', background: viewMode === 'card' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent', color: viewMode === 'card' ? '#ffffff' : 'rgba(255,255,255,0.6)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
                   <LayoutGrid size={15} /> Kart
                 </button>
-                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.7rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'white' : 'transparent', color: viewMode === 'row' ? '#4f46e5' : '#94a3b8', boxShadow: viewMode === 'row' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
+                <button onClick={() => setViewMode('row')} title="Satır Görünümü" style={{ padding: '0.4rem 0.75rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', background: viewMode === 'row' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent', color: viewMode === 'row' ? '#ffffff' : 'rgba(255,255,255,0.6)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 900, fontSize: '0.78rem' }}>
                   <List size={15} /> Satır
                 </button>
               </div>
@@ -2093,33 +2215,33 @@ const getAnswerKeyCount = (answerKey) => {
             renderSearchResults()
           ) : (
             /* Categorical Grouping Inside Subject Page */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
               {groupedPageQuestions.map(group => (
-                <div key={group.key} className="card glass" style={{ borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid #e2e8f0', background: 'white' }}>
+                <div key={group.key} className="qbank-glass-card" style={{ padding: '1.25rem' }}>
                   
                   {/* Category Header */}
-                  <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', padding: '1.15rem 1.5rem', borderBottom: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem 1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '0.65rem', background: activeSubjectTheme.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <BookOpen size={18} />
                       </div>
                       <div>
-                        <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.1rem' }}>
+                        <h3 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.1rem' }}>
                           {group.title}
                         </h3>
-                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.85rem', color: '#475569', fontWeight: 700 }}>
+                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
                           {group.subtitle}
                         </p>
                       </div>
                     </div>
 
-                    <span style={{ background: 'white', color: activeSubjectTheme.color, fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                    <span style={{ background: 'rgba(99,102,241,0.2)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.82rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid rgba(165,180,252,0.3)' }}>
                       {group.items.length} İçerik / Test
                     </span>
                   </div>
 
                   {/* Question Cards - Card / Row toggle */}
-                  {renderQList(group.items, '#fafafa')}
+                  {renderQList(group.items, 'transparent')}
 
                 </div>
               ))}
@@ -2152,27 +2274,27 @@ const getAnswerKeyCount = (answerKey) => {
           1. ULTRA WIDE & CENTERED EDIT / CREATE MODAL WINDOW
       ═════════════════════════════════════════════════════════════════════ */}
       {showModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
-          <div className="modal-content card glass" style={{ width: '94vw', maxWidth: '1200px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '1.75rem', padding: '2.5rem', background: 'white', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '1200px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '1.75rem', padding: '2.25rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
             
             {/* Modal Header */}
-            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: '1.25rem', marginBottom: '1.75rem' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1.25rem', marginBottom: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 {creationStep === 2 && !editingQuestionId && (
                   <button
                     type="button"
                     onClick={() => setCreationStep(1)}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.85rem', fontWeight: 800, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', padding: '0.45rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 800, color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <ArrowLeft size={16} /> Tür Seçimine Dön
                   </button>
                 )}
-                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   {editingQuestionId ? '✏️ İçeriği / Testi Düzenle' : (creationStep === 1 ? '✨ İçerik Türü Seçiniz' : '➕ Soru / Test Detaylarını Giriniz')}
                 </h3>
               </div>
 
-              <button className="btn-icon" onClick={() => { setShowModal(false); resetForm(); }} style={{ borderRadius: '50%', padding: '0.6rem', background: '#f1f5f9', border: 'none', cursor: 'pointer' }}>
+              <button className="btn-icon" onClick={() => { setShowModal(false); resetForm(); }} style={{ borderRadius: '50%', padding: '0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', cursor: 'pointer' }}>
                 <X size={22} />
               </button>
             </div>
@@ -2181,8 +2303,8 @@ const getAnswerKeyCount = (answerKey) => {
             {creationStep === 1 && !editingQuestionId ? (
               <div>
                 {/* FAST FILE UPLOAD DROPZONE */}
-                <div style={{ background: '#f0f4ff', border: '2px dashed #6366f1', borderRadius: '1.25rem', padding: '1.5rem', marginBottom: '1.75rem', textAlign: 'center' }}>
-                  <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <div style={{ background: 'rgba(99, 102, 241, 0.1)', border: '2px dashed rgba(129, 140, 248, 0.5)', borderRadius: '1.25rem', padding: '1.75rem', marginBottom: '1.75rem', textAlign: 'center', backdropFilter: 'blur(10px)' }}>
+                  <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem', margin: 0 }}>
                     <input
                       type="file"
                       accept=".png,.jpg,.jpeg,.webp,.pdf,.html,.htm,.json"
@@ -2194,19 +2316,19 @@ const getAnswerKeyCount = (answerKey) => {
                         }
                       }}
                     />
-                    <div style={{ width: 52, height: 52, borderRadius: '1rem', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(79,70,229,0.3)' }}>
-                      <Plus size={28} />
+                    <div style={{ width: 56, height: 56, borderRadius: '1.25rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(99,102,241,0.4)' }}>
+                      <Plus size={30} />
                     </div>
-                    <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#1e1b4b' }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff' }}>
                       📁 Bilgisayardan Doğrudan Dosya Yükleyin
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#4338ca', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.85rem', color: '#c7d2fe', fontWeight: 600 }}>
                       Görsel (PNG/JPG), PDF (.pdf), HTML (.html) veya JSON (.json) dosyanızı seçin veya buraya sürükleyin
                     </div>
                   </label>
                 </div>
 
-                <p style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600, marginBottom: '1.75rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'center' }}>
                   Veya manuel içerik türü seçerek devam edin:
                 </p>
 
@@ -2216,20 +2338,20 @@ const getAnswerKeyCount = (answerKey) => {
                   <div
                     onClick={() => handleSelectType('text')}
                     style={{
-                      background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                      border: '2px solid #bfdbfe', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.22) 100%)',
+                      border: '1.5px solid rgba(96, 165, 250, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
                   >
-                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(59,130,246,0.3)' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(59,130,246,0.4)' }}>
                       <Type size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e3a8a', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#93c5fd', margin: '0 0 0.35rem 0' }}>
                         📄 Sadece Metin (Tek Soru)
                       </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#1e40af', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Tek bir yazılı çoktan seçmeli veya açık uçlu soru metni ve şıklarını ekleyin.
                       </p>
                     </div>
@@ -2239,20 +2361,20 @@ const getAnswerKeyCount = (answerKey) => {
                   <div
                     onClick={() => handleSelectType('json')}
                     style={{
-                      background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                      border: '2px solid #a5b4fc', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.22) 100%)',
+                      border: '1.5px solid rgba(167, 139, 250, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
                   >
-                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(79,70,229,0.3)' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(139,92,246,0.4)' }}>
                       <Layers size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#312e81', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#c4b5fd', margin: '0 0 0.35rem 0' }}>
                         📝 Toplu Yazılı Test Paketi
                       </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#3730a3', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Birden fazla yazılı sorudan oluşan toplu bir test ekleyin (Ekran üzerinden veya JSON ile).
                       </p>
                     </div>
@@ -2262,20 +2384,20 @@ const getAnswerKeyCount = (answerKey) => {
                   <div
                     onClick={() => handleSelectType('gorsel')}
                     style={{
-                      background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                      border: '2px solid #fcd34d', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%)',
+                      border: '1.5px solid rgba(251, 191, 36, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
                   >
-                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: '#d97706', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(217,119,6,0.3)' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(245,158,11,0.4)' }}>
                       <Image size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#78350f', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fde68a', margin: '0 0 0.35rem 0' }}>
                         🖼️ Görsel Soru (Tekli / Toplu)
                       </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#92400e', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Bir veya birden fazla resim dosyası yükleyerek görsel soru veya sorular ekleyin.
                       </p>
                     </div>
@@ -2285,20 +2407,20 @@ const getAnswerKeyCount = (answerKey) => {
                   <div
                     onClick={() => handleSelectType('pdf')}
                     style={{
-                      background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                      border: '2px solid #fca5a5', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.22) 100%)',
+                      border: '1.5px solid rgba(248, 113, 113, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
                   >
-                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: '#dc2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(220,38,38,0.3)' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(239,68,68,0.4)' }}>
                       <FileText size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#7f1d1d', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#fca5a5', margin: '0 0 0.35rem 0' }}>
                         📕 PDF Test Paketi
                       </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#991b1b', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         Hazır bir PDF doküman dosyası yükleyin ve cevap anahtarını tanımlayın.
                       </p>
                     </div>
@@ -2308,20 +2430,20 @@ const getAnswerKeyCount = (answerKey) => {
                   <div
                     onClick={() => handleSelectType('html')}
                     style={{
-                      background: 'linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%)',
-                      border: '2px solid #6ee7b7', borderRadius: '1.25rem', padding: '1.5rem',
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.22) 100%)',
+                      border: '1.5px solid rgba(52, 211, 153, 0.35)', borderRadius: '1.25rem', padding: '1.5rem',
                       cursor: 'pointer', transition: 'all 0.25s', display: 'flex', flexDirection: 'column', gap: '0.85rem'
                     }}
                     className="hover:scale-[1.02] hover:shadow-xl"
                   >
-                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(5,150,105,0.3)' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(16,185,129,0.4)' }}>
                       <Globe size={24} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#064e3b', margin: '0 0 0.35rem 0' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#6ee7b7', margin: '0 0 0.35rem 0' }}>
                         🌐 HTML Web Sayfası / Testi
                       </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#065f46', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5, fontWeight: 600 }}>
                         HTML dosyanızı doğrudan yükleyin veya canlı web adresi yapıştırın.
                       </p>
                     </div>
@@ -2334,16 +2456,16 @@ const getAnswerKeyCount = (answerKey) => {
               <form onSubmit={handleSaveQuestion} className="q-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 
                 {/* Header Banner indicating current selected type */}
-                <div style={{ background: '#e0e7ff', border: '1px solid #c7d2fe', padding: '0.75rem 1.25rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 800, color: '#3730a3', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ background: 'rgba(99, 102, 241, 0.18)', border: '1.5px solid rgba(165, 180, 252, 0.3)', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 800, color: '#c7d2fe', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {getTypeIcon(formData.contentType, showBundleFields || formData.contentType === 'json')}
-                    Seçili Tür: <strong>{getTypeLabel({ contentType: formData.contentType, isBundle: showBundleFields || formData.contentType === 'json' })}</strong>
+                    Seçili Tür: <strong style={{ color: '#ffffff' }}>{getTypeLabel({ contentType: formData.contentType, isBundle: showBundleFields || formData.contentType === 'json' })}</strong>
                   </span>
                   {!editingQuestionId && (
                     <button
                       type="button"
                       onClick={() => setCreationStep(1)}
-                      style={{ background: 'white', color: '#4f46e5', border: '1px solid #a5b4fc', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                      style={{ background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
                     >
                       Değiştir
                     </button>
@@ -2352,18 +2474,18 @@ const getAnswerKeyCount = (answerKey) => {
 
                 {/* UPLOADED FILE BADGE DISPLAY IF ANY */}
                 {uploadedFileInfo && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1.5px solid #bbf7d0', padding: '0.85rem 1.25rem', borderRadius: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(16, 185, 129, 0.15)', border: '1.5px solid rgba(52, 211, 153, 0.35)', padding: '0.85rem 1.25rem', borderRadius: '0.85rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ background: '#16a34a', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: 99, textTransform: 'uppercase' }}>
+                      <span style={{ background: '#10b981', color: 'white', fontWeight: 900, fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: 99, textTransform: 'uppercase' }}>
                         {uploadedFileInfo.type} Yüklendi
                       </span>
-                      <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem' }}>{uploadedFileInfo.name}</span>
-                      <span style={{ color: '#15803d', fontSize: '0.75rem' }}>({uploadedFileInfo.size})</span>
+                      <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem' }}>{uploadedFileInfo.name}</span>
+                      <span style={{ color: '#34d399', fontSize: '0.75rem' }}>({uploadedFileInfo.size})</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setUploadedFileInfo(null)}
-                      style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: '#f87171', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
                     >
                       Kaldır
                     </button>
@@ -2372,27 +2494,27 @@ const getAnswerKeyCount = (answerKey) => {
 
                 {/* Title & Soru Tipi Selector */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                  <div className="form-group" style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
-                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '0.4rem', display: 'block' }}>
-                      🏷️ Soru veya Test İsmi / Etiketi <span className="text-muted" style={{ fontWeight: 400, fontSize: '0.8rem' }}>(İsim verin)</span>
+                  <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.4rem', display: 'block' }}>
+                      🏷️ Soru veya Test İsmi / Etiketi <span className="text-muted" style={{ fontWeight: 400, fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>(İsim verin)</span>
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
                       placeholder="Örn: 2024 LGS Matematik Denemesi A, Üslü Sayılar Testi..."
-                      style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '1rem', fontWeight: 600, background: 'white' }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', fontWeight: 600, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                     />
                   </div>
 
-                  <div className="form-group" style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
-                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '0.4rem', display: 'block' }}>
+                  <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                    <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.4rem', display: 'block' }}>
                       ✍️ Soru / Test Çözüm Tipi
                     </label>
                     <select
                       value={formData.type}
                       onChange={e => setFormData({ ...formData, type: e.target.value })}
-                      style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', width: '100%', fontSize: '0.95rem', fontWeight: 700, background: 'white' }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontSize: '0.95rem', fontWeight: 700, background: 'rgba(15,23,42,0.9)', color: '#ffffff', boxSizing: 'border-box' }}
                     >
                       <option value="coktan_secmeli">🔘 Çoktan Seçmeli (Optikli / Cevap Anahtarlı)</option>
                       <option value="acik_uclu">📝 Açık Uçlu (Metin Yanıtlı / Yazılı)</option>
@@ -2402,19 +2524,19 @@ const getAnswerKeyCount = (answerKey) => {
 
                 {/* TYPE 1: PDF TEST BUNDLE FORM */}
                 {formData.contentType === 'pdf' && (
-                  <div className="form-group" style={{ background: '#fff5f5', border: '1.5px solid #fecaca', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                    <label style={{ fontWeight: 900, fontSize: '1rem', color: '#991b1b', marginBottom: '0.5rem', display: 'block' }}>
+                  <div className="form-group" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1.5px solid rgba(248, 113, 113, 0.3)', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                    <label style={{ fontWeight: 900, fontSize: '1rem', color: '#fca5a5', marginBottom: '0.5rem', display: 'block' }}>
                       📕 PDF Dosyası Yükleyin veya Bağlantı Yapıştırın
                     </label>
                     
-                    <div style={{ background: 'white', border: '2px dashed #fca5a5', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#dc2626', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(248,113,113,0.5)', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#fca5a5', fontWeight: 800, fontSize: '0.9rem' }}>
                         <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                         📁 Bilgisayardan PDF Seç
                       </label>
                     </div>
 
-                    <p style={{ fontSize: '0.85rem', color: '#7f1d1d', margin: '0 0 0.85rem 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 0.85rem 0' }}>
                       Veya PDF dosyasının doğrudan web linkini yapıştırın:
                     </p>
                     <input 
@@ -2422,7 +2544,7 @@ const getAnswerKeyCount = (answerKey) => {
                       value={formData.contentPayload} 
                       onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
                       placeholder="Örn: https://example.com/matematik-deneme.pdf veya Google Drive Linki" 
-                      style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #fca5a5', width: '100%', fontSize: '0.95rem', background: 'white' }}
+                      style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontSize: '0.95rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                       required 
                     />
                   </div>
@@ -2430,13 +2552,13 @@ const getAnswerKeyCount = (answerKey) => {
 
                 {/* TYPE 2: HTML FORM */}
                 {formData.contentType === 'html' && (
-                  <div className="form-group" style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                    <label style={{ fontWeight: 900, fontSize: '1rem', color: '#065f46', marginBottom: '0.5rem', display: 'block' }}>
+                  <div className="form-group" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1.5px solid rgba(52, 211, 153, 0.3)', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                    <label style={{ fontWeight: 900, fontSize: '1rem', color: '#6ee7b7', marginBottom: '0.5rem', display: 'block' }}>
                       🌐 HTML Dosyası Yükleyin veya Kod Yapıştırın
                     </label>
 
-                    <div style={{ background: 'white', border: '2px dashed #6ee7b7', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#059669', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(52,211,153,0.5)', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                      <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#6ee7b7', fontWeight: 800, fontSize: '0.9rem' }}>
                         <input type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                         📁 Bilgisayardan HTML Dosyası Seç (.html)
                       </label>
@@ -2447,7 +2569,7 @@ const getAnswerKeyCount = (answerKey) => {
                       value={formData.contentPayload} 
                       onChange={e => setFormData({...formData, contentPayload: e.target.value})} 
                       placeholder="Canlı Web Adresi (https://...) veya HTML Kodları..." 
-                      style={{ padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #6ee7b7', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: '#0f172a', color: '#f8fafc' }}
+                      style={{ padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(52,211,153,0.3)', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: 'rgba(0,0,0,0.4)', color: '#f8fafc', boxSizing: 'border-box' }}
                       required
                     ></textarea>
                   </div>
@@ -2455,36 +2577,36 @@ const getAnswerKeyCount = (answerKey) => {
 
                 {/* TYPE 3: VISUAL WRITTEN TEST EDITOR */}
                 {formData.contentType === 'json' && (
-                  <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
                     
                     {/* Mode Switcher Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                       <div>
-                        <h4 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.1rem' }}>
+                        <h4 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.1rem' }}>
                           📝 Toplu Yazılı Test Düzenleme Alanı
                         </h4>
-                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
                           Soruları görsel olarak ekran üzerinden rahatça düzenleyebilir veya yeni soru ekleyebilirsiniz.
                         </p>
                       </div>
 
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <label style={{ cursor: 'pointer', background: '#e0e7ff', color: '#3730a3', padding: '0.45rem 0.95rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <label style={{ cursor: 'pointer', background: 'rgba(99,102,241,0.2)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.3)', padding: '0.45rem 0.95rem', borderRadius: '0.6rem', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files && handleFileSelected(e.target.files[0])} />
                           📁 JSON Dosyası Yükle
                         </label>
-                        <div style={{ display: 'flex', gap: '0.25rem', background: '#e2e8f0', padding: '0.25rem', borderRadius: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                           <button
                             type="button"
                             onClick={() => setJsonEditMode('visual')}
                             style={{
                               padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
                               fontWeight: 800, fontSize: '0.85rem',
-                              background: jsonEditMode === 'visual' ? '#4f46e5' : 'transparent',
-                              color: jsonEditMode === 'visual' ? 'white' : '#475569'
+                              background: jsonEditMode === 'visual' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                              color: '#ffffff'
                             }}
                           >
-                            📝 Görsel Test Düzenleyici
+                            📝 Görsel Düzenleyici
                           </button>
                           <button
                             type="button"
@@ -2492,8 +2614,8 @@ const getAnswerKeyCount = (answerKey) => {
                             style={{
                               padding: '0.45rem 0.95rem', borderRadius: '0.6rem', border: 'none', cursor: 'pointer',
                               fontWeight: 800, fontSize: '0.85rem',
-                              background: jsonEditMode === 'code' ? '#0f172a' : 'transparent',
-                              color: jsonEditMode === 'code' ? 'white' : '#475569'
+                              background: jsonEditMode === 'code' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                              color: '#ffffff'
                             }}
                           >
                             ⚡ Ham JSON Kodu
@@ -2507,16 +2629,16 @@ const getAnswerKeyCount = (answerKey) => {
                       <div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
                           {editableQuestionsList.map((qItem, qIdx) => (
-                            <div key={qItem.id || qIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                            <div key={qItem.id || qIdx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                <span style={{ background: '#e0e7ff', color: '#3730a3', fontWeight: 900, fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: '6px' }}>
+                                <span style={{ background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', padding: '0.25rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(165,180,252,0.3)' }}>
                                   Soru {qIdx + 1}
                                 </span>
 
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveVisualQuestion(qIdx)}
-                                  style={{ background: '#fee2e2', color: '#991b1b', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                  style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                                 >
                                   <Trash2 size={14} /> Soruyu Sil
                                 </button>
@@ -2524,20 +2646,20 @@ const getAnswerKeyCount = (answerKey) => {
 
                               {/* Question Text Input */}
                               <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '0.35rem' }}>Soru Metni:</label>
+                                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '0.35rem' }}>Soru Metni:</label>
                                 <textarea
                                   rows="2"
                                   value={qItem.questionText || ''}
                                   onChange={e => handleUpdateVisualQuestionText(qIdx, e.target.value)}
                                   placeholder="Soru metnini buraya yazın..."
-                                  style={{ padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem' }}
+                                  style={{ padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.15)', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                                 />
                               </div>
 
                               {/* Option Inputs and Correct Answer Radio Buttons */}
                               {formData.type === 'coktan_secmeli' && (
                                 <div>
-                                  <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '0.5rem' }}>
+                                  <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '0.5rem' }}>
                                     Şıklar ve Doğru Cevap Seçimi:
                                   </label>
                                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
@@ -2548,19 +2670,19 @@ const getAnswerKeyCount = (answerKey) => {
                                           key={oIdx} 
                                           onClick={() => handleUpdateVisualCorrectAnswer(qIdx, oIdx)}
                                           style={{ 
-                                            background: isCorrect ? '#ecfdf5' : '#f8fafc', 
-                                            padding: '0.65rem 0.85rem', 
-                                            borderRadius: '0.65rem', 
-                                            border: isCorrect ? '2px solid #10b981' : '1px solid #e2e8f0',
+                                            background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)', 
+                                            padding: '0.75rem 0.85rem', 
+                                            borderRadius: '0.75rem', 
+                                            border: isCorrect ? '1.5px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
                                             cursor: 'pointer',
                                             transition: 'all 0.15s ease'
                                           }}
                                         >
                                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                                            <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isCorrect ? '#059669' : '#475569' }}>
+                                            <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isCorrect ? '#34d399' : '#c7d2fe' }}>
                                               {String.fromCharCode(65 + oIdx)}) Şıkkı
                                             </span>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: isCorrect ? '#059669' : '#94a3b8' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: isCorrect ? '#34d399' : 'rgba(255,255,255,0.6)' }}>
                                               <input
                                                 type="radio"
                                                 name={`correct_${qIdx}`}
@@ -2576,7 +2698,7 @@ const getAnswerKeyCount = (answerKey) => {
                                             value={optText}
                                             onChange={e => handleUpdateVisualOptionText(qIdx, oIdx, e.target.value)}
                                             placeholder={`${String.fromCharCode(65 + oIdx)} şıkkı metni`}
-                                            style={{ padding: '0.45rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', width: '100%', fontSize: '0.85rem' }}
+                                            style={{ padding: '0.45rem 0.65rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.15)', width: '100%', fontSize: '0.85rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                                           />
                                         </div>
                                       );
@@ -2592,7 +2714,7 @@ const getAnswerKeyCount = (answerKey) => {
                         <button
                           type="button"
                           onClick={handleAddVisualQuestion}
-                          style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '2px dashed #818cf8', background: 'white', color: '#4f46e5', fontWeight: 900, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                          style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '2px dashed rgba(165,180,252,0.4)', background: 'rgba(99,102,241,0.1)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                         >
                           <Plus size={18} /> Teste Yeni Soru Ekle
                         </button>
@@ -2605,7 +2727,7 @@ const getAnswerKeyCount = (answerKey) => {
                           value={formData.contentPayload}
                           onChange={e => setFormData({...formData, contentPayload: e.target.value})}
                           placeholder="JSON verisini yapıştırın..."
-                          style={{ padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: '#0f172a', color: '#f8fafc' }}
+                          style={{ padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.15)', width: '100%', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: 1.5, background: 'rgba(0,0,0,0.4)', color: '#f8fafc', boxSizing: 'border-box' }}
                         ></textarea>
                       </div>
                     )}
@@ -2616,13 +2738,13 @@ const getAnswerKeyCount = (answerKey) => {
                 {/* TYPE 4: IMAGE QUESTION FORM WITH CEVAP ANAHTARI */}
                 {formData.contentType === 'gorsel' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div className="form-group" style={{ background: '#fffbeb', border: '1.5px solid #fde68a', padding: '1.5rem', borderRadius: '1.25rem' }}>
-                      <label style={{ fontWeight: 900, fontSize: '1rem', color: '#78350f', marginBottom: '0.5rem', display: 'block' }}>
+                    <div className="form-group" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1.5px solid rgba(251, 191, 36, 0.3)', padding: '1.5rem', borderRadius: '1.25rem' }}>
+                      <label style={{ fontWeight: 900, fontSize: '1rem', color: '#fde68a', marginBottom: '0.5rem', display: 'block' }}>
                         🖼️ Resim / Görsel Yükleyin veya URL Yapıştırın
                       </label>
 
-                      <div style={{ background: 'white', border: '2px dashed #fcd34d', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#d97706', fontWeight: 800, fontSize: '0.9rem' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(251,191,36,0.5)', padding: '1.25rem', borderRadius: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: 0, color: '#fde68a', fontWeight: 800, fontSize: '0.9rem' }}>
                           <input
                             type="file"
                             accept="image/*"
@@ -2638,7 +2760,7 @@ const getAnswerKeyCount = (answerKey) => {
                         </label>
                       </div>
 
-                      <p style={{ fontSize: '0.85rem', color: '#92400e', margin: '0 0 0.85rem 0' }}>
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 0.85rem 0' }}>
                         Veya resim URL'lerini buraya alt alta yapıştırın:
                       </p>
                       <textarea 
@@ -2646,26 +2768,26 @@ const getAnswerKeyCount = (answerKey) => {
                         value={formData.contentPayload} 
                         onChange={handleImagePayloadChange} 
                         placeholder="Resim URL'lerini buraya alt alta yapıştırın..." 
-                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: 'white' }}
+                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                         required
                       ></textarea>
                     </div>
 
                     {/* ANSWER KEY SECTION FOR MULTIPLE CHOICE IMAGE QUESTIONS */}
                     {formData.type === 'coktan_secmeli' ? (
-                      <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                           <div>
-                            <h4 style={{ margin: 0, fontWeight: 900, color: '#1e293b', fontSize: '1.05rem' }}>🔘 Görsel Sorular Cevap Anahtarı</h4>
-                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Görsel soruların doğru cevap şıklarını belirleyin.</p>
+                            <h4 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.05rem' }}>🔘 Görsel Sorular Cevap Anahtarı</h4>
+                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Görsel soruların doğru cevap şıklarını belirleyin.</p>
                           </div>
-                          <span style={{ background: '#e0e7ff', color: '#3730a3', fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px' }}>
+                          <span style={{ background: 'rgba(99,102,241,0.2)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.85rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid rgba(165,180,252,0.3)' }}>
                             Toplam {imageUrls.length || 1} Görsel Soru
                           </span>
                         </div>
                         {/* FAST BULK ANSWER KEY STRING INPUT BOX FOR IMAGE QUESTIONS */}
-                        <div style={{ marginBottom: '1.25rem', background: '#e0e7ff', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #c7d2fe' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#3730a3', display: 'block', marginBottom: '0.35rem' }}>
+                        <div style={{ marginBottom: '1.25rem', background: 'rgba(99,102,241,0.12)', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(165,180,252,0.25)' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#c7d2fe', display: 'block', marginBottom: '0.35rem' }}>
                             ⚡ Hızlı Toplu Cevap Anahtarı Yapıştır / Gir:
                           </label>
                           <input
@@ -2673,7 +2795,7 @@ const getAnswerKeyCount = (answerKey) => {
                             value={formData.bulkAnswerKey}
                             onChange={e => handleImageBulkAnswerKeyChange(e.target.value)}
                             placeholder="Örn: ABCD veya A,B,C,D veya 1A 2B 3C 4D..."
-                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #818cf8', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: 'white' }}
+                            style={{ padding: '0.65rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid rgba(165,180,252,0.4)', width: '100%', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                           />
                         </div>
 
@@ -2682,11 +2804,11 @@ const getAnswerKeyCount = (answerKey) => {
                           {(imageUrls.length > 0 ? imageUrls : ['']).map((url, idx) => {
                             const selectedOpt = imageAnswers[idx];
                             return (
-                              <div key={idx} style={{ background: 'white', padding: '1rem', borderRadius: '1rem', border: '1.5px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
-                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>🖼️ Görsel Soru {idx + 1}</span>
+                              <div key={idx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
+                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>🖼️ Görsel Soru {idx + 1}</span>
                                   {selectedOpt !== undefined && (
-                                    <span style={{ background: '#dcfce7', color: '#166534', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                                    <span style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399', border: '1px solid rgba(52,211,153,0.35)', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
                                       ✓ Cevap: {String.fromCharCode(65 + selectedOpt)}
                                     </span>
                                   )}
@@ -2697,19 +2819,19 @@ const getAnswerKeyCount = (answerKey) => {
                                   <div
                                     onClick={() => setPreviewImage(url)}
                                     title="Görseli daha da büyütmek için tıklayın"
-                                    style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '320px', overflow: 'hidden', cursor: 'pointer' }}
+                                    style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '0.75rem', padding: '0.5rem', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '160px', maxHeight: '320px', overflow: 'hidden', cursor: 'pointer' }}
                                   >
                                     <img src={url} alt={`Görsel Soru ${idx + 1}`} style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '0.5rem' }} onError={e => { e.target.style.display = 'none'; }} />
                                   </div>
                                 ) : (
-                                  <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
+                                  <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.4)', background: 'rgba(0,0,0,0.2)', borderRadius: '0.75rem', fontSize: '0.85rem' }}>
                                     Resim yüklenmedi
                                   </div>
                                 )}
 
                                 {/* Optic Bubbles A B C D E */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #f1f5f9', alignItems: 'center' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.08)', alignItems: 'center' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'center', width: '100%' }}>Doğru Cevabı Seçin:</div>
                                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                                     {['A', 'B', 'C', 'D', 'E'].map((letter, optIdx) => {
                                       const isSelected = selectedOpt === optIdx;
@@ -2722,13 +2844,13 @@ const getAnswerKeyCount = (answerKey) => {
                                             flex: 1,
                                             height: '42px',
                                             borderRadius: '0.65rem',
-                                            border: isSelected ? '2px solid #059669' : '1.5px solid #cbd5e1',
-                                            background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'white',
-                                            color: isSelected ? 'white' : '#334155',
+                                            border: isSelected ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.15)',
+                                            background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(255,255,255,0.06)',
+                                            color: '#ffffff',
                                             fontWeight: 900,
                                             fontSize: '1rem',
                                             cursor: 'pointer',
-                                            boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.35)' : 'none',
+                                            boxShadow: isSelected ? '0 4px 14px rgba(16,185,129,0.4)' : 'none',
                                             transition: 'all 0.15s ease',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -2752,8 +2874,8 @@ const getAnswerKeyCount = (answerKey) => {
                       </div>
                     ) : (
                       /* OPEN-ENDED BANNER FOR IMAGE QUESTIONS */
-                      <div style={{ background: '#fef3c7', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: '1.5px solid #fde68a' }}>
-                        <p style={{ margin: 0, fontWeight: 800, color: '#78350f', fontSize: '0.85rem' }}>
+                      <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '1rem 1.25rem', borderRadius: '0.85rem', border: '1.5px solid rgba(251, 191, 36, 0.3)' }}>
+                        <p style={{ margin: 0, fontWeight: 800, color: '#fde68a', fontSize: '0.85rem' }}>
                           📝 Görsel sorular "Açık Uçlu (Metin Yanıtlı)" olarak belirlenmiştir. Öğrenciler cevabı metin kutusuna yazacaklardır.
                         </p>
                       </div>
@@ -2765,35 +2887,35 @@ const getAnswerKeyCount = (answerKey) => {
                 {formData.contentType === 'text' && (
                   <>
                     <div className="form-group">
-                      <label style={{ fontWeight: 800, fontSize: '0.9rem', color: '#334155' }}>📝 Soru Metni</label>
+                      <label style={{ fontWeight: 800, fontSize: '0.9rem', color: '#ffffff' }}>📝 Soru Metni</label>
                       <textarea 
                         rows="4" 
                         value={formData.questionText} 
                         onChange={e => setFormData({...formData, questionText: e.target.value})} 
                         placeholder="Soru metnini detaylıca yazın..." 
-                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', width: '100%', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.5 }}
+                        style={{ padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.5, background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                         required
                       ></textarea>
                     </div>
 
                     {formData.type === 'coktan_secmeli' && (
-                      <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>
                             🔘 Soru Şıkları ve Doğru Cevap Seçimi:
                           </label>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <button
                               type="button"
                               onClick={() => setFormData(p => ({ ...p, options: p.options.length === 4 ? p.options : ['', '', '', ''], correctAnswer: Math.min(p.correctAnswer, 3) }))}
-                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 4 ? '2px solid #059669' : '1px solid #cbd5e1', background: formData.options.length === 4 ? '#ecfdf5' : 'white', color: formData.options.length === 4 ? '#047857' : '#64748b', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 4 ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.18)', background: formData.options.length === 4 ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)', color: formData.options.length === 4 ? '#34d399' : 'rgba(255,255,255,0.6)', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
                             >
                               🏫 Ortaokul (4 Şık A-D)
                             </button>
                             <button
                               type="button"
                               onClick={() => setFormData(p => ({ ...p, options: p.options.length === 5 ? p.options : ['', '', '', '', ''] }))}
-                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 5 ? '2px solid #8b5cf6' : '1px solid #cbd5e1', background: formData.options.length === 5 ? '#f5f3ff' : 'white', color: formData.options.length === 5 ? '#6d28d9' : '#64748b', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                              style={{ padding: '0.35rem 0.65rem', borderRadius: '0.5rem', border: formData.options.length === 5 ? '2px solid #c084fc' : '1px solid rgba(255,255,255,0.18)', background: formData.options.length === 5 ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)', color: formData.options.length === 5 ? '#c084fc' : 'rgba(255,255,255,0.6)', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
                             >
                               🏛️ Lise (5 Şık A-E)
                             </button>
@@ -2807,16 +2929,16 @@ const getAnswerKeyCount = (answerKey) => {
                                 key={idx} 
                                 onClick={() => setFormData({...formData, correctAnswer: idx})}
                                 style={{ 
-                                  background: isSelected ? '#ecfdf5' : 'white', 
+                                  background: isSelected ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)', 
                                   padding: '1rem', 
                                   borderRadius: '0.75rem', 
-                                  border: isSelected ? '2px solid #10b981' : '1px solid #cbd5e1',
+                                  border: isSelected ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
                                   cursor: 'pointer',
                                   transition: 'all 0.15s ease'
                                 }}
                               >
                                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', cursor: 'pointer' }}>
-                                  <span style={{ fontWeight: 900, color: isSelected ? '#059669' : '#334155', fontSize: '0.95rem' }}>{String.fromCharCode(65 + idx)}) Şıkkı</span>
+                                  <span style={{ fontWeight: 900, color: isSelected ? '#34d399' : '#c7d2fe', fontSize: '0.95rem' }}>{String.fromCharCode(65 + idx)}) Şıkkı</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                     <input 
                                       type="radio" 
@@ -2825,7 +2947,7 @@ const getAnswerKeyCount = (answerKey) => {
                                       onChange={() => setFormData({...formData, correctAnswer: idx})}
                                       style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                                     />
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isSelected ? '#059669' : '#94a3b8' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isSelected ? '#34d399' : 'rgba(255,255,255,0.6)' }}>
                                       {isSelected ? '✓ Doğru Şık' : 'Seç'}
                                     </span>
                                   </div>
@@ -2840,7 +2962,7 @@ const getAnswerKeyCount = (answerKey) => {
                                     setFormData({...formData, options: newOpts});
                                   }} 
                                   placeholder={`${String.fromCharCode(65 + idx)} şıkkının metni`} 
-                                  style={{ padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #cbd5e1', width: '100%', fontSize: '0.9rem' }}
+                                  style={{ padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid rgba(255,255,255,0.16)', width: '100%', fontSize: '0.9rem', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }}
                                   required
                                 />
                               </div>
@@ -2855,27 +2977,27 @@ const getAnswerKeyCount = (answerKey) => {
                 {/* OPTIC ANSWER KEY & BULK STRING BUILDER FOR BUNDLE TESTS (PDF/HTML) */}
                 {showBundleFields && (
                   formData.type === 'coktan_secmeli' ? (
-                    <div style={{ marginTop: '0.5rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+                    <div style={{ marginTop: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
                       
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div>
-                          <h4 style={{ margin: 0, fontWeight: 900, color: '#1e293b', fontSize: '1.05rem' }}>🔘 Cevap Anahtarı Tablosu ve Soru Sayısı</h4>
-                          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Paketteki her sorunun doğru şıkkını tek tek veya toplu olarak girin.</p>
+                          <h4 style={{ margin: 0, fontWeight: 900, color: '#ffffff', fontSize: '1.05rem' }}>🔘 Cevap Anahtarı Tablosu ve Soru Sayısı</h4>
+                          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Paketteki her sorunun doğru şıkkını tek tek veya toplu olarak girin.</p>
                         </div>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                           {/* Option Count Selector (4 Şık A-D vs 5 Şık A-E) */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'white', padding: '0.3rem 0.6rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginRight: '0.15rem' }}>Şık Sayısı:</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', padding: '0.3rem 0.6rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', marginRight: '0.15rem' }}>Şık Sayısı:</span>
                             <button
                               type="button"
                               onClick={() => setFormData(p => ({ ...p, options: ['', '', '', ''] }))}
                               style={{
                                 padding: '0.25rem 0.55rem',
                                 borderRadius: '0.5rem',
-                                border: (formData.options?.length || 4) === 4 ? '2px solid #059669' : '1px solid #cbd5e1',
-                                background: (formData.options?.length || 4) === 4 ? '#ecfdf5' : '#f8fafc',
-                                color: (formData.options?.length || 4) === 4 ? '#047857' : '#64748b',
+                                border: (formData.options?.length || 4) === 4 ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.15)',
+                                background: (formData.options?.length || 4) === 4 ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: (formData.options?.length || 4) === 4 ? '#34d399' : 'rgba(255,255,255,0.6)',
                                 fontWeight: 900,
                                 fontSize: '0.75rem',
                                 cursor: 'pointer'
@@ -2889,9 +3011,9 @@ const getAnswerKeyCount = (answerKey) => {
                               style={{
                                 padding: '0.25rem 0.55rem',
                                 borderRadius: '0.5rem',
-                                border: (formData.options?.length || 4) === 5 ? '2px solid #8b5cf6' : '1px solid #cbd5e1',
-                                background: (formData.options?.length || 4) === 5 ? '#f5f3ff' : '#f8fafc',
-                                color: (formData.options?.length || 4) === 5 ? '#6d28d9' : '#64748b',
+                                border: (formData.options?.length || 4) === 5 ? '2px solid #c084fc' : '1px solid rgba(255,255,255,0.15)',
+                                background: (formData.options?.length || 4) === 5 ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: (formData.options?.length || 4) === 5 ? '#c084fc' : 'rgba(255,255,255,0.6)',
                                 fontWeight: 900,
                                 fontSize: '0.75rem',
                                 cursor: 'pointer'
@@ -2901,15 +3023,15 @@ const getAnswerKeyCount = (answerKey) => {
                             </button>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'white', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1' }}>
-                            <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#334155' }}>Toplam Soru Sayısı:</label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.06)', padding: '0.4rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+                            <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#ffffff' }}>Toplam Soru Sayısı:</label>
                             <input 
                               type="number" 
                               min="1" 
                               max="100" 
                               value={formData.questionCount} 
                               onChange={e => setFormData({...formData, questionCount: parseInt(e.target.value, 10) || 1})}
-                              style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #4f46e5', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem' }}
+                              style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #818cf8', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }}
                             />
                           </div>
                         </div>
@@ -2923,8 +3045,8 @@ const getAnswerKeyCount = (answerKey) => {
                           const currentBubbleLetters = currentOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
                           return (
-                            <div key={idx} style={{ background: 'white', padding: '0.65rem 1rem', borderRadius: '0.85rem', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                            <div key={idx} style={{ background: 'rgba(255,255,255,0.04)', padding: '0.65rem 1rem', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#ffffff' }}>
                                 Soru {idx + 1}
                               </div>
 
@@ -2941,13 +3063,13 @@ const getAnswerKeyCount = (answerKey) => {
                                         width: '36px',
                                         height: '36px',
                                         borderRadius: '50%',
-                                        border: isSelected ? '2px solid #059669' : '1.5px solid #cbd5e1',
-                                        background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f8fafc',
-                                        color: isSelected ? 'white' : '#334155',
+                                        border: isSelected ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.18)',
+                                        background: isSelected ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(255,255,255,0.06)',
+                                        color: '#ffffff',
                                         fontWeight: 900,
                                         fontSize: '0.85rem',
                                         cursor: 'pointer',
-                                        boxShadow: isSelected ? '0 4px 10px rgba(16,185,129,0.35)' : 'none',
+                                        boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.4)' : 'none',
                                         transition: 'all 0.15s ease',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -2971,22 +3093,22 @@ const getAnswerKeyCount = (answerKey) => {
                     </div>
                   ) : (
                     /* OPEN-ENDED BUNDLE CONFIGURATION BANNER */
-                    <div style={{ marginTop: '0.5rem', background: '#fef3c7', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #fde68a' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#92400e', fontSize: '1rem' }}>
+                    <div style={{ marginTop: '0.5rem', background: 'rgba(245, 158, 11, 0.15)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(251, 191, 36, 0.3)' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 900, color: '#fde68a', fontSize: '1rem' }}>
                         📝 Açık Uçlu Test Yapılandırması
                       </h4>
-                      <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#78350f' }}>
+                      <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
                         Bu test "Açık Uçlu (Yazılı Yanıtlı)" olarak belirlenmiştir. Öğrenciler şık işaretlemek yerine cevaplarını metin kutusuna yazacaklardır. Optik cevap anahtarı gerekmez.
                       </p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'white', padding: '0.6rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #fcd34d', width: 'fit-content' }}>
-                        <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#78350f' }}>Toplam Soru Sayısı:</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.06)', padding: '0.6rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(251,191,36,0.4)', width: 'fit-content' }}>
+                        <label style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: '#fde68a' }}>Toplam Soru Sayısı:</label>
                         <input 
                           type="number" 
                           min="1" 
                           max="100" 
                           value={formData.questionCount} 
                           onChange={e => setFormData({...formData, questionCount: parseInt(e.target.value, 10) || 1})}
-                          style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #d97706', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem' }}
+                          style={{ width: '65px', padding: '0.35rem', borderRadius: '0.5rem', border: '1.5px solid #d97706', fontWeight: 900, textAlign: 'center', fontSize: '0.95rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff' }}
                         />
                       </div>
                     </div>
@@ -2994,9 +3116,9 @@ const getAnswerKeyCount = (answerKey) => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: '1.25rem' }}>
-                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '0.85rem', fontWeight: 800 }} onClick={() => { setShowModal(false); resetForm(); }}>İptal</button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '0.95rem', fontSize: '1.05rem', fontWeight: 900 }}>
+                <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.25rem' }}>
+                  <button type="button" className="btn btn-outline" style={{ flex: 1, padding: '0.85rem', fontWeight: 800, color: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' }} onClick={() => { setShowModal(false); resetForm(); }}>İptal</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '0.95rem', fontSize: '1.05rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
                     {editingQuestionId ? '✓ Değişiklikleri Kaydet' : '➕ İçeriği Kaydet ve Ekle'}
                   </button>
                 </div>
@@ -3017,74 +3139,74 @@ const getAnswerKeyCount = (answerKey) => {
         const gradeObj = subjectObj ? curData.grades.find(g => g.id === subjectObj.gradeId) : null;
 
         return (
-          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
-            <div className="modal-content card glass" style={{ width: '94vw', maxWidth: '1150px', maxHeight: '92vh', overflowY: 'auto', padding: '2.5rem', borderRadius: '1.75rem', background: 'white' }}>
+          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
+            <div className="modal-content" style={{ width: '96vw', maxWidth: '1150px', maxHeight: '92vh', overflowY: 'auto', padding: '2.25rem', borderRadius: '1.75rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
               
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
                     {(q.title || q.name) && (
-                      <span style={{ fontSize: '0.85rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#e0e7ff', color: '#3730a3' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '8px', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.3)' }}>
                         🏷️ {q.title || q.name}
                       </span>
                     )}
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.1)', color: '#4f46e5' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc' }}>
                       {getTypeLabel(q)}
                     </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: q.type === 'coktan_secmeli' ? '#dcfce7' : '#fef3c7', color: q.type === 'coktan_secmeli' ? '#166534' : '#92400e' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: q.type === 'coktan_secmeli' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', color: q.type === 'coktan_secmeli' ? '#34d399' : '#fbbf24', border: `1px solid ${q.type === 'coktan_secmeli' ? 'rgba(52,211,153,0.35)' : 'rgba(251,191,36,0.35)'}` }}>
                       {q.type === 'coktan_secmeli' ? '🔘 Optikli / Çoktan Seçmeli' : '📝 Açık Uçlu (Yazılı)'}
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span>{gradeObj?.name || 'Genel'}</span> ➔ 
                     <span>{subjectObj?.name || 'Genel'}</span> ➔ 
                     <span>{unitObj?.name || 'Genel'}</span> ➔ 
-                    <span style={{ color: '#4f46e5' }}>{topicObj?.name || 'Genel'}</span>
+                    <span style={{ color: '#818cf8' }}>{topicObj?.name || 'Genel'}</span>
                   </div>
                 </div>
 
-                <button className="btn-icon" onClick={() => setPreviewQuestion(null)} style={{ borderRadius: '50%', padding: '0.5rem', background: '#f1f5f9' }}>
+                <button className="btn-icon" onClick={() => setPreviewQuestion(null)} style={{ borderRadius: '50%', padding: '0.5rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff' }}>
                   <X size={22} />
                 </button>
               </div>
 
               {/* Status Banner */}
-              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '1rem', padding: '0.85rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#065f46', fontSize: '0.95rem', fontWeight: 800 }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '1rem', padding: '0.85rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#34d399', fontSize: '0.95rem', fontWeight: 800 }}>
                   <CheckCircle2 size={20} />
                   <span>Soru Önizleme &amp; Hata Kontrol Modu</span>
                 </div>
 
                 <button 
                   onClick={() => { const target = q; setPreviewQuestion(null); openEditModal(target); }} 
-                  style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 6px rgba(79,70,229,0.2)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', padding: '0.55rem 1rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
                 >
                   <Edit2 size={16} /> Soruyu Düzenle / Hata Düzelt
                 </button>
               </div>
 
               {/* QUESTION BODY PREVIEW */}
-              <div style={{ background: '#f8fafc', borderRadius: '1.25rem', padding: '1.75rem', border: '1px solid rgba(0,0,0,0.06)', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '1.25rem', padding: '1.75rem', border: '1.5px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem' }}>
                 
                 {/* 0. WRITTEN TEXT BUNDLE PREVIEW (questionsList for non-visual tests) */}
                 {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.questionsList && q.questionsList.length > 0 && (
                   <div>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e293b', marginBottom: '1.25rem' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffffff', marginBottom: '1.25rem' }}>
                       📚 Toplu Yazılı Test Soruları ({q.questionsList.length} Soru - Art Arda Sıralı):
                     </h4>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
                       {q.questionsList.map((qItem, iIdx) => (
-                        <div key={iIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                        <div key={iIdx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
                             <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
                               Soru {iIdx + 1}
                             </span>
                           </div>
 
-                          <h5 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                          <h5 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
                             {qItem.questionText}
                           </h5>
 
@@ -3097,19 +3219,19 @@ const getAnswerKeyCount = (answerKey) => {
                                     key={oIdx}
                                     style={{
                                       padding: '0.75rem 1rem', borderRadius: '0.75rem',
-                                      border: isCorrect ? '2px solid #10b981' : '1px solid #e2e8f0',
-                                      background: isCorrect ? '#ecfdf5' : 'white',
+                                      border: isCorrect ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
+                                      background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)',
                                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
                                     }}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ fontWeight: 900, width: '22px', height: '22px', borderRadius: '50%', background: isCorrect ? '#10b981' : '#cbd5e1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
+                                      <span style={{ fontWeight: 900, width: '22px', height: '22px', borderRadius: '50%', background: isCorrect ? '#10b981' : 'rgba(255,255,255,0.15)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
                                         {String.fromCharCode(65 + oIdx)}
                                       </span>
-                                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? '#065f46' : '#334155' }}>{opt}</span>
+                                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? '#34d399' : '#ffffff' }}>{opt}</span>
                                     </div>
                                     {isCorrect && (
-                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
                                         <Check size={14} strokeWidth={3} /> Doğru
                                       </span>
                                     )}
@@ -3127,7 +3249,7 @@ const getAnswerKeyCount = (answerKey) => {
                 {/* 1. TEXT QUESTION PREVIEW */}
                 {!q.questionsList && q.contentType === 'text' && (
                   <div>
-                    <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1.25rem 0', lineHeight: 1.6 }}>
+                    <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: '0 0 1.25rem 0', lineHeight: 1.6 }}>
                       {q.questionText || 'Metin Sorusu'}
                     </h4>
 
@@ -3139,18 +3261,18 @@ const getAnswerKeyCount = (answerKey) => {
                             <div 
                               key={oIdx} 
                               style={{
-                                padding: '0.95rem 1.15rem', borderRadius: '0.85rem', border: isCorrect ? '2px solid #10b981' : '1px solid #e2e8f0',
-                                background: isCorrect ? '#ecfdf5' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
+                                padding: '0.95rem 1.15rem', borderRadius: '0.85rem', border: isCorrect ? '2px solid #34d399' : '1px solid rgba(255,255,255,0.12)',
+                                background: isCorrect ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <span style={{ fontWeight: 900, width: '26px', height: '26px', borderRadius: '50%', background: isCorrect ? '#10b981' : '#cbd5e1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ fontWeight: 900, width: '26px', height: '26px', borderRadius: '50%', background: isCorrect ? '#10b981' : 'rgba(255,255,255,0.15)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
                                   {String.fromCharCode(65 + oIdx)}
                                 </span>
-                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: isCorrect ? '#065f46' : '#334155' }}>{opt}</span>
+                                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: isCorrect ? '#34d399' : '#ffffff' }}>{opt}</span>
                               </div>
                               {isCorrect && (
-                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
                                   <Check size={14} strokeWidth={3} /> Doğru Şık
                                 </span>
                               )}
@@ -3166,7 +3288,7 @@ const getAnswerKeyCount = (answerKey) => {
                 {(q.contentType === 'gorsel' || (q.imageUrls && q.imageUrls.length > 0)) && (
                   <div style={{ textAlign: 'center' }}>
                     {q.questionText && (
-                      <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1e293b', marginBottom: '1.25rem' }}>{q.questionText}</p>
+                      <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#ffffff', marginBottom: '1.25rem' }}>{q.questionText}</p>
                     )}
 
                     {/* RENDER ALL IMAGES WITH THEIR OPTIONS DIRECTLY UNDERNEATH */}
@@ -3204,22 +3326,22 @@ const getAnswerKeyCount = (answerKey) => {
                           {imageList.map((imgUrl, imgIdx) => {
                             const correctIdx = getCorrectIdxForImg(imgIdx);
                             return (
-                              <div key={imgIdx} style={{ background: 'white', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 10px rgba(0,0,0,0.04)' }}>
-                                <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left' }}>
+                              <div key={imgIdx} style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '1.25rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ fontWeight: 900, color: '#818cf8', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left' }}>
                                   🖼️ Görsel / Soru {imgIdx + 1} / {imageList.length}
                                 </div>
 
                                 <img 
                                   src={imgUrl} 
                                   alt={`Soru Görseli ${imgIdx + 1}`} 
-                                  style={{ maxWidth: '100%', maxHeight: '550px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }} 
+                                  style={{ maxWidth: '100%', maxHeight: '550px', borderRadius: '0.75rem', objectFit: 'contain', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }} 
                                   onError={(e) => { e.target.alt = "Görsel yüklenemedi. Lütfen URL'yi kontrol edin."; }}
                                 />
 
                                 {/* OPTIONS DIRECTLY UNDER EACH IMAGE */}
                                 {q.type === 'coktan_secmeli' && (
-                                  <div style={{ marginTop: '1.15rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                  <div style={{ marginTop: '1.15rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                       Soru {imgIdx + 1} Cevap Seçenekleri:
                                     </div>
 
@@ -3234,20 +3356,20 @@ const getAnswerKeyCount = (answerKey) => {
                                             style={{
                                               padding: '0.55rem 0.95rem',
                                               borderRadius: '0.75rem',
-                                              border: isCorrect ? '2px solid #10b981' : '1.5px solid #cbd5e1',
-                                              background: isCorrect ? '#ecfdf5' : 'white',
+                                              border: isCorrect ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.15)',
+                                              background: isCorrect ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
                                               fontWeight: 800,
                                               fontSize: '0.9rem',
-                                              color: isCorrect ? '#065f46' : '#334155',
+                                              color: isCorrect ? '#34d399' : '#ffffff',
                                               display: 'flex',
                                               alignItems: 'center',
                                               gap: '0.4rem',
-                                              boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.2)' : 'none'
+                                              boxShadow: isCorrect ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
                                             }}
                                           >
                                             <span style={{
                                               width: '24px', height: '24px', borderRadius: '50%',
-                                              background: isCorrect ? '#10b981' : '#cbd5e1',
+                                              background: isCorrect ? '#10b981' : 'rgba(255,255,255,0.15)',
                                               color: 'white', fontWeight: 900, fontSize: '0.8rem',
                                               display: 'flex', alignItems: 'center', justifyContent: 'center'
                                             }}>
@@ -3255,7 +3377,7 @@ const getAnswerKeyCount = (answerKey) => {
                                             </span>
                                             <span>{optText !== letter ? `${letter}) ${optText}` : `${letter} Şıkkı`}</span>
                                             {isCorrect && (
-                                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
+                                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.25rem' }}>
                                                 <Check size={14} strokeWidth={3} /> Doğru
                                               </span>
                                             )}
@@ -3278,18 +3400,18 @@ const getAnswerKeyCount = (answerKey) => {
                 {!q.questionsList && (q.contentType === 'html' || q.contentType === 'htm' || (typeof q.contentPayload === 'string' && (q.contentPayload.includes('<html') || q.contentPayload.includes('<!DOCTYPE')))) && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
-                      <p style={{ margin: 0, fontWeight: 800, color: '#334155', fontSize: '0.95rem' }}>
+                      <p style={{ margin: 0, fontWeight: 800, color: '#c7d2fe', fontSize: '0.95rem' }}>
                         🌐 Görsel HTML Döküman / Test Önizlemesi:
                       </p>
                       {q.contentPayload?.startsWith('http') && (
-                        <a href={q.contentPayload} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <a href={q.contentPayload} target="_blank" rel="noopener noreferrer" style={{ color: '#818cf8', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                           Sekmede Aç <ExternalLink size={14} />
                         </a>
                       )}
                     </div>
 
                     {/* Live Rendered HTML Frame */}
-                    <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '1.25rem', height: '520px' }}>
+                    <div style={{ background: 'white', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.15)', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: '1.25rem', height: '520px' }}>
                       <HtmlViewerWithControls
                         payload={q.htmlPayload || q.contentPayload}
                         title={q.title || 'HTML Test Paketi'}
@@ -3299,8 +3421,8 @@ const getAnswerKeyCount = (answerKey) => {
 
                     {/* Optical Answer Key Grid */}
                     {q.type === 'coktan_secmeli' && (
-                      <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
-                        <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#1e293b', fontSize: '0.95rem' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                        <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#ffffff', fontSize: '0.95rem' }}>
                           🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
                         </h5>
 
@@ -3308,9 +3430,9 @@ const getAnswerKeyCount = (answerKey) => {
                           {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
                             const ans = q.answerKey ? q.answerKey[idx] : null;
                             return (
-                              <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? '#ecfdf5' : '#f8fafc', border: ans && ans !== ' ' ? '1px solid #a7f3d0' : '1px solid #e2e8f0', textAlign: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#059669' : '#94a3b8' }}>
+                              <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.05)', border: ans && ans !== ' ' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#34d399' : 'rgba(255,255,255,0.4)' }}>
                                   {ans && ans !== ' ' ? ans : '—'}
                                 </span>
                               </div>
@@ -3326,8 +3448,8 @@ const getAnswerKeyCount = (answerKey) => {
                 {!q.questionsList && q.contentType === 'pdf' && (
                   <div style={{ marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ fontWeight: 800, color: '#334155', fontSize: '0.9rem' }}>📄 PDF Sınav Önizleme:</span>
-                      <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem' }}>
+                      <span style={{ fontWeight: 800, color: '#fca5a5', fontSize: '0.9rem' }}>📄 PDF Sınav Önizleme:</span>
+                      <label style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.78rem' }}>
                         <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && handlePdfUploadForPreview(e.target.files[0], q.id)} />
                         📁 PDF Değiştir / Yükle
                       </label>
@@ -3336,10 +3458,10 @@ const getAnswerKeyCount = (answerKey) => {
                       <iframe
                         src={getEmbeddableUrl(q.contentPayload)}
                         title="PDF Döküman"
-                        style={{ width: '100%', height: '550px', border: '1px solid #cbd5e1', borderRadius: '0.5rem' }}
+                        style={{ width: '100%', height: '550px', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '0.75rem', background: 'white' }}
                       />
                     ) : (
-                      <div style={{ padding: '3rem', textAlign: 'center', color: '#dc2626', background: '#fff5f5', border: '1px dashed #fca5a5', borderRadius: '0.5rem' }}>
+                      <div style={{ padding: '3rem', textAlign: 'center', color: '#fca5a5', background: 'rgba(239,68,68,0.1)', border: '1px dashed rgba(239,68,68,0.3)', borderRadius: '0.75rem' }}>
                         📄 Bu test için henüz bir PDF dosyası yüklenmedi. Lütfen yukarıdaki butondan bir PDF seçin.
                       </div>
                     )}
@@ -3348,8 +3470,8 @@ const getAnswerKeyCount = (answerKey) => {
 
                 {/* Optical Answer Key Grid for PDF/HTML Tests */}
                 {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.type === 'coktan_secmeli' && (
-                  <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
-                    <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#1e293b', fontSize: '0.95rem' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                    <h5 style={{ margin: '0 0 0.85rem 0', fontWeight: 900, color: '#ffffff', fontSize: '0.95rem' }}>
                       🔘 Cevap Anahtarı Tablosu ({q.questionCount || (q.answerKey ? q.answerKey.length : 1)} Soru):
                     </h5>
 
@@ -3357,9 +3479,9 @@ const getAnswerKeyCount = (answerKey) => {
                       {Array.from({ length: q.questionCount || (q.answerKey ? q.answerKey.length : 1) }).map((_, idx) => {
                         const ans = q.answerKey ? q.answerKey[idx] : null;
                         return (
-                          <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? '#ecfdf5' : '#f8fafc', border: ans && ans !== ' ' ? '1px solid #a7f3d0' : '1px solid #e2e8f0', textAlign: 'center' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#059669' : '#94a3b8' }}>
+                          <div key={idx} style={{ padding: '0.4rem', borderRadius: '6px', background: ans && ans !== ' ' ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.05)', border: ans && ans !== ' ' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'block', fontWeight: 700 }}>Soru {idx + 1}</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: ans && ans !== ' ' ? '#34d399' : 'rgba(255,255,255,0.4)' }}>
                               {ans && ans !== ' ' ? ans : '—'}
                             </span>
                           </div>
@@ -3373,7 +3495,7 @@ const getAnswerKeyCount = (answerKey) => {
 
               {/* Modal Footer */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button className="btn btn-outline" onClick={() => setPreviewQuestion(null)} style={{ padding: '0.75rem 1.5rem', fontWeight: 800 }}>
+                <button className="btn btn-outline" onClick={() => setPreviewQuestion(null)} style={{ padding: '0.75rem 1.5rem', fontWeight: 800, color: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' }}>
                   Kapat
                 </button>
               </div>
@@ -3384,10 +3506,10 @@ const getAnswerKeyCount = (answerKey) => {
       })()}
 
       {previewImage && (
-        <div onClick={() => setPreviewImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem', cursor: 'pointer' }}>
+        <div onClick={() => setPreviewImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.92)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem', cursor: 'pointer' }}>
           <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
-            <img src={previewImage} alt="Büyük Görsel" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
-            <button onClick={() => setPreviewImage(null)} style={{ position: 'absolute', top: -15, right: -15, background: 'white', color: '#0f172a', border: 'none', borderRadius: '50%', width: 36, height: 36, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            <img src={previewImage} alt="Büyük Görsel" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '1.25rem', border: '1.5px solid rgba(255,255,255,0.2)', boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)' }} />
+            <button onClick={() => setPreviewImage(null)} style={{ position: 'absolute', top: -15, right: -15, background: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: 36, height: 36, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>✕</button>
           </div>
         </div>
       )}
