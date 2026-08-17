@@ -352,6 +352,14 @@ export default function StudentHomeworksPage() {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -364,12 +372,12 @@ export default function StudentHomeworksPage() {
       <div style={{
         background: 'linear-gradient(180deg, rgba(30, 27, 75, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%)',
         borderBottom: '1.5px solid rgba(255, 255, 255, 0.12)',
-        padding: '1.25rem 1.5rem',
+        padding: isMobile ? '1rem 1rem' : '1.25rem 1.5rem',
         backdropFilter: 'blur(20px)'
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 onClick={() => navigate('/student')}
                 className="sd-btn"
@@ -378,41 +386,41 @@ export default function StudentHomeworksPage() {
                   border: '1px solid rgba(255, 255, 255, 0.18)',
                   color: '#ffffff',
                   borderRadius: 12,
-                  padding: '0.5rem 0.85rem',
-                  fontSize: '0.82rem',
+                  padding: isMobile ? '0.4rem 0.7rem' : '0.5rem 0.85rem',
+                  fontSize: isMobile ? '0.75rem' : '0.82rem',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6
+                  gap: 4
                 }}
               >
-                <ArrowLeft size={16} /> Panele Dön
+                <ArrowLeft size={15} /> {isMobile ? 'Geri' : 'Panele Dön'}
               </button>
 
               <div>
-                <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h1 style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', fontWeight: 900, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ background: 'linear-gradient(135deg, #ef4444, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                     📋 Ödevlerim & Görevlerim
                   </span>
                 </h1>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
-                  Öğretmeniniz veya koçunuz tarafından atanan tüm ödev ve testler
+                <span style={{ fontSize: isMobile ? '0.68rem' : '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+                  Öğretmeniniz veya koçunuz tarafından atanan ödevler
                 </span>
               </div>
             </div>
 
             {/* Teacher selector if viewed by teacher/admin */}
             {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', padding: '0.35rem 0.75rem', borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', padding: '0.3rem 0.65rem', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci:</span>
                 <select
                   value={selectedStudent?.id || ''}
                   onChange={e => {
                     const s = studentMembers.find(st => String(st.id) === String(e.target.value));
                     if (s) setSelectedStudent(s);
                   }}
-                  style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.25rem 0.5rem', fontSize: '0.78rem', fontWeight: 700 }}
+                  style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.2rem 0.45rem', fontSize: '0.74rem', fontWeight: 700 }}
                 >
                   {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
                 </select>
@@ -422,101 +430,221 @@ export default function StudentHomeworksPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '1.5rem 1.25rem' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '1rem 0.85rem' : '1.5rem 1.25rem' }}>
 
-        {/* ─── 4 STATS OVERVIEW CARDS ─── */}
+        {/* ─── 4 STATS OVERVIEW CARDS (2x2 MOBİLE, 4-KOLON DESKTOP) ─── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1rem',
-          marginBottom: '1.5rem'
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? '0.65rem' : '1rem',
+          marginBottom: isMobile ? '1rem' : '1.5rem'
         }}>
-          {/* Card 1: Toplam Ödev */}
+          {/* Card 1: Toplam Görev */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: '1.5px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: 20,
-            padding: '1.1rem 1.25rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            border: '1.5px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: isMobile ? 16 : 20,
+            padding: isMobile ? '0.85rem 0.9rem' : '1.1rem 1.25rem',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 14
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? 8 : 14,
+            position: 'relative',
+            overflow: 'hidden'
           }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
-              📚
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto' }}>
+              <div style={{
+                width: isMobile ? 36 : 46,
+                height: isMobile ? 36 : 46,
+                borderRadius: isMobile ? 10 : 14,
+                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.05rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(99,102,241,0.35)'
+              }}>
+                📚
+              </div>
+              {isMobile && (
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#93c5fd', background: 'rgba(59,130,246,0.18)', padding: '2px 6px', borderRadius: 99 }}>
+                  {homeworkGroups.length} Set
+                </span>
+              )}
             </div>
-            <div>
-              <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>{allTests.length}</div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginTop: 4, textTransform: 'uppercase' }}>Toplam Görev</div>
-              <div style={{ fontSize: '0.68rem', color: '#60a5fa', fontWeight: 700, marginTop: 2 }}>{homeworkGroups.length} Farklı Ödev Seti</div>
+
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: isMobile ? '1.35rem' : '1.55rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                {allTests.length}
+              </div>
+              <div style={{ fontSize: isMobile ? '0.66rem' : '0.74rem', fontWeight: 800, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Toplam Görev
+              </div>
+              {!isMobile && (
+                <div style={{ fontSize: '0.68rem', color: '#60a5fa', fontWeight: 700, marginTop: 2 }}>
+                  {homeworkGroups.length} Farklı Ödev Seti
+                </div>
+              )}
             </div>
           </div>
 
           {/* Card 2: Bekleyen Ödev */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(69, 10, 10, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: '1.5px solid rgba(239, 68, 68, 0.35)',
-            borderRadius: 20,
-            padding: '1.1rem 1.25rem',
-            boxShadow: '0 8px 24px rgba(239,68,68,0.2)',
+            background: 'linear-gradient(135deg, rgba(69, 10, 10, 0.75) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            border: '1.5px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: isMobile ? 16 : 20,
+            padding: isMobile ? '0.85rem 0.9rem' : '1.1rem 1.25rem',
+            boxShadow: '0 4px 20px rgba(239,68,68,0.2)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 14
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? 8 : 14,
+            position: 'relative',
+            overflow: 'hidden'
           }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(239,68,68,0.4)' }}>
-              ⏳
-            </div>
-            <div>
-              <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#fca5a5', lineHeight: 1 }}>{pendingTests.length}</div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#f87171', marginTop: 4, textTransform: 'uppercase' }}>Bekleyen Ödev</div>
-              <div style={{ fontSize: '0.68rem', color: '#fca5a5', fontWeight: 700, marginTop: 2 }}>Çözülmeyi bekliyor</div>
-            </div>
-          </div>
-
-          {/* Card 3: Tamamlanan Ödev */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: '1.5px solid rgba(52, 211, 153, 0.35)',
-            borderRadius: 20,
-            padding: '1.1rem 1.25rem',
-            boxShadow: '0 8px 24px rgba(16,185,129,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14
-          }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(16,185,129,0.4)' }}>
-              ✅
-            </div>
-            <div>
-              <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#86efac', lineHeight: 1 }}>{completedTests.length}</div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#34d399', marginTop: 4, textTransform: 'uppercase' }}>Tamamlanan</div>
-              <div style={{ fontSize: '0.68rem', color: '#6ee7b7', fontWeight: 700, marginTop: 2 }}>Başarıyla bitti</div>
-            </div>
-          </div>
-
-          {/* Card 4: Genel İlerleme % */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(49, 46, 129, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: '1.5px solid rgba(165, 180, 252, 0.35)',
-            borderRadius: 20,
-            padding: '1.1rem 1.25rem',
-            boxShadow: '0 8px 24px rgba(99,102,241,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14
-          }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(139,92,246,0.4)' }}>
-              🎯
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '1.55rem', fontWeight: 900, color: '#c084fc', lineHeight: 1 }}>%{totalPct}</span>
-                <span style={{ fontSize: '0.72rem', color: '#a5b4fc', fontWeight: 800 }}>{completedTests.length}/{allTests.length}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto' }}>
+              <div style={{
+                width: isMobile ? 36 : 46,
+                height: isMobile ? 36 : 46,
+                borderRadius: isMobile ? 10 : 14,
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.05rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(239,68,68,0.35)'
+              }}>
+                ⏳
               </div>
-              <div style={{ height: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}>
+              {isMobile && (
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#fca5a5', background: 'rgba(239,68,68,0.25)', padding: '2px 6px', borderRadius: 99 }}>
+                  {pendingTests.length > 0 ? 'Aktif' : 'Yok'}
+                </span>
+              )}
+            </div>
+
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: isMobile ? '1.35rem' : '1.55rem', fontWeight: 900, color: '#fca5a5', lineHeight: 1.1 }}>
+                {pendingTests.length}
+              </div>
+              <div style={{ fontSize: isMobile ? '0.66rem' : '0.74rem', fontWeight: 800, color: '#f87171', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Bekleyen Ödev
+              </div>
+              {!isMobile && (
+                <div style={{ fontSize: '0.68rem', color: '#fca5a5', fontWeight: 700, marginTop: 2 }}>
+                  Çözülmeyi bekliyor
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Card 3: Tamamlanan */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.75) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            border: '1.5px solid rgba(52, 211, 153, 0.4)',
+            borderRadius: isMobile ? 16 : 20,
+            padding: isMobile ? '0.85rem 0.9rem' : '1.1rem 1.25rem',
+            boxShadow: '0 4px 20px rgba(16,185,129,0.2)',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? 8 : 14,
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto' }}>
+              <div style={{
+                width: isMobile ? 36 : 46,
+                height: isMobile ? 36 : 46,
+                borderRadius: isMobile ? 10 : 14,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.05rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(16,185,129,0.35)'
+              }}>
+                ✅
+              </div>
+              {isMobile && (
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#86efac', background: 'rgba(34,197,94,0.2)', padding: '2px 6px', borderRadius: 99 }}>
+                  Bitti
+                </span>
+              )}
+            </div>
+
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: isMobile ? '1.35rem' : '1.55rem', fontWeight: 900, color: '#86efac', lineHeight: 1.1 }}>
+                {completedTests.length}
+              </div>
+              <div style={{ fontSize: isMobile ? '0.66rem' : '0.74rem', fontWeight: 800, color: '#34d399', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tamamlanan
+              </div>
+              {!isMobile && (
+                <div style={{ fontSize: '0.68rem', color: '#6ee7b7', fontWeight: 700, marginTop: 2 }}>
+                  Başarıyla bitti
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Card 4: Genel Tamamlama % */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(49, 46, 129, 0.75) 0%, rgba(15, 23, 42, 0.98) 100%)',
+            border: '1.5px solid rgba(165, 180, 252, 0.4)',
+            borderRadius: isMobile ? 16 : 20,
+            padding: isMobile ? '0.85rem 0.9rem' : '1.1rem 1.25rem',
+            boxShadow: '0 4px 20px rgba(99,102,241,0.2)',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: isMobile ? 8 : 14,
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: isMobile ? '100%' : 'auto' }}>
+              <div style={{
+                width: isMobile ? 36 : 46,
+                height: isMobile ? 36 : 46,
+                borderRadius: isMobile ? 10 : 14,
+                background: 'linear-gradient(135deg, #8b5cf6, #a855f7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.05rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(139,92,246,0.35)'
+              }}>
+                🎯
+              </div>
+              {isMobile && (
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#c084fc', background: 'rgba(168,85,247,0.2)', padding: '2px 6px', borderRadius: 99 }}>
+                  {completedTests.length}/{allTests.length}
+                </span>
+              )}
+            </div>
+
+            <div style={{ minWidth: 0, flex: 1, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: isMobile ? '1.35rem' : '1.55rem', fontWeight: 900, color: '#c084fc', lineHeight: 1.1 }}>
+                  %{totalPct}
+                </span>
+                {!isMobile && (
+                  <span style={{ fontSize: '0.72rem', color: '#a5b4fc', fontWeight: 800 }}>
+                    {completedTests.length}/{allTests.length}
+                  </span>
+                )}
+              </div>
+              <div style={{ height: 5, background: 'rgba(255,255,255,0.15)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${totalPct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
               </div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c7d2fe', marginTop: 4, textTransform: 'uppercase' }}>Genel Tamamlama</div>
+              <div style={{ fontSize: isMobile ? '0.66rem' : '0.74rem', fontWeight: 800, color: '#c7d2fe', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Genel İlerleme
+              </div>
             </div>
           </div>
         </div>
@@ -771,11 +899,11 @@ export default function StudentHomeworksPage() {
                       ? '1.5px solid rgba(52, 211, 153, 0.3)'
                       : '1.5px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: 18,
-                    padding: '1.1rem 1.3rem',
+                    padding: isMobile ? '0.95rem 1rem' : '1.1rem 1.3rem',
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    alignItems: isMobile ? 'stretch' : 'center',
                     justifyContent: 'space-between',
-                    flexWrap: 'wrap',
                     gap: 12,
                     boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                     transition: 'all 0.2s ease'
@@ -824,18 +952,18 @@ export default function StudentHomeworksPage() {
                     </div>
 
                     {/* BAŞLIK */}
-                    <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.35, marginBottom: 4 }}>
+                    <div style={{ fontSize: isMobile ? '0.9rem' : '0.96rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.35, marginBottom: 4 }}>
                       {task.title || task.name || 'Ödev Görevi'}
                     </div>
 
                     {/* ALT DETAYLAR */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
                       {task.bookTitle && (
                         <span>📖 {task.bookTitle}</span>
                       )}
                       <span>• ❓ {task.questionCount || 20} Soru</span>
                       {dueLabel && (
-                        <span>• ⏰ Son Tarih: {dueLabel}</span>
+                        <span>• ⏰ Son: {dueLabel}</span>
                       )}
                       {task.isDone && task.submittedAt && (
                         <span style={{ color: '#34d399' }}>• 🗓️ Çözülme: {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
@@ -844,14 +972,24 @@ export default function StudentHomeworksPage() {
                   </div>
 
                   {/* SAĞ: SKOR & BUTON */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isMobile ? 'space-between' : 'flex-end',
+                    gap: 10,
+                    flexShrink: 0,
+                    width: isMobile ? '100%' : 'auto',
+                    borderTop: isMobile ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                    paddingTop: isMobile ? 8 : 0,
+                    marginTop: isMobile ? 2 : 0
+                  }}>
                     {task.isDone && task.scorePct !== null && (
                       <div style={{
                         background: task.scorePct >= 80 ? 'rgba(34, 197, 94, 0.2)' : task.scorePct >= 50 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                         border: task.scorePct >= 80 ? '1px solid rgba(34, 197, 94, 0.4)' : task.scorePct >= 50 ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
-                        padding: '0.4rem 0.75rem',
+                        padding: '0.35rem 0.7rem',
                         borderRadius: 10,
-                        textAlign: 'right'
+                        textAlign: isMobile ? 'left' : 'right'
                       }}>
                         <div style={{ fontSize: '0.95rem', fontWeight: 900, color: task.scorePct >= 80 ? '#4ade80' : task.scorePct >= 50 ? '#60a5fa' : '#f87171' }}>
                           %{task.scorePct}
@@ -872,14 +1010,16 @@ export default function StudentHomeworksPage() {
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: 12,
-                          padding: '0.55rem 1.1rem',
+                          padding: isMobile ? '0.55rem 1rem' : '0.55rem 1.1rem',
                           fontSize: '0.82rem',
                           fontWeight: 900,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
+                          justifyContent: 'center',
                           gap: 6,
-                          boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)'
+                          boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                          flex: isMobile && !task.scorePct ? 1 : 'initial'
                         }}
                       >
                         <Eye size={15} /> Sonucu İncele
@@ -894,14 +1034,16 @@ export default function StudentHomeworksPage() {
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: 12,
-                          padding: '0.55rem 1.25rem',
+                          padding: isMobile ? '0.65rem 1.25rem' : '0.55rem 1.25rem',
                           fontSize: '0.85rem',
                           fontWeight: 900,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
+                          justifyContent: 'center',
                           gap: 6,
-                          boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)'
+                          boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)',
+                          width: isMobile ? '100%' : 'auto'
                         }}
                       >
                         <PlayCircle size={16} /> Hemen Çöz
