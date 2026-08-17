@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Layers, Award, User, ClipboardList, CheckSquare, BarChart3, Calendar, Target } from 'lucide-react';
+import { Home, BookOpen, Layers, Award, ClipboardList, BarChart3, Calendar, Target, Headphones } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { triggerHapticFeedback } from '../services/nativeMobileService';
 
@@ -15,16 +15,16 @@ export default function MobileBottomNav() {
 
   const studentTabs = [
     { label: 'Ana Sayfa', path: '/student', icon: Home },
-    { label: 'Hedeflerim', path: '/goals', icon: Target },
+    { label: 'Hedefler', path: '/goals', icon: Target },
     { label: 'Kitaplarım', path: '/student/books', icon: BookOpen },
     { label: 'Programım', path: '/my-program', icon: Calendar },
-    { label: 'Sonuçlarım', path: '/student-results', icon: BarChart3 },
+    { label: 'Sonuçlar', path: '/student-results', icon: BarChart3 },
   ];
 
   const teacherTabs = [
-    { label: 'Ana Sayfa', path: '/teacher', icon: Home },
+    { label: 'Ana Sayfa', path: role === 'admin' ? '/admin' : '/teacher', icon: Home },
     { label: 'Ödevler', path: '/homeworks', icon: ClipboardList },
-    { label: 'Soru Bankası', path: '/questions', icon: Layers },
+    { label: 'Sorular', path: '/questions', icon: Layers },
     { label: 'Kitaplar', path: '/books', icon: BookOpen },
     { label: 'Denemeler', path: '/physical-exam', icon: Award },
   ];
@@ -37,23 +37,106 @@ export default function MobileBottomNav() {
   };
 
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-slate-200/60 px-2 py-2 flex items-center justify-around shadow-[0_-8px_30px_rgb(0,0,0,0.06)]">
+    <nav
+      className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
+      style={{
+        background: 'linear-gradient(180deg, rgba(17, 28, 56, 0.92) 0%, rgba(22, 36, 71, 0.98) 100%)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderTop: '1.5px solid rgba(255, 255, 255, 0.16)',
+        boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.35)',
+        paddingTop: '0.45rem',
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.45rem)',
+        paddingLeft: '0.5rem',
+        paddingRight: '0.5rem'
+      }}
+    >
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        const isActive = location.pathname === tab.path || (tab.path !== '/student' && tab.path !== '/teacher' && location.pathname.startsWith(tab.path));
+        const isActive =
+          location.pathname === tab.path ||
+          (tab.path !== '/student' && tab.path !== '/teacher' && tab.path !== '/admin' && location.pathname.startsWith(tab.path));
 
         return (
           <button
             key={tab.path}
             onClick={() => handleTabClick(tab.path)}
-            className={`flex flex-col items-center justify-center flex-1 py-0.5 transition-all duration-300 ${
-              isActive ? 'text-indigo-600 -translate-y-0.5' : 'text-slate-400 hover:text-slate-600'
-            }`}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+              padding: '0.2rem 0',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: isActive ? 'translateY(-2px)' : 'none',
+              outline: 'none'
+            }}
           >
-            <div className={`p-1.5 rounded-2xl transition-all duration-300 relative ${isActive ? 'bg-indigo-50 shadow-sm shadow-indigo-100' : 'bg-transparent'}`}>
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className={`transition-all duration-300 relative z-10 ${isActive ? 'text-indigo-600 scale-110' : 'text-slate-400'}`} />
+            {/* Active Top Glow Indicator */}
+            {isActive && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -8,
+                  width: 24,
+                  height: 3,
+                  borderRadius: 99,
+                  background: 'linear-gradient(90deg, #38bdf8, #818cf8, #c084fc)',
+                  boxShadow: '0 0 10px #818cf8'
+                }}
+              />
+            )}
+
+            {/* Icon Container with Luminous Glass Effect */}
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 14,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                background: isActive
+                  ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(168, 85, 247, 0.4) 100%)'
+                  : 'rgba(255, 255, 255, 0.04)',
+                border: isActive
+                  ? '1.5px solid rgba(165, 180, 252, 0.65)'
+                  : '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: isActive
+                  ? '0 4px 16px rgba(99, 102, 241, 0.45), inset 0 0 10px rgba(168, 85, 247, 0.25)'
+                  : 'none',
+                color: isActive ? '#ffffff' : '#94a3b8'
+              }}
+            >
+              <Icon
+                size={20}
+                strokeWidth={isActive ? 2.5 : 2}
+                color={isActive ? '#ffffff' : '#cbd5e1'}
+                style={{
+                  filter: isActive ? 'drop-shadow(0 0 6px rgba(165, 180, 252, 0.8))' : 'none',
+                  transition: 'all 0.25s ease'
+                }}
+              />
             </div>
-            <span className={`text-[10px] font-black mt-1 tracking-tight transition-all duration-300 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>
+
+            {/* Label */}
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: isActive ? 900 : 700,
+                marginTop: '0.2rem',
+                letterSpacing: '0.02em',
+                transition: 'all 0.25s ease',
+                color: isActive ? '#ffffff' : '#94a3b8',
+                textShadow: isActive ? '0 0 8px rgba(165, 180, 252, 0.6)' : 'none'
+              }}
+            >
               {tab.label}
             </span>
           </button>

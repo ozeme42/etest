@@ -218,9 +218,9 @@
   
   .mobile-header {
     display: flex;
-    background: rgba(9, 13, 25, 0.95);
+    background: rgba(17, 28, 56, 0.95);
     backdrop-filter: blur(16px);
-    border-bottom: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.16);
     padding: 0.85rem 1rem;
   }
 
