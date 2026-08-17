@@ -73,49 +73,161 @@ export default function StudentProgramPage() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .prog-anim { animation: fadeIn 0.3s ease both; }
-        @media (max-width: 768px) {
-          .prog-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
-          .prog-kpis { width: 100% !important; justify-content: space-between !important; }
-          .prog-kpis > div { flex: 1 !important; min-width: 0 !important; }
+        @media (max-width: 640px) {
+          .prog-hero-card {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 1rem !important;
+            gap: 0.9rem !important;
+          }
+          .prog-kpis {
+            width: 100% !important;
+            min-width: 100% !important;
+          }
         }
       `}</style>
 
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
-        {/* Header with Back Button & Stats */}
-        <div className="prog-header-wrap prog-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button
-              onClick={() => navigate('/student')}
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', borderRadius: '0.75rem', padding: '0.55rem 0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, color: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)' }}
-            >
-              <ArrowLeft size={18} /> Öğrenci Paneli
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.15rem', color: 'white', border: '2px solid rgba(255,255,255,0.35)', boxShadow: '0 0 16px rgba(168,85,247,0.4)', flexShrink: 0 }}>
-                {currentUser.name?.charAt(0)?.toUpperCase() || '?'}
-              </div>
-              <div>
-                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>
-                  Haftalık Ders Programım 📅
-                </h1>
-                <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 2 }}>
-                  Merhaba {currentUser.name?.split(' ')[0]} 👋 · {weekRange}
-                </div>
+        {/* Top Action Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => navigate('/student')}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1.5px solid rgba(255,255,255,0.18)',
+              borderRadius: '0.75rem',
+              padding: '0.5rem 0.85rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <ArrowLeft size={16} /> Öğrenci Paneli
+          </button>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(99,102,241,0.15)',
+            border: '1px solid rgba(165,180,252,0.3)',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '99px',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            color: '#c7d2fe'
+          }}>
+            <Calendar size={14} color="#818cf8" />
+            <span>{weekRange}</span>
+          </div>
+        </div>
+
+        {/* Hero Card with Profile & KPI Stats */}
+        <div className="prog-hero-card prog-anim" style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          border: '1.5px solid rgba(255, 255, 255, 0.14)',
+          borderRadius: '1.25rem',
+          padding: '1.1rem 1.35rem',
+          marginBottom: '1.25rem',
+          boxShadow: '0 10px 32px rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1.25rem',
+          flexWrap: 'wrap'
+        }}>
+          {/* Left: Avatar & Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', minWidth: 200, flex: 1 }}>
+            <div style={{
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 900,
+              fontSize: '1.2rem',
+              color: 'white',
+              border: '2px solid rgba(255,255,255,0.4)',
+              boxShadow: '0 0 20px rgba(168,85,247,0.45)',
+              flexShrink: 0
+            }}>
+              {currentUser.name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div>
+              <h1 style={{
+                margin: 0,
+                fontWeight: 900,
+                fontSize: '1.25rem',
+                color: '#ffffff',
+                lineHeight: 1.25,
+                textShadow: '0 2px 10px rgba(0,0,0,0.35)'
+              }}>
+                Haftalık Ders Programım 📅
+              </h1>
+              <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 3 }}>
+                Merhaba <strong>{currentUser.name?.split(' ')[0]}</strong> 👋 · Kişisel Çalışma Takvimi
               </div>
             </div>
           </div>
 
-          <div className="prog-kpis" style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-            {[
-              { label: 'Haftalık', value: `%${weekPct}`, sub: `${doneItems}/${totalItems}`, color: '#818cf8', border: 'rgba(129,140,248,0.35)' },
-              { label: 'Konu İlerleme', value: doneTopics, sub: `${totalTopics} toplam`, color: '#34d399', border: 'rgba(52,211,153,0.35)' },
-            ].map(s => (
-              <div key={s.label} style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '0.65rem 1.1rem', border: `1.5px solid ${s.border}`, textAlign: 'center', minWidth: 95, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-                <div style={{ fontWeight: 900, fontSize: '1.2rem', color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{s.label}</div>
-                <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{s.sub}</div>
+          {/* Right: Modern Responsive KPI Grid */}
+          <div className="prog-kpis" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '0.75rem',
+            minWidth: 220
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1.5px solid rgba(129, 140, 248, 0.35)',
+              borderRadius: '1rem',
+              padding: '0.65rem 0.9rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#818cf8', lineHeight: 1 }}>
+                %{weekPct}
               </div>
-            ))}
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)', fontWeight: 800, marginTop: 4 }}>
+                Haftalık İlerleme
+              </div>
+              <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: 2 }}>
+                {doneItems} / {totalItems} Görev
+              </div>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1.5px solid rgba(52, 211, 153, 0.35)',
+              borderRadius: '1rem',
+              padding: '0.65rem 0.9rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#34d399', lineHeight: 1 }}>
+                {doneTopics}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)', fontWeight: 800, marginTop: 4 }}>
+                Konu İlerleme
+              </div>
+              <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: 2 }}>
+                {totalTopics} Toplam Konu
+              </div>
+            </div>
           </div>
         </div>
 
