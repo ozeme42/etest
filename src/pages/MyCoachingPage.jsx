@@ -4183,11 +4183,11 @@ export default function MyCoachingPage() {
         targetSchool={goals?.targetSchool || ''}
         targetNet={goals?.targetNet || ''}
         targetScore={goals?.targetScore || ''}
-        weeklyProgram={weeklyProgram}
-        mockExams={denemeTakip}
+        weeklyProgram={weeklyProgram || []}
+        mockExams={generalTrialExams || []}
         counterGoals={goals?.counterGoals || []}
-        teacherNote={coachingNotes}
-        submissions={submissions}
+        teacherNote={personalInfo?.coachNotes || ''}
+        submissions={submissions || []}
       />
 
     </div>
