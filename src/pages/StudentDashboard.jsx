@@ -1062,17 +1062,26 @@ export default function StudentDashboard() {
         padding: isMobile ? '1.25rem 1rem' : '2rem 1.5rem',
         backdropFilter: 'blur(20px)'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem' }}>
+        <div style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          justifyContent: 'space-between',
+          gap: '1.25rem'
+        }}>
+          {/* SOL: ÖĞRENCİ PROFİL KİMLİĞİ */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.25rem' }}>
             <div style={{
-              width: isMobile ? 50 : 64,
-              height: isMobile ? 50 : 64,
+              width: isMobile ? 52 : 64,
+              height: isMobile ? 52 : 64,
               borderRadius: 20,
               background: `linear-gradient(135deg, ${avatarColor}, #4338ca)`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: isMobile ? '1.4rem' : '1.8rem',
+              fontSize: isMobile ? '1.45rem' : '1.85rem',
               fontWeight: 900,
               color: '#ffffff',
               border: '2px solid rgba(255,255,255,0.35)',
@@ -1102,8 +1111,15 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Quick Action Navigation Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* SAĞ: HIZLI ERİŞİM BUTONLARI & SAĞ KÖŞEDE YUVARLAK BAŞARI GRAFİĞİ */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: isMobile ? 'flex-start' : 'flex-end'
+          }}>
             <button
               onClick={() => navigate('/wrong-answers')}
               className="sd-btn"
@@ -1112,7 +1128,7 @@ export default function StudentDashboard() {
                 border: '1.5px solid rgba(251, 113, 133, 0.4)',
                 color: '#fecdd3',
                 borderRadius: 12,
-                padding: '0.45rem 0.85rem',
+                padding: '0.5rem 0.85rem',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -1133,7 +1149,7 @@ export default function StudentDashboard() {
                 border: '1.5px solid rgba(56, 189, 248, 0.4)',
                 color: '#bae6fd',
                 borderRadius: 12,
-                padding: '0.45rem 0.85rem',
+                padding: '0.5rem 0.85rem',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -1154,7 +1170,7 @@ export default function StudentDashboard() {
                 border: '1.5px solid rgba(165, 180, 252, 0.4)',
                 color: '#c7d2fe',
                 borderRadius: 12,
-                padding: '0.45rem 0.85rem',
+                padding: '0.5rem 0.85rem',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -1167,53 +1183,52 @@ export default function StudentDashboard() {
               <span>Sonuçlarım</span>
             </button>
 
-            {/* 🌟 YUVARLAK BAŞARI TAMAMLAMA GRAFİĞİ (RADIAL PROGRESS) */}
+            {/* 🌟 EN SAĞ KÖŞEDE YUVARLAK BAŞARI GRAFİĞİ */}
             <div
               onClick={() => navigate('/student-results')}
               title="Detaylı Sonuçlar ve Başarı Analizini İncele"
               className="sd-btn"
               style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%)',
-                border: overallSuccessRate >= 80 ? '1.5px solid rgba(52, 211, 153, 0.45)' : '1.5px solid rgba(99, 102, 241, 0.4)',
-                borderRadius: 14,
-                padding: '0.35rem 0.75rem',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: overallSuccessRate >= 80 ? '1.5px solid rgba(52, 211, 153, 0.55)' : '1.5px solid rgba(99, 102, 241, 0.45)',
+                borderRadius: 16,
+                padding: '0.45rem 0.95rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                boxShadow: overallSuccessRate >= 80 ? '0 4px 16px rgba(16, 185, 129, 0.25)' : '0 4px 16px rgba(99, 102, 241, 0.2)',
-                transition: 'all 0.2s ease'
+                gap: 10,
+                boxShadow: overallSuccessRate >= 80 ? '0 6px 20px rgba(16, 185, 129, 0.3)' : '0 6px 20px rgba(99, 102, 241, 0.25)',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
               }}
             >
               {/* Circular SVG Ring */}
-              <div style={{ position: 'relative', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="38" height="38" viewBox="0 0 38 38" style={{ transform: 'rotate(-90deg)' }}>
-                  {/* Background Circle */}
+              <div style={{ position: 'relative', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="44" height="44" viewBox="0 0 44 44" style={{ transform: 'rotate(-90deg)' }}>
                   <circle
-                    cx="19"
-                    cy="19"
-                    r="15"
+                    cx="22"
+                    cy="22"
+                    r="17"
                     fill="transparent"
                     stroke="rgba(255, 255, 255, 0.12)"
-                    strokeWidth="3.5"
+                    strokeWidth="4"
                   />
-                  {/* Progress Circle */}
                   <circle
-                    cx="19"
-                    cy="19"
-                    r="15"
+                    cx="22"
+                    cy="22"
+                    r="17"
                     fill="transparent"
                     stroke={overallSuccessRate >= 80 ? '#10b981' : overallSuccessRate >= 60 ? '#38bdf8' : '#f59e0b'}
-                    strokeWidth="3.5"
-                    strokeDasharray={2 * Math.PI * 15}
-                    strokeDashoffset={2 * Math.PI * 15 * (1 - (overallSuccessRate || 0) / 100)}
+                    strokeWidth="4"
+                    strokeDasharray={2 * Math.PI * 17}
+                    strokeDashoffset={2 * Math.PI * 17 * (1 - (overallSuccessRate || 0) / 100)}
                     strokeLinecap="round"
                     style={{ transition: 'stroke-dashoffset 1s ease' }}
                   />
                 </svg>
                 <div style={{
                   position: 'absolute',
-                  fontSize: '0.62rem',
+                  fontSize: '0.72rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   lineHeight: 1,
@@ -1225,10 +1240,10 @@ export default function StudentDashboard() {
 
               {/* Text Info */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Başarı Oranı
                 </span>
-                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: overallSuccessRate >= 80 ? '#4ade80' : overallSuccessRate >= 60 ? '#38bdf8' : '#fbbf24', lineHeight: 1.1 }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 900, color: overallSuccessRate >= 80 ? '#4ade80' : overallSuccessRate >= 60 ? '#38bdf8' : '#fbbf24', lineHeight: 1.15, marginTop: 1 }}>
                   {overallSuccessRate >= 80 ? '🏆 Yüksek' : overallSuccessRate >= 60 ? '📈 İyi Seviye' : '⚡ Geliştirilmeli'}
                 </span>
               </div>
