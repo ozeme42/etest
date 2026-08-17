@@ -580,6 +580,104 @@ export default function StudentDashboard() {
     }).sort((a, b) => b.solvedCount - a.solvedCount);
   }, [selectedStudent, books, bookTests, submissions]);
 
+  /* ─── Son Çözülen 5 Test (Recent 5 Solved Tests) ─── */
+  const recentSolvedTests = useMemo(() => {
+    if (!selectedStudent) return [];
+    const studentIdStr = String(selectedStudent.id || '');
+    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
+
+    const solvedList = [];
+    const seenKeys = new Set();
+
+    // 1. From EvaluationContext Submissions
+    (submissions || []).forEach(sub => {
+      const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
+      if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+
+      const dateVal = sub.submittedAt || sub.createdAt || sub.updatedAt;
+      const testId = sub.testId || sub.bookTestId || sub.realTestId || sub.id;
+      const key = `${sub.id || testId}_${dateVal}`;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      const targetBook = (books || []).find(b => String(b.id) === String(sub.bookId));
+      const targetTest = (bookTests || []).find(t => String(t.id) === String(sub.bookTestId || sub.testId));
+
+      const subjObj = (targetBook?.subjects || []).find(s => String(s.id) === String(targetTest?.subjectId));
+      const cleanBookTitle = (targetBook?.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+      const title = sub.testTitle || targetTest?.name || sub.title || 'Test Çözümü';
+      const subject = subjObj?.name || sub.subject || targetBook?.subject || cleanBookTitle || 'Ders';
+
+      const qCount = sub.totalQuestions || targetTest?.questionCount || (Array.isArray(sub.questions) ? sub.questions.length : 20);
+      const cCount = sub.correctCount !== undefined ? sub.correctCount : (sub.score !== undefined ? sub.score : 0);
+      const wCount = sub.wrongCount !== undefined ? sub.wrongCount : 0;
+      const eCount = sub.emptyCount !== undefined ? sub.emptyCount : Math.max(0, qCount - (cCount + wCount));
+
+      const pct = qCount > 0 ? Math.round((cCount / qCount) * 100) : (typeof sub.score === 'number' ? sub.score : 0);
+
+      solvedList.push({
+        id: sub.id || testId,
+        testId: sub.testId || testId,
+        submissionId: sub.id,
+        title,
+        subject,
+        subTitle: cleanBookTitle && cleanBookTitle !== subject ? cleanBookTitle : null,
+        date: dateVal,
+        correctCount: cCount,
+        wrongCount: wCount,
+        emptyCount: eCount,
+        totalQuestions: qCount,
+        pct: Math.min(100, Math.max(0, pct)),
+        type: sub.type || (sub.bookTestId ? 'kitap' : 'test'),
+        isPhysical: sub.type === 'physicalExam' || sub.isPhysical
+      });
+    });
+
+    // 2. From Homeworks Submissions
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
+        if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+
+        const dateVal = sub.submittedAt || sub.createdAt || hw.createdAt;
+        const key = `hw_${hw.id}_${sub.id || dateVal}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Ödev').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+        const qCount = hw.totalQuestions || sub.totalQuestions || 20;
+        const cCount = sub.score !== undefined ? sub.score : (sub.correctCount || 0);
+        const wCount = sub.wrongCount || 0;
+        const eCount = Math.max(0, qCount - (cCount + wCount));
+        const pct = qCount > 0 ? Math.round((cCount / qCount) * 100) : 0;
+
+        solvedList.push({
+          id: sub.id || hw.id,
+          testId: hw.id,
+          submissionId: sub.id,
+          title: hw.title || 'Ödev Testi',
+          subject: hw.subject || cleanBookTitle || 'Ödev',
+          subTitle: cleanBookTitle && cleanBookTitle !== hw.subject ? cleanBookTitle : null,
+          date: dateVal,
+          correctCount: cCount,
+          wrongCount: wCount,
+          emptyCount: eCount,
+          totalQuestions: qCount,
+          pct: Math.min(100, Math.max(0, pct)),
+          type: hw.isBookAssignment ? 'kitap' : 'ödev',
+          isPhysical: hw.type === 'physicalExam' || hw.isPhysical
+        });
+      });
+    });
+
+    return solvedList
+      .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+      .slice(0, 5);
+  }, [selectedStudent, submissions, homeworks, books, bookTests]);
+
   /* ─── Pending Tasks ─── */
   const pendingTasks = useMemo(() => {
     const tTasks = tests.filter(t => t.status === 'Atandı').map(t => {
@@ -1247,16 +1345,10 @@ export default function StudentDashboard() {
       };
     });
 
-    const totalItemsCount = visualGoals.length + monthly.length + weekly.length + daily.length + (hasExamOrTarget ? 1 : 0);
+    const totalItemsCount = visualGoals.length + monthly.length + weekly.length + daily.length;
 
     return {
       hasAnyGoals: totalItemsCount > 0,
-      examType: customExam || examType,
-      school,
-      score,
-      net,
-      gradeTarget,
-      hasExamOrTarget,
       monthly,
       weekly,
       daily,
@@ -1942,6 +2034,177 @@ export default function StudentDashboard() {
               )}
             </div>
 
+            {/* 📊 BÖLÜM: SON ÇÖZÜLEN 5 TEST */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.14)',
+              borderRadius: 22,
+              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(16px)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                  }}>
+                    📝
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                      Son Çözülen Testler
+                    </h2>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                      Son tamamlanan 5 test ve başarı analizleriniz
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/student/results')}
+                  className="sd-btn"
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#a7f3d0',
+                    border: '1px solid rgba(52, 211, 153, 0.35)',
+                    borderRadius: 99,
+                    padding: '0.25rem 0.75rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <span>Tüm Sonuçlar</span>
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+
+              {recentSolvedTests.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📊</div>
+                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz tamamlanmış bir test bulunmuyor
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Kitap testlerinizi veya atanan ödevlerinizi çözdüğünüzde sonuçlarınız burada listelenecektir.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {recentSolvedTests.map((test, idx) => {
+                    const pctColor = test.pct >= 80 ? '#4ade80' : test.pct >= 60 ? '#fbbf24' : '#f87171';
+                    const pctBg = test.pct >= 80 ? 'rgba(5, 150, 105, 0.2)' : test.pct >= 60 ? 'rgba(217, 119, 6, 0.2)' : 'rgba(225, 29, 72, 0.2)';
+                    const pctBorder = test.pct >= 80 ? 'rgba(52, 211, 153, 0.35)' : test.pct >= 60 ? 'rgba(253, 186, 116, 0.35)' : 'rgba(253, 164, 175, 0.35)';
+
+                    return (
+                      <div
+                        key={test.id || idx}
+                        onClick={() => navigate('/student/results')}
+                        className="sd-card"
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          border: '1.5px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: 16,
+                          padding: '0.9rem 1.1rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.85rem',
+                          flexWrap: 'wrap',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {/* Sol Başlık ve Detaylar */}
+                        <div style={{ minWidth: 180, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                            <span style={{
+                              background: 'rgba(99, 102, 241, 0.2)',
+                              color: '#c7d2fe',
+                              border: '1px solid rgba(165, 180, 252, 0.3)',
+                              borderRadius: 6,
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              padding: '1px 6px'
+                            }}>
+                              {test.subject}
+                            </span>
+                            {test.date && (
+                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
+                                🕐 {new Date(test.date).toLocaleDateString('tr-TR')}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#ffffff', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                            {test.title}
+                          </div>
+                          {test.subTitle && (
+                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                              {test.subTitle}
+                            </div>
+                          )}
+
+                          {/* Doğru / Yanlış / Boş sayaçları */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: '0.72rem', fontWeight: 800 }}>
+                            <span style={{ color: '#4ade80', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              ✓ {test.correctCount} D
+                            </span>
+                            <span style={{ color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              ✗ {test.wrongCount} Y
+                            </span>
+                            {test.emptyCount > 0 && (
+                              <span style={{ color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                ○ {test.emptyCount} B
+                              </span>
+                            )}
+                            <span style={{ color: '#cbd5e1', opacity: 0.7 }}>
+                              • {test.totalQuestions} Soru
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Sağ Başarı Yüzdesi ve Buton */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                          <div style={{
+                            background: pctBg,
+                            border: `1.5px solid ${pctBorder}`,
+                            color: pctColor,
+                            padding: '0.4rem 0.75rem',
+                            borderRadius: 12,
+                            textAlign: 'center',
+                            minWidth: 54
+                          }}>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 900, lineHeight: 1 }}>
+                              %{test.pct}
+                            </div>
+                            <div style={{ fontSize: '0.58rem', fontWeight: 800, opacity: 0.9, marginTop: 2 }}>
+                              Başarı
+                            </div>
+                          </div>
+
+                          <span style={{ color: '#a5b4fc', display: 'flex', alignItems: 'center' }}>
+                            <ChevronRight size={16} />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* ──── SAĞ KOLON: KİTAPLARIM & HEDEFLERİM ──── */}
@@ -2138,49 +2401,7 @@ export default function StudentDashboard() {
                 </button>
               </div>
 
-              {/* 1. HEDEF SINAV / OKUL / BELGE AFİŞİ */}
-              {goalTrackingData.hasExamOrTarget && (
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(126, 34, 206, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%)',
-                  border: '1.5px solid rgba(192, 132, 252, 0.4)',
-                  borderRadius: 16,
-                  padding: '0.85rem 1rem',
-                  marginBottom: '0.85rem',
-                  boxShadow: '0 4px 16px rgba(126, 34, 206, 0.2)'
-                }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#d8b4fe', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
-                    🏛️ HEDEF SINAV & BELGE
-                  </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff', marginBottom: 6 }}>
-                    {goalTrackingData.examType || 'Hedef Sınav Belirlendi'}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    {goalTrackingData.school && (
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#a7f3d0', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(52, 211, 153, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
-                        🏫 {goalTrackingData.school}
-                      </span>
-                    )}
-                    {goalTrackingData.score && (
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fde047', background: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(250, 204, 21, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
-                        🎯 {goalTrackingData.score} Puan
-                      </span>
-                    )}
-                    {goalTrackingData.net && (
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#67e8f9', background: 'rgba(6, 182, 212, 0.2)', border: '1px solid rgba(103, 232, 249, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
-                        📈 {goalTrackingData.net} Net
-                      </span>
-                    )}
-                    {goalTrackingData.gradeTarget && (
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f472b6', background: 'rgba(236, 72, 153, 0.2)', border: '1px solid rgba(244, 114, 182, 0.35)', padding: '2px 8px', borderRadius: 8 }}>
-                        🎓 {goalTrackingData.gradeTarget}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* 2. GÖRSEL İLERLEME HEDEFLERİ (SORU, SAYFA, DAKİKA, KONU VB.) */}
+              {/* 1. GÖRSEL İLERLEME HEDEFLERİ (SORU, SAYFA, DAKİKA, KONU VB.) */}
               {goalTrackingData.visualGoals.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '0.85rem' }}>
                   {goalTrackingData.visualGoals.map(g => {
