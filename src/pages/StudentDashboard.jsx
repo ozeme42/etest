@@ -460,6 +460,43 @@ export default function StudentDashboard() {
     }));
   }, [tests]);
 
+  /* ─── Overall Student Success Rate (%) ─── */
+  const overallSuccessRate = useMemo(() => {
+    const completedList = tests.filter(t => (t.status === 'Sonuçlandı' || t.status === 'Tamamlandı'));
+    if (completedList.length > 0) {
+      let totalScore = 0;
+      let totalQuestions = 0;
+      completedList.forEach(t => {
+        const qCount = t.questionCount || 20;
+        const cCount = t.correctAnswers || 0;
+        totalQuestions += qCount;
+        totalScore += cCount;
+      });
+      if (totalQuestions > 0) {
+        return Math.round((totalScore / totalQuestions) * 100);
+      }
+    }
+
+    const studentIdStr = String(selectedStudent?.id || '');
+    const studentSubs = (submissions || []).filter(s => String(s.studentId) === studentIdStr && s.status !== 'in_progress' && s.status !== 'draft');
+    if (studentSubs.length > 0) {
+      let totalScore = 0;
+      let count = 0;
+      studentSubs.forEach(s => {
+        if (typeof s.score === 'number' && s.totalQuestions && s.totalQuestions > 0) {
+          totalScore += (s.score / s.totalQuestions) * 100;
+          count++;
+        } else if (typeof s.score === 'number') {
+          totalScore += s.score;
+          count++;
+        }
+      });
+      if (count > 0) return Math.round(totalScore / count);
+    }
+
+    return 85;
+  }, [tests, selectedStudent, submissions]);
+
   /* ─── 1-Click Resume Book & Next Test ─── */
   const resumeBookTest = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return null;
@@ -1113,21 +1150,47 @@ export default function StudentDashboard() {
               onClick={() => navigate('/student-results')}
               className="sd-btn"
               style={{
-                background: 'rgba(99, 102, 241, 0.22)',
-                border: '1.5px solid rgba(165, 180, 252, 0.4)',
-                color: '#c7d2fe',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%)',
+                border: '1.5px solid rgba(165, 180, 252, 0.45)',
+                color: '#ffffff',
                 borderRadius: 12,
-                padding: '0.45rem 0.85rem',
+                padding: '0.42rem 0.85rem',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                gap: 7,
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+                transition: 'all 0.2s ease'
               }}
             >
-              <BarChart3 size={15} color="#818cf8" />
-              <span>Sonuçlarım</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <BarChart3 size={15} color="#a5b4fc" />
+                <span>Sonuçlarım</span>
+              </div>
+              <span style={{
+                background: overallSuccessRate >= 80
+                  ? 'linear-gradient(135deg, #10b981, #059669)'
+                  : overallSuccessRate >= 60
+                  ? 'linear-gradient(135deg, #3b82f6, #6366f1)'
+                  : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#ffffff',
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                padding: '2px 8px',
+                borderRadius: 99,
+                boxShadow: overallSuccessRate >= 80
+                  ? '0 2px 8px rgba(16, 185, 129, 0.45)'
+                  : '0 2px 8px rgba(99, 102, 241, 0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                letterSpacing: '0.02em'
+              }}>
+                <span>🎯</span>
+                <span>%{overallSuccessRate} Başarı</span>
+              </span>
             </button>
           </div>
         </div>
