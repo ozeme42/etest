@@ -485,111 +485,205 @@ export default function StudentDashboard() {
     return [...tTasks].sort((a, b) => a.dueDateObj - b.dueDateObj);
   }, [tests, allQuestions]);
 
-  /* ─── Day-by-Day Schedule & Active Day Program ─── */
-  const dayProgramInfo = useMemo(() => {
-    const selectedDayObj = DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[0];
+  /* ─── Current Week Dates Mapping (Pzt -> Paz) ─── */
+  const weekInfo = useMemo(() => {
+    const now = new Date();
+    const currentDayIdx = now.getDay();
+    const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
+    const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff);
+
+    const dayDateMap = {};
+    DAYS_OF_WEEK.forEach((d, idx) => {
+      const dObj = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + idx);
+      const ymd = dObj.toISOString().split('T')[0];
+      dayDateMap[d.key] = {
+        key: d.key,
+        name: d.name,
+        short: d.short,
+        ymd,
+        time: dObj.getTime(),
+        dateLabel: `${dObj.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][dObj.getMonth()]}`
+      };
+    });
+
+    return { mondayDate, dayDateMap };
+  }, []);
+
+  /* ─── Fully Processed Weekly Program Items for all 7 Days ─── */
+  const fullProcessedWeekMap = useMemo(() => {
     const rawProg = coachingProfile?.weeklyProgram;
-    let manualItems = [];
+    const studentId = selectedStudent?.id;
+    const gradesList = curData?.grades || [];
+
+    const studentHomeworks = (homeworks || []).filter(hw => {
+      return isHomeworkForStudent(hw, selectedStudent, gradesList);
+    });
+
+    // 1. Gather all daily repeating tasks across the weekly program
+    const allDailyItems = [];
     if (Array.isArray(rawProg)) {
-      const foundProg = rawProg.find(r => r.day === selectedDayObj.key);
-      manualItems = (foundProg?.items || []).map(item => ({ ...item, isWeeklyProgItem: true }));
+      rawProg.forEach(dObj => {
+        (dObj.items || []).forEach(item => {
+          if ((item.repeatType === 'daily' || item.isDaily) && !allDailyItems.some(i => i.id === item.id)) {
+            allDailyItems.push({ ...item, isDaily: true });
+          }
+        });
+      });
     }
 
-    const studentId = selectedStudent?.id;
-    // Schedules from ScheduleContext
-    const scheduleItems = (schedules || []).filter(s => {
-      if (String(s.studentId) !== String(studentId)) return false;
-      return s.day === selectedDayObj.key || s.dayOfWeek === selectedDayObj.key || s.dayName === selectedDayObj.name || s.day === selectedDayObj.name;
-    }).map(s => ({
-      id: s.id,
-      title: s.title || s.subject || 'Ders Çalışması',
-      subject: s.subject || 'Çalışma Planı',
-      topic: s.topic || '',
-      time: s.time || '',
-      done: !!(s.done || s.completed),
-      isScheduleContextItem: true
-    }));
+    const resultMap = {};
 
-    const autoHwItems = [];
-    const now = new Date();
-    const todayYMD = now.toISOString().split('T')[0];
+    DAYS_OF_WEEK.forEach(dayMeta => {
+      const dayInfo = weekInfo.dayDateMap[dayMeta.key];
+      const dayYMD = dayInfo?.ymd || '';
+      const dayTime = dayInfo?.time || 0;
 
-    // Auto-populate homeworks and roadmaps for today
-    const isViewingToday = activeDayKey === todayDayKey;
+      // A) Manual items for this specific day
+      let dayManualItems = [];
+      if (Array.isArray(rawProg)) {
+        const found = rawProg.find(r => r.day === dayMeta.key);
+        if (found && Array.isArray(found.items)) {
+          dayManualItems = found.items.filter(item => {
+            if (item.createdYMD && dayYMD < item.createdYMD) return false;
+            if (item.repeatEndDate && dayYMD > item.repeatEndDate) return false;
+            return true;
+          }).map(item => ({ ...item, isWeeklyProgItem: true }));
+        }
+      }
 
-    if (isViewingToday) {
-      (homeworks || []).forEach(hw => {
-        const gradesList = curData?.grades || [];
-        if (!isHomeworkForStudent(hw, selectedStudent, gradesList)) return;
+      // B) Inject Daily Repeating Items if not already present
+      allDailyItems.forEach(dItem => {
+        if (dItem.createdYMD && dayYMD < dItem.createdYMD) return;
+        if (dItem.repeatEndDate && dayYMD > dItem.repeatEndDate) return;
+        if (!dayManualItems.some(i => i.id === dItem.id)) {
+          dayManualItems.push({ ...dItem, isWeeklyProgItem: true });
+        }
+      });
 
+      // C) Schedule Context Items (from useSchedule)
+      const scheduleItems = (schedules || []).filter(s => {
+        if (String(s.studentId) !== String(studentId)) return false;
+        return s.day === dayMeta.key || s.dayOfWeek === dayMeta.key || s.dayName === dayMeta.name || s.day === dayMeta.name || (s.date && s.date.split('T')[0] === dayYMD);
+      }).map(s => ({
+        id: s.id,
+        title: s.title || s.subject || 'Ders Çalışması',
+        subject: s.subject || 'Çalışma Planı',
+        topic: s.topic || '',
+        time: s.time || s.saat || '',
+        questionCount: s.questionCount ? `${s.questionCount} soru` : null,
+        done: !!(s.done || s.completed),
+        isScheduleContextItem: true
+      }));
+
+      // D) Auto Homeworks & Book Assignments for this day
+      const autoHwItems = [];
+
+      studentHomeworks.forEach(hw => {
         const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
-        if (isBook) {
-          const bookObj = books.find(b => String(b.id) === String(hw.bookId));
-          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+        const bookObj = books.find(b => String(b.id) === String(hw.bookId));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
-          if (hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
-            Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
-              if (!tDateStr) return;
-              const tYMD = tDateStr.split('T')[0];
-              if (todayYMD === tYMD) {
-                const tObj = bookTests.find(b => String(b.id) === String(testId));
-                const testName = tObj?.name || 'Test';
-                const qCount = tObj?.questionCount || 20;
+        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const tYMD = tDateStr.split('T')[0];
+            if (dayYMD === tYMD) {
+              const tObj = bookTests.find(b => String(b.id) === String(testId));
+              const testName = tObj?.name || 'Test';
+              const qCount = tObj?.questionCount || 20;
 
-                const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
-                const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
-                const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
-                const topicName = topicObj?.name || tObj?.topicName || '';
+              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
+              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
+              const topicName = topicObj?.name || tObj?.topicName || '';
 
-                const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
-                const displaySub = `${cleanBookTitle} — ${testName}`;
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
 
-                const tIdStr = String(testId);
-                const tUuidStr = String(toUUID(testId) || '');
+              const isSolved = submissions.some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+              );
 
-                const isSolved = submissions.some(s =>
-                  String(s.studentId) === String(studentId) &&
-                  s.status !== 'in_progress' && s.status !== 'draft' &&
-                  (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
-                );
+              const exists = dayManualItems.some(m => m.id === `book_test_${hw.id}_${testId}`);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `book_test_${hw.id}_${testId}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: 'kitap',
+                  subject: subjectName,
+                  unitTopic: topicName,
+                  bookTitle: cleanBookTitle,
+                  testName: testName,
+                  title: `${testName}${topicName ? ` (${topicName})` : ''}`,
+                  questionCount: `${qCount} soru`,
+                  time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                  done: isSolved
+                });
+              }
+            }
+          });
+          return;
+        }
 
-                if (isSolved) return;
+        const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
+        const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+        const startTime = startYMD ? new Date(startYMD).getTime() : null;
 
-                const existsInManual = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}`);
-                if (!existsInManual) {
-                  autoHwItems.push({
-                    id: `book_test_${hw.id}_${testId}`,
-                    hwId: hw.id,
-                    testId: testId,
-                    isAutoHomework: true,
-                    taskType: 'kitap',
-                    subject: subjectName,
-                    unitTopic: topicName,
-                    bookTitle: cleanBookTitle,
-                    testName: testName,
-                    title: `${testName}${topicName ? ` (${topicName})` : ''}`,
-                    questionCount: `${qCount} soru`,
-                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                    done: false
-                  });
-                }
+        const rawDue = hw.dueDate || hw.assignedDueDate;
+        const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
+        const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
+
+        let isForThisDay = false;
+        if (dueTime && startTime) {
+          isForThisDay = dayTime >= startTime && dayTime <= dueTime;
+        } else if (dueYMD) {
+          isForThisDay = dayYMD === dueYMD;
+        } else if (startTime) {
+          isForThisDay = dayTime === startTime;
+        }
+
+        if (isForThisDay) {
+          if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+            hw.tests.forEach((testId, idx) => {
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
+              const isTestSolved = submissions.some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+              );
+
+              const tObj = bookTests.find(b => String(b.id) === tIdStr);
+              const testTitle = tObj?.name || `Test ${idx + 1}`;
+              const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}` || m.hwId === hw.id);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `auto_hw_${hw.id}_${testId}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: isBook ? 'kitap' : 'ödev',
+                  subject: hw.subject || 'Atanan Kitap/Ödev',
+                  title: `${hw.title || 'Ödev'} — ${testTitle}`,
+                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+                  done: isTestSolved
+                });
               }
             });
             return;
           }
-        }
 
-        const rawDue = hw.dueDate || hw.assignedDueDate;
-        const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
-        const isDueToday = dueYMD === todayYMD;
-
-        if (isDueToday) {
           const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
             submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
-          if (sub) return;
+          const isDone = !!sub;
 
-          const existsInManual = manualItems.some(m => m.id === `auto_hw_${hw.id}` || m.hwId === hw.id);
-          if (!existsInManual) {
+          const exists = dayManualItems.some(m => m.id === `auto_hw_${hw.id}` || m.hwId === hw.id);
+          if (!exists) {
             autoHwItems.push({
               id: `auto_hw_${hw.id}`,
               hwId: hw.id,
@@ -598,14 +692,14 @@ export default function StudentDashboard() {
               subject: hw.subject || 'Atanan Ödev',
               title: hw.title || hw.name || 'Ödev Görevi',
               questionCount: hw.totalQuestions ? `${hw.totalQuestions} soru` : null,
-              time: 'Bugün Son',
-              done: false
+              time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+              done: isDone
             });
           }
         }
       });
 
-      // Study plan / roadmap topic milestones for today
+      // E) Roadmap Topic Milestones for this day
       (studyAssignments || []).filter(a => String(a.studentId) === String(studentId)).forEach(assignment => {
         if (assignment.status === 'completed' || assignment.status === 'done') return;
         const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
@@ -622,38 +716,57 @@ export default function StudentDashboard() {
           (subject.topics || []).forEach(topic => {
             if (topic.dueDate) {
               const tYMD = topic.dueDate.split('T')[0];
-              if (todayYMD === tYMD && !completedTopicsSet.has(String(topic.id)) && !completedTopicsSet.has(topic.name)) {
+              if (dayYMD === tYMD) {
+                const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
                 autoHwItems.push({
                   id: `roadmap_top_${assignment.id}_${topic.id}`,
                   roadmapAssignmentId: assignment.id,
                   isAutoHomework: true,
                   isRoadmapTask: true,
                   taskType: 'konu',
-                  subject: `${plan.title} • ${subject.name}`,
-                  topic: topic.name,
+                  subject: subject.name,
+                  bookTitle: plan.title,
+                  title: topic.name,
                   time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
-                  done: false
+                  done: isCompleted
                 });
               }
             }
           });
         });
       });
-    }
 
-    const allItems = [...autoHwItems, ...manualItems, ...scheduleItems];
-    const completedItems = allItems.filter(i => i.done);
+      const allItems = [...autoHwItems, ...dayManualItems, ...scheduleItems];
+      const completedItems = allItems.filter(i => i.done);
 
-    return {
-      dayName: selectedDayObj.name,
-      dayKey: selectedDayObj.key,
-      isToday: isViewingToday,
-      totalCount: allItems.length,
-      completedCount: completedItems.length,
-      items: allItems,
-      hasAllCompleted: allItems.length > 0 && completedItems.length === allItems.length
+      resultMap[dayMeta.key] = {
+        dayKey: dayMeta.key,
+        dayName: dayMeta.name,
+        short: dayMeta.short,
+        dateLabel: dayInfo?.dateLabel || '',
+        ymd: dayYMD,
+        isToday: dayMeta.key === todayDayKey,
+        items: allItems,
+        totalCount: allItems.length,
+        completedCount: completedItems.length,
+        hasAllCompleted: allItems.length > 0 && completedItems.length === allItems.length
+      };
+    });
+
+    return resultMap;
+  }, [coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
+
+  const dayProgramInfo = useMemo(() => {
+    return fullProcessedWeekMap[activeDayKey] || {
+      dayKey: activeDayKey,
+      dayName: 'Bugün',
+      isToday: activeDayKey === todayDayKey,
+      totalCount: 0,
+      completedCount: 0,
+      items: [],
+      hasAllCompleted: false
     };
-  }, [activeDayKey, todayDayKey, coachingProfile, homeworks, selectedStudent, curData, submissions, books, bookTests, schedules, studyAssignments, studyPlans]);
+  }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
 
   /* ─── Toggle Task Done Status ─── */
   const handleToggleTask = async (taskOrId) => {
@@ -688,17 +801,11 @@ export default function StudentDashboard() {
   /* ─── Task Count Per Day in Mini Navigator ─── */
   const weekTasksCountMap = useMemo(() => {
     const map = {};
-    const rawProg = coachingProfile?.weeklyProgram || [];
-    const studentId = selectedStudent?.id;
-
     DAYS_OF_WEEK.forEach(d => {
-      const found = rawProg.find(r => r.day === d.key);
-      const manualCount = found?.items?.length || 0;
-      const schedCount = (schedules || []).filter(s => String(s.studentId) === String(studentId) && (s.day === d.key || s.dayOfWeek === d.key || s.dayName === d.name || s.day === d.name)).length;
-      map[d.key] = manualCount + schedCount;
+      map[d.key] = fullProcessedWeekMap[d.key]?.totalCount || 0;
     });
     return map;
-  }, [coachingProfile, schedules, selectedStudent]);
+  }, [fullProcessedWeekMap]);
 
   const completedCount = tests.filter(t => t.status === 'Sonuçlandı').length;
   const overdueCount = pendingTasks.filter(t => isPast(t.dueDateObj) && !isToday(t.dueDateObj)).length;
