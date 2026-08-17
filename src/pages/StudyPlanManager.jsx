@@ -8,8 +8,7 @@ import {
   FileText, CheckCircle, Search, Sparkles, BookOpen, Users, 
   Calendar, Clock, Check, X, ShieldCheck, Zap, Compass, Filter, 
   ArrowUpRight, BookmarkCheck, Award, Eye, Flame, Share2
-} from 'lucide-react';
-import './StudyPlan.css';
+import './StudyPlanManager.css';
 
 // Curated Ready-Made Templates for Teachers
 const PRESET_TEMPLATES = [
@@ -207,15 +206,37 @@ export default function StudyPlanManager() {
     addStudyAssignment
   } = useStudyPlan();
 
-  const isTeacher = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
+  const isTeacher = currentUser?.role === 'teacher';
+  const isAdmin = currentUser?.role === 'admin';
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
-  // Filter study plans by teacher if applicable
+  // Filter study plans so a teacher ONLY sees study plans they added / created themselves
   const studyPlans = useMemo(() => {
     const plans = allStudyPlans || [];
-    if (!isTeacher || !currentUser?.id) return plans;
-    return plans.filter(p => p.createdBy === currentUser.id || p.teacherId === currentUser.id || !p.createdBy);
-  }, [allStudyPlans, isTeacher, currentUser]);
+    if (isAdmin) return plans; // Admin can see all plans
+    if (isTeacher) {
+      const teacherId = String(currentUser?.id || '');
+      const teacherUsername = String(currentUser?.username || '').toLowerCase();
+      const teacherEmail = String(currentUser?.email || '').toLowerCase();
+      const teacherName = String(currentUser?.name || '').toLowerCase();
+
+      return plans.filter(p => {
+        const createdBy = String(p.createdBy || '');
+        const pTeacherId = String(p.teacherId || '');
+        const pTeacherUsername = String(p.teacherUsername || '').toLowerCase();
+        const pTeacherName = String(p.teacherName || '').toLowerCase();
+        const pTeacherEmail = String(p.teacherEmail || '').toLowerCase();
+
+        return (
+          (teacherId && (createdBy === teacherId || pTeacherId === teacherId)) ||
+          (teacherUsername && (createdBy.toLowerCase() === teacherUsername || pTeacherUsername === teacherUsername || pTeacherId.toLowerCase() === teacherUsername)) ||
+          (teacherEmail && (pTeacherEmail === teacherEmail || createdBy.toLowerCase() === teacherEmail)) ||
+          (teacherName && (pTeacherName === teacherName))
+        );
+      });
+    }
+    return plans;
+  }, [allStudyPlans, isTeacher, isAdmin, currentUser]);
 
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
@@ -251,8 +272,9 @@ export default function StudyPlanManager() {
   }, [studyPlans]);
 
   const totalAssignedCount = useMemo(() => {
-    return (studyAssignments || []).length;
-  }, [studyAssignments]);
+    const myPlanIds = new Set(studyPlans.map(p => String(p.id)));
+    return (studyAssignments || []).filter(a => myPlanIds.has(String(a.planId || a.studyPlanId))).length;
+  }, [studyAssignments, studyPlans]);
 
   // Filtered Plans
   const filteredPlans = useMemo(() => {
@@ -276,8 +298,11 @@ export default function StudyPlanManager() {
       title: newTitle.trim(),
       description: newDescription.trim(),
       subjects: [],
-      createdBy: currentUser?.id,
-      teacherId: currentUser?.id
+      createdBy: currentUser?.id || currentUser?.username,
+      teacherId: currentUser?.id || currentUser?.username,
+      teacherUsername: currentUser?.username,
+      teacherName: currentUser?.name || currentUser?.username,
+      teacherEmail: currentUser?.email
     });
 
     setIsAddModalOpen(false);
@@ -293,10 +318,14 @@ export default function StudyPlanManager() {
   const handleLoadTemplate = async (template) => {
     const created = await addStudyPlan({
       title: template.title,
-      description: template.desc,
+      description: template.desc || template.description,
+      category: template.category,
       subjects: template.subjects,
-      createdBy: currentUser?.id,
-      teacherId: currentUser?.id
+      createdBy: currentUser?.id || currentUser?.username,
+      teacherId: currentUser?.id || currentUser?.username,
+      teacherUsername: currentUser?.username,
+      teacherName: currentUser?.name || currentUser?.username,
+      teacherEmail: currentUser?.email
     });
 
     showToast(`"${template.title}" şablonu başarıyla yüklendi! 🚀`);
@@ -343,6 +372,9 @@ export default function StudyPlanManager() {
         studentId,
         planId: targetPlanForAssign.id,
         studyPlanId: targetPlanForAssign.id,
+        teacherId: currentUser?.id || currentUser?.username,
+        teacherUsername: currentUser?.username,
+        teacherName: currentUser?.name || currentUser?.username,
         completedTopics: []
       });
     }
@@ -383,8 +415,8 @@ export default function StudyPlanManager() {
       )}
 
       {/* ── TOP HERO HEADER ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="study-header-card">
+        <div className="study-header-left">
           <button 
             onClick={() => navigate(-1)}
             style={{
@@ -421,31 +453,17 @@ export default function StudyPlanManager() {
         </div>
 
         {/* Top Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="study-header-actions">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            style={{
-              padding: '0.75rem 1.4rem',
-              borderRadius: '1rem',
-              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 900,
-              fontSize: '0.92rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.35)',
-              transition: 'transform 0.2s, box-shadow 0.2s'
-            }}
+            className="study-btn-add-main"
           >
             <Plus size={18} /> Yeni Yol Haritası Ekle
           </button>
         </div>
       </div>
 
-      {/* ── 4 LIVE KPI HERO CARDS ── */}
+      {/* ── 4 LIVE KPI HERO CARDS (2x2 ON MOBILE) ── */}
       <div className="study-kpi-grid">
         <div className="study-kpi-card">
           <div className="study-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(79,70,229,0.35))', color: '#818cf8', border: '1px solid rgba(165,180,252,0.3)' }}>
@@ -489,7 +507,7 @@ export default function StudyPlanManager() {
       </div>
 
       {/* ── SEARCH & READY PRESETS BAR ── */}
-      <div className="study-glass-card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="study-glass-card study-search-presets-bar">
         
         {/* Search Box */}
         <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '450px' }}>
@@ -522,7 +540,7 @@ export default function StudyPlanManager() {
         </div>
 
         {/* Quick Ready-Made Templates Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className="study-presets-container">
           <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#c7d2fe', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Sparkles size={16} style={{ color: '#fbbf24' }} /> Hazır Şablon Yükle:
           </span>
@@ -555,7 +573,7 @@ export default function StudyPlanManager() {
 
       {/* ── ROADMAPS GRID ── */}
       {filteredPlans.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
+        <div className="study-roadmaps-grid">
           {filteredPlans.map(plan => {
             const planSubjects = plan.subjects || [];
             const planTopicsCount = planSubjects.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
@@ -642,7 +660,7 @@ export default function StudyPlanManager() {
                 </div>
 
                 {/* Card Actions Footer */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+                <div className="roadmap-card-actions">
                   <button
                     onClick={() => openQuickAssign(plan)}
                     style={{

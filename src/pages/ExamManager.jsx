@@ -12,6 +12,7 @@ import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useNavigate } from 'react-router-dom';
+import './ExamManager.css';
 
 const EXAM_PRESETS = {
   LGS: {
@@ -469,36 +470,11 @@ export default function ExamManager() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      width: '100%',
-      maxWidth: '100%',
-      margin: 0,
-      padding: '1.25rem 1.5rem 5rem 1.5rem',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#f8fafc',
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.25rem'
-    }}>
+    <div className="exam-manager-page">
 
       {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
-      <header style={{
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%)',
-        border: '1.5px solid rgba(255, 255, 255, 0.18)',
-        borderRadius: '1.5rem',
-        padding: '1.25rem 1.75rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(20px)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+      <header className="exam-hero-header">
+        <div className="exam-header-left">
           <button
             onClick={() => {
               if (showAddForm) setShowAddForm(false);
@@ -536,7 +512,7 @@ export default function ExamManager() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+        <div className="exam-header-actions">
           {!showAddForm ? (
             <>
               <button
@@ -583,16 +559,10 @@ export default function ExamManager() {
         </div>
       </header>
 
-      {/* ══════════ 4 LIVE KPI METRIC CARDS ══════════ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-          border: '1.5px solid rgba(56, 189, 248, 0.35)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
-        }}>
-          <div style={{ width: 46, height: 46, borderRadius: '0.85rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      {/* ══════════ 4 LIVE KPI METRIC CARDS (2x2 ON MOBILE) ══════════ */}
+      <div className="exam-kpi-grid">
+        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(56, 189, 248, 0.35)' }}>
+          <div className="exam-kpi-icon" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
             <FileSpreadsheet size={24} />
           </div>
           <div>
@@ -602,14 +572,8 @@ export default function ExamManager() {
           </div>
         </div>
 
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-          border: '1.5px solid rgba(52, 211, 153, 0.35)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
-        }}>
-          <div style={{ width: 46, height: 46, borderRadius: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(52, 211, 153, 0.35)' }}>
+          <div className="exam-kpi-icon" style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34d399' }}>
             <Layers size={24} />
           </div>
           <div>
@@ -619,14 +583,8 @@ export default function ExamManager() {
           </div>
         </div>
 
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-          border: '1.5px solid rgba(251, 191, 36, 0.35)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
-        }}>
-          <div style={{ width: 46, height: 46, borderRadius: '0.85rem', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(251, 191, 36, 0.35)' }}>
+          <div className="exam-kpi-icon" style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24' }}>
             <Award size={24} />
           </div>
           <div>
@@ -636,14 +594,8 @@ export default function ExamManager() {
           </div>
         </div>
 
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-          border: '1.5px solid rgba(192, 132, 252, 0.35)',
-          borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', gap: '1rem',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
-        }}>
-          <div style={{ width: 46, height: 46, borderRadius: '0.85rem', background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(192, 132, 252, 0.35)' }}>
+          <div className="exam-kpi-icon" style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc' }}>
             <CheckCircle2 size={24} />
           </div>
           <div>
@@ -659,13 +611,7 @@ export default function ExamManager() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {/* SEARCH & FILTER BAR */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-            border: '1.5px solid rgba(255, 255, 255, 0.14)',
-            borderRadius: '1.25rem', padding: '1rem 1.25rem',
-            display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)'
-          }}>
+          <div className="exam-filter-bar">
             <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
               <Search size={16} color="rgba(255,255,255,0.4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <input
@@ -697,13 +643,7 @@ export default function ExamManager() {
           </div>
 
           {/* EXAMS GRID */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-            border: '1.5px solid rgba(255, 255, 255, 0.14)',
-            borderRadius: '1.5rem', padding: '1.5rem',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)',
-            display: 'flex', flexDirection: 'column', gap: '1.25rem'
-          }}>
+          <div className="exam-pool-container">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem' }}>
               <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Layers size={20} color="#818cf8" />
@@ -751,19 +691,9 @@ export default function ExamManager() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+              <div className="exam-cards-grid">
                 {filteredExams.map(m => (
-                  <div key={m.id} style={{
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1.5px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '1.25rem', padding: '1.25rem',
-                    display: 'flex', flexDirection: 'column', gap: '0.85rem',
-                    transition: 'transform 0.15s ease, border-color 0.15s ease',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; }}
-                  >
+                  <div key={m.id} className="exam-card-item">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -860,14 +790,15 @@ export default function ExamManager() {
               <Layers size={18} color="#818cf8" /> Sınav Formatı Seçimi
             </h3>
 
-            {/* PRESET SELECTOR */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+            {/* PRESET SELECTOR (2x2 ON MOBILE) */}
+            <div className="exam-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
               {Object.keys(EXAM_PRESETS).map(key => {
                 const isSel = examType === key;
                 return (
                   <button
                     key={key}
                     onClick={() => handleExamTypeChange(key)}
+                    className="exam-preset-btn"
                     style={{
                       padding: '0.85rem 1rem', borderRadius: '1rem',
                       border: isSel ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.1)',

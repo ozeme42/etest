@@ -6,7 +6,7 @@ import {
   Search, Calendar, Layers, BarChart3, TrendingUp, Target,
   UserCheck, Sparkles, UserPlus, Eye, CheckCircle2, Flame,
   BookMarked, Star, Award, Zap, ArrowRight, Bell, Map, Key,
-  Check, Trash2, ArrowUpRight
+  Check, Trash2, ArrowUpRight, ShieldAlert, School
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -15,6 +15,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import './TeacherDashboard.css';
 
 /* ─────────────────────────────────────────
    Helpers & Color Maps
@@ -65,30 +66,14 @@ function Avatar({ name, index, size = 36 }) {
 
 function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border }) {
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)',
-      border: `1.5px solid ${border || 'rgba(255,255,255,0.14)'}`,
-      borderRadius: '1.25rem',
-      padding: '1rem 1.25rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem',
-      backdropFilter: 'blur(16px)',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
-    }}>
-      <div style={{
-        width: 46, height: 46, borderRadius: '0.85rem',
-        background: bg || 'rgba(99, 102, 241, 0.15)',
-        color: color || '#818cf8',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0
-      }}>
+    <div className="stat-hero-card" style={{ borderColor: border || 'rgba(255,255,255,0.14)' }}>
+      <div className="stat-hero-icon" style={{ background: bg || 'rgba(99, 102, 241, 0.15)', color: color || '#818cf8' }}>
         <Icon size={24} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{label}</span>
-        <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{value}</span>
-        {sub && <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>{sub}</span>}
+        <span className="stat-hero-label">{label}</span>
+        <span className="stat-hero-value">{value}</span>
+        {sub && <span className="stat-hero-sub">{sub}</span>}
       </div>
     </div>
   );
@@ -96,29 +81,13 @@ function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border }) {
 
 function QuickAction({ icon: Icon, label, sub, grad, shadow, onClick }) {
   return (
-    <button onClick={onClick} style={{
-      background: grad,
-      borderRadius: '1.15rem',
-      padding: '1rem 1.15rem',
-      border: '1.5px solid rgba(255,255,255,0.2)',
-      cursor: 'pointer',
-      display: 'flex', alignItems: 'center', gap: '0.75rem',
-      color: '#fff',
-      boxShadow: shadow,
-      transition: 'transform 0.15s, box-shadow 0.15s',
-      textAlign: 'left',
-      width: '100%',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
-      onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-    >
-      <div style={{ width: 40, height: 40, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <button onClick={onClick} className="quick-action-btn" style={{ background: grad, boxShadow: shadow }}>
+      <div className="quick-action-icon">
         <Icon size={20} />
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <p style={{ fontWeight: 900, fontSize: '0.88rem', margin: 0, lineHeight: 1.2 }}>{label}</p>
-        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.75)', margin: '0.15rem 0 0', fontWeight: 600 }}>{sub}</p>
+        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', margin: '0.15rem 0 0', fontWeight: 600 }}>{sub}</p>
       </div>
       <ChevronRight size={16} style={{ opacity: 0.7, flexShrink: 0 }} />
     </button>
@@ -342,6 +311,7 @@ export default function TeacherDashboard() {
     { icon: Plus,      label: 'Test Oluştur',    sub: 'Soru bankasından test',   grad: 'linear-gradient(135deg,#4f46e5,#6366f1)', shadow: '0 6px 20px rgba(99,102,241,0.35)',  onClick: () => { resetForm(); setShowModal(true); } },
     { icon: BookOpen,  label: 'Ödev Ver',         sub: 'Öğrencilere ödev ata',    grad: 'linear-gradient(135deg,#d97706,#f59e0b)', shadow: '0 6px 20px rgba(245,158,11,0.35)',  onClick: () => navigate('/homeworks') },
     { icon: Layers,    label: 'Soru Bankası',     sub: 'Sorularını yönet',        grad: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', shadow: '0 6px 20px rgba(139,92,246,0.35)',  onClick: () => navigate('/questions') },
+    { icon: BookMarked, label: 'Müfredat Özetleri', sub: 'Konu anlatımı & özet', grad: 'linear-gradient(135deg,#0284c7,#0369a1)', shadow: '0 6px 20px rgba(2,132,199,0.35)', onClick: () => navigate('/summaries') },
     { icon: BarChart3, label: 'İstatistikler',    sub: 'Analiz & raporlar',       grad: 'linear-gradient(135deg,#e11d48,#f43f5e)', shadow: '0 6px 20px rgba(244,63,94,0.35)',  onClick: () => navigate('/statistics') },
   ];
 
@@ -364,76 +334,34 @@ export default function TeacherDashboard() {
   );
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#f8fafc',
-      padding: '1.25rem 1rem 5rem 1rem',
-      boxSizing: 'border-box'
-    }}>
-      <div style={{ width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="teacher-dashboard-container">
+      <div className="teacher-main-wrapper">
 
-        {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%)',
-          border: '1.5px solid rgba(255, 255, 255, 0.18)',
-          borderRadius: '1.5rem',
-          padding: '1.25rem 1.75rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(20px)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: '1rem',
-              background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 18px rgba(99,102,241,0.45)',
-              border: '2px solid rgba(255,255,255,0.25)',
-              flexShrink: 0
-            }}>
+        {/* ══════════ TOP HERO HEADER ══════════ */}
+        <div className="teacher-hero-header">
+          <div className="teacher-profile-group">
+            <div className="teacher-avatar-icon">
               <GraduationCap size={26} color="#fff" />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Öğretmen Paneli</span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.35)', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-                  PRO DESK
-                </span>
+            <div className="teacher-info-text">
+              <div className="teacher-badge-row">
+                <span className="teacher-badge-label">Öğretmen Paneli</span>
+                <span className="teacher-pro-pill">PRO DESK</span>
               </div>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', margin: '2px 0 0', lineHeight: 1.2 }}>
-                {currentUser?.name || 'Öğretmen'}
-              </h1>
+              <h1>{currentUser?.name || 'Öğretmen'}</h1>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div className="teacher-header-actions">
             <button
               onClick={() => { if (!newStudentGrade && data?.grades?.[0]?.id) setNewStudentGrade(data.grades[0].id); setShowAddStudentModal(true); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '0.55rem 1.1rem', borderRadius: '0.75rem',
-                background: 'linear-gradient(135deg,#059669,#10b981)',
-                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
-              }}
+              className="btn-header-add-student"
             >
               <UserPlus size={15} /> Öğrenci Ekle
             </button>
             <button
               onClick={() => { resetForm(); setShowModal(true); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '0.55rem 1.1rem', borderRadius: '0.75rem',
-                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.35)'
-              }}
+              className="btn-header-create-test"
             >
               <Plus size={15} /> Test Oluştur
             </button>
@@ -441,7 +369,7 @@ export default function TeacherDashboard() {
         </div>
 
         {/* ══════════ 4 TOP KPI METRIC CARDS ══════════ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <div className="teacher-stats-grid">
           <StatHeroCard icon={Users}          label="Sınıfımdaki Öğrenciler" value={`${students.length} Öğrenci`} sub="Aktif sınıf kaydı" color="#38bdf8" bg="rgba(56, 189, 248, 0.15)" border="rgba(56, 189, 248, 0.35)" />
           <StatHeroCard icon={BookOpen}       label="Verilen Ödevler"        value={`${teacherHomeworks.length} Ödev`} sub="Atanan ödevler" color="#fbbf24" bg="rgba(251, 191, 36, 0.15)" border="rgba(251, 191, 36, 0.35)" />
           <StatHeroCard icon={ClipboardCheck} label="Çözülen Sınavlar"       value={`${teacherSubmissions.length} Kağıt`} sub="Öğrenci yanıtı" color="#34d399" bg="rgba(52, 211, 153, 0.15)" border="rgba(52, 211, 153, 0.35)" />
@@ -449,19 +377,14 @@ export default function TeacherDashboard() {
         </div>
 
         {/* ══════════ QUICK ACTIONS GRID ══════════ */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem' }}>
+        <section className="teacher-quick-actions-grid">
           {quickActions.map(qa => (
             <QuickAction key={qa.label} {...qa} />
           ))}
         </section>
 
         {/* ══════════ TAB BAR ══════════ */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          background: 'rgba(15, 23, 42, 0.85)', padding: '0.45rem',
-          borderRadius: '1.25rem', border: '1.5px solid rgba(255, 255, 255, 0.12)',
-          backdropFilter: 'blur(16px)', overflowX: 'auto'
-        }}>
+        <div className="teacher-tab-bar custom-scrollbar">
           {tabs.map(t => (
             <PillTab key={t.id} {...t} active={tab === t.id} onClick={setTab} />
           ))}
@@ -469,18 +392,12 @@ export default function TeacherDashboard() {
 
         {/* ══════════ TAB: OVERVIEW ══════════ */}
         {tab === 'overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+          <div className="teacher-overview-grid">
 
             {/* Recent Activity */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-              border: '1.5px solid rgba(52, 211, 153, 0.35)',
-              borderRadius: '1.25rem', padding: '1.25rem',
-              display: 'flex', flexDirection: 'column', gap: '1rem',
-              boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="overview-card-box" style={{ border: '1.5px solid rgba(52, 211, 153, 0.35)' }}>
+              <div className="overview-card-header">
+                <h3>
                   <Activity size={18} color="#34d399" /> Son Öğrenci Aktiviteleri
                 </h3>
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>{recentSubs.length} kayıt</span>
@@ -532,15 +449,9 @@ export default function TeacherDashboard() {
             </div>
 
             {/* Student Leaderboard */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-              border: '1.5px solid rgba(251, 191, 36, 0.35)',
-              borderRadius: '1.25rem', padding: '1.25rem',
-              display: 'flex', flexDirection: 'column', gap: '1rem',
-              boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="overview-card-box" style={{ border: '1.5px solid rgba(251, 191, 36, 0.35)' }}>
+              <div className="overview-card-header">
+                <h3>
                   <Award size={18} color="#fbbf24" /> Öğrenci Başarı Sıralaması
                 </h3>
                 <button onClick={() => setTab('students')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -579,15 +490,9 @@ export default function TeacherDashboard() {
             </div>
 
             {/* Upcoming Homeworks */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-              border: '1.5px solid rgba(99, 102, 241, 0.35)',
-              borderRadius: '1.25rem', padding: '1.25rem',
-              gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '1rem',
-              boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.65rem' }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="overview-card-box" style={{ border: '1.5px solid rgba(99, 102, 241, 0.35)', gridColumn: '1 / -1' }}>
+              <div className="overview-card-header">
+                <h3>
                   <Calendar size={18} color="#818cf8" /> Yaklaşan Ödev Teslimleri
                 </h3>
                 <button onClick={() => navigate('/homeworks')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#818cf8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -639,13 +544,7 @@ export default function TeacherDashboard() {
 
             {/* Grade Distribution */}
             {data.grades.length > 0 && (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.14)',
-                borderRadius: '1.25rem', padding: '1.25rem',
-                gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '1rem',
-                boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)'
-              }}>
+              <div className="overview-card-box" style={{ border: '1.5px solid rgba(255, 255, 255, 0.14)', gridColumn: '1 / -1' }}>
                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <GraduationCap size={18} color="#818cf8" /> Sınıf Bazında Öğrenci Dağılımı
                 </h3>
@@ -805,39 +704,127 @@ export default function TeacherDashboard() {
                 </button>
               </div>
             ) : (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.14)',
-                borderRadius: '1.25rem', boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
-                backdropFilter: 'blur(20px)', overflowX: 'auto', padding: 0
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1.5px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta / Kullanıcı Adı</th>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Sınav</th>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Koçluk</th>
-                      <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((student, i) => {
-                      const solved = submissions.filter(s => s.studentId === student.id).length;
-                      const isCoached = coachedIds.includes(student.id);
-                      const gObj = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
-                                || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
-                      return (
-                        <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', transition: 'background 0.15s' }}>
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                              <Avatar name={student.name} index={i} size={34} />
-                              <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.88rem' }}>{student.name}</span>
+              <>
+                {/* ── 1. DESKTOP TABLE VIEW ── */}
+                <div className="teacher-students-desktop-table" style={{
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.14)',
+                  borderRadius: '1.25rem', boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
+                  backdropFilter: 'blur(20px)', overflowX: 'auto', padding: 0
+                }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '850px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1.5px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci</th>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta / Kullanıcı Adı</th>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Çözülen Sınav</th>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center' }}>Koçluk</th>
+                        <th style={{ padding: '1rem', color: 'rgba(255,255,255,0.65)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>İşlemler</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((student, i) => {
+                        const solved = submissions.filter(s => s.studentId === student.id).length;
+                        const isCoached = coachedIds.includes(student.id);
+                        const gObj = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
+                                  || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
+                        return (
+                          <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', transition: 'background 0.15s' }}>
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <Avatar name={student.name} index={i} size={34} />
+                                <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.88rem' }}>{student.name}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <select
+                                value={gObj ? gObj.id : (student.gradeId || '')}
+                                onChange={async (e) => {
+                                  const gId = e.target.value;
+                                  const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name || gId;
+                                  await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
+                                }}
+                                style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid rgba(56, 189, 248, 0.4)', background: 'rgba(56, 189, 248, 0.15)', color: '#7dd3fc', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', outline: 'none' }}
+                              >
+                                <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>— Sınıf Seçiniz</option>
+                                {data.grades.map(g => <option key={g.id} value={g.id} style={{ background: '#0f172a', color: '#ffffff' }}>{g.name}</option>)}
+                              </select>
+                            </td>
+                            <td style={{ padding: '0.85rem 1rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', fontWeight: 600 }}>{student.email}</td>
+                            <td style={{ padding: '0.85rem 1rem' }}>
+                              <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.45rem', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Key size={11} /> {student.password || '123456'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center', fontWeight: 900, color: solved > 0 ? '#34d399' : 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>{solved}</td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                              {isCoached ? (
+                                <span style={{ padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(192, 132, 252, 0.2)', color: '#c084fc', border: '1px solid rgba(192, 132, 252, 0.35)', fontWeight: 800, fontSize: '0.7rem' }}>🎯 Koçlukta</span>
+                              ) : (
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                              <button
+                                onClick={() => openEditStudentModal(student)}
+                                style={{
+                                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                  borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
+                                  fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
+                                  display: 'inline-flex', alignItems: 'center', gap: 4
+                                }}
+                              >
+                                <Edit2 size={12} /> Düzenle
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ── 2. MOBILE CARD VIEW (SUPER SLEEK ON PHONES) ── */}
+                <div className="teacher-students-mobile-list">
+                  {students.map((student, i) => {
+                    const solved = submissions.filter(s => s.studentId === student.id).length;
+                    const isCoached = coachedIds.includes(student.id);
+                    const gObj = data?.grades?.find(g => String(g.id) === String(student.gradeId) || String(g.id) === String(student.classId))
+                              || data?.grades?.find(g => g.name === student.gradeId || g.name === student.grade || g.name === student.className);
+                    return (
+                      <div key={student.id} className="student-mobile-card">
+                        <div className="student-mobile-top-row">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                            <Avatar name={student.name} index={i} size={40} />
+                            <div style={{ minWidth: 0 }}>
+                              <h4 style={{ margin: 0, fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {student.name}
+                              </h4>
+                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {student.email}
+                              </p>
                             </div>
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem' }}>
+                          </div>
+
+                          <button
+                            onClick={() => openEditStudentModal(student)}
+                            style={{
+                              background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(165,180,252,0.35)',
+                              borderRadius: '0.65rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
+                              fontWeight: 800, fontSize: '0.75rem', color: '#c7d2fe',
+                              display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0
+                            }}
+                          >
+                            <Edit2 size={12} /> Düzenle
+                          </button>
+                        </div>
+
+                        {/* Meta Grid */}
+                        <div className="student-mobile-meta-grid">
+                          <div className="student-meta-item">
+                            <span className="student-meta-label">Sınıfı</span>
                             <select
                               value={gObj ? gObj.id : (student.gradeId || '')}
                               onChange={async (e) => {
@@ -845,45 +832,48 @@ export default function TeacherDashboard() {
                                 const gName = data?.grades?.find(g => String(g.id) === String(gId))?.name || gId;
                                 await updateUser(student.id, { gradeId: gId, classId: gId, grade: gName, className: gName });
                               }}
-                              style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid rgba(56, 189, 248, 0.4)', background: 'rgba(56, 189, 248, 0.15)', color: '#7dd3fc', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', outline: 'none' }}
+                              style={{ padding: '0.3rem 0.5rem', borderRadius: '0.5rem', border: '1px solid rgba(56, 189, 248, 0.4)', background: 'rgba(56, 189, 248, 0.15)', color: '#7dd3fc', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', outline: 'none', width: '100%' }}
                             >
-                              <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>— Sınıf Seçiniz</option>
+                              <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>— Seçiniz</option>
                               {data.grades.map(g => <option key={g.id} value={g.id} style={{ background: '#0f172a', color: '#ffffff' }}>{g.name}</option>)}
                             </select>
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', fontWeight: 600 }}>{student.email}</td>
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                            <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.45rem', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          </div>
+
+                          <div className="student-meta-item">
+                            <span className="student-meta-label">Giriş Şifresi</span>
+                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.45rem', background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
                               <Key size={11} /> {student.password || '123456'}
                             </span>
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem', textAlign: 'center', fontWeight: 900, color: solved > 0 ? '#34d399' : 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>{solved}</td>
-                          <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                          </div>
+
+                          <div className="student-meta-item">
+                            <span className="student-meta-label">Çözülen Sınav</span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: solved > 0 ? '#34d399' : 'rgba(255,255,255,0.4)' }}>
+                              {solved} adet
+                            </span>
+                          </div>
+
+                          <div className="student-meta-item">
+                            <span className="student-meta-label">Koçluk Durumu</span>
                             {isCoached ? (
-                              <span style={{ padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(192, 132, 252, 0.2)', color: '#c084fc', border: '1px solid rgba(192, 132, 252, 0.35)', fontWeight: 800, fontSize: '0.7rem' }}>🎯 Koçlukta</span>
+                              <span style={{ padding: '0.15rem 0.55rem', borderRadius: 99, background: 'rgba(192, 132, 252, 0.25)', color: '#c084fc', border: '1px solid rgba(192, 132, 252, 0.4)', fontWeight: 900, fontSize: '0.68rem', width: 'fit-content' }}>
+                                🎯 Koçlukta
+                              </span>
                             ) : (
-                              <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>—</span>
+                              <button
+                                onClick={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', student.id)}
+                                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)', borderRadius: 99, padding: '0.15rem 0.55rem', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', width: 'fit-content' }}
+                              >
+                                + Koçluğa Ekle
+                              </button>
                             )}
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                            <button
-                              onClick={() => openEditStudentModal(student)}
-                              style={{
-                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                                borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                                fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
-                                display: 'inline-flex', alignItems: 'center', gap: 4
-                              }}
-                            >
-                              <Edit2 size={12} /> Düzenle
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         )}

@@ -1,5 +1,6 @@
 /* Luminous Cosmic Aurora Glassmorphism Design Tokens for Study Plans Suite */
-.study-plans-page-container {
+.study-plans-page-container,
+.study-plan-container {
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
@@ -15,6 +16,9 @@
   background-attachment: fixed;
   color: #f8fafc;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 /* Glass Card */
@@ -36,19 +40,24 @@
 /* KPI Grid */
 .study-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .study-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
 }
 
 .study-kpi-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: 1.15rem;
-  padding: 1.25rem 1.4rem;
+  padding: 1.15rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 1.15rem;
+  gap: 1rem;
   backdrop-filter: blur(16px);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -60,9 +69,9 @@
 }
 
 .study-kpi-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 1rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -70,7 +79,7 @@
 }
 
 .study-kpi-val {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 900;
   line-height: 1.1;
   color: #ffffff;
@@ -78,18 +87,19 @@
 }
 
 .study-kpi-lbl {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.7);
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 /* Roadmap Grid */
-.roadmap-grid {
+.roadmap-grid,
+.study-roadmaps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1.25rem;
 }
 
@@ -97,7 +107,7 @@
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.18);
   border-radius: 1.25rem;
-  padding: 1.5rem;
+  padding: 1.4rem;
   backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
@@ -129,4 +139,50 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 768px) {
+  .study-plans-page-container,
+  .study-plan-container {
+    padding: 0.75rem 0.5rem 5.5rem 0.5rem !important;
+    gap: 0.85rem;
+  }
+
+  .study-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.55rem !important;
+    width: 100% !important;
+  }
+
+  .study-kpi-card {
+    padding: 0.65rem 0.75rem !important;
+    border-radius: 0.95rem !important;
+    gap: 0.6rem !important;
+  }
+
+  .study-kpi-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 0.65rem !important;
+  }
+
+  .study-kpi-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .study-kpi-val {
+    font-size: 1.2rem !important;
+  }
+
+  .study-kpi-lbl {
+    font-size: 0.62rem !important;
+  }
+
+  .roadmap-grid,
+  .study-roadmaps-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
 }

@@ -1,0 +1,319 @@
+/* ═══════════════════════════════════════════════════════════════════
+   COSMIC AURORA GLASSMORPHISM — EXAM MANAGER & OPTICAL SUITE
+═══════════════════════════════════════════════════════════════════ */
+
+.exam-manager-page {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1.25rem 1.5rem 5rem 1.5rem;
+  background-color: #0d1527;
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Glass Card Foundation */
+.exam-glass-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(20px);
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  color: #f8fafc;
+  box-sizing: border-box;
+}
+
+/* Top Sticky Header */
+.exam-hero-header {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.5rem;
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+}
+
+.exam-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.exam-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* 4 KPI Hero Cards */
+.exam-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.exam-kpi-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border-radius: 1.25rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+  transition: all 0.2s ease;
+}
+
+.exam-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.exam-kpi-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Search & Filter Bar */
+.exam-filter-bar {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.25rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+}
+
+/* Exam Pool Container */
+.exam-pool-container {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.exam-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.exam-card-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.exam-card-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Optical Bubble Row */
+.bubble-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bubble-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.bubble-btn.active {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #34d399;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  color: white;
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS (< 768px)
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .exam-manager-page {
+    padding: 0.75rem 0.5rem 5.5rem 0.5rem !important;
+    gap: 0.85rem;
+  }
+
+  /* Header */
+  .exam-hero-header {
+    padding: 1rem !important;
+    border-radius: 1.15rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .exam-header-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .exam-header-left h1 {
+    font-size: 1.2rem !important;
+  }
+
+  .exam-header-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .exam-header-actions button {
+    justify-content: center !important;
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.78rem !important;
+    width: 100% !important;
+  }
+
+  /* 4 KPI Live Cards: 2x2 grid */
+  .exam-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.65rem !important;
+  }
+
+  .exam-kpi-card {
+    padding: 0.75rem 0.85rem !important;
+    border-radius: 1rem !important;
+    gap: 0.65rem !important;
+  }
+
+  .exam-kpi-icon {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 0.65rem !important;
+  }
+
+  .exam-kpi-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .exam-kpi-card span[style*="font-size: 1.25rem"] {
+    font-size: 1.05rem !important;
+  }
+
+  /* Filter Bar */
+  .exam-filter-bar {
+    padding: 0.85rem !important;
+    border-radius: 1rem !important;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .exam-filter-bar > div:first-child {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .exam-filter-bar > div:last-child {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    gap: 0.35rem;
+  }
+
+  .exam-filter-bar > div:last-child button {
+    white-space: nowrap;
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* Exam Pool */
+  .exam-pool-container {
+    padding: 1rem !important;
+    border-radius: 1.15rem !important;
+  }
+
+  .exam-pool-container > div:first-child {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.65rem;
+  }
+
+  .exam-pool-container > div:first-child button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .exam-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .exam-card-item {
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+  }
+
+  /* Preset Selector Buttons in Add Form: 2x2 grid */
+  .exam-preset-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  .exam-preset-btn {
+    padding: 0.65rem 0.75rem !important;
+  }
+
+  /* Optical Answer Key Sheet Table / Container */
+  .optical-sheet-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+  }
+}

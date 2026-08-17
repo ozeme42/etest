@@ -89,7 +89,7 @@ export default function StudentProgramPage() {
 
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
         {/* Top Action Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => navigate('/student')}
             style={{
@@ -130,7 +130,7 @@ export default function StudentProgramPage() {
         </div>
 
         {/* Hero Card with Profile & KPI Stats */}
-        <div className="prog-hero-card prog-anim" style={{
+        <div className="prog-hero-card prog-anim no-print" style={{
           background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
           border: '1.5px solid rgba(255, 255, 255, 0.14)',
           borderRadius: '1.25rem',
@@ -243,7 +243,7 @@ export default function StudentProgramPage() {
         </div>
 
         {/* Floating Save */}
-        <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 200 }}>
+        <div className="no-print" style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 200 }}>
           <button onClick={handleSave}
             style={{ padding: '0.85rem 1.6rem', background: saved ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: 'white', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '1rem', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.55rem', boxShadow: saved ? '0 8px 28px rgba(16,185,129,0.45)' : '0 8px 28px rgba(99,102,241,0.45)', transition: 'all 0.25s', backdropFilter: 'blur(10px)' }}>
             {saved ? <><CheckCircle2 size={20} /> Kaydedildi!</> : <><Save size={20} /> Değişiklikleri Kaydet</>}

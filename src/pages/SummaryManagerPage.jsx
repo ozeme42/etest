@@ -8,7 +8,8 @@ import {
   BookOpen, Plus, Save, Trash2, CheckCircle2, AlertCircle, 
   Code, Eye, FileText, Sparkles, Layers, ChevronRight, 
   Search, ArrowRight, ExternalLink, HelpCircle, Columns,
-  ArrowLeft, Check, Heading, Info, AlertTriangle, Pi, Table
+  ArrowLeft, Check, Heading, Info, AlertTriangle, Pi, Table,
+  GraduationCap, FolderTree, Lightbulb
 } from 'lucide-react';
 import './SummaryManagerPage.css';
 
@@ -50,41 +51,82 @@ const TEMPLATES = {
 <ul>
   <li><strong>Madde 1:</strong> Açıklama</li>
   <li><strong>Madde 2:</strong> Açıklama</li>
-</ul>`
+</ul>`,
+  tip: `<div class="callout box-success">
+  <strong>💡 Pratik İpucu:</strong> Soruları hızlı çözmek için bu pratik taktiği kullanabilirsiniz.
+</div>`
+};
+
+// Natural unit and topic sorting pure helpers
+const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
+  if (!unit) return fallbackIndex;
+  if (typeof unit.order === 'number') return unit.order;
+  if (typeof unit.sortOrder === 'number') return unit.sortOrder;
+  if (typeof unit.unitNumber === 'number') return unit.unitNumber;
+  const match = String(unit.name || '').match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : fallbackIndex;
+};
+
+const sortUnitsNaturally = (unitList = []) => {
+  return [...unitList].sort((a, b) => {
+    const numA = extractUnitOrderNumber(a, 999);
+    const numB = extractUnitOrderNumber(b, 999);
+    if (numA !== numB) return numA - numB;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true });
+  });
+};
+
+const sortTopicsNaturally = (topicList = []) => {
+  return [...topicList].sort((a, b) => {
+    if (typeof a.order === 'number' && typeof b.order === 'number') return a.order - b.order;
+    const numA = (String(a.name || '').match(/(\d+)/) || [])[1];
+    const numB = (String(b.name || '').match(/(\d+)/) || [])[1];
+    if (numA && numB && parseInt(numA, 10) !== parseInt(numB, 10)) {
+      return parseInt(numA, 10) - parseInt(numB, 10);
+    }
+    return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true });
+  });
 };
 
 export default function SummaryManagerPage() {
   const navigate = useNavigate();
-  const { data: curriculumData } = useCurriculum();
+  const { data: curriculumData, addTopic, addUnit } = useCurriculum();
   const { summaries, saveSummary, deleteSummary, getSummary, hasSummary } = useSummaries();
   const { currentUser } = useAuth();
 
+  // Top Selector States
   const [selectedGradeId, setSelectedGradeId] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
-  const [selectedTarget, setSelectedTarget] = useState(null); // { type: 'unit' | 'topic', id: string, name: string, unitId?: string }
+  const [selectedUnitId, setSelectedUnitId] = useState(null);
+  const [selectedTargetKey, setSelectedTargetKey] = useState(null); // 'unit_general' or topicId
 
   const [editorMode, setEditorMode] = useState('split'); // 'split', 'code', 'preview'
   const [htmlCode, setHtmlCode] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const grades = curriculumData.grades || [];
-  const subjects = curriculumData.subjects || [];
-  const units = curriculumData.units || [];
-  const topics = curriculumData.topics || [];
+  // Inline topic adding
+  const [isAddingTopic, setIsAddingTopic] = useState(false);
+  const [newTopicName, setNewTopicName] = useState('');
 
-  // Default selection
+  const grades = curriculumData?.grades || [];
+  const subjects = curriculumData?.subjects || [];
+  const units = curriculumData?.units || [];
+  const topics = curriculumData?.topics || [];
+
+  // 1. Default Grade Selection
   useEffect(() => {
     if (!selectedGradeId && grades.length > 0) {
       setSelectedGradeId(grades[0].id);
     }
   }, [grades, selectedGradeId]);
 
+  // Filtered Subjects for Grade
   const filteredSubjects = useMemo(() => {
     return subjects.filter(s => String(s.gradeId) === String(selectedGradeId));
   }, [subjects, selectedGradeId]);
 
+  // 2. Default Subject Selection
   useEffect(() => {
     if (filteredSubjects.length > 0) {
       if (!selectedSubjectId || !filteredSubjects.some(s => String(s.id) === String(selectedSubjectId))) {
@@ -95,41 +137,129 @@ export default function SummaryManagerPage() {
     }
   }, [filteredSubjects, selectedSubjectId]);
 
-  // Natural unit and topic sorting
-  const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
-    if (!unit) return fallbackIndex;
-    if (typeof unit.order === 'number') return unit.order;
-    if (typeof unit.sortOrder === 'number') return unit.sortOrder;
-    if (typeof unit.unitNumber === 'number') return unit.unitNumber;
-    const match = String(unit.name || '').match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : fallbackIndex;
-  };
-
-  const sortUnitsNaturally = (unitList = []) => {
-    return [...unitList].sort((a, b) => {
-      const numA = extractUnitOrderNumber(a, 999);
-      const numB = extractUnitOrderNumber(b, 999);
-      if (numA !== numB) return numA - numB;
-      return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true });
-    });
-  };
-
-  const sortTopicsNaturally = (topicList = []) => {
-    return [...topicList].sort((a, b) => {
-      if (typeof a.order === 'number' && typeof b.order === 'number') return a.order - b.order;
-      const numA = (String(a.name || '').match(/(\d+)/) || [])[1];
-      const numB = (String(b.name || '').match(/(\d+)/) || [])[1];
-      if (numA && numB && parseInt(numA, 10) !== parseInt(numB, 10)) {
-        return parseInt(numA, 10) - parseInt(numB, 10);
-      }
-      return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true });
-    });
-  };
-
+  // Filtered Units for Subject
   const filteredUnits = useMemo(() => {
-    const list = units.filter(u => String(u.subjectId) === String(selectedSubjectId));
+    if (!selectedSubjectId) return [];
+    let list = units.filter(u => String(u.subjectId || u.subject_id) === String(selectedSubjectId));
+    if (list.length === 0) {
+      const subjectTopics = topics.filter(t => 
+        t && String(t.subjectId || t.subject_id) === String(selectedSubjectId)
+      );
+      if (subjectTopics.length > 0) {
+        list = [{
+          id: `u_sub_${selectedSubjectId}`,
+          name: 'Genel Müfredat Konuları',
+          subjectId: selectedSubjectId,
+          topics: subjectTopics
+        }];
+      }
+    }
     return sortUnitsNaturally(list);
-  }, [units, selectedSubjectId]);
+  }, [units, topics, selectedSubjectId]);
+
+  // 3. Default Unit Selection
+  useEffect(() => {
+    if (filteredUnits.length > 0) {
+      if (!selectedUnitId || !filteredUnits.some(u => String(u.id) === String(selectedUnitId))) {
+        setSelectedUnitId(filteredUnits[0].id);
+      }
+    } else {
+      setSelectedUnitId(null);
+    }
+  }, [filteredUnits, selectedUnitId]);
+
+  // Helper to reliably find all topics belonging to a unit
+  const getTopicsForUnit = (unit) => {
+    if (!unit) return [];
+    
+    // 1. Direct match by unitId or unit_id
+    const directTopics = topics.filter(t => 
+      t && (
+        String(t.unitId || t.unit_id || t.unit) === String(unit.id) ||
+        (String(unit.id).startsWith('u_sub_') && String(t.subjectId || t.subject_id) === String(unit.subjectId))
+      )
+    ).map((t, idx) => ({
+      id: String(t.id || `t_${unit.id}_${idx}`),
+      name: typeof t === 'string' ? t : (t.name || t.title || `Konu ${idx + 1}`),
+      unitId: unit.id,
+      order: t.order || t.sortOrder || idx
+    }));
+
+    // 2. Embedded topics inside unit.topics
+    const embedded = (Array.isArray(unit.topics) ? unit.topics : []).map((t, idx) => ({
+      id: typeof t === 'object' && t?.id ? String(t.id) : `t_emb_${unit.id}_${idx}`,
+      name: typeof t === 'string' ? t : (t?.name || t?.title || `Konu ${idx + 1}`),
+      unitId: unit.id,
+      order: t?.order || idx
+    }));
+
+    // Combine and deduplicate
+    const combined = [...directTopics, ...embedded];
+    const unique = [];
+    const seenNames = new Set();
+    const seenIds = new Set();
+
+    for (const t of combined) {
+      if (!t || !t.name) continue;
+      const nameKey = t.name.trim().toLowerCase();
+      const idKey = String(t.id);
+      if (!seenNames.has(nameKey) && !seenIds.has(idKey)) {
+        seenNames.add(nameKey);
+        seenIds.add(idKey);
+        unique.push(t);
+      }
+    }
+
+    return sortTopicsNaturally(unique);
+  };
+
+  // Selected Unit Object
+  const currentUnit = useMemo(() => {
+    return filteredUnits.find(u => String(u.id) === String(selectedUnitId));
+  }, [filteredUnits, selectedUnitId]);
+
+  // Topics for the currently selected Unit
+  const currentUnitTopics = useMemo(() => {
+    return getTopicsForUnit(currentUnit);
+  }, [currentUnit, topics]);
+
+  // 4. Default Target Selection (Topic or Unit General Summary)
+  useEffect(() => {
+    if (currentUnit) {
+      if (currentUnitTopics.length > 0) {
+        if (!selectedTargetKey || (selectedTargetKey !== 'unit_general' && !currentUnitTopics.some(t => String(t.id) === String(selectedTargetKey)))) {
+          setSelectedTargetKey(currentUnitTopics[0].id);
+        }
+      } else {
+        setSelectedTargetKey('unit_general');
+      }
+    } else {
+      setSelectedTargetKey(null);
+    }
+  }, [currentUnit, currentUnitTopics]);
+
+  // Active Selected Target Object
+  const selectedTarget = useMemo(() => {
+    if (!currentUnit) return null;
+    if (selectedTargetKey === 'unit_general') {
+      return {
+        type: 'unit',
+        id: currentUnit.id,
+        name: `${currentUnit.name} (Genel Ünite Özeti)`,
+        unitId: currentUnit.id
+      };
+    }
+    const foundTopic = currentUnitTopics.find(t => String(t.id) === String(selectedTargetKey));
+    if (foundTopic) {
+      return {
+        type: 'topic',
+        id: foundTopic.id,
+        name: foundTopic.name,
+        unitId: currentUnit.id
+      };
+    }
+    return null;
+  }, [currentUnit, selectedTargetKey, currentUnitTopics]);
 
   // Load summary content when target changes
   useEffect(() => {
@@ -137,19 +267,10 @@ export default function SummaryManagerPage() {
       const existing = getSummary(selectedTarget.type, selectedTarget.id);
       setHtmlCode(existing?.contentHtml || '');
       setSaveSuccess(false);
-    } else if (filteredUnits.length > 0) {
-      // Auto-select first unit
-      setSelectedTarget({
-        type: 'unit',
-        id: filteredUnits[0].id,
-        name: filteredUnits[0].name,
-        unitId: filteredUnits[0].id
-      });
     } else {
-      setSelectedTarget(null);
       setHtmlCode('');
     }
-  }, [selectedTarget?.id, selectedTarget?.type, filteredUnits]);
+  }, [selectedTarget?.id, selectedTarget?.type]);
 
   // Handle Save
   const handleSave = async () => {
@@ -157,9 +278,6 @@ export default function SummaryManagerPage() {
     setIsSaving(true);
 
     try {
-      const selectedGrade = grades.find(g => String(g.id) === String(selectedGradeId));
-      const selectedSubj = subjects.find(s => String(s.id) === String(selectedSubjectId));
-
       await saveSummary({
         targetType: selectedTarget.type,
         targetId: selectedTarget.id,
@@ -167,7 +285,7 @@ export default function SummaryManagerPage() {
         subjectId: selectedSubjectId,
         unitId: selectedTarget.unitId || (selectedTarget.type === 'unit' ? selectedTarget.id : null),
         topicId: selectedTarget.type === 'topic' ? selectedTarget.id : null,
-        title: `${selectedGrade?.name ? selectedGrade.name + ' - ' : ''}${selectedSubj?.name ? selectedSubj.name + ' - ' : ''}${selectedTarget.name}`,
+        title: selectedTarget.name,
         contentHtml: htmlCode,
         authorName: currentUser?.name || 'Öğretmen'
       });
@@ -192,6 +310,20 @@ export default function SummaryManagerPage() {
     }
   };
 
+  // Handle Adding Topic
+  const handleCreateTopic = async () => {
+    if (!newTopicName.trim() || !selectedUnitId) return;
+    try {
+      if (typeof addTopic === 'function') {
+        await addTopic(selectedUnitId, newTopicName.trim());
+      }
+      setNewTopicName('');
+      setIsAddingTopic(false);
+    } catch (e) {
+      console.error('Topic add failed:', e);
+    }
+  };
+
   // Insert template
   const insertTemplate = (templateKey) => {
     const tpl = TEMPLATES[templateKey];
@@ -199,348 +331,336 @@ export default function SummaryManagerPage() {
     setHtmlCode(prev => (prev ? prev + '\n\n' + tpl : tpl));
   };
 
-  // Stats
-  const stats = useMemo(() => {
-    let unitCount = filteredUnits.length;
-    let topicCount = 0;
-    let filledCount = 0;
-
-    filteredUnits.forEach(u => {
-      if (hasSummary('unit', u.id)) filledCount++;
-      const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
-      topicCount += unitTopics.length;
-      unitTopics.forEach(t => {
-        if (hasSummary('topic', t.id)) filledCount++;
-      });
-    });
-
-    return { unitCount, topicCount, totalItems: unitCount + topicCount, filledCount };
-  }, [filteredUnits, topics, summaries]);
+  const selectedGradeObj = grades.find(g => String(g.id) === String(selectedGradeId));
+  const selectedSubjectObj = subjects.find(s => String(s.id) === String(selectedSubjectId));
+  const isTargetSaved = selectedTarget ? hasSummary(selectedTarget.type, selectedTarget.id) : false;
 
   return (
-    <div className="summary-manager-page">
+    <div className="summary-manager-page custom-scrollbar">
       
-      {/* HEADER */}
-      <header className="summary-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <button
+      {/* ══════════ TOP BAR: HEADER & CONTROLS ══════════ */}
+      <header className="summary-top-header">
+        <div className="header-left">
+          <button 
+            className="btn-back-link"
             onClick={() => {
               if (window.history.length > 1) navigate(-1);
               else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
             }}
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: '1.5px solid rgba(255,255,255,0.18)',
-              borderRadius: '0.75rem',
-              padding: '0.55rem 0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontWeight: 800,
-              color: '#ffffff',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
-              backdropFilter: 'blur(8px)'
-            }}
           >
-            <ArrowLeft size={18} /> Geri Dön
+            <ArrowLeft size={16} /> Geri Dön
           </button>
-          <div>
-            <div className="summary-badge">
-              <Sparkles size={14} /> Ders & Konu Özetleri Yönetimi
-            </div>
+          
+          <div className="title-box">
             <h1>Müfredat Özet Modülü Editörü 📝</h1>
-            <p>Müfredattaki derslerin ünite ve konularına HTML formatında zengin ders notları ve konu özetleri ekleyin.</p>
+            <p>Sınıf, ders, ünite ve konu seçimini yukarıdan yaparak zengin konu özetleri hazırlayın</p>
           </div>
         </div>
 
-        {/* Global Progress Pill */}
-        <div className="summary-stats-card">
-          <div className="stats-metric">
-            <span className="stats-num">{stats.filledCount} / {stats.totalItems}</span>
-            <span className="stats-lbl">Dolu Özet</span>
+        {currentUser?.role === 'teacher' && (
+          <div className="teacher-badge-pill">
+            <span>🔒 Öğretmen Paneli</span>
           </div>
-          <div className="stats-bar-bg">
-            <div 
-              className="stats-bar-fill"
-              style={{ width: `${stats.totalItems > 0 ? (stats.filledCount / stats.totalItems) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
+        )}
       </header>
 
-      {/* FILTER BAR: GRADES & SUBJECTS */}
-      <div className="summary-filters-card">
-        <div className="filter-group">
-          <label>Kademe / Sınıf:</label>
-          <div className="pill-group">
+      {/* ══════════ TOP 4-SELECTOR BAR: SINIF, DERS, ÜNİTE, KONU ══════════ */}
+      <div className="top-selectors-ribbon">
+        
+        {/* 1. Sınıf Seçimi */}
+        <div className="top-selector-item">
+          <label>🎓 1. Sınıf Seviyesi:</label>
+          <select
+            value={selectedGradeId || ''}
+            onChange={e => setSelectedGradeId(e.target.value)}
+          >
             {grades.map(g => (
-              <button
-                key={g.id}
-                className={`pill-btn ${String(selectedGradeId) === String(g.id) ? 'active' : ''}`}
-                onClick={() => setSelectedGradeId(g.id)}
-              >
-                {g.name}
-              </button>
+              <option key={g.id} value={g.id}>{g.name}</option>
             ))}
-          </div>
+          </select>
         </div>
 
-        <div className="filter-group">
-          <label>Ders:</label>
-          <div className="pill-group">
-            {filteredSubjects.length > 0 ? (
-              filteredSubjects.map(s => (
-                <button
-                  key={s.id}
-                  className={`pill-btn subject-pill ${String(selectedSubjectId) === String(s.id) ? 'active' : ''}`}
-                  onClick={() => setSelectedSubjectId(s.id)}
-                >
-                  <BookOpen size={14} /> {s.name}
-                </button>
-              ))
-            ) : (
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontStyle: 'italic' }}>Bu sınıfa ait ders bulunamadı.</span>
-            )}
-          </div>
+        {/* 2. Ders Seçimi */}
+        <div className="top-selector-item">
+          <label>📚 2. Ders:</label>
+          <select
+            value={selectedSubjectId || ''}
+            onChange={e => setSelectedSubjectId(e.target.value)}
+            disabled={filteredSubjects.length === 0}
+          >
+            {filteredSubjects.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
         </div>
+
+        {/* 3. Ünite Seçimi */}
+        <div className="top-selector-item">
+          <label>📂 3. Ünite:</label>
+          <select
+            value={selectedUnitId || ''}
+            onChange={e => setSelectedUnitId(e.target.value)}
+            disabled={filteredUnits.length === 0}
+          >
+            {filteredUnits.map((u, uIdx) => (
+              <option key={u.id} value={u.id}>{uIdx + 1}. Ünite: {u.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* 4. Konu / Ünite Özeti Seçimi */}
+        <div className="top-selector-item">
+          <label>📄 4. Konu / Özet Türü:</label>
+          <select
+            value={selectedTargetKey || 'unit_general'}
+            onChange={e => setSelectedTargetKey(e.target.value)}
+            disabled={!currentUnit}
+          >
+            <option value="unit_general">
+              📁 {currentUnit?.name || 'Ünite'} (Genel Ünite Özeti) {hasSummary('unit', currentUnit?.id) ? '✓' : ''}
+            </option>
+            {currentUnitTopics.map((t, tIdx) => {
+              const filled = hasSummary('topic', t.id);
+              return (
+                <option key={t.id} value={t.id}>
+                  📄 {tIdx + 1}. {t.name} {filled ? '✓ (Dolu)' : '+ (Boş)'}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
       </div>
 
-      {/* MAIN TWO-COLUMN WORKSPACE */}
-      <div className="summary-workspace-grid">
-        
-        {/* LEFT COLUMN: CURRICULUM TREE */}
-        <aside className="curriculum-tree-sidebar">
-          <div className="sidebar-search-box">
-            <Search size={16} />
-            <input 
-              type="text"
-              placeholder="Ünite veya konu ara..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="curriculum-list">
-            {filteredUnits.length > 0 ? (
-              filteredUnits.map((u, uIdx) => {
-                const isUnitSelected = selectedTarget?.type === 'unit' && String(selectedTarget?.id) === String(u.id);
-                const unitHasSummary = hasSummary('unit', u.id);
-                const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
-                const filteredUnitTopics = searchQuery
-                  ? unitTopics.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  : unitTopics;
-
-                if (searchQuery && !u.name.toLowerCase().includes(searchQuery.toLowerCase()) && filteredUnitTopics.length === 0) {
-                  return null;
-                }
-
-                return (
-                  <div key={u.id} className="unit-tree-node">
-                    {/* Unit Row */}
-                    <div 
-                      className={`unit-node-header ${isUnitSelected ? 'active-target' : ''}`}
-                      onClick={() => setSelectedTarget({ type: 'unit', id: u.id, name: u.name, unitId: u.id })}
-                    >
-                      <div className="node-title-group">
-                        <span className="unit-num-badge">{uIdx + 1}</span>
-                        <div className="node-text">
-                          <strong>{u.name}</strong>
-                          <span className="node-sub">Ünite Genel Özeti</span>
-                        </div>
-                      </div>
-                      {unitHasSummary ? (
-                        <span className="status-badge badge-filled" title="Ünite özeti eklenmiş">
-                          <CheckCircle2 size={13} /> Dolu
-                        </span>
-                      ) : (
-                        <span className="status-badge badge-empty" title="Özet yok">
-                          <Plus size={13} /> Boş
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Topics Sub-Tree */}
-                    <div className="topics-sub-list">
-                      {filteredUnitTopics.map((t) => {
-                        const isTopicSelected = selectedTarget?.type === 'topic' && String(selectedTarget?.id) === String(t.id);
-                        const topicHasSummary = hasSummary('topic', t.id);
-
-                        return (
-                          <div
-                            key={t.id}
-                            className={`topic-node-item ${isTopicSelected ? 'active-target' : ''}`}
-                            onClick={() => setSelectedTarget({ type: 'topic', id: t.id, name: t.name, unitId: u.id })}
-                          >
-                            <div className="topic-text-group">
-                              <span className="topic-dot" />
-                              <span>{t.name}</span>
-                            </div>
-                            {topicHasSummary ? (
-                              <span className="status-badge badge-filled" title="Konu özeti eklenmiş">
-                                <CheckCircle2 size={11} />
-                              </span>
-                            ) : (
-                              <span className="status-badge badge-empty" title="Özet yok">
-                                <Plus size={11} />
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
+      {/* ══════════ QUICK TOPIC PILLS BAR (HORIZONTAL TOPIC STRIP) ══════════ */}
+      {currentUnit && (
+        <div className="unit-topics-quick-strip custom-scrollbar">
+          <span className="strip-title">Hızlı Konu Seçimi:</span>
+          
+          {/* Unit General Summary Pill */}
+          <button
+            type="button"
+            className={`topic-strip-pill ${selectedTargetKey === 'unit_general' ? 'active-pill' : ''}`}
+            onClick={() => setSelectedTargetKey('unit_general')}
+          >
+            <span>📁 Ünite Genel Özeti</span>
+            {hasSummary('unit', currentUnit.id) ? (
+              <span className="strip-badge badge-filled"><CheckCircle2 size={11} /> Dolu</span>
             ) : (
-              <div className="no-units-box">
-                <AlertCircle size={28} />
-                <p>Seçili ders için henüz ünite veya konu kaydı bulunmuyor.</p>
-              </div>
+              <span className="strip-badge badge-empty"><Plus size={11} /> Boş</span>
             )}
-          </div>
-        </aside>
+          </button>
 
-        {/* RIGHT COLUMN: RICH HTML EDITOR & PREVIEW */}
-        <main className="summary-editor-panel">
-          {selectedTarget ? (
-            <>
-              {/* TARGET BANNER */}
-              <div className="editor-top-bar">
-                <div className="target-info">
+          {/* Topics Pills */}
+          {currentUnitTopics.map((t, tIdx) => {
+            const isPillActive = selectedTargetKey === t.id;
+            const filled = hasSummary('topic', t.id);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                className={`topic-strip-pill ${isPillActive ? 'active-pill' : ''}`}
+                onClick={() => setSelectedTargetKey(t.id)}
+              >
+                <span>{tIdx + 1}. {t.name}</span>
+                {filled ? (
+                  <span className="strip-badge badge-filled"><CheckCircle2 size={11} /> Dolu</span>
+                ) : (
+                  <span className="strip-badge badge-empty"><Plus size={11} /> Boş</span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Inline Add Topic Button */}
+          {isAddingTopic ? (
+            <div className="inline-add-topic-box">
+              <input
+                type="text"
+                placeholder="Yeni konu adı..."
+                value={newTopicName}
+                onChange={e => setNewTopicName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleCreateTopic();
+                }}
+                autoFocus
+              />
+              <button type="button" onClick={handleCreateTopic} className="btn-add-confirm">
+                Ekle
+              </button>
+              <button type="button" onClick={() => setIsAddingTopic(false)} className="btn-add-cancel">
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="topic-strip-pill btn-add-pill"
+              onClick={() => setIsAddingTopic(true)}
+              title="Bu üniteye yeni konu ekle"
+            >
+              <Plus size={13} /> Yeni Konu Ekle
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ══════════ FULL WIDTH RICH HTML EDITOR & PREVIEW PANEL ══════════ */}
+      <main className="fullwidth-editor-panel">
+        {selectedTarget ? (
+          <>
+            {/* TARGET BANNER & ACTIONS */}
+            <div className="editor-top-bar">
+              <div className="target-info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <span className="breadcrumb-pill">
+                    {selectedGradeObj?.name || 'Sınıf'} &rsaquo; {selectedSubjectObj?.name || 'Ders'} &rsaquo; {currentUnit?.name || 'Ünite'}
+                  </span>
                   <span className={`target-type-pill ${selectedTarget.type}`}>
                     {selectedTarget.type === 'unit' ? '📁 ÜNİTE GENEL ÖZETİ' : '📄 KONU ÖZETİ'}
                   </span>
-                  <h2>{selectedTarget.name}</h2>
-                </div>
-
-                <div className="editor-actions">
-                  {/* View Mode Switcher */}
-                  <div className="view-mode-toggle">
-                    <button
-                      className={`mode-btn ${editorMode === 'code' ? 'active' : ''}`}
-                      onClick={() => setEditorMode('code')}
-                      title="Sadece HTML Kod Editörü"
-                    >
-                      <Code size={15} /> Kod
-                    </button>
-                    <button
-                      className={`mode-btn ${editorMode === 'split' ? 'active' : ''}`}
-                      onClick={() => setEditorMode('split')}
-                      title="Çift Panel (Kod + Önizleme)"
-                    >
-                      <Columns size={15} /> Yan Yana
-                    </button>
-                    <button
-                      className={`mode-btn ${editorMode === 'preview' ? 'active' : ''}`}
-                      onClick={() => setEditorMode('preview')}
-                      title="Sadece Canlı Önizleme"
-                    >
-                      <Eye size={15} /> Önizleme
-                    </button>
-                  </div>
-
-                  {/* Delete Button */}
-                  {hasSummary(selectedTarget.type, selectedTarget.id) && (
-                    <button 
-                      className="btn-danger-icon"
-                      onClick={handleDelete}
-                      title="Bu Özeti Sil"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  {isTargetSaved ? (
+                    <span className="save-status-indicator saved">
+                      <CheckCircle2 size={13} /> Kayıtlı Özet Mevcut
+                    </span>
+                  ) : (
+                    <span className="save-status-indicator empty">
+                      <Plus size={13} /> Henüz Özet Yazılmamış
+                    </span>
                   )}
+                </div>
+                <h2>{selectedTarget.name}</h2>
+              </div>
 
-                  {/* Save Button */}
-                  <button 
-                    className="btn-save-summary"
-                    onClick={handleSave}
-                    disabled={isSaving}
+              <div className="editor-actions">
+                {/* View Mode Switcher */}
+                <div className="view-mode-toggle">
+                  <button
+                    className={`mode-btn ${editorMode === 'code' ? 'active' : ''}`}
+                    onClick={() => setEditorMode('code')}
+                    title="Sadece HTML Kod Editörü"
                   >
-                    {isSaving ? (
-                      'Kaydediliyor...'
-                    ) : saveSuccess ? (
-                      <>
-                        <CheckCircle2 size={16} /> Kaydedildi!
-                      </>
-                    ) : (
-                      <>
-                        <Save size={16} /> Özeti Kaydet
-                      </>
-                    )}
+                    <Code size={15} /> Kod
+                  </button>
+                  <button
+                    className={`mode-btn ${editorMode === 'split' ? 'active' : ''}`}
+                    onClick={() => setEditorMode('split')}
+                    title="Çift Panel (Kod + Canlı Önizleme)"
+                  >
+                    <Columns size={15} /> Yan Yana
+                  </button>
+                  <button
+                    className={`mode-btn ${editorMode === 'preview' ? 'active' : ''}`}
+                    onClick={() => setEditorMode('preview')}
+                    title="Sadece Canlı Önizleme"
+                  >
+                    <Eye size={15} /> Önizleme
                   </button>
                 </div>
-              </div>
 
-              {/* QUICK INSERT TEMPLATES */}
-              <div className="template-shortcuts-bar">
-                <span className="tpl-lbl">Hızlı Şablon:</span>
-                <button className="tpl-btn" onClick={() => insertTemplate('heading')}>
-                  + Başlık & Madde
-                </button>
-                <button className="tpl-btn" onClick={() => insertTemplate('note')}>
-                  + 📌 Önemli Not
-                </button>
-                <button className="tpl-btn" onClick={() => insertTemplate('warning')}>
-                  + ⚠️ Dikkat Kutusu
-                </button>
-                <button className="tpl-btn" onClick={() => insertTemplate('formula')}>
-                  + 📐 Formül
-                </button>
-                <button className="tpl-btn" onClick={() => insertTemplate('table')}>
-                  + 📊 Tablo
+                {/* Delete Button */}
+                {isTargetSaved && (
+                  <button 
+                    className="btn-danger-icon"
+                    onClick={handleDelete}
+                    title="Bu Özeti Sil"
+                  >
+                    <Trash2 size={16} /> Sil
+                  </button>
+                )}
+
+                {/* Save Button */}
+                <button 
+                  className="btn-save-summary"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    'Kaydediliyor...'
+                  ) : saveSuccess ? (
+                    <>
+                      <CheckCircle2 size={16} /> Kaydedildi!
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} /> Özeti Kaydet
+                    </>
+                  )}
                 </button>
               </div>
+            </div>
 
-              {/* EDITOR WORKSPACE BODY */}
-              <div className={`editor-split-body mode-${editorMode}`}>
-                
-                {/* HTML CODE TEXTAREA */}
-                {(editorMode === 'code' || editorMode === 'split') && (
-                  <div className="editor-pane code-pane">
-                    <div className="pane-header">
-                      <span>HTML Kaynak Kodu (Word veya harici HTML yapıştırabilirsiniz)</span>
-                      <span className="char-count">{htmlCode.length} karakter</span>
-                    </div>
-                    <textarea
-                      className="html-code-input"
-                      placeholder="Buraya HTML formatında konu anlatımınızı veya özetinizi yapıştırın... (Örn: <h2>Başlık</h2><p>İçerik...</p>)"
-                      value={htmlCode}
-                      onChange={e => setHtmlCode(e.target.value)}
+            {/* QUICK INSERT TEMPLATES */}
+            <div className="template-shortcuts-bar">
+              <span className="tpl-lbl">Hızlı Şablonlar:</span>
+              <button className="tpl-btn" onClick={() => insertTemplate('heading')}>
+                <Heading size={13} /> Başlık & Madde
+              </button>
+              <button className="tpl-btn tpl-note" onClick={() => insertTemplate('note')}>
+                <Info size={13} /> 📌 Önemli Not
+              </button>
+              <button className="tpl-btn tpl-warn" onClick={() => insertTemplate('warning')}>
+                <AlertTriangle size={13} /> ⚠️ Dikkat Kutusu
+              </button>
+              <button className="tpl-btn tpl-formula" onClick={() => insertTemplate('formula')}>
+                <Pi size={13} /> 📐 Formül
+              </button>
+              <button className="tpl-btn tpl-table" onClick={() => insertTemplate('table')}>
+                <Table size={13} /> 📊 Tablo
+              </button>
+              <button className="tpl-btn tpl-tip" onClick={() => insertTemplate('tip')}>
+                <Lightbulb size={13} /> 💡 İpucu
+              </button>
+            </div>
+
+            {/* EDITOR WORKSPACE BODY */}
+            <div className={`editor-split-body mode-${editorMode}`}>
+              
+              {/* HTML CODE TEXTAREA */}
+              {(editorMode === 'code' || editorMode === 'split') && (
+                <div className="editor-pane code-pane">
+                  <div className="pane-header">
+                    <span>💻 HTML Kaynak Kodu (Harici HTML veya Word yapıştırabilirsiniz)</span>
+                    <span className="char-count">{htmlCode.length} karakter</span>
+                  </div>
+                  <textarea
+                    className="html-code-input custom-scrollbar"
+                    placeholder="Buraya HTML formatında konu anlatımınızı veya özetinizi yapıştırın... (Örn: <h2>1. Giriş</h2><p>Konunun detayları...</p>)"
+                    value={htmlCode}
+                    onChange={e => setHtmlCode(e.target.value)}
+                    spellCheck={false}
+                  />
+                </div>
+              )}
+
+              {/* LIVE PREVIEW PANE */}
+              {(editorMode === 'preview' || editorMode === 'split') && (
+                <div className="editor-pane preview-pane">
+                  <div className="pane-header">
+                    <span>👁️ Canlı Öğrenci Önizlemesi</span>
+                    <span className="preview-status">{htmlCode ? '✓ Biçimlendirildi' : 'İçerik Boş'}</span>
+                  </div>
+                  <div className="preview-content-box custom-scrollbar">
+                    <SummaryHtmlViewer
+                      htmlContent={htmlCode}
+                      title={selectedTarget.name}
+                      targetType={selectedTarget.type}
+                      emptyMessage="Yukarıdaki hızlı şablonlara tıkladığınızda veya HTML yapıştırdığınızda öğrenci ekranında nasıl görüneceği burada anında gösterilecektir."
                     />
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* LIVE PREVIEW PANE */}
-                {(editorMode === 'preview' || editorMode === 'split') && (
-                  <div className="editor-pane preview-pane">
-                    <div className="pane-header">
-                      <span>👁️ Canlı Öğrenci Önizlemesi</span>
-                      <span className="preview-status">{htmlCode ? 'Biçimlendirilmiş' : 'İçerik Boş'}</span>
-                    </div>
-                    <div className="preview-content-box">
-                      <SummaryHtmlViewer
-                        htmlContent={htmlCode}
-                        title={selectedTarget.name}
-                        targetType={selectedTarget.type}
-                        emptyMessage="Sol taraftaki editöre HTML kod yapıştırdığınızda canlı önizleme burada görünecektir."
-                      />
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </>
-          ) : (
-            <div className="no-target-selected">
-              <BookOpen size={48} style={{ opacity: 0.3 }} />
-              <h3>Düzenlemek İçin Bir Ünite veya Konu Seçin</h3>
-              <p>Sol taraftaki müfredat ağacından özet eklemek veya düzenlemek istediğiniz ünite ya da konuyu seçin.</p>
             </div>
-          )}
-        </main>
-
-      </div>
+          </>
+        ) : (
+          <div className="no-target-selected">
+            <BookOpen size={48} style={{ opacity: 0.3 }} />
+            <h3>Düzenlemek İçin Yukarıdan Bir Ünite veya Konu Seçin</h3>
+            <p>Yukarıdaki açılır menülerden sınıf, ders, ünite ve konu seçimi yaptığınızda editör burada açılacaktır.</p>
+          </div>
+        )}
+      </main>
 
     </div>
   );

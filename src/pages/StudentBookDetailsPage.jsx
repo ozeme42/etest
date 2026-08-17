@@ -544,6 +544,58 @@ export default function StudentBookDetailsPage() {
         .sbdp-test-row:hover { background: rgba(255,255,255,0.1) !important; }
         .sbdp-btn-solve { transition: box-shadow 0.15s, transform 0.15s; }
         .sbdp-btn-solve:hover { box-shadow: 0 4px 16px rgba(99,102,241,0.45) !important; transform: translateY(-1px); }
+
+        .sbdp-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          width: 100%;
+        }
+        .sbdp-stat-item {
+          border-right: 1px solid rgba(255,255,255,0.08);
+          padding: 1.1rem 0.75rem;
+          text-align: center;
+          box-sizing: border-box;
+        }
+        .sbdp-stat-item:last-child {
+          border-right: none;
+        }
+        @media (max-width: 640px) {
+          .sbdp-stats-grid {
+            grid-template-columns: repeat(6, 1fr);
+          }
+          .sbdp-stat-dogru {
+            grid-column: span 2;
+            grid-row: 1;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            padding: 0.85rem 0.4rem;
+          }
+          .sbdp-stat-yanlis {
+            grid-column: span 2;
+            grid-row: 1;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            padding: 0.85rem 0.4rem;
+          }
+          .sbdp-stat-bos {
+            grid-column: span 2;
+            grid-row: 1;
+            border-right: none;
+            padding: 0.85rem 0.4rem;
+          }
+          .sbdp-stat-test {
+            grid-column: span 3;
+            grid-row: 2;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-right: 1px solid rgba(255,255,255,0.08);
+            padding: 0.85rem 0.5rem;
+          }
+          .sbdp-stat-basari {
+            grid-column: span 3;
+            grid-row: 2;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-right: none;
+            padding: 0.85rem 0.5rem;
+          }
+        }
       `}</style>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -647,20 +699,32 @@ export default function StudentBookDetailsPage() {
           </div>
         </div>
 
-        <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)', display: 'flex', flexWrap: 'wrap', gap: 0, borderTop: '2px solid rgba(255,255,255,0.12)' }}>
-          {[
-            { label: 'Test', value: `${overallCompleted}/${overallTotal}`, color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)', icon: '📋' },
-            { label: 'Doğru', value: overallCorrect, color: '#4ade80', bg: 'rgba(5,150,105,0.15)', icon: '✅' },
-            { label: 'Yanlış', value: overallWrong, color: '#f87171', bg: 'rgba(225,29,72,0.15)', icon: '❌' },
-            { label: 'Boş', value: overallBlank, color: '#cbd5e1', bg: 'rgba(255,255,255,0.05)', icon: '⬜' },
-            { label: 'Başarı', value: `%${overallSuccessRate}`, color: '#c084fc', bg: 'rgba(168,85,247,0.15)', icon: '🎯' },
-          ].map((s, i) => (
-            <div key={i} style={{ flex: '1 1 120px', padding: '1.1rem 0.75rem', textAlign: 'center', borderRight: i < 4 ? '1px solid rgba(255,255,255,0.08)' : 'none', background: s.bg }}>
-              <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>{s.icon}</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
-            </div>
-          ))}
+        <div className="sbdp-stats-grid" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)', borderTop: '2px solid rgba(255,255,255,0.12)' }}>
+          <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: 'rgba(5,150,105,0.15)' }}>
+            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>✅</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#4ade80' }}>{overallCorrect}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
+          </div>
+          <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: 'rgba(225,29,72,0.15)' }}>
+            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>❌</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f87171' }}>{overallWrong}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
+          </div>
+          <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>⬜</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#cbd5e1' }}>{overallBlank}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
+          </div>
+          <div className="sbdp-stat-item sbdp-stat-test" style={{ background: 'rgba(99,102,241,0.12)' }}>
+            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>📋</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#a5b4fc' }}>{overallCompleted}/{overallTotal}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
+          </div>
+          <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: 'rgba(168,85,247,0.15)' }}>
+            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>🎯</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#c084fc' }}>%{overallSuccessRate}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
+          </div>
         </div>
       </div>
 

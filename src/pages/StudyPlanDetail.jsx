@@ -2,21 +2,51 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import {
   ArrowLeft, Users, Plus, Edit2, Trash2, ChevronDown, ChevronUp, ChevronRight,
   Link as LinkIcon, Calendar, FileJson, X, ListPlus, Sparkles, Hash,
-  Layers, FileText, CheckCircle, Clock, Zap, BookOpen, Search, Globe, Check
+  Layers, FileText, CheckCircle, Clock, Zap, BookOpen, Search, Globe, Check, Lock
 } from 'lucide-react';
 import './StudyPlan.css';
 
 export default function StudyPlanDetail() {
   const { id: planId } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { studyPlans, updateStudyPlan, addStudyAssignment, studyAssignments } = useStudyPlan();
   const { users } = useUser();
 
+  const isTeacher = currentUser?.role === 'teacher';
+  const isAdmin = currentUser?.role === 'admin';
+
   const plan = studyPlans?.find((p) => p.id === planId);
   const subjects = plan?.subjects || [];
+
+  // Check if current user is the owner of this plan
+  const isOwner = useMemo(() => {
+    if (!plan || !currentUser) return false;
+    if (isAdmin) return true;
+    if (isTeacher) {
+      const teacherId = String(currentUser.id || '');
+      const teacherUsername = String(currentUser.username || '').toLowerCase();
+      const teacherEmail = String(currentUser.email || '').toLowerCase();
+      const teacherName = String(currentUser.name || '').toLowerCase();
+      const createdBy = String(plan.createdBy || '');
+      const pTeacherId = String(plan.teacherId || '');
+      const pTeacherUsername = String(plan.teacherUsername || '').toLowerCase();
+      const pTeacherEmail = String(plan.teacherEmail || '').toLowerCase();
+      const pTeacherName = String(plan.teacherName || '').toLowerCase();
+
+      return (
+        (teacherId && (createdBy === teacherId || pTeacherId === teacherId)) ||
+        (teacherUsername && (createdBy.toLowerCase() === teacherUsername || pTeacherUsername === teacherUsername || pTeacherId.toLowerCase() === teacherUsername)) ||
+        (teacherEmail && (pTeacherEmail === teacherEmail || createdBy.toLowerCase() === teacherEmail)) ||
+        (teacherName && (pTeacherName === teacherName))
+      );
+    }
+    return true; // students see plans assigned to them
+  }, [plan, currentUser, isTeacher, isAdmin]);
 
   // Expanded Units State (default closed/collapsed for clarity, or user toggle)
   const [expandedUnits, setExpandedUnits] = useState([]);
@@ -70,6 +100,27 @@ export default function StudyPlanDetail() {
             style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, cursor: 'pointer' }}
           >
             ← Yol Haritalarına Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If a teacher tries to access another teacher's plan
+  if (isTeacher && !isOwner) {
+    return (
+      <div className="study-plans-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
+        <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '480px' }}>
+          <Lock size={48} style={{ color: '#f87171', margin: '0 auto 1rem auto' }} />
+          <h2 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.4rem' }}>Yetkisiz Erişim</h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            Bu yol haritası başka bir öğretmene aittir. Yalnızca kendi oluşturduğunuz veya eklediğiniz yol haritalarını görüntüleyebilir ve düzenleyebilirsiniz.
+          </p>
+          <button 
+            onClick={() => navigate('/study-plans')}
+            style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, cursor: 'pointer' }}
+          >
+            ← Kendi Yol Haritalarıma Dön
           </button>
         </div>
       </div>
@@ -250,7 +301,10 @@ export default function StudyPlanDetail() {
       await addStudyAssignment({ 
         studentId, 
         planId: plan.id, 
-        studyPlanId: plan.id, 
+        studyPlanId: plan.id,
+        teacherId: currentUser?.id || currentUser?.username,
+        teacherUsername: currentUser?.username,
+        teacherName: currentUser?.name || currentUser?.username,
         completedTopics: [] 
       });
     }

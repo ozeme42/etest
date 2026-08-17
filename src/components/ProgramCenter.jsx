@@ -118,6 +118,120 @@ export function normalizeWeeklyProgram(raw) {
   });
 }
 
+export function checkIsTaskSolved(item, studentId, submissions = [], allHomeworks = [], studyAssignments = []) {
+  if (!item || !studentId) return false;
+  if (item.done) return true;
+
+  const studentIdStr = String(studentId || '');
+  const studentUuidStr = String(toUUID(studentId) || '');
+
+  // Match student helper
+  const isMatchStudent = (s) => {
+    if (!s) return false;
+    const subStudentId = String(s.studentId || s.student_id || s.user_id || '');
+    return subStudentId === studentIdStr ||
+      (studentUuidStr && subStudentId === studentUuidStr) ||
+      toUUID(subStudentId) === studentIdStr ||
+      (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+  };
+
+  const specificTestId = item.testId || item.realTestId || item.bookTestId || null;
+
+  // CASE 1: SPECIFIC TEST / QUIZ TASK (MUST match the exact test ID)
+  if (specificTestId) {
+    const tIdStr = String(specificTestId);
+    const tUuidStr = String(toUUID(specificTestId) || '');
+
+    // 1. Check in global submissions
+    const isTestSolvedInSubs = (submissions || []).some(s => {
+      if (!s || !isMatchStudent(s)) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+
+      const subFields = [
+        s.testId,
+        s.realTestId,
+        s.bookTestId,
+        s.metadata?.realTestId,
+        s.metadata?.bookTestId,
+        s.metadata?.realId,
+        s.metadata?.testId
+      ].filter(Boolean).map(String);
+
+      if (Array.isArray(s.bookTestIds)) {
+        s.bookTestIds.forEach(bid => { if (bid) subFields.push(String(bid)); });
+      }
+
+      return subFields.some(sf => sf && (
+        sf === tIdStr ||
+        (tUuidStr && sf === tUuidStr) ||
+        toUUID(sf) === tIdStr ||
+        (tUuidStr && toUUID(sf) === tUuidStr)
+      ));
+    });
+
+    if (isTestSolvedInSubs) return true;
+
+    // 2. Check in homework embedded submissions specifically for this test
+    const targetHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace('hw_', '') : null);
+    if (targetHwId) {
+      const hwObj = (allHomeworks || []).find(h => String(h.id) === String(targetHwId));
+      if (hwObj && Array.isArray(hwObj.submissions)) {
+        const hasTestSub = hwObj.submissions.some(s => {
+          if (!s || !isMatchStudent(s)) return false;
+          if (s.status === 'in_progress' || s.status === 'draft') return false;
+          const sTestId = String(s.testId || s.realTestId || s.bookTestId || '');
+          return sTestId === tIdStr || (tUuidStr && sTestId === tUuidStr) || toUUID(sTestId) === tIdStr;
+        });
+        if (hasTestSub) return true;
+      }
+    }
+
+    return false;
+  }
+
+  // CASE 2: ROADMAP TOPIC TASK
+  if (item.roadmapAssignmentId) {
+    const assignment = (studyAssignments || []).find(a => String(a.id) === String(item.roadmapAssignmentId));
+    if (assignment) {
+      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return true;
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+      }
+      const completedSet = new Set(compTopics.map(String));
+      if (item.topicId && completedSet.has(String(item.topicId))) return true;
+      if (item.topic && completedSet.has(item.topic)) return true;
+      if (item.title && completedSet.has(item.title)) return true;
+    }
+    return false;
+  }
+
+  // CASE 3: GENERAL NON-TEST HOMEWORK TASK
+  const generalHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace('hw_', '') : null) || item.id;
+  if (generalHwId) {
+    const gHwIdStr = String(generalHwId);
+    const gUuidStr = String(toUUID(generalHwId) || '');
+
+    const isHwSolvedInSubs = (submissions || []).some(s => {
+      if (!s || !isMatchStudent(s)) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+      const subFields = [s.hwId, s.homeworkId, s.testId, s.id].filter(Boolean).map(String);
+      return subFields.some(sf => sf === gHwIdStr || (gUuidStr && sf === gUuidStr) || toUUID(sf) === gHwIdStr);
+    });
+
+    if (isHwSolvedInSubs) return true;
+
+    const hwObj = (allHomeworks || []).find(h => String(h.id) === gHwIdStr);
+    if (hwObj && Array.isArray(hwObj.submissions)) {
+      const hasHwSub = hwObj.submissions.some(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
+      if (hasHwSub) return true;
+    }
+  }
+
+  return false;
+}
+
 /* ─── AddItemModal ─── */
 export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topicPool, isDark = false }) {
   const [selectedDayKey, setSelectedDayKey] = useState(dayKey || getTodayKey());
@@ -574,7 +688,7 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                   <button
                     onClick={() => onOpenResult(item)}
                     style={{
-                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                      background: item.done ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '0.5rem',
@@ -585,12 +699,12 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                       display: 'flex',
                       alignItems: 'center',
                       gap: 3,
-                      boxShadow: '0 2px 6px rgba(99,102,241,0.3)',
+                      boxShadow: item.done ? '0 2px 6px rgba(16,185,129,0.3)' : '0 2px 6px rgba(99,102,241,0.3)',
                       transition: 'all 0.15s ease'
                     }}
-                    title="Sınavı Çöz"
+                    title={item.done ? 'Sınav Sonucunu İncele' : 'Sınavı Çöz'}
                   >
-                    <PlayCircle size={11} /> Çöz
+                    {item.done ? <CheckCircle2 size={11} /> : <PlayCircle size={11} />} {item.done ? 'Sonuç' : 'Çöz'}
                   </button>
                 )}
                 {!item.isAutoHomework && onEditClick && (
@@ -1095,6 +1209,15 @@ export function MonthlyListPanel({
         }
       });
 
+      // Map manual items to dynamically reflect test/assignment completion
+      manualItems = manualItems.map(item => {
+        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments));
+        return {
+          ...item,
+          done: isDone
+        };
+      });
+
       const dateTime = dateObj.getTime();
       const autoHwItems = [];
 
@@ -1121,16 +1244,11 @@ export function MonthlyListPanel({
               const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
               const displaySub = `${cleanBookTitle} — ${testName}`;
 
-              const tIdStr = String(testId);
-              const tUuidStr = String(toUUID(testId) || '');
-
-              const isSolved = (submissions || []).some(s =>
-                String(s.studentId) === String(studentId) &&
-                s.status !== 'in_progress' && s.status !== 'draft' &&
-                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
-              );
-
-              if (isSolved) return;
+              const isSolved = checkIsTaskSolved({
+                testId: testId,
+                hwId: hw.id,
+                taskType: 'kitap'
+              }, studentId, submissions, allHomeworks, studyAssignments);
 
               const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${ymd}` || m.testId === testId);
               if (!exists) {
@@ -1142,9 +1260,9 @@ export function MonthlyListPanel({
                   taskType: 'kitap',
                   subject: displayHeader,
                   topic: displaySub,
-                  questionCount: `${qCount} soru`,
+                  questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
                   time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                  done: false
+                  done: isSolved
                 });
               }
             }
@@ -1172,16 +1290,12 @@ export function MonthlyListPanel({
         if (isForThisDay) {
           if (Array.isArray(hw.tests) && hw.tests.length > 1) {
             hw.tests.forEach((testId, idx) => {
-              const tIdStr = String(testId);
-              const tUuidStr = String(toUUID(testId) || '');
-              const isTestSolved = (submissions || []).some(s =>
-                String(s.studentId) === String(studentId) &&
-                s.status !== 'in_progress' && s.status !== 'draft' &&
-                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
-              );
-              if (isTestSolved) return;
+              const isTestSolved = checkIsTaskSolved({
+                testId: testId,
+                hwId: hw.id
+              }, studentId, submissions, allHomeworks, studyAssignments);
 
-              const tObj = (bookTests || []).find(b => String(b.id) === tIdStr);
+              const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
               const testTitle = tObj?.name || `Test ${idx + 1}`;
               const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${ymd}` || m.hwId === hw.id);
               if (!exists) {
@@ -1193,20 +1307,19 @@ export function MonthlyListPanel({
                   taskType: isBook ? 'kitap' : 'ödev',
                   subject: hw.subject || 'Atanan Kitap/Ödev',
                   topic: `${hw.title || 'Ödev'} — ${testTitle}`,
-                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  questionCount: tObj?.questionCount ? (String(tObj.questionCount).includes('soru') ? tObj.questionCount : `${tObj.questionCount} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-                  done: false
+                  done: isTestSolved
                 });
               }
             });
             return;
           }
 
-          const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
-            (submissions || []).find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
-          const isDone = !!sub;
-
-          if (isDone) return;
+          const isHwDone = checkIsTaskSolved({
+            hwId: hw.id,
+            id: hw.id
+          }, studentId, submissions, allHomeworks, studyAssignments);
 
           const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
           if (!exists) {
@@ -1217,9 +1330,9 @@ export function MonthlyListPanel({
               taskType: hw.isBookAssignment ? 'kitap' : 'ödev',
               subject: hw.subject || 'Atanan Ödev',
               topic: hw.title || hw.name || 'Ödev Görevi',
-              questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
+              questionCount: hw.totalQuestions ? (String(hw.totalQuestions).includes('soru') ? hw.totalQuestions : `${hw.totalQuestions} soru`) : null,
               time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-              done: false
+              done: isHwDone
             });
           }
         }
@@ -1264,7 +1377,7 @@ export function MonthlyListPanel({
 
           if (!hasChildTopics && subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
-            if (ymd === sYMD && !isSubjectCompleted) {
+            if (ymd === sYMD) {
               const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${ymd}`);
               if (!exists) {
                 autoHwItems.push({
@@ -1276,7 +1389,7 @@ export function MonthlyListPanel({
                   subject: `${plan.title} • ${subject.name}`,
                   topic: subject.name,
                   time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
-                  done: false
+                  done: isSubjectCompleted
                 });
               }
             }
@@ -1287,21 +1400,19 @@ export function MonthlyListPanel({
               const tYMD = topic.dueDate.split('T')[0];
               if (ymd === tYMD) {
                 const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
-                if (!isCompleted) {
-                  const exists = manualItems.some(m => m.id === `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`);
-                  if (!exists) {
-                    autoHwItems.push({
-                      id: `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`,
-                      roadmapAssignmentId: assignment.id,
-                      isAutoHomework: true,
-                      isRoadmapTask: true,
-                      taskType: 'konu',
-                      subject: `${plan.title} • ${subject.name}`,
-                      topic: topic.name,
-                      time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
-                      done: false
-                    });
-                  }
+                const exists = manualItems.some(m => m.id === `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`);
+                if (!exists) {
+                  autoHwItems.push({
+                    id: `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`,
+                    roadmapAssignmentId: assignment.id,
+                    isAutoHomework: true,
+                    isRoadmapTask: true,
+                    taskType: 'konu',
+                    subject: `${plan.title} • ${subject.name}`,
+                    topic: topic.name,
+                    time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                    done: isCompleted
+                  });
                 }
               }
             }
@@ -1324,6 +1435,7 @@ export function MonthlyListPanel({
 
     return {
       year,
+      monthIdx,
       monthName,
       monthTitle: `${monthName} ${year}`,
       daysList
@@ -1337,12 +1449,21 @@ export function MonthlyListPanel({
 
   const monthTotalTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.length, 0);
   const monthDoneTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.filter(i => i.done).length, 0);
+  const monthCompletionPct = monthTotalTasks > 0 ? Math.round((monthDoneTasks / monthTotalTasks) * 100) : 0;
+  const [printOrientation, setPrintOrientation] = useState('landscape');
+
+  const handlePrint = (orientation) => {
+    setPrintOrientation(orientation);
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
 
   return (
     <div className="printable-monthly-area">
       {/* Print & Mobile Specific CSS */}
       <style>{`
-        .print-only-header { display: none; }
+        .print-monthly-program-doc { display: none; }
         .monthly-day-card {
           display: flex;
           align-items: flex-start;
@@ -1385,459 +1506,737 @@ export function MonthlyListPanel({
           }
         }
         @media print {
-          @page { size: A4; margin: 12mm; }
-          body { background: white !important; color: #000 !important; font-family: sans-serif !important; }
-          nav, header, footer, .no-print, button, select, input, .weekly-grid { display: none !important; }
+          @page {
+            size: ${printOrientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
+            margin: 6mm 8mm;
+          }
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box !important;
+          }
+          html, body, #root, #root *, div, section, main, article, header, nav {
+            background-color: #ffffff !important;
+            background-image: none !important;
+            color: #0f172a !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            backdrop-filter: none !important;
+            font-family: 'Inter', -apple-system, sans-serif !important;
+          }
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 8.2pt !important;
+          }
+          nav, header, footer, .no-print, button, select, input, .weekly-grid, .screen-only-agenda {
+            display: none !important;
+          }
           .printable-monthly-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-          .print-only-header {
+          .print-monthly-program-doc {
+            display: block !important;
+            width: 100% !important;
+          }
+          .print-doc-header {
             display: flex !important;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 10px;
-            margin-bottom: 16px;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            border-bottom: 2px solid #0f172a !important;
+            padding-bottom: 5px !important;
+            margin-bottom: 8px !important;
+          }
+          .print-doc-brand {
+            font-size: 10.5pt !important;
+            font-weight: 900 !important;
+            color: #0f172a !important;
+            letter-spacing: -0.02em !important;
+          }
+          .print-doc-title {
+            font-size: 9pt !important;
+            font-weight: 800 !important;
+            color: #4338ca !important;
+            margin-top: 1px !important;
+          }
+          .print-doc-header-right {
+            text-align: right !important;
+            font-size: 7.8pt !important;
+            color: #334155 !important;
+            line-height: 1.3 !important;
+          }
+          .print-doc-stat {
+            font-weight: 800 !important;
+            color: #15803d !important;
+          }
+          .print-doc-date {
+            color: #64748b !important;
+          }
+          .print-doc-days-container {
+            display: ${printOrientation === 'landscape' ? 'grid' : 'flex'} !important;
+            ${printOrientation === 'landscape' ? 'grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important;' : 'flex-direction: column !important; gap: 6px !important;'}
           }
           .print-day-card {
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
             border: 1px solid #cbd5e1 !important;
             border-left: 4px solid #4f46e5 !important;
-            box-shadow: none !important;
-            background: white !important;
-            margin-bottom: 10px !important;
+            border-radius: 5px !important;
+            background: #ffffff !important;
+            padding: 4px 7px !important;
+          }
+          .print-day-title-bar {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            padding-bottom: 2px !important;
+            margin-bottom: 3px !important;
+          }
+          .print-day-date {
+            font-size: 8.5pt !important;
+            font-weight: 900 !important;
+            color: #0f172a !important;
+          }
+          .print-day-meta {
+            font-size: 7.2pt !important;
+            font-weight: 700 !important;
+            color: #64748b !important;
+          }
+          .print-day-tasks-table {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 2.5px !important;
+          }
+          .print-task-row {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 5px !important;
+            padding: 2.5px 4px !important;
+            border-radius: 3px !important;
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            line-height: 1.2 !important;
+          }
+          .print-task-row.is-done {
+            background: #f0fdf4 !important;
+            border-color: #bbf7d0 !important;
+          }
+          .print-task-col-check {
+            flex-shrink: 0 !important;
+            padding-top: 1px !important;
+          }
+          .print-check-box {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 12px !important;
+            height: 12px !important;
+            border: 1.5px solid #64748b !important;
+            border-radius: 2.5px !important;
+            font-size: 7pt !important;
+            font-weight: 900 !important;
+            color: #15803d !important;
+            line-height: 1 !important;
+            background: #ffffff !important;
+          }
+          .print-check-box.checked {
+            border-color: #16a34a !important;
+            background: #dcfce7 !important;
+          }
+          .print-task-col-info {
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+          .print-task-subject {
+            font-size: 7.8pt !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+          }
+          .print-task-topic {
+            font-size: 7.2pt !important;
+            color: #334155 !important;
+            font-weight: 600 !important;
+            margin-top: 1px !important;
+          }
+          .print-task-col-details {
+            display: flex !important;
+            align-items: center !important;
+            gap: 3px !important;
+            flex-shrink: 0 !important;
+            font-size: 7pt !important;
+          }
+          .print-pill {
+            background: #e2e8f0 !important;
+            color: #334155 !important;
+            padding: 1px 4px !important;
+            border-radius: 3px !important;
+            font-weight: 700 !important;
+          }
+          .print-pill-q {
+            background: #e0f2fe !important;
+            color: #0369a1 !important;
+            font-weight: 800 !important;
+          }
+          .print-task-col-status {
+            flex-shrink: 0 !important;
+          }
+          .print-status-tag {
+            font-size: 6.8pt !important;
+            font-weight: 800 !important;
+            padding: 1px 4px !important;
+            border-radius: 3px !important;
+          }
+          .print-status-tag.done {
+            background: #dcfce7 !important;
+            color: #15803d !important;
+          }
+          .print-status-tag.pending {
+            background: #f1f5f9 !important;
+            color: #64748b !important;
+          }
+          .print-doc-footer {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            border-top: 1.5px solid #cbd5e1 !important;
+            padding-top: 6px !important;
+            margin-top: 10px !important;
+            font-size: 7.2pt !important;
+            color: #475569 !important;
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
-      {/* Print Only Header */}
-      <div className="print-only-header">
-        <div>
-          <h1 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>E-TEST DERS TAKİP VE KOÇLUK PLATFORMU</h1>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#4f46e5', margin: '4px 0 0' }}>Öğrenci Aylık Ders Çalışma Programı — {monthInfo.monthTitle}</h2>
-          <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 4 }}>
-            Öğrenci: <strong>{currentUser?.name || currentUser?.username || 'Öğrenci'}</strong>
+
+      {/* FULL-DETAIL PRINTABLE MONTHLY PROGRAM (MULTI-PAGE A4) */}
+      <div className="print-monthly-program-doc">
+        {/* Document Header */}
+        <div className="print-doc-header">
+          <div>
+            <div className="print-doc-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
+            <div className="print-doc-title">Aylık Ders Çalışma Programı • {monthInfo.monthTitle}</div>
+          </div>
+          <div className="print-doc-header-right">
+            <div>Öğrenci: <strong>{currentUser?.name || currentUser?.username || 'Öğrenci'}</strong></div>
+            <div className="print-doc-stat">
+              Tamamlanan: {monthDoneTasks} / {monthTotalTasks} Görev (%{monthCompletionPct})
+            </div>
+            <div className="print-doc-date">Tarih: {new Date().toLocaleDateString('tr-TR')}</div>
           </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#64748b' }}>
-          <div>Yazdırma Tarihi: {new Date().toLocaleDateString('tr-TR')}</div>
-          <div style={{ fontWeight: 800, color: '#16a34a', marginTop: 2 }}>{monthDoneTasks}/{monthTotalTasks} Görev Tamamlandı</div>
+
+        {/* Days List (Full Detail, Clean & High-Density) */}
+        <div className={`print-doc-days-container ${printOrientation}`}>
+          {monthInfo.daysList.filter(d => d.items.length > 0).map(d => {
+            const dayDoneCount = d.items.filter(i => i.done).length;
+            return (
+              <div key={d.ymd} className="print-day-card">
+                <div className="print-day-title-bar">
+                  <div className="print-day-date">
+                    📅 {d.day} {monthInfo.monthName} {monthInfo.year}, {d.dayName}
+                  </div>
+                  <div className="print-day-meta">
+                    {d.items.length} Görev {dayDoneCount > 0 ? `(${dayDoneCount} Tamamlandı)` : ''}
+                  </div>
+                </div>
+
+                <div className="print-day-tasks-table">
+                  {d.items.map((item, idx) => {
+                    return (
+                      <div key={item.id || idx} className={`print-task-row ${item.done ? 'is-done' : ''}`}>
+                        <div className="print-task-col-check">
+                          <span className={`print-check-box ${item.done ? 'checked' : ''}`}>
+                            {item.done ? '✓' : ''}
+                          </span>
+                        </div>
+                        <div className="print-task-col-info">
+                          <div className="print-task-subject">
+                            {item.subject || 'Ders Çalışması'}
+                          </div>
+                          {item.topic && item.topic !== item.subject && (
+                            <div className="print-task-topic">
+                              {item.topic}
+                            </div>
+                          )}
+                        </div>
+                        <div className="print-task-col-details">
+                          {item.questionCount && (
+                            <span className="print-pill print-pill-q">
+                              ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
+                            </span>
+                          )}
+                          {(item.startTime || item.time || item.saat) && (
+                            <span className="print-pill">
+                              🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                            </span>
+                          )}
+                          {item.hours && (
+                            <span className="print-pill">
+                              ⏱️ {item.hours} sa
+                            </span>
+                          )}
+                        </div>
+                        <div className="print-task-col-status">
+                          <span className={`print-status-tag ${item.done ? 'done' : 'pending'}`}>
+                            {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Document Footer */}
+        <div className="print-doc-footer">
+          <div>Öğrenci İmzası: ___________________</div>
+          <div>Koç / Öğretmen İmzası: ___________________</div>
+          <div>Veli İmzası: ___________________</div>
         </div>
       </div>
 
-      {/* Month Navigation & Stats Banner */}
-      <div className="no-print" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff',
-        border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
-        borderRadius: '1rem',
-        padding: '0.85rem 1.25rem',
-        marginBottom: '1.25rem',
-        boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 2px 10px rgba(0,0,0,0.03)',
-        backdropFilter: isDark ? 'blur(20px)' : 'none',
-        flexWrap: 'wrap',
-        gap: '0.85rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setMonthOffset(m => m - 1)}
-            style={{
-              padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-              background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-              color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-            }}
-          >
-            <ChevronLeft size={16} /> Önceki Ay
-          </button>
-
-          {monthOffset !== 0 && (
+      {/* SCREEN VIEW (INTERACTIVE AGENDA WITH CONTROLS) */}
+      <div className="screen-only-agenda">
+        {/* Month Navigation & Stats Banner */}
+        <div className="no-print" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff',
+          border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
+          borderRadius: '1rem',
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1.25rem',
+          boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 2px 10px rgba(0,0,0,0.03)',
+          backdropFilter: isDark ? 'blur(20px)' : 'none',
+          flexWrap: 'wrap',
+          gap: '0.85rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
-              onClick={() => setMonthOffset(0)}
+              onClick={() => setMonthOffset(m => m - 1)}
               style={{
                 padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                color: 'white', border: 'none', fontWeight: 900, fontSize: '0.8rem',
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
               }}
             >
-              📍 Bu Ay ({new Date().toLocaleDateString('tr-TR', { month: 'long' })})
-            </button>
-          )}
-
-          <button
-            onClick={() => setMonthOffset(m => m + 1)}
-            style={{
-              padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
-              background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-              color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
-            }}
-          >
-            Sonraki Ay <ChevronRight size={16} />
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calendar size={22} color="#818cf8" />
-            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
-              📆 {monthInfo.monthTitle}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setOnlyWithTasks(v => !v)}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '99px',
-                background: onlyWithTasks ? (isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
-                border: onlyWithTasks ? '1.5px solid #818cf8' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
-                color: onlyWithTasks ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
-                fontWeight: 800,
-                fontSize: '0.75rem',
-                cursor: 'pointer'
-              }}
-            >
-              {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+              <ChevronLeft size={16} /> Önceki Ay
             </button>
 
-            <button
-              onClick={() => window.print()}
-              style={{
-                padding: '0.35rem 0.85rem',
-                borderRadius: '99px',
-                background: 'linear-gradient(135deg, #059669, #10b981)',
-                border: 'none',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
-              }}
-              title="Aylık Programı Yazdır veya PDF olarak kaydet"
-            >
-              <Printer size={14} /> 🖨️ Yazdır / PDF İndir
-            </button>
-
-            <span style={{ fontSize: '0.78rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 800, background: isDark ? 'rgba(5,150,105,0.2)' : '#f0fdf4', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(52,211,153,0.35)' : '1.5px solid #86efac' }}>
-              {monthDoneTasks}/{monthTotalTasks} Tamamlandı
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Days Agenda List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {filteredDays.map(d => {
-          const taskIcons = { konu: '📖', soru: '✏️', tekrar: '🔄', kitap: '📚', deneme: '📊', ödev: '📝', diger: '✨' };
-          const theme = DAY_THEMES[d.dayKey] || DAY_THEMES['Pzt'];
-          return (
-            <div
-              key={d.ymd}
-              className="monthly-day-card"
-              style={{
-                background: d.isToday ? (isDark ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.95))' : 'linear-gradient(135deg, #ffffff, #f5f3ff)') : (isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff'),
-                border: d.isToday ? '2px solid #818cf8' : (isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : `1.5px solid ${theme.border}`),
-                borderLeft: `5px solid ${d.isToday ? '#818cf8' : theme.text}`,
-                borderRadius: '1rem',
-                padding: '0.85rem 1.1rem',
-                boxShadow: d.isToday ? (isDark ? '0 8px 30px rgba(99,102,241,0.35)' : '0 6px 20px rgba(99,102,241,0.15)') : (isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.03)'),
-                backdropFilter: isDark ? 'blur(20px)' : 'none'
-              }}
-            >
-              {/* Date Box with Day Theme Gradient */}
-              <div
-                className="monthly-date-box"
+            {monthOffset !== 0 && (
+              <button
+                onClick={() => setMonthOffset(0)}
                 style={{
-                  background: d.isToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
-                  boxShadow: d.isToday ? '0 4px 14px rgba(79,70,229,0.35)' : '0 2px 8px rgba(0,0,0,0.1)'
+                  padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                  color: 'white', border: 'none', fontWeight: 900, fontSize: '0.8rem',
+                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
                 }}
               >
-                <div className="monthly-date-box-left">
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, opacity: 0.95, marginTop: 2 }}>{d.dayName}</div>
-                </div>
-                {d.isToday && (
-                  <div style={{ fontSize: '0.6rem', fontWeight: 900, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '2px 6px', borderRadius: 4, marginTop: 2 }}>
-                    BUGÜN
-                  </div>
-                )}
+                📍 Bu Ay ({new Date().toLocaleDateString('tr-TR', { month: 'long' })})
+              </button>
+            )}
+
+            <button
+              onClick={() => setMonthOffset(m => m + 1)}
+              style={{
+                padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                color: isDark ? '#ffffff' : '#334155', fontWeight: 800, fontSize: '0.8rem',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+              }}
+            >
+              Sonraki Ay <ChevronRight size={16} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={22} color="#818cf8" />
+              <span style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                📆 {monthInfo.monthTitle}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setOnlyWithTasks(v => !v)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '99px',
+                  background: onlyWithTasks ? (isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                  border: onlyWithTasks ? '1.5px solid #818cf8' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                  color: onlyWithTasks ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+              </button>
+
+              {/* Dual Print Buttons: Yatay & Dikey */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
+                <button
+                  onClick={() => handlePrint('landscape')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 99,
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    border: 'none',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+                  }}
+                  title="A4 Yatay (Landscape) olarak yazdır / PDF kaydet"
+                >
+                  <Printer size={13} /> 📄 Yatay Yazdır
+                </button>
+                <button
+                  onClick={() => handlePrint('portrait')}
+                  style={{
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: 99,
+                    background: 'transparent',
+                    border: 'none',
+                    color: isDark ? '#ffffff' : '#334155',
+                    fontWeight: 800,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                  title="A4 Dikey (Portrait) olarak yazdır / PDF kaydet"
+                >
+                  📄 Dikey
+                </button>
               </div>
 
-              {/* Items List */}
-              <div className="monthly-items-wrap">
-                {d.items.length === 0 ? (
-                  <div style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontWeight: 600, fontStyle: 'italic', padding: '0.35rem 0' }}>
-                    Programlanan ders görevi yok
+              <span style={{ fontSize: '0.78rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 800, background: isDark ? 'rgba(5,150,105,0.2)' : '#f0fdf4', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(52,211,153,0.35)' : '1.5px solid #86efac' }}>
+                {monthDoneTasks}/{monthTotalTasks} Tamamlandı
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Days Agenda List (Screen) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {filteredDays.map(d => {
+            const taskIcons = { konu: '📖', soru: '✏️', tekrar: '🔄', kitap: '📚', deneme: '📊', ödev: '📝', diger: '✨' };
+            const theme = DAY_THEMES[d.dayKey] || DAY_THEMES['Pzt'];
+            return (
+              <div
+                key={d.ymd}
+                className="monthly-day-card"
+                style={{
+                  background: d.isToday ? (isDark ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.95))' : 'linear-gradient(135deg, #ffffff, #f5f3ff)') : (isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff'),
+                  border: d.isToday ? '2px solid #818cf8' : (isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : `1.5px solid ${theme.border}`),
+                  borderLeft: `5px solid ${d.isToday ? '#818cf8' : theme.text}`,
+                  borderRadius: '1rem',
+                  padding: '0.85rem 1.1rem',
+                  boxShadow: d.isToday ? (isDark ? '0 8px 30px rgba(99,102,241,0.35)' : '0 6px 20px rgba(99,102,241,0.15)') : (isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.03)'),
+                  backdropFilter: isDark ? 'blur(20px)' : 'none'
+                }}
+              >
+                {/* Date Box with Day Theme Gradient */}
+                <div
+                  className="monthly-date-box"
+                  style={{
+                    background: d.isToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
+                    boxShadow: d.isToday ? '0 4px 14px rgba(79,70,229,0.35)' : '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <div className="monthly-date-box-left">
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, opacity: 0.95, marginTop: 2 }}>{d.dayName}</div>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {d.items.map((item, idx) => {
-                      const icon = taskIcons[item.taskType] || '📌';
-                      const tt = TASK_TYPES.find(t => t.id === item.taskType);
-                      const itemAccent = item.done ? '#22c55e' : (tt?.color || theme.text);
-                      const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
+                  {d.isToday && (
+                    <div style={{ fontSize: '0.6rem', fontWeight: 900, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '2px 6px', borderRadius: 4, marginTop: 2 }}>
+                      BUGÜN
+                    </div>
+                  )}
+                </div>
 
-                      return (
-                        <div
-                          key={item.id || idx}
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.45rem',
-                            background: item.done ? (isDark ? 'rgba(5,150,105,0.18)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
-                            border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'),
-                            borderLeft: `4px solid ${itemAccent}`,
-                            borderRadius: '0.75rem',
-                            padding: '0.65rem 0.85rem',
-                            boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.04)'),
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {/* Top Row: Checkbox + Icon + Subject / Title */}
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%' }}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (onToggle) onToggle(d.dayKey, item.id);
-                              }}
-                              style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: 6,
-                                border: item.done ? '2px solid #22c55e' : (isDark ? '2px solid rgba(255,255,255,0.35)' : '2px solid #cbd5e1'),
-                                background: item.done ? '#22c55e' : 'transparent',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                padding: 0,
-                                flexShrink: 0,
-                                marginTop: 2,
-                                transition: 'all 0.15s ease'
-                              }}
-                              title={item.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamlandı olarak işaretle'}
-                            >
-                              {item.done && <Check size={14} color="white" strokeWidth={3} />}
-                            </button>
+                {/* Items List */}
+                <div className="monthly-items-wrap">
+                  {d.items.length === 0 ? (
+                    <div style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontWeight: 600, fontStyle: 'italic', padding: '0.35rem 0' }}>
+                      Programlanan ders görevi yok
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {d.items.map((item, idx) => {
+                        const icon = taskIcons[item.taskType] || '📌';
+                        const tt = TASK_TYPES.find(t => t.id === item.taskType);
+                        const itemAccent = item.done ? '#22c55e' : (tt?.color || theme.text);
+                        const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
 
-                            <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                        return (
+                          <div
+                            key={item.id || idx}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.45rem',
+                              background: item.done ? (isDark ? 'rgba(5,150,105,0.18)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                              border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'),
+                              borderLeft: `4px solid ${itemAccent}`,
+                              borderRadius: '0.75rem',
+                              padding: '0.65rem 0.85rem',
+                              boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.04)'),
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {/* Top Row: Checkbox + Icon + Subject / Title */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onToggle) onToggle(d.dayKey, item.id);
+                                }}
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 6,
+                                  border: item.done ? '2px solid #22c55e' : (isDark ? '2px solid rgba(255,255,255,0.35)' : '2px solid #cbd5e1'),
+                                  background: item.done ? '#22c55e' : 'transparent',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  flexShrink: 0,
+                                  marginTop: 2,
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title={item.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamlandı olarak işaretle'}
+                              >
+                                {item.done && <Check size={14} color="white" strokeWidth={3} />}
+                              </button>
 
-                            <div
-                              onClick={() => {
-                                if (isClickable && onOpenResult) {
-                                  onOpenResult(item);
-                                } else if (onToggle) {
-                                  onToggle(d.dayKey, item.id);
-                                }
-                              }}
-                              style={{
-                                flex: 1,
-                                minWidth: 0,
-                                cursor: isClickable || onToggle ? 'pointer' : 'default'
-                              }}
-                            >
+                              <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{icon}</span>
+
+                              <div
+                                onClick={() => {
+                                  if (isClickable && onOpenResult) {
+                                    onOpenResult(item);
+                                  } else if (onToggle) {
+                                    onToggle(d.dayKey, item.id);
+                                  }
+                                }}
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  cursor: isClickable || onToggle ? 'pointer' : 'default'
+                                }}
+                              >
+                                <div style={{
+                                  fontSize: '0.85rem',
+                                  fontWeight: 800,
+                                  lineHeight: 1.4,
+                                  color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                  textDecoration: item.done ? 'line-through' : 'none',
+                                  wordBreak: 'break-word',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: 6
+                                }}>
+                                  <span>{item.subject || item.topic || 'Ders Çalışması'}</span>
+                                  {isClickable && (
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      color: isDark ? '#a5b4fc' : '#4f46e5',
+                                      background: isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff',
+                                      border: isDark ? '1px solid rgba(165,180,252,0.35)' : '1px solid #c7d2fe',
+                                      padding: '1px 6px',
+                                      borderRadius: 4,
+                                      fontWeight: 800,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 2
+                                    }}>
+                                      <span>Görevi Aç</span> ↗
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Middle Row: Sub-Topic / Test Details (if distinct) */}
+                            {item.topic && item.subject && item.topic !== item.subject && (
                               <div style={{
-                                fontSize: '0.85rem',
-                                fontWeight: 800,
-                                lineHeight: 1.4,
-                                color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
-                                textDecoration: item.done ? 'line-through' : 'none',
-                                wordBreak: 'break-word',
-                                display: 'flex',
-                                alignItems: 'center',
-                                flexWrap: 'wrap',
-                                gap: 6
+                                paddingLeft: 30,
+                                fontSize: '0.75rem',
+                                color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
+                                fontWeight: 600,
+                                lineHeight: 1.45,
+                                wordBreak: 'break-word'
                               }}>
-                                <span>{item.subject || item.topic || 'Ders Çalışması'}</span>
-                                {isClickable && (
+                                {item.topic}
+                              </div>
+                            )}
+
+                            {/* Bottom Row: Badges & Action Buttons */}
+                            <div style={{
+                              paddingLeft: 30,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 6,
+                              marginTop: 2,
+                              paddingTop: 4,
+                              borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                {(item.startTime || item.endTime || item.time || item.saat) && (
                                   <span style={{
-                                    fontSize: '0.62rem',
-                                    color: isDark ? '#a5b4fc' : '#4f46e5',
-                                    background: isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff',
-                                    border: isDark ? '1px solid rgba(165,180,252,0.35)' : '1px solid #c7d2fe',
-                                    padding: '1px 6px',
-                                    borderRadius: 4,
+                                    fontSize: '0.65rem',
                                     fontWeight: 800,
+                                    color: isDark ? '#c7d2fe' : '#4f46e5',
+                                    background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff',
+                                    border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: 99,
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: 2
+                                    gap: 3
                                   }}>
-                                    <span>Görevi Aç</span> ↗
+                                    🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
                                   </span>
+                                )}
+                                {item.hours && (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    color: isDark ? '#a5b4fc' : '#6366f1',
+                                    background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: 99
+                                  }}>
+                                    ⏱️ {item.hours} sa
+                                  </span>
+                                )}
+                                {item.questionCount && (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    color: '#22d3ee',
+                                    background: isDark ? 'rgba(6,182,212,0.15)' : '#ecfeff',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: 99
+                                  }}>
+                                    ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
+                                  </span>
+                                )}
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 900,
+                                  padding: '0.15rem 0.55rem',
+                                  borderRadius: 99,
+                                  background: item.done ? (isDark ? 'rgba(5,150,105,0.25)' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'),
+                                  color: item.done ? (isDark ? '#4ade80' : '#15803d') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b')
+                                }}>
+                                  {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
+                                </span>
+                              </div>
+
+                              {/* Actions on right */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                                {!item.isAutoHomework && onEditClick && (
+                                  <button
+                                    onClick={() => onEditClick(d.dayKey, item)}
+                                    style={{
+                                      background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b',
+                                      padding: '3px 8px',
+                                      borderRadius: 6,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: '0.65rem',
+                                      fontWeight: 700
+                                    }}
+                                    title="Görevi Düzenle"
+                                  >
+                                    <Edit3 size={12} /> Düzenle
+                                  </button>
+                                )}
+                                {!item.isAutoHomework && onDelete && (
+                                  <button
+                                    onClick={() => onDelete(d.dayKey, item.id)}
+                                    style={{
+                                      background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      color: isDark ? '#f87171' : '#dc2626',
+                                      padding: '3px 8px',
+                                      borderRadius: 6,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: '0.65rem',
+                                      fontWeight: 700
+                                    }}
+                                    title="Görevi Sil"
+                                  >
+                                    <Trash2 size={12} /> Sil
+                                  </button>
+                                )}
+                                {isClickable && onOpenResult && (
+                                  <button
+                                    onClick={() => onOpenResult(item)}
+                                    style={{
+                                      background: item.done ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      color: '#ffffff',
+                                      padding: '3px 10px',
+                                      borderRadius: 6,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      fontSize: '0.68rem',
+                                      fontWeight: 900,
+                                      boxShadow: item.done ? '0 2px 6px rgba(16,185,129,0.3)' : '0 2px 6px rgba(79,70,229,0.3)'
+                                    }}
+                                    title={item.done ? 'Sınav Sonucunu İncele' : 'Sınavı Başlat'}
+                                  >
+                                    <span>{item.done ? 'Sonucu Gör' : 'Başlat'}</span>
+                                    <ArrowRight size={11} />
+                                  </button>
                                 )}
                               </div>
                             </div>
                           </div>
-
-                          {/* Middle Row: Sub-Topic / Test Details (if distinct) */}
-                          {item.topic && item.subject && item.topic !== item.subject && (
-                            <div style={{
-                              paddingLeft: 30,
-                              fontSize: '0.75rem',
-                              color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
-                              fontWeight: 600,
-                              lineHeight: 1.45,
-                              wordBreak: 'break-word'
-                            }}>
-                              {item.topic}
-                            </div>
-                          )}
-
-                          {/* Bottom Row: Badges & Action Buttons */}
-                          <div style={{
-                            paddingLeft: 30,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: 6,
-                            marginTop: 2,
-                            paddingTop: 4,
-                            borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              {(item.startTime || item.endTime || item.time || item.saat) && (
-                                <span style={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 800,
-                                  color: isDark ? '#c7d2fe' : '#4f46e5',
-                                  background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff',
-                                  border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
-                                  padding: '0.15rem 0.5rem',
-                                  borderRadius: 99,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 3
-                                }}>
-                                  🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
-                                </span>
-                              )}
-                              {item.hours && (
-                                <span style={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 800,
-                                  color: isDark ? '#a5b4fc' : '#6366f1',
-                                  background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
-                                  padding: '0.15rem 0.5rem',
-                                  borderRadius: 99
-                                }}>
-                                  ⏱️ {item.hours} sa
-                                </span>
-                              )}
-                              {item.questionCount && (
-                                <span style={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 800,
-                                  color: '#22d3ee',
-                                  background: isDark ? 'rgba(6,182,212,0.15)' : '#ecfeff',
-                                  padding: '0.15rem 0.5rem',
-                                  borderRadius: 99
-                                }}>
-                                  ✏️ {item.questionCount} soru
-                                </span>
-                              )}
-                              <span style={{
-                                fontSize: '0.65rem',
-                                fontWeight: 900,
-                                padding: '0.15rem 0.55rem',
-                                borderRadius: 99,
-                                background: item.done ? (isDark ? 'rgba(5,150,105,0.25)' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'),
-                                color: item.done ? (isDark ? '#4ade80' : '#15803d') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b')
-                              }}>
-                                {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
-                              </span>
-                            </div>
-
-                            {/* Actions on right */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-                              {!item.isAutoHomework && onEditClick && (
-                                <button
-                                  onClick={() => onEditClick(d.dayKey, item)}
-                                  style={{
-                                    background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700
-                                  }}
-                                  title="Görevi Düzenle"
-                                >
-                                  <Edit3 size={12} /> Düzenle
-                                </button>
-                              )}
-                              {!item.isAutoHomework && onDelete && (
-                                <button
-                                  onClick={() => onDelete(d.dayKey, item.id)}
-                                  style={{
-                                    background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    color: isDark ? '#f87171' : '#dc2626',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700
-                                  }}
-                                  title="Görevi Sil"
-                                >
-                                  <Trash2 size={12} /> Sil
-                                </button>
-                              )}
-                              {isClickable && onOpenResult && (
-                                <button
-                                  onClick={() => onOpenResult(item)}
-                                  style={{
-                                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    color: '#ffffff',
-                                    padding: '3px 10px',
-                                    borderRadius: 6,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    fontSize: '0.68rem',
-                                    fontWeight: 900,
-                                    boxShadow: '0 2px 6px rgba(79,70,229,0.3)'
-                                  }}
-                                >
-                                  <span>Başlat</span>
-                                  <ArrowRight size={11} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -1848,8 +2247,16 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const [programTab, setProgramTab] = useState('haftalik');
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [weeklyPrintOrientation, setWeeklyPrintOrientation] = useState('landscape');
   const todayKey = getTodayKey();
   const navigate = useNavigate();
+
+  const handleWeeklyPrint = (orientation) => {
+    setWeeklyPrintOrientation(orientation);
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
 
   const hwContext = useHomework();
   const authContext = useAuth();
@@ -1997,6 +2404,15 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
           manualItems.push(dItem);
         }
       });
+      // Map manual items to dynamically reflect test/assignment completion
+      manualItems = manualItems.map(item => {
+        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments));
+        return {
+          ...item,
+          done: isDone
+        };
+      });
+
       const autoHwItems = [];
 
       // A) Homeworks & Book Assignments
@@ -2022,17 +2438,11 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
               const displaySub = `${cleanBookTitle} — ${testName}`;
 
-              const tIdStr = String(testId);
-              const tUuidStr = String(toUUID(testId) || '');
-
-              const isSolved = submissions.some(s =>
-                String(s.studentId) === String(studentId) &&
-                s.status !== 'in_progress' && s.status !== 'draft' &&
-                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
-              );
-
-              // Exclude solved/completed tests so they disappear from the program view
-              if (isSolved) return;
+              const isSolved = checkIsTaskSolved({
+                testId: testId,
+                hwId: hw.id,
+                taskType: 'kitap'
+              }, studentId, submissions, allHomeworks, studyAssignments);
 
               const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
               if (!exists) {
@@ -2044,9 +2454,9 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                   taskType: 'kitap',
                   subject: displayHeader,
                   topic: displaySub,
-                  questionCount: `${qCount} soru`,
+                  questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
                   time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                  done: false
+                  done: isSolved
                 });
               }
             }
@@ -2074,16 +2484,12 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
         if (isForThisDay) {
           if (Array.isArray(hw.tests) && hw.tests.length > 1) {
             hw.tests.forEach((testId, idx) => {
-              const tIdStr = String(testId);
-              const tUuidStr = String(toUUID(testId) || '');
-              const isTestSolved = submissions.some(s =>
-                String(s.studentId) === String(studentId) &&
-                s.status !== 'in_progress' && s.status !== 'draft' &&
-                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
-              );
-              if (isTestSolved) return;
+              const isTestSolved = checkIsTaskSolved({
+                testId: testId,
+                hwId: hw.id
+              }, studentId, submissions, allHomeworks, studyAssignments);
 
-              const tObj = bookTests.find(b => String(b.id) === tIdStr);
+              const tObj = bookTests.find(b => String(b.id) === String(testId));
               const testTitle = tObj?.name || `Test ${idx + 1}`;
               const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${dayObj.day}` || m.hwId === hw.id);
               if (!exists) {
@@ -2095,21 +2501,19 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                   taskType: isBook ? 'kitap' : 'ödev',
                   subject: hw.subject || 'Atanan Kitap/Ödev',
                   topic: `${hw.title || 'Ödev'} — ${testTitle}`,
-                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  questionCount: tObj?.questionCount ? (String(tObj.questionCount).includes('soru') ? tObj.questionCount : `${tObj.questionCount} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-                  done: false
+                  done: isTestSolved
                 });
               }
             });
             return;
           }
 
-          const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
-            submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
-          const isDone = !!sub;
-
-          // Exclude completed standard homeworks so they disappear from the program view
-          if (isDone) return;
+          const isHwDone = checkIsTaskSolved({
+            hwId: hw.id,
+            id: hw.id
+          }, studentId, submissions, allHomeworks, studyAssignments);
 
           const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
           if (!exists) {
@@ -2120,9 +2524,9 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               taskType: hw.isBookAssignment ? 'kitap' : 'ödev',
               subject: hw.subject || 'Atanan Ödev',
               topic: hw.title || hw.name || 'Ödev Görevi',
-              questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
+              questionCount: hw.totalQuestions ? (String(hw.totalQuestions).includes('soru') ? hw.totalQuestions : `${hw.totalQuestions} soru`) : null,
               time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-              done: false
+              done: isHwDone
             });
           }
         }
@@ -2170,7 +2574,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
           if (!hasChildTopics && subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
-            if (dayInfo.ymd === sYMD && !isSubjectCompleted) {
+            if (dayInfo.ymd === sYMD) {
               const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`);
               if (!exists) {
                 autoHwItems.push({
@@ -2182,7 +2586,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                   subject: `${plan.title} • ${subject.name}`,
                   topic: subject.name,
                   time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
-                  done: false
+                  done: isSubjectCompleted
                 });
               }
             }
@@ -2193,21 +2597,19 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               const tYMD = topic.dueDate.split('T')[0];
               if (dayInfo.ymd === tYMD) {
                 const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
-                if (!isCompleted) {
-                  const exists = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`);
-                  if (!exists) {
-                    autoHwItems.push({
-                      id: `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`,
-                      roadmapAssignmentId: assignment.id,
-                      isAutoHomework: true,
-                      isRoadmapTask: true,
-                      taskType: 'konu',
-                      subject: `${plan.title} • ${subject.name}`,
-                      topic: topic.name,
-                      time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
-                      done: false
-                    });
-                  }
+                const exists = manualItems.some(m => m.id === `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`);
+                if (!exists) {
+                  autoHwItems.push({
+                    id: `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`,
+                    roadmapAssignmentId: assignment.id,
+                    isAutoHomework: true,
+                    isRoadmapTask: true,
+                    taskType: 'konu',
+                    subject: `${plan.title} • ${subject.name}`,
+                    topic: topic.name,
+                    time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                    done: isCompleted
+                  });
                 }
               }
             }
@@ -2283,7 +2685,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
       {/* Tabs Header Container */}
-      <div style={{ marginBottom: '1.25rem' }}>
+      <div className="no-print" style={{ marginBottom: '1.25rem' }}>
         {/* Scrollable Tabs */}
         <div style={{
           display: 'flex',
@@ -2359,7 +2761,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       {programTab === 'haftalik' && (
         <div>
           {/* Week Navigation & Month Banner */}
-          <div style={{
+          <div className="no-print" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -2425,9 +2827,53 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
               <span style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b', fontWeight: 700, background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0' }}>
                 📅 {weekInfo.rangeStr}
               </span>
+
+              {/* Dual Print Buttons: Yatay & Dikey */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
+                <button
+                  onClick={() => handleWeeklyPrint('landscape')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 99,
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    border: 'none',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+                  }}
+                  title="A4 Yatay (Landscape) olarak yazdır / PDF kaydet"
+                >
+                  <Printer size={13} /> 📄 Yatay Yazdır
+                </button>
+                <button
+                  onClick={() => handleWeeklyPrint('portrait')}
+                  style={{
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: 99,
+                    background: 'transparent',
+                    border: 'none',
+                    color: isDark ? '#ffffff' : '#334155',
+                    fontWeight: 800,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                  title="A4 Dikey (Portrait) olarak yazdır / PDF kaydet"
+                >
+                  📄 Dikey
+                </button>
+              </div>
             </div>
           </div>
           <style>{`
+            .print-weekly-program-doc { display: none; }
             .weekly-grid {
               display: grid;
               grid-template-columns: repeat(12, 1fr);
@@ -2456,30 +2902,320 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
                 grid-column: span 1;
               }
             }
+            @media print {
+              @page {
+                size: ${weeklyPrintOrientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
+                margin: 6mm 8mm;
+              }
+              *, *::before, *::after {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                box-sizing: border-box !important;
+              }
+              html, body, #root, #root *, div, section, main, article, header, nav {
+                background-color: #ffffff !important;
+                background-image: none !important;
+                color: #0f172a !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+                backdrop-filter: none !important;
+                font-family: 'Inter', -apple-system, sans-serif !important;
+              }
+              body {
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 8.2pt !important;
+              }
+              nav, header, footer, .no-print, button, select, input, .weekly-screen-view {
+                display: none !important;
+              }
+              .print-weekly-program-doc {
+                display: block !important;
+                width: 100% !important;
+              }
+              .print-wk-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                border-bottom: 2px solid #0f172a !important;
+                padding-bottom: 5px !important;
+                margin-bottom: 8px !important;
+              }
+              .print-wk-brand {
+                font-size: 10.5pt !important;
+                font-weight: 900 !important;
+                color: #0f172a !important;
+                letter-spacing: -0.02em !important;
+              }
+              .print-wk-title {
+                font-size: 9pt !important;
+                font-weight: 800 !important;
+                color: #4338ca !important;
+                margin-top: 1px !important;
+              }
+              .print-wk-header-right {
+                text-align: right !important;
+                font-size: 7.8pt !important;
+                color: #334155 !important;
+                line-height: 1.3 !important;
+              }
+              .print-wk-stat {
+                font-weight: 800 !important;
+                color: #15803d !important;
+              }
+              .print-wk-days-container {
+                display: ${weeklyPrintOrientation === 'landscape' ? 'grid' : 'flex'} !important;
+                ${weeklyPrintOrientation === 'landscape' ? 'grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important;' : 'flex-direction: column !important; gap: 6px !important;'}
+              }
+              .print-wk-day-card {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border: 1px solid #cbd5e1 !important;
+                border-left: 4px solid #4f46e5 !important;
+                border-radius: 5px !important;
+                background: #ffffff !important;
+                padding: 4px 7px !important;
+              }
+              .print-wk-day-title-bar {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                padding-bottom: 2px !important;
+                margin-bottom: 3px !important;
+              }
+              .print-wk-day-date {
+                font-size: 8.5pt !important;
+                font-weight: 900 !important;
+                color: #0f172a !important;
+              }
+              .print-wk-day-meta {
+                font-size: 7.2pt !important;
+                font-weight: 700 !important;
+                color: #64748b !important;
+              }
+              .print-wk-tasks-table {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 2.5px !important;
+              }
+              .print-wk-task-row {
+                display: flex !important;
+                align-items: flex-start !important;
+                gap: 5px !important;
+                padding: 2.5px 4px !important;
+                border-radius: 3px !important;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                line-height: 1.2 !important;
+              }
+              .print-wk-task-row.is-done {
+                background: #f0fdf4 !important;
+                border-color: #bbf7d0 !important;
+              }
+              .print-wk-col-check {
+                flex-shrink: 0 !important;
+                padding-top: 1px !important;
+              }
+              .print-wk-check-box {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 12px !important;
+                height: 12px !important;
+                border: 1.5px solid #64748b !important;
+                border-radius: 2.5px !important;
+                font-size: 7pt !important;
+                font-weight: 900 !important;
+                color: #15803d !important;
+                line-height: 1 !important;
+                background: #ffffff !important;
+              }
+              .print-wk-check-box.checked {
+                border-color: #16a34a !important;
+                background: #dcfce7 !important;
+              }
+              .print-wk-col-info {
+                flex: 1 !important;
+                min-width: 0 !important;
+              }
+              .print-wk-subject {
+                font-size: 7.8pt !important;
+                font-weight: 800 !important;
+                color: #0f172a !important;
+              }
+              .print-wk-topic {
+                font-size: 7.2pt !important;
+                color: #334155 !important;
+                font-weight: 600 !important;
+                margin-top: 1px !important;
+              }
+              .print-wk-col-details {
+                display: flex !important;
+                align-items: center !important;
+                gap: 3px !important;
+                flex-shrink: 0 !important;
+                font-size: 7pt !important;
+              }
+              .print-wk-pill {
+                background: #e2e8f0 !important;
+                color: #334155 !important;
+                padding: 1px 4px !important;
+                border-radius: 3px !important;
+                font-weight: 700 !important;
+              }
+              .print-wk-pill-q {
+                background: #e0f2fe !important;
+                color: #0369a1 !important;
+                font-weight: 800 !important;
+              }
+              .print-wk-col-status {
+                flex-shrink: 0 !important;
+              }
+              .print-wk-status-tag {
+                font-size: 6.8pt !important;
+                font-weight: 800 !important;
+                padding: 1px 4px !important;
+                border-radius: 3px !important;
+              }
+              .print-wk-status-tag.done {
+                background: #dcfce7 !important;
+                color: #15803d !important;
+              }
+              .print-wk-status-tag.pending {
+                background: #f1f5f9 !important;
+                color: #64748b !important;
+              }
+              .print-wk-footer {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-top: 1.5px solid #cbd5e1 !important;
+                padding-top: 6px !important;
+                margin-top: 10px !important;
+                font-size: 7.2pt !important;
+                color: #475569 !important;
+                page-break-inside: avoid !important;
+              }
+            }
           `}</style>
-          <div className="weekly-grid">
-            {(processedWeeklyProgram || []).map((dayObj, i) => {
-              const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
-              return (
-                <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
-                  isToday={weekOffset === 0 && dayObj.day === todayKey}
-                  onToggle={handleToggle} onDelete={handleDelete}
-                  onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
-                  onAddClick={d => setAddingToDay(d)}
-                  onOpenResult={handleOpenTaskResult}
-                  isDark={isDark} />
-              );
-            })}
-          </div>
-          {pct === 100 && totalItems > 0 && (
-            <div style={{ marginTop: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.6), rgba(6, 95, 70, 0.6))' : '#f0fdf4', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.4)' : '1.5px solid #86efac', borderRadius: '1rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
-              <CheckCircle2 size={24} color="#34d399" />
+
+          {/* FULL-DETAIL PRINTABLE WEEKLY PROGRAM (A4 DOCUMENT) */}
+          <div className="print-weekly-program-doc">
+            <div className="print-wk-header">
               <div>
-                <div style={{ fontWeight: 900, color: isDark ? '#ffffff' : '#166534' }}>Harika! Bu haftanın programı tamamlandı! 🎉</div>
-                <div style={{ fontSize: '0.8rem', color: '#4ade80', fontWeight: 600, marginTop: 2 }}>Tebrikler!</div>
+                <div className="print-wk-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
+                <div className="print-wk-title">Haftalık Ders Çalışma Programı • {weekInfo.monthTitle} ({weekInfo.rangeStr})</div>
+              </div>
+              <div className="print-wk-header-right">
+                <div>Öğrenci: <strong>{currentUser?.name || currentUser?.username || 'Öğrenci'}</strong></div>
+                <div className="print-wk-stat">Tamamlanan: {doneItems} / {totalItems} Görev (%{pct})</div>
+                <div style={{ color: '#64748b' }}>Tarih: {new Date().toLocaleDateString('tr-TR')}</div>
               </div>
             </div>
-          )}
+
+            <div className={`print-wk-days-container ${weeklyPrintOrientation}`}>
+              {(processedWeeklyProgram || []).map((dayObj, i) => {
+                const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
+                const dayDoneCount = (dayObj.items || []).filter(item => item.done).length;
+                return (
+                  <div key={dayObj.day} className="print-wk-day-card">
+                    <div className="print-wk-day-title-bar">
+                      <div className="print-wk-day-date">
+                        📅 {dayMeta?.label || dayObj.day}
+                      </div>
+                      <div className="print-wk-day-meta">
+                        {dayObj.items?.length || 0} Görev {dayDoneCount > 0 ? `(${dayDoneCount} Tamamlandı)` : ''}
+                      </div>
+                    </div>
+
+                    <div className="print-wk-tasks-table">
+                      {(!dayObj.items || dayObj.items.length === 0) ? (
+                        <div style={{ fontSize: '7.5pt', color: '#94a3b8', fontStyle: 'italic', padding: '2px 4px' }}>
+                          Serbest Çalışma / Tekrar Günü
+                        </div>
+                      ) : (
+                        dayObj.items.map((item, idx) => (
+                          <div key={item.id || idx} className={`print-wk-task-row ${item.done ? 'is-done' : ''}`}>
+                            <div className="print-wk-col-check">
+                              <span className={`print-wk-check-box ${item.done ? 'checked' : ''}`}>
+                                {item.done ? '✓' : ''}
+                              </span>
+                            </div>
+                            <div className="print-wk-col-info">
+                              <div className="print-wk-subject">
+                                {item.subject || 'Ders Çalışması'}
+                              </div>
+                              {item.topic && item.topic !== item.subject && (
+                                <div className="print-wk-topic">
+                                  {item.topic}
+                                </div>
+                              )}
+                            </div>
+                            <div className="print-wk-col-details">
+                              {item.questionCount && (
+                                <span className="print-wk-pill print-wk-pill-q">
+                                  ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
+                                </span>
+                              )}
+                              {(item.startTime || item.time || item.saat) && (
+                                <span className="print-wk-pill">
+                                  🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                                </span>
+                              )}
+                              {item.hours && (
+                                <span className="print-wk-pill">
+                                  ⏱️ {item.hours} sa
+                                </span>
+                              )}
+                            </div>
+                            <div className="print-wk-col-status">
+                              <span className={`print-wk-status-tag ${item.done ? 'done' : 'pending'}`}>
+                                {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="print-wk-footer">
+              <div>Öğrenci İmzası: ___________________</div>
+              <div>Koç / Öğretmen İmzası: ___________________</div>
+              <div>Veli İmzası: ___________________</div>
+            </div>
+          </div>
+
+          {/* SCREEN INTERACTIVE GRID */}
+          <div className="weekly-screen-view">
+            <div className="weekly-grid">
+              {(processedWeeklyProgram || []).map((dayObj, i) => {
+                const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
+                return (
+                  <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
+                    isToday={weekOffset === 0 && dayObj.day === todayKey}
+                    onToggle={handleToggle} onDelete={handleDelete}
+                    onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
+                    onAddClick={d => setAddingToDay(d)}
+                    onOpenResult={handleOpenTaskResult}
+                    isDark={isDark} />
+                );
+              })}
+            </div>
+            {pct === 100 && totalItems > 0 && (
+              <div style={{ marginTop: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.6), rgba(6, 95, 70, 0.6))' : '#f0fdf4', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.4)' : '1.5px solid #86efac', borderRadius: '1rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
+                <CheckCircle2 size={24} color="#34d399" />
+                <div>
+                  <div style={{ fontWeight: 900, color: isDark ? '#ffffff' : '#166534' }}>Harika! Bu haftanın programı tamamlandı! 🎉</div>
+                  <div style={{ fontSize: '0.8rem', color: '#4ade80', fontWeight: 600, marginTop: 2 }}>Tebrikler!</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

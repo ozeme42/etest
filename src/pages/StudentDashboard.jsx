@@ -141,12 +141,10 @@ export function extractItemYMD(item) {
       if (res) return res;
     }
     const str = String(val).trim();
-    // 1) Match ISO format YYYY-MM-DD
     const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
       return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
     }
-    // 2) Match DD.MM.YYYY (Turkish date format: e.g. 16.08.2026 or "Hedef: 16.08.2026")
     const trMatch = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
     if (trMatch) {
       const d = trMatch[1].padStart(2, '0');
@@ -437,7 +435,7 @@ export default function StudentDashboard() {
     return hwTests;
   }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
 
-  /* ─── Homework Summary Groups for Dashboard Card (Yol Haritası style) ─── */
+  /* ─── Homework Summary Groups for Dashboard Card ─── */
   const homeworkSummaryGroups = useMemo(() => {
     if (!tests || tests.length === 0) return [];
     const groups = {};
@@ -546,46 +544,6 @@ export default function StudentDashboard() {
     };
   }, [tests]);
 
-  /* ─── 1-Click Resume Book & Next Test ─── */
-  const resumeBookTest = useMemo(() => {
-    if (!selectedStudent || !books || books.length === 0) return null;
-    const studentSubs = (submissions || []).filter(s => {
-      if (String(s.studentId) !== String(selectedStudent.id)) return false;
-      return s.sourceType === 'trackedBook' || s.bookId || s.bookTestId;
-    });
-
-    if (studentSubs.length > 0) {
-      const latestSub = [...studentSubs].sort((a, b) => new Date(b.submittedAt || b.createdAt || 0) - new Date(a.submittedAt || a.createdAt || 0))[0];
-      const targetBook = books.find(b => String(b.id) === String(latestSub.bookId));
-      if (targetBook) {
-        const testsInBook = (bookTests || []).filter(t => String(t.bookId) === String(targetBook.id));
-        const uncompletedTest = testsInBook.find(t => !studentSubs.some(s => String(s.bookTestId || s.testId) === String(t.id)));
-        if (uncompletedTest) {
-          return { book: targetBook, test: uncompletedTest, reason: 'Kaldığın Yerden Devam Et' };
-        }
-      }
-    }
-
-    const pendingHw = (tests || []).find(t => t.status !== 'Sonuçlandı' && t.status !== 'Tamamlandı' && t.bookId);
-    if (pendingHw) {
-      const targetBook = books.find(b => String(b.id) === String(pendingHw.bookId));
-      const targetTest = (bookTests || []).find(t => String(t.id) === String(pendingHw.realTestId || pendingHw.id));
-      if (targetBook && targetTest) {
-        return { book: targetBook, test: targetTest, reason: 'Öncelikli Ödev Testi' };
-      }
-    }
-
-    if (books.length > 0) {
-      const firstBook = books[0];
-      const testsInBook = (bookTests || []).filter(t => String(t.bookId) === String(firstBook.id));
-      if (testsInBook.length > 0) {
-        return { book: firstBook, test: testsInBook[0], reason: 'Önerilen Test' };
-      }
-    }
-
-    return null;
-  }, [selectedStudent, books, bookTests, submissions, tests]);
-
   /* ─── Assigned Books Summary List for Student ─── */
   const assignedBooksList = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return [];
@@ -618,7 +576,7 @@ export default function StudentDashboard() {
     }).sort((a, b) => b.solvedCount - a.solvedCount);
   }, [selectedStudent, books, bookTests, submissions]);
 
-  /* ─── Son Çözülen 5 Test (Recent 5 Solved Tests) ─── */
+  /* ─── Son Çözülen 5 Test ─── */
   const recentSolvedTests = useMemo(() => {
     if (!selectedStudent) return [];
     const studentIdStr = String(selectedStudent.id || '');
@@ -627,7 +585,6 @@ export default function StudentDashboard() {
     const solvedList = [];
     const seenKeys = new Set();
 
-    // 1. From EvaluationContext Submissions
     (submissions || []).forEach(sub => {
       const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
       if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
@@ -672,7 +629,6 @@ export default function StudentDashboard() {
       });
     });
 
-    // 2. From Homeworks Submissions
     (homeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(sub => {
         const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
@@ -767,8 +723,8 @@ export default function StudentDashboard() {
     const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
     const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff, 12, 0, 0);
 
-    const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
     const MONTHS_SHORT_TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
     const dayDateMap = {};
     DAYS_OF_WEEK.forEach((d, idx) => {
@@ -807,7 +763,6 @@ export default function StudentDashboard() {
         return isHomeworkForStudent(hw, selectedStudent, gradesList);
       });
 
-      // 1. Gather all daily repeating tasks across the weekly program
       const allDailyItems = [];
       if (Array.isArray(rawProg)) {
         rawProg.forEach(dObj => {
@@ -827,16 +782,13 @@ export default function StudentDashboard() {
         const dayYMD = dayInfo?.ymd || '';
         const dayTime = dayInfo?.time || 0;
 
-        // A) Manual items for this specific day (or items across the program matching this exact date)
         let dayManualItems = [];
         if (Array.isArray(rawProg)) {
-          // 1. Primary items under this day key
           const found = rawProg.find(r => r?.day === dayMeta.key);
           if (found && Array.isArray(found.items)) {
             found.items.forEach(item => {
               if (!item) return;
               const itemYMD = extractItemYMD(item);
-              // If item has an explicit date, it MUST match dayYMD!
               if (itemYMD && itemYMD !== dayYMD) return;
               if (item.createdYMD && dayYMD < item.createdYMD) return;
               if (item.repeatEndDate && dayYMD > item.repeatEndDate) return;
@@ -844,7 +796,6 @@ export default function StudentDashboard() {
             });
           }
 
-          // 2. Items under other days that specifically have this day's date (date-targeting)
           rawProg.forEach(dObj => {
             if (dObj?.day !== dayMeta.key) {
               (dObj?.items || []).forEach(item => {
@@ -860,7 +811,6 @@ export default function StudentDashboard() {
           });
         }
 
-        // B) Inject Daily Repeating Items (only if no conflicting specific date, and starts fresh done: false)
         allDailyItems.forEach(dItem => {
           if (!dItem) return;
           const itemYMD = extractItemYMD(dItem);
@@ -873,7 +823,6 @@ export default function StudentDashboard() {
           }
         });
 
-        // C) Schedule Context Items (from useSchedule)
         const scheduleItems = (schedules || []).filter(s => {
           if (!s || !studentId) return false;
           if (String(s.studentId) !== String(studentId)) return false;
@@ -893,7 +842,6 @@ export default function StudentDashboard() {
           isScheduleContextItem: true
         }));
 
-        // D) Auto Homeworks & Book Assignments for this day
         const autoHwItems = [];
 
         studentHomeworks.forEach(hw => {
@@ -906,7 +854,6 @@ export default function StudentDashboard() {
             Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
               if (!tDateStr) return;
               const tYMD = extractItemYMD(tDateStr);
-              // Only place this test on its EXACT target date
               if (dayYMD === tYMD) {
                 const tObj = (bookTests || []).find(b => String(b?.id) === String(testId));
                 const testName = tObj?.name || 'Test';
@@ -919,12 +866,56 @@ export default function StudentDashboard() {
 
                 const tIdStr = String(testId);
                 const tUuidStr = String(toUUID(testId) || '');
+                const studentIdStr = String(studentId || '');
+                const studentUuidStr = String(toUUID(studentId) || '');
 
-                const isSolved = (submissions || []).some(s =>
-                  String(s?.studentId) === String(studentId) &&
-                  s.status !== 'in_progress' && s.status !== 'draft' &&
-                  (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+                const isMatchStudent = (s) => {
+                  if (!s) return false;
+                  const subStudentId = String(s.studentId || s.student_id || s.user_id || '');
+                  return subStudentId === studentIdStr ||
+                    (studentUuidStr && subStudentId === studentUuidStr) ||
+                    toUUID(subStudentId) === studentIdStr ||
+                    (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+                };
+
+                const isSolvedInSubs = (submissions || []).some(s => {
+                  if (!s || !isMatchStudent(s)) return false;
+                  if (s.status === 'in_progress' || s.status === 'draft') return false;
+
+                  const subFields = [
+                    s.testId,
+                    s.realTestId,
+                    s.bookTestId,
+                    s.metadata?.realTestId,
+                    s.metadata?.bookTestId,
+                    s.metadata?.realId,
+                    s.metadata?.testId,
+                    s.hwId,
+                    s.homeworkId,
+                    s.id
+                  ].filter(Boolean).map(String);
+
+                  if (Array.isArray(s.bookTestIds)) {
+                    s.bookTestIds.forEach(bid => { if (bid) subFields.push(String(bid)); });
+                  }
+
+                  return subFields.some(sf => sf && (
+                    sf === tIdStr ||
+                    (tUuidStr && sf === tUuidStr) ||
+                    toUUID(sf) === tIdStr ||
+                    (tUuidStr && toUUID(sf) === tUuidStr)
+                  ));
+                });
+
+                const isSolvedInHw = Boolean(
+                  hw.submissions && Array.isArray(hw.submissions) && hw.submissions.some(s => {
+                    if (!s || !isMatchStudent(s)) return false;
+                    if (s.status === 'in_progress' || s.status === 'draft') return false;
+                    return String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr;
+                  })
                 );
+
+                const isSolved = isSolvedInSubs || isSolvedInHw;
 
                 const exists = dayManualItems.some(m => m.id === `book_test_${hw.id}_${testId}`);
                 if (!exists) {
@@ -956,19 +947,27 @@ export default function StudentDashboard() {
           const startTime = startYMD ? new Date(startYMD).getTime() : null;
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
-          // Check if student submitted / completed this homework
-          const sub = (hw.submissions || []).find(s => String(s?.studentId) === String(studentId)) ||
-            (submissions || []).find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
+          const studentIdStr = String(studentId || '');
+          const studentUuidStr = String(toUUID(studentId) || '');
+          const isMatchStudent = (s) => {
+            if (!s) return false;
+            const subStudentId = String(s.studentId || s.student_id || s.user_id || '');
+            return subStudentId === studentIdStr ||
+              (studentUuidStr && subStudentId === studentUuidStr) ||
+              toUUID(subStudentId) === studentIdStr ||
+              (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+          };
+
+          const sub = (hw.submissions || []).find(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft') ||
+            (submissions || []).find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
           const isDone = !!sub;
           const subYMD = (sub?.createdAt || sub?.submittedAt) ? extractItemYMD(sub.submittedAt || sub.createdAt) : null;
 
           let isForThisDay = false;
           if (isDone) {
-            // If already completed, it ONLY shows on its submission date or original target date!
             const completionDay = subYMD || dueYMD || startYMD;
             isForThisDay = (completionDay === dayYMD);
           } else {
-            // Pending homework: show strictly on its due date, or within its active period
             if (dueYMD) {
               isForThisDay = (dayYMD === dueYMD);
             } else if (dueTime && startTime) {
@@ -989,10 +988,14 @@ export default function StudentDashboard() {
               hw.tests.forEach((testId, idx) => {
                 const tIdStr = String(testId);
                 const tUuidStr = String(toUUID(testId) || '');
-                const isTestSolved = (submissions || []).some(s =>
-                  String(s?.studentId) === String(studentId) &&
-                  s.status !== 'in_progress' && s.status !== 'draft' &&
-                  (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+                const isTestSolved = (submissions || []).some(s => {
+                  if (!s || !isMatchStudent(s)) return false;
+                  if (s.status === 'in_progress' || s.status === 'draft') return false;
+                  const subFields = [s.testId, s.realTestId, s.bookTestId, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.hwId, s.homeworkId, s.id].filter(Boolean).map(String);
+                  if (Array.isArray(s.bookTestIds)) s.bookTestIds.forEach(bid => { if (bid) subFields.push(String(bid)); });
+                  return subFields.some(sf => sf === tIdStr || (tUuidStr && sf === tUuidStr) || toUUID(sf) === tIdStr || (tUuidStr && toUUID(sf) === tUuidStr));
+                }) || Boolean(
+                  hw.submissions && Array.isArray(hw.submissions) && hw.submissions.some(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft' && (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr))
                 );
 
                 const tObj = (bookTests || []).find(b => String(b?.id) === tIdStr);
@@ -1033,7 +1036,6 @@ export default function StudentDashboard() {
           }
         });
 
-        // E) Roadmap Topic Milestones for this day
         (studyAssignments || []).filter(a => String(a?.studentId) === String(studentId)).forEach(assignment => {
           if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
           const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
@@ -1109,7 +1111,6 @@ export default function StudentDashboard() {
     };
   }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
 
-  /* ─── Toggle Task Done Status ─── */
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;
     const isObj = typeof taskOrId === 'object';
@@ -1159,7 +1160,6 @@ export default function StudentDashboard() {
     }
   };
 
-  /* ─── Task Count Per Day in Mini Navigator ─── */
   const weekTasksCountMap = useMemo(() => {
     const map = {};
     DAYS_OF_WEEK.forEach(d => {
@@ -1180,7 +1180,6 @@ export default function StudentDashboard() {
     return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
   }, [goals, selectedStudent]);
 
-  /* ─── Real-Time Solved Questions Calculation (Today, Week, Month, Total) ─── */
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
 
@@ -1204,7 +1203,6 @@ export default function StudentDashboard() {
 
     const countedSubIds = new Set();
 
-    // 1. Process EvaluationContext Submissions
     (submissions || []).forEach(s => {
       const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
       if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
@@ -1213,7 +1211,6 @@ export default function StudentDashboard() {
       if (countedSubIds.has(subId)) return;
       countedSubIds.add(subId);
 
-      // Determine question count
       let qCount = 0;
       if (s.totalQuestions && Number(s.totalQuestions) > 0) {
         qCount = Number(s.totalQuestions);
@@ -1249,7 +1246,6 @@ export default function StudentDashboard() {
       }
     });
 
-    // 2. Process Homework Submissions
     (homeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(sub => {
         const isMatch = String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr || (studentUuidStr && String(sub.studentId || sub.student_id || sub.user_id) === studentUuidStr);
@@ -1280,7 +1276,6 @@ export default function StudentDashboard() {
       });
     });
 
-    // 3. Process Coaching Daily Logs if present
     const profile = getCoachingProfileForStudent(selectedStudent.id);
     if (profile?.dailyLogs && Array.isArray(profile.dailyLogs)) {
       profile.dailyLogs.forEach(log => {
@@ -1304,7 +1299,6 @@ export default function StudentDashboard() {
     };
   }, [selectedStudent, submissions, homeworks, tests, getCoachingProfileForStudent]);
 
-  /* ─── Hedef Takip Panosu Verileri (Sınav, Net, Soru, Alışkanlıklar) ─── */
   const goalTrackingData = useMemo(() => {
     if (!selectedStudent?.id) {
       return { hasAnyGoals: false, visualGoals: [], monthly: [], weekly: [], daily: [], totalItemsCount: 0 };
@@ -1312,16 +1306,6 @@ export default function StudentDashboard() {
     const profile = getCoachingProfileForStudent(selectedStudent.id) || {};
     const g = profile.goals || {};
 
-    const examType = profile.examGoalType || g.examGoalType || '';
-    const customExam = profile.customExamName || g.customExamName || '';
-    const school = profile.targetSchool || g.targetSchool || '';
-    const score = profile.targetScore || g.targetScore || '';
-    const net = (profile.targetNet !== undefined && String(profile.targetNet) !== '0') ? String(profile.targetNet) : (g.targetNet || '');
-    const gradeTarget = profile.gradeTarget || g.gradeTarget || '';
-
-    const hasExamOrTarget = Boolean(examType || school || score || (net && net !== '0') || gradeTarget);
-
-    // Monthly goals
     let monthly = [];
     const rawM = profile.monthlyGoals || g.monthlyGoals;
     if (Array.isArray(rawM)) {
@@ -1334,7 +1318,6 @@ export default function StudentDashboard() {
       }));
     }
 
-    // Weekly goals / habits
     let weekly = [];
     const rawW = profile.weeklyGoals || g.weeklyGoals;
     if (Array.isArray(rawW)) {
@@ -1346,7 +1329,6 @@ export default function StudentDashboard() {
       }));
     }
 
-    // Daily goals / habits
     let daily = [];
     const rawD = profile.dailyGoals || g.dailyGoals;
     if (Array.isArray(rawD)) {
@@ -1358,7 +1340,6 @@ export default function StudentDashboard() {
       }));
     }
 
-    // Custom visual progress goals from GoalContext + automatic real-time sync with solved questions
     const rawVisualGoals = (goals || []).filter(item => String(item.studentId) === String(selectedStudent.id));
     const visualGoals = rawVisualGoals.map(goalItem => {
       if (goalItem.type === 'Soru') {
@@ -1398,389 +1379,340 @@ export default function StudentDashboard() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.16) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 55%), linear-gradient(180deg, #0b1120 0%, #0f172a 40%, #172554 80%, #0b1120 100%)',
+      background: 'linear-gradient(180deg, #dbe4f0 0%, #e2eaf4 40%, #d8e2ee 100%)',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#f8fafc',
+      color: '#1e293b',
       paddingBottom: '5rem'
     }}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         @keyframes pulseGlow {
           0%, 100% { transform: scale(1); opacity: 0.9; }
           50% { transform: scale(1.04); opacity: 1; }
+        }
+        @keyframes onlinePulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.75); }
+          60% { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes floatBlob {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-14px) scale(1.07); }
+        }
+        @keyframes ringRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         .sd-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .sd-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
         .sd-btn:active { transform: translateY(0); }
         .sd-card { transition: all 0.25s ease; }
-        .sd-card:hover { transform: translateY(-2px); border-color: rgba(165, 180, 252, 0.45) !important; }
+        .sd-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(99, 102, 241, 0.15) !important; border-color: #818cf8 !important; }
+        .sd-kpi { transition: all 0.22s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; }
+        .sd-kpi::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%); border-radius: inherit; pointer-events: none; }
+        .sd-kpi:hover { transform: translateY(-6px) scale(1.04); box-shadow: 0 18px 48px rgba(0,0,0,0.45) !important; }
+        .sd-success { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer; }
+        .sd-success:hover { transform: scale(1.1) rotate(3deg); }
+        .sd-online { animation: onlinePulse 2.2s ease-in-out infinite; }
+        .sd-avatar-ring { animation: ringRotate 8s linear infinite; }
+        .sd-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 900px) { .sd-grid-layout { grid-template-columns: 1fr; } }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 99px; } ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 99px; }
       `}</style>
 
-      {/* ════════════════════════════════════════════
-          1. TOP PURPLE HERO BANNER (PROFİL & BAŞARI)
-      ════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════
+          PREMIUM VIBRANT HEADER
+      ══════════════════════════════════════════════════════ */}
       <div style={{
-        background: 'linear-gradient(90deg, #4f46e5 0%, #6366f1 28%, #7c3aed 55%, #9333ea 80%, #a855f7 100%)',
-        borderBottom: '1.5px solid rgba(255, 255, 255, 0.15)',
-        padding: isMobile ? '1.25rem 1rem' : '1.75rem 2.25rem',
-        boxShadow: '0 12px 36px rgba(79, 70, 229, 0.35)'
+        background: 'linear-gradient(125deg, #1e1065 0%, #2d1b8e 15%, #4338ca 38%, #6d28d9 58%, #9333ea 78%, #c026d3 100%)',
+        position: 'relative',
+        paddingBottom: isMobile ? '2.8rem' : '3.8rem'
       }}>
+        {/* Mesh texture */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
+          opacity: 0.6
+        }} />
+
+        {/* Decorative blobs */}
+        <div style={{ position:'absolute', top: -80, right: isMobile ? -60 : 60, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.28) 0%, transparent 68%)', pointerEvents:'none', animation:'floatBlob 7s ease-in-out infinite' }} />
+        <div style={{ position:'absolute', bottom: -60, left: '15%', width: 260, height: 260, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 65%)', pointerEvents:'none', animation:'floatBlob 9s ease-in-out infinite reverse' }} />
+        <div style={{ position:'absolute', top: '10%', left: isMobile ? -40 : 0, width: 160, height: 160, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,0.3) 0%, transparent 70%)', pointerEvents:'none' }} />
+
+        {/* Top glowing line */}
+        <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent 0%, rgba(196,91,253,0.8) 30%, rgba(99,102,241,0.9) 55%, rgba(196,91,253,0.8) 75%, transparent 100%)', pointerEvents:'none' }} />
+
+        {/* ── Profil Satırı ── */}
         <div style={{
           maxWidth: 1280,
           margin: '0 auto',
+          padding: isMobile ? '1.25rem 1rem 0.9rem' : '1.8rem 2.5rem 1.1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '1.25rem',
-          flexWrap: 'wrap'
+          gap: '1.5rem',
+          position: 'relative',
+          zIndex: 1
         }}>
-          {/* SOL: AVATAR + HOŞ GELDİN + İSİM + HAP ROZETLER */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.35rem', minWidth: 0 }}>
-            
-            {/* Yuvarlak Avatar + Yeşil Online Noktası */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
+          {/* SOL: Avatar + İsim + Rozetler */}
+          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '1rem' : '1.6rem', minWidth: 0, flex: 1 }}>
+
+            {/* Avatar with ring */}
+            <div style={{ position:'relative', flexShrink:0 }}>
               <div style={{
-                width: isMobile ? 62 : 82,
-                height: isMobile ? 62 : 82,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '1.65rem' : '2.3rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                border: '3px solid rgba(255, 255, 255, 0.65)',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25), 0 0 20px rgba(255, 255, 255, 0.2)'
+                position:'absolute',
+                inset: -4,
+                borderRadius:'50%',
+                background:'conic-gradient(from 0deg, #818cf8, #c084fc, #f472b6, #818cf8)',
+                padding: 2
               }}>
-                {selectedStudent?.name?.charAt(0) || 'Ö'}
+                <div style={{ inset:0, borderRadius:'50%', background:'rgba(30,16,101,0.7)', position:'absolute' }} />
               </div>
               <div style={{
-                position: 'absolute',
-                bottom: 1,
-                right: 1,
+                width: isMobile ? 66 : 88,
+                height: isMobile ? 66 : 88,
+                borderRadius:'50%',
+                background: `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: isMobile ? '1.75rem' : '2.45rem',
+                fontWeight: 900,
+                color:'#ffffff',
+                position:'relative',
+                zIndex:1,
+                boxShadow:`0 0 0 3px rgba(255,255,255,0.25), 0 12px 32px ${avatarColor}80`
+              }}>
+                {selectedStudent?.name?.charAt(0)?.toUpperCase() || 'Ö'}
+              </div>
+              <div className="sd-online" style={{
+                position:'absolute', bottom:3, right:3, zIndex:2,
                 width: isMobile ? 16 : 20,
                 height: isMobile ? 16 : 20,
-                borderRadius: '50%',
-                background: '#22c55e',
-                border: isMobile ? '3px solid #ffffff' : '3.5px solid #ffffff',
-                boxShadow: '0 0 10px rgba(34, 197, 94, 0.9)'
+                borderRadius:'50%',
+                background:'linear-gradient(135deg, #4ade80, #22c55e)',
+                border: `${isMobile ? 2.5 : 3}px solid rgba(30,16,101,0.9)`,
+                boxShadow:'0 2px 8px rgba(34,197,94,0.6)'
               }} />
             </div>
 
-            {/* İsim ve Başlık Bilgisi */}
-            <div style={{ minWidth: 0 }}>
+            {/* İsim + Rozetler */}
+            <div style={{ minWidth:0, flex:1 }}>
               <div style={{
-                fontSize: isMobile ? '0.72rem' : '0.82rem',
+                fontSize: isMobile ? '0.65rem' : '0.75rem',
                 fontWeight: 800,
-                color: '#ffffff',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                marginBottom: 2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5
+                color:'rgba(196,181,253,0.95)',
+                textTransform:'uppercase',
+                letterSpacing:'0.14em',
+                marginBottom: 3,
+                display:'flex', alignItems:'center', gap:5
               }}>
-                <span>HOŞ GELDİN</span>
+                <span style={{ opacity:0.85 }}>HOŞ GELDİN</span>
                 <span>👏</span>
               </div>
+
               <h1 style={{
-                fontSize: isMobile ? '1.45rem' : '2.35rem',
+                fontSize: isMobile ? '1.55rem' : '2.6rem',
                 fontWeight: 900,
-                color: '#ffffff',
-                margin: '0 0 8px 0',
-                lineHeight: 1.1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                letterSpacing: '-0.02em',
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+                color:'#ffffff',
+                margin:'0 0 10px 0',
+                lineHeight:1.05,
+                letterSpacing:'-0.03em',
+                textShadow:'0 4px 24px rgba(0,0,0,0.35)',
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
               }}>
                 {selectedStudent?.name || 'Öğrenci'}
               </h1>
-              
-              {/* Tarih ve Koçluk Rozetleri */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.35)',
-                  borderRadius: 999,
-                  padding: isMobile ? '3px 10px' : '5px 14px',
-                  fontSize: isMobile ? '0.72rem' : '0.82rem',
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}>
-                  <span>🗓</span>
-                  <span>{heroDateStr}</span>
-                </div>
 
+              {/* Pill badges */}
+              <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.35)',
-                  color: '#4ade80',
-                  borderRadius: 999,
-                  padding: isMobile ? '3px 10px' : '5px 14px',
-                  fontSize: isMobile ? '0.72rem' : '0.82rem',
-                  fontWeight: 800,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6
+                  background:'rgba(255,255,255,0.12)',
+                  backdropFilter:'blur(16px)',
+                  border:'1px solid rgba(255,255,255,0.25)',
+                  borderRadius:999,
+                  padding: isMobile ? '4px 11px' : '5px 15px',
+                  fontSize: isMobile ? '0.68rem' : '0.78rem',
+                  fontWeight:700, color:'rgba(255,255,255,0.95)',
+                  display:'inline-flex', alignItems:'center', gap:5,
+                  boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
                 }}>
-                  <span>🎓</span>
-                  <span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
+                  <span>🗓</span><span>{heroDateStr}</span>
+                </div>
+                <div style={{
+                  background: hasCoach ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.1)',
+                  backdropFilter:'blur(16px)',
+                  border: hasCoach ? '1px solid rgba(74,222,128,0.4)' : '1px solid rgba(255,255,255,0.2)',
+                  borderRadius:999,
+                  padding: isMobile ? '4px 11px' : '5px 15px',
+                  fontSize: isMobile ? '0.68rem' : '0.78rem',
+                  fontWeight:800,
+                  color: hasCoach ? '#86efac' : 'rgba(255,255,255,0.9)',
+                  display:'inline-flex', alignItems:'center', gap:5,
+                  boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
+                }}>
+                  <span>🎓</span><span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SAĞ: YUVARLAK BÜYÜK BAŞARI DİSKİ */}
+          {/* SAĞ: Premium Başarı Halkası */}
           <div
             onClick={() => navigate('/student/results')}
-            title="Detaylı Sonuçlar ve Başarı Analizini İncele"
-            className="sd-btn"
-            style={{
-              width: isMobile ? 80 : 110,
-              height: isMobile ? 80 : 110,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.1) 100%)',
-              border: '2px solid rgba(255, 255, 255, 0.45)',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22), inset 0 2px 8px rgba(255, 255, 255, 0.4)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0
-            }}
+            className="sd-success"
+            style={{ flexShrink:0 }}
           >
             <div style={{
-              fontSize: isMobile ? '1.35rem' : '1.95rem',
-              fontWeight: 900,
-              color: '#ffffff',
-              lineHeight: 1
+              width: isMobile ? 84 : 116,
+              height: isMobile ? 84 : 116,
+              position:'relative',
+              display:'flex', alignItems:'center', justifyContent:'center'
             }}>
-              %{overallSuccessRate}
-            </div>
-            <div style={{
-              fontSize: isMobile ? '0.58rem' : '0.72rem',
-              fontWeight: 900,
-              color: 'rgba(255, 255, 255, 0.95)',
-              letterSpacing: '0.12em',
-              marginTop: 4,
-              textTransform: 'uppercase'
-            }}>
-              BAŞARI
+              <svg width={isMobile ? 84 : 116} height={isMobile ? 84 : 116} style={{ position:'absolute', inset:0 }}>
+                <defs>
+                  <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c084fc" />
+                    <stop offset="50%" stopColor="#818cf8" />
+                    <stop offset="100%" stopColor="#67e8f9" />
+                  </linearGradient>
+                </defs>
+                <circle
+                  cx={isMobile ? 42 : 58} cy={isMobile ? 42 : 58}
+                  r={isMobile ? 36 : 50}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.12)"
+                  strokeWidth={isMobile ? 5 : 6}
+                />
+                <circle
+                  cx={isMobile ? 42 : 58} cy={isMobile ? 42 : 58}
+                  r={isMobile ? 36 : 50}
+                  fill="none"
+                  stroke="url(#ringGrad)"
+                  strokeWidth={isMobile ? 5 : 6}
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 36 : 50)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 36 : 50) * (1 - overallSuccessRate / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 42 : 58} ${isMobile ? 42 : 58})`}
+                  style={{ transition:'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)' }}
+                />
+              </svg>
+              <div style={{
+                width: isMobile ? 64 : 90,
+                height: isMobile ? 64 : 90,
+                borderRadius:'50%',
+                background:'rgba(255,255,255,0.1)',
+                backdropFilter:'blur(12px)',
+                border:'1.5px solid rgba(255,255,255,0.22)',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                boxShadow:'0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
+              }}>
+                <div style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
+                  %{overallSuccessRate}
+                </div>
+                <div style={{ fontSize: isMobile ? '0.5rem' : '0.62rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.12em', marginTop:3, textTransform:'uppercase' }}>
+                  BAŞARI
+                </div>
+              </div>
             </div>
           </div>
-
         </div>
 
-        {/* Teacher Selector if viewed by teacher/admin */}
+        {/* Teacher Selector */}
         {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ maxWidth: 1280, margin: '1rem auto 0', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
+          <div style={{ maxWidth:1280, margin:'0 auto', padding: isMobile ? '0 1rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:10, position:'relative', zIndex:1 }}>
+            <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.12)' }} />
+            <span style={{ fontSize:'0.75rem', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>👁️ Öğrenci İncele:</span>
             <select
               value={selectedStudent?.id || ''}
               onChange={e => {
                 const s = studentMembers.find(st => String(st.id) === String(e.target.value));
                 if (s) setSelectedStudent(s);
               }}
-              style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.35rem 0.7rem', fontSize: '0.8rem', fontWeight: 700 }}
+              style={{ background:'rgba(15,23,42,0.85)', color:'white', border:'1px solid rgba(255,255,255,0.25)', borderRadius:10, padding:'0.35rem 0.75rem', fontSize:'0.8rem', fontWeight:700, backdropFilter:'blur(8px)' }}
             >
               {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
             </select>
+            <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.12)' }} />
           </div>
         )}
       </div>
 
-      {/* ════════════════════════════════════════════
-          2. 5'Lİ CANLI PARLAK KPI KARTLARI (GÖRSELDEKİ BİREBİR RENK VE BOYUTLAR)
-      ════════════════════════════════════════════ */}
+      {/* ── KPI Kartları — yarısı header'a biner, yarısı içeriğe taşar (Overlap) ── */}
       <div style={{
         maxWidth: 1280,
         margin: '0 auto',
-        padding: isMobile ? '1rem 0.75rem 0' : '1.25rem 1.5rem 0'
+        padding: isMobile ? '0 0.85rem' : '0 2.5rem',
+        marginTop: isMobile ? '-36px' : '-52px',
+        position: 'relative',
+        zIndex: 10
       }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: isMobile ? '0.45rem' : '0.85rem',
-          width: '100%'
+          gap: isMobile ? '0.4rem' : '0.75rem'
         }}>
-          {/* 1. TOPLAM */}
-          <div
-            onClick={() => navigate('/student/homeworks')}
-            className="sd-btn"
-            style={{
-              background: 'linear-gradient(180deg, #5b54fa 0%, #4338ca 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: isMobile ? 14 : 20,
-              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              boxShadow: '0 8px 24px rgba(79, 70, 229, 0.4)',
-              cursor: 'pointer',
-              minWidth: 0,
-              minHeight: isMobile ? 74 : 105
-            }}
-          >
-            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>📋</div>
-            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-              {taskStats.totalCount}
+          {[
+            { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.55)',   route:'/student/homeworks' },
+            { label:'TAMAMLANDI', value: taskStats.completedCount,       emoji:'✅', grad:'linear-gradient(160deg,#059669,#047857)',   glow:'rgba(16,185,129,0.55)',  route:'/student/results' },
+            { label:'BEKLİYOR',   value: taskStats.pendingCount,         emoji:'⏳', grad:'linear-gradient(160deg,#d97706,#b45309)',   glow:'rgba(245,158,11,0.55)',  route:'/student/homeworks' },
+            { label:'GECİKTİ',   value: taskStats.overdueCount,         emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.55)',   route:'/student/homeworks' },
+            { label:'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji:'🏆', grad:'linear-gradient(160deg,#7c3aed,#6d28d9)',  glow:'rgba(139,92,246,0.55)', route:'/student/results' },
+          ].map((kpi) => (
+            <div
+              key={kpi.label}
+              onClick={() => navigate(kpi.route)}
+              className="sd-kpi"
+              style={{
+                background: kpi.grad,
+                border: '1px solid rgba(255,255,255,0.22)',
+                borderRadius: isMobile ? 16 : 22,
+                padding: isMobile ? '0.7rem 0.25rem 0.6rem' : '1.15rem 0.5rem 1rem',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                textAlign: 'center',
+                boxShadow: `0 12px 36px ${kpi.glow}, 0 2px 0 rgba(255,255,255,0.15) inset`,
+                minHeight: isMobile ? 76 : 108
+              }}
+            >
+              <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 4 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '1.4rem' : '2.2rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em' }}>{kpi.value}</div>
+              <div style={{ fontSize: isMobile ? '0.5rem' : '0.66rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', letterSpacing: '0.1em', marginTop: 5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{kpi.label}</div>
             </div>
-            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              TOPLAM
-            </div>
-          </div>
-
-          {/* 2. TAMAMLANDI */}
-          <div
-            onClick={() => navigate('/student/results')}
-            className="sd-btn"
-            style={{
-              background: 'linear-gradient(180deg, #00c975 0%, #059669 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: isMobile ? 14 : 20,
-              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
-              cursor: 'pointer',
-              minWidth: 0,
-              minHeight: isMobile ? 74 : 105
-            }}
-          >
-            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>✅</div>
-            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-              {taskStats.completedCount}
-            </div>
-            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              TAMAMLANDI
-            </div>
-          </div>
-
-          {/* 3. BEKLİYOR */}
-          <div
-            onClick={() => navigate('/student/homeworks')}
-            className="sd-btn"
-            style={{
-              background: 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: isMobile ? 14 : 20,
-              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              boxShadow: '0 8px 24px rgba(245, 158, 11, 0.4)',
-              cursor: 'pointer',
-              minWidth: 0,
-              minHeight: isMobile ? 74 : 105
-            }}
-          >
-            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>⏳</div>
-            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-              {taskStats.pendingCount}
-            </div>
-            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              BEKLİYOR
-            </div>
-          </div>
-
-          {/* 4. GECİKTİ */}
-          <div
-            onClick={() => navigate('/student/homeworks')}
-            className="sd-btn"
-            style={{
-              background: 'linear-gradient(180deg, #ff3355 0%, #e11d48 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: isMobile ? 14 : 20,
-              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              boxShadow: '0 8px 24px rgba(239, 68, 68, 0.4)',
-              cursor: 'pointer',
-              minWidth: 0,
-              minHeight: isMobile ? 74 : 105
-            }}
-          >
-            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>🔥</div>
-            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-              {taskStats.overdueCount}
-            </div>
-            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              GECİKTİ
-            </div>
-          </div>
-
-          {/* 5. TAMAMLANMA */}
-          <div
-            onClick={() => navigate('/student/results')}
-            className="sd-btn"
-            style={{
-              background: 'linear-gradient(180deg, #9d4edd 0%, #7b2cbf 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.25)',
-              borderRadius: isMobile ? 14 : 20,
-              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
-              cursor: 'pointer',
-              minWidth: 0,
-              minHeight: isMobile ? 74 : 105
-            }}
-          >
-            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>🏆</div>
-            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-              %{taskStats.completionRate}
-            </div>
-            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              TAMAMLANMA
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '1rem 0.75rem 3rem' : '1.5rem 1.5rem 4rem' }}>
+      {/* ════════════════════════════════════════════
+          ANA İÇERİK — DENGELİ ORTA-AÇIK SLATE TEMASI
+      ════════════════════════════════════════════ */}
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: isMobile ? '1rem 0.85rem 3rem' : '1.5rem 2.5rem 4rem' }}>
 
         {/* ════════════════════════════════════════════
             2. HAFTALIK DERS PROGRAMI ŞERİDİ (7-DAY NAVIGATOR)
         ════════════════════════════════════════════ */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-          border: '1.5px solid rgba(255, 255, 255, 0.14)',
-          borderRadius: 20,
+          background: '#ffffff',
+          border: '1.5px solid #cbd5e1',
+          borderRadius: 22,
           padding: isMobile ? '0.85rem 0.75rem' : '1.1rem 1.4rem',
-          marginBottom: '1.25rem',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-          backdropFilter: 'blur(16px)'
+          marginBottom: '1.5rem',
+          boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Calendar size={18} color="#818cf8" />
-              <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
-                Haftalık Çalışma & Görev Takvimi
-              </span>
-              <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
-                (Günü seçerek o günkü görevleri gör)
-              </span>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calendar size={17} color="#4f46e5" />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                  Haftalık Çalışma & Görev Takvimi
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginLeft: 8 }}>
+                  (Günü seçerek o günkü görevleri gör)
+                </span>
+              </div>
             </div>
 
             <button
@@ -1791,7 +1723,7 @@ export default function StudentDashboard() {
                 border: 'none',
                 color: '#ffffff',
                 borderRadius: 10,
-                padding: '0.35rem 0.85rem',
+                padding: '0.4rem 0.9rem',
                 fontSize: '0.75rem',
                 fontWeight: 900,
                 cursor: 'pointer',
@@ -1805,7 +1737,7 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {/* 7-Day Week Buttons Grid with clear Day and Date */}
+          {/* 7-Day Week Buttons Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: isMobile ? 4 : 8 }}>
             {DAYS_OF_WEEK.map(day => {
               const isSelected = activeDayKey === day.key;
@@ -1822,36 +1754,35 @@ export default function StudentDashboard() {
                     background: isSelected
                       ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                       : isCurrentToday
-                      ? 'rgba(99, 102, 241, 0.22)'
-                      : 'rgba(255, 255, 255, 0.05)',
+                      ? '#e0e7ff'
+                      : '#f8fafc',
                     border: isSelected
-                      ? '2px solid #818cf8'
+                      ? '2px solid #6366f1'
                       : isCurrentToday
                       ? '1.5px solid #6366f1'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
+                      : '1px solid #e2e8f0',
                     borderRadius: 14,
-                    padding: isMobile ? '0.45rem 0.15rem' : '0.65rem 0.5rem',
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#a5b4fc' : '#94a3b8',
+                    padding: isMobile ? '0.5rem 0.15rem' : '0.7rem 0.5rem',
+                    color: isSelected ? '#ffffff' : isCurrentToday ? '#4338ca' : '#334155',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 3,
-                    boxShadow: isSelected ? '0 6px 18px rgba(99, 102, 241, 0.45)' : 'none',
+                    boxShadow: isSelected ? '0 6px 20px rgba(99, 102, 241, 0.35)' : 'none',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.82rem', fontWeight: 900 }}>
+                  <span style={{ fontSize: isMobile ? '0.7rem' : '0.85rem', fontWeight: 900 }}>
                     {day.short}
                   </span>
 
-                  {/* Günün Tarihi (örn: 17 Ağu) */}
                   <span style={{
                     fontSize: isMobile ? '0.58rem' : '0.72rem',
                     fontWeight: 800,
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#c7d2fe' : '#cbd5e1',
-                    background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+                    color: isSelected ? '#ffffff' : isCurrentToday ? '#4338ca' : '#64748b',
+                    background: isSelected ? 'rgba(255,255,255,0.22)' : '#e2e8f0',
                     padding: isMobile ? '1px 3px' : '2px 6px',
                     borderRadius: 6
                   }}>
@@ -1859,15 +1790,15 @@ export default function StudentDashboard() {
                   </span>
 
                   {isCurrentToday ? (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.60rem', fontWeight: 900, color: isSelected ? '#fde047' : '#f59e0b' }}>
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', fontWeight: 900, color: isSelected ? '#fde047' : '#d97706' }}>
                       ● Bugün
                     </span>
                   ) : taskCount > 0 ? (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.60rem', fontWeight: 800, opacity: 0.85 }}>
-                      {taskCount} g.
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#4f46e5' }}>
+                      {taskCount} görev
                     </span>
                   ) : (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.60rem', opacity: 0.4 }}>
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', opacity: 0.4 }}>
                       -
                     </span>
                   )}
@@ -1880,33 +1811,32 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             3. EYLEM MERKEZİ (GÜNÜN GÖREVLERİ)
         ════════════════════════════════════════════ */}
-        <div style={{
-          marginBottom: '1.5rem'
-        }}>
-          {/* SEÇİLEN GÜNÜN GÖREVLERİ & ÖDEVLERİ */}
+        <div style={{ marginBottom: '1.5rem' }}>
           <div
             className="sd-card"
             style={{
-              background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.98) 100%)',
-              border: '1.5px solid rgba(165, 180, 252, 0.35)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.25rem 1.4rem',
-              boxShadow: '0 12px 30px rgba(49, 46, 129, 0.3)',
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between'
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckSquare size={20} color="#818cf8" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
+                    <CheckSquare size={18} color="#ffffff" />
+                  </div>
                   <div>
-                    <span style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff' }}>
+                    <span style={{ fontSize: '1.02rem', fontWeight: 900, color: '#0f172a' }}>
                       {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
                     </span>
                     {dayProgramInfo.fullDateLabel && (
-                      <div style={{ fontSize: '0.7rem', color: '#a5b4fc', fontWeight: 700, marginTop: 1 }}>
+                      <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 700, marginTop: 1 }}>
                         📌 {dayProgramInfo.fullDateLabel}
                       </div>
                     )}
@@ -1915,21 +1845,21 @@ export default function StudentDashboard() {
 
                 {dayProgramInfo.totalCount > 0 && (
                   <span style={{
-                    fontSize: '0.68rem',
+                    fontSize: '0.72rem',
                     fontWeight: 900,
-                    padding: '3px 9px',
+                    padding: '4px 11px',
                     borderRadius: 99,
-                    background: dayProgramInfo.hasAllCompleted ? 'rgba(34,197,94,0.2)' : 'rgba(99,102,241,0.2)',
-                    color: dayProgramInfo.hasAllCompleted ? '#4ade80' : '#a5b4fc',
-                    border: '1px solid rgba(255,255,255,0.15)'
+                    background: dayProgramInfo.hasAllCompleted ? '#dcfce7' : '#e0e7ff',
+                    color: dayProgramInfo.hasAllCompleted ? '#16a34a' : '#4338ca',
+                    border: dayProgramInfo.hasAllCompleted ? '1px solid #86efac' : '1px solid #c7d2fe'
                   }}>
-                    {dayProgramInfo.completedCount}/{dayProgramInfo.totalCount} Tamam
+                    {dayProgramInfo.completedCount}/{dayProgramInfo.totalCount} Tamamlandı
                   </span>
                 )}
               </div>
 
               {dayProgramInfo.items.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '320px', overflowY: 'auto', paddingRight: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '340px', overflowY: 'auto', paddingRight: 4 }}>
                   {dayProgramInfo.items.map((task, idx) => {
                     const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
                     const handleTaskClick = () => {
@@ -1956,24 +1886,24 @@ export default function StudentDashboard() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 10,
-                          background: task.done ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                          border: task.done ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)',
-                          padding: '0.6rem 0.8rem',
-                          borderRadius: 12,
+                          background: task.done ? '#f0fdf4' : '#f8fafc',
+                          border: task.done ? '1px solid #86efac' : '1px solid #e2e8f0',
+                          padding: '0.7rem 0.9rem',
+                          borderRadius: 14,
                           cursor: 'pointer',
-                          transition: 'all 0.15s'
+                          transition: 'all 0.15s ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
                             style={{
-                              width: 20,
-                              height: 20,
+                              width: 21,
+                              height: 21,
                               marginTop: 2,
                               borderRadius: 6,
-                              border: task.done ? 'none' : '1.5px solid #64748b',
+                              border: task.done ? 'none' : '1.5px solid #94a3b8',
                               background: task.done ? '#22c55e' : 'transparent',
                               display: 'flex',
                               alignItems: 'center',
@@ -1983,29 +1913,29 @@ export default function StudentDashboard() {
                               padding: 0
                             }}
                           >
-                            {task.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                            {task.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
                           </button>
 
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {/* Satır 1: Ders / Rozet + Test Başlığı */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
                               {task.subject && (
                                 <span style={{
                                   fontSize: '0.62rem',
                                   fontWeight: 900,
-                                  color: '#93c5fd',
-                                  background: 'rgba(59, 130, 246, 0.2)',
-                                  padding: '1px 5px',
-                                  borderRadius: 4,
+                                  color: '#2563eb',
+                                  background: '#dbeafe',
+                                  border: '1px solid #bfdbfe',
+                                  padding: '1px 6px',
+                                  borderRadius: 5,
                                   flexShrink: 0
                                 }}>
                                   {task.subject}
                                 </span>
                               )}
                               <span style={{
-                                fontSize: '0.82rem',
+                                fontSize: '0.84rem',
                                 fontWeight: 800,
-                                color: task.done ? '#94a3b8' : '#ffffff',
+                                color: task.done ? '#94a3b8' : '#0f172a',
                                 textDecoration: task.done ? 'line-through' : 'none',
                                 wordBreak: 'break-word',
                                 lineHeight: 1.3
@@ -2014,10 +1944,9 @@ export default function StudentDashboard() {
                               </span>
                             </div>
 
-                            {/* Satır 2: Kitap Adı & Hedef Tarihi */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.66rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
                               {task.bookTitle && (
-                                <span style={{ color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
+                                <span style={{ color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
                                   📖 {task.bookTitle}
                                 </span>
                               )}
@@ -2042,19 +1971,19 @@ export default function StudentDashboard() {
                               background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                               color: '#ffffff',
                               border: 'none',
-                              borderRadius: 8,
-                              padding: '0.35rem 0.65rem',
-                              fontSize: '0.72rem',
+                              borderRadius: 9,
+                              padding: '0.4rem 0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 900,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 4,
                               flexShrink: 0,
-                              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
+                              boxShadow: '0 3px 10px rgba(99, 102, 241, 0.35)'
                             }}
                           >
-                            <PlayCircle size={13} /> Çöz
+                            <PlayCircle size={14} /> Çöz
                           </button>
                         )}
                       </div>
@@ -2062,17 +1991,17 @@ export default function StudentDashboard() {
                   })}
                 </div>
               ) : (
-                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.04)', borderRadius: 14, border: '1px dashed rgba(255,255,255,0.15)', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.84rem', color: '#64748b', fontStyle: 'italic' }}>
                     {dayProgramInfo.isToday ? 'Bugün için kayıtlı görev yok. Harika gidiyorsun! 🎉' : `${dayProgramInfo.dayName} günü için görev bulunamadı.`}
                   </span>
                 </div>
               )}
             </div>
 
-            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-              <Link to="/my-program" style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                Haftalık Programa Git <ChevronRight size={12} />
+            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+              <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#4f46e5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                Haftalık Programa Git <ChevronRight size={13} />
               </Link>
             </div>
           </div>
@@ -2086,26 +2015,25 @@ export default function StudentDashboard() {
           {/* ──── SOL KOLON: ÖDEVLER & YOL HARİTASI ──── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-            {/* 📋 BÖLÜM 1: ÖDEVLERİM & GÖREV TAKİBİ (YOL HARİTASI STİLİ) */}
+            {/* 📋 BÖLÜM 1: ÖDEVLERİM & GÖREV TAKİBİ */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(16px)'
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(239,68,68,0.4)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(239,68,68,0.35)' }}>
                     📋
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                       Ödevlerim & Görev Takibi
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
-                      Öğretmeniniz veya koçunuz tarafından atanan ödevlerin tamamlama durumu
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                      Öğretmeniniz veya koçunuz tarafından atanan ödevlerin durumu
                     </span>
                   </div>
                 </div>
@@ -2113,11 +2041,11 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => navigate('/student/homeworks')}
                   style={{
-                    background: pendingCount > 0 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(34, 197, 94, 0.25)',
-                    color: pendingCount > 0 ? '#fca5a5' : '#86efac',
-                    border: pendingCount > 0 ? '1px solid rgba(239,68,68,0.35)' : '1px solid rgba(34,197,94,0.35)',
+                    background: pendingCount > 0 ? '#fee2e2' : '#dcfce7',
+                    color: pendingCount > 0 ? '#dc2626' : '#16a34a',
+                    border: pendingCount > 0 ? '1px solid #fca5a5' : '1px solid #86efac',
                     borderRadius: 99,
-                    padding: '0.25rem 0.75rem',
+                    padding: '0.3rem 0.8rem',
                     fontSize: '0.72rem',
                     fontWeight: 900,
                     cursor: 'pointer',
@@ -2132,12 +2060,12 @@ export default function StudentDashboard() {
               </div>
 
               {homeworkSummaryGroups.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: tests.length > 0 ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)', borderRadius: 16, border: tests.length > 0 ? '1px dashed rgba(34,197,94,0.3)' : '1px dashed rgba(255,255,255,0.12)' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎉</div>
-                  <div style={{ fontWeight: 800, color: tests.length > 0 ? '#4ade80' : '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, color: tests.length > 0 ? '#16a34a' : '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
                     {tests.length > 0 ? 'Tüm Ödevler Başarıyla Tamamlandı!' : 'Henüz atanmış bir ödeviniz yok'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     {tests.length > 0
                       ? 'Çözülmeyi bekleyen aktif ödeviniz bulunmuyor. Geçmiş ödevlerinizi görmek için tıklayın.'
                       : 'Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir.'}
@@ -2151,8 +2079,8 @@ export default function StudentDashboard() {
                       onClick={() => navigate('/student/homeworks')}
                       className="sd-card"
                       style={{
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        border: '1.5px solid rgba(239, 68, 68, 0.25)',
+                        background: '#f8fafc',
+                        border: '1.5px solid #e2e8f0',
                         borderRadius: 16,
                         padding: '1rem 1.15rem',
                         cursor: 'pointer',
@@ -2160,16 +2088,16 @@ export default function StudentDashboard() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                           {group.title}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#4ade80' : '#f87171' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#16a34a' : '#dc2626' }}>
                           %{group.pct}
                         </span>
                       </div>
 
                       {/* Progress Bar */}
-                      <div style={{ height: 7, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
                         <div style={{
                           height: '100%',
                           width: `${group.pct}%`,
@@ -2179,9 +2107,9 @@ export default function StudentDashboard() {
                         }} />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
-                        <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#f87171', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
-                        <span style={{ color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                        <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#dc2626', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
+                        <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
                           Detayları Gör <ChevronRight size={13} />
                         </span>
                       </div>
@@ -2193,40 +2121,39 @@ export default function StudentDashboard() {
 
             {/* 🗺️ BÖLÜM 2: YOL HARİTAM & KONU TAKİBİ */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(16px)'
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
                     🗺️
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                       Yol Haritam & Konu Takibi
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
                       Müfredat ve hedef sınav konu tamamlama ilerlemeniz
                     </span>
                   </div>
                 </div>
 
-                <span style={{ background: 'rgba(124, 58, 237, 0.25)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.35)', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                <span style={{ background: '#f3e8ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
                   {myRoadmaps.length} Harita
                 </span>
               </div>
 
               {myRoadmaps.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
-                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
                     Henüz atanmış bir yol haritanız yok
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
                   </div>
                 </div>
@@ -2238,30 +2165,30 @@ export default function StudentDashboard() {
                       onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
                       className="sd-card"
                       style={{
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        border: '1.5px solid rgba(192, 132, 252, 0.25)',
+                        background: '#f8fafc',
+                        border: '1.5px solid #e2e8f0',
                         borderRadius: 16,
                         padding: '1rem 1.15rem',
                         cursor: 'pointer'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#ffffff' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a' }}>
                           {plan.title}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#c084fc' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7c3aed' }}>
                           %{pct}
                         </span>
                       </div>
 
                       {/* Progress Bar */}
-                      <div style={{ height: 7, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
                         <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
                         <span>{doneTopics} / {totalTopics} Konu Tamamlandı</span>
-                        <span style={{ color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <span style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 2 }}>
                           Detayları Gör <ChevronRight size={13} />
                         </span>
                       </div>
@@ -2273,12 +2200,11 @@ export default function StudentDashboard() {
 
             {/* 📊 BÖLÜM: SON ÇÖZÜLEN 5 TEST */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(16px)'
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2291,15 +2217,15 @@ export default function StudentDashboard() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1rem',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
                   }}>
                     📝
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                       Son Çözülen Testler
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
                       Son tamamlanan 5 test ve başarı analizleriniz
                     </span>
                   </div>
@@ -2309,11 +2235,11 @@ export default function StudentDashboard() {
                   onClick={() => navigate('/student/results')}
                   className="sd-btn"
                   style={{
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    color: '#a7f3d0',
-                    border: '1px solid rgba(52, 211, 153, 0.35)',
+                    background: '#dcfce7',
+                    color: '#16a34a',
+                    border: '1px solid #86efac',
                     borderRadius: 99,
-                    padding: '0.25rem 0.75rem',
+                    padding: '0.3rem 0.8rem',
                     fontSize: '0.72rem',
                     fontWeight: 900,
                     cursor: 'pointer',
@@ -2328,21 +2254,21 @@ export default function StudentDashboard() {
               </div>
 
               {recentSolvedTests.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📊</div>
-                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
                     Henüz tamamlanmış bir test bulunmuyor
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     Kitap testlerinizi veya atanan ödevlerinizi çözdüğünüzde sonuçlarınız burada listelenecektir.
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {recentSolvedTests.map((test, idx) => {
-                    const pctColor = test.pct >= 80 ? '#4ade80' : test.pct >= 60 ? '#fbbf24' : '#f87171';
-                    const pctBg = test.pct >= 80 ? 'rgba(5, 150, 105, 0.2)' : test.pct >= 60 ? 'rgba(217, 119, 6, 0.2)' : 'rgba(225, 29, 72, 0.2)';
-                    const pctBorder = test.pct >= 80 ? 'rgba(52, 211, 153, 0.35)' : test.pct >= 60 ? 'rgba(253, 186, 116, 0.35)' : 'rgba(253, 164, 175, 0.35)';
+                    const pctColor = test.pct >= 80 ? '#16a34a' : test.pct >= 60 ? '#d97706' : '#dc2626';
+                    const pctBg = test.pct >= 80 ? '#dcfce7' : test.pct >= 60 ? '#fef3c7' : '#fee2e2';
+                    const pctBorder = test.pct >= 80 ? '#86efac' : test.pct >= 60 ? '#fde68a' : '#fca5a5';
 
                     return (
                       <div
@@ -2350,8 +2276,8 @@ export default function StudentDashboard() {
                         onClick={() => navigate('/student/results')}
                         className="sd-card"
                         style={{
-                          background: 'rgba(15, 23, 42, 0.75)',
-                          border: '1.5px solid rgba(255, 255, 255, 0.1)',
+                          background: '#f8fafc',
+                          border: '1.5px solid #e2e8f0',
                           borderRadius: 16,
                           padding: '0.9rem 1.1rem',
                           cursor: 'pointer',
@@ -2363,13 +2289,12 @@ export default function StudentDashboard() {
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        {/* Sol Başlık ve Detaylar */}
                         <div style={{ minWidth: 180, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
                             <span style={{
-                              background: 'rgba(99, 102, 241, 0.2)',
-                              color: '#c7d2fe',
-                              border: '1px solid rgba(165, 180, 252, 0.3)',
+                              background: '#e0e7ff',
+                              color: '#4338ca',
+                              border: '1px solid #c7d2fe',
                               borderRadius: 6,
                               fontSize: '0.65rem',
                               fontWeight: 800,
@@ -2378,41 +2303,39 @@ export default function StudentDashboard() {
                               {test.subject}
                             </span>
                             {test.date && (
-                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
                                 🕐 {new Date(test.date).toLocaleDateString('tr-TR')}
                               </span>
                             )}
                           </div>
 
-                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#ffffff', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
                             {test.title}
                           </div>
                           {test.subTitle && (
-                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
                               {test.subTitle}
                             </div>
                           )}
 
-                          {/* Doğru / Yanlış / Boş sayaçları */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                            <span style={{ color: '#4ade80', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                               ✓ {test.correctCount} D
                             </span>
-                            <span style={{ color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                               ✗ {test.wrongCount} Y
                             </span>
                             {test.emptyCount > 0 && (
-                              <span style={{ color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                                 ○ {test.emptyCount} B
                               </span>
                             )}
-                            <span style={{ color: '#cbd5e1', opacity: 0.7 }}>
+                            <span style={{ color: '#475569', opacity: 0.8 }}>
                               • {test.totalQuestions} Soru
                             </span>
                           </div>
                         </div>
 
-                        {/* Sağ Başarı Yüzdesi ve Buton */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                           <div style={{
                             background: pctBg,
@@ -2431,7 +2354,7 @@ export default function StudentDashboard() {
                             </div>
                           </div>
 
-                          <span style={{ color: '#a5b4fc', display: 'flex', alignItems: 'center' }}>
+                          <span style={{ color: '#4f46e5', display: 'flex', alignItems: 'center' }}>
                             <ChevronRight size={16} />
                           </span>
                         </div>
@@ -2449,23 +2372,22 @@ export default function StudentDashboard() {
 
             {/* 📚 BÖLÜM 3: TAKİP EDİLEN KİTAPLARIM */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(16px)'
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(8,145,178,0.4)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(8,145,178,0.35)' }}>
                     📚
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                       Kitaplarım ({assignedBooksList.length})
                     </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
                       Takip edilen soru bankalarınız
                     </span>
                   </div>
@@ -2475,11 +2397,11 @@ export default function StudentDashboard() {
                   onClick={() => navigate('/student/books')}
                   className="sd-btn"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.12)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#ffffff',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    color: '#1e293b',
                     borderRadius: 8,
-                    padding: '0.25rem 0.65rem',
+                    padding: '0.3rem 0.75rem',
                     fontSize: '0.72rem',
                     fontWeight: 800,
                     cursor: 'pointer'
@@ -2490,8 +2412,8 @@ export default function StudentDashboard() {
               </div>
 
               {assignedBooksList.length === 0 ? (
-                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16 }}>
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16 }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
                     Henüz soru bankası eklenmedi.
                   </div>
                 </div>
@@ -2505,8 +2427,8 @@ export default function StudentDashboard() {
                         onClick={() => navigate(`/book-details/${book.id}?studentId=${selectedStudent.id}`)}
                         className="sd-card"
                         style={{
-                          background: 'rgba(15, 23, 42, 0.75)',
-                          border: `1.5px solid ${pal.border}40`,
+                          background: '#f8fafc',
+                          border: `1.5px solid #e2e8f0`,
                           borderRadius: 14,
                           padding: '0.85rem 1rem',
                           display: 'flex',
@@ -2518,31 +2440,31 @@ export default function StudentDashboard() {
                       >
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: pal.border, background: 'rgba(255,255,255,0.1)', padding: '1px 6px', borderRadius: 4 }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: pal.border, background: '#e0e7ff', padding: '1px 6px', borderRadius: 4 }}>
                               {book.subject || 'Ders Kitabı'}
                             </span>
                             {book.publisher && (
-                              <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600 }}>
                                 {book.publisher}
                               </span>
                             )}
                           </div>
 
-                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {book.title}
                           </div>
 
                           <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden' }}>
+                            <div style={{ flex: 1, height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
                               <div style={{ height: '100%', width: `${book.pct}%`, background: pal.gradient, borderRadius: 99 }} />
                             </div>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b' }}>
                               {book.solvedCount}/{book.totalTests} Test (%{book.pct})
                             </span>
                           </div>
                         </div>
 
-                        <ChevronRight size={16} color="rgba(255,255,255,0.5)" />
+                        <ChevronRight size={16} color="#94a3b8" />
                       </div>
                     );
                   })}
@@ -2550,14 +2472,13 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* 🎯 BÖLÜM 4: HEDEF TAKİP PANOSU (HEDEFLERİM & ALIŞKANLIKLAR) */}
+            {/* 🎯 BÖLÜM 4: HEDEF TAKİP PANOSU */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              border: '1.5px solid rgba(168, 85, 247, 0.35)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
-              boxShadow: '0 8px 30px rgba(168, 85, 247, 0.15)',
-              backdropFilter: 'blur(16px)'
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2570,20 +2491,20 @@ export default function StudentDashboard() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1rem',
-                    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.4)'
+                    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.35)'
                   }}>
                     🎯
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                      <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                         Hedef Takip Panosu
                       </h2>
                       {goalTrackingData.totalItemsCount > 0 && (
                         <span style={{
-                          background: 'rgba(168, 85, 247, 0.25)',
-                          color: '#e9d5ff',
-                          border: '1px solid rgba(192, 132, 252, 0.4)',
+                          background: '#f3e8ff',
+                          color: '#7c3aed',
+                          border: '1px solid #ddd6fe',
                           borderRadius: 99,
                           fontSize: '0.65rem',
                           fontWeight: 900,
@@ -2594,9 +2515,9 @@ export default function StudentDashboard() {
                       )}
                       {solvedQuestionsStats.today > 0 && (
                         <span style={{
-                          background: 'rgba(244, 63, 94, 0.2)',
-                          color: '#fca5a5',
-                          border: '1px solid rgba(251, 113, 133, 0.4)',
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          border: '1px solid #fca5a5',
                           borderRadius: 99,
                           fontSize: '0.65rem',
                           fontWeight: 900,
@@ -2610,7 +2531,7 @@ export default function StudentDashboard() {
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: '#c084fc', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600 }}>
                       Sınav, net, soru ve alışkanlık hedefleriniz
                     </span>
                   </div>
@@ -2620,11 +2541,11 @@ export default function StudentDashboard() {
                   onClick={() => navigate('/goals')}
                   className="sd-btn"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.25))',
-                    border: '1px solid rgba(192, 132, 252, 0.45)',
-                    color: '#f3e8ff',
+                    background: '#f3e8ff',
+                    border: '1px solid #ddd6fe',
+                    color: '#7c3aed',
                     borderRadius: 8,
-                    padding: '0.28rem 0.7rem',
+                    padding: '0.3rem 0.75rem',
                     fontSize: '0.72rem',
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -2638,7 +2559,7 @@ export default function StudentDashboard() {
                 </button>
               </div>
 
-              {/* 1. GÖRSEL İLERLEME HEDEFLERİ (SORU, SAYFA, DAKİKA, KONU VB.) */}
+              {/* 1. GÖRSEL İLERLEME HEDEFLERİ */}
               {goalTrackingData.visualGoals.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '0.85rem' }}>
                   {goalTrackingData.visualGoals.map(g => {
@@ -2653,8 +2574,8 @@ export default function StudentDashboard() {
                         key={g.id}
                         className="sd-card"
                         style={{
-                          background: 'rgba(15, 23, 42, 0.75)',
-                          border: `1.5px solid ${t.border}`,
+                          background: '#f8fafc',
+                          border: `1.5px solid #e2e8f0`,
                           borderRadius: 14,
                           padding: '0.75rem 0.95rem'
                         }}
@@ -2662,8 +2583,8 @@ export default function StudentDashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{
-                              background: t.bg,
-                              color: t.text,
+                              background: '#e0e7ff',
+                              color: '#4338ca',
                               fontSize: '0.62rem',
                               fontWeight: 900,
                               padding: '1px 6px',
@@ -2674,13 +2595,13 @@ export default function StudentDashboard() {
                             }}>
                               <IconComp size={11} /> {g.type}
                             </span>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ffffff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {g.title}
                             </span>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDone ? '#4ade80' : t.text }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDone ? '#16a34a' : '#4f46e5' }}>
                               %{pct}
                             </span>
                             {!isDone && (
@@ -2692,9 +2613,9 @@ export default function StudentDashboard() {
                                 }}
                                 title={`+${t.step} ${t.unit} İlerleme Ekle`}
                                 style={{
-                                  background: t.bg,
-                                  border: `1px solid ${t.border}`,
-                                  color: t.text,
+                                  background: '#e0e7ff',
+                                  border: '1px solid #c7d2fe',
+                                  color: '#4338ca',
                                   borderRadius: 6,
                                   padding: '1px 6px',
                                   fontSize: '0.68rem',
@@ -2709,7 +2630,7 @@ export default function StudentDashboard() {
                         </div>
 
                         {/* Progress Bar */}
-                        <div style={{ height: 6, background: 'rgba(255,255,255,0.12)', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
                           <div style={{
                             height: '100%',
                             width: `${pct}%`,
@@ -2719,16 +2640,16 @@ export default function StudentDashboard() {
                           }} />
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>
                           <span>
                             {currentVal} / {g.target} {t.unit}
                             {g.type === 'Soru' && g.autoSystemValue > 0 && (
-                              <span style={{ marginLeft: 5, color: '#fb7185', fontWeight: 800, fontSize: '0.62rem' }}>
-                                (🔄 {g.autoSystemValue} sistemden yansıdı)
+                              <span style={{ marginLeft: 5, color: '#e11d48', fontWeight: 800, fontSize: '0.62rem' }}>
+                                (🔄 {g.autoSystemValue} sistemden)
                               </span>
                             )}
                           </span>
-                          <span style={{ color: isDone ? '#4ade80' : '#cbd5e1' }}>
+                          <span style={{ color: isDone ? '#16a34a' : '#64748b' }}>
                             {isDone ? '🎉 Hedefe Ulaşıldı' : `${Math.max(0, g.target - currentVal)} ${t.unit} kaldı`}
                           </span>
                         </div>
@@ -2738,40 +2659,40 @@ export default function StudentDashboard() {
                 </div>
               )}
 
-              {/* 3. ALIŞKANLIK & GÖREV MADDELERİ (GÜNLÜK & HAFTALIK) */}
+              {/* 3. ALIŞKANLIK & GÖREV MADDELERİ */}
               {(goalTrackingData.daily.length > 0 || goalTrackingData.weekly.length > 0 || goalTrackingData.monthly.length > 0) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {goalTrackingData.daily.slice(0, 2).map((item, idx) => (
-                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#f1f5f9' }}>
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#1e293b' }}>
                       <span style={{ fontSize: '0.85rem' }}>⚡</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                         {item.text}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#f43f5e', background: 'rgba(244,63,94,0.15)', padding: '1px 5px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#e11d48', background: '#fee2e2', padding: '1px 5px', borderRadius: 4 }}>
                         Günlük
                       </span>
                     </div>
                   ))}
 
                   {goalTrackingData.weekly.slice(0, 2).map((item, idx) => (
-                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#f1f5f9' }}>
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#1e293b' }}>
                       <span style={{ fontSize: '0.85rem' }}>✨</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                         {item.text}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#c084fc', background: 'rgba(192,132,252,0.15)', padding: '1px 5px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#7c3aed', background: '#f3e8ff', padding: '1px 5px', borderRadius: 4 }}>
                         Haftalık
                       </span>
                     </div>
                   ))}
 
                   {goalTrackingData.monthly.slice(0, 2).map((item, idx) => (
-                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#f1f5f9' }}>
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#1e293b' }}>
                       <span style={{ fontSize: '0.85rem' }}>📅</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                         {item.text}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.15)', padding: '1px 5px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '1px 5px', borderRadius: 4 }}>
                         Aylık
                       </span>
                     </div>
@@ -2779,14 +2700,13 @@ export default function StudentDashboard() {
                 </div>
               )}
 
-              {/* 4. BOŞ DURUM (HENÜZ HİÇ HEDEF YOKSA) */}
               {!goalTrackingData.hasAnyGoals && (
-                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(168, 85, 247, 0.3)' }}>
+                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
                   <div style={{ fontSize: '2rem', marginBottom: 4 }}>🎯</div>
-                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.88rem', marginBottom: 3 }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', marginBottom: 3 }}>
                     Henüz Hedef Belirlenmedi
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 10 }}>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: 10 }}>
                     Sınav, soru ve çalışma hedeflerinizi belirleyerek başarı yolculuğunuzu takip edin!
                   </div>
                   <button
@@ -2814,12 +2734,11 @@ export default function StudentDashboard() {
 
             {/* 🎯 BÖLÜM 5: GÜNÜN MOTİVASYONU & İLHAMI */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
               borderRadius: 22,
-              padding: isMobile ? '1rem' : '1.35rem 1.5rem',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(16px)'
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
             }}>
               {(() => {
                 const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
@@ -2828,23 +2747,23 @@ export default function StudentDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#fde68a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                           Günün İlhamı ({currentQuote.category})
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setDashQuoteIdx(p => p + 1)}
-                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '0.25rem 0.5rem', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '0.25rem 0.5rem', color: '#334155', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                       >
                         <RefreshCw size={11} /> Yeni
                       </button>
                     </div>
 
-                    <div style={{ fontSize: '0.85rem', color: '#f8fafc', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
+                    <div style={{ fontSize: '0.85rem', color: '#1e293b', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
                       "{currentQuote.quote}"
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#fbbf24' }}>
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#7c3aed' }}>
                       — {currentQuote.author}
                     </div>
                   </div>
@@ -2860,28 +2779,28 @@ export default function StudentDashboard() {
 
       {/* GOAL MODAL */}
       {showGoalModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.8)', backdropFilter:'blur(12px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
-          <div style={{ background:'linear-gradient(135deg, rgba(30,41,59,0.98) 0%, rgba(49,46,129,0.98) 100%)', border:'1.5px solid rgba(255,255,255,0.25)', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.5)', animation:'sdFadeUp 0.3s ease', color: '#ffffff' }}>
-            {isMobile && <div style={{ width:40, height:4, background:'rgba(255,255,255,0.2)', borderRadius:99, margin:'0 auto 1.25rem' }} />}
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.6)', backdropFilter:'blur(10px)', display:'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent:'center', zIndex:1000, padding: isMobile ? 0 : '1rem' }}>
+          <div style={{ background:'#ffffff', border:'1.5px solid #cbd5e1', borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding:'1.6rem', width:'100%', maxWidth: isMobile ? '100%' : 440, boxShadow:'0 32px 80px rgba(0,0,0,0.25)', animation:'sdFadeUp 0.3s ease', color: '#1e293b' }}>
+            {isMobile && <div style={{ width:40, height:4, background:'#cbd5e1', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
-              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'white', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'white' }}><X size={16} /></button>
+              <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'#0f172a', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
+              <button onClick={() => setShowGoalModal(false)} style={{ background:'#f1f5f9', border:'1px solid #cbd5e1', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'#334155' }}><X size={16} /></button>
             </div>
             <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
               <input placeholder="Hedef başlığı (örn: Günde 50 Matematik Sorusu)..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.1)', color:'white', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
                 <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e293b', color:'white' }}>
-                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#1e293b', color:'white' }}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
+                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#ffffff', color:'#0f172a' }}>{v}</option>)}
                 </select>
                 <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#1e293b', color:'white' }}>
-                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'#1e293b', color:'white' }}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
+                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'#ffffff', color:'#0f172a' }}>{v}</option>)}
                 </select>
               </div>
               <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))}
-                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid rgba(255,255,255,0.22)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'rgba(255,255,255,0.1)', color:'white', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
               <button type="submit" className="sd-btn"
                 style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#ea580c,#f97316)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(234,88,12,0.4)', marginTop:4 }}>
                 Hedefi Kaydet ✓

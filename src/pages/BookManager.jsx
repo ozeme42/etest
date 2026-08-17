@@ -267,28 +267,29 @@ export default function BookManager() {
     <div className="books-page-container">
       
       {/* ── TOP HERO HEADER BAR ── */}
-      <div className="books-glass-card" style={{ marginBottom: '1.75rem', padding: '1.5rem 1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem' }}>
+      {/* ── HEADER ── */}
+      <div className="books-glass-card books-header-card">
+        <div className="books-header-left">
           <button 
             className="btn btn-outline" 
-            onClick={() => navigate('/admin')} 
+            onClick={() => navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher')} 
             style={{ padding: '0.6rem', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Geri Dön"
           >
             <ArrowLeft size={20} />
           </button>
 
-          <div style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.85rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(99,102,241,0.35)' }}>
+          <div className="books-header-icon">
             <BookMarked size={28} />
           </div>
 
-          <div>
+          <div className="books-header-titles">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', padding: '0.2rem 0.65rem', borderRadius: '6px', border: '1px solid rgba(165,180,252,0.3)' }}>
                 📚 FİZİKİ KİTAP &amp; SORU BANKASI MERKEZİ
               </span>
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, margin: '0.35rem 0 0 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
+            <h1>
               Kitap &amp; Kütüphane Takip Sistemi
             </h1>
           </div>
@@ -296,70 +297,55 @@ export default function BookManager() {
 
         <button 
           onClick={() => openDialog(null)}
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            color: 'white',
-            border: 'none',
-            padding: '0.85rem 1.5rem',
-            borderRadius: '0.85rem',
-            fontWeight: 900,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            boxShadow: '0 8px 24px rgba(99,102,241,0.35)',
-            transition: 'all 0.2s'
-          }}
-          className="hover:scale-105 active:scale-95"
+          className="books-btn-add-main"
         >
           <Plus size={20} /> Yeni Kitap Ekle
         </button>
       </div>
 
-      {/* ── 4 LIVE KPI CARDS ── */}
+      {/* ── 4 LIVE KPI CARDS (2x2 ON MOBILE) ── */}
       <div className="books-kpi-grid">
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(99,102,241,0.35)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(99,102,241,0.35)', flexShrink: 0 }}>
             <Library size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Toplam Kitap</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#ffffff' }}>{enrichedBooks.length}</div>
+            <div className="books-kpi-label">Toplam Kitap</div>
+            <div className="books-kpi-val">{enrichedBooks.length}</div>
           </div>
         </div>
 
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(14,165,233,0.35)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(14,165,233,0.35)', flexShrink: 0 }}>
             <FileText size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Mevcut Test Sayısı</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#38bdf8' }}>
+            <div className="books-kpi-label">Mevcut Test Sayısı</div>
+            <div className="books-kpi-val" style={{ color: '#38bdf8' }}>
               {enrichedBooks.reduce((sum, b) => sum + (b.testCount || 0), 0)} Test
             </div>
           </div>
         </div>
 
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(16,185,129,0.35)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(16,185,129,0.35)', flexShrink: 0 }}>
             <CheckCircle size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Çözülen Testler</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#34d399' }}>
+            <div className="books-kpi-label">Çözülen Testler</div>
+            <div className="books-kpi-val" style={{ color: '#34d399' }}>
               {enrichedBooks.reduce((sum, b) => sum + (b.solvedTestCount || 0), 0)} Test
             </div>
           </div>
         </div>
 
         <div className="books-kpi-card">
-          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #ec4899, #db2777)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(236,72,153,0.35)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '1rem', background: 'linear-gradient(135deg, #ec4899, #db2777)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 18px rgba(236,72,153,0.35)', flexShrink: 0 }}>
             <HelpCircle size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Doğru / Yanlış Oranı</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#f472b6' }}>
+            <div className="books-kpi-label">Doğru / Yanlış Oranı</div>
+            <div className="books-kpi-val" style={{ color: '#f472b6' }}>
               {(() => {
                 const totalD = enrichedBooks.reduce((sum, b) => sum + (b.totalCorrectAnswers || 0), 0);
                 const totalY = enrichedBooks.reduce((sum, b) => sum + (b.totalIncorrectAnswers || 0), 0);

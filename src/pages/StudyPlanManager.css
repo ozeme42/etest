@@ -1,333 +1,347 @@
+/* ═══════════════════════════════════════════════════════════════════
+   COSMIC AURORA GLASSMORPHISM — STUDY PLANS & ROADMAPS SUITE
+═══════════════════════════════════════════════════════════════════ */
+
+.study-plans-page-container,
 .study-plan-container {
   min-height: 100vh;
-  background-color: var(--color-background);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1.25rem 1.5rem 5rem 1.5rem;
+  background-color: #0d1527;
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
+  gap: 1.25rem;
 }
 
-.study-plan-header {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 0;
-  z-index: 40;
+/* Glass Card Foundation */
+.study-glass-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(20px);
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #f8fafc;
+  box-sizing: border-box;
 }
 
-.study-plan-header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-  height: 4rem;
+.study-glass-card:hover {
+  border-color: rgba(165, 180, 252, 0.35);
+  box-shadow: 0 16px 42px rgba(99, 102, 241, 0.25);
+}
+
+/* Top Header */
+.study-header-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
+  padding: 1.25rem 1.75rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
 }
 
-.header-left {
+.study-header-left {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.icon-box-pink {
-  background: linear-gradient(135deg, #ec4899, #e11d48);
-  padding: 0.6rem;
-  border-radius: 0.75rem;
-  color: white;
-  box-shadow: 0 4px 14px 0 rgba(236, 72, 153, 0.3);
+.study-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.header-titles h1 {
-  font-size: 1.25rem;
+.study-btn-add-main {
+  padding: 0.75rem 1.4rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border: none;
   font-weight: 900;
-  margin: 0;
-  letter-spacing: -0.025em;
-  color: var(--color-text);
-  line-height: 1;
-}
-
-.header-titles p {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  margin: 0.25rem 0 0 0;
-}
-
-.btn-pink {
-  background-color: #db2777;
-  color: white;
-  border-radius: 0.75rem;
-  padding: 0.5rem 1.25rem;
-  font-weight: 700;
-  font-size: 0.875rem;
-  box-shadow: 0 4px 14px 0 rgba(236, 72, 153, 0.2);
-  display: inline-flex;
+  font-size: 0.92rem;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.btn-pink:hover {
-  background-color: #be185d;
-}
-
-.study-plan-main {
-  flex: 1;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-}
-
-.plan-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .plan-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .plan-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.plan-card {
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.plan-card:hover {
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: var(--shadow-md);
+.study-btn-add-main:hover {
   transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(99, 102, 241, 0.5);
 }
 
-.plan-card-header {
-  padding: 1.5rem;
-  padding-bottom: 1rem;
-}
-
-.plan-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-}
-
-.badge-plan {
-  background: rgba(236, 72, 153, 0.1);
-  color: #f472b6;
-  border: 1px solid rgba(236, 72, 153, 0.2);
-  font-size: 0.625rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-}
-
-.plan-actions {
-  display: flex;
-  gap: 0.25rem;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.plan-card:hover .plan-actions {
-  opacity: 1;
-}
-
-.plan-card-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: color 0.2s ease;
-}
-
-.plan-card:hover .plan-card-title {
-  color: #db2777;
-}
-
-.plan-card-content {
-  padding: 0 1.5rem 1.5rem 1.5rem;
-  flex-grow: 1;
-}
-
-.plan-stats-grid {
+/* 4 KPI Live Metric Cards - 4 col on desktop, strictly 2x2 on mobile */
+.study-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.plan-stat-box {
-  background: #f8fafc;
-  padding: 0.75rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.plan-stat-value {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: var(--color-text);
-}
-
-.plan-stat-label {
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  letter-spacing: 0.05em;
-  margin-top: 0.25rem;
-}
-
-.plan-card-footer {
-  padding: 0 1.5rem 1.5rem 1.5rem;
-}
-
-.btn-secondary-full {
-  width: 100%;
-  background: #f1f5f9;
-  color: #334155;
-  border: none;
-  font-weight: 700;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary-full:hover {
-  background: #e2e8f0;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 5rem 1rem;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 3rem;
-  border: 2px dashed rgba(0, 0, 0, 0.1);
-  margin: 0 auto;
-  max-width: 42rem;
-  width: 100%;
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
-}
-
-.empty-icon-wrapper {
-  width: 5rem;
-  height: 5rem;
-  background: #fdf2f8;
-  border-radius: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-
-.empty-icon-wrapper svg {
-  color: #ec4899;
-}
-
-.empty-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
-}
-
-.empty-desc {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin: 0.5rem 0 2rem 0;
-  max-width: 20rem;
-  line-height: 1.6;
-}
-
-/* Modal form overrides for nice UI */
-.study-plan-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.study-plan-modal {
-  background: white;
-  width: 90%;
-  max-width: 700px;
-  max-height: 90vh;
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.study-plan-modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.study-plan-modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.study-plan-modal-body {
-  padding: 0;
-  overflow-y: auto;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.study-plan-modal-footer {
-  padding: 1.5rem;
-  border-top: 1px solid rgba(0,0,0,0.05);
-  display: flex;
-  justify-content: flex-end;
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .study-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+.study-kpi-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.study-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.study-kpi-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.study-kpi-val {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.study-kpi-lbl {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.15rem;
+}
+
+/* Search & Preset Toolbar */
+.study-search-presets-bar {
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.study-presets-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Roadmaps Grid */
+.study-roadmaps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.roadmap-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px);
+  border-radius: 1.35rem;
+  padding: 1.4rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+
+.roadmap-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(165, 180, 252, 0.4);
+  box-shadow: 0 18px 45px rgba(99, 102, 241, 0.3);
+}
+
+.roadmap-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS (< 768px)
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .study-plans-page-container,
+  .study-plan-container {
+    padding: 0.75rem 0.5rem 5.5rem 0.5rem !important;
+    gap: 0.85rem;
+  }
+
+  /* Header */
+  .study-header-card {
+    padding: 1rem !important;
+    border-radius: 1.15rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .study-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .study-header-left h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .study-header-actions {
+    width: 100%;
+  }
+
+  .study-btn-add-main {
+    width: 100% !important;
+    justify-content: center;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* 4 KPI Hero Cards: STRICT 2x2 GRID ON ALL MOBILE PHONES */
+  .study-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.55rem !important;
+    width: 100% !important;
+  }
+
+  .study-kpi-card {
+    padding: 0.65rem 0.75rem !important;
+    border-radius: 0.95rem !important;
+    gap: 0.6rem !important;
+    min-width: 0 !important;
+  }
+
+  .study-kpi-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 0.65rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .study-kpi-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .study-kpi-val {
+    font-size: 1.2rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .study-kpi-lbl {
+    font-size: 0.62rem !important;
+    line-height: 1.2 !important;
+    margin-top: 0.1rem !important;
+    white-space: normal !important;
+  }
+
+  /* Search & Presets Bar */
+  .study-search-presets-bar {
+    padding: 0.85rem !important;
+    border-radius: 1rem !important;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .study-search-presets-bar > div:first-child {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .study-presets-container {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    gap: 0.4rem;
+  }
+
+  .study-presets-container button {
+    white-space: nowrap;
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.74rem !important;
+  }
+
+  /* Roadmaps Grid */
+  .study-roadmaps-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+
+  .roadmap-card {
+    padding: 1.1rem !important;
+    border-radius: 1.15rem !important;
+  }
+
+  .roadmap-card-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .roadmap-card-actions button {
+    width: 100% !important;
+  }
 }

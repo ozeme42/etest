@@ -1398,7 +1398,7 @@ export default function QuestionBank() {
           </div>
 
           {/* ROW 3: ACTIONS */}
-          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
+          <div className="card-actions-row" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingTop: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
             <button
               onClick={() => handlePreviewQuestion(q)}
               style={{ flex: 1, minWidth: '80px', background: cfg.iconBg, color: 'white', border: 'none', padding: '0.55rem 0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: `0 3px 8px ${cfg.accent}44` }}
@@ -1527,7 +1527,7 @@ export default function QuestionBank() {
       );
     }
     return (
-      <div style={{ padding: '0.5rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+      <div className="qbank-questions-grid" style={{ padding: '0.5rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
         {items.map(q => renderQuestionCard(q))}
       </div>
     );
@@ -1572,7 +1572,7 @@ export default function QuestionBank() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
           
           {/* Top Sticky Header */}
-          <header style={{
+          <header className="qbank-hero-header" style={{
             background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
             border: '1.5px solid rgba(255, 255, 255, 0.14)',
             borderRadius: '1.5rem',
@@ -1585,7 +1585,7 @@ export default function QuestionBank() {
             boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(20px)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div className="header-left-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => {
                   if (window.history.length > 1) navigate(-1);
@@ -1630,15 +1630,15 @@ export default function QuestionBank() {
           </header>
 
           {/* 4 LIVE KPI HERO METRIC CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
-            <div style={{
+          <div className="qbank-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+            <div className="qbank-kpi-card" style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
               border: '1.5px solid rgba(99, 102, 241, 0.35)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
             }}>
-              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <BookOpen size={24} />
               </div>
               <div>
@@ -1648,14 +1648,14 @@ export default function QuestionBank() {
               </div>
             </div>
 
-            <div style={{
+            <div className="qbank-kpi-card" style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
               border: '1.5px solid rgba(52, 211, 153, 0.35)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
             }}>
-              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <GraduationCap size={24} />
               </div>
               <div>
@@ -1665,14 +1665,14 @@ export default function QuestionBank() {
               </div>
             </div>
 
-            <div style={{
+            <div className="qbank-kpi-card" style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
               border: '1.5px solid rgba(251, 191, 36, 0.35)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
             }}>
-              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <FolderTree size={24} />
               </div>
               <div>
@@ -1682,14 +1682,14 @@ export default function QuestionBank() {
               </div>
             </div>
 
-            <div style={{
+            <div className="qbank-kpi-card" style={{
               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
               border: '1.5px solid rgba(244, 114, 182, 0.35)',
               borderRadius: '1.25rem', padding: '1rem 1.25rem',
               display: 'flex', alignItems: 'center', gap: '1rem',
               boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
             }}>
-              <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(244, 114, 182, 0.15)', color: '#f472b6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div className="qbank-kpi-icon" style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(244, 114, 182, 0.15)', color: '#f472b6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Layers size={24} />
               </div>
               <div>
