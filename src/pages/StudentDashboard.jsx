@@ -1044,6 +1044,130 @@ export default function StudentDashboard() {
     return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
   }, [goals, selectedStudent]);
 
+  /* ─── Real-Time Solved Questions Calculation (Today, Week, Month, Total) ─── */
+  const solvedQuestionsStats = useMemo(() => {
+    if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
+
+    const studentIdStr = String(selectedStudent.id);
+    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
+    const todayYMD = formatLocalYMD(new Date());
+
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let todayCount = 0;
+    let weekCount = 0;
+    let monthCount = 0;
+    let totalCount = 0;
+
+    const countedSubIds = new Set();
+
+    // 1. Process EvaluationContext Submissions
+    (submissions || []).forEach(s => {
+      const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
+      if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
+
+      const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
+      if (countedSubIds.has(subId)) return;
+      countedSubIds.add(subId);
+
+      // Determine question count
+      let qCount = 0;
+      if (s.totalQuestions && Number(s.totalQuestions) > 0) {
+        qCount = Number(s.totalQuestions);
+      } else if (Array.isArray(s.answers) && s.answers.length > 0) {
+        qCount = s.answers.length;
+      } else if (Array.isArray(s.studentAnswers) && s.studentAnswers.length > 0) {
+        qCount = s.studentAnswers.length;
+      } else if ((s.correctCount !== undefined || s.correct_count !== undefined) && (s.wrongCount !== undefined || s.wrong_count !== undefined)) {
+        qCount = (Number(s.correctCount || s.correct_count || 0)) + (Number(s.wrongCount || s.wrong_count || 0)) + (Number(s.blankCount || s.emptyCount || s.empty_count || s.blank_count || 0));
+      }
+
+      if (qCount <= 0) {
+        const testObj = (tests || []).find(t => String(t.id) === String(s.testId) || String(t.realTestId) === String(s.testId) || String(t.submissionId) === String(s.id));
+        qCount = testObj?.questionCount || 20;
+      }
+
+      const dateStr = s.submittedAt || s.completedAt || s.createdAt || s.date;
+      const subDate = dateStr ? new Date(dateStr) : null;
+
+      totalCount += qCount;
+
+      if (subDate && !isNaN(subDate.getTime())) {
+        const subYMD = formatLocalYMD(subDate);
+        if (subYMD === todayYMD || isToday(subDate)) {
+          todayCount += qCount;
+        }
+        if (subDate >= startOfWeek) {
+          weekCount += qCount;
+        }
+        if (subDate >= startOfMonth) {
+          monthCount += qCount;
+        }
+      }
+    });
+
+    // 2. Process Homework Submissions
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        const isMatch = String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr || (studentUuidStr && String(sub.studentId || sub.student_id || sub.user_id) === studentUuidStr);
+        if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+
+        const subId = sub.id || `hw_${hw.id}_${studentIdStr}`;
+        if (countedSubIds.has(subId)) return;
+        countedSubIds.add(subId);
+
+        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 10);
+        const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
+        const subDate = dateStr ? new Date(dateStr) : null;
+
+        totalCount += qCount;
+
+        if (subDate && !isNaN(subDate.getTime())) {
+          const subYMD = formatLocalYMD(subDate);
+          if (subYMD === todayYMD || isToday(subDate)) {
+            todayCount += qCount;
+          }
+          if (subDate >= startOfWeek) {
+            weekCount += qCount;
+          }
+          if (subDate >= startOfMonth) {
+            monthCount += qCount;
+          }
+        }
+      });
+    });
+
+    // 3. Process Coaching Daily Logs if present
+    const profile = getCoachingProfileForStudent(selectedStudent.id);
+    if (profile?.dailyLogs && Array.isArray(profile.dailyLogs)) {
+      profile.dailyLogs.forEach(log => {
+        if (!log.date) return;
+        const logDate = new Date(log.date);
+        const logQCount = Number(log.questionCount || log.questionsCount || 0);
+        if (logQCount > 0 && !isNaN(logDate.getTime())) {
+          const logYMD = formatLocalYMD(logDate);
+          if (logYMD === todayYMD) {
+            todayCount = Math.max(todayCount, logQCount);
+          }
+        }
+      });
+    }
+
+    return {
+      today: todayCount,
+      thisWeek: weekCount,
+      thisMonth: monthCount,
+      total: totalCount
+    };
+  }, [selectedStudent, submissions, homeworks, tests, getCoachingProfileForStudent]);
+
   /* ─── Hedef Takip Panosu Verileri (Sınav, Net, Soru, Alışkanlıklar) ─── */
   const goalTrackingData = useMemo(() => {
     if (!selectedStudent?.id) {
@@ -1098,8 +1222,30 @@ export default function StudentDashboard() {
       }));
     }
 
-    // Custom visual progress goals from GoalContext
-    const visualGoals = (goals || []).filter(item => String(item.studentId) === String(selectedStudent.id));
+    // Custom visual progress goals from GoalContext + automatic real-time sync with solved questions
+    const rawVisualGoals = (goals || []).filter(item => String(item.studentId) === String(selectedStudent.id));
+    const visualGoals = rawVisualGoals.map(goalItem => {
+      if (goalItem.type === 'Soru') {
+        const autoSystemValue = (
+          goalItem.period === 'Günlük' ? solvedQuestionsStats.today :
+          goalItem.period === 'Haftalık' ? solvedQuestionsStats.thisWeek :
+          goalItem.period === 'Aylık' ? solvedQuestionsStats.thisMonth :
+          solvedQuestionsStats.total
+        );
+        const effectiveCurrent = Math.max(goalItem.current || 0, autoSystemValue);
+        return {
+          ...goalItem,
+          autoSystemValue,
+          effectiveCurrent,
+          isAutoTracked: true
+        };
+      }
+      return {
+        ...goalItem,
+        effectiveCurrent: goalItem.current || 0,
+        isAutoTracked: false
+      };
+    });
 
     const totalItemsCount = visualGoals.length + monthly.length + weekly.length + daily.length + (hasExamOrTarget ? 1 : 0);
 
@@ -1117,7 +1263,7 @@ export default function StudentDashboard() {
       visualGoals,
       totalItemsCount
     };
-  }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals]);
+  }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals, solvedQuestionsStats]);
 
   return (
     <div style={{
@@ -1929,7 +2075,7 @@ export default function StudentDashboard() {
                     🎯
                   </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
                         Hedef Takip Panosu
                       </h2>
@@ -1944,6 +2090,23 @@ export default function StudentDashboard() {
                           padding: '1px 7px'
                         }}>
                           {goalTrackingData.totalItemsCount} Hedef
+                        </span>
+                      )}
+                      {solvedQuestionsStats.today > 0 && (
+                        <span style={{
+                          background: 'rgba(244, 63, 94, 0.2)',
+                          color: '#fca5a5',
+                          border: '1px solid rgba(251, 113, 133, 0.4)',
+                          borderRadius: 99,
+                          fontSize: '0.65rem',
+                          fontWeight: 900,
+                          padding: '1px 7px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}>
+                          <span>🔥</span>
+                          <span>Bugün: {solvedQuestionsStats.today} Soru</span>
                         </span>
                       )}
                     </div>
@@ -2023,8 +2186,9 @@ export default function StudentDashboard() {
                   {goalTrackingData.visualGoals.map(g => {
                     const t = GOAL_TYPE_THEMES[g.type] || GOAL_TYPE_THEMES.Soru;
                     const IconComp = t.icon || Target;
-                    const pct = g.target > 0 ? Math.min(100, Math.round(((g.current || 0) / g.target) * 100)) : 0;
-                    const isDone = (g.current || 0) >= g.target;
+                    const currentVal = g.effectiveCurrent !== undefined ? g.effectiveCurrent : (g.current || 0);
+                    const pct = g.target > 0 ? Math.min(100, Math.round((currentVal / g.target) * 100)) : 0;
+                    const isDone = currentVal >= g.target;
 
                     return (
                       <div
@@ -2098,9 +2262,16 @@ export default function StudentDashboard() {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
-                          <span>{g.current || 0} / {g.target} {t.unit}</span>
+                          <span>
+                            {currentVal} / {g.target} {t.unit}
+                            {g.type === 'Soru' && g.autoSystemValue > 0 && (
+                              <span style={{ marginLeft: 5, color: '#fb7185', fontWeight: 800, fontSize: '0.62rem' }}>
+                                (🔄 {g.autoSystemValue} sistemden yansıdı)
+                              </span>
+                            )}
+                          </span>
                           <span style={{ color: isDone ? '#4ade80' : '#cbd5e1' }}>
-                            {isDone ? '🎉 Hedefe Ulaşıldı' : `${g.target - (g.current || 0)} ${t.unit} kaldı`}
+                            {isDone ? '🎉 Hedefe Ulaşıldı' : `${Math.max(0, g.target - currentVal)} ${t.unit} kaldı`}
                           </span>
                         </div>
                       </div>

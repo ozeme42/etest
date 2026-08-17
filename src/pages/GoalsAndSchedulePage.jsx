@@ -4,6 +4,9 @@ import { useGoal } from '../context/GoalContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useEvaluation } from '../context/EvaluationContext';
+import { useHomework } from '../context/HomeworkContext';
+import { toUUID } from '../services/supabaseService';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
@@ -602,6 +605,8 @@ export default function GoalsAndSchedulePage() {
   const { users } = useUser();
   const { currentUser } = useAuth();
   const { getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles } = useCoaching();
+  const { submissions } = useEvaluation();
+  const { homeworks } = useHomework();
 
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const defaultStudentId = currentUser?.role === 'student' ? currentUser?.id : (students[0]?.id || 'u1');
@@ -609,6 +614,72 @@ export default function GoalsAndSchedulePage() {
   const selectedStudent = students.find(s => s.id === selectedStudentId) || (currentUser?.role === 'student' ? currentUser : students[0]);
 
   const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
+
+  /* ─── Real-Time Solved Questions Calculation (Today, Week, Month, Total) ─── */
+  const solvedQuestionsStats = useMemo(() => {
+    if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
+    const studentIdStr = String(selectedStudent.id);
+    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
+    const now = new Date();
+    const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const startOfWeek = new Date(now);
+    const day = startOfWeek.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let todayCount = 0;
+    let weekCount = 0;
+    let monthCount = 0;
+    let totalCount = 0;
+
+    const countedSubIds = new Set();
+
+    (submissions || []).forEach(s => {
+      const isMatch = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr);
+      if (!isMatch || s.status === 'in_progress' || s.status === 'draft') return;
+      const subId = s.id || s.supabaseId || `${s.testId}_${s.submittedAt}`;
+      if (countedSubIds.has(subId)) return;
+      countedSubIds.add(subId);
+
+      let qCount = Number(s.totalQuestions || s.questionCount || (Array.isArray(s.answers) ? s.answers.length : 0) || 20);
+      const dateStr = s.submittedAt || s.completedAt || s.createdAt || s.date;
+      const subDate = dateStr ? new Date(dateStr) : null;
+      totalCount += qCount;
+      if (subDate && !isNaN(subDate.getTime())) {
+        const subYMD = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+        if (subYMD === todayYMD) todayCount += qCount;
+        if (subDate >= startOfWeek) weekCount += qCount;
+        if (subDate >= startOfMonth) monthCount += qCount;
+      }
+    });
+
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(sub => {
+        const isMatch = String(sub.studentId || sub.student_id || sub.user_id) === studentIdStr || (studentUuidStr && String(sub.studentId || sub.student_id || sub.user_id) === studentUuidStr);
+        if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+        const subId = sub.id || `hw_${hw.id}_${studentIdStr}`;
+        if (countedSubIds.has(subId)) return;
+        countedSubIds.add(subId);
+
+        let qCount = Number(hw.totalQuestions || sub.totalQuestions || (Array.isArray(sub.answers) ? sub.answers.length : 0) || 10);
+        const dateStr = sub.completedAt || sub.submittedAt || sub.createdAt || hw.createdAt;
+        const subDate = dateStr ? new Date(dateStr) : null;
+        totalCount += qCount;
+        if (subDate && !isNaN(subDate.getTime())) {
+          const subYMD = `${subDate.getFullYear()}-${String(subDate.getMonth() + 1).padStart(2, '0')}-${String(subDate.getDate()).padStart(2, '0')}`;
+          if (subYMD === todayYMD) todayCount += qCount;
+          if (subDate >= startOfWeek) weekCount += qCount;
+          if (subDate >= startOfMonth) monthCount += qCount;
+        }
+      });
+    });
+
+    return { today: todayCount, thisWeek: weekCount, thisMonth: monthCount, total: totalCount };
+  }, [selectedStudent, submissions, homeworks]);
 
   // Collapsible Accordion States (Closed by default)
   const [isLongTermOpen, setIsLongTermOpen] = useState(false);
@@ -677,8 +748,21 @@ export default function GoalsAndSchedulePage() {
 
   const studentGoals = useMemo(() => {
     if (!selectedStudent) return [];
-    return goals.filter(g => String(g.studentId) === String(selectedStudent.id));
-  }, [goals, selectedStudent]);
+    const raw = goals.filter(g => String(g.studentId) === String(selectedStudent.id));
+    return raw.map(g => {
+      if (g.type === 'Soru') {
+        const autoVal = (
+          g.period === 'Günlük' ? solvedQuestionsStats.today :
+          g.period === 'Haftalık' ? solvedQuestionsStats.thisWeek :
+          g.period === 'Aylık' ? solvedQuestionsStats.thisMonth :
+          solvedQuestionsStats.total
+        );
+        const effectiveCurrent = Math.max(g.current || 0, autoVal);
+        return { ...g, current: effectiveCurrent, autoSystemValue: autoVal };
+      }
+      return g;
+    });
+  }, [goals, selectedStudent, solvedQuestionsStats]);
 
   const filteredVisualGoals = useMemo(() => {
     return studentGoals.filter(g => {
