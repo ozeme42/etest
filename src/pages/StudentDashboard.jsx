@@ -594,6 +594,8 @@ export default function StudentDashboard() {
               sourceType: 'trackedBook',
               isBookAssignment: true,
               subject: subjectName,
+              bookTitle: cleanBookTitle,
+              testName: testName,
               title: `${cleanBookTitle} — ${testName}`,
               dueDate: tDateStr,
               status: sub ? 'Sonuçlandı' : 'Atandı',
@@ -785,7 +787,9 @@ export default function StudentDashboard() {
         testId: t.testId || t.realTestId,
         hwId: t.hwId,
         type: resolvedType || t.type || 'test', 
-        title: t.title, 
+        title: t.title,
+        bookTitle: t.bookTitle,
+        testName: t.testName,
         subject: getCategoryName(t), 
         dueDateStr: dueDateObj.toLocaleDateString('tr-TR'), 
         dueDateObj, 
@@ -1759,6 +1763,10 @@ export default function StudentDashboard() {
 
                     const typeBadgeText = isExam ? '🏛️ FİZİKİ DENEME' : isBook ? `📕 KİTAP TESTİ • ${task.subject || 'DERS'}` : `📝 ÖDEV • ${task.subject || 'DERS'}`;
 
+                    const parts = (task.title || '').split(' — ');
+                    const displayTestName = task.testName || (parts.length > 1 ? parts.slice(1).join(' — ') : null);
+                    const displayBookName = task.bookTitle || (parts.length > 1 ? parts[0] : null);
+
                     return (
                       <div
                         key={task.id}
@@ -1768,11 +1776,11 @@ export default function StudentDashboard() {
                           background: `radial-gradient(ellipse at 10% 20%, ${subjectGlow} 0%, transparent 65%), linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(45, 41, 105, 0.9) 100%)`,
                           backdropFilter: 'blur(20px)',
                           borderRadius: 20,
-                          padding: isMobile ? '1rem' : '1.15rem 1.35rem',
+                          padding: isMobile ? '0.9rem 0.95rem' : '1.15rem 1.35rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          gap: 12,
+                          gap: 10,
                           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
                           border: `1.5px solid ${borderHighlight}`,
                           position: 'relative',
@@ -1783,16 +1791,16 @@ export default function StudentDashboard() {
                         {/* Ambient glow highlight */}
                         <div style={{ position: 'absolute', right: -20, top: -20, width: 130, height: 130, borderRadius: '50%', background: subjectGlow, filter: 'blur(25px)', pointerEvents: 'none' }} />
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 2, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 12, zIndex: 2, flex: 1, minWidth: 0 }}>
                           <div style={{
-                            width: isMobile ? 46 : 54,
-                            height: isMobile ? 46 : 54,
-                            borderRadius: 16,
+                            width: isMobile ? 42 : 54,
+                            height: isMobile ? 42 : 54,
+                            borderRadius: 15,
                             background: iconBadgeGradient,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: isMobile ? '1.35rem' : '1.6rem',
+                            fontSize: isMobile ? '1.25rem' : '1.6rem',
                             boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
                             flexShrink: 0,
                             border: '1.5px solid rgba(255,255,255,0.35)'
@@ -1801,58 +1809,81 @@ export default function StudentDashboard() {
                           </div>
 
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                               <span style={{
-                                fontSize: '0.65rem',
+                                fontSize: '0.62rem',
                                 fontWeight: 800,
                                 color: '#ffffff',
                                 textTransform: 'uppercase',
-                                letterSpacing: '0.06em',
+                                letterSpacing: '0.05em',
                                 background: badgeBg,
-                                padding: '0.15rem 0.55rem',
+                                padding: '0.12rem 0.5rem',
                                 borderRadius: 99,
                                 border: `1px solid ${borderHighlight}`
                               }}>
                                 {typeBadgeText}
                               </span>
                               {overdue && (
-                                <span style={{ fontSize: '0.62rem', fontWeight: 900, color: 'white', background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '0.15rem 0.55rem', borderRadius: 99, boxShadow: '0 2px 10px rgba(239,68,68,0.45)' }}>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'white', background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '0.12rem 0.5rem', borderRadius: 99, boxShadow: '0 2px 10px rgba(239,68,68,0.45)' }}>
                                   🔥 {differenceInDays(new Date(), dueDate)}g Gecikti
                                 </span>
                               )}
                               {dueToday && !overdue && (
-                                <span style={{ fontSize: '0.62rem', fontWeight: 900, color: 'white', background: 'linear-gradient(135deg, #f59e0b, #d97706)', padding: '0.15rem 0.55rem', borderRadius: 99, boxShadow: '0 2px 10px rgba(245,158,11,0.45)' }}>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'white', background: 'linear-gradient(135deg, #f59e0b, #d97706)', padding: '0.12rem 0.5rem', borderRadius: 99, boxShadow: '0 2px 10px rgba(245,158,11,0.45)' }}>
                                   ⚡ Bugün Son
                                 </span>
                               )}
                               {!overdue && !dueToday && daysDiff >= 0 && (
-                                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#c7d2fe', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.35)', padding: '0.15rem 0.55rem', borderRadius: 99 }}>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#c7d2fe', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.35)', padding: '0.12rem 0.5rem', borderRadius: 99 }}>
                                   ⏰ {daysDiff + 1} Gün Kaldı
                                 </span>
                               )}
                             </div>
 
+                            {/* Prominent Test Name */}
                             <div style={{
-                              fontSize: isMobile ? '0.95rem' : '1.1rem',
+                              fontSize: isMobile ? '0.92rem' : '1.05rem',
                               fontWeight: 900,
                               color: '#ffffff',
                               marginTop: 4,
                               lineHeight: 1.25,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
                             }}>
-                              {task.title}
+                              {displayTestName || task.title}
                             </div>
 
+                            {/* Book / Source Name Subtitle */}
+                            {displayBookName && (
+                              <div style={{
+                                fontSize: isMobile ? '0.68rem' : '0.74rem',
+                                color: '#93c5fd',
+                                fontWeight: 700,
+                                marginTop: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                <span style={{ fontSize: '0.75rem', lineHeight: 1 }}>📖</span>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {displayBookName}
+                                </span>
+                              </div>
+                            )}
+
                             <div style={{
-                              fontSize: isMobile ? '0.7rem' : '0.76rem',
-                              color: 'rgba(255,255,255,0.8)',
+                              fontSize: isMobile ? '0.66rem' : '0.74rem',
+                              color: 'rgba(255,255,255,0.78)',
                               fontWeight: 600,
                               marginTop: 3,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 10,
+                              gap: 8,
                               flexWrap: 'wrap'
                             }}>
                               <span>📝 {task.questionCount || 0} Soru</span>
@@ -1865,19 +1896,19 @@ export default function StudentDashboard() {
                           background: btnGradient,
                           color: '#ffffff',
                           borderRadius: 14,
-                          padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.15rem',
+                          padding: isMobile ? '0.45rem 0.75rem' : '0.6rem 1.15rem',
                           fontWeight: 900,
-                          fontSize: isMobile ? '0.74rem' : '0.8rem',
+                          fontSize: isMobile ? '0.72rem' : '0.8rem',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 5,
+                          gap: 4,
                           boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                           border: '1.5px solid rgba(255,255,255,0.35)',
                           flexShrink: 0,
                           zIndex: 2,
                           whiteSpace: 'nowrap'
                         }}>
-                          {isExam ? 'Karneyi Gir ➔' : 'Testi Çöz ➔'}
+                          {isExam ? (isMobile ? 'Karne ➔' : 'Karneyi Gir ➔') : (isMobile ? 'Çöz ➔' : 'Testi Çöz ➔')}
                         </div>
                       </div>
                     );
@@ -1902,6 +1933,10 @@ export default function StudentDashboard() {
                   const score = test.correctAnswers || 0;
                   const good = score >= 70;
                   const targetTestId = test.realTestId || test.testId || test.id;
+                  const parts = (test.title || '').split(' — ');
+                  const displayTestName = test.testName || (parts.length > 1 ? parts.slice(1).join(' — ') : null);
+                  const displayBookName = test.bookTitle || (parts.length > 1 ? parts[0] : null);
+
                   return (
                     <div key={test.id} className="sd-hw-card"
                       onClick={() => {
@@ -1918,8 +1953,17 @@ export default function StudentDashboard() {
                       style={{ display:'flex', alignItems:'center', gap:12, padding:'0.85rem 1.2rem', borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none', cursor: 'pointer', background:'rgba(255,255,255,0.04)' }}>
                       <div style={{ width:36, height:36, borderRadius:12, background:conf.bg, border:`1.5px solid ${conf.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><conf.icon size={16} color={conf.color} /></div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:800, fontSize:'0.84rem', color:'#ffffff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{test.title}</div>
-                        <div style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.7)', fontWeight:600, marginTop:1 }}>{test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}</div>
+                        <div style={{ fontWeight:800, fontSize:'0.84rem', color:'#ffffff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {displayTestName || test.title}
+                        </div>
+                        {displayBookName && (
+                          <div style={{ fontSize:'0.64rem', color:'#93c5fd', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1 }}>
+                            📖 {displayBookName}
+                          </div>
+                        )}
+                        <div style={{ fontSize:'0.63rem', color:'rgba(255,255,255,0.7)', fontWeight:600, marginTop:1 }}>
+                          {test.dueDate ? new Date(test.dueDate).toLocaleDateString('tr-TR') : 'Tamamlandı'}
+                        </div>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
                         <div style={{ textAlign:'right' }}>
