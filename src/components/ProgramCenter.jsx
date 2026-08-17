@@ -1340,13 +1340,53 @@ export function MonthlyListPanel({
 
   return (
     <div className="printable-monthly-area">
-      {/* Print Specific CSS */}
+      {/* Print & Mobile Specific CSS */}
       <style>{`
         .print-only-header { display: none; }
+        .monthly-day-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          transition: all 0.15s ease;
+        }
+        .monthly-date-box {
+          min-width: 76px;
+          text-align: center;
+          padding: 0.55rem 0.75rem;
+          border-radius: 0.85rem;
+          color: white;
+          flex-shrink: 0;
+        }
+        .monthly-items-wrap {
+          flex: 1;
+          min-width: 0;
+          width: 100%;
+        }
+        @media (max-width: 640px) {
+          .monthly-day-card {
+            flex-direction: column !important;
+            gap: 0.65rem !important;
+            padding: 0.75rem 0.85rem !important;
+          }
+          .monthly-date-box {
+            width: 100% !important;
+            min-width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justifyContent: space-between !important;
+            padding: 0.45rem 0.85rem !important;
+            text-align: left !important;
+            box-sizing: border-box !important;
+          }
+          .monthly-date-box-left {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+          }
+        }
         @media print {
           @page { size: A4; margin: 12mm; }
           body { background: white !important; color: #000 !important; font-family: sans-serif !important; }
-          /* Hide non-printable UI elements */
           nav, header, footer, .no-print, button, select, input, .weekly-grid { display: none !important; }
           .printable-monthly-area {
             position: absolute !important;
@@ -1505,6 +1545,7 @@ export function MonthlyListPanel({
           return (
             <div
               key={d.ymd}
+              className="monthly-day-card"
               style={{
                 background: d.isToday ? (isDark ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.95))' : 'linear-gradient(135deg, #ffffff, #f5f3ff)') : (isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff'),
                 border: d.isToday ? '2px solid #818cf8' : (isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : `1.5px solid ${theme.border}`),
@@ -1512,42 +1553,36 @@ export function MonthlyListPanel({
                 borderRadius: '1rem',
                 padding: '0.85rem 1.1rem',
                 boxShadow: d.isToday ? (isDark ? '0 8px 30px rgba(99,102,241,0.35)' : '0 6px 20px rgba(99,102,241,0.15)') : (isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.03)'),
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '1rem',
-                flexWrap: 'wrap',
-                backdropFilter: isDark ? 'blur(20px)' : 'none',
-                transition: 'all 0.15s ease'
+                backdropFilter: isDark ? 'blur(20px)' : 'none'
               }}
             >
               {/* Date Box with Day Theme Gradient */}
-              <div style={{
-                minWidth: 72,
-                textAlign: 'center',
-                padding: '0.5rem 0.65rem',
-                borderRadius: '0.8rem',
-                background: d.isToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
-                color: 'white',
-                boxShadow: d.isToday ? '0 4px 14px rgba(79,70,229,0.35)' : '0 2px 8px rgba(0,0,0,0.1)',
-                flexShrink: 0
-              }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.95, marginTop: 2 }}>{d.dayName}</div>
+              <div
+                className="monthly-date-box"
+                style={{
+                  background: d.isToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
+                  boxShadow: d.isToday ? '0 4px 14px rgba(79,70,229,0.35)' : '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div className="monthly-date-box-left">
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1 }}>{d.day}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, opacity: 0.95, marginTop: 2 }}>{d.dayName}</div>
+                </div>
                 {d.isToday && (
-                  <div style={{ fontSize: '0.55rem', fontWeight: 900, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '1px 5px', borderRadius: 4, marginTop: 3 }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 900, background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '2px 6px', borderRadius: 4, marginTop: 2 }}>
                     BUGÜN
                   </div>
                 )}
               </div>
 
               {/* Items List */}
-              <div style={{ flex: 1, minWidth: 200 }}>
+              <div className="monthly-items-wrap">
                 {d.items.length === 0 ? (
-                  <div style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontWeight: 600, fontStyle: 'italic', paddingTop: 8 }}>
+                  <div style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontWeight: 600, fontStyle: 'italic', padding: '0.35rem 0' }}>
                     Programlanan ders görevi yok
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                     {d.items.map((item, idx) => {
                       const icon = taskIcons[item.taskType] || '📌';
                       const tt = TASK_TYPES.find(t => t.id === item.taskType);
@@ -1559,27 +1594,19 @@ export function MonthlyListPanel({
                           key={item.id || idx}
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            background: item.done ? (isDark ? 'rgba(5,150,105,0.2)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.06)' : 'white'),
-                            border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e8ecf0'),
+                            flexDirection: 'column',
+                            gap: '0.45rem',
+                            background: item.done ? (isDark ? 'rgba(5,150,105,0.18)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                            border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.35)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'),
                             borderLeft: `4px solid ${itemAccent}`,
-                            borderRadius: '0.65rem',
-                            padding: '0.5rem 0.75rem',
-                            gap: '0.75rem',
-                            boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 6px rgba(0,0,0,0.02)')
+                            borderRadius: '0.75rem',
+                            padding: '0.65rem 0.85rem',
+                            boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.04)'),
+                            transition: 'all 0.15s ease'
                           }}
                         >
-                          <div
-                            onClick={() => {
-                              if (isClickable && onOpenResult) {
-                                onOpenResult(item);
-                              } else if (onToggle) {
-                                onToggle(d.dayKey, item.id);
-                              }
-                            }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1, cursor: (isClickable || onToggle) ? 'pointer' : 'default' }}
-                          >
+                          {/* Top Row: Checkbox + Icon + Subject / Title */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%' }}>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1587,10 +1614,10 @@ export function MonthlyListPanel({
                                 if (onToggle) onToggle(d.dayKey, item.id);
                               }}
                               style={{
-                                width: 20,
-                                height: 20,
+                                width: 22,
+                                height: 22,
                                 borderRadius: 6,
-                                border: item.done ? '2px solid #22c55e' : (isDark ? '2px solid rgba(255,255,255,0.3)' : '2px solid #cbd5e1'),
+                                border: item.done ? '2px solid #22c55e' : (isDark ? '2px solid rgba(255,255,255,0.35)' : '2px solid #cbd5e1'),
                                 background: item.done ? '#22c55e' : 'transparent',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1598,79 +1625,209 @@ export function MonthlyListPanel({
                                 cursor: 'pointer',
                                 padding: 0,
                                 flexShrink: 0,
+                                marginTop: 2,
                                 transition: 'all 0.15s ease'
                               }}
                               title={item.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamlandı olarak işaretle'}
                             >
-                              {item.done && <Check size={13} color="white" strokeWidth={3} />}
+                              {item.done && <Check size={14} color="white" strokeWidth={3} />}
                             </button>
 
-                            <span style={{ fontSize: '0.95rem' }}>{icon}</span>
-                            <div style={{ minWidth: 0, flex: 1 }}>
+                            <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{icon}</span>
+
+                            <div
+                              onClick={() => {
+                                if (isClickable && onOpenResult) {
+                                  onOpenResult(item);
+                                } else if (onToggle) {
+                                  onToggle(d.dayKey, item.id);
+                                }
+                              }}
+                              style={{
+                                flex: 1,
+                                minWidth: 0,
+                                cursor: isClickable || onToggle ? 'pointer' : 'default'
+                              }}
+                            >
                               <div style={{
-                                fontSize: '0.82rem',
+                                fontSize: '0.85rem',
                                 fontWeight: 800,
+                                lineHeight: 1.4,
                                 color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
                                 textDecoration: item.done ? 'line-through' : 'none',
+                                wordBreak: 'break-word',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 5
+                                flexWrap: 'wrap',
+                                gap: 6
                               }}>
                                 <span>{item.subject || item.topic || 'Ders Çalışması'}</span>
                                 {isClickable && (
-                                  <span style={{ fontSize: '0.62rem', color: '#818cf8', fontWeight: 800 }}>↗</span>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    color: isDark ? '#a5b4fc' : '#4f46e5',
+                                    background: isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff',
+                                    border: isDark ? '1px solid rgba(165,180,252,0.35)' : '1px solid #c7d2fe',
+                                    padding: '1px 6px',
+                                    borderRadius: 4,
+                                    fontWeight: 800,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 2
+                                  }}>
+                                    <span>Görevi Aç</span> ↗
+                                  </span>
                                 )}
                               </div>
-                              {item.topic && item.subject && (
-                                <div style={{ fontSize: '0.7rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'), fontWeight: 600, marginTop: 1 }}>{item.topic}</div>
-                              )}
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                            {(item.startTime || item.endTime || item.time || item.saat) && (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#4f46e5', background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff', border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe', padding: '0.15rem 0.5rem', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
-                              </span>
-                            )}
-                            {item.hours && (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isDark ? '#a5b4fc' : '#6366f1', background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-                                ⏱️ {item.hours} sa
-                              </span>
-                            )}
-                            {item.questionCount && (
-                              <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#22d3ee', background: isDark ? 'rgba(6,182,212,0.15)' : '#ecfeff', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
-                                ✏️ {item.questionCount} soru
-                              </span>
-                            )}
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 900,
-                              padding: '0.15rem 0.55rem',
-                              borderRadius: 99,
-                              background: item.done ? (isDark ? 'rgba(5,150,105,0.25)' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'),
-                              color: item.done ? (isDark ? '#4ade80' : '#15803d') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b')
+                          {/* Middle Row: Sub-Topic / Test Details (if distinct) */}
+                          {item.topic && item.subject && item.topic !== item.subject && (
+                            <div style={{
+                              paddingLeft: 30,
+                              fontSize: '0.75rem',
+                              color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
+                              fontWeight: 600,
+                              lineHeight: 1.45,
+                              wordBreak: 'break-word'
                             }}>
-                              {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
-                            </span>
-                            {!item.isAutoHomework && onEditClick && (
-                              <button onClick={() => onEditClick(d.dayKey, item)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8', padding: 2, display: 'flex', borderRadius: 4 }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
-                                onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8'}
-                                title="Görevi Düzenle">
-                                <Edit3 size={14} />
-                              </button>
-                            )}
-                            {!item.isAutoHomework && onDelete && (
-                              <button onClick={() => onDelete(d.dayKey, item.id)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(239,68,68,0.6)' : '#f87171', padding: 2, display: 'flex', borderRadius: 4 }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(239,68,68,0.6)' : '#f87171'}
-                                title="Görevi Sil">
-                                <Trash2 size={13} />
-                              </button>
-                            )}
+                              {item.topic}
+                            </div>
+                          )}
+
+                          {/* Bottom Row: Badges & Action Buttons */}
+                          <div style={{
+                            paddingLeft: 30,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 6,
+                            marginTop: 2,
+                            paddingTop: 4,
+                            borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.04)'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {(item.startTime || item.endTime || item.time || item.saat) && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 800,
+                                  color: isDark ? '#c7d2fe' : '#4f46e5',
+                                  background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff',
+                                  border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: 99,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}>
+                                  🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                                </span>
+                              )}
+                              {item.hours && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 800,
+                                  color: isDark ? '#a5b4fc' : '#6366f1',
+                                  background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: 99
+                                }}>
+                                  ⏱️ {item.hours} sa
+                                </span>
+                              )}
+                              {item.questionCount && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 800,
+                                  color: '#22d3ee',
+                                  background: isDark ? 'rgba(6,182,212,0.15)' : '#ecfeff',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: 99
+                                }}>
+                                  ✏️ {item.questionCount} soru
+                                </span>
+                              )}
+                              <span style={{
+                                fontSize: '0.65rem',
+                                fontWeight: 900,
+                                padding: '0.15rem 0.55rem',
+                                borderRadius: 99,
+                                background: item.done ? (isDark ? 'rgba(5,150,105,0.25)' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'),
+                                color: item.done ? (isDark ? '#4ade80' : '#15803d') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b')
+                              }}>
+                                {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
+                              </span>
+                            </div>
+
+                            {/* Actions on right */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                              {!item.isAutoHomework && onEditClick && (
+                                <button
+                                  onClick={() => onEditClick(d.dayKey, item)}
+                                  style={{
+                                    background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700
+                                  }}
+                                  title="Görevi Düzenle"
+                                >
+                                  <Edit3 size={12} /> Düzenle
+                                </button>
+                              )}
+                              {!item.isAutoHomework && onDelete && (
+                                <button
+                                  onClick={() => onDelete(d.dayKey, item.id)}
+                                  style={{
+                                    background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: isDark ? '#f87171' : '#dc2626',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700
+                                  }}
+                                  title="Görevi Sil"
+                                >
+                                  <Trash2 size={12} /> Sil
+                                </button>
+                              )}
+                              {isClickable && onOpenResult && (
+                                <button
+                                  onClick={() => onOpenResult(item)}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: '#ffffff',
+                                    padding: '3px 10px',
+                                    borderRadius: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    fontSize: '0.68rem',
+                                    fontWeight: 900,
+                                    boxShadow: '0 2px 6px rgba(79,70,229,0.3)'
+                                  }}
+                                >
+                                  <span>Başlat</span>
+                                  <ArrowRight size={11} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
