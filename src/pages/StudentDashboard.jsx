@@ -1150,48 +1150,89 @@ export default function StudentDashboard() {
               onClick={() => navigate('/student-results')}
               className="sd-btn"
               style={{
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 100%)',
-                border: '1.5px solid rgba(165, 180, 252, 0.45)',
-                color: '#ffffff',
+                background: 'rgba(99, 102, 241, 0.18)',
+                border: '1.5px solid rgba(165, 180, 252, 0.4)',
+                color: '#c7d2fe',
                 borderRadius: 12,
-                padding: '0.42rem 0.85rem',
+                padding: '0.45rem 0.85rem',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 7,
-                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+                gap: 6
+              }}
+            >
+              <BarChart3 size={15} color="#818cf8" />
+              <span>Sonuçlarım</span>
+            </button>
+
+            {/* 🌟 YUVARLAK BAŞARI TAMAMLAMA GRAFİĞİ (RADIAL PROGRESS) */}
+            <div
+              onClick={() => navigate('/student-results')}
+              title="Detaylı Sonuçlar ve Başarı Analizini İncele"
+              className="sd-btn"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                border: overallSuccessRate >= 80 ? '1.5px solid rgba(52, 211, 153, 0.45)' : '1.5px solid rgba(99, 102, 241, 0.4)',
+                borderRadius: 14,
+                padding: '0.35rem 0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: overallSuccessRate >= 80 ? '0 4px 16px rgba(16, 185, 129, 0.25)' : '0 4px 16px rgba(99, 102, 241, 0.2)',
                 transition: 'all 0.2s ease'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <BarChart3 size={15} color="#a5b4fc" />
-                <span>Sonuçlarım</span>
+              {/* Circular SVG Ring */}
+              <div style={{ position: 'relative', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="38" height="38" viewBox="0 0 38 38" style={{ transform: 'rotate(-90deg)' }}>
+                  {/* Background Circle */}
+                  <circle
+                    cx="19"
+                    cy="19"
+                    r="15"
+                    fill="transparent"
+                    stroke="rgba(255, 255, 255, 0.12)"
+                    strokeWidth="3.5"
+                  />
+                  {/* Progress Circle */}
+                  <circle
+                    cx="19"
+                    cy="19"
+                    r="15"
+                    fill="transparent"
+                    stroke={overallSuccessRate >= 80 ? '#10b981' : overallSuccessRate >= 60 ? '#38bdf8' : '#f59e0b'}
+                    strokeWidth="3.5"
+                    strokeDasharray={2 * Math.PI * 15}
+                    strokeDashoffset={2 * Math.PI * 15 * (1 - (overallSuccessRate || 0) / 100)}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s ease' }}
+                  />
+                </svg>
+                <div style={{
+                  position: 'absolute',
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  lineHeight: 1,
+                  textAlign: 'center'
+                }}>
+                  %{overallSuccessRate}
+                </div>
               </div>
-              <span style={{
-                background: overallSuccessRate >= 80
-                  ? 'linear-gradient(135deg, #10b981, #059669)'
-                  : overallSuccessRate >= 60
-                  ? 'linear-gradient(135deg, #3b82f6, #6366f1)'
-                  : 'linear-gradient(135deg, #f59e0b, #d97706)',
-                color: '#ffffff',
-                fontSize: '0.72rem',
-                fontWeight: 900,
-                padding: '2px 8px',
-                borderRadius: 99,
-                boxShadow: overallSuccessRate >= 80
-                  ? '0 2px 8px rgba(16, 185, 129, 0.45)'
-                  : '0 2px 8px rgba(99, 102, 241, 0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                letterSpacing: '0.02em'
-              }}>
-                <span>🎯</span>
-                <span>%{overallSuccessRate} Başarı</span>
-              </span>
-            </button>
+
+              {/* Text Info */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Başarı Oranı
+                </span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: overallSuccessRate >= 80 ? '#4ade80' : overallSuccessRate >= 60 ? '#38bdf8' : '#fbbf24', lineHeight: 1.1 }}>
+                  {overallSuccessRate >= 80 ? '🏆 Yüksek' : overallSuccessRate >= 60 ? '📈 İyi Seviye' : '⚡ Geliştirilmeli'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
