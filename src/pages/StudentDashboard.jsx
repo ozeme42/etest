@@ -1287,42 +1287,51 @@ export default function StudentDashboard() {
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         @keyframes sdFadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
         @keyframes sdPulseRing { 0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0.5)} 50%{box-shadow:0 0 0 10px rgba(167,139,250,0)} }
         @keyframes sdShimmer { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
         @keyframes aurora { 0%,100%{transform:translate(0,0) scale(1);opacity:.6} 33%{transform:translate(28px,-18px) scale(1.1);opacity:.8} 66%{transform:translate(-18px,14px) scale(.95);opacity:.5} }
-        .sd-tile { transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); cursor:pointer; }
+        .sd-tile { transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); cursor:pointer; user-select:none; }
         .sd-tile:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.08); }
-        .sd-tile:active { transform: scale(0.97); }
-        .sd-btn { transition: all 0.18s ease; }
+        .sd-tile:active { transform: scale(0.96); }
+        .sd-btn { transition: all 0.18s ease; user-select:none; }
         .sd-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
-        .sd-btn:active { transform: scale(0.97); }
-        .sd-stat-chip { transition: all 0.2s ease; }
+        .sd-btn:active { transform: scale(0.96); }
+        .sd-stat-chip { transition: all 0.2s ease; user-select:none; }
         .sd-stat-chip:hover { transform: translateY(-3px); filter: brightness(1.1); }
-        .sd-hw-card { transition: all 0.2s ease; cursor:pointer; }
+        .sd-stat-chip:active { transform: scale(0.96); }
+        .sd-hw-card { transition: all 0.2s ease; cursor:pointer; user-select:none; }
         .sd-hw-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.3) !important; filter: brightness(1.05); }
-        .sd-hw-card:active { transform: scale(0.99); }
+        .sd-hw-card:active { transform: scale(0.98); }
         .sd-section { animation: sdFadeUp 0.5s ease both; }
-        .sd-task-row { transition: all 0.15s ease; }
+        .sd-task-row { transition: all 0.15s ease; user-select:none; }
         .sd-task-row:hover { filter: brightness(1.1); }
+        .sd-task-row:active { transform: scale(0.98); }
         .scroll-hide { scrollbar-width:none; -ms-overflow-style:none; }
         .scroll-hide::-webkit-scrollbar { display:none; }
         @media(min-width:900px) {
-          .sd-content-outer { width:100%; max-width:100%; margin:0; padding:0 1.5rem; }
+          .sd-content-outer { width:100%; max-width:100%; margin:0; padding:0 1.5rem 3rem; }
           .sd-stat-outer { width:100%; max-width:100%; margin:0; padding:0 1.5rem; }
           .sd-hero-inner { width:100%; max-width:100%; margin:0; }
           .sd-main-grid { display:grid; grid-template-columns:1fr 360px; gap:1.5rem; align-items:start; }
         }
         @media(max-width:899px) {
-          .sd-content-outer { padding:0 0.875rem; }
-          .sd-stat-outer { padding:0 0.875rem; }
-          .sd-main-grid { display:flex; flex-direction:column; }
+          .sd-content-outer { padding:0 0.85rem calc(env(safe-area-inset-bottom, 0px) + 95px); }
+          .sd-stat-outer { padding:0 0.85rem; }
+          .sd-main-grid { display:flex; flex-direction:column; gap: 1.15rem; }
         }
       `}</style>
 
-      {/* ════ HERO ════ */}
-      <div style={{ background:'linear-gradient(135deg, #3730a3 0%, #4f46e5 25%, #7c3aed 55%, #9333ea 80%, #a855f7 100%)', padding: isMobile ? '1.5rem 1rem 3.5rem' : '2.25rem 2rem 4rem', position:'relative', overflow:'hidden', borderBottom:'1.5px solid rgba(255,255,255,0.25)', backdropFilter:'blur(20px)' }}>
+      {/* ════ HERO (NATIVE APP HEADER) ════ */}
+      <div style={{
+        background:'linear-gradient(135deg, #3730a3 0%, #4f46e5 25%, #7c3aed 55%, #9333ea 80%, #a855f7 100%)',
+        padding: isMobile ? 'calc(env(safe-area-inset-top, 0px) + 1.1rem) 1rem 3rem' : '2.25rem 2rem 4rem',
+        position:'relative',
+        overflow:'hidden',
+        borderBottom:'1.5px solid rgba(255,255,255,0.25)',
+        backdropFilter:'blur(20px)'
+      }}>
         <div style={{ position:'absolute', top:-80, right:-60, width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(167,139,250,0.4) 0%,transparent 70%)', animation:'aurora 8s ease infinite', pointerEvents:'none' }} />
         <div style={{ position:'absolute', bottom:-60, left:-40, width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.25) 0%,transparent 70%)', animation:'aurora 12s ease infinite reverse', pointerEvents:'none' }} />
 
