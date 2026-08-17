@@ -385,6 +385,7 @@ export default function StudentBookDetailsPage() {
 
   const [selectedChartSubject, setSelectedChartSubject] = useState('all');
   const [selectedChartTopic, setSelectedChartTopic] = useState('all');
+  const [bookChartMetric, setBookChartMetric] = useState('grouped'); // 'grouped' | 'rate'
 
   const currentChartSubjectObj = useMemo(() => {
     if (selectedChartSubject === 'all') return null;
@@ -664,13 +665,13 @@ export default function StudentBookDetailsPage() {
       </div>
 
       {subjectChartData.length > 0 && (
-        <div className="sbdp-anim" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', backdropFilter: 'blur(20px)', borderRadius: '1.4rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', padding: '1.75rem 2rem', marginBottom: '2rem', boxShadow: '0 12px 36px rgba(0,0,0,0.35)' }}>
+        <div className="sbdp-anim" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 27, 75, 0.94) 100%)', backdropFilter: 'blur(20px)', borderRadius: '1.4rem', border: '1.5px solid rgba(165, 180, 252, 0.25)', padding: '1.75rem 2rem', marginBottom: '2rem', boxShadow: '0 12px 36px rgba(0,0,0,0.35)' }}>
           
           {/* Chart Header & Selectors */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BarChart2 size={20} color="#818cf8" />
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <BarChart2 size={22} color="#818cf8" />
                 {selectedChartSubject === 'all' 
                   ? 'Derslere Göre Başarı Dağılımı' 
                   : selectedChartTopic === 'all' 
@@ -679,19 +680,19 @@ export default function StudentBookDetailsPage() {
               </h3>
               
               {/* Breadcrumb Path */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700, marginTop: 4 }}>
                 <span 
                   onClick={() => { setSelectedChartSubject('all'); setSelectedChartTopic('all'); }} 
-                  style={{ cursor: 'pointer', color: selectedChartSubject === 'all' ? '#ffffff' : '#818cf8', textDecoration: selectedChartSubject === 'all' ? 'none' : 'underline' }}
+                  style={{ cursor: 'pointer', color: selectedChartSubject === 'all' ? '#ffffff' : '#818cf8', background: selectedChartSubject === 'all' ? 'rgba(255,255,255,0.12)' : 'transparent', padding: '0.15rem 0.5rem', borderRadius: 6, transition: 'all 0.15s' }}
                 >
-                  Tüm Dersler
+                  📚 Tüm Dersler
                 </span>
                 {currentChartSubjectObj && (
                   <>
-                    <span>/</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>/</span>
                     <span 
                       onClick={() => setSelectedChartTopic('all')} 
-                      style={{ cursor: 'pointer', color: selectedChartTopic === 'all' ? '#ffffff' : '#818cf8', textDecoration: selectedChartTopic === 'all' ? 'none' : 'underline' }}
+                      style={{ cursor: 'pointer', color: selectedChartTopic === 'all' ? '#ffffff' : '#818cf8', background: selectedChartTopic === 'all' ? 'rgba(255,255,255,0.12)' : 'transparent', padding: '0.15rem 0.5rem', borderRadius: 6, transition: 'all 0.15s' }}
                     >
                       {currentChartSubjectObj.name}
                     </span>
@@ -699,8 +700,8 @@ export default function StudentBookDetailsPage() {
                 )}
                 {currentChartTopicObj && (
                   <>
-                    <span>/</span>
-                    <span style={{ color: '#ffffff', fontWeight: 800 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>/</span>
+                    <span style={{ color: '#ffffff', fontWeight: 800, background: 'rgba(99,102,241,0.25)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
                       {currentChartTopicObj.name}
                     </span>
                   </>
@@ -708,8 +709,46 @@ export default function StudentBookDetailsPage() {
               </div>
             </div>
 
-            {/* Select Dropdowns */}
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Select Dropdowns & Metric Toggle */}
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Metric Toggle */}
+              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', padding: 3, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)' }}>
+                <button
+                  onClick={() => setBookChartMetric('grouped')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: bookChartMetric === 'grouped' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                    color: bookChartMetric === 'grouped' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                    boxShadow: bookChartMetric === 'grouped' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  📊 Soru Dağılımı (D / Y / B)
+                </button>
+                <button
+                  onClick={() => setBookChartMetric('rate')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    background: bookChartMetric === 'rate' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                    color: bookChartMetric === 'rate' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                    boxShadow: bookChartMetric === 'rate' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  🎯 Başarı Yüzdesi (%)
+                </button>
+              </div>
+
               {/* Subject Select */}
               <select
                 value={selectedChartSubject}
@@ -717,18 +756,18 @@ export default function StudentBookDetailsPage() {
                   setSelectedChartSubject(e.target.value);
                   setSelectedChartTopic('all');
                 }}
-                style={{ padding: '0.45rem 1rem', borderRadius: '0.6rem', border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.85rem', fontWeight: 700, color: '#ffffff', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', outline: 'none' }}
+                style={{ padding: '0.45rem 0.9rem', borderRadius: '0.65rem', border: '1.5px solid rgba(255,255,255,0.18)', fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', outline: 'none' }}
               >
                 <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>📚 Tüm Dersler</option>
                 {subjectProgress.map(s => <option key={s.id} value={String(s.id)} style={{ background: '#0f172a', color: '#ffffff' }}>{s.name}</option>)}
               </select>
 
-              {/* Topic/Unit Select (Appears when a subject with topics is selected) */}
+              {/* Topic/Unit Select */}
               {currentChartSubjectObj && currentChartSubjectObj.topics && currentChartSubjectObj.topics.length > 0 && (
                 <select
                   value={selectedChartTopic}
                   onChange={e => setSelectedChartTopic(e.target.value)}
-                  style={{ padding: '0.45rem 1rem', borderRadius: '0.6rem', border: '1.5px solid rgba(165,180,252,0.4)', fontSize: '0.85rem', fontWeight: 700, color: '#ffffff', background: 'rgba(99,102,241,0.25)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '0.45rem 0.9rem', borderRadius: '0.65rem', border: '1.5px solid rgba(165,180,252,0.4)', fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', background: 'rgba(99,102,241,0.25)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>📑 Tüm Üniteler / Konular</option>
                   {currentChartSubjectObj.topics.map(tp => <option key={tp.id} value={String(tp.id)} style={{ background: '#0f172a', color: '#ffffff' }}>{tp.name}</option>)}
@@ -738,12 +777,17 @@ export default function StudentBookDetailsPage() {
           </div>
 
           {/* Interactive Drill-down Cards (Grafiğin Üstünde) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
             {subjectChartData.map((item, idx) => {
               const rateColor = item.rate >= 70 ? '#4ade80' : item.rate >= 50 ? '#fbbf24' : item.totalQ === 0 ? '#94a3b8' : '#f87171';
-              const rateBg = item.rate >= 70 ? 'rgba(5,150,105,0.2)' : item.rate >= 50 ? 'rgba(217,119,6,0.2)' : item.totalQ === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(225,29,72,0.2)';
+              const rateBg = item.rate >= 70 ? 'rgba(5,150,105,0.18)' : item.rate >= 50 ? 'rgba(217,119,6,0.18)' : item.totalQ === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(225,29,72,0.18)';
               const rateBorder = item.rate >= 70 ? 'rgba(52,211,153,0.35)' : item.rate >= 50 ? 'rgba(253,186,116,0.35)' : item.totalQ === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(253,164,175,0.35)';
               const isDrillable = item.type === 'subject' || item.type === 'topic';
+
+              const totalQ = item.totalQ || 0;
+              const pctD = totalQ > 0 ? ((item.Doğru || 0) / totalQ) * 100 : 0;
+              const pctY = totalQ > 0 ? ((item.Yanlış || 0) / totalQ) * 100 : 0;
+              const pctB = totalQ > 0 ? ((item.Boş || 0) / totalQ) * 100 : 0;
 
               return (
                 <div 
@@ -759,37 +803,50 @@ export default function StudentBookDetailsPage() {
                   style={{
                     background: rateBg, 
                     border: `1.5px solid ${rateBorder}`, 
-                    borderRadius: '0.85rem', 
-                    padding: '0.8rem 1rem',
+                    borderRadius: '1rem', 
+                    padding: '0.9rem 1.1rem',
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: 4,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    gap: 6,
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.22)',
                     cursor: isDrillable ? 'pointer' : 'default',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.18s ease'
                   }}
                   title={isDrillable ? `${item.name} detaylarını görmek için tıkla` : item.name}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.name}
                     </span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: rateColor }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: rateColor, textShadow: `0 0 10px ${rateColor}66` }}>
                       %{item.rate}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
-                    {item.totalTests ? (
+
+                  {/* Multi-segment mini progress bar */}
+                  <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                    {totalQ > 0 ? (
                       <>
-                        <span>{item.solvedTests}/{item.totalTests} Test</span>
-                        <span style={{ color: '#4ade80' }}>{item.Doğru}D <span style={{ color: '#f87171' }}>{item.Yanlış}Y</span></span>
+                        {pctD > 0 && <div style={{ width: `${pctD}%`, background: 'linear-gradient(90deg, #10b981, #34d399)', height: '100%' }} title={`Doğru: ${item.Doğru}`} />}
+                        {pctY > 0 && <div style={{ width: `${pctY}%`, background: 'linear-gradient(90deg, #ef4444, #f87171)', height: '100%' }} title={`Yanlış: ${item.Yanlış}`} />}
+                        {pctB > 0 && <div style={{ width: `${pctB}%`, background: '#94a3b8', height: '100%' }} title={`Boş: ${item.Boş}`} />}
                       </>
                     ) : (
-                      <>
-                        <span>{item.isCompleted ? 'Çözüldü' : 'Çözülmedi'}</span>
-                        <span style={{ color: '#4ade80' }}>{item.Doğru}D <span style={{ color: '#f87171' }}>{item.Yanlış}Y</span></span>
-                      </>
+                      <div style={{ width: '100%', background: 'rgba(255,255,255,0.06)', height: '100%' }} />
                     )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>
+                    {item.totalTests ? (
+                      <span>{item.solvedTests}/{item.totalTests} Test Çözüldü</span>
+                    ) : (
+                      <span>{item.isCompleted ? 'Tamamlandı' : 'Çözülmedi'}</span>
+                    )}
+                    <span style={{ display: 'flex', gap: 6, fontWeight: 800 }}>
+                      <span style={{ color: '#4ade80' }}>{item.Doğru}D</span>
+                      <span style={{ color: '#f87171' }}>{item.Yanlış}Y</span>
+                      <span style={{ color: '#cbd5e1' }}>{item.Boş}B</span>
+                    </span>
                   </div>
                 </div>
               );
@@ -799,69 +856,116 @@ export default function StudentBookDetailsPage() {
           {/* Bar Chart View */}
           <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer>
-              <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="bookCorrectGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
+                  </linearGradient>
+                  <linearGradient id="bookWrongGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
+                  </linearGradient>
+                  <linearGradient id="bookBlankGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.85} />
+                    <stop offset="100%" stopColor="#64748b" stopOpacity={0.65} />
+                  </linearGradient>
+                  <linearGradient id="bookRateGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 700 }} dy={10} tickFormatter={v => v.length > 28 ? v.substring(0, 28) + '…' : v} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 600 }} />
+                <XAxis dataKey="displayName" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#ffffff', fontWeight: 800 }} dy={10} tickFormatter={v => v.length > 24 ? v.substring(0, 24) + '…' : v} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }} 
-                  contentStyle={{ background: '#0f172a', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontWeight: 800, fontSize: '0.83rem', color: '#ffffff' }} 
-                  formatter={(value, name) => [
-                    `${value} Soru`,
+                  contentStyle={{ background: '#0f172a', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.22)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', fontWeight: 800, fontSize: '0.83rem', color: '#ffffff' }} 
+                  formatter={(value, name, props) => [
+                    bookChartMetric === 'rate' ? `%${value} Başarı` : `${value} Soru`,
                     name
                   ]}
                 />
-                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 700 }} />
-                <Bar 
-                  dataKey="Doğru" 
-                  stackId="a" 
-                  fill="#10b981" 
-                  radius={[0, 0, 4, 4]} 
-                  cursor="pointer"
-                  onClick={(entry) => {
-                    if (entry && entry.payload) {
-                      if (entry.payload.type === 'subject') {
-                        setSelectedChartSubject(String(entry.payload.id));
-                        setSelectedChartTopic('all');
-                      } else if (entry.payload.type === 'topic') {
-                        setSelectedChartTopic(String(entry.payload.id));
+                <Legend wrapperStyle={{ paddingTop: '1rem', fontSize: '0.85rem', fontWeight: 800 }} />
+
+                {bookChartMetric === 'grouped' ? (
+                  <>
+                    <Bar 
+                      dataKey="Doğru" 
+                      name="🟢 Doğru"
+                      fill="url(#bookCorrectGrad)" 
+                      radius={[8, 8, 2, 2]} 
+                      cursor="pointer"
+                      onClick={(entry) => {
+                        if (entry && entry.payload) {
+                          if (entry.payload.type === 'subject') {
+                            setSelectedChartSubject(String(entry.payload.id));
+                            setSelectedChartTopic('all');
+                          } else if (entry.payload.type === 'topic') {
+                            setSelectedChartTopic(String(entry.payload.id));
+                          }
+                        }
+                      }}
+                    />
+                    <Bar 
+                      dataKey="Yanlış" 
+                      name="🔴 Yanlış"
+                      fill="url(#bookWrongGrad)" 
+                      radius={[8, 8, 2, 2]} 
+                      cursor="pointer"
+                      onClick={(entry) => {
+                        if (entry && entry.payload) {
+                          if (entry.payload.type === 'subject') {
+                            setSelectedChartSubject(String(entry.payload.id));
+                            setSelectedChartTopic('all');
+                          } else if (entry.payload.type === 'topic') {
+                            setSelectedChartTopic(String(entry.payload.id));
+                          }
+                        }
+                      }}
+                    />
+                    <Bar 
+                      dataKey="Boş" 
+                      name="⚪ Boş"
+                      fill="url(#bookBlankGrad)" 
+                      radius={[8, 8, 2, 2]} 
+                      cursor="pointer"
+                      onClick={(entry) => {
+                        if (entry && entry.payload) {
+                          if (entry.payload.type === 'subject') {
+                            setSelectedChartSubject(String(entry.payload.id));
+                            setSelectedChartTopic('all');
+                          } else if (entry.payload.type === 'topic') {
+                            setSelectedChartTopic(String(entry.payload.id));
+                          }
+                        }
+                      }}
+                    />
+                  </>
+                ) : (
+                  <Bar 
+                    dataKey="rate" 
+                    name="🎯 Başarı Oranı (%)"
+                    fill="url(#bookRateGrad)" 
+                    radius={[8, 8, 0, 0]} 
+                    cursor="pointer"
+                    onClick={(entry) => {
+                      if (entry && entry.payload) {
+                        if (entry.payload.type === 'subject') {
+                          setSelectedChartSubject(String(entry.payload.id));
+                          setSelectedChartTopic('all');
+                        } else if (entry.payload.type === 'topic') {
+                          setSelectedChartTopic(String(entry.payload.id));
+                        }
                       }
-                    }
-                  }}
-                />
-                <Bar 
-                  dataKey="Yanlış" 
-                  stackId="a" 
-                  fill="#ef4444" 
-                  cursor="pointer"
-                  onClick={(entry) => {
-                    if (entry && entry.payload) {
-                      if (entry.payload.type === 'subject') {
-                        setSelectedChartSubject(String(entry.payload.id));
-                        setSelectedChartTopic('all');
-                      } else if (entry.payload.type === 'topic') {
-                        setSelectedChartTopic(String(entry.payload.id));
-                      }
-                    }
-                  }}
-                />
-                <Bar 
-                  dataKey="Boş" 
-                  stackId="a" 
-                  fill="#94a3b8" 
-                  radius={[4, 4, 0, 0]} 
-                  cursor="pointer"
-                  onClick={(entry) => {
-                    if (entry && entry.payload) {
-                      if (entry.payload.type === 'subject') {
-                        setSelectedChartSubject(String(entry.payload.id));
-                        setSelectedChartTopic('all');
-                      } else if (entry.payload.type === 'topic') {
-                        setSelectedChartTopic(String(entry.payload.id));
-                      }
-                    }
-                  }}
-                />
+                    }}
+                  >
+                    {subjectChartData.map((entry, idx) => {
+                      const col = entry.rate >= 70 ? '#10b981' : entry.rate >= 50 ? '#f59e0b' : '#ef4444';
+                      return <Cell key={`cell-rate-${idx}`} fill={col} />;
+                    })}
+                  </Bar>
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
