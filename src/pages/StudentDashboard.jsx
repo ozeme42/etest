@@ -90,6 +90,38 @@ const DASHBOARD_QUOTES = [
   { quote: "Kendine inan. Dünya, kendine inanan insanların peşinden gider.", author: "Oprah Winfrey", category: "Özgüven", emoji: "✨" }
 ];
 
+export function extractItemYMD(item) {
+  if (!item) return null;
+  const candidates = [
+    item.date,
+    item.targetDate,
+    item.dueDate,
+    item.assignedDueDate,
+    item.time,
+    item.saat,
+    item.note
+  ];
+
+  for (const val of candidates) {
+    if (!val) continue;
+    const str = String(val).trim();
+    // 1) Match ISO format YYYY-MM-DD
+    const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+    // 2) Match DD.MM.YYYY (Turkish date format: e.g. 16.08.2026 or "Hedef: 16.08.2026")
+    const trMatch = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (trMatch) {
+      const d = trMatch[1].padStart(2, '0');
+      const m = trMatch[2].padStart(2, '0');
+      const y = trMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return null;
+}
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
@@ -549,26 +581,41 @@ export default function StudentDashboard() {
       const dayYMD = dayInfo?.ymd || '';
       const dayTime = dayInfo?.time || 0;
 
-      // A) Manual items for this specific day
+      // A) Manual items for this specific day (or items across the program matching this exact date)
       let dayManualItems = [];
       if (Array.isArray(rawProg)) {
+        // 1. Primary items under this day key
         const found = rawProg.find(r => r.day === dayMeta.key);
         if (found && Array.isArray(found.items)) {
-          dayManualItems = found.items.filter(item => {
-            const itemDate = item.date || item.targetDate || item.dueDate;
-            if (itemDate) {
-              const itYMD = String(itemDate).split('T')[0];
-              if (itYMD !== dayYMD) return false;
-            }
-            if (item.createdYMD && dayYMD < item.createdYMD) return false;
-            if (item.repeatEndDate && dayYMD > item.repeatEndDate) return false;
-            return true;
-          }).map(item => ({ ...item, isWeeklyProgItem: true }));
+          found.items.forEach(item => {
+            const itemYMD = extractItemYMD(item);
+            // If item has an explicit date, it MUST match dayYMD!
+            if (itemYMD && itemYMD !== dayYMD) return;
+            if (item.createdYMD && dayYMD < item.createdYMD) return;
+            if (item.repeatEndDate && dayYMD > item.repeatEndDate) return;
+            dayManualItems.push({ ...item, isWeeklyProgItem: true });
+          });
         }
+
+        // 2. Items under other days that specifically have this day's date (date-targeting)
+        rawProg.forEach(dObj => {
+          if (dObj.day !== dayMeta.key) {
+            (dObj.items || []).forEach(item => {
+              const itYMD = extractItemYMD(item);
+              if (itYMD && itYMD === dayYMD) {
+                if (!dayManualItems.some(i => i.id === item.id)) {
+                  dayManualItems.push({ ...item, isWeeklyProgItem: true });
+                }
+              }
+            });
+          }
+        });
       }
 
-      // B) Inject Daily Repeating Items (start fresh done: false on new days unless specifically completed for this day)
+      // B) Inject Daily Repeating Items (only if no conflicting specific date, and starts fresh done: false)
       allDailyItems.forEach(dItem => {
+        const itemYMD = extractItemYMD(dItem);
+        if (itemYMD && itemYMD !== dayYMD) return;
         if (dItem.createdYMD && dayYMD < dItem.createdYMD) return;
         if (dItem.repeatEndDate && dayYMD > dItem.repeatEndDate) return;
         const alreadyInDay = dayManualItems.find(i => i.id === dItem.id);
@@ -580,8 +627,7 @@ export default function StudentDashboard() {
       // C) Schedule Context Items (from useSchedule)
       const scheduleItems = (schedules || []).filter(s => {
         if (String(s.studentId) !== String(studentId)) return false;
-        const sDate = s.date || s.targetDate || s.dueDate;
-        const sYMD = sDate ? String(sDate).split('T')[0] : null;
+        const sYMD = extractItemYMD(s);
         if (sYMD) {
           return sYMD === dayYMD;
         }
@@ -608,7 +654,7 @@ export default function StudentDashboard() {
         if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
           Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
-            const tYMD = tDateStr.split('T')[0];
+            const tYMD = extractItemYMD({ date: tDateStr }) || tDateStr.split('T')[0];
             // Only place this test on its EXACT target date
             if (dayYMD === tYMD) {
               const tObj = bookTests.find(b => String(b.id) === String(testId));
@@ -652,19 +698,16 @@ export default function StudentDashboard() {
           return;
         }
 
-        const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
-        const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
+        const startYMD = extractItemYMD({ date: hw.startDate || hw.assignedAt || hw.createdAt });
+        const dueYMD = extractItemYMD({ date: hw.dueDate || hw.assignedDueDate });
         const startTime = startYMD ? new Date(startYMD).getTime() : null;
-
-        const rawDue = hw.dueDate || hw.assignedDueDate;
-        const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
         const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
         // Check if student submitted / completed this homework
         const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
           submissions.find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
         const isDone = !!sub;
-        const subYMD = (sub?.createdAt || sub?.submittedAt) ? new Date(sub.submittedAt || sub.createdAt).toISOString().split('T')[0] : null;
+        const subYMD = (sub?.createdAt || sub?.submittedAt) ? extractItemYMD({ date: sub.submittedAt || sub.createdAt }) : null;
 
         let isForThisDay = false;
         if (isDone) {
@@ -748,7 +791,7 @@ export default function StudentDashboard() {
         (plan.subjects || []).forEach(subject => {
           (subject.topics || []).forEach(topic => {
             if (topic.dueDate) {
-              const tYMD = topic.dueDate.split('T')[0];
+              const tYMD = extractItemYMD({ date: topic.dueDate }) || topic.dueDate.split('T')[0];
               if (dayYMD === tYMD) {
                 const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
                 autoHwItems.push({
