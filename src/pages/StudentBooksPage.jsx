@@ -103,6 +103,7 @@ export default function StudentBooksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('progress'); // 'progress' | 'title' | 'recent'
   const [showChart, setShowChart] = useState(true);
+  const [bookChartMetric, setBookChartMetric] = useState('grouped'); // 'grouped' | 'rate'
 
   const handleSaveNewBook = async () => {
     if (!newBook.title || !newBook.publisher) return;
@@ -312,12 +313,27 @@ export default function StudentBooksPage() {
 
   /* ── Bar chart data ─── */
   const chartData = useMemo(() =>
-    assignedBooks.map(b => ({
-      name: b.title?.length > 18 ? b.title.slice(0, 16) + '…' : b.title,
-      Doğru: b.totalCorrect,
-      Yanlış: b.totalWrong,
-      Boş: b.totalBlank,
-    }))
+    assignedBooks.map(b => {
+      const d = b.totalCorrect || 0;
+      const y = b.totalWrong || 0;
+      const bl = b.totalBlank || 0;
+      const totalQ = d + y + bl;
+      const rate = b.successRate || (totalQ > 0 ? Math.round((d / totalQ) * 100) : 0);
+
+      return {
+        id: b.id,
+        name: b.title?.length > 20 ? b.title.slice(0, 18) + '…' : b.title,
+        fullName: b.title,
+        Doğru: d,
+        Yanlış: y,
+        Boş: bl,
+        rate: rate,
+        totalQ: totalQ,
+        progress: b.progressPct || 0,
+        solvedTests: b.totalSolvedTests || 0,
+        totalAssignedTests: b.totalAssignedTests || 0
+      };
+    })
     , [assignedBooks]);
 
   /* ════════════════════════
@@ -364,33 +380,177 @@ export default function StudentBooksPage() {
             </div>
 
             {/* ── CHART PANEL ── */}
-            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', backdropFilter: 'blur(20px)', borderRadius: 22, border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', marginBottom: 22, overflow: 'hidden' }}>
-              <button
-                onClick={() => setShowChart(c => !c)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.4rem', background: 'none', border: 'none', cursor: 'pointer', borderBottom: showChart ? '1px solid rgba(255, 255, 255, 0.08)' : 'none' }}
+            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 27, 75, 0.94) 100%)', backdropFilter: 'blur(20px)', borderRadius: 22, border: '1.5px solid rgba(165, 180, 252, 0.25)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', marginBottom: 22, overflow: 'hidden' }}>
+              <div
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid rgba(255, 255, 255, 0.12)' : 'none', flexWrap: 'wrap', gap: 10 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>
-                  <BarChart2 size={18} color="#818cf8" /> Kitaplara Göre Soru Dağılımı
+                <div
+                  onClick={() => setShowChart(c => !c)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: '#ffffff', cursor: 'pointer' }}
+                >
+                  <BarChart2 size={20} color="#818cf8" /> Kitaplara Göre Soru Dağılımı
+                  <ChevronRight size={18} color="#c7d2fe" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                 </div>
-                <ChevronRight size={18} color="#c7d2fe" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-              </button>
+
+                {showChart && (
+                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', padding: 3, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)' }}>
+                    <button
+                      onClick={() => setBookChartMetric('grouped')}
+                      style={{
+                        padding: '0.3rem 0.75rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: bookChartMetric === 'grouped' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                        color: bookChartMetric === 'grouped' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                        boxShadow: bookChartMetric === 'grouped' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      📊 Soru Dağılımı (D / Y / B)
+                    </button>
+                    <button
+                      onClick={() => setBookChartMetric('rate')}
+                      style={{
+                        padding: '0.3rem 0.75rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: bookChartMetric === 'rate' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                        color: bookChartMetric === 'rate' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                        boxShadow: bookChartMetric === 'rate' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      🎯 Başarı Yüzdesi (%)
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {showChart && (
-                <div style={{ padding: '0 1rem 1rem' }}>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={chartData} margin={{ top: 14, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 700 }} dy={8} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 600 }} />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                        contentStyle={{ background: '#0f172a', borderRadius: 14, border: '1.5px solid rgba(255,255,255,0.2)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontWeight: 800, fontSize: '0.82rem', color: '#ffffff' }}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: 10, fontSize: '0.8rem', fontWeight: 800 }} />
-                      <Bar dataKey="Doğru"  fill="#10b981" stackId="a" radius={[0, 0, 6, 6]} />
-                      <Bar dataKey="Yanlış" fill="#ef4444" stackId="a" />
-                      <Bar dataKey="Boş"    fill="#94a3b8" stackId="a" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div style={{ padding: '1.25rem 1.4rem' }}>
+                  {/* Interactive Mini Book Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+                    {chartData.map((item, idx) => {
+                      const rateColor = item.rate >= 70 ? '#4ade80' : item.rate >= 50 ? '#fbbf24' : item.totalQ === 0 ? '#94a3b8' : '#f87171';
+                      const rateBg = item.rate >= 70 ? 'rgba(5,150,105,0.18)' : item.rate >= 50 ? 'rgba(217,119,6,0.18)' : item.totalQ === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(225,29,72,0.18)';
+                      const rateBorder = item.rate >= 70 ? 'rgba(52,211,153,0.35)' : item.rate >= 50 ? 'rgba(253,186,116,0.35)' : item.totalQ === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(253,164,175,0.35)';
+
+                      const totalQ = item.totalQ || 0;
+                      const pctD = totalQ > 0 ? ((item.Doğru || 0) / totalQ) * 100 : 0;
+                      const pctY = totalQ > 0 ? ((item.Yanlış || 0) / totalQ) * 100 : 0;
+                      const pctB = totalQ > 0 ? ((item.Boş || 0) / totalQ) * 100 : 0;
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => item.id && navigate(`/student/books/${item.id}`)}
+                          style={{
+                            background: rateBg,
+                            border: `1.5px solid ${rateBorder}`,
+                            borderRadius: '1rem',
+                            padding: '0.85rem 1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 6,
+                            boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                            cursor: item.id ? 'pointer' : 'default',
+                            transition: 'all 0.18s ease'
+                          }}
+                          title={`${item.fullName} detaylarına gitmek için tıkla`}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.fullName}
+                            </span>
+                            <span style={{ fontSize: '0.92rem', fontWeight: 900, color: rateColor, textShadow: `0 0 8px ${rateColor}66` }}>
+                              %{item.rate}
+                            </span>
+                          </div>
+
+                          {/* Multi-segment mini progress bar */}
+                          <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                            {totalQ > 0 ? (
+                              <>
+                                {pctD > 0 && <div style={{ width: `${pctD}%`, background: 'linear-gradient(90deg, #10b981, #34d399)', height: '100%' }} title={`Doğru: ${item.Doğru}`} />}
+                                {pctY > 0 && <div style={{ width: `${pctY}%`, background: 'linear-gradient(90deg, #ef4444, #f87171)', height: '100%' }} title={`Yanlış: ${item.Yanlış}`} />}
+                                {pctB > 0 && <div style={{ width: `${pctB}%`, background: '#94a3b8', height: '100%' }} title={`Boş: ${item.Boş}`} />}
+                              </>
+                            ) : (
+                              <div style={{ width: '100%', background: 'rgba(255,255,255,0.06)', height: '100%' }} />
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>
+                            <span>%{item.progress} İlerleme</span>
+                            <span style={{ display: 'flex', gap: 6, fontWeight: 800 }}>
+                              <span style={{ color: '#4ade80' }}>{item.Doğru}D</span>
+                              <span style={{ color: '#f87171' }}>{item.Yanlış}Y</span>
+                              <span style={{ color: '#cbd5e1' }}>{item.Boş}B</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Recharts Bar Chart */}
+                  <div style={{ width: '100%', height: 280 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="booksCorrectGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
+                          </linearGradient>
+                          <linearGradient id="booksWrongGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
+                          </linearGradient>
+                          <linearGradient id="booksBlankGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.85} />
+                            <stop offset="100%" stopColor="#64748b" stopOpacity={0.65} />
+                          </linearGradient>
+                          <linearGradient id="booksRateGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#38bdf8" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#ffffff', fontWeight: 800 }} dy={8} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#c7d2fe', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
+                        <Tooltip
+                          cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                          contentStyle={{ background: '#0f172a', borderRadius: 14, border: '1.5px solid rgba(255,255,255,0.22)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', fontWeight: 800, fontSize: '0.82rem', color: '#ffffff' }}
+                          formatter={(value, name, props) => [
+                            bookChartMetric === 'rate' ? `%${value} Başarı` : `${value} Soru`,
+                            name
+                          ]}
+                        />
+                        <Legend wrapperStyle={{ paddingTop: 10, fontSize: '0.8rem', fontWeight: 800 }} />
+
+                        {bookChartMetric === 'grouped' ? (
+                          <>
+                            <Bar dataKey="Doğru" name="🟢 Doğru" fill="url(#booksCorrectGrad)" radius={[8, 8, 2, 2]} />
+                            <Bar dataKey="Yanlış" name="🔴 Yanlış" fill="url(#booksWrongGrad)" radius={[8, 8, 2, 2]} />
+                            <Bar dataKey="Boş" name="⚪ Boş" fill="url(#booksBlankGrad)" radius={[8, 8, 2, 2]} />
+                          </>
+                        ) : (
+                          <Bar dataKey="rate" name="🎯 Başarı Oranı (%)" fill="url(#booksRateGrad)" radius={[8, 8, 0, 0]}>
+                            {chartData.map((entry, idx) => {
+                              const col = entry.rate >= 70 ? '#10b981' : entry.rate >= 50 ? '#f59e0b' : '#ef4444';
+                              return <Cell key={`cell-bk-${idx}`} fill={col} />;
+                            })}
+                          </Bar>
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               )}
             </div>
