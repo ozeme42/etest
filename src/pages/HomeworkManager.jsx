@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Edit2, BarChart2, ArrowRight, ArrowLeft, CheckSquare, Sparkles, BookOpen, Layers, Check, Search, Filter,
   GraduationCap, Calendar, AlertCircle, Eye, Send, Trophy, FileText, Image, FileJson,
-  Trash2, Zap, Target, ClipboardList, CheckCheck, RefreshCw, Clock, Plus, X, Globe, Users, CheckCircle
+  Trash2, Zap, Target, ClipboardList, CheckCheck, RefreshCw, Clock, Plus, X, Globe, Users, CheckCircle,
+  HelpCircle, UserCheck, ShieldAlert
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -12,34 +13,51 @@ import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useAuth } from '../context/AuthContext';
 import { idbGetPayload } from '../services/indexedDbService';
-import './Dashboard.css';
 
 const subjectThemes = {
-  'Matematik': { bg: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#2563eb' },
-  'Fen Bilimleri': { bg: 'linear-gradient(135deg,#0d9488,#0f766e)', color: '#0d9488' },
-  'Diger': { bg: 'linear-gradient(135deg,#475569,#334155)', color: '#475569' }
+  'Matematik': { bg: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.4)' },
+  'Fen Bilimleri': { bg: 'linear-gradient(135deg,#10b981,#047857)', color: '#34d399', border: 'rgba(52, 211, 153, 0.4)' },
+  'Türkçe': { bg: 'linear-gradient(135deg,#ec4899,#be185d)', color: '#f472b6', border: 'rgba(244, 114, 182, 0.4)' },
+  'Sosyal Bilgiler': { bg: 'linear-gradient(135deg,#f59e0b,#b45309)', color: '#fbbf24', border: 'rgba(251, 191, 36, 0.4)' },
+  'İngilizce': { bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: '#c084fc', border: 'rgba(192, 132, 252, 0.4)' },
+  'Diger': { bg: 'linear-gradient(135deg,#64748b,#334155)', color: '#94a3b8', border: 'rgba(148, 163, 184, 0.4)' }
 };
-const getTheme = (subject) => subjectThemes[subject] || { bg: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#4f46e5' };
+const getTheme = (subject) => subjectThemes[subject] || { bg: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: '#818cf8', border: 'rgba(129, 140, 248, 0.4)' };
 
 function Toast({ msg }) {
   if (!msg) return null;
   return (
-    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: 'linear-gradient(135deg,#059669,#047857)', color: '#fff', padding: '0.8rem 1.4rem', borderRadius: '1rem', fontWeight: 800, fontSize: '0.88rem', boxShadow: '0 8px 32px rgba(5,150,105,0.45)', display: 'flex', alignItems: 'center', gap: '0.5rem', animation: 'hwToastIn 0.35s ease' }}>
-      <Sparkles size={17} /> {msg}
+    <div style={{
+      position: 'fixed', top: 24, right: 24, zIndex: 99999,
+      background: 'linear-gradient(135deg,#059669,#10b981)',
+      color: '#fff', padding: '0.85rem 1.4rem', borderRadius: '1rem',
+      fontWeight: 800, fontSize: '0.85rem',
+      boxShadow: '0 12px 36px rgba(5,150,105,0.5)',
+      display: 'flex', alignItems: 'center', gap: '0.5rem',
+      border: '1.5px solid rgba(255,255,255,0.2)',
+      backdropFilter: 'blur(12px)',
+      animation: 'hwToastIn 0.35s ease'
+    }}>
+      <Sparkles size={16} /> {msg}
     </div>
   );
 }
 
-function ProgressBar({ value, max, color }) {
+function GlassProgressBar({ value, max, color }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800 }}>
-        <span style={{ color: '#64748b' }}>Tamamlanma</span>
-        <span style={{ color: color || '#4f46e5' }}>{pct}% ({value}/{max})</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 800 }}>
+        <span style={{ color: 'rgba(255,255,255,0.6)' }}>Tamamlanma</span>
+        <span style={{ color: color || '#818cf8', fontWeight: 900 }}>%{pct} ({value}/{max})</span>
       </div>
-      <div style={{ background: '#e2e8f0', borderRadius: 99, height: 6, overflow: 'hidden' }}>
-        <div style={{ width: pct + '%', background: pct === 100 ? '#10b981' : (color || '#4f46e5'), height: '100%', borderRadius: 99 }} />
+      <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+        <div style={{
+          width: `${pct}%`,
+          background: pct === 100 ? 'linear-gradient(90deg,#10b981,#059669)' : (color || 'linear-gradient(90deg,#6366f1,#818cf8)'),
+          height: '100%', borderRadius: 99,
+          transition: 'width 0.5s ease'
+        }} />
       </div>
     </div>
   );
@@ -56,7 +74,7 @@ export default function HomeworkManager() {
   const { submissions, deleteSubmissionsByTestId, deleteAllSubmissions } = useEvaluation();
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
-  const homeworks = useMemo(() => currentUser?.role === 'admin' ? allHomeworks : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
+  const homeworks = useMemo(() => currentUser?.role === 'admin' ? (allHomeworks || []) : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id), [allHomeworks, currentUser]);
   const questions = useMemo(() => currentUser?.role === 'admin' ? (allQuestions || []) : (allQuestions || []).filter(q => q.createdBy === currentUser?.id), [allQuestions, currentUser]);
 
   const [viewMode, setViewMode] = useState('list');
@@ -81,7 +99,7 @@ export default function HomeworkManager() {
   const [selQuestionType, setSelQuestionType] = useState('all');
   const [selContentType, setSelContentType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [assignmentMode, setAssignmentMode] = useState('separate'); // 'separate' (ayrı ayrı tekli ödevler) | 'combined' (birleşik tek ödev)
+  const [assignmentMode, setAssignmentMode] = useState('separate');
   const [selectedHwListIds, setSelectedHwListIds] = useState([]);
 
   useEffect(() => {
@@ -89,7 +107,7 @@ export default function HomeworkManager() {
       const qId = location.state.autoSelectQuestionId;
       setSelectedQuestionIds([qId]);
       const matchingQ = questions.find(q => q.id === qId);
-      if (matchingQ && !title) setTitle(matchingQ.title || matchingQ.questionText || 'Soru Bankasi Odevi');
+      if (matchingQ && !title) setTitle(matchingQ.title || matchingQ.questionText || 'Soru Bankası Ödevi');
       setViewMode('create'); setStep(1);
     }
   }, [location.state, questions]);
@@ -201,7 +219,6 @@ export default function HomeworkManager() {
       const names = (curData?.grades || []).filter(g => (hw.targetIds || []).includes(g.id) || (hw.targetIds || []).includes(g.name)).map(g => g.name);
       if (names.length > 0) return names.join(', ');
       
-      // If it's a raw system ID that no longer exists in DB, show "Silinmiş Sınıf"
       const hasRawId = Array.isArray(hw.targetIds) && hw.targetIds.some(id => id.startsWith('g_') || id.startsWith('c_'));
       if (hasRawId) return 'Silinmiş Sınıf';
       
@@ -253,12 +270,10 @@ export default function HomeworkManager() {
     const firstQ = selectedQs[0] || {};
     const firstSub = firstQ.subject || firstQ.subjectName || 'Genel';
 
-    // Read actual PDF payloads from IDB for each question (payload may be stored as placeholder)
     const sectionsWithPayloads = await Promise.all(selectedQs.map(async (q, idx) => {
       let pdfPayload = q.pdfPayload;
       let contentPayload = q.contentPayload;
 
-      // If placeholder, try to get real data from IDB
       const needsIdb = (p) => !p || p === '[STORED_IN_INDEXEDDB]' || p === '[LOCALSTORAGE_CACHE]';
       if (needsIdb(pdfPayload) || needsIdb(contentPayload)) {
         const idVariants = [
@@ -299,7 +314,6 @@ export default function HomeworkManager() {
       };
     }));
 
-    // Toplu seçim yapılmışsa ve 'ayrı ayrı tekli' seçilmişse her testi bağımsız ödev olarak ata
     if (selectedQuestionIds.length > 1 && assignmentMode === 'separate' && !editingHwId) {
       for (let i = 0; i < selectedQs.length; i++) {
         const q = selectedQs[i];
@@ -383,24 +397,39 @@ export default function HomeworkManager() {
     resetForm();
   };
 
-  const C = {
-    page: { minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Inter','Segoe UI',sans-serif", color: '#1e293b' },
-    header: { position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #e2e8f0', padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' },
-    card: { background: '#fff', borderRadius: '1.1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.04)' },
-    label: { display: 'block', fontSize: '0.72rem', fontWeight: 900, color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' },
-    input: { width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.6rem', border: '1.5px solid #e2e8f0', background: '#f8fafc', fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
-    chipBtn: (active) => ({ padding: '0.35rem 0.8rem', borderRadius: '0.6rem', border: active ? 'none' : '1.5px solid #e2e8f0', background: active ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : '#fff', color: active ? '#fff' : '#64748b', cursor: 'pointer', fontWeight: 800, fontSize: '0.77rem', transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', whiteSpace: 'nowrap' }),
-    primaryBtn: { padding: '0.65rem 1.4rem', borderRadius: '0.75rem', border: 'none', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.45rem', boxShadow: '0 4px 14px rgba(79,70,229,0.35)', transition: 'transform 0.15s, opacity 0.15s' },
+  const getQIcon = (ct) => {
+    if (!ct) return <FileText size={13} color="#94a3b8" />;
+    const c = ct.toLowerCase();
+    if (c.includes('pdf')) return <FileText size={13} color="#f87171" />;
+    if (c.includes('html')) return <Globe size={13} color="#60a5fa" />;
+    if (c.includes('gorsel') || c.includes('image')) return <Image size={13} color="#34d399" />;
+    if (c.includes('json')) return <FileJson size={13} color="#c084fc" />;
+    return <FileText size={13} color="#94a3b8" />;
   };
 
-  const getQIcon = (ct) => {
-    if (!ct) return <FileText size={13} />;
-    const c = ct.toLowerCase();
-    if (c.includes('pdf')) return <FileText size={13} color="#dc2626" />;
-    if (c.includes('html')) return <Globe size={13} color="#2563eb" />;
-    if (c.includes('gorsel') || c.includes('image')) return <Image size={13} color="#059669" />;
-    if (c.includes('json')) return <FileJson size={13} color="#7c3aed" />;
-    return <FileText size={13} color="#64748b" />;
+  const pageContainerStyle = {
+    minHeight: '100vh',
+    width: '100%',
+    maxWidth: '100%',
+    margin: 0,
+    padding: '1.25rem 1.5rem 5rem 1.5rem',
+    background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.18) 0%, transparent 50%), linear-gradient(180deg, #070a12 0%, #0d1224 35%, #13112c 70%, #070a12 100%)',
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    color: '#f8fafc',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.25rem'
+  };
+
+  const glassCardStyle = {
+    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+    border: '1.5px solid rgba(255, 255, 255, 0.14)',
+    borderRadius: '1.5rem',
+    boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
+    backdropFilter: 'blur(20px)',
+    padding: '1.5rem',
+    boxSizing: 'border-box'
   };
 
   if (viewMode === 'list') {
@@ -443,263 +472,455 @@ export default function HomeworkManager() {
     };
 
     return (
-      <div style={C.page}>
+      <div style={pageContainerStyle}>
         <Toast msg={toast} />
-        <style>{`
-          @keyframes hwToastIn { from{opacity:0;transform:translateX(40px) scale(0.95)} to{opacity:1;transform:translateX(0) scale(1)} }
-          @keyframes hwFadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-          .hw-tr:hover { background: #f8fafc !important; }
-          .hw-actions { opacity: 0; transition: opacity 0.18s; }
-          .hw-tr:hover .hw-actions { opacity: 1 !important; }
-          .q-row:hover { background: #f8fafc !important; }
-          .wiz-step { animation: hwFadeUp 0.22s ease; }
-        `}</style>
-        <header style={C.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' }}><BookOpen size={20} color="#fff" /></div>
+
+        {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
+        <header style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+          border: '1.5px solid rgba(255, 255, 255, 0.14)',
+          borderRadius: '1.5rem',
+          padding: '1.25rem 1.75rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(20px)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => {
+                if (window.history.length > 1) navigate(-1);
+                else navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher');
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1.5px solid rgba(255,255,255,0.18)',
+                borderRadius: '0.75rem',
+                padding: '0.55rem 0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontWeight: 800,
+                color: '#ffffff',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                backdropFilter: 'blur(8px)'
+              }}
+            >
+              <ArrowLeft size={16} /> Geri Dön
+            </button>
+
             <div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.1em' }}>E-Test LMS</div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#1e293b' }}>Ödev Yönetim Merkezi</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.35)', color: '#c7d2fe', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                <Sparkles size={13} /> LMS Ödev & Görev Masası
+              </div>
+              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                Ödev & Test Yönetim Merkezi 📝
+              </h1>
+              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)' }}>
+                Sınıf veya bireysel öğrenci ödevlendirme, katılım takip raporları ve canlı sınav değerlendirmesi.
+              </p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {currentUser?.role === 'admin' && (
-              <button onClick={() => { if (window.confirm('Tüm ödevleri silmek istediğinize emin misiniz?')) { if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks(); if (typeof deleteAllSubmissions === 'function') deleteAllSubmissions(); }}} style={{ padding: '0.5rem 0.9rem', borderRadius: '0.65rem', background: '#fff1f2', border: '1.5px solid #fecaca', color: '#dc2626', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <button
+                onClick={() => {
+                  if (window.confirm('Tüm ödevleri silmek istediğinize emin misiniz?')) {
+                    if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks();
+                    if (typeof deleteAllSubmissions === 'function') deleteAllSubmissions();
+                  }
+                }}
+                style={{
+                  padding: '0.55rem 1rem', borderRadius: '0.75rem',
+                  background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)',
+                  color: '#f87171', fontWeight: 800, fontSize: '0.78rem',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem'
+                }}
+              >
                 <Trash2 size={14} /> Tümünü Sil
               </button>
             )}
-            <button onClick={() => { resetForm(); setViewMode('create'); }} style={C.primaryBtn}>
-              <Sparkles size={16} /> Yeni Ödev Sihirbazı
+            <button
+              onClick={() => { resetForm(); setViewMode('create'); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0.6rem 1.25rem', borderRadius: '0.75rem',
+                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(99,102,241,0.45)'
+              }}
+            >
+              <Sparkles size={16} /> + Yeni Ödev Sihirbazı
             </button>
           </div>
         </header>
-        <main style={{ maxWidth: 1100, margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '0.85rem' }}>
-            {[
-              { label: 'Yeni Ödev', val: '+ Oluştur', bg: 'linear-gradient(135deg,#4f46e5,#7c3aed)', Icon: Zap, onClick: () => { resetForm(); setViewMode('create'); } },
-              { label: 'Aktif Ödev', val: globalAnalytics.active, bg: 'linear-gradient(135deg,#059669,#047857)', Icon: Clock },
-              { label: 'Ort. Katılım', val: '%' + globalAnalytics.avgRate, bg: 'linear-gradient(135deg,#2563eb,#1d4ed8)', Icon: Trophy },
-              { label: 'Süresi Biten', val: globalAnalytics.expired, bg: 'linear-gradient(135deg,#e11d48,#9f1239)', Icon: AlertCircle },
-            ].map(sc => (
-              <div key={sc.label} onClick={sc.onClick} style={{ background: sc.bg, borderRadius: '1rem', padding: '1rem 1.15rem', color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: '0.45rem', cursor: sc.onClick ? 'pointer' : 'default', transition: 'transform 0.15s' }}
-                onMouseEnter={e => sc.onClick && (e.currentTarget.style.transform = 'scale(1.03)')}
-                onMouseLeave={e => sc.onClick && (e.currentTarget.style.transform = 'scale(1)')}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.9 }}>{sc.label}</span>
-                  <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '0.5rem', padding: '0.28rem', display: 'flex' }}><sc.Icon size={15} /></div>
-                </div>
-                <div style={{ fontSize: '1.7rem', fontWeight: 900, lineHeight: 1 }}>{sc.val}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ ...C.card, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <ClipboardList size={18} color="#4f46e5" /> Ödev Listesi
-                </div>
 
-                {filteredHw.length > 0 && (
+        {/* ══════════ 4 LIVE KPI HERO METRIC CARDS ══════════ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+          <div
+            onClick={() => { resetForm(); setViewMode('create'); }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0.35) 100%)',
+              border: '1.5px solid rgba(165, 180, 252, 0.4)',
+              borderRadius: '1.25rem', padding: '1rem 1.25rem',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              cursor: 'pointer', boxShadow: '0 8px 24px rgba(99,102,241,0.25)', backdropFilter: 'blur(16px)',
+              transition: 'transform 0.15s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99, 102, 241, 0.3)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Zap size={24} />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Yeni Görev</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>+ Oluştur</span>
+              <span style={{ fontSize: '0.72rem', color: '#c7d2fe', fontWeight: 700 }}>Sihirbazı Başlat</span>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+            border: '1.5px solid rgba(52, 211, 153, 0.35)',
+            borderRadius: '1.25rem', padding: '1rem 1.25rem',
+            display: 'flex', alignItems: 'center', gap: '1rem',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+          }}>
+            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Clock size={24} />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Aktif Ödevler</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.active} Ödev</span>
+              <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Süresi devam eden</span>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+            border: '1.5px solid rgba(56, 189, 248, 0.35)',
+            borderRadius: '1.25rem', padding: '1rem 1.25rem',
+            display: 'flex', alignItems: 'center', gap: '1rem',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+          }}>
+            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Trophy size={24} />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ortalama Katılım</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>%{globalAnalytics.avgRate}</span>
+              <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Öğrenci teslim oranı</span>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+            border: '1.5px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: '1.25rem', padding: '1rem 1.25rem',
+            display: 'flex', alignItems: 'center', gap: '1rem',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)'
+          }}>
+            <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertCircle size={24} />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Süresi Bitenler</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.expired} Ödev</span>
+              <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700 }}>Teslim süresi doldu</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════ HOMEWORK LIST CONTAINER ══════════ */}
+        <div style={glassCardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ClipboardList size={20} color="#818cf8" /> Ödev Havuzu & Takip Tablosu
+              </div>
+
+              {filteredHw.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleToggleSelectAllHw}
+                  style={{
+                    padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                    border: isAllHwSelected ? '1.5px solid #818cf8' : '1.5px solid rgba(255,255,255,0.18)',
+                    background: isAllHwSelected ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
+                    color: '#ffffff', fontWeight: 800, fontSize: '0.75rem',
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem'
+                  }}
+                >
+                  <CheckCheck size={14} />
+                  {isAllHwSelected ? 'Tüm Seçimi Kaldır' : `Tümünü Seç (${filteredHw.length})`}
+                </button>
+              )}
+
+              {selectedHwListIds.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c7d2fe', background: 'rgba(99,102,241,0.25)', padding: '0.3rem 0.65rem', borderRadius: '0.5rem', border: '1px solid rgba(165,180,252,0.35)' }}>
+                    {selectedHwListIds.length} Seçildi
+                  </span>
                   <button
                     type="button"
-                    onClick={handleToggleSelectAllHw}
+                    onClick={handleDeleteSelectedHw}
                     style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '0.6rem',
-                      border: isAllHwSelected ? '1.5px solid #4f46e5' : '1.5px solid #cbd5e1',
-                      background: isAllHwSelected ? '#4f46e5' : '#fff',
-                      color: isAllHwSelected ? '#fff' : '#475569',
-                      fontWeight: 800,
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      transition: 'all 0.15s'
+                      padding: '0.38rem 0.85rem', borderRadius: '0.6rem', border: 'none',
+                      background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
+                      fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                      boxShadow: '0 2px 8px rgba(220,38,38,0.35)'
                     }}
                   >
-                    <CheckCheck size={14} />
-                    {isAllHwSelected ? 'Tüm Seçimi Kaldır' : `Tümünü Seç (${filteredHw.length})`}
+                    <Trash2 size={13} /> Seçilenleri Sil ({selectedHwListIds.length})
                   </button>
-                )}
-
-                {selectedHwListIds.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', animation: 'hwFadeUp 0.2s ease' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#4f46e5', background: '#eef2ff', padding: '0.3rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #c7d2fe' }}>
-                      {selectedHwListIds.length} Ödev Seçildi
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleDeleteSelectedHw}
-                      style={{
-                        padding: '0.38rem 0.85rem',
-                        borderRadius: '0.6rem',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                        color: '#fff',
-                        fontWeight: 900,
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        boxShadow: '0 2px 8px rgba(220,38,38,0.35)'
-                      }}
-                    >
-                      <Trash2 size={13} /> Seçilenleri Sil ({selectedHwListIds.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedHwListIds([])}
-                      style={{
-                        padding: '0.35rem 0.6rem',
-                        borderRadius: '0.6rem',
-                        border: '1px solid #cbd5e1',
-                        background: '#f8fafc',
-                        color: '#64748b',
-                        fontWeight: 800,
-                        fontSize: '0.72rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      İptal
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.3rem', background: '#f8fafc', borderRadius: '0.65rem', padding: '0.28rem' }}>
-                {[
-                  { key: 'all', label: 'Tümü (' + globalAnalytics.total + ')' },
-                  { key: 'active', label: 'Aktif (' + globalAnalytics.active + ')' },
-                  { key: 'expired', label: 'Biten (' + globalAnalytics.expired + ')' }
-                ].map(t => (
-                  <button key={t.key} onClick={() => { setActiveTab(t.key); setSelectedHwListIds([]); }} style={{ padding: '0.32rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap', background: activeTab === t.key ? (t.key === 'expired' ? '#dc2626' : '#4f46e5') : 'transparent', color: activeTab === t.key ? '#fff' : '#64748b' }}>{t.label}</button>
-                ))}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHwListIds([])}
+                    style={{
+                      padding: '0.35rem 0.6rem', borderRadius: '0.6rem',
+                      border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+                      color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
+                    }}
+                  >
+                    İptal
+                  </button>
+                </div>
+              )}
             </div>
-            {filteredHw.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                <BookOpen size={44} style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.25 }} />
-                <div style={{ fontWeight: 700 }}>Bu kategoride ödev bulunamadı.</div>
-                <div style={{ fontSize: '0.8rem', marginTop: '0.35rem', color: '#cbd5e1' }}>Yeni Ödev Sihirbazı aracılığıyla ödev oluşturun!</div>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                      <th style={{ width: 44, padding: '0.8rem 0.5rem 0.8rem 1rem', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={isAllHwSelected}
-                          onChange={handleToggleSelectAllHw}
-                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4f46e5' }}
-                          title="Tümünü Seç / Kaldır"
-                        />
-                      </th>
-                      {['Ödev', 'Hedef Kitle', 'Son Tarih', 'İlerleme', 'İşlemler'].map((h, i) => (
-                        <th key={h} style={{ padding: '0.8rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredHw.map(hw => {
-                      const stats = getHomeworkStats(hw);
-                      const isPast = new Date(hw.dueDate) < now;
-                      const theme = getTheme(hw.subject);
-                      const isSelected = selectedHwListIds.includes(hw.id);
 
-                      return (
-                        <tr 
-                          key={hw.id} 
-                          className="hw-tr" 
-                          style={{ 
-                            borderBottom: '1px solid #f8fafc', 
-                            transition: 'background 0.13s',
-                            background: isSelected ? '#f5f3ff' : 'transparent'
-                          }}
-                        >
-                          <td style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => handleToggleHwSelect(hw.id, e)}
-                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4f46e5' }}
-                            />
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                              <div style={{ width: 36, height: 36, borderRadius: '0.6rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><BookOpen size={15} color="#fff" /></div>
-                              <div>
-                                <div style={{ fontWeight: 800, color: '#1e293b', lineHeight: 1.3 }}>{hw.title}</div>
-                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 1 }}>{hw.subject || 'Ders'} - {hw.totalQuestions} Soru - {hw.timePerQuestion} dk/soru</div>
+            <div style={{ display: 'flex', gap: '0.3rem', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', padding: '0.3rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+              {[
+                { key: 'all', label: 'Tümü (' + globalAnalytics.total + ')' },
+                { key: 'active', label: 'Aktif (' + globalAnalytics.active + ')' },
+                { key: 'expired', label: 'Biten (' + globalAnalytics.expired + ')' }
+              ].map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => { setActiveTab(t.key); setSelectedHwListIds([]); }}
+                  style={{
+                    padding: '0.4rem 0.85rem', borderRadius: '0.55rem', border: 'none',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                    background: activeTab === t.key ? (t.key === 'expired' ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#4f46e5,#6366f1)') : 'transparent',
+                    color: '#ffffff',
+                    boxShadow: activeTab === t.key ? '0 4px 12px rgba(0,0,0,0.3)' : 'none'
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredHw.length === 0 ? (
+            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+              <BookOpen size={48} style={{ opacity: 0.25 }} />
+              <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '1.05rem' }}>Bu kategoride ödev bulunamadı.</div>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Yeni Ödev Sihirbazı aracılığıyla ilk ödevinizi tanımlayın!</div>
+              <button
+                onClick={() => { resetForm(); setViewMode('create'); }}
+                style={{
+                  marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
+                  background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
+                }}
+              >
+                <Plus size={15} /> Yeni Ödev Oluştur
+              </button>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1.5px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}>
+                    <th style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={isAllHwSelected}
+                        onChange={handleToggleSelectAllHw}
+                        style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                        title="Tümünü Seç / Kaldır"
+                      />
+                    </th>
+                    {['Ödev / Başlık', 'Hedef Kitle', 'Son Tarih', 'İlerleme & Katılım', 'İşlemler'].map((h, i) => (
+                      <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredHw.map(hw => {
+                    const stats = getHomeworkStats(hw);
+                    const isPast = new Date(hw.dueDate) < now;
+                    const theme = getTheme(hw.subject);
+                    const isSelected = selectedHwListIds.includes(hw.id);
+
+                    return (
+                      <tr 
+                        key={hw.id}
+                        style={{ 
+                          borderBottom: '1px solid rgba(255,255,255,0.06)', 
+                          transition: 'background 0.15s',
+                          background: isSelected ? 'rgba(99,102,241,0.15)' : 'transparent'
+                        }}
+                      >
+                        <td style={{ width: 44, padding: '0.9rem 0.5rem 0.9rem 1rem', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleToggleHwSelect(hw.id, e)}
+                            style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                          />
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: `1px solid ${theme.border}` }}>
+                              <BookOpen size={16} color="#fff" />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.88rem', lineHeight: 1.3 }}>{hw.title}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                                <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span> · {hw.totalQuestions} Soru · {hw.timePerQuestion} dk/soru
                               </div>
                             </div>
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                            <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.7rem', padding: '0.22rem 0.6rem', borderRadius: 99, border: '1px solid #bfdbfe', whiteSpace: 'nowrap' }}>{getTargetLabel(hw)}</span>
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
-                            <div style={{ fontWeight: 800, color: isPast ? '#dc2626' : '#374151', display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.8rem' }}>
-                              <Calendar size={12} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
-                            </div>
-                            <div style={{ fontSize: '0.67rem', fontWeight: 800, color: isPast ? '#dc2626' : '#059669', marginTop: 2 }}>{isPast ? 'Süresi Doldu' : 'Aktif'}</div>
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem', minWidth: 170 }}>
-                            <ProgressBar value={stats.completed} max={stats.total} color={theme.color} />
-                          </td>
-                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                            <div className="hw-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
-                              <button onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }} style={{ padding: '0.38rem 0.7rem', borderRadius: '0.5rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.73rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}><BarChart2 size={12} /> Rapor</button>
-                              <button onClick={() => openEditPage(hw)} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex' }}><Edit2 size={14} color="#475569" /></button>
-                              <button onClick={() => { if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) { deleteHomework(hw.id); deleteSubmissionsByTestId(hw.id); } }} style={{ padding: '0.38rem', borderRadius: '0.5rem', background: '#fff1f2', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={14} color="#dc2626" /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </main>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem' }}>
+                          <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                            {getTargetLabel(hw)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontWeight: 800, color: isPast ? '#f87171' : '#ffffff', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>
+                            <Calendar size={13} color={isPast ? '#f87171' : '#818cf8'} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 800, color: isPast ? '#f87171' : '#34d399', marginTop: 2 }}>
+                            {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
+                          <GlassProgressBar value={stats.completed} max={stats.total} color={theme.color} />
+                        </td>
+                        <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                            <button
+                              onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }}
+                              style={{
+                                padding: '0.4rem 0.85rem', borderRadius: '0.6rem',
+                                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.75rem',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                                boxShadow: '0 2px 8px rgba(99,102,241,0.3)'
+                              }}
+                            >
+                              <BarChart2 size={13} /> Rapor
+                            </button>
+                            <button
+                              onClick={() => openEditPage(hw)}
+                              style={{
+                                padding: '0.4rem', borderRadius: '0.6rem',
+                                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+                                cursor: 'pointer', display: 'flex', color: 'rgba(255,255,255,0.8)'
+                              }}
+                              title="Düzenle"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
+                                  deleteHomework(hw.id);
+                                  deleteSubmissionsByTestId(hw.id);
+                                }
+                              }}
+                              style={{
+                                padding: '0.4rem', borderRadius: '0.6rem',
+                                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                                cursor: 'pointer', display: 'flex', color: '#f87171'
+                              }}
+                              title="Sil"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ══════════ REPORT / STATS MODAL ══════════ */}
         {showStatsModal && activeHomework && (() => {
           const stats = getHomeworkStats(activeHomework);
           const isPast = new Date(activeHomework.dueDate) < now;
           return (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <div style={{ ...C.card, width: '100%', maxWidth: 620, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+                borderRadius: '1.5rem', width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto',
+                padding: '1.75rem', border: '1.5px solid rgba(255,255,255,0.18)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e293b' }}>{activeHomework.title}</div>
-                    <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: 2 }}>Son Tarih: {new Date(activeHomework.dueDate).toLocaleDateString('tr-TR')} - {isPast ? 'Suresi Doldu' : 'Devam Ediyor'}</div>
-                  </div>
-                  <button onClick={() => setShowStatsModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '0.5rem', padding: '0.38rem', cursor: 'pointer', display: 'flex' }}><X size={17} color="#64748b" /></button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.7rem' }}>
-                  {[
-                    { label: 'Atanan', val: stats.total, bg: '#eff6ff', col: '#1d4ed8' },
-                    { label: 'Tamamlayan', val: stats.completed, bg: '#f0fdf4', col: '#15803d' },
-                    { label: 'Katilim', val: '%' + stats.rate, bg: '#fffbeb', col: '#b45309' },
-                  ].map(x => (
-                    <div key={x.label} style={{ background: x.bg, borderRadius: '0.75rem', padding: '0.85rem', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.45rem', fontWeight: 900, color: x.col }}>{x.val}</div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 900, color: x.col, textTransform: 'uppercase', marginTop: 2 }}>{x.label}</div>
+                    <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#ffffff' }}>{activeHomework.title}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                      Son Tarih: {new Date(activeHomework.dueDate).toLocaleDateString('tr-TR')} · {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
                     </div>
-                  ))}
+                  </div>
+                  <button onClick={() => setShowStatsModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}>
+                    <X size={16} />
+                  </button>
                 </div>
-                <div style={{ display: 'flex', gap: '0.35rem', background: '#f8fafc', borderRadius: '0.75rem', padding: '0.4rem' }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#38bdf8' }}>{stats.total}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#38bdf8', textTransform: 'uppercase', marginTop: 2 }}>Atanan Öğrenci</div>
+                  </div>
+                  <div style={{ background: 'rgba(52, 211, 153, 0.12)', border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#34d399' }}>{stats.completed}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#34d399', textTransform: 'uppercase', marginTop: 2 }}>Tamamlayan</div>
+                  </div>
+                  <div style={{ background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24' }}>%{stats.rate}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase', marginTop: 2 }}>Katılım Oranı</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', padding: '0.35rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                   {[
-                    { key: 'all', label: 'Tumu (' + stats.total + ')', col: '#4f46e5' },
-                    { key: 'completed', label: 'Cozenler (' + stats.completed + ')', col: '#059669' },
-                    { key: 'pending', label: 'Bekleyenler (' + (stats.total - stats.completed) + ')', col: '#d97706' },
+                    { key: 'all', label: 'Tümü (' + stats.total + ')' },
+                    { key: 'completed', label: 'Çözenler (' + stats.completed + ')' },
+                    { key: 'pending', label: 'Bekleyenler (' + (stats.total - stats.completed) + ')' },
                   ].map(f => (
-                    <button key={f.key} onClick={() => setStatsStudentFilter(f.key)} style={{ flex: 1, padding: '0.3rem 0.5rem', borderRadius: '0.55rem', border: 'none', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', background: statsStudentFilter === f.key ? f.col : '#fff', color: statsStudentFilter === f.key ? '#fff' : '#64748b' }}>{f.label}</button>
+                    <button
+                      key={f.key}
+                      onClick={() => setStatsStudentFilter(f.key)}
+                      style={{
+                        flex: 1, padding: '0.4rem 0.5rem', borderRadius: '0.55rem', border: 'none',
+                        fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
+                        background: statsStudentFilter === f.key ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {f.label}
+                    </button>
                   ))}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '38vh', overflowY: 'auto' }}>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '38vh', overflowY: 'auto' }}>
                   {stats.targetStudentIds.filter(stId => {
                     const sub = submissions.find(s => (s.hwId === activeHomework.id || s.testId === activeHomework.id) && s.studentId === stId) || (activeHomework.submissions || []).find(s => s.studentId === stId);
                     if (statsStudentFilter === 'completed') return !!sub;
@@ -709,26 +930,48 @@ export default function HomeworkManager() {
                     const student = students.find(s => s.id === stId);
                     if (!student) return null;
                     const submission = (activeHomework.submissions || []).find(s => s.studentId === stId) || submissions.find(s => (s.hwId === activeHomework.id || s.testId === activeHomework.id) && s.studentId === stId);
-                    const handleReview = () => { setShowStatsModal(false); if (activeHomework.type === 'physicalExam') navigate('/physical-exam/' + activeHomework.id + '?studentId=' + stId); else if (submission?.id) navigate('/review/' + submission.id); else navigate('/quiz/' + activeHomework.id + '?studentId=' + stId); };
+                    const handleReview = () => {
+                      setShowStatsModal(false);
+                      if (activeHomework.type === 'physicalExam') navigate('/physical-exam/' + activeHomework.id + '?studentId=' + stId);
+                      else if (submission?.id) navigate('/review/' + submission.id);
+                      else navigate('/quiz/' + activeHomework.id + '?studentId=' + stId);
+                    };
+
                     return (
-                      <div key={stId} onClick={submission ? handleReview : undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', borderRadius: '0.7rem', border: '1px solid #f1f5f9', background: submission ? '#fafafa' : '#fff', cursor: submission ? 'pointer' : 'default' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{student.name.charAt(0)}</div>
+                      <div key={stId} onClick={submission ? handleReview : undefined} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '0.65rem 0.9rem', borderRadius: '0.75rem',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: submission ? 'rgba(52, 211, 153, 0.08)' : 'rgba(255,255,255,0.03)',
+                        cursor: submission ? 'pointer' : 'default'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                            {student.name.charAt(0)}
+                          </div>
                           <div>
-                            <div style={{ fontWeight: 800, fontSize: '0.82rem' }}>{student.name}</div>
-                            {submission && <div style={{ fontSize: '0.67rem', color: '#7c3aed', fontWeight: 700 }}>Incelemek icin tikla</div>}
+                            <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#ffffff' }}>{student.name}</div>
+                            {submission && <div style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 700 }}>İncelemek için tıkla</div>}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                           {submission ? (
-                            <span style={{ background: '#f0fdf4', color: '#15803d', fontWeight: 900, fontSize: '0.7rem', padding: '0.22rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #bbf7d0' }}>{submission.score} {activeHomework.type === 'physicalExam' ? 'Net' : 'Puan'}</span>
+                            <span style={{ background: 'rgba(5, 150, 105, 0.25)', color: '#34d399', fontWeight: 900, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(52, 211, 153, 0.4)' }}>
+                              {submission.score} {activeHomework.type === 'physicalExam' ? 'Net' : 'Puan'}
+                            </span>
                           ) : (
-                            <span style={{ background: '#fffbeb', color: '#b45309', fontWeight: 800, fontSize: '0.7rem', padding: '0.22rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #fde68a' }}>Bekliyor</span>
+                            <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.6rem', borderRadius: '0.45rem', border: '1px solid rgba(251, 191, 36, 0.35)' }}>
+                              Bekliyor
+                            </span>
                           )}
                           {submission ? (
-                            <button onClick={e => { e.stopPropagation(); handleReview(); }} style={{ background: '#eff6ff', border: 'none', borderRadius: '0.4rem', padding: '0.28rem', cursor: 'pointer', display: 'flex' }}><Eye size={13} color="#1d4ed8" /></button>
+                            <button onClick={e => { e.stopPropagation(); handleReview(); }} style={{ background: 'rgba(99,102,241,0.2)', border: 'none', borderRadius: '0.45rem', padding: '0.35rem', cursor: 'pointer', color: '#c7d2fe', display: 'flex' }}>
+                              <Eye size={14} />
+                            </button>
                           ) : (
-                            <button onClick={e => { e.stopPropagation(); showToast(student.name + ' adli ogrenciye hatirlatma gonderildi!'); }} style={{ background: '#fffbeb', border: 'none', borderRadius: '0.4rem', padding: '0.28rem', cursor: 'pointer', display: 'flex' }}><Send size={13} color="#b45309" /></button>
+                            <button onClick={e => { e.stopPropagation(); showToast(student.name + ' adlı öğrenciye hatırlatma bildirimi gönderildi!'); }} style={{ background: 'rgba(251,191,36,0.2)', border: 'none', borderRadius: '0.45rem', padding: '0.35rem', cursor: 'pointer', color: '#fbbf24', display: 'flex' }} title="Hatırlatma Gönder">
+                              <Send size={14} />
+                            </button>
                           )}
                         </div>
                       </div>
@@ -743,134 +986,345 @@ export default function HomeworkManager() {
     );
   }
 
+  // ══════════ VIEW MODE: CREATE / EDIT WIZARD ══════════
   const STEPS_DEF = [
-    { id: 1, label: 'Temel Bilgiler', icon: ClipboardList, desc: 'Baslik, tarih, sure' },
-    { id: 2, label: 'Hedef Kitle', icon: Users, desc: 'Sinif veya ogrenci sec' },
-    { id: 3, label: 'Soru Secimi', icon: CheckSquare, desc: selectedQuestionIds.length + ' soru secildi' },
+    { id: 1, label: 'Temel Bilgiler', icon: ClipboardList, desc: 'Başlık, tarih, süre' },
+    { id: 2, label: 'Hedef Kitle', icon: Users, desc: 'Sınıf veya öğrenci seçimi' },
+    { id: 3, label: 'Soru Bankası & Test', icon: CheckSquare, desc: selectedQuestionIds.length + ' soru seçildi' },
   ];
   const selUnits = curData.units.filter(u => selSubject !== 'all' ? u.subjectId === selSubject : (selGrade !== 'all' ? curData.subjects.filter(s => s.gradeId === selGrade).map(s => s.id).includes(u.subjectId) : true));
   const selTopics = curData.topics.filter(t => selUnit !== 'all' ? t.unitId === selUnit : selUnits.map(u => u.id).includes(t.unitId));
 
   return (
-    <div style={{ ...C.page, paddingBottom: '5rem' }}>
+    <div style={pageContainerStyle}>
       <Toast msg={toast} />
-      <style>{`
-        @keyframes hwToastIn { from{opacity:0;transform:translateX(40px) scale(0.95)} to{opacity:1;transform:translateX(0) scale(1)} }
-        @keyframes hwFadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        .wiz-step { animation: hwFadeUp 0.22s ease; }
-        .q-row:hover { background: #f8fafc !important; }
-      `}</style>
-      <header style={C.header}>
-        <button onClick={resetForm} style={{ ...C.chipBtn(false), padding: '0.45rem 0.9rem' }}><ArrowLeft size={14} /> Geri Don</button>
+
+      {/* ── STICKY WIZARD HEADER ── */}
+      <header style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+        border: '1.5px solid rgba(255, 255, 255, 0.14)',
+        borderRadius: '1.5rem',
+        padding: '1.25rem 1.75rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(20px)'
+      }}>
+        <button
+          onClick={resetForm}
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1.5px solid rgba(255,255,255,0.18)',
+            borderRadius: '0.75rem',
+            padding: '0.55rem 0.9rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontWeight: 800,
+            color: '#ffffff'
+          }}
+        >
+          <ArrowLeft size={15} /> Geri Dön
+        </button>
+
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 900, fontSize: '0.98rem', color: '#1e293b' }}>{editingHwId ? 'Odevi Duzenle' : 'Odev Sihirbazi'}</div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Adim {step}/3 - {STEPS_DEF[step-1]?.desc}</div>
+          <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#ffffff' }}>
+            {editingHwId ? 'Ödevi Düzenle' : 'Yeni Ödev Sihirbazı ✨'}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+            Adım {step}/3 · {STEPS_DEF[step-1]?.desc}
+          </div>
         </div>
-        <button onClick={handleSave} style={{ ...C.primaryBtn, padding: '0.5rem 1rem', fontSize: '0.82rem' }}><CheckCheck size={15} /> Yayınla</button>
+
+        <button
+          onClick={handleSave}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '0.6rem 1.35rem', borderRadius: '0.75rem',
+            background: 'linear-gradient(135deg,#059669,#10b981)',
+            border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+            cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.4)'
+          }}
+        >
+          <CheckCheck size={16} /> Ödevi Yayınla
+        </button>
       </header>
-      <main style={{ maxWidth: 820, margin: '0 auto', padding: '1.4rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-        <div style={{ display: 'flex', gap: '0.4rem', background: '#fff', borderRadius: '0.9rem', padding: '0.4rem', border: '1px solid #e2e8f0' }}>
-          {STEPS_DEF.map(s => {
-            const isAct = step === s.id; const isDone = step > s.id;
-            const canGo = s.id <= step || (s.id === 2 && canStep2) || (s.id === 3 && canStep2 && selectedTargets.length > 0);
-            const SIcon = s.icon;
-            return (
-              <button key={s.id} onClick={() => canGo && setStep(s.id)} style={{ flex: 1, padding: '0.6rem 0.4rem', borderRadius: '0.65rem', border: 'none', cursor: canGo ? 'pointer' : 'not-allowed', background: isAct ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : isDone ? '#f0fdf4' : '#f8fafc', color: isAct ? '#fff' : isDone ? '#059669' : '#94a3b8', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.18rem', transition: 'all 0.18s' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  {isDone ? <CheckCircle size={14} /> : <SIcon size={14} />}
-                  <span style={{ fontWeight: 900, fontSize: '0.77rem' }}>{s.label}</span>
-                </div>
-                <span style={{ fontSize: '0.63rem', opacity: 0.8, fontWeight: 600 }}>{s.desc}</span>
-              </button>
-            );
-          })}
-        </div>
-        {step === 1 && (
-          <div className="wiz-step" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ ...C.card, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', paddingBottom: '0.8rem', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '0.65rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ClipboardList size={18} color="#fff" /></div>
-                <div>
-                  <div style={{ fontWeight: 900, fontSize: '0.95rem' }}>Temel Bilgiler</div>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Baslik, son tarih ve sure ayarlarini girin</div>
-                </div>
+
+      {/* ── WIZARD STEP NAVIGATION BAR ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
+        border: '1.5px solid rgba(255, 255, 255, 0.14)',
+        borderRadius: '1.25rem', padding: '0.5rem',
+        display: 'flex', gap: '0.5rem', flexWrap: 'wrap'
+      }}>
+        {STEPS_DEF.map(s => {
+          const isAct = step === s.id;
+          const isDone = step > s.id;
+          const canGo = s.id <= step || (s.id === 2 && canStep2) || (s.id === 3 && canStep2 && selectedTargets.length > 0);
+          const SIcon = s.icon;
+          return (
+            <button
+              key={s.id}
+              onClick={() => canGo && setStep(s.id)}
+              style={{
+                flex: 1, padding: '0.75rem 0.5rem', borderRadius: '0.85rem',
+                border: isAct ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                cursor: canGo ? 'pointer' : 'not-allowed',
+                background: isAct ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : isDone ? 'rgba(5,150,105,0.2)' : 'rgba(255,255,255,0.04)',
+                color: '#ffffff',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
+                boxShadow: isAct ? '0 4px 14px rgba(99,102,241,0.4)' : 'none',
+                opacity: canGo ? 1 : 0.5
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {isDone ? <CheckCircle size={15} color="#34d399" /> : <SIcon size={15} color={isAct ? '#fff' : '#818cf8'} />}
+                <span style={{ fontWeight: 900, fontSize: '0.82rem' }}>{s.label}</span>
+              </div>
+              <span style={{ fontSize: '0.68rem', color: isAct ? '#c7d2fe' : 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{s.desc}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── STEP 1: TEMEL BİLGİLER ── */}
+      {step === 1 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={glassCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#4f46e5,#6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ClipboardList size={20} color="#fff" />
               </div>
               <div>
-                <label style={C.label}>Odev Basligi *</label>
-                <input style={C.input} value={title} onChange={e => setTitle(e.target.value)} placeholder="Ornegin: Hafta Sonu Matematik Uslu Ifadeler..." />
-              </div>
-              <div>
-                <label style={C.label}>Son Teslim Tarihi *</label>
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                  {[{ l: 'Yarin', d: 1 }, { l: '3 Gun', d: 3 }, { l: '1 Hafta', d: 7 }, { l: '2 Hafta', d: 14 }, { l: '1 Ay', d: 30 }].map(p => (
-                    <button key={p.l} type="button" onClick={() => setDueDatePreset(p.d)} style={C.chipBtn(false)}>{p.l}</button>
-                  ))}
-                </div>
-                <input type="date" style={{...C.input, cursor: 'pointer'}} value={dueDate} onChange={e => setDueDate(e.target.value)} onClick={e => e.target.showPicker && e.target.showPicker()} />
-              </div>
-              <div>
-                <label style={C.label}>Soru Basi Sure (Dakika)</label>
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                  {[1, 2, 3, 5, 10].map(t => (<button key={t} type="button" onClick={() => setTimePerQuestion(t)} style={C.chipBtn(timePerQuestion === t)}>{t} dk</button>))}
-                </div>
-                <input type="number" min={1} max={60} style={{ ...C.input, width: 110 }} value={timePerQuestion} onChange={e => setTimePerQuestion(e.target.value)} />
+                <div style={{ fontWeight: 900, fontSize: '1rem', color: '#ffffff' }}>Ödev Temel Bilgileri</div>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Ödev başlığı, son teslim tarihi ve soru başı süre ayarlarını belirleyin</div>
               </div>
             </div>
-            <button onClick={() => { if (canStep2) setStep(2); else showToast('Lutfen baslik ve tarihi doldurun.'); }} style={{ ...C.primaryBtn, alignSelf: 'flex-end' }}>Devam Et <ArrowRight size={16} /></button>
-          </div>
-        )}
-        {step === 2 && (
-          <div className="wiz-step" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ ...C.card, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', paddingBottom: '0.8rem', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '0.65rem', background: 'linear-gradient(135deg,#059669,#047857)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Target size={18} color="#fff" /></div>
-                <div>
-                  <div style={{ fontWeight: 900, fontSize: '0.95rem' }}>Hedef Kitle</div>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Sinif bazli veya bireysel secim yapabilirsiniz</div>
-                </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', marginTop: '1.1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Ödev Başlığı *</label>
+                <input
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.88rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="Örneğin: Hafta Sonu Matematik Üslü İfadeler Tarama Testi..."
+                />
               </div>
-              <div style={{ display: 'flex', gap: '0.4rem', background: '#f8fafc', borderRadius: '0.75rem', padding: '0.3rem' }}>
-                {[{ k: 'grade', l: 'Sinif Bazli Atama' }, { k: 'student', l: 'Bireysel Ogrenci' }].map(m => (
-                  <button key={m.k} onClick={() => { setTargetMode(m.k); setSelectedTargets([]); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '0.6rem', border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', background: targetMode === m.k ? 'linear-gradient(135deg,#059669,#047857)' : 'transparent', color: targetMode === m.k ? '#fff' : '#64748b' }}>{m.l}</button>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 6 }}>Son Teslim Tarihi *</label>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                  {[{ l: 'Yarın', d: 1 }, { l: '3 Gün', d: 3 }, { l: '1 Hafta', d: 7 }, { l: '2 Hafta', d: 14 }, { l: '1 Ay', d: 30 }].map(p => (
+                    <button
+                      key={p.l}
+                      type="button"
+                      onClick={() => setDueDatePreset(p.d)}
+                      style={{
+                        padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                        border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+                        color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem'
+                      }}
+                    >
+                      {p.l}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="date"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.88rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  onClick={e => e.target.showPicker && e.target.showPicker()}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 6 }}>Soru Başı Süre (Dakika)</label>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                  {[1, 2, 3, 5, 10].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTimePerQuestion(t)}
+                      style={{
+                        padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                        border: timePerQuestion === t ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.15)',
+                        background: timePerQuestion === t ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
+                        color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem'
+                      }}
+                    >
+                      {t} dk
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  style={{ width: 120, padding: '0.6rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.88rem', fontWeight: 800, outline: 'none' }}
+                  value={timePerQuestion}
+                  onChange={e => setTimePerQuestion(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => { if (canStep2) setStep(2); else showToast('Lütfen başlık ve tarihi doldurun.'); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0.65rem 1.4rem', borderRadius: '0.75rem',
+                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem',
+                cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
+              }}
+            >
+              Hedef Kitleye Geç <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 2: HEDEF KİTLE ── */}
+      {step === 2 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={glassCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#059669,#10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Target size={20} color="#fff" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '1rem', color: '#ffffff' }}>Ödev Hedef Kitlesi</div>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Sınıf bazlı toplu atama veya tek tek bireysel öğrenci seçimi yapın</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.1rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', borderRadius: '0.85rem', padding: '0.35rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                {[{ k: 'grade', l: `Sınıf Bazlı (${curData.grades.length})` }, { k: 'student', l: `Bireysel Öğrenci (${filteredStudents.length})` }].map(m => (
+                  <button
+                    key={m.k}
+                    onClick={() => { setTargetMode(m.k); setSelectedTargets([]); }}
+                    style={{
+                      flex: 1, padding: '0.6rem', borderRadius: '0.7rem', border: 'none',
+                      fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer',
+                      background: targetMode === m.k ? 'linear-gradient(135deg,#059669,#10b981)' : 'transparent',
+                      color: '#ffffff', boxShadow: targetMode === m.k ? '0 4px 12px rgba(16,185,129,0.35)' : 'none'
+                    }}
+                  >
+                    {m.l}
+                  </button>
                 ))}
               </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569' }}>{selectedTargets.length} secildi</span>
-                <button onClick={handleSelectAllTargets} style={{ ...C.chipBtn(false), fontSize: '0.72rem' }}><CheckCheck size={12} /> Tumunu Sec/Kaldir</button>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#34d399' }}>
+                  {selectedTargets.length} hedef seçildi
+                </span>
+                <button
+                  onClick={handleSelectAllTargets}
+                  style={{
+                    padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                    border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+                    color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                    display: 'flex', alignItems: 'center', gap: 4
+                  }}
+                >
+                  <CheckCheck size={13} /> Tümünü Seç / Kaldır
+                </button>
               </div>
+
               {targetMode === 'grade' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(155px,1fr))', gap: '0.6rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
                   {curData.grades.map(g => {
                     const isSel = selectedTargets.includes(g.id);
                     return (
-                      <div key={g.id} onClick={() => setSelectedTargets(prev => isSel ? prev.filter(x => x !== g.id) : [...prev, g.id])} style={{ padding: '0.85rem', borderRadius: '0.85rem', cursor: 'pointer', border: isSel ? '2px solid #059669' : '1.5px solid #e2e8f0', background: isSel ? '#f0fdf4' : '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'all 0.15s' }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '0.6rem', background: isSel ? 'linear-gradient(135deg,#059669,#047857)' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><GraduationCap size={16} color={isSel ? '#fff' : '#94a3b8'} /></div>
-                        <div>
-                          <div style={{ fontWeight: 900, fontSize: '0.82rem', color: isSel ? '#15803d' : '#1e293b' }}>{g.name}</div>
-                          <div style={{ fontSize: '0.67rem', color: '#94a3b8' }}>{students.filter(s => isStudentInGrade(s, g)).length} ogrenci</div>
+                      <div
+                        key={g.id}
+                        onClick={() => setSelectedTargets(prev => isSel ? prev.filter(x => x !== g.id) : [...prev, g.id])}
+                        style={{
+                          padding: '1rem', borderRadius: '1rem', cursor: 'pointer',
+                          border: isSel ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.1)',
+                          background: isSel ? 'rgba(5, 150, 105, 0.25)' : 'rgba(255,255,255,0.04)',
+                          display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: isSel ? 'linear-gradient(135deg,#059669,#10b981)' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <GraduationCap size={18} color="#ffffff" />
                         </div>
-                        {isSel && <CheckCircle size={15} color="#059669" style={{ marginLeft: 'auto', flexShrink: 0 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#ffffff' }}>{g.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)' }}>
+                            {students.filter(s => isStudentInGrade(s, g)).length} Öğrenci
+                          </div>
+                        </div>
+                        {isSel && <CheckCircle size={18} color="#34d399" />}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div>
-                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                    <button onClick={() => setStudentGradeFilter('all')} style={C.chipBtn(studentGradeFilter === 'all')}>Tumu</button>
-                    {curData.grades.map(g => (<button key={g.id} onClick={() => setStudentGradeFilter(g.id)} style={C.chipBtn(studentGradeFilter === g.id)}>{g.name}</button>))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setStudentGradeFilter('all')}
+                      style={{
+                        padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                        border: studentGradeFilter === 'all' ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.15)',
+                        background: studentGradeFilter === 'all' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
+                        color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem'
+                      }}
+                    >
+                      Tüm Sınıflar
+                    </button>
+                    {curData.grades.map(g => (
+                      <button
+                        key={g.id}
+                        onClick={() => setStudentGradeFilter(g.id)}
+                        style={{
+                          padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                          border: studentGradeFilter === g.id ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.15)',
+                          background: studentGradeFilter === g.id ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
+                          color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem'
+                        }}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(185px,1fr))', gap: '0.45rem' }}>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.6rem', maxHeight: 320, overflowY: 'auto' }}>
                     {filteredStudents.map(s => {
                       const isSel = selectedTargets.includes(s.id);
                       return (
-                        <div key={s.id} onClick={() => setSelectedTargets(prev => isSel ? prev.filter(x => x !== s.id) : [...prev, s.id])} style={{ padding: '0.6rem 0.85rem', borderRadius: '0.7rem', cursor: 'pointer', border: isSel ? '2px solid #059669' : '1.5px solid #e2e8f0', background: isSel ? '#f0fdf4' : '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: isSel ? 'linear-gradient(135deg,#059669,#047857)' : '#e2e8f0', color: isSel ? '#fff' : '#94a3b8', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.name.charAt(0)}</div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: isSel ? '#15803d' : '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                            <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>{curData.grades.find(g => isStudentInGrade(s, g))?.name || s.grade || s.gradeId || 'Sınıf Belirtilmemiş'}</div>
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedTargets(prev => isSel ? prev.filter(x => x !== s.id) : [...prev, s.id])}
+                          style={{
+                            padding: '0.65rem 0.85rem', borderRadius: '0.85rem', cursor: 'pointer',
+                            border: isSel ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.1)',
+                            background: isSel ? 'rgba(5, 150, 105, 0.25)' : 'rgba(255,255,255,0.04)',
+                            display: 'flex', alignItems: 'center', gap: '0.6rem'
+                          }}
+                        >
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: isSel ? 'linear-gradient(135deg,#059669,#10b981)' : 'rgba(255,255,255,0.1)', color: '#ffffff', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {s.name.charAt(0)}
                           </div>
-                          {isSel && <CheckCircle size={13} color="#059669" />}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {s.name}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>
+                              {curData.grades.find(g => isStudentInGrade(s, g))?.name || s.grade || s.gradeId || 'Sınıf Belirtilmemiş'}
+                            </div>
+                          </div>
+                          {isSel && <CheckCircle size={15} color="#34d399" />}
                         </div>
                       );
                     })}
@@ -878,195 +1332,338 @@ export default function HomeworkManager() {
                 </div>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setStep(1)} style={C.chipBtn(false)}><ArrowLeft size={14} /> Geri</button>
-              <button onClick={() => { if (selectedTargets.length > 0) setStep(3); else showToast('Lutfen en az bir hedef secin.'); }} style={C.primaryBtn}>Sorulara Gec <ArrowRight size={15} /></button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setStep(1)}
+              style={{
+                padding: '0.65rem 1.25rem', borderRadius: '0.75rem',
+                border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+                color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem',
+                display: 'flex', alignItems: 'center', gap: 4
+              }}
+            >
+              <ArrowLeft size={15} /> Geri
+            </button>
+            <button
+              onClick={() => { if (selectedTargets.length > 0) setStep(3); else showToast('Lütfen en az bir hedef seçin.'); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '0.65rem 1.4rem', borderRadius: '0.75rem',
+                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem',
+                cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
+              }}
+            >
+              Sorulara Geç <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: SORU BANKASI & TEST SEÇİMİ ── */}
+      {step === 3 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* FILTER CRITERIA */}
+          <div style={glassCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
+              <Filter size={18} color="#818cf8" />
+              <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>Soru Bankası Filtreleme</span>
+              <span style={{ marginLeft: 'auto', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', fontWeight: 900, fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: 99, border: '1px solid rgba(165,180,252,0.35)', whiteSpace: 'nowrap' }}>
+                {filteredQuestions.length} soru bulundu
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
+              <select
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                value={selGrade}
+                onChange={e => { setSelGrade(e.target.value); setSelSubject('all'); setSelUnit('all'); setSelTopic('all'); }}
+              >
+                <option value="all">Tüm Sınıflar</option>
+                {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+
+              <select
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                value={selSubject}
+                onChange={e => { setSelSubject(e.target.value); setSelUnit('all'); setSelTopic('all'); }}
+              >
+                <option value="all">Tüm Dersler</option>
+                {curData.subjects.filter(s => selGrade === 'all' || s.gradeId === selGrade).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+
+              <select
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                value={selUnit}
+                onChange={e => { setSelUnit(e.target.value); setSelTopic('all'); }}
+              >
+                <option value="all">Tüm Üniteler</option>
+                {selUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+
+              <select
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                value={selTopic}
+                onChange={e => setSelTopic(e.target.value)}
+              >
+                <option value="all">Tüm Konular</option>
+                {selTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+
+              <select
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                value={selQuestionType}
+                onChange={e => setSelQuestionType(e.target.value)}
+              >
+                <option value="all">Tüm Türler</option>
+                <option value="coktan_secmeli">Çoktan Seçmeli</option>
+                <option value="acik_uclu">Açık Uçlu</option>
+                <option value="bundle">Soru Seti</option>
+              </select>
+
+              <select
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                value={selContentType}
+                onChange={e => setSelContentType(e.target.value)}
+              >
+                <option value="all">Tüm Formatlar</option>
+                <option value="pdf">PDF</option>
+                <option value="html">HTML</option>
+                <option value="text">Metin</option>
+                <option value="gorsel">Görsel</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+
+            <div style={{ position: 'relative', marginTop: '0.65rem' }}>
+              <Search size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+              <input
+                style={{ width: '100%', padding: '0.6rem 0.85rem 0.6rem 2.4rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Soru metni veya başlıkla ara..."
+              />
             </div>
           </div>
-        )}
-        {step === 3 && (
-          <div className="wiz-step" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ ...C.card, padding: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.8rem' }}>
-                <Filter size={15} color="#4f46e5" />
-                <span style={{ fontWeight: 900, fontSize: '0.88rem' }}>Soru Filtrele</span>
-                <span style={{ marginLeft: 'auto', background: '#eff6ff', color: '#1d4ed8', fontWeight: 900, fontSize: '0.7rem', padding: '0.18rem 0.55rem', borderRadius: 99, border: '1px solid #bfdbfe', whiteSpace: 'nowrap' }}>{filteredQuestions.length} soru</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '0.45rem' }}>
-                <select style={{ ...C.input, padding: '0.5rem 0.7rem', fontSize: '0.77rem' }} value={selGrade} onChange={e => { setSelGrade(e.target.value); setSelSubject('all'); setSelUnit('all'); setSelTopic('all'); }}>
-                  <option value="all">Tum Siniflar</option>
-                  {curData.grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
-                <select style={{ ...C.input, padding: '0.5rem 0.7rem', fontSize: '0.77rem' }} value={selSubject} onChange={e => { setSelSubject(e.target.value); setSelUnit('all'); setSelTopic('all'); }}>
-                  <option value="all">Tum Dersler</option>
-                  {curData.subjects.filter(s => selGrade === 'all' || s.gradeId === selGrade).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                <select style={{ ...C.input, padding: '0.5rem 0.7rem', fontSize: '0.77rem' }} value={selUnit} onChange={e => { setSelUnit(e.target.value); setSelTopic('all'); }}>
-                  <option value="all">Tum Uniteler</option>
-                  {selUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-                <select style={{ ...C.input, padding: '0.5rem 0.7rem', fontSize: '0.77rem' }} value={selTopic} onChange={e => setSelTopic(e.target.value)}>
-                  <option value="all">Tum Konular</option>
-                  {selTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-                <select style={{ ...C.input, padding: '0.5rem 0.7rem', fontSize: '0.77rem' }} value={selQuestionType} onChange={e => setSelQuestionType(e.target.value)}>
-                  <option value="all">Tum Turler</option>
-                  <option value="coktan_secmeli">Coktan Secmeli</option>
-                  <option value="acik_uclu">Acik Uclu</option>
-                  <option value="bundle">Soru Seti</option>
-                </select>
-                <select style={{ ...C.input, padding: '0.5rem 0.7rem', fontSize: '0.77rem' }} value={selContentType} onChange={e => setSelContentType(e.target.value)}>
-                  <option value="all">Tum Tipler</option>
-                  <option value="pdf">PDF</option>
-                  <option value="html">HTML</option>
-                  <option value="text">Metin</option>
-                  <option value="gorsel">Gorsel</option>
-                  <option value="json">JSON</option>
-                </select>
-              </div>
-              <div style={{ position: 'relative', marginTop: '0.5rem' }}>
-                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input style={{ ...C.input, paddingLeft: '2.2rem' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Soru ara..." />
+
+          {/* QUESTIONS CHECKLIST */}
+          <div style={glassCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>
+                Soru Bankası Listesi
+                <span style={{ background: 'rgba(52, 211, 153, 0.25)', color: '#34d399', fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: 99, marginLeft: '0.5rem', border: '1px solid rgba(52, 211, 153, 0.4)' }}>
+                  {selectedQuestionIds.length} soru seçildi
+                </span>
+              </span>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button
+                  onClick={handleSelectAllFiltered}
+                  style={{
+                    padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                    border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+                    color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                    display: 'flex', alignItems: 'center', gap: 4
+                  }}
+                >
+                  <CheckCheck size={13} /> Tümünü Seç / Kaldır
+                </button>
+                {selectedQuestionIds.length > 0 && (
+                  <button
+                    onClick={() => setSelectedQuestionIds([])}
+                    style={{
+                      padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                      border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.15)',
+                      color: '#f87171', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                      display: 'flex', alignItems: 'center', gap: 4
+                    }}
+                  >
+                    <RefreshCw size={13} /> Sıfırla
+                  </button>
+                )}
               </div>
             </div>
-            <div style={{ ...C.card, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.8rem 1rem', borderBottom: '1px solid #f8fafc' }}>
-                <span style={{ fontWeight: 900, fontSize: '0.85rem' }}>Soru Bankasi <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 99, marginLeft: '0.4rem' }}>{selectedQuestionIds.length} secildi</span></span>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <button onClick={handleSelectAllFiltered} style={{ ...C.chipBtn(false), fontSize: '0.72rem' }}><CheckCheck size={12} /> Tumunu Sec/Kaldir</button>
-                  {selectedQuestionIds.length > 0 && (<button onClick={() => setSelectedQuestionIds([])} style={{ ...C.chipBtn(false), fontSize: '0.72rem', color: '#dc2626', borderColor: '#fecaca' }}><RefreshCw size={12} /> Sifirla</button>)}
+
+            {filteredQuestions.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                <Search size={40} style={{ opacity: 0.25 }} />
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Bu filtreye uygun soru bulunamadı.</div>
+              </div>
+            ) : (
+              <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.75rem', paddingRight: 4 }}>
+                {filteredQuestions.map(q => {
+                  const isSel = selectedQuestionIds.includes(q.id);
+                  return (
+                    <div
+                      key={q.id}
+                      onClick={() => toggleQ(q.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.75rem',
+                        padding: '0.75rem 1rem', borderRadius: '0.85rem',
+                        border: isSel ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                        background: isSel ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.03)',
+                        cursor: 'pointer', transition: 'all 0.1s'
+                      }}
+                    >
+                      <div style={{
+                        width: 22, height: 22, borderRadius: '0.45rem', flexShrink: 0,
+                        border: isSel ? 'none' : '2px solid rgba(255,255,255,0.3)',
+                        background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        {isSel && <Check size={14} color="#fff" strokeWidth={3} />}
+                      </div>
+                      <div style={{ width: 34, height: 34, borderRadius: '0.6rem', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {getQIcon(q.contentType)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {q.title || q.name || 'Başlıksız Soru'}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', marginTop: 2, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {q.isBundle && <span style={{ background: 'rgba(192, 132, 252, 0.2)', color: '#c084fc', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(192, 132, 252, 0.35)' }}>{(q.questionCount || q.questionsList?.length || 1)} Soru Seti</span>}
+                          {q.type === 'acik_uclu' && <span style={{ background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(251, 191, 36, 0.35)' }}>Açık Uçlu</span>}
+                          {q.contentType && <span>Format: {q.contentType}</span>}
+                        </div>
+                      </div>
+                      {isSel && (
+                        <span style={{ background: '#4f46e5', color: '#fff', fontWeight: 900, fontSize: '0.65rem', padding: '0.15rem 0.55rem', borderRadius: 99, flexShrink: 0, boxShadow: '0 2px 8px rgba(79,70,229,0.5)' }}>
+                          SEÇİLDİ
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* TOPLU ATAMA BİÇİMİ (IF > 1 TEST) */}
+          {selectedQuestionIds.length > 1 && !editingHwId && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
+              border: '2px solid rgba(165, 180, 252, 0.5)',
+              borderRadius: '1.5rem', padding: '1.5rem',
+              boxShadow: '0 12px 36px rgba(99,102,241,0.2)',
+              display: 'flex', flexDirection: 'column', gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <Layers size={22} color="#818cf8" />
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '1rem', color: '#ffffff' }}>
+                    Toplu Ödev Atama Biçimi ({selectedQuestionIds.length} Test Seçildi)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.65)' }}>
+                    Seçtiğiniz testlerin öğrencilere nasıl atanacağını belirleyin:
+                  </div>
                 </div>
               </div>
-              {filteredQuestions.length === 0 ? (
-                <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>
-                  <Search size={36} style={{ display: 'block', margin: '0 auto 0.7rem', opacity: 0.25 }} />
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Bu filtreye uygun soru bulunamadi.</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
+                <div
+                  onClick={() => setAssignmentMode('separate')}
+                  style={{
+                    padding: '1rem', borderRadius: '1rem', cursor: 'pointer',
+                    border: assignmentMode === 'separate' ? '2px solid #818cf8' : '1.5px solid rgba(255,255,255,0.1)',
+                    background: assignmentMode === 'separate' ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255,255,255,0.04)',
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', transition: 'all 0.15s'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="assignmentMode"
+                    checked={assignmentMode === 'separate'}
+                    onChange={() => setAssignmentMode('separate')}
+                    style={{ marginTop: '0.2rem', accentColor: '#6366f1', cursor: 'pointer', width: 18, height: 18 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#ffffff' }}>
+                      📑 Ayrı Ayrı Tekil Ödevler Olarak Ata (Önerilen)
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.25rem', lineHeight: 1.4 }}>
+                      Her test bağımsız birer ödev olarak oluşturulur. Öğrenci her testi kendi ekranında tek tek çözer ({selectedQuestionIds.length} adet bağımsız ödev).
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div style={{ maxHeight: 440, overflowY: 'auto' }}>
-                  {filteredQuestions.map(q => {
-                    const isSel = selectedQuestionIds.includes(q.id);
-                    return (
-                      <div key={q.id} className="q-row" onClick={() => toggleQ(q.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', padding: '0.65rem 1rem', borderBottom: '1px solid #f8fafc', cursor: 'pointer', background: isSel ? '#eff6ff' : '#fff', transition: 'background 0.1s' }}>
-                        <div style={{ width: 20, height: 20, borderRadius: '0.38rem', flexShrink: 0, border: isSel ? 'none' : '2px solid #e2e8f0', background: isSel ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isSel && <Check size={12} color="#fff" strokeWidth={3} />}</div>
-                        <div style={{ width: 32, height: 32, borderRadius: '0.52rem', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{getQIcon(q.contentType)}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.title || q.name || 'Baslıksız Soru'}</div>
-                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: 1, display: 'flex', gap: '0.5rem' }}>
-                            {q.isBundle && <span style={{ background: '#f3e8ff', color: '#7c3aed', fontWeight: 800, padding: '0.08rem 0.38rem', borderRadius: '0.3rem' }}>{(q.questionCount || q.questionsList?.length || 1)} Soru Seti</span>}
-                            {q.type === 'acik_uclu' && <span style={{ background: '#fffbeb', color: '#b45309', fontWeight: 800, padding: '0.08rem 0.38rem', borderRadius: '0.3rem' }}>Acik Uclu</span>}
-                            {q.contentType && <span>{q.contentType}</span>}
-                          </div>
-                        </div>
-                        {isSel && <span style={{ background: '#4f46e5', color: '#fff', fontWeight: 900, fontSize: '0.62rem', padding: '0.12rem 0.45rem', borderRadius: 99, flexShrink: 0 }}>SECILDI</span>}
-                      </div>
-                    );
-                  })}
+
+                <div
+                  onClick={() => setAssignmentMode('combined')}
+                  style={{
+                    padding: '1rem', borderRadius: '1rem', cursor: 'pointer',
+                    border: assignmentMode === 'combined' ? '2px solid #c084fc' : '1.5px solid rgba(255,255,255,0.1)',
+                    background: assignmentMode === 'combined' ? 'rgba(192, 132, 252, 0.25)' : 'rgba(255,255,255,0.04)',
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', transition: 'all 0.15s'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="assignmentMode"
+                    checked={assignmentMode === 'combined'}
+                    onChange={() => setAssignmentMode('combined')}
+                    style={{ marginTop: '0.2rem', accentColor: '#c084fc', cursor: 'pointer', width: 18, height: 18 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#ffffff' }}>
+                      📚 Birleşik / Bölümlü Tek Ödev Olarak Ata
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.25rem', lineHeight: 1.4 }}>
+                      Tüm testler tek bir ödev çatısı altında toplanır (Bölüm 1, Bölüm 2... şeklinde tek seferde çözülür).
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BOTTOM SUMMARY & PUBLISH BAR */}
+          <div style={{ ...glassCardStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#ffffff' }}>
+                {selectedQuestionIds.length > 0 ? `${selectedQuestionIds.length} Soru / Test Seçildi` : 'Henüz soru seçilmedi'}
+              </div>
+              {selectedQuestionIds.length > 0 && (
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                  Tahmini süre: ~{selectedQuestionIds.length * timePerQuestion} dakika
                 </div>
               )}
             </div>
-            {selectedQuestionIds.length > 1 && !editingHwId && (
-              <div style={{ ...C.card, padding: '1.25rem', border: '2px solid #818cf8', background: '#f8faff', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <Layers size={20} color="#4f46e5" />
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>
-                      Toplu Ödev Atama Biçimi ({selectedQuestionIds.length} Test Seçildi)
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Seçtiğiniz testlerin öğrencilere nasıl atanacağını belirleyin:
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
-                  <div
-                    onClick={() => setAssignmentMode('separate')}
-                    style={{
-                      padding: '0.9rem 1.1rem',
-                      borderRadius: '0.85rem',
-                      cursor: 'pointer',
-                      border: assignmentMode === 'separate' ? '2px solid #4f46e5' : '1.5px solid #e2e8f0',
-                      background: assignmentMode === 'separate' ? '#eff6ff' : '#fff',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      transition: 'all 0.15s',
-                      boxShadow: assignmentMode === 'separate' ? '0 4px 12px rgba(79,70,229,0.12)' : 'none'
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="assignmentMode"
-                      checked={assignmentMode === 'separate'}
-                      onChange={() => setAssignmentMode('separate')}
-                      style={{ marginTop: '0.2rem', accentColor: '#4f46e5', cursor: 'pointer', width: 16, height: 16 }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: assignmentMode === 'separate' ? '#1e40af' : '#1e293b' }}>
-                        📑 Ayrı Ayrı Tekil Ödevler Olarak Ata (Önerilen)
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.25rem', lineHeight: 1.4 }}>
-                        Her test bağımsız birer ödev olarak oluşturulur. Öğrenci her testi kendi ekranında tek tek çözer ({selectedQuestionIds.length} adet bağımsız ödev).
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setAssignmentMode('combined')}
-                    style={{
-                      padding: '0.9rem 1.1rem',
-                      borderRadius: '0.85rem',
-                      cursor: 'pointer',
-                      border: assignmentMode === 'combined' ? '2px solid #7c3aed' : '1.5px solid #e2e8f0',
-                      background: assignmentMode === 'combined' ? '#f5f3ff' : '#fff',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      transition: 'all 0.15s',
-                      boxShadow: assignmentMode === 'combined' ? '0 4px 12px rgba(124,58,237,0.12)' : 'none'
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="assignmentMode"
-                      checked={assignmentMode === 'combined'}
-                      onChange={() => setAssignmentMode('combined')}
-                      style={{ marginTop: '0.2rem', accentColor: '#7c3aed', cursor: 'pointer', width: 16, height: 16 }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: assignmentMode === 'combined' ? '#6b21a8' : '#1e293b' }}>
-                        📚 Birleşik / Bölümlü Tek Ödev Olarak Ata
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.25rem', lineHeight: 1.4 }}>
-                        Tüm testler tek bir ödev çatısı altında toplanır (Bölüm 1, Bölüm 2... şeklinde tek seferde çözülür).
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div style={{ ...C.card, padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.7rem' }}>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: '0.88rem' }}>{selectedQuestionIds.length > 0 ? selectedQuestionIds.length + ' Soru / Test Secildi' : 'Henuz soru secilmedi'}</div>
-                {selectedQuestionIds.length > 0 && <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Tahmini sure: ~{selectedQuestionIds.length * timePerQuestion} dakika</div>}
-              </div>
-              <div style={{ display: 'flex', gap: '0.55rem' }}>
-                <button onClick={() => setStep(2)} style={{ ...C.chipBtn(false), padding: '0.55rem 1rem' }}><ArrowLeft size={14} /> Geri</button>
-                <button onClick={handleSave} style={{ ...C.primaryBtn }}>
-                  <Sparkles size={15} />{' '}
-                  {editingHwId
-                    ? 'Ödevi Güncelle'
-                    : selectedQuestionIds.length > 1 && assignmentMode === 'separate'
-                    ? `${selectedQuestionIds.length} Ödevi Ayrı Ayrı Yayınla!`
-                    : 'Ödevi Yayınla!'}
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: '0.65rem' }}>
+              <button
+                onClick={() => setStep(2)}
+                style={{
+                  padding: '0.65rem 1.25rem', borderRadius: '0.75rem',
+                  border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+                  color: '#ffffff', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem',
+                  display: 'flex', alignItems: 'center', gap: 4
+                }}
+              >
+                <ArrowLeft size={15} /> Geri
+              </button>
+              <button
+                onClick={handleSave}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '0.65rem 1.5rem', borderRadius: '0.75rem',
+                  background: 'linear-gradient(135deg,#059669,#10b981)',
+                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem',
+                  cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.45)'
+                }}
+              >
+                <Sparkles size={16} />{' '}
+                {editingHwId
+                  ? 'Ödevi Güncelle'
+                  : selectedQuestionIds.length > 1 && assignmentMode === 'separate'
+                  ? `${selectedQuestionIds.length} Ödevi Ayrı Ayrı Yayınla!`
+                  : 'Ödevi Yayınla!'}
+              </button>
             </div>
           </div>
-        )}
-      </main>
+
+        </div>
+      )}
+
     </div>
   );
 }
