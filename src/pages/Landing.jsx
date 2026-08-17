@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Target, BarChart3, BookOpen, Sparkles, LogIn, UserPlus,
@@ -50,6 +50,14 @@ export default function Landing() {
     window.addEventListener('scroll', onScroll);
     return () => { window.removeEventListener('resize', onResize); window.removeEventListener('scroll', onScroll); };
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'admin') navigate('/admin', { replace: true });
+      else if (currentUser.role === 'teacher') navigate('/teacher', { replace: true });
+      else navigate('/student', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   useEffect(() => {
     const t = setInterval(() => setActiveFeature(p => (p + 1) % 3), 4000);

@@ -383,7 +383,14 @@ function AppContent() {
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={
+                currentUser ? (
+                  currentUser.role === 'admin' ? <Navigate to="/admin" replace /> :
+                  currentUser.role === 'teacher' ? <Navigate to="/teacher" replace /> :
+                  <Navigate to="/student" replace />
+                ) : <Landing />
+              } />
+              <Route path="/landing" element={<Landing />} />
               <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
               <Route path="/teacher" element={<TeacherDashboard />} />
               <Route path="/student" element={<StudentDashboard />} />
@@ -394,6 +401,7 @@ function AppContent() {
               <Route path="/summaries" element={<SummaryManagerPage />} />
               <Route path="/student/books" element={<StudentBooksPage />} />
               <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
+              <Route path="/book-details/:bookId" element={<StudentBookDetailsPage />} />
               <Route path="/student/exams" element={<StudentExamsPage />} />
               <Route path="/student/exams/:bookId" element={<StudentBookDetailsPage />} />
               <Route path="/homeworks" element={<HomeworkManager />} />
@@ -410,9 +418,14 @@ function AppContent() {
               <Route path="/student/study-plan/:assignmentId" element={<StudentStudyPlanView />} />
               <Route path="/statistics" element={<StatisticsDashboard />} />
               <Route path="/goals" element={<GoalsAndSchedulePage />} />
+              <Route path="/student/goals" element={<GoalsAndSchedulePage />} />
+              <Route path="/student/results" element={<StudentResultsPage />} />
               <Route path="/student-results" element={<StudentResultsPage />} />
+              <Route path="/results" element={<StudentResultsPage />} />
               <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
+              <Route path="/student/wrong-answers" element={<StudentWrongAnswersPage />} />
               <Route path="/my-program" element={<StudentProgramPage />} />
+              <Route path="/student/program" element={<StudentProgramPage />} />
               <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
               <Route path="/my-coaching" element={<MyCoachingPage />} />
               <Route path="/physical-exam" element={<ExamManager />} />
