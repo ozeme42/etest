@@ -1,0 +1,20 @@
+{
+  "short_name": "E-Test",
+  "name": "E-Test Premium Eğitim & Koçluk",
+  "description": "LGS, YKS ve Okul Dersleri için Yeni Nesil Dijital Soru Bankası, Koçluk ve Optik Sınav Platformu",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "tr"
+}

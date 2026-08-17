@@ -12,7 +12,8 @@ import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
 import { 
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, 
-  BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle
+  BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
+  Flag, RotateCcw, Cloud
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false) {
@@ -180,6 +181,32 @@ export default function TrackedBookQuizRunner() {
     } catch {}
     return {};
   });
+
+  // Flagged questions for review (🚩)
+  const [flagged, setFlagged] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`draft_tracked_book_flagged_${testKey}_${studentId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    return {};
+  });
+
+  const toggleFlag = useCallback((qNo) => {
+    setFlagged(prev => {
+      const next = { ...prev, [qNo]: !prev[qNo] };
+      try {
+        localStorage.setItem(`draft_tracked_book_flagged_${testKey}_${studentId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, [testKey, studentId]);
+
+  const flaggedCount = useMemo(() => {
+    return Object.values(flagged).filter(Boolean).length;
+  }, [flagged]);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [results, setResults] = useState(null);
@@ -485,6 +512,28 @@ export default function TrackedBookQuizRunner() {
     setResults(calculated);
     setIsSubmitted(true);
     setShowOptikForm(true);
+  };
+
+  const handleRetakeWrong = () => {
+    if (!window.confirm("Yanlış ve boş soruları tekrar çözmek için test modu açılacak. Doğru yaptıklarınız korunacak. Devam edilsin mi?")) return;
+    const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+    const newAnswers = {};
+    for (let i = 1; i <= questionCount; i++) {
+      const selected = answers[i] || answers[String(i)];
+      const idx = i - 1;
+      const correctKey = Array.isArray(answerKey) ? answerKey[idx] : (answerKey[i] || answerKey[String(i)]);
+      if (selected && String(selected).toUpperCase() === String(correctKey).toUpperCase()) {
+        newAnswers[i] = selected;
+      }
+    }
+    setAnswers(newAnswers);
+    setIsSubmitted(false);
+    setResults(null);
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(newAnswers));
+      localStorage.setItem(`${draftKey}_time`, String(totalSeconds));
+      setTimeLeft(totalSeconds);
+    } catch {}
   };
 
   // Find other tests in this book to offer "Sonraki Test" navigation
@@ -912,6 +961,16 @@ export default function TrackedBookQuizRunner() {
                         <BookOpen size={16} /> Kitaba Dön
                       </button>
                     )}
+                    {results && (results.wrong > 0 || results.blank > 0) && (
+                      <button
+                        onClick={handleRetakeWrong}
+                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(245,158,11,0.35)', transition: 'transform 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                      >
+                        <RotateCcw size={16} /> Yanlış & Boşları Tekrar Çöz ({results.wrong + results.blank})
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -932,11 +991,18 @@ export default function TrackedBookQuizRunner() {
                       </span>
                     </div>
 
-                    {!isSubmitted && (
-                      <div style={{ fontSize: '0.84rem', fontWeight: 900, color: answeredCount === questionCount ? '#34d399' : '#38bdf8', background: 'rgba(255,255,255,0.06)', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        {answeredCount}/{questionCount} Kodlandı {questionCount > 0 ? `(%${Math.round((answeredCount / questionCount) * 100)})` : ''}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {flaggedCount > 0 && (
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fbbf24', background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.4)', padding: '0.3rem 0.7rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <Flag size={13} /> {flaggedCount} Şüpheli
+                        </div>
+                      )}
+                      {!isSubmitted && (
+                        <div style={{ fontSize: '0.84rem', fontWeight: 900, color: answeredCount === questionCount ? '#34d399' : '#38bdf8', background: 'rgba(255,255,255,0.06)', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          {answeredCount}/{questionCount} Kodlandı {questionCount > 0 ? `(%${Math.round((answeredCount / questionCount) * 100)})` : ''}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Progress Bar */}
@@ -1002,13 +1068,19 @@ export default function TrackedBookQuizRunner() {
                           <div 
                             key={qNo} 
                             style={{
-                              background: selected ? 'rgba(8, 145, 178, 0.08)' : '#0f172a',
+                              background: flagged[qNo] && !isSubmitted
+                                ? 'rgba(245, 158, 11, 0.08)'
+                                : selected 
+                                  ? 'rgba(8, 145, 178, 0.08)' 
+                                  : '#0f172a',
                               padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
                               borderRadius: '1rem',
                               border: isCorrect 
                                 ? '1.5px solid #10b981' 
                                 : isWrong 
                                 ? '1.5px solid #ef4444' 
+                                : flagged[qNo] && !isSubmitted
+                                ? '1.5px solid #f59e0b'
                                 : selected 
                                 ? '1.5px solid #0891b2' 
                                 : '1px solid #334155',
@@ -1020,8 +1092,8 @@ export default function TrackedBookQuizRunner() {
                               boxShadow: selected ? '0 4px 14px rgba(8,145,178,0.15)' : 'none'
                             }}
                           >
-                            {/* Question Number Badge */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 60, flexShrink: 0 }}>
+                            {/* Question Number Badge & Flag */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 70, flexShrink: 0 }}>
                               <div style={{
                                 width: 32,
                                 height: 32,
@@ -1038,6 +1110,27 @@ export default function TrackedBookQuizRunner() {
                               }}>
                                 {qNo}
                               </div>
+
+                              {!isSubmitted && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
+                                  title={flagged[qNo] ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
+                                  style={{
+                                    background: flagged[qNo] ? 'rgba(245,158,11,0.25)' : 'transparent',
+                                    border: flagged[qNo] ? '1px solid #f59e0b' : 'none',
+                                    borderRadius: '0.4rem',
+                                    padding: '4px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: flagged[qNo] ? '#fbbf24' : '#64748b'
+                                  }}
+                                >
+                                  <Flag size={14} fill={flagged[qNo] ? '#fbbf24' : 'none'} />
+                                </button>
+                              )}
 
                               {isSubmitted && (
                                 <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>

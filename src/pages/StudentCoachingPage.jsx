@@ -14,6 +14,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useGoal } from '../context/GoalContext';
+import CoachingReportModal from '../components/CoachingReportModal';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -365,6 +366,7 @@ export default function StudentCoachingPage() {
   const existingProfile = useMemo(() => getCoachingProfileForStudent(studentId) || {}, [studentId, coachingProfiles]);
 
   const [saved, setSaved] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [activeTab, setActiveTab] = useState('hedefler');
 
   /* ── Hedeflerim ── */
@@ -1487,9 +1489,32 @@ export default function StudentCoachingPage() {
           ))}
         </div>
 
-        <button onClick={handleSave} style={{ background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '0.85rem', padding: '0.55rem 1.1rem', color: 'white', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)', transition: 'all 0.2s' }}>
-          {saved ? <><CheckCircle2 size={16} /> Kaydedildi!</> : <><Save size={16} /> Kaydet</>}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => setShowReportModal(true)} 
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(79, 70, 229, 0.95))', 
+              border: '1.5px solid rgba(255,255,255,0.3)', 
+              borderRadius: '0.85rem', 
+              padding: '0.55rem 1.1rem', 
+              color: 'white', 
+              fontWeight: 900, 
+              fontSize: '0.83rem', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 6, 
+              backdropFilter: 'blur(8px)', 
+              boxShadow: '0 4px 14px rgba(79,70,229,0.35)', 
+              transition: 'all 0.2s' 
+            }}
+          >
+            <FileText size={16} /> Veli Karnesi (PDF)
+          </button>
+          <button onClick={handleSave} style={{ background: saved ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '0.85rem', padding: '0.55rem 1.1rem', color: 'white', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)', transition: 'all 0.2s' }}>
+            {saved ? <><CheckCircle2 size={16} /> Kaydedildi!</> : <><Save size={16} /> Kaydet</>}
+          </button>
+        </div>
       </div>
 
       {/* ── TAB BAR ── */}
@@ -4400,6 +4425,23 @@ export default function StudentCoachingPage() {
           {saved ? <><CheckCircle2 size={16} /> Kaydedildi!</> : <><Save size={16} /> Kaydet</>}
         </button>
       </div>
+
+      {/* ── COACHING REPORT MODAL ── */}
+      <CoachingReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        studentName={personalInfo?.fullName || 'Öğrenci'}
+        gradeClass={personalInfo?.gradeClass || goals?.gradeClass || '8. Sınıf'}
+        targetExam={goals?.examGoalType || 'LGS 2026'}
+        targetSchool={goals?.targetSchool || ''}
+        targetNet={goals?.targetNet || ''}
+        targetScore={goals?.targetScore || ''}
+        weeklyProgram={weeklyProgram}
+        mockExams={denemeTakip}
+        counterGoals={goals?.counterGoals || []}
+        teacherNote={coachingNotes}
+        submissions={submissions}
+      />
 
     </div>
   );

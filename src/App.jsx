@@ -1,49 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, NavLink, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { initNativeApp } from './services/nativeMobileService';
 import MobileBottomNav from './components/MobileBottomNav';
+import ErrorBoundary from './components/ErrorBoundary';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
   PanelLeftClose, PanelLeftOpen, Headphones
 } from 'lucide-react';
 
-import Landing from './pages/Landing';
-import AdminDashboard from './pages/AdminDashboard';
-import TeacherDashboard from './pages/TeacherDashboard';
-import StudentDashboard from './pages/StudentDashboard';
-import StudentBooksPage from './pages/StudentBooksPage';
-import StudentBookDetailsPage from './pages/StudentBookDetailsPage';
-import HomeworkManager from './pages/HomeworkManager';
-import EvaluationManager from './pages/EvaluationManager';
-import QuestionBank from './pages/QuestionBank';
-import QuizRunner from './pages/QuizRunner';
-import BookQuizRunner from './pages/BookQuizRunner';
-import QuizReview from './pages/QuizReview';
-import ModularQuizPage from './pages/ModularQuizPage';
-import ModularQuizReviewPage from './pages/ModularQuizReviewPage';
-import BookManager from './pages/BookManager';
-import BookContentManager from './pages/BookContentManager';
-import StudyPlanManager from './pages/StudyPlanManager';
-import StudyPlanDetail from './pages/StudyPlanDetail';
-import StatisticsDashboard from './pages/StatisticsDashboard';
-import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
-import StudentResultsPage from './pages/StudentResultsPage';
-import StudentExamsPage from './pages/StudentExamsPage';
-import StudentWrongAnswersPage from './pages/StudentWrongAnswersPage';
-import StudentStudyPlanView from "./pages/StudentStudyPlanView";
-import StudentCoachingPage from './pages/StudentCoachingPage';
-import MyCoachingPage from './pages/MyCoachingPage';
-import ExamManager from './pages/ExamManager';
-import ExamAnalysisPage from './pages/ExamAnalysisPage';
-import PhysicalExamRunner from './pages/PhysicalExamRunner';
-import TrackedBookQuizRunner from './pages/TrackedBookQuizRunner';
-import StudentProgramPage from './pages/StudentProgramPage';
-import LoginPage from './pages/LoginPage';
-import ScalePage from './pages/ScalePage';
-import SummaryManagerPage from './pages/SummaryManagerPage';
-import StudentSummaryPage from './pages/StudentSummaryPage';
-import StudyRoomPage from './pages/StudyRoomPage';
+// Lazy Loaded Pages
+const Landing = lazy(() => import('./pages/Landing'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const StudentBooksPage = lazy(() => import('./pages/StudentBooksPage'));
+const StudentBookDetailsPage = lazy(() => import('./pages/StudentBookDetailsPage'));
+const HomeworkManager = lazy(() => import('./pages/HomeworkManager'));
+const EvaluationManager = lazy(() => import('./pages/EvaluationManager'));
+const QuestionBank = lazy(() => import('./pages/QuestionBank'));
+const ModularQuizPage = lazy(() => import('./pages/ModularQuizPage'));
+const ModularQuizReviewPage = lazy(() => import('./pages/ModularQuizReviewPage'));
+const BookManager = lazy(() => import('./pages/BookManager'));
+const BookContentManager = lazy(() => import('./pages/BookContentManager'));
+const StudyPlanManager = lazy(() => import('./pages/StudyPlanManager'));
+const StudyPlanDetail = lazy(() => import('./pages/StudyPlanDetail'));
+const StatisticsDashboard = lazy(() => import('./pages/StatisticsDashboard'));
+const GoalsAndSchedulePage = lazy(() => import('./pages/GoalsAndSchedulePage'));
+const StudentResultsPage = lazy(() => import('./pages/StudentResultsPage'));
+const StudentExamsPage = lazy(() => import('./pages/StudentExamsPage'));
+const StudentWrongAnswersPage = lazy(() => import('./pages/StudentWrongAnswersPage'));
+const StudentStudyPlanView = lazy(() => import("./pages/StudentStudyPlanView"));
+const StudentCoachingPage = lazy(() => import('./pages/StudentCoachingPage'));
+const MyCoachingPage = lazy(() => import('./pages/MyCoachingPage'));
+const ExamManager = lazy(() => import('./pages/ExamManager'));
+const ExamAnalysisPage = lazy(() => import('./pages/ExamAnalysisPage'));
+const PhysicalExamRunner = lazy(() => import('./pages/PhysicalExamRunner'));
+const TrackedBookQuizRunner = lazy(() => import('./pages/TrackedBookQuizRunner'));
+const StudentProgramPage = lazy(() => import('./pages/StudentProgramPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ScalePage = lazy(() => import('./pages/ScalePage'));
+const SummaryManagerPage = lazy(() => import('./pages/SummaryManagerPage'));
+const StudentSummaryPage = lazy(() => import('./pages/StudentSummaryPage'));
+const StudyRoomPage = lazy(() => import('./pages/StudyRoomPage'));
+
+function PageLoader() {
+  return (
+    <div style={{
+      minHeight: '65vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '1rem',
+      color: '#818cf8',
+      fontFamily: "'Inter', system-ui, sans-serif"
+    }}>
+      <div style={{
+        width: 42,
+        height: 42,
+        border: '3.5px solid rgba(129, 140, 248, 0.2)',
+        borderTopColor: '#818cf8',
+        borderRadius: '50%',
+        animation: 'spin 0.75s linear infinite'
+      }} />
+      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.04em' }}>
+        Yükleniyor…
+      </span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 import { useAuth } from './context/AuthContext';
 import { useCoaching } from './context/CoachingContext';
 import './App.css';
@@ -345,45 +373,49 @@ function AppContent() {
       )}
 
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
-          <Route path="/teacher" element={<TeacherDashboard />} />
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/study-room" element={<StudyRoomPage />} />
-          <Route path="/student/study-room" element={<StudyRoomPage />} />
-          <Route path="/student/summaries" element={<StudentSummaryPage />} />
-          <Route path="/summaries" element={<SummaryManagerPage />} />
-          <Route path="/student/books" element={<StudentBooksPage />} />
-          <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
-          <Route path="/student/exams" element={<StudentExamsPage />} />
-          <Route path="/student/exams/:bookId" element={<StudentBookDetailsPage />} />
-          <Route path="/homeworks" element={<HomeworkManager />} />
-          <Route path="/evaluations" element={<EvaluationManager />} />
-          <Route path="/questions" element={<QuestionBank />} />
-          <Route path="/quiz/:testId" element={<ModularQuizPage />} />
-          <Route path="/book-quiz/:testId" element={<TrackedBookQuizRunner />} />
-          <Route path="/quiz-review/:testId" element={<ModularQuizReviewPage />} />
-          <Route path="/review/:submissionId" element={<ModularQuizReviewPage />} />
-          <Route path="/books" element={<BookManager />} />
-          <Route path="/books/:id" element={<BookContentManager />} />
-          <Route path="/study-plans" element={<StudyPlanManager />} />
-          <Route path="/study-plans/:id" element={<StudyPlanDetail />} />
-          <Route path="/student/study-plan/:assignmentId" element={<StudentStudyPlanView />} />
-          <Route path="/statistics" element={<StatisticsDashboard />} />
-          <Route path="/goals" element={<GoalsAndSchedulePage />} />
-          <Route path="/student-results" element={<StudentResultsPage />} />
-          <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
-          <Route path="/my-program" element={<StudentProgramPage />} />
-          <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
-          <Route path="/my-coaching" element={<MyCoachingPage />} />
-          <Route path="/physical-exam" element={<ExamManager />} />
-          <Route path="/scales" element={<ScalePage />} />
-          <Route path="/exam-analysis/:examId" element={<ExamAnalysisPage />} />
-          <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
+              <Route path="/teacher" element={<TeacherDashboard />} />
+              <Route path="/student" element={<StudentDashboard />} />
+              <Route path="/study-room" element={<StudyRoomPage />} />
+              <Route path="/student/study-room" element={<StudyRoomPage />} />
+              <Route path="/student/summaries" element={<StudentSummaryPage />} />
+              <Route path="/summaries" element={<SummaryManagerPage />} />
+              <Route path="/student/books" element={<StudentBooksPage />} />
+              <Route path="/student/books/:bookId" element={<StudentBookDetailsPage />} />
+              <Route path="/student/exams" element={<StudentExamsPage />} />
+              <Route path="/student/exams/:bookId" element={<StudentBookDetailsPage />} />
+              <Route path="/homeworks" element={<HomeworkManager />} />
+              <Route path="/evaluations" element={<EvaluationManager />} />
+              <Route path="/questions" element={<QuestionBank />} />
+              <Route path="/quiz/:testId" element={<ModularQuizPage />} />
+              <Route path="/book-quiz/:testId" element={<TrackedBookQuizRunner />} />
+              <Route path="/quiz-review/:testId" element={<ModularQuizReviewPage />} />
+              <Route path="/review/:submissionId" element={<ModularQuizReviewPage />} />
+              <Route path="/books" element={<BookManager />} />
+              <Route path="/books/:id" element={<BookContentManager />} />
+              <Route path="/study-plans" element={<StudyPlanManager />} />
+              <Route path="/study-plans/:id" element={<StudyPlanDetail />} />
+              <Route path="/student/study-plan/:assignmentId" element={<StudentStudyPlanView />} />
+              <Route path="/statistics" element={<StatisticsDashboard />} />
+              <Route path="/goals" element={<GoalsAndSchedulePage />} />
+              <Route path="/student-results" element={<StudentResultsPage />} />
+              <Route path="/wrong-answers" element={<StudentWrongAnswersPage />} />
+              <Route path="/my-program" element={<StudentProgramPage />} />
+              <Route path="/coaching/:studentId" element={<StudentCoachingPage />} />
+              <Route path="/my-coaching" element={<MyCoachingPage />} />
+              <Route path="/physical-exam" element={<ExamManager />} />
+              <Route path="/scales" element={<ScalePage />} />
+              <Route path="/exam-analysis/:examId" element={<ExamAnalysisPage />} />
+              <Route path="/physical-exam/:hwId" element={<PhysicalExamRunner />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
       
       {!shouldHideSidebar && <MobileBottomNav />}
