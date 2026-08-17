@@ -151,6 +151,7 @@ export default function StudentResultsPage() {
   const [trendSubject, setTrendSubject] = useState('all');
   const [byTypeTab, setByTypeTab]       = useState('homework');
   const [expandedSubject, setExpandedSubject] = useState(null);
+  const [perfViewMode, setPerfViewMode] = useState('radar'); // 'radar' | 'bars'
 
   /* ── Curriculum test map ─── */
   const allCurTestsMap = useMemo(() => {
@@ -428,11 +429,32 @@ export default function StudentResultsPage() {
   /* ── Radar data (per-subject average) ─── */
   const radarData = useMemo(() => {
     const map = {};
-    SUBJECTS.forEach(s => { map[s] = { sum: 0, count: 0 }; });
+    SUBJECTS.forEach(s => { map[s] = { sum: 0, count: 0, totalQ: 0, totalCorrect: 0 }; });
     studentSubmissions.forEach(s => {
-      if (map[s.subjectKey]) { map[s.subjectKey].sum += s.computedScore; map[s.subjectKey].count++; }
+      if (map[s.subjectKey]) {
+        map[s.subjectKey].sum += s.computedScore || 0;
+        map[s.subjectKey].count++;
+        map[s.subjectKey].totalQ += s.totalQuestions || 0;
+        map[s.subjectKey].totalCorrect += s.correctCount || 0;
+      }
     });
-    return SUBJECTS.map(s => ({ subject: s.length > 8 ? s.slice(0, 7) + '.' : s, value: map[s].count > 0 ? Math.round(map[s].sum / map[s].count) : 0, fullSubject: s }));
+    return SUBJECTS.map(s => {
+      const count = map[s].count;
+      const avg = count > 0 ? Math.round(map[s].sum / count) : 0;
+      let short = s;
+      if (s === 'Fen Bilimleri') short = 'Fen Bil.';
+      else if (s === 'Sosyal Bilgiler') short = 'Sosyal';
+      else if (s === 'Genel Testler') short = 'Genel Test';
+      return {
+        subject: short,
+        fullSubject: s,
+        value: avg,
+        count: count,
+        totalQ: map[s].totalQ,
+        totalCorrect: map[s].totalCorrect,
+        theme: subjectThemes[s] || subjectThemes['Diğer']
+      };
+    });
   }, [studentSubmissions]);
 
   /* ── Pie / type breakdown ─── */
@@ -613,21 +635,173 @@ export default function StudentResultsPage() {
             {/* Radar + Pie row */}
             <div className="sr-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 16 }}>
 
-              {/* Radar */}
-              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', minWidth: 0, overflow: 'hidden' }}>
-                <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  🕸️ Ders Bazlı Performans Haritası
-                </h3>
-                <div style={{ width: '100%', height: 260 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid stroke="rgba(255,255,255,0.12)" />
-                      <PolarAngleAxis dataKey="subject" style={{ fontSize: '0.74rem', fontWeight: 800, fill: '#c7d2fe' }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} style={{ fontSize: '0.65rem' }} tick={{ fill: 'rgba(255,255,255,0.5)' }} stroke="rgba(255,255,255,0.12)" />
-                      <Radar name="Başarı" dataKey="value" stroke="#818cf8" fill="#6366f1" fillOpacity={0.35} strokeWidth={2.5} />
-                      <Tooltip formatter={(v) => [`%${v}`, 'Ortalama Başarı']} contentStyle={{ background: '#0f172a', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800 }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
+              {/* Radar + Performance Breakdown */}
+              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 27, 75, 0.94) 100%)', borderRadius: 22, padding: '1.35rem', border: '1.5px solid rgba(165, 180, 252, 0.25)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      🕸️ Ders Bazlı Performans Haritası
+                    </h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 600 }}>Tüm derslerdeki ortalama başarı yüzdesi ve soru hacmi</p>
+                  </div>
+                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', padding: 3, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)' }}>
+                    <button
+                      onClick={() => setPerfViewMode('radar')}
+                      style={{
+                        padding: '0.28rem 0.65rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: perfViewMode === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                        color: perfViewMode === 'radar' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                        boxShadow: perfViewMode === 'radar' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      🕸️ Radar
+                    </button>
+                    <button
+                      onClick={() => setPerfViewMode('bars')}
+                      style={{
+                        padding: '0.28rem 0.65rem',
+                        borderRadius: 8,
+                        border: 'none',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: perfViewMode === 'bars' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                        color: perfViewMode === 'bars' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                        boxShadow: perfViewMode === 'bars' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      📊 Çubuklar
+                    </button>
+                  </div>
+                </div>
+
+                {perfViewMode === 'radar' ? (
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={radarData}>
+                        <defs>
+                          <linearGradient id="radarNeonGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.7} />
+                            <stop offset="100%" stopColor="#818cf8" stopOpacity={0.25} />
+                          </linearGradient>
+                        </defs>
+                        <PolarGrid stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />
+                        <PolarAngleAxis
+                          dataKey="subject"
+                          tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 900 }}
+                        />
+                        <PolarRadiusAxis
+                          angle={90}
+                          domain={[0, 100]}
+                          stroke="rgba(255,255,255,0.28)"
+                          tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }}
+                          tickCount={5}
+                        />
+                        <Radar
+                          name="Başarı"
+                          dataKey="value"
+                          stroke="#38bdf8"
+                          fill="url(#radarNeonGrad)"
+                          fillOpacity={0.65}
+                          strokeWidth={2.8}
+                          dot={{ r: 4.5, fill: '#38bdf8', stroke: '#ffffff', strokeWidth: 2 }}
+                        />
+                        <Tooltip
+                          formatter={(v, name, props) => [`%${v} (${props.payload.count || 0} Test · ${props.payload.totalQ || 0} Soru)`, props.payload.fullSubject || name]}
+                          contentStyle={{ background: '#0f172a', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.22)', color: '#ffffff', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={radarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.12)" vertical={false} />
+                        <XAxis dataKey="subject" tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 900 }} />
+                        <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} tickFormatter={v => `%${v}`} />
+                        <Tooltip
+                          formatter={(v, name, props) => [`%${v} (${props.payload.count || 0} Test · ${props.payload.totalQ || 0} Soru)`, props.payload.fullSubject || name]}
+                          contentStyle={{ background: '#0f172a', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.22)', color: '#ffffff', fontWeight: 800 }}
+                        />
+                        <Bar dataKey="value" name="Başarı" radius={[8, 8, 0, 0]}>
+                          {radarData.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={entry.theme?.color || '#38bdf8'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Direct High-Contrast Subject Breakdown Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 12 }}>
+                  {radarData.map((d, i) => {
+                    const hasTests = d.count > 0;
+                    const SubIcon = d.theme?.icon || BookOpen;
+                    const color = d.theme?.color || '#38bdf8';
+                    const isGood = d.value >= 70;
+                    const isMid = d.value >= 50 && d.value < 70;
+
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: 14,
+                          padding: '0.65rem 0.75rem',
+                          border: `1px solid ${hasTests ? d.theme?.border || 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)'}`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: d.theme?.bg || 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <SubIcon size={12} color={color} />
+                            </div>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {d.fullSubject}
+                            </span>
+                          </div>
+                          <span style={{
+                            fontSize: '0.74rem',
+                            fontWeight: 900,
+                            color: hasTests ? (isGood ? '#4ade80' : isMid ? '#fbbf24' : '#f87171') : 'rgba(255,255,255,0.4)',
+                            flexShrink: 0
+                          }}>
+                            {hasTests ? `%${d.value}` : '—'}
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div style={{ width: '100%', height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${hasTests ? d.value : 0}%`,
+                              background: hasTests ? (isGood ? 'linear-gradient(90deg, #10b981, #34d399)' : isMid ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #ef4444, #f87171)') : 'transparent',
+                              borderRadius: 99,
+                              boxShadow: hasTests ? `0 0 8px ${color}` : 'none',
+                              transition: 'width 0.6s ease'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+                          {hasTests ? `${d.count} Test · ${d.totalQ} Soru` : 'Henüz test yok'}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
