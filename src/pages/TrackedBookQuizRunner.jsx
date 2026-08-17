@@ -886,16 +886,6 @@ export default function TrackedBookQuizRunner() {
                         <BookOpen size={16} /> Kitaba Dön
                       </button>
                     )}
-                    {nextTest && (
-                      <button
-                        onClick={() => navigate(`/book-quiz/${resolvedBook.id}/${nextTest.id}?studentId=${studentId}`)}
-                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(16,185,129,0.4)', transition: 'transform 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-                      >
-                        <PlayCircle size={16} /> Sonraki Test: {nextTest.name}
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
