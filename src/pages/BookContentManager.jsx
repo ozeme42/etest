@@ -401,8 +401,8 @@ export default function BookContentManager() {
   }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic, mistakeFilterStudent, students]);
 
   // --- HANDLERS ---
-  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: !p[subjId] }));
-  const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: !p[topicId] }));
+  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === false ? true : false }));
+  const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: p[topicId] === false ? true : false }));
   const toggleTestSelection = (testId) => setSelectedTests(p => p.includes(testId) ? p.filter(id => id !== testId) : [...p, testId]);
   const toggleHwDetails = (hwId) => setExpandedHomeworkDetails(p => ({ ...p, [hwId]: !p[hwId] }));
 
@@ -1064,10 +1064,52 @@ export default function BookContentManager() {
         <div className="books-glass-card" style={{ padding: '1.75rem' }}>
           {book.subjects && book.subjects.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Header Toolbar: Quick Expand/Collapse */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid rgba(255,255,255,0.1)', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 900, color: '#c7d2fe', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Layers size={18} style={{ color: '#818cf8' }} /> Kitap Ders &amp; Ünite Hiyerarşisi
+                </div>
+                <div style={{ display: 'flex', gap: '0.45rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allOpenSubj = {};
+                      const allOpenTop = {};
+                      book.subjects?.forEach(s => {
+                        allOpenSubj[s.id] = false;
+                        s.topics?.forEach(t => { allOpenTop[t.id] = false; });
+                      });
+                      setCollapsedSubjects(allOpenSubj);
+                      setCollapsedTopics(allOpenTop);
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}
+                  >
+                    📂 Tümünü Aç
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allClosedSubj = {};
+                      const allClosedTop = {};
+                      book.subjects?.forEach(s => {
+                        allClosedSubj[s.id] = true;
+                        s.topics?.forEach(t => { allClosedTop[t.id] = true; });
+                      });
+                      setCollapsedSubjects(allClosedSubj);
+                      setCollapsedTopics(allClosedTop);
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}
+                  >
+                    📁 Tümünü Kapat
+                  </button>
+                </div>
+              </div>
+
               {book.subjects.map(subject => {
                 const directTests = sortTestsNaturally(tests.filter(t => String(t.subjectId) === String(subject.id) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subject.id))));
                 const topicsList = subject.topics || [];
-                const isExpanded = !collapsedSubjects[subject.id];
+                // Closed by default unless explicitly toggled to false
+                const isExpanded = collapsedSubjects[subject.id] === false;
 
                 return (
                   <div key={subject.id} style={{ border: '1.5px solid rgba(255,255,255,0.12)', borderRadius: '1rem', overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
@@ -1152,7 +1194,8 @@ export default function BookContentManager() {
                         {/* Topics List (when Ders > Konu > Test structure) */}
                         {topicsList.map(topic => {
                           const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId) === String(topic.id)));
-                          const isTopicExpanded = !collapsedTopics[topic.id];
+                          // Closed by default unless explicitly toggled to false
+                          const isTopicExpanded = collapsedTopics[topic.id] === false;
 
                           return (
                             <div key={topic.id} style={{ borderLeft: '3px solid #818cf8', margin: '0.5rem 0.25rem 1.25rem 0.25rem', paddingLeft: '1rem' }}>
