@@ -454,10 +454,12 @@ export default function StudentDashboard() {
       else groups[groupKey].pendingCount++;
     });
 
-    return Object.values(groups).map(g => ({
-      ...g,
-      pct: g.totalCount > 0 ? Math.round((g.doneCount / g.totalCount) * 100) : 0
-    }));
+    return Object.values(groups)
+      .map(g => ({
+        ...g,
+        pct: g.totalCount > 0 ? Math.round((g.doneCount / g.totalCount) * 100) : 0
+      }))
+      .filter(g => g.pendingCount > 0);
   }, [tests]);
 
   /* ─── Overall Student Success Rate (%) ─── */
@@ -1571,13 +1573,15 @@ export default function StudentDashboard() {
               </div>
 
               {homeworkSummaryGroups.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: tests.length > 0 ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)', borderRadius: 16, border: tests.length > 0 ? '1px dashed rgba(34,197,94,0.3)' : '1px dashed rgba(255,255,255,0.12)' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎉</div>
-                  <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
-                    Henüz atanmış bir ödeviniz yok
+                  <div style={{ fontWeight: 800, color: tests.length > 0 ? '#4ade80' : '#ffffff', fontSize: '0.92rem', marginBottom: 4 }}>
+                    {tests.length > 0 ? 'Tüm Ödevler Başarıyla Tamamlandı!' : 'Henüz atanmış bir ödeviniz yok'}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                    Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir.
+                    {tests.length > 0
+                      ? 'Çözülmeyi bekleyen aktif ödeviniz bulunmuyor. Geçmiş ödevlerinizi görmek için tıklayın.'
+                      : 'Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir.'}
                   </div>
                 </div>
               ) : (
