@@ -90,6 +90,16 @@ const DASHBOARD_QUOTES = [
   { quote: "Kendine inan. Dünya, kendine inanan insanların peşinden gider.", author: "Oprah Winfrey", category: "Özgüven", emoji: "✨" }
 ];
 
+export function formatLocalYMD(date) {
+  if (!date) return null;
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function extractItemYMD(item) {
   if (!item) return null;
   if (typeof item === 'string') {
@@ -101,7 +111,7 @@ export function extractItemYMD(item) {
     return null;
   }
   if (item instanceof Date && !isNaN(item.getTime())) {
-    try { return item.toISOString().split('T')[0]; } catch { return null; }
+    return formatLocalYMD(item);
   }
   if (typeof item !== 'object') return null;
 
@@ -118,7 +128,8 @@ export function extractItemYMD(item) {
   for (const val of candidates) {
     if (!val) continue;
     if (val instanceof Date && !isNaN(val.getTime())) {
-      try { return val.toISOString().split('T')[0]; } catch { continue; }
+      const res = formatLocalYMD(val);
+      if (res) return res;
     }
     const str = String(val).trim();
     // 1) Match ISO format YYYY-MM-DD
@@ -538,15 +549,15 @@ export default function StudentDashboard() {
     const now = new Date();
     const currentDayIdx = now.getDay();
     const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
-    const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff);
+    const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff, 12, 0, 0);
 
     const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
     const MONTHS_SHORT_TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
     const dayDateMap = {};
     DAYS_OF_WEEK.forEach((d, idx) => {
-      const dObj = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + idx);
-      const ymd = dObj.toISOString().split('T')[0];
+      const dObj = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + idx, 12, 0, 0);
+      const ymd = formatLocalYMD(dObj);
       const dayNum = dObj.getDate();
       const mShort = MONTHS_SHORT_TR[dObj.getMonth()];
       const mLong = MONTHS_TR[dObj.getMonth()];
