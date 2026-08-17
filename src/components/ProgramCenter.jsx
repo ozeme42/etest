@@ -1014,7 +1014,22 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
 }
 
 /* ─── MonthlyListPanel Component ─── */
-export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, submissions, curData, onEditClick, isDark = false }) {
+export function MonthlyListPanel({
+  weeklyProgram,
+  allHomeworks,
+  currentUser,
+  submissions,
+  curData,
+  books = [],
+  bookTests = [],
+  studyPlans = [],
+  studyAssignments = [],
+  onToggle,
+  onDelete,
+  onEditClick,
+  onOpenResult,
+  isDark = false
+}) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
 
@@ -1040,15 +1055,7 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
     const studentGrades = curData?.grades || [];
 
     const studentHomeworks = (allHomeworks || []).filter(hw => {
-      if (hw.isBookAssignment) return false;
       return isHomeworkForStudent(hw, currentUser, studentGrades);
-    }).map(hw => {
-      const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
-        (submissions || []).find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
-      return {
-        ...hw,
-        isDone: !!sub
-      };
     });
 
     const allDailyItems = [];
@@ -1069,16 +1076,17 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
 
       const dayProg = (weeklyProgram || []).find(r => r.day === dayKey);
       const rawManualItems = dayProg?.items || [];
+      
+      // All items belonging to this weekday in weeklyProgram reflect on this day
       let manualItems = rawManualItems.filter(item => {
         if (item.createdYMD && ymd < item.createdYMD) return false;
         if (item.repeatEndDate && ymd > item.repeatEndDate) return false;
-        if (item.repeatType === 'none' || item.isRecurring === false) {
-          const itemCreatedYMD = item.createdYMD || getLocalYMD(new Date());
-          return isSameWeek(ymd, itemCreatedYMD);
-        }
+        if (item.singleDate && item.singleDate !== ymd) return false;
+        if (item.specificDate && item.specificDate !== ymd) return false;
         return true;
       });
 
+      // Add daily tasks
       allDailyItems.forEach(dItem => {
         if (dItem.createdYMD && ymd < dItem.createdYMD) return;
         if (dItem.repeatEndDate && ymd > dItem.repeatEndDate) return;
@@ -1090,7 +1098,60 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
       const dateTime = dateObj.getTime();
       const autoHwItems = [];
 
+      // A) Homeworks & Book Assignments
       studentHomeworks.forEach(hw => {
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || hw.bookId;
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+
+        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0) {
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const tYMD = tDateStr.split('T')[0];
+            if (ymd === tYMD) {
+              const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
+              const testName = tObj?.name || 'Test';
+              const qCount = tObj?.questionCount || 20;
+
+              const subjObj = (bookObj?.subjects || []).find(s => String(s.id) === String(tObj?.subjectId));
+              const subjectName = subjObj?.name || hw.subject || cleanBookTitle;
+              const topicObj = (subjObj?.topics || []).find(tp => String(tp.id) === String(tObj?.topicId));
+              const topicName = topicObj?.name || tObj?.topicName || '';
+
+              const displayHeader = topicName ? `${subjectName} • ${topicName}` : subjectName;
+              const displaySub = `${cleanBookTitle} — ${testName}`;
+
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
+
+              const isSolved = (submissions || []).some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || String(s.bookTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+              );
+
+              if (isSolved) return;
+
+              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${ymd}` || m.testId === testId);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `book_test_${hw.id}_${testId}_${ymd}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: 'kitap',
+                  subject: displayHeader,
+                  topic: displaySub,
+                  questionCount: `${qCount} soru`,
+                  time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                  done: false
+                });
+              }
+            }
+          });
+          return;
+        }
+
         const rawStart = hw.startDate || hw.assignedAt || hw.createdAt;
         const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
         const startTime = startYMD ? new Date(startYMD).getTime() : null;
@@ -1109,21 +1170,143 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
         }
 
         if (isForThisDay) {
-          const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id);
+          if (Array.isArray(hw.tests) && hw.tests.length > 1) {
+            hw.tests.forEach((testId, idx) => {
+              const tIdStr = String(testId);
+              const tUuidStr = String(toUUID(testId) || '');
+              const isTestSolved = (submissions || []).some(s =>
+                String(s.studentId) === String(studentId) &&
+                s.status !== 'in_progress' && s.status !== 'draft' &&
+                (String(s.testId) === tIdStr || String(s.realTestId) === tIdStr || (tUuidStr && String(s.testId) === tUuidStr) || (s.bookTestIds && s.bookTestIds.some(tid => String(tid) === tIdStr)))
+              );
+              if (isTestSolved) return;
+
+              const tObj = (bookTests || []).find(b => String(b.id) === tIdStr);
+              const testTitle = tObj?.name || `Test ${idx + 1}`;
+              const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${ymd}` || m.hwId === hw.id);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `auto_hw_${hw.id}_${testId}_${ymd}`,
+                  hwId: hw.id,
+                  testId: testId,
+                  isAutoHomework: true,
+                  taskType: isBook ? 'kitap' : 'ödev',
+                  subject: hw.subject || 'Atanan Kitap/Ödev',
+                  topic: `${hw.title || 'Ödev'} — ${testTitle}`,
+                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
+                  done: false
+                });
+              }
+            });
+            return;
+          }
+
+          const sub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId)) ||
+            (submissions || []).find(s => (s.hwId === hw.id || s.testId === hw.id || String(s.testId) === String(hw.id)) && String(s.studentId) === String(studentId));
+          const isDone = !!sub;
+
+          if (isDone) return;
+
+          const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
           if (!exists) {
             autoHwItems.push({
-              id: `monthly_auto_hw_${hw.id}_${ymd}`,
+              id: `auto_hw_${hw.id}_${ymd}`,
               hwId: hw.id,
               isAutoHomework: true,
-              taskType: 'ödev',
+              taskType: hw.isBookAssignment ? 'kitap' : 'ödev',
               subject: hw.subject || 'Atanan Ödev',
               topic: hw.title || hw.name || 'Ödev Görevi',
               questionCount: hw.totalQuestions ? `${hw.totalQuestions}` : null,
               time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-              done: hw.isDone
+              done: false
             });
           }
         }
+      });
+
+      // B) Roadmap / Study Plan items with target dates (dueDate)
+      const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
+      studentAssignments.forEach(assignment => {
+        if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+
+        const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+        if (!plan) return;
+
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+        } else if (typeof assignment.topic === 'string') {
+          try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+        }
+        const completedTopicsSet = new Set(compTopics.map(String));
+
+        let totalPlanSteps = 0;
+        let completedPlanSteps = 0;
+        (plan.subjects || []).forEach(subject => {
+          if (subject.dueDate) {
+            totalPlanSteps++;
+            if (completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name)) completedPlanSteps++;
+          }
+          (subject.topics || []).forEach(topic => {
+            totalPlanSteps++;
+            if (completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name)) completedPlanSteps++;
+          });
+        });
+
+        if (totalPlanSteps > 0 && completedPlanSteps >= totalPlanSteps) return;
+
+        (plan.subjects || []).forEach(subject => {
+          const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
+          const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+          const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+
+          if (!hasChildTopics && subject.dueDate) {
+            const sYMD = subject.dueDate.split('T')[0];
+            if (ymd === sYMD && !isSubjectCompleted) {
+              const exists = manualItems.some(m => m.id === `roadmap_sub_${assignment.id}_${subject.id}_${ymd}`);
+              if (!exists) {
+                autoHwItems.push({
+                  id: `roadmap_sub_${assignment.id}_${subject.id}_${ymd}`,
+                  roadmapAssignmentId: assignment.id,
+                  isAutoHomework: true,
+                  isRoadmapTask: true,
+                  taskType: 'konu',
+                  subject: `${plan.title} • ${subject.name}`,
+                  topic: subject.name,
+                  time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+                  done: false
+                });
+              }
+            }
+          }
+
+          (subject.topics || []).forEach(topic => {
+            if (topic.dueDate) {
+              const tYMD = topic.dueDate.split('T')[0];
+              if (ymd === tYMD) {
+                const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+                if (!isCompleted) {
+                  const exists = manualItems.some(m => m.id === `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`);
+                  if (!exists) {
+                    autoHwItems.push({
+                      id: `roadmap_topic_${assignment.id}_${topic.id}_${ymd}`,
+                      roadmapAssignmentId: assignment.id,
+                      isAutoHomework: true,
+                      isRoadmapTask: true,
+                      taskType: 'konu',
+                      subject: `${plan.title} • ${subject.name}`,
+                      topic: topic.name,
+                      time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                      done: false
+                    });
+                  }
+                }
+              }
+            }
+          });
+        });
       });
 
       const dayItems = [...autoHwItems, ...manualItems];
@@ -1145,7 +1328,7 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
       monthTitle: `${monthName} ${year}`,
       daysList
     };
-  }, [monthOffset, weeklyProgram, allHomeworks, currentUser, submissions, curData]);
+  }, [monthOffset, weeklyProgram, allHomeworks, currentUser, submissions, curData, books, bookTests, studyPlans, studyAssignments]);
 
   const filteredDays = useMemo(() => {
     if (!onlyWithTasks) return monthInfo.daysList;
@@ -1369,6 +1552,8 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
                       const icon = taskIcons[item.taskType] || '📌';
                       const tt = TASK_TYPES.find(t => t.id === item.taskType);
                       const itemAccent = item.done ? '#22c55e' : (tt?.color || theme.text);
+                      const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
+
                       return (
                         <div
                           key={item.id || idx}
@@ -1385,11 +1570,56 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
                             boxShadow: item.done ? 'none' : (isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 6px rgba(0,0,0,0.02)')
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                          <div
+                            onClick={() => {
+                              if (isClickable && onOpenResult) {
+                                onOpenResult(item);
+                              } else if (onToggle) {
+                                onToggle(d.dayKey, item.id);
+                              }
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1, cursor: (isClickable || onToggle) ? 'pointer' : 'default' }}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onToggle) onToggle(d.dayKey, item.id);
+                              }}
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 6,
+                                border: item.done ? '2px solid #22c55e' : (isDark ? '2px solid rgba(255,255,255,0.3)' : '2px solid #cbd5e1'),
+                                background: item.done ? '#22c55e' : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                                flexShrink: 0,
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={item.done ? 'Tamamlandı olarak işaretlendi' : 'Tamamlandı olarak işaretle'}
+                            >
+                              {item.done && <Check size={13} color="white" strokeWidth={3} />}
+                            </button>
+
                             <span style={{ fontSize: '0.95rem' }}>{icon}</span>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'), textDecoration: item.done ? 'line-through' : 'none' }}>
-                                {item.subject || item.topic || 'Ders Çalışması'}
+                              <div style={{
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                textDecoration: item.done ? 'line-through' : 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5
+                              }}>
+                                <span>{item.subject || item.topic || 'Ders Çalışması'}</span>
+                                {isClickable && (
+                                  <span style={{ fontSize: '0.62rem', color: '#818cf8', fontWeight: 800 }}>↗</span>
+                                )}
                               </div>
                               {item.topic && item.subject && (
                                 <div style={{ fontSize: '0.7rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'), fontWeight: 600, marginTop: 1 }}>{item.topic}</div>
@@ -1430,6 +1660,15 @@ export function MonthlyListPanel({ weeklyProgram, allHomeworks, currentUser, sub
                                 onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8'}
                                 title="Görevi Düzenle">
                                 <Edit3 size={14} />
+                              </button>
+                            )}
+                            {!item.isAutoHomework && onDelete && (
+                              <button onClick={() => onDelete(d.dayKey, item.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(239,68,68,0.6)' : '#f87171', padding: 2, display: 'flex', borderRadius: 4 }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(239,68,68,0.6)' : '#f87171'}
+                                title="Görevi Sil">
+                                <Trash2 size={13} />
                               </button>
                             )}
                           </div>
@@ -2095,7 +2334,14 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
           currentUser={currentUser}
           submissions={submissions}
           curData={curData}
+          books={books}
+          bookTests={bookTests}
+          studyPlans={studyPlans}
+          studyAssignments={studyAssignments}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
           onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
+          onOpenResult={handleOpenTaskResult}
           isDark={isDark}
         />
       )}
