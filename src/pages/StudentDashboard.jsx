@@ -1416,327 +1416,345 @@ export default function StudentDashboard() {
       `}</style>
 
       {/* ════════════════════════════════════════════
-          1. HERO BANNER: ÖĞRENCİ KİMLİK & TEK SATIRDA 5'Lİ KPI KARTLARI
+          1. TOP PURPLE HERO BANNER (PROFİL & BAŞARI)
       ════════════════════════════════════════════ */}
       <div style={{
-        background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 35%, #7c3aed 70%, #9333ea 100%)',
-        borderBottom: '1.5px solid rgba(255, 255, 255, 0.18)',
-        padding: isMobile ? '1rem 0.75rem 1rem' : '1.35rem 1.75rem 1.45rem',
-        boxShadow: '0 10px 30px rgba(79, 70, 229, 0.3)'
+        background: 'linear-gradient(90deg, #4f46e5 0%, #6366f1 28%, #7c3aed 55%, #9333ea 80%, #a855f7 100%)',
+        borderBottom: '1.5px solid rgba(255, 255, 255, 0.15)',
+        padding: isMobile ? '1.25rem 1rem' : '1.75rem 2.25rem',
+        boxShadow: '0 12px 36px rgba(79, 70, 229, 0.35)'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '0.9rem' }}>
-          
-          {/* ÜST SATIR: SOL PROFİL BİLGİSİ <---------> SAĞ YUVARLAK BAŞARI DİSKİ */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.75rem',
-            width: '100%'
-          }}>
-            {/* SOL: AVATAR + HOŞ GELDİN + İSİM + ROZETLER */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', minWidth: 0 }}>
-              
-              {/* Yuvarlak Avatar + Yeşil Online Noktası */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{
-                  width: isMobile ? 52 : 68,
-                  height: isMobile ? 52 : 68,
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.22)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: isMobile ? '1.4rem' : '1.85rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  border: '3px solid rgba(255, 255, 255, 0.55)',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
-                }}>
-                  {selectedStudent?.name?.charAt(0) || 'Ö'}
-                </div>
-                <div style={{
-                  position: 'absolute',
-                  bottom: 1,
-                  right: 1,
-                  width: isMobile ? 13 : 15,
-                  height: isMobile ? 13 : 15,
-                  borderRadius: '50%',
-                  background: '#22c55e',
-                  border: '2.5px solid #ffffff',
-                  boxShadow: '0 0 8px rgba(34, 197, 94, 0.8)'
-                }} />
-              </div>
-
-              {/* İsim ve Başlık Bilgisi */}
-              <div style={{ minWidth: 0 }}>
-                <div style={{
-                  fontSize: isMobile ? '0.66rem' : '0.72rem',
-                  fontWeight: 800,
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  marginBottom: 1
-                }}>
-                  HOŞ GELDİN 👋
-                </div>
-                <h1 style={{
-                  fontSize: isMobile ? '1.25rem' : '1.75rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  margin: '0 0 4px 0',
-                  lineHeight: 1.15,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {selectedStudent?.name || 'Öğrenci'}
-                </h1>
-                
-                {/* Tarih ve Koçluk Rozetleri */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <div style={{
-                    background: 'rgba(255, 255, 255, 0.16)',
-                    border: '1px solid rgba(255, 255, 255, 0.28)',
-                    borderRadius: 99,
-                    padding: '2px 9px',
-                    fontSize: isMobile ? '0.68rem' : '0.72rem',
-                    fontWeight: 800,
-                    color: '#ffffff',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5
-                  }}>
-                    <span>🗓</span>
-                    <span>{heroDateStr}</span>
-                  </div>
-
-                  <div style={{
-                    background: hasCoach ? 'rgba(34, 197, 94, 0.22)' : 'rgba(255, 255, 255, 0.16)',
-                    border: hasCoach ? '1px solid rgba(74, 222, 128, 0.45)' : '1px solid rgba(255, 255, 255, 0.28)',
-                    color: hasCoach ? '#4ade80' : '#ffffff',
-                    borderRadius: 99,
-                    padding: '2px 9px',
-                    fontSize: isMobile ? '0.68rem' : '0.72rem',
-                    fontWeight: 800,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5
-                  }}>
-                    <span>🎓</span>
-                    <span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SAĞ: YUVARLAK BÜYÜK BAŞARI DİSKİ */}
-            <div
-              onClick={() => navigate('/student/results')}
-              title="Detaylı Sonuçlar ve Başarı Analizini İncele"
-              className="sd-btn"
-              style={{
-                width: isMobile ? 68 : 88,
-                height: isMobile ? 68 : 88,
+        <div style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1.25rem',
+          flexWrap: 'wrap'
+        }}>
+          {/* SOL: AVATAR + HOŞ GELDİN + İSİM + HAP ROZETLER */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.35rem', minWidth: 0 }}>
+            
+            {/* Yuvarlak Avatar + Yeşil Online Noktası */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: isMobile ? 62 : 82,
+                height: isMobile ? 62 : 82,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 100%)',
-                border: '2px solid rgba(255, 255, 255, 0.45)',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 2px 6px rgba(255, 255, 255, 0.35)',
+                background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%)',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0
-              }}
-            >
-              <div style={{
-                fontSize: isMobile ? '1.15rem' : '1.5rem',
+                fontSize: isMobile ? '1.65rem' : '2.3rem',
                 fontWeight: 900,
                 color: '#ffffff',
-                lineHeight: 1
+                border: '3px solid rgba(255, 255, 255, 0.65)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25), 0 0 20px rgba(255, 255, 255, 0.2)'
               }}>
-                %{overallSuccessRate}
+                {selectedStudent?.name?.charAt(0) || 'Ö'}
               </div>
               <div style={{
-                fontSize: isMobile ? '0.54rem' : '0.64rem',
-                fontWeight: 900,
-                color: 'rgba(255, 255, 255, 0.95)',
+                position: 'absolute',
+                bottom: 1,
+                right: 1,
+                width: isMobile ? 16 : 20,
+                height: isMobile ? 16 : 20,
+                borderRadius: '50%',
+                background: '#22c55e',
+                border: isMobile ? '3px solid #ffffff' : '3.5px solid #ffffff',
+                boxShadow: '0 0 10px rgba(34, 197, 94, 0.9)'
+              }} />
+            </div>
+
+            {/* İsim ve Başlık Bilgisi */}
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: isMobile ? '0.72rem' : '0.82rem',
+                fontWeight: 800,
+                color: '#ffffff',
+                textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                marginTop: 2,
-                textTransform: 'uppercase'
+                marginBottom: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
               }}>
-                BAŞARI
+                <span>HOŞ GELDİN</span>
+                <span>👏</span>
+              </div>
+              <h1 style={{
+                fontSize: isMobile ? '1.45rem' : '2.35rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                margin: '0 0 8px 0',
+                lineHeight: 1.1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                letterSpacing: '-0.02em',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+              }}>
+                {selectedStudent?.name || 'Öğrenci'}
+              </h1>
+              
+              {/* Tarih ve Koçluk Rozetleri */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.35)',
+                  borderRadius: 999,
+                  padding: isMobile ? '3px 10px' : '5px 14px',
+                  fontSize: isMobile ? '0.72rem' : '0.82rem',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  <span>🗓</span>
+                  <span>{heroDateStr}</span>
+                </div>
+
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.35)',
+                  color: '#4ade80',
+                  borderRadius: 999,
+                  padding: isMobile ? '3px 10px' : '5px 14px',
+                  fontSize: isMobile ? '0.72rem' : '0.82rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  <span>🎓</span>
+                  <span>{hasCoach ? 'Koçum Var' : (gradeLabel || 'Öğrenci')}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ALT SATIR: TEK SATIRDA SIRALANAN 5'Lİ CANLI KPI KARTLARI */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: isMobile ? '0.35rem' : '0.65rem',
-            width: '100%',
-            marginTop: '0.15rem'
-          }}>
-            {/* 1. TOPLAM */}
-            <div
-              onClick={() => navigate('/student/homeworks')}
-              className="sd-btn"
-              style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.22)',
-                borderRadius: isMobile ? 10 : 14,
-                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
-                cursor: 'pointer',
-                minWidth: 0
-              }}
-            >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>📜</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                {taskStats.totalCount}
-              </div>
-              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                TOPLAM
-              </div>
+          {/* SAĞ: YUVARLAK BÜYÜK BAŞARI DİSKİ */}
+          <div
+            onClick={() => navigate('/student/results')}
+            title="Detaylı Sonuçlar ve Başarı Analizini İncele"
+            className="sd-btn"
+            style={{
+              width: isMobile ? 80 : 110,
+              height: isMobile ? 80 : 110,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.1) 100%)',
+              border: '2px solid rgba(255, 255, 255, 0.45)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22), inset 0 2px 8px rgba(255, 255, 255, 0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            <div style={{
+              fontSize: isMobile ? '1.35rem' : '1.95rem',
+              fontWeight: 900,
+              color: '#ffffff',
+              lineHeight: 1
+            }}>
+              %{overallSuccessRate}
             </div>
-
-            {/* 2. TAMAMLANDI */}
-            <div
-              onClick={() => navigate('/student/results')}
-              className="sd-btn"
-              style={{
-                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.22)',
-                borderRadius: isMobile ? 10 : 14,
-                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-                cursor: 'pointer',
-                minWidth: 0
-              }}
-            >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>✅</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                {taskStats.completedCount}
-              </div>
-              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                TAMAMLANDI
-              </div>
-            </div>
-
-            {/* 3. BEKLİYOR */}
-            <div
-              onClick={() => navigate('/student/homeworks')}
-              className="sd-btn"
-              style={{
-                background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.22)',
-                borderRadius: isMobile ? 10 : 14,
-                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)',
-                cursor: 'pointer',
-                minWidth: 0
-              }}
-            >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>⏳</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                {taskStats.pendingCount}
-              </div>
-              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                BEKLİYOR
-              </div>
-            </div>
-
-            {/* 4. GECİKTİ */}
-            <div
-              onClick={() => navigate('/student/homeworks')}
-              className="sd-btn"
-              style={{
-                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.22)',
-                borderRadius: isMobile ? 10 : 14,
-                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
-                cursor: 'pointer',
-                minWidth: 0
-              }}
-            >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>🔥</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                {taskStats.overdueCount}
-              </div>
-              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                GECİKTİ
-              </div>
-            </div>
-
-            {/* 5. TAMAMLANMA */}
-            <div
-              onClick={() => navigate('/student/results')}
-              className="sd-btn"
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-                border: '1.5px solid rgba(255, 255, 255, 0.22)',
-                borderRadius: isMobile ? 10 : 14,
-                padding: isMobile ? '0.4rem 0.15rem' : '0.6rem 0.4rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
-                cursor: 'pointer',
-                minWidth: 0
-              }}
-            >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.15rem', lineHeight: 1, marginBottom: 2 }}>🏆</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '1.4rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                %{taskStats.completionRate}
-              </div>
-              <div style={{ fontSize: isMobile ? '0.52rem' : '0.65rem', fontWeight: 900, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.05em', marginTop: 2, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                TAMAMLANMA
-              </div>
+            <div style={{
+              fontSize: isMobile ? '0.58rem' : '0.72rem',
+              fontWeight: 900,
+              color: 'rgba(255, 255, 255, 0.95)',
+              letterSpacing: '0.12em',
+              marginTop: 4,
+              textTransform: 'uppercase'
+            }}>
+              BAŞARI
             </div>
           </div>
 
-          {/* Teacher Selector if viewed by teacher/admin */}
-          {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-            <div style={{ marginTop: '0.4rem', paddingTop: '0.55rem', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
-              <select
-                value={selectedStudent?.id || ''}
-                onChange={e => {
-                  const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                  if (s) setSelectedStudent(s);
-                }}
-                style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.3rem 0.6rem', fontSize: '0.8rem', fontWeight: 700 }}
-              >
-                {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
-              </select>
-            </div>
-          )}
+        </div>
 
+        {/* Teacher Selector if viewed by teacher/admin */}
+        {currentUser?.role !== 'student' && studentMembers.length > 1 && (
+          <div style={{ maxWidth: 1280, margin: '1rem auto 0', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fde68a' }}>👁️ Öğrenci İncele:</span>
+            <select
+              value={selectedStudent?.id || ''}
+              onChange={e => {
+                const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                if (s) setSelectedStudent(s);
+              }}
+              style={{ background: '#1e293b', color: 'white', border: '1px solid #475569', borderRadius: 8, padding: '0.35rem 0.7rem', fontSize: '0.8rem', fontWeight: 700 }}
+            >
+              {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* ════════════════════════════════════════════
+          2. 5'Lİ CANLI PARLAK KPI KARTLARI (GÖRSELDEKİ BİREBİR RENK VE BOYUTLAR)
+      ════════════════════════════════════════════ */}
+      <div style={{
+        maxWidth: 1280,
+        margin: '0 auto',
+        padding: isMobile ? '1rem 0.75rem 0' : '1.25rem 1.5rem 0'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: isMobile ? '0.45rem' : '0.85rem',
+          width: '100%'
+        }}>
+          {/* 1. TOPLAM */}
+          <div
+            onClick={() => navigate('/student/homeworks')}
+            className="sd-btn"
+            style={{
+              background: 'linear-gradient(180deg, #5b54fa 0%, #4338ca 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: isMobile ? 14 : 20,
+              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(79, 70, 229, 0.4)',
+              cursor: 'pointer',
+              minWidth: 0,
+              minHeight: isMobile ? 74 : 105
+            }}
+          >
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>📋</div>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              {taskStats.totalCount}
+            </div>
+            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              TOPLAM
+            </div>
+          </div>
+
+          {/* 2. TAMAMLANDI */}
+          <div
+            onClick={() => navigate('/student/results')}
+            className="sd-btn"
+            style={{
+              background: 'linear-gradient(180deg, #00c975 0%, #059669 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: isMobile ? 14 : 20,
+              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+              cursor: 'pointer',
+              minWidth: 0,
+              minHeight: isMobile ? 74 : 105
+            }}
+          >
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>✅</div>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              {taskStats.completedCount}
+            </div>
+            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              TAMAMLANDI
+            </div>
+          </div>
+
+          {/* 3. BEKLİYOR */}
+          <div
+            onClick={() => navigate('/student/homeworks')}
+            className="sd-btn"
+            style={{
+              background: 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: isMobile ? 14 : 20,
+              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(245, 158, 11, 0.4)',
+              cursor: 'pointer',
+              minWidth: 0,
+              minHeight: isMobile ? 74 : 105
+            }}
+          >
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>⏳</div>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              {taskStats.pendingCount}
+            </div>
+            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              BEKLİYOR
+            </div>
+          </div>
+
+          {/* 4. GECİKTİ */}
+          <div
+            onClick={() => navigate('/student/homeworks')}
+            className="sd-btn"
+            style={{
+              background: 'linear-gradient(180deg, #ff3355 0%, #e11d48 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: isMobile ? 14 : 20,
+              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(239, 68, 68, 0.4)',
+              cursor: 'pointer',
+              minWidth: 0,
+              minHeight: isMobile ? 74 : 105
+            }}
+          >
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>🔥</div>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              {taskStats.overdueCount}
+            </div>
+            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              GECİKTİ
+            </div>
+          </div>
+
+          {/* 5. TAMAMLANMA */}
+          <div
+            onClick={() => navigate('/student/results')}
+            className="sd-btn"
+            style={{
+              background: 'linear-gradient(180deg, #9d4edd 0%, #7b2cbf 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: isMobile ? 14 : 20,
+              padding: isMobile ? '0.65rem 0.2rem' : '1rem 0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
+              cursor: 'pointer',
+              minWidth: 0,
+              minHeight: isMobile ? 74 : 105
+            }}
+          >
+            <div style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', lineHeight: 1, marginBottom: 2 }}>🏆</div>
+            <div style={{ fontSize: isMobile ? '1.25rem' : '2.1rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+              %{taskStats.completionRate}
+            </div>
+            <div style={{ fontSize: isMobile ? '0.55rem' : '0.78rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.06em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              TAMAMLANMA
+            </div>
+          </div>
         </div>
       </div>
 
