@@ -1,12 +1,9 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudyPlan } from '../context/StudyPlanContext';
-import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles } from 'lucide-react';
 import { isPast, parseISO } from 'date-fns';
-
-function cn(...inputs) { return twMerge(clsx(inputs)); }
+import './StudyPlan.css';
 
 export default function StudentStudyPlanView() {
   const { assignmentId } = useParams();
@@ -20,8 +17,20 @@ export default function StudentStudyPlanView() {
 
   if (!assignment || !plan) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center text-slate-500">Görev bulunamadı.</div>
+      <div className="study-plans-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
+        <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '460px' }}>
+          <Target size={48} style={{ color: '#818cf8', margin: '0 auto 1rem auto' }} />
+          <h2 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.4rem' }}>Görev Bulunamadı</h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            Atanan çalışma planı silinmiş veya süresi dolmuş olabilir.
+          </p>
+          <button 
+            onClick={() => navigate(-1)}
+            style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, cursor: 'pointer' }}
+          >
+            ← Geri Dön
+          </button>
+        </div>
       </div>
     );
   }
@@ -44,80 +53,108 @@ export default function StudentStudyPlanView() {
   let hasFoundLocked = false;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 font-sans">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="study-plans-page-container custom-scrollbar">
+      <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {/* Header */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full translate-x-1/2 -translate-y-1/2 opacity-50 blur-3xl"></div>
-          
-          <div className="relative flex items-start gap-4 mb-8">
-            <button 
-              onClick={() => navigate(-1)}
-              className="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:shadow-md transition-all shrink-0"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex-1">
-              <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider rounded-lg mb-2 inline-block">
-                Yol Haritası Görevi
-              </span>
-              <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-                {plan.title}
-              </h1>
+        {/* ── TOP HERO CARD ── */}
+        <div className="study-glass-card" style={{ padding: '2rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button 
+                onClick={() => navigate(-1)}
+                style={{
+                  padding: '0.65rem',
+                  borderRadius: '0.85rem',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.16)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Geri Dön"
+              >
+                <ArrowLeft size={20} />
+              </button>
+
+              <div>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', padding: '0.2rem 0.65rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)', display: 'inline-block', marginBottom: '0.35rem' }}>
+                  ÖĞRENCİ YOL HARİTASI
+                </span>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                  {plan.title}
+                </h1>
+              </div>
             </div>
-            <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 border-4 border-white shadow-md">
-              <Target className="w-8 h-8 text-indigo-600" />
+
+            <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(236,72,153,0.3))', border: '1.5px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc', flexShrink: 0 }}>
+              <Target size={28} />
             </div>
           </div>
 
-          <div className="relative">
-            <div className="flex justify-between text-sm font-bold mb-2">
-              <span className="text-slate-500">İlerleme Durumu</span>
-              <span className="text-indigo-600">{Math.round(progressPct)}%</span>
+          {/* Live Progress Bar */}
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem 1.5rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>İlerleme Durumu</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: progressPct === 100 ? '#34d399' : '#818cf8' }}>
+                %{Math.round(progressPct)}
+              </span>
             </div>
-            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+
+            <div style={{ width: '100%', height: '10px', background: 'rgba(0,0,0,0.35)', borderRadius: '1rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div 
-                className="h-full bg-indigo-500 transition-all duration-1000 ease-out" 
-                style={{ width: `${progressPct}%` }}
-              ></div>
+                style={{
+                  height: '100%',
+                  width: `${progressPct}%`,
+                  background: progressPct === 100 
+                    ? 'linear-gradient(90deg, #10b981, #34d399)' 
+                    : 'linear-gradient(90deg, #6366f1, #ec4899)',
+                  borderRadius: '1rem',
+                  transition: 'width 0.6s ease'
+                }}
+              />
             </div>
-            <div className="flex justify-between text-xs font-bold text-slate-400 mt-2 uppercase tracking-wider">
-              <span>{completedTopics.size} Tamamlandı</span>
-              <span>{totalTopics} Toplam Adım</span>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', marginTop: '0.65rem' }}>
+              <span>🟢 {completedTopics.size} Adım Tamamlandı</span>
+              <span>📑 {totalTopics} Toplam Adım</span>
             </div>
           </div>
         </div>
 
-        {/* Subjects & Topics */}
-        <div className="space-y-6">
+        {/* ── SUBJECTS & TOPICS LIST ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {(plan.subjects || []).map((subject, sIdx) => {
             let isSubjectOverdue = false;
             try {
               isSubjectOverdue = subject.dueDate && isPast(parseISO(subject.dueDate));
             } catch(e) {}
-            
+
             return (
-              <div key={subject.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-5 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black shrink-0">
+              <div key={subject.id} className="study-glass-card" style={{ overflow: 'hidden' }}>
+                
+                {/* Unit Title Bar */}
+                <div style={{ padding: '1rem 1.4rem', background: 'rgba(99, 102, 241, 0.12)', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ width: '30px', height: '30px', borderRadius: '0.55rem', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.3)', color: '#c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 900 }}>
                       {sIdx + 1}
                     </div>
-                    <h2 className="text-lg font-black text-slate-800">{subject.name}</h2>
+                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
+                      {subject.name}
+                    </h2>
                   </div>
+
                   {subject.dueDate && (
-                    <div className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold",
-                      isSubjectOverdue ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"
-                    )}>
-                      <Calendar className="w-3.5 h-3.5" /> 
-                      Bitiş: {subject.dueDate}
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', background: isSubjectOverdue ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.18)', color: isSubjectOverdue ? '#f87171' : '#38bdf8', border: `1px solid ${isSubjectOverdue ? 'rgba(239,68,68,0.35)' : 'rgba(56,189,248,0.3)'}`, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Calendar size={13} /> Hedef: {subject.dueDate}
                     </div>
                   )}
                 </div>
-                
-                <div className="p-2">
+
+                {/* Topics Container */}
+                <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   {(subject.topics || []).map((topic, tIdx) => {
                     const isCompleted = completedTopics.has(topic.id);
                     let isLocked = false;
@@ -134,20 +171,33 @@ export default function StudentStudyPlanView() {
 
                     let isTopicOverdue = false;
                     try {
-                       isTopicOverdue = topic.dueDate && isPast(parseISO(topic.dueDate)) && !isCompleted;
-                    } catch(e){}
+                      isTopicOverdue = topic.dueDate && isPast(parseISO(topic.dueDate)) && !isCompleted;
+                    } catch(e) {}
 
                     return (
-                      <div 
-                        key={topic.id} 
-                        className={cn(
-                          "flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl transition-all mb-1",
-                          isCompleted ? "bg-emerald-50/30 opacity-70 hover:opacity-100" :
-                          isCurrent ? "bg-indigo-50/50 border border-indigo-100" :
-                          "opacity-40 grayscale"
-                        )}
+                      <div
+                        key={topic.id}
+                        style={{
+                          padding: '0.9rem 1.15rem',
+                          borderRadius: '0.85rem',
+                          background: isCompleted 
+                            ? 'rgba(16, 185, 129, 0.08)' 
+                            : isCurrent 
+                            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.18))' 
+                            : 'rgba(255, 255, 255, 0.02)',
+                          border: `1.5px solid ${isCompleted ? 'rgba(52, 211, 153, 0.4)' : isCurrent ? 'rgba(165, 180, 252, 0.45)' : 'rgba(255, 255, 255, 0.06)'}`,
+                          opacity: isLocked ? 0.45 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '0.75rem',
+                          transition: 'all 0.2s'
+                        }}
                       >
-                        <div className="flex items-start gap-4">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, flex: 1 }}>
+                          
+                          {/* Checkbox / Lock */}
                           <button
                             onClick={() => {
                               if (isLocked) return;
@@ -155,94 +205,124 @@ export default function StudentStudyPlanView() {
                               else handleMarkCompleted(topic.id);
                             }}
                             disabled={isLocked}
-                            className={cn(
-                              "mt-1 w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all",
-                              isCompleted ? "bg-emerald-500 text-white" :
-                              isCurrent ? "border-2 border-indigo-400 bg-white cursor-pointer hover:bg-indigo-50" :
-                              "bg-slate-200 text-slate-400"
-                            )}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              border: isCompleted 
+                                ? 'none' 
+                                : isCurrent 
+                                ? '2px solid #818cf8' 
+                                : '2px solid rgba(255,255,255,0.2)',
+                              background: isCompleted 
+                                ? 'linear-gradient(135deg, #10b981, #059669)' 
+                                : isCurrent 
+                                ? 'rgba(99,102,241,0.2)' 
+                                : 'rgba(255,255,255,0.05)',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: isLocked ? 'not-allowed' : 'pointer',
+                              flexShrink: 0,
+                              boxShadow: isCompleted ? '0 2px 8px rgba(16,185,129,0.4)' : 'none'
+                            }}
                           >
-                            {isCompleted && <Check className="w-4 h-4" />}
-                            {isLocked && <Lock className="w-3 h-3" />}
+                            {isCompleted && <Check size={16} />}
+                            {isLocked && <Lock size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />}
                           </button>
-                          
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={cn(
-                                "text-xs font-black uppercase tracking-wider",
-                                isCompleted ? "text-emerald-600" :
-                                isCurrent ? "text-indigo-600" :
-                                "text-slate-500"
-                              )}>
+
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: isCompleted ? '#34d399' : isCurrent ? '#a5b4fc' : 'rgba(255,255,255,0.5)' }}>
                                 {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`) : `Adım ${tIdx + 1}`}
                               </span>
                               {isCurrent && (
-                                <span className="px-2 py-0.5 bg-indigo-500 text-white text-[9px] font-black uppercase tracking-wider rounded">
-                                  Sıradaki
+                                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: '0.3rem' }}>
+                                  ŞİMDİKİ ADIM
                                 </span>
                               )}
                               {isTopicOverdue && (
-                                <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[9px] font-black uppercase tracking-wider rounded">
-                                  Gecikti
+                                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(239,68,68,0.25)', color: '#f87171', padding: '0.1rem 0.45rem', borderRadius: '0.3rem' }}>
+                                  GECİKTİ
                                 </span>
                               )}
                             </div>
-                            <h3 className={cn(
-                              "text-sm font-bold",
-                              isCompleted ? "text-emerald-900 line-through decoration-emerald-200" :
-                              isCurrent ? "text-indigo-950" :
-                              "text-slate-700"
-                            )}>
+
+                            <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: isCompleted ? 'rgba(255,255,255,0.6)' : '#ffffff', textDecoration: isCompleted ? 'line-through' : 'none' }}>
                               {topic.name}
                             </h3>
+
                             {topic.dueDate && (
-                              <p className="text-xs font-medium text-slate-500 mt-0.5">
-                                Son Teslim: {topic.dueDate}
+                              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.74rem', color: '#38bdf8', fontWeight: 700 }}>
+                                Son Tarih: {topic.dueDate}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 pl-10 md:pl-0">
+                        {/* Right Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                           {(topic.resourceUrl || subject.resourceUrl) && (
-                            <a 
+                            <a
                               href={topic.resourceUrl || subject.resourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                                isLocked ? "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none" :
-                                isCurrent ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/20" :
-                                "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                              )}
-                              onClick={e => {
-                                if (isLocked) e.preventDefault();
+                              onClick={e => { if (isLocked) e.preventDefault(); }}
+                              style={{
+                                padding: '0.45rem 0.85rem',
+                                borderRadius: '0.65rem',
+                                background: isLocked ? 'rgba(255,255,255,0.05)' : isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.08)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                color: isLocked ? 'rgba(255,255,255,0.4)' : '#ffffff',
+                                fontSize: '0.78rem',
+                                fontWeight: 800,
+                                textDecoration: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                cursor: isLocked ? 'not-allowed' : 'pointer'
                               }}
                             >
-                              {isLocked ? <Lock className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
-                              Çalışma Kaynağı
-                              <ExternalLink className="w-3 h-3 opacity-50" />
+                              {isLocked ? <Lock size={13} /> : <PlayCircle size={14} />}
+                              Çalışma Kaynağı ↗
                             </a>
                           )}
-                          
-                          {isCurrent && (
+
+                          {isCurrent && !isCompleted && (
                             <button
                               onClick={() => handleMarkCompleted(topic.id)}
-                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/20"
+                              style={{
+                                padding: '0.45rem 0.95rem',
+                                borderRadius: '0.65rem',
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                border: 'none',
+                                color: '#ffffff',
+                                fontSize: '0.8rem',
+                                fontWeight: 900,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(16,185,129,0.35)'
+                              }}
                             >
-                              <CheckCircle2 className="w-4 h-4" /> Bitirdim
+                              <CheckCircle2 size={15} /> Bitirdim
                             </button>
                           )}
                         </div>
+
                       </div>
                     );
                   })}
+
                   {(!subject.topics || subject.topics.length === 0) && (
-                    <div className="p-8 text-center text-sm font-bold text-slate-400">
+                    <div style={{ textAlign: 'center', padding: '1.5rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontStyle: 'italic' }}>
                       Bu üniteye henüz konu eklenmemiş.
                     </div>
                   )}
                 </div>
+
               </div>
             );
           })}
