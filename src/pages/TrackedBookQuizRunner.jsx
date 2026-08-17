@@ -817,46 +817,83 @@ export default function TrackedBookQuizRunner() {
               
               {/* 1. SCORECARD HERO AFTER SUBMISSION */}
               {isSubmitted && results && (
-                <div style={{ background: 'linear-gradient(135deg, #065f46 0%, #047857 50%, #0d9488 100%)', borderRadius: '1.25rem', padding: '1.1rem 1.25rem', color: 'white', boxShadow: '0 8px 24px rgba(4,120,87,0.3)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Trophy size={24} color="#fde047" />
+                <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 27, 75, 0.96) 100%)', borderRadius: '1.4rem', padding: '1.25rem 1.4rem', color: 'white', boxShadow: '0 12px 36px rgba(0,0,0,0.45)', border: '1.5px solid rgba(165, 180, 252, 0.28)', backdropFilter: 'blur(20px)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.25rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: results.scorePct >= 70 ? 'linear-gradient(135deg, rgba(16,185,129,0.3), rgba(5,150,105,0.4))' : results.scorePct >= 50 ? 'linear-gradient(135deg, rgba(245,158,11,0.3), rgba(217,119,6,0.4))' : 'linear-gradient(135deg, rgba(239,68,68,0.3), rgba(225,29,72,0.4))', display: 'flex', alignItems: 'center', justifyContent: 'center', border: results.scorePct >= 70 ? '1.5px solid rgba(52,211,153,0.5)' : results.scorePct >= 50 ? '1.5px solid rgba(251,191,36,0.5)' : '1.5px solid rgba(251,113,133,0.5)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                        <Trophy size={26} color={results.scorePct >= 70 ? '#4ade80' : results.scorePct >= 50 ? '#fbbf24' : '#fb7185'} />
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.85 }}>Test Sonucu</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{resolvedTest.name}</div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(99,102,241,0.22)', border: '1px solid rgba(165,180,252,0.35)', borderRadius: 99, padding: '0.15rem 0.6rem', marginBottom: 4 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#c7d2fe', letterSpacing: '0.05em' }}>TEST TAMAMLANDI</span>
+                        </div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffffff' }}>{resolvedTest.name}</div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#4ade80' }}>{results.correct}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 700, opacity: 0.8 }}>Doğru</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {/* Doğru */}
+                      <div style={{ background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(5, 150, 105, 0.45) 100%)', border: '1.5px solid rgba(52, 211, 153, 0.65)', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68, boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4ade80', textShadow: '0 0 12px rgba(74,222,128,0.5)', lineHeight: 1.1 }}>{results.correct}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#a7f3d0', letterSpacing: '0.04em', marginTop: 3 }}>DOĞRU</div>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#f87171' }}>{results.wrong}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 700, opacity: 0.8 }}>Yanlış</div>
+
+                      {/* Yanlış */}
+                      <div style={{ background: 'linear-gradient(135deg, rgba(136, 19, 55, 0.85) 0%, rgba(225, 29, 72, 0.45) 100%)', border: '1.5px solid rgba(251, 113, 133, 0.65)', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68, boxShadow: '0 4px 14px rgba(239,68,68,0.25)' }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fb7185', textShadow: '0 0 12px rgba(251,113,133,0.5)', lineHeight: 1.1 }}>{results.wrong}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#fecdd3', letterSpacing: '0.04em', marginTop: 3 }}>YANLIŞ</div>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#cbd5e1' }}>{results.blank}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 700, opacity: 0.8 }}>Boş</div>
+
+                      {/* Boş */}
+                      <div style={{ background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.6) 100%)', border: '1.5px solid rgba(148, 163, 184, 0.45)', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68, boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#e2e8f0', lineHeight: 1.1 }}>{results.blank}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 12, padding: '0.4rem 1.1rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#4ade80', lineHeight: 1 }}>{results.net}</div>
-                        <div style={{ fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>Net</div>
+
+                      {/* Başarı Yüzdesi (Net yerine) */}
+                      <div style={{
+                        background: results.scorePct >= 70
+                          ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(13, 148, 136, 0.95) 100%)'
+                          : results.scorePct >= 50
+                            ? 'linear-gradient(135deg, rgba(120, 53, 15, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)'
+                            : 'linear-gradient(135deg, rgba(136, 19, 55, 0.95) 0%, rgba(225, 29, 72, 0.95) 100%)',
+                        border: results.scorePct >= 70 ? '2px solid #34d399' : results.scorePct >= 50 ? '2px solid #fbbf24' : '2px solid #fb7185',
+                        borderRadius: 16,
+                        padding: '0.55rem 1.25rem',
+                        textAlign: 'center',
+                        minWidth: 95,
+                        boxShadow: '0 6px 20px rgba(0,0,0,0.45)'
+                      }}>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+                          %{results.scorePct}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                          🎯 BAŞARI
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Action buttons after submission */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.15)', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', flexWrap: 'wrap', alignItems: 'center' }}>
                     {resolvedBook && (
                       <button 
                         onClick={() => navigate(`/student/books/${resolvedBook.id}`)}
-                        style={{ padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(79,70,229,0.4)' }}
+                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(79,70,229,0.4)', transition: 'transform 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                       >
                         <BookOpen size={16} /> Kitaba Dön
+                      </button>
+                    )}
+                    {nextTest && (
+                      <button
+                        onClick={() => navigate(`/book-quiz/${resolvedBook.id}/${nextTest.id}?studentId=${studentId}`)}
+                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(16,185,129,0.4)', transition: 'transform 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                      >
+                        <PlayCircle size={16} /> Sonraki Test: {nextTest.name}
                       </button>
                     )}
                   </div>

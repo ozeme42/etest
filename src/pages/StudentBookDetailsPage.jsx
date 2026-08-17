@@ -1093,10 +1093,10 @@ export default function StudentBookDetailsPage() {
                                   <Award size={12} /> %{test.bestScore}
                                 </span>
                                 {test.bestSub && (
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.08)', padding: '3px 8px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.12)' }}>
-                                    <span style={{ color: '#4ade80' }}>{test.bestSub.correctCount || 0}D</span>{' '}
-                                    <span style={{ color: '#f87171' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
-                                    <span>{test.bestSub.blankCount || 0}B</span>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(255,255,255,0.08)', padding: '3px 9px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.14)', display: 'inline-flex', gap: 6 }}>
+                                    <span style={{ color: '#4ade80' }}>{test.bestSub.correctCount || 0}D</span>
+                                    <span style={{ color: '#f87171' }}>{test.bestSub.wrongCount || 0}Y</span>
+                                    <span style={{ color: '#cbd5e1' }}>{test.bestSub.blankCount || 0}B</span>
                                   </span>
                                 )}
                               </div>
@@ -1263,10 +1263,10 @@ export default function StudentBookDetailsPage() {
                                           <Award size={12} /> %{test.bestScore}
                                         </span>
                                         {test.bestSub && (
-                                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.08)', padding: '3px 8px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.12)' }}>
-                                            <span style={{ color: '#4ade80' }}>{test.bestSub.correctCount || 0}D</span>{' '}
-                                            <span style={{ color: '#f87171' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
-                                            <span>{test.bestSub.blankCount || 0}B</span>
+                                          <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(255,255,255,0.08)', padding: '3px 9px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.14)', display: 'inline-flex', gap: 6 }}>
+                                            <span style={{ color: '#4ade80' }}>{test.bestSub.correctCount || 0}D</span>
+                                            <span style={{ color: '#f87171' }}>{test.bestSub.wrongCount || 0}Y</span>
+                                            <span style={{ color: '#cbd5e1' }}>{test.bestSub.blankCount || 0}B</span>
                                           </span>
                                         )}
                                       </div>
@@ -1399,10 +1399,10 @@ export default function StudentBookDetailsPage() {
                                 <Award size={12} /> %{test.bestScore}
                               </span>
                               {test.bestSub && (
-                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.08)', padding: '3px 8px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.12)' }}>
-                                  <span style={{ color: '#4ade80' }}>{test.bestSub.correctCount || 0}D</span>{' '}
-                                  <span style={{ color: '#f87171' }}>{test.bestSub.wrongCount || 0}Y</span>{' '}
-                                  <span>{test.bestSub.blankCount || 0}B</span>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(255,255,255,0.08)', padding: '3px 9px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.14)', display: 'inline-flex', gap: 6 }}>
+                                  <span style={{ color: '#4ade80' }}>{test.bestSub.correctCount || 0}D</span>
+                                  <span style={{ color: '#f87171' }}>{test.bestSub.wrongCount || 0}Y</span>
+                                  <span style={{ color: '#cbd5e1' }}>{test.bestSub.blankCount || 0}B</span>
                                 </span>
                               )}
                             </div>
