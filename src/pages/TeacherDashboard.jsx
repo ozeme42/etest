@@ -757,7 +757,16 @@ export default function TeacherDashboard() {
                               <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.45rem', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 <Key size={11} /> {student.password || '123456'}
                               </span>
-                                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                            </td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center', fontWeight: 900, color: solved > 0 ? '#34d399' : 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>{solved}</td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                              {isCoached ? (
+                                <span style={{ padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(192, 132, 252, 0.2)', color: '#c084fc', border: '1px solid rgba(192, 132, 252, 0.35)', fontWeight: 800, fontSize: '0.7rem' }}>🎯 Koçlukta</span>
+                              ) : (
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                                 <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
                                   <button
