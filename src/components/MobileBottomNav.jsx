@@ -40,11 +40,11 @@ export default function MobileBottomNav() {
     <nav
       className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
       style={{
-        background: 'linear-gradient(180deg, rgba(17, 28, 56, 0.92) 0%, rgba(22, 36, 71, 0.98) 100%)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderTop: '1.5px solid rgba(255, 255, 255, 0.16)',
-        boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.35)',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1.5px solid #e2e8f0',
+        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.05)',
         paddingTop: '0.45rem',
         paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.45rem)',
         paddingLeft: '0.5rem',
@@ -72,7 +72,7 @@ export default function MobileBottomNav() {
               padding: '0.2rem 0',
               cursor: 'pointer',
               position: 'relative',
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               transform: isActive ? 'translateY(-2px)' : 'none',
               outline: 'none'
             }}
@@ -86,55 +86,47 @@ export default function MobileBottomNav() {
                   width: 24,
                   height: 3,
                   borderRadius: 99,
-                  background: 'linear-gradient(90deg, #38bdf8, #818cf8, #c084fc)',
-                  boxShadow: '0 0 10px #818cf8'
+                  background: '#6366f1',
+                  boxShadow: '0 0 8px rgba(99, 102, 241, 0.6)'
                 }}
               />
             )}
 
-            {/* Icon Container with Luminous Glass Effect */}
+            {/* Icon Container */}
             <div
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 14,
+                width: 38,
+                height: 38,
+                borderRadius: 12,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 background: isActive
-                  ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(168, 85, 247, 0.4) 100%)'
-                  : 'rgba(255, 255, 255, 0.04)',
-                border: isActive
-                  ? '1.5px solid rgba(165, 180, 252, 0.65)'
-                  : '1px solid rgba(255, 255, 255, 0.08)',
+                  ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                  : 'transparent',
                 boxShadow: isActive
-                  ? '0 4px 16px rgba(99, 102, 241, 0.45), inset 0 0 10px rgba(168, 85, 247, 0.25)'
+                  ? '0 3px 10px rgba(99, 102, 241, 0.35)'
                   : 'none',
-                color: isActive ? '#ffffff' : '#94a3b8'
+                color: isActive ? '#ffffff' : '#64748b'
               }}
             >
               <Icon
-                size={20}
+                size={19}
                 strokeWidth={isActive ? 2.5 : 2}
-                color={isActive ? '#ffffff' : '#cbd5e1'}
-                style={{
-                  filter: isActive ? 'drop-shadow(0 0 6px rgba(165, 180, 252, 0.8))' : 'none',
-                  transition: 'all 0.25s ease'
-                }}
+                color={isActive ? '#ffffff' : '#64748b'}
               />
             </div>
 
             {/* Label */}
             <span
               style={{
-                fontSize: '0.62rem',
+                fontSize: '0.65rem',
                 fontWeight: isActive ? 900 : 700,
                 marginTop: '0.2rem',
                 letterSpacing: '0.02em',
-                transition: 'all 0.25s ease',
-                color: isActive ? '#ffffff' : '#94a3b8',
-                textShadow: isActive ? '0 0 8px rgba(165, 180, 252, 0.6)' : 'none'
+                transition: 'all 0.2s ease',
+                color: isActive ? '#4f46e5' : '#64748b'
               }}
             >
               {tab.label}

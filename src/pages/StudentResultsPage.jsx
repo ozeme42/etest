@@ -29,20 +29,20 @@ import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 /* ── Subject Config ────────────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
 const subjectThemes = {
-  'Matematik':       { bg: 'rgba(37,99,235,0.2)', color: '#60a5fa', border: 'rgba(96,165,250,0.35)', icon: Ruler,         radar: '#3b82f6', light: 'rgba(37,99,235,0.1)' },
-  'Fen Bilimleri':   { bg: 'rgba(5,150,105,0.2)', color: '#34d399', border: 'rgba(52,211,153,0.35)', icon: TestTube2,      radar: '#10b981', light: 'rgba(5,150,105,0.1)' },
-  'Türkçe':          { bg: 'rgba(234,88,12,0.2)', color: '#fb923c', border: 'rgba(251,146,60,0.35)', icon: BookCopy,       radar: '#f97316', light: 'rgba(234,88,12,0.1)' },
-  'Sosyal Bilgiler': { bg: 'rgba(147,51,234,0.2)', color: '#c084fc', border: 'rgba(192,132,252,0.35)', icon: Globe,          radar: '#a855f7', light: 'rgba(147,51,234,0.1)' },
-  'İngilizce':       { bg: 'rgba(225,29,72,0.2)', color: '#fb7185', border: 'rgba(251,113,133,0.35)', icon: MessageSquare,  radar: '#f43f5e', light: 'rgba(225,29,72,0.1)' },
-  'Genel Testler':   { bg: 'rgba(99,102,241,0.2)', color: '#818cf8', border: 'rgba(129,140,248,0.35)', icon: Trophy,         radar: '#6366f1', light: 'rgba(99,102,241,0.1)' },
-  'Diğer':           { bg: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: 'rgba(255,255,255,0.15)', icon: BookOpen,       radar: '#94a3b8', light: 'rgba(255,255,255,0.05)' },
+  'Matematik':       { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', icon: Ruler,         radar: '#3b82f6', light: '#f0f9ff' },
+  'Fen Bilimleri':   { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', icon: TestTube2,      radar: '#10b981', light: '#ecfdf5' },
+  'Türkçe':          { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: BookCopy,       radar: '#f97316', light: '#fffaf5' },
+  'Sosyal Bilgiler': { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff', icon: Globe,          radar: '#a855f7', light: '#fbf8ff' },
+  'İngilizce':       { bg: '#fff1f2', color: '#be123c', border: '#fecdd3', icon: MessageSquare,  radar: '#f43f5e', light: '#fff8f9' },
+  'Genel Testler':   { bg: '#f5f3ff', color: '#4338ca', border: '#ddd6fe', icon: Trophy,         radar: '#6366f1', light: '#faf8ff' },
+  'Diğer':           { bg: '#f8fafc', color: '#475569', border: '#e2e8f0', icon: BookOpen,       radar: '#94a3b8', light: '#f8fafc' },
 };
 
 const typeConfig = {
-  physicalExam: { label: '🏛️ Deneme',     bg: 'rgba(99,102,241,0.2)', color: '#c4b5fd', border: 'rgba(165,180,252,0.35)' },
-  homework:     { label: '📝 Ödev',        bg: 'rgba(249,115,22,0.2)', color: '#fdba74', border: 'rgba(253,186,116,0.35)' },
-  book:         { label: '📕 Kitap Testi', bg: 'rgba(16,185,129,0.2)', color: '#6ee7b7', border: 'rgba(110,231,183,0.35)' },
-  individual:   { label: '⚡ Bireysel',    bg: 'rgba(255,255,255,0.08)', color: '#cbd5e1', border: 'rgba(255,255,255,0.15)' },
+  physicalExam: { label: '🏛️ Deneme',     bg: '#f5f3ff', color: '#4338ca', border: '#ddd6fe' },
+  homework:     { label: '📝 Ödev',        bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+  book:         { label: '📕 Kitap Testi', bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  individual:   { label: '⚡ Bireysel',    bg: '#f8fafc', color: '#475569', border: '#e2e8f0' },
 };
 
 function getSubjectKey(s) {
@@ -66,16 +66,16 @@ function getTypeKey(s) {
 function ScoreBadge({ score, type, isPendingEval, size = 'md' }) {
   if (isPendingEval) {
     return (
-      <span style={{ fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem', fontWeight: 900, background: 'rgba(245,158,11,0.2)', color: '#fbbf24', border: '1.5px solid rgba(245,158,11,0.4)', borderRadius: 10, padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', border: '1.5px solid #fde68a', borderRadius: 10, padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
         ✍️ Not Bekliyor
       </span>
     );
   }
   const fontSize = size === 'lg' ? '1.35rem' : size === 'sm' ? '0.8rem' : '0.95rem';
   const pad = size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem';
-  const color = score >= 80 ? '#4ade80' : score >= 60 ? '#fbbf24' : '#f87171';
-  const bg = score >= 80 ? 'rgba(5,150,105,0.25)' : score >= 60 ? 'rgba(217,119,6,0.25)' : 'rgba(225,29,72,0.25)';
-  const border = score >= 80 ? 'rgba(52,211,153,0.4)' : score >= 60 ? 'rgba(253,186,116,0.4)' : 'rgba(253,164,175,0.4)';
+  const color = score >= 80 ? '#15803d' : score >= 60 ? '#b45309' : '#b91c1c';
+  const bg = score >= 80 ? '#f0fdf4' : score >= 60 ? '#fffbeb' : '#fef2f2';
+  const border = score >= 80 ? '#bbf7d0' : score >= 60 ? '#fde68a' : '#fecaca';
   return (
     <span style={{ fontSize, fontWeight: 900, background: bg, color, border: `1.5px solid ${border}`, borderRadius: 10, padding: pad, display: 'inline-block', whiteSpace: 'nowrap' }}>
       {type === 'physicalExam' ? `${score} Net` : `%${score}`}
@@ -84,9 +84,9 @@ function ScoreBadge({ score, type, isPendingEval, size = 'md' }) {
 }
 
 function StatusTag({ accuracy }) {
-  if (accuracy >= 80) return <span style={{ background: 'rgba(5,150,105,0.25)', color: '#4ade80', border: '1px solid rgba(52,211,153,0.4)', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>🏆 Güçlü</span>;
-  if (accuracy >= 60) return <span style={{ background: 'rgba(217,119,6,0.25)', color: '#fbbf24', border: '1px solid rgba(253,186,116,0.4)', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>📈 Gelişiyor</span>;
-  return <span style={{ background: 'rgba(225,29,72,0.25)', color: '#f87171', border: '1px solid rgba(253,164,175,0.4)', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>⚠️ Kritik</span>;
+  if (accuracy >= 80) return <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>🏆 Güçlü</span>;
+  if (accuracy >= 60) return <span style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>📈 Gelişiyor</span>;
+  return <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>⚠️ Kritik</span>;
 }
 
 const TAB_DEFS = [
@@ -103,12 +103,12 @@ function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload || {};
   return (
-    <div style={{ background: '#0f172a', color: 'white', padding: '0.75rem 1rem', borderRadius: 12, boxShadow: '0 12px 30px rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.2)', minWidth: 160 }}>
-      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#a5b4fc', marginBottom: 4 }}>{d.title || d.ders || label}</div>
+    <div style={{ background: '#ffffff', color: '#0f172a', padding: '0.75rem 1rem', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', border: '1.5px solid #e2e8f0', minWidth: 160 }}>
+      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#4f46e5', marginBottom: 4 }}>{d.title || d.ders || label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ fontSize: '0.8rem', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 3 }}>
-          <span style={{ color: p.color || 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{p.name}</span>
-          <span style={{ fontWeight: 900, color: '#ffffff' }}>{typeof p.value === 'number' && p.name?.includes('%') ? `%${p.value}` : p.value}</span>
+        <div key={i} style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 3 }}>
+          <span style={{ color: p.color || '#64748b', fontWeight: 700 }}>{p.name}</span>
+          <span style={{ fontWeight: 900, color: '#0f172a' }}>{typeof p.value === 'number' && p.name?.includes('%') ? `%${p.value}` : p.value}</span>
         </div>
       ))}
     </div>
@@ -126,47 +126,46 @@ function CustomSubjectTooltip({ active, payload }) {
 
     return (
       <div style={{
-        background: 'rgba(15, 23, 42, 0.96)',
-        border: '1.5px solid rgba(255, 255, 255, 0.2)',
+        background: '#ffffff',
+        border: '1.5px solid #e2e8f0',
         borderRadius: 14,
         padding: '0.75rem 1rem',
-        color: '#fff',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(10px)',
+        color: '#0f172a',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
         fontSize: '0.8rem',
         minWidth: 160
       }}>
-        <div style={{ fontWeight: 900, color: '#c7d2fe', marginBottom: 6, fontSize: '0.9rem' }}>
+        <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: 6, fontSize: '0.9rem' }}>
           {data.fullName || data.name || data.displayName}
         </div>
         {scoreVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#94a3b8' }}>Başarı Oranı:</span>
-            <span style={{ fontWeight: 900, color: scoreVal >= 70 ? '#4ade80' : scoreVal >= 50 ? '#fbbf24' : '#f87171' }}>
+            <span style={{ color: '#64748b' }}>Başarı Oranı:</span>
+            <span style={{ fontWeight: 900, color: scoreVal >= 70 ? '#15803d' : scoreVal >= 50 ? '#b45309' : '#b91c1c' }}>
               %{scoreVal}
             </span>
           </div>
         )}
         {correctVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#4ade80' }}>✓ Doğru:</span>
-            <span style={{ fontWeight: 800 }}>{correctVal}</span>
+            <span style={{ color: '#16a34a' }}>✓ Doğru:</span>
+            <span style={{ fontWeight: 800, color: '#15803d' }}>{correctVal}</span>
           </div>
         )}
         {wrongVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#f87171' }}>✗ Yanlış:</span>
-            <span style={{ fontWeight: 800 }}>{wrongVal}</span>
+            <span style={{ color: '#dc2626' }}>✗ Yanlış:</span>
+            <span style={{ fontWeight: 800, color: '#b91c1c' }}>{wrongVal}</span>
           </div>
         )}
         {blankVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#94a3b8' }}>○ Boş:</span>
-            <span style={{ fontWeight: 800 }}>{blankVal}</span>
+            <span style={{ color: '#64748b' }}>○ Boş:</span>
+            <span style={{ fontWeight: 800, color: '#475569' }}>{blankVal}</span>
           </div>
         )}
         {totalVal !== undefined && (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: '#e2e8f0', fontWeight: 800 }}>
+          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: '#0f172a', fontWeight: 800 }}>
             <span>Toplam Soru:</span>
             <span>{totalVal}</span>
           </div>
@@ -830,15 +829,15 @@ export default function StudentResultsPage() {
             <div className="sr-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 16 }}>
 
               {/* Radar + Performance Breakdown */}
-              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 27, 75, 0.94) 100%)', borderRadius: 22, padding: '1.35rem', border: '1.5px solid rgba(165, 180, 252, 0.25)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.35rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
                       🕸️ Ders Bazlı Performans Haritası
                     </h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 600 }}>Tüm derslerdeki ortalama başarı yüzdesi ve soru hacmi</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Tüm derslerdeki ortalama başarı yüzdesi ve soru hacmi</p>
                   </div>
-                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', padding: 3, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 10, border: '1px solid #e2e8f0' }}>
                     <button
                       onClick={() => setPerfViewMode('radar')}
                       style={{
@@ -849,7 +848,7 @@ export default function StudentResultsPage() {
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: perfViewMode === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                        color: perfViewMode === 'radar' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                        color: perfViewMode === 'radar' ? '#ffffff' : '#64748b',
                         boxShadow: perfViewMode === 'radar' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
                         transition: 'all 0.15s'
                       }}
@@ -866,7 +865,7 @@ export default function StudentResultsPage() {
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: perfViewMode === 'bars' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                        color: perfViewMode === 'bars' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                        color: perfViewMode === 'bars' ? '#ffffff' : '#64748b',
                         boxShadow: perfViewMode === 'bars' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
                         transition: 'all 0.15s'
                       }}
@@ -882,34 +881,34 @@ export default function StudentResultsPage() {
                       <RadarChart data={radarData}>
                         <defs>
                           <linearGradient id="radarNeonGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.7} />
-                            <stop offset="100%" stopColor="#818cf8" stopOpacity={0.25} />
+                            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.5} />
+                            <stop offset="100%" stopColor="#818cf8" stopOpacity={0.2} />
                           </linearGradient>
                         </defs>
-                        <PolarGrid stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />
+                        <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
                         <PolarAngleAxis
                           dataKey="subject"
-                          tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 900 }}
+                          tick={{ fill: '#0f172a', fontSize: 11, fontWeight: 900 }}
                         />
                         <PolarRadiusAxis
                           angle={90}
                           domain={[0, 100]}
-                          stroke="rgba(255,255,255,0.28)"
-                          tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }}
+                          stroke="#cbd5e1"
+                          tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
                           tickCount={5}
                         />
                         <Radar
                           name="Başarı"
                           dataKey="value"
-                          stroke="#38bdf8"
+                          stroke="#4f46e5"
                           fill="url(#radarNeonGrad)"
                           fillOpacity={0.65}
                           strokeWidth={2.8}
-                          dot={{ r: 4.5, fill: '#38bdf8', stroke: '#ffffff', strokeWidth: 2 }}
+                          dot={{ r: 4.5, fill: '#4f46e5', stroke: '#ffffff', strokeWidth: 2 }}
                         />
                         <Tooltip
                           formatter={(v, name, props) => [`%${v} (${props.payload.count || 0} Test · ${props.payload.totalQ || 0} Soru)`, props.payload.fullSubject || name]}
-                          contentStyle={{ background: '#0f172a', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.22)', color: '#ffffff', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
+                          contentStyle={{ background: '#ffffff', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
                         />
                       </RadarChart>
                     </ResponsiveContainer>
@@ -918,16 +917,16 @@ export default function StudentResultsPage() {
                   <div style={{ width: '100%', height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={radarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.12)" vertical={false} />
-                        <XAxis dataKey="subject" tick={{ fill: '#ffffff', fontSize: 11, fontWeight: 900 }} />
-                        <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} tickFormatter={v => `%${v}`} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="subject" tick={{ fill: '#0f172a', fontSize: 11, fontWeight: 900 }} />
+                        <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }} tickFormatter={v => `%${v}`} />
                         <Tooltip
                           formatter={(v, name, props) => [`%${v} (${props.payload.count || 0} Test · ${props.payload.totalQ || 0} Soru)`, props.payload.fullSubject || name]}
-                          contentStyle={{ background: '#0f172a', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.22)', color: '#ffffff', fontWeight: 800 }}
+                          contentStyle={{ background: '#ffffff', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
                         />
                         <Bar dataKey="value" name="Başarı" radius={[8, 8, 0, 0]}>
                           {radarData.map((entry, idx) => (
-                            <Cell key={`cell-${idx}`} fill={entry.theme?.color || '#38bdf8'} />
+                            <Cell key={`cell-${idx}`} fill={entry.theme?.color || '#3b82f6'} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -936,11 +935,11 @@ export default function StudentResultsPage() {
                 )}
 
                 {/* Direct High-Contrast Subject Breakdown Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, marginTop: 12, borderTop: '1.5px solid #e2e8f0', paddingTop: 12 }}>
                   {radarData.map((d, i) => {
                     const hasTests = d.count > 0;
                     const SubIcon = d.theme?.icon || BookOpen;
-                    const color = d.theme?.color || '#38bdf8';
+                    const color = d.theme?.color || '#2563eb';
                     const isGood = d.value >= 70;
                     const isMid = d.value >= 50 && d.value < 70;
 
@@ -948,10 +947,10 @@ export default function StudentResultsPage() {
                       <div
                         key={i}
                         style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
+                          background: '#f8fafc',
                           borderRadius: 14,
                           padding: '0.65rem 0.75rem',
-                          border: `1px solid ${hasTests ? d.theme?.border || 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)'}`,
+                          border: `1.5px solid ${hasTests ? d.theme?.border || '#e2e8f0' : '#e2e8f0'}`,
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 6
@@ -959,17 +958,17 @@ export default function StudentResultsPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: d.theme?.bg || 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: d.theme?.bg || '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <SubIcon size={12} color={color} />
                             </div>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {d.fullSubject}
                             </span>
                           </div>
                           <span style={{
                             fontSize: '0.74rem',
                             fontWeight: 900,
-                            color: hasTests ? (isGood ? '#4ade80' : isMid ? '#fbbf24' : '#f87171') : 'rgba(255,255,255,0.4)',
+                            color: hasTests ? (isGood ? '#15803d' : isMid ? '#b45309' : '#b91c1c') : '#94a3b8',
                             flexShrink: 0
                           }}>
                             {hasTests ? `%${d.value}` : '—'}
@@ -977,20 +976,19 @@ export default function StudentResultsPage() {
                         </div>
 
                         {/* Progress bar */}
-                        <div style={{ width: '100%', height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ width: '100%', height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
                           <div
                             style={{
                               height: '100%',
                               width: `${hasTests ? d.value : 0}%`,
                               background: hasTests ? (isGood ? 'linear-gradient(90deg, #10b981, #34d399)' : isMid ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #ef4444, #f87171)') : 'transparent',
                               borderRadius: 99,
-                              boxShadow: hasTests ? `0 0 8px ${color}` : 'none',
                               transition: 'width 0.6s ease'
                             }}
                           />
                         </div>
 
-                        <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+                        <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700 }}>
                           {hasTests ? `${d.count} Test · ${d.totalQ} Soru` : 'Henüz test yok'}
                         </div>
                       </div>
@@ -1000,8 +998,8 @@ export default function StudentResultsPage() {
               </div>
 
               {/* Pie + legend */}
-              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', minWidth: 0, overflow: 'hidden' }}>
-                <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+                <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
                   🍩 Ödev Türü Dağılımı
                 </h3>
                 {typeBreakdown.length > 0 ? (
@@ -1010,30 +1008,30 @@ export default function StudentResultsPage() {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={typeBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={78} dataKey="value" paddingAngle={4}>
-                            {typeBreakdown.map((e, i) => <Cell key={i} fill={e.fill} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />)}
+                            {typeBreakdown.map((e, i) => <Cell key={i} fill={e.fill} stroke="#ffffff" strokeWidth={2} />)}
                           </Pie>
-                          <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ background: '#0f172a', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800 }} />
+                          <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ background: '#ffffff', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                       {typeBreakdown.map((e, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, background: 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, background: '#f8fafc', padding: '4px 10px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
                           <span style={{ width: 10, height: 10, borderRadius: 3, background: e.fill, flexShrink: 0 }} />
-                          <span style={{ color: 'rgba(255,255,255,0.8)' }}>{e.name}: <b style={{ color: '#ffffff' }}>{e.value}</b></span>
+                          <span style={{ color: '#475569' }}>{e.name}: <b style={{ color: '#0f172a' }}>{e.value}</b></span>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
-                  <div style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Henüz veri yok</div>
+                  <div style={{ color: '#94a3b8', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Henüz veri yok</div>
                 )}
               </div>
             </div>
 
             {/* Recent 5 tests */}
-            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)' }}>
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
                 🕐 Son 5 Sınav / Ödev
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1041,25 +1039,25 @@ export default function StudentResultsPage() {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} className="sr-card-hover" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1.1rem', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
+                    <div key={i} className="sr-card-hover" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1.1rem', borderRadius: 14, background: '#f8fafc', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
                       <div style={{ width: 40, height: 40, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <SubIcon size={18} color={th.color} />
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff', lineHeight: 1.35 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.35 }}>
                           {s.bookTitle ? (
                             <>
-                              <span style={{ color: '#a5b4fc', fontWeight: 900 }}>{s.bookTitle}</span>
-                              <span style={{ color: 'rgba(255,255,255,0.4)', margin: '0 4px' }}>—</span>
+                              <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                              <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
                               <span>{s.subjectName || s.subjectKey}</span>
-                              {s.topicName && <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}> · {s.topicName}</span>}
-                              <span style={{ color: '#ffffff', fontWeight: 900 }}> ({s.testName})</span>
+                              {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                              <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
                             </>
                           ) : (
                             s.testTitle
                           )}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', fontWeight: 600, marginTop: 2 }}>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
                           {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'} · {s.totalQuestions} Soru
                         </div>
                       </div>
@@ -1067,7 +1065,7 @@ export default function StudentResultsPage() {
                     </div>
                   );
                 })}
-                {studentSubmissions.length === 0 && <div style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '2rem 0', fontWeight: 700 }}>Henüz sonuç bulunmuyor</div>}
+                {studentSubmissions.length === 0 && <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem 0', fontWeight: 700 }}>Henüz sonuç bulunmuyor</div>}
               </div>
             </div>
           </div>
@@ -1081,31 +1079,30 @@ export default function StudentResultsPage() {
             
             {/* 1. ÜST ANALİZ VE GRAFİK KARTI */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)',
+              background: '#ffffff',
               borderRadius: 24,
-              border: '1.5px solid rgba(255, 255, 255, 0.15)',
+              border: '1.5px solid #e2e8f0',
               padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.75rem',
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-              backdropFilter: 'blur(20px)'
+              boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
             }}>
               {/* Header with Switcher */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.4)' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
                     <BarChart3 size={22} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                       Ders & Konu Başarı Karnesi
                     </h2>
-                    <span style={{ fontSize: '0.74rem', color: '#c7d2fe', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
                       Dersler ve konular bazında çözülen sorular, doğruluk oranları ve yetkinlik grafiği
                     </span>
                   </div>
                 </div>
 
                 {/* Grafik Türü Seçici */}
-                <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.08)', padding: 4, borderRadius: 14, border: '1px solid rgba(255,255,255,0.15)' }}>
+                <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', padding: 4, borderRadius: 14, border: '1px solid #e2e8f0' }}>
                   <button
                     onClick={() => setSubjChartType('bar')}
                     style={{
@@ -1119,8 +1116,8 @@ export default function StudentResultsPage() {
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'bar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: subjChartType === 'bar' ? '#fff' : '#cbd5e1',
-                      boxShadow: subjChartType === 'bar' ? '0 2px 10px rgba(99,102,241,0.4)' : 'none',
+                      color: subjChartType === 'bar' ? '#fff' : '#64748b',
+                      boxShadow: subjChartType === 'bar' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
                       transition: 'all 0.15s'
                     }}
                   >
@@ -1139,8 +1136,8 @@ export default function StudentResultsPage() {
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: subjChartType === 'radar' ? '#fff' : '#cbd5e1',
-                      boxShadow: subjChartType === 'radar' ? '0 2px 10px rgba(99,102,241,0.4)' : 'none',
+                      color: subjChartType === 'radar' ? '#fff' : '#64748b',
+                      boxShadow: subjChartType === 'radar' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
                       transition: 'all 0.15s'
                     }}
                   >
@@ -1159,8 +1156,8 @@ export default function StudentResultsPage() {
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'pie' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: subjChartType === 'pie' ? '#fff' : '#cbd5e1',
-                      boxShadow: subjChartType === 'pie' ? '0 2px 10px rgba(99,102,241,0.4)' : 'none',
+                      color: subjChartType === 'pie' ? '#fff' : '#64748b',
+                      boxShadow: subjChartType === 'pie' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
                       transition: 'all 0.15s'
                     }}
                   >
@@ -1179,22 +1176,22 @@ export default function StudentResultsPage() {
                   {subjChartType === 'bar' && (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={subjectBarData} margin={{ top: 10, right: 15, left: -20, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis
                           dataKey="name"
-                          tick={{ fill: '#cbd5e1', fontSize: isMobile ? 11 : 12, fontWeight: 700 }}
-                          axisLine={{ stroke: 'rgba(255,255,255,0.15)' }}
+                          tick={{ fill: '#0f172a', fontSize: isMobile ? 11 : 12, fontWeight: 700 }}
+                          axisLine={{ stroke: '#e2e8f0' }}
                           tickLine={false}
                         />
                         <YAxis
                           domain={[0, 100]}
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                          tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
                           tickFormatter={v => `%${v}`}
-                          axisLine={{ stroke: 'rgba(255,255,255,0.15)' }}
+                          axisLine={{ stroke: '#e2e8f0' }}
                           tickLine={false}
                         />
                         <Tooltip content={<CustomSubjectTooltip />} />
-                        <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.6} label={{ value: 'Hedef %70', fill: '#86efac', fontSize: 10, position: 'right' }} />
+                        <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.8} label={{ value: 'Hedef %70', fill: '#15803d', fontSize: 10, position: 'right' }} />
                         <Bar
                           dataKey="Başarı %"
                           radius={[8, 8, 0, 0]}
@@ -1211,10 +1208,10 @@ export default function StudentResultsPage() {
                   {subjChartType === 'radar' && (
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData} outerRadius={isMobile ? '65%' : '75%'}>
-                        <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#e2e8f0', fontSize: isMobile ? 10 : 12, fontWeight: 800 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="rgba(255,255,255,0.2)" tick={{ fill: '#94a3b8', fontSize: 9 }} />
-                        <Radar name="Başarı %" dataKey="value" stroke="#818cf8" fill="#6366f1" fillOpacity={0.45} strokeWidth={2.5} />
+                        <PolarGrid stroke="#e2e8f0" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#0f172a', fontSize: isMobile ? 10 : 12, fontWeight: 800 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#cbd5e1" tick={{ fill: '#64748b', fontSize: 9 }} />
+                        <Radar name="Başarı %" dataKey="value" stroke="#4f46e5" fill="#6366f1" fillOpacity={0.35} strokeWidth={2.5} />
                         <Tooltip content={<CustomSubjectTooltip />} />
                       </RadarChart>
                     </ResponsiveContainer>
@@ -1234,12 +1231,12 @@ export default function StudentResultsPage() {
                           paddingAngle={3}
                         >
                           {subjectPieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(15,23,42,0.6)" strokeWidth={2} />
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
                           ))}
                         </Pie>
                         <Tooltip content={<CustomSubjectTooltip />} />
                         <Legend
-                          formatter={(value) => <span style={{ color: '#e2e8f0', fontSize: '0.78rem', fontWeight: 700 }}>{value}</span>}
+                          formatter={(value) => <span style={{ color: '#334155', fontSize: '0.78rem', fontWeight: 700 }}>{value}</span>}
                           layout="horizontal"
                           align="center"
                           verticalAlign="bottom"
@@ -1261,14 +1258,14 @@ export default function StudentResultsPage() {
                   gap: 6,
                   padding: '0.5rem 1rem',
                   borderRadius: 12,
-                  border: selectedSubjFilter === 'all' ? '1.5px solid #818cf8' : '1.5px solid rgba(255, 255, 255, 0.12)',
-                  background: selectedSubjFilter === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(30, 41, 59, 0.85)',
-                  color: selectedSubjFilter === 'all' ? '#ffffff' : '#cbd5e1',
+                  border: selectedSubjFilter === 'all' ? '1.5px solid #4f46e5' : '1.5px solid #e2e8f0',
+                  background: selectedSubjFilter === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#ffffff',
+                  color: selectedSubjFilter === 'all' ? '#ffffff' : '#475569',
                   fontWeight: 800,
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  boxShadow: selectedSubjFilter === 'all' ? '0 4px 14px rgba(99, 102, 241, 0.4)' : 'none',
+                  boxShadow: selectedSubjFilter === 'all' ? '0 4px 14px rgba(99, 102, 241, 0.25)' : 'none',
                   transition: 'all 0.15s'
                 }}
               >
@@ -1289,22 +1286,22 @@ export default function StudentResultsPage() {
                       gap: 6,
                       padding: '0.5rem 1rem',
                       borderRadius: 12,
-                      border: isSelected ? `1.5px solid ${th.color}` : '1.5px solid rgba(255, 255, 255, 0.12)',
-                      background: isSelected ? th.bg : 'rgba(30, 41, 59, 0.85)',
-                      color: isSelected ? '#ffffff' : '#cbd5e1',
+                      border: isSelected ? `1.5px solid ${th.color}` : '1.5px solid #e2e8f0',
+                      background: isSelected ? th.bg : '#ffffff',
+                      color: isSelected ? th.color : '#475569',
                       fontWeight: 800,
                       fontSize: '0.8rem',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
-                      boxShadow: isSelected ? `0 4px 14px ${th.color}40` : 'none',
+                      boxShadow: isSelected ? `0 4px 14px ${th.color}25` : 'none',
                       transition: 'all 0.15s'
                     }}
                   >
-                    <SubIcon size={15} color={isSelected ? th.color : '#cbd5e1'} />
+                    <SubIcon size={15} color={isSelected ? th.color : '#64748b'} />
                     <span>{sb.subj}</span>
                     <span style={{
-                      background: isSelected ? th.color : 'rgba(255,255,255,0.12)',
-                      color: isSelected ? '#0f172a' : '#ffffff',
+                      background: isSelected ? th.color : '#f1f5f9',
+                      color: isSelected ? '#ffffff' : '#475569',
                       fontSize: '0.68rem',
                       fontWeight: 900,
                       padding: '1px 6px',
@@ -1320,38 +1317,37 @@ export default function StudentResultsPage() {
             {/* 3. KONU BAZLI DETAYLI GRAFİK VE GELİŞİM PANOSU */}
             {activeTopicChartData.length > 0 && (
               <div style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)',
+                background: '#ffffff',
                 borderRadius: 24,
-                border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                border: '1.5px solid #e2e8f0',
                 padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.75rem',
-                boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-                backdropFilter: 'blur(20px)'
+                boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
                   <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span>📈 Konu Başarı & Soru Dağılım Grafiği</span>
                       {selectedSubjFilter !== 'all' && (
-                        <span style={{ fontSize: '0.72rem', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.4)', padding: '2px 8px', borderRadius: 8 }}>
+                        <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: 8 }}>
                           {selectedSubjFilter}
                         </span>
                       )}
                     </h3>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
                       Konulardaki Doğru / Yanlış / Boş soru dağılımları ve doğruluk yüzdesi
                     </span>
                   </div>
 
                   {/* Sıralama Seçici */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>Sırala:</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>Sırala:</span>
                     <select
                       value={topicChartSort}
                       onChange={e => setTopicChartSort(e.target.value)}
                       style={{
-                        background: 'rgba(15, 23, 42, 0.9)',
-                        color: '#fff',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        background: '#f8fafc',
+                        color: '#0f172a',
+                        border: '1.5px solid #cbd5e1',
                         borderRadius: 10,
                         padding: '0.35rem 0.65rem',
                         fontSize: '0.75rem',
@@ -1374,19 +1370,19 @@ export default function StudentResultsPage() {
                       data={activeTopicChartData}
                       margin={{ top: 10, right: 25, left: isMobile ? 10 : 35, bottom: 10 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" horizontal={false} />
-                      <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} stroke="rgba(255,255,255,0.15)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                      <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} stroke="#e2e8f0" />
                       <YAxis
                         type="category"
                         dataKey="displayName"
                         width={isMobile ? 100 : 180}
-                        tick={{ fill: '#e2e8f0', fontSize: isMobile ? 10 : 11, fontWeight: 800 }}
-                        stroke="rgba(255,255,255,0.15)"
+                        tick={{ fill: '#0f172a', fontSize: isMobile ? 10 : 11, fontWeight: 800 }}
+                        stroke="#e2e8f0"
                         tickFormatter={v => v.length > 22 ? v.slice(0, 20) + '…' : v}
                       />
                       <Tooltip content={<CustomSubjectTooltip />} />
                       <Legend
-                        formatter={(val) => <span style={{ color: '#e2e8f0', fontSize: '0.76rem', fontWeight: 700 }}>{val}</span>}
+                        formatter={(val) => <span style={{ color: '#334155', fontSize: '0.76rem', fontWeight: 700 }}>{val}</span>}
                         verticalAlign="top"
                         align="right"
                       />
@@ -1403,36 +1399,36 @@ export default function StudentResultsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
               {/* Güçlü Konular */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%)',
-                border: '1.5px solid rgba(52, 211, 153, 0.35)',
+                background: '#f0fdf4',
+                border: '1.5px solid #bbf7d0',
                 borderRadius: 20,
                 padding: '1.1rem 1.35rem',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+                boxShadow: '0 4px 16px rgba(16,185,129,0.05)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
                     🚀
                   </div>
                   <div>
-                    <h4 style={{ margin: 0, color: '#6ee7b7', fontSize: '0.92rem', fontWeight: 900 }}>
+                    <h4 style={{ margin: 0, color: '#15803d', fontSize: '0.92rem', fontWeight: 900 }}>
                       En Güçlü Olduğun Konular
                     </h4>
-                    <span style={{ fontSize: '0.68rem', color: '#a7f3d0' }}>Doğruluk %75 ve üzeri olanlar</span>
+                    <span style={{ fontSize: '0.68rem', color: '#166534' }}>Doğruluk %75 ve üzeri olanlar</span>
                   </div>
                 </div>
 
                 {topStrongTopics.length === 0 ? (
-                  <div style={{ fontSize: '0.76rem', color: '#94a3b8', fontStyle: 'italic', padding: '0.5rem 0' }}>
+                  <div style={{ fontSize: '0.76rem', color: '#64748b', fontStyle: 'italic', padding: '0.5rem 0' }}>
                     Henüz yeterli soru çözülen güçlü konu tespit edilmedi.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {topStrongTopics.map((t, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.06)', padding: '0.45rem 0.75rem', borderRadius: 10 }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '0.45rem 0.75rem', borderRadius: 10, border: '1px solid #dcfce7' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
                           {t.subject ? `[${t.subject}] ` : ''}{t.name}
                         </span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#34d399' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#15803d' }}>
                           %{t.accuracy}
                         </span>
                       </div>
@@ -1443,36 +1439,36 @@ export default function StudentResultsPage() {
 
               {/* Tekrar Gereken Konular */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%)',
-                border: '1.5px solid rgba(251, 113, 133, 0.35)',
+                background: '#fef2f2',
+                border: '1.5px solid #fecaca',
                 borderRadius: 20,
                 padding: '1.1rem 1.35rem',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+                boxShadow: '0 4px 16px rgba(239,68,68,0.05)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(244,63,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
                     ⚠️
                   </div>
                   <div>
-                    <h4 style={{ margin: 0, color: '#fda4af', fontSize: '0.92rem', fontWeight: 900 }}>
+                    <h4 style={{ margin: 0, color: '#b91c1c', fontSize: '0.92rem', fontWeight: 900 }}>
                       Öncelikli Tekrar Gereken Konular
                     </h4>
-                    <span style={{ fontSize: '0.68rem', color: '#fecdd3' }}>Doğruluk %60 altı olanlar</span>
+                    <span style={{ fontSize: '0.68rem', color: '#991b1b' }}>Doğruluk %60 altı olanlar</span>
                   </div>
                 </div>
 
                 {topWeakTopics.length === 0 ? (
-                  <div style={{ fontSize: '0.76rem', color: '#86efac', fontWeight: 700, padding: '0.5rem 0' }}>
+                  <div style={{ fontSize: '0.76rem', color: '#15803d', fontWeight: 700, padding: '0.5rem 0' }}>
                     Tebrikler! Kritik derecede zayıf konu bulunmuyor 🎉
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {topWeakTopics.map((t, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.06)', padding: '0.45rem 0.75rem', borderRadius: 10 }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '0.45rem 0.75rem', borderRadius: 10, border: '1px solid #fee2e2' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
                           {t.subject ? `[${t.subject}] ` : ''}{t.name}
                         </span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#fb7185' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#dc2626' }}>
                           %{t.accuracy}
                         </span>
                       </div>
@@ -1491,48 +1487,48 @@ export default function StudentResultsPage() {
                   const SubIcon = th.icon;
                   const isExpanded = expandedSubject === subj || selectedSubjFilter === subj;
                   return (
-                    <div key={subj} style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : 'rgba(255,255,255,0.12)'}`, boxShadow: isExpanded ? `0 8px 32px rgba(0,0,0,0.4)` : '0 4px 16px rgba(0,0,0,0.25)', overflow: 'hidden', backdropFilter: 'blur(20px)' }}>
+                    <div key={subj} style={{ background: '#ffffff', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : '#e2e8f0'}`, boxShadow: isExpanded ? '0 8px 30px rgba(0,0,0,0.05)' : '0 2px 10px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
                       {/* Subject Header */}
                       <button className="sr-subject-header-btn" onClick={() => setExpandedSubject(isExpanded && selectedSubjFilter === 'all' ? null : subj)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', background: isExpanded ? th.bg : 'transparent', border: 'none', cursor: 'pointer', gap: 12, flexWrap: 'wrap', transition: 'background 0.25s' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.1)', border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: 46, height: 46, borderRadius: 14, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <SubIcon size={22} color={th.color} />
                           </div>
                           <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#ffffff' }}>{subj}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
-                              {tests.length} test · {totalQ} soru (<span style={{ color: '#4ade80' }}>{totalCorrect} D</span> · <span style={{ color: '#f87171' }}>{totalWrong} Y</span> · <span style={{ color: '#94a3b8' }}>{totalBlank} B</span>)
+                            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0f172a' }}>{subj}</div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
+                              {tests.length} test · {totalQ} soru (<span style={{ color: '#16a34a' }}>{totalCorrect} D</span> · <span style={{ color: '#dc2626' }}>{totalWrong} Y</span> · <span style={{ color: '#64748b' }}>{totalBlank} B</span>)
                             </div>
                           </div>
                         </div>
                         <div className="sr-subject-header-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                           <ScoreBadge score={avgScore} size="md" />
                           <StatusTag accuracy={avgScore} />
-                          <ChevronRight size={18} color="#ffffff" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                          <ChevronRight size={18} color="#64748b" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                         </div>
                       </button>
 
                       {/* Expanded: Topic horizontal bars */}
                       {isExpanded && topicArray.length > 0 && (
-                        <div style={{ padding: '1.25rem 1.4rem', background: 'rgba(0, 0, 0, 0.25)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+                        <div style={{ padding: '1.25rem 1.4rem', background: '#f8fafc', borderTop: '1.5px solid #e2e8f0' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
                             📋 Konu / Test Bazlı Doğruluk Analizi
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {topicArray.map((top, idx) => (
-                              <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                              <div key={idx} style={{ background: '#ffffff', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff' }}>{top.name}</span>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>{top.name}</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
                                       {top.correctQ} D / {top.wrongQ} Y / {top.blankQ} B ({top.totalQ} Soru)
                                     </span>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#4ade80' : top.accuracy >= 50 ? '#fbbf24' : '#f87171' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#15803d' : top.accuracy >= 50 ? '#b45309' : '#b91c1c' }}>
                                       %{top.accuracy}
                                     </span>
                                   </div>
                                 </div>
-                                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                                <div style={{ background: '#e2e8f0', borderRadius: 99, height: 6, overflow: 'hidden' }}>
                                   <div style={{ width: `${top.accuracy}%`, height: '100%', background: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.5s ease' }} />
                                 </div>
                               </div>
@@ -1554,14 +1550,14 @@ export default function StudentResultsPage() {
         {activeTab === 'bytype' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Sub tabs */}
-            <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.06)', padding: 6, borderRadius: 16, border: '1.5px solid rgba(255,255,255,0.12)', flexWrap: 'wrap', backdropFilter: 'blur(10px)' }}>
+            <div style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 6, borderRadius: 16, border: '1.5px solid #e2e8f0', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               {[
                 { key: 'homework',     label: '📝 Ödevler',        count: byTypeSubs.homework.length },
                 { key: 'physicalExam', label: '🏛️ Denemeler',      count: byTypeSubs.physicalExam.length },
                 { key: 'book',         label: '📕 Kitap Testleri', count: byTypeSubs.book.length },
                 { key: 'individual',   label: '⚡ Bireysel',        count: byTypeSubs.individual.length },
               ].map(t => (
-                <button key={t.key} onClick={() => setByTypeTab(t.key)} style={{ padding: '0.45rem 0.95rem', borderRadius: 11, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: byTypeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: byTypeTab === t.key ? 'white' : 'rgba(255,255,255,0.7)', boxShadow: byTypeTab === t.key ? '0 4px 14px rgba(99,102,241,0.35)' : 'none' }}>
+                <button key={t.key} onClick={() => setByTypeTab(t.key)} style={{ padding: '0.45rem 0.95rem', borderRadius: 11, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: byTypeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f8fafc', color: byTypeTab === t.key ? 'white' : '#475569', boxShadow: byTypeTab === t.key ? '0 4px 14px rgba(99,102,241,0.25)' : 'none' }}>
                   {t.label} ({t.count})
                 </button>
               ))}
@@ -1572,41 +1568,41 @@ export default function StudentResultsPage() {
                 const th = theme(s.subjectKey);
                 const SubIcon = th.icon;
                 return (
-                  <div key={i} className="sr-card-hover" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid rgba(255,255,255,0.12)', boxShadow: '0 4px 16px rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', backdropFilter: 'blur(16px)' }}>
+                  <div key={i} className="sr-card-hover" style={{ background: '#ffffff', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 200 }}>
                       <div style={{ width: 42, height: 42, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <SubIcon size={20} color={th.color} />
                       </div>
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
                           {s.bookTitle ? (
                             <>
-                              <span style={{ color: '#a5b4fc', fontWeight: 900 }}>{s.bookTitle}</span>
-                              <span style={{ color: 'rgba(255,255,255,0.4)', margin: '0 4px' }}>—</span>
+                              <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                              <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
                               <span>{s.subjectName || s.subjectKey}</span>
-                              {s.topicName && <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}> · {s.topicName}</span>}
-                              <span style={{ color: '#ffffff', fontWeight: 900 }}> ({s.testName})</span>
+                              {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                              <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
                             </>
                           ) : (
                             s.testTitle
                           )}
                         </div>
-                        <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.65)', fontWeight: 600, marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           <span>📅 {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : '—'}</span>
                           <span>📝 {s.totalQuestions} Soru</span>
-                          <span style={{ color: '#4ade80', fontWeight: 800 }}>✓ {s.correctCount} D</span>
-                          <span style={{ color: '#f87171', fontWeight: 800 }}>✗ {s.wrongCount} Y</span>
+                          <span style={{ color: '#15803d', fontWeight: 800 }}>✓ {s.correctCount} D</span>
+                          <span style={{ color: '#dc2626', fontWeight: 800 }}>✗ {s.wrongCount} Y</span>
                         </div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="md" />
                       {s.type !== 'physicalExam' ? (
-                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.95rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(99,102,241,0.35)' }}>
+                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.95rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                           <Eye size={14} /> İncele
                         </button>
                       ) : (
-                        <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.95rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }}>
+                        <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.95rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
                           <Eye size={14} /> Karne
                         </button>
                       )}
@@ -1615,7 +1611,7 @@ export default function StudentResultsPage() {
                 );
               })}
               {byTypeSubs[byTypeTab].length === 0 && (
-                <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: 18, padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontWeight: 700, border: '1.5px solid rgba(255,255,255,0.12)' }}>
+                <div style={{ background: '#ffffff', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0' }}>
                   Bu kategoride sonuç bulunmuyor
                 </div>
               )}
@@ -1628,14 +1624,14 @@ export default function StudentResultsPage() {
         ══════════════════════════════════════ */}
         {activeTab === 'trend' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 22, padding: '1.4rem 1.6rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem 1.6rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
                   📈 Zaman İçindeki Başarı Trendi
                 </h3>
-                <select value={trendSubject} onChange={e => setTrendSubject(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.18)', fontWeight: 800, fontSize: '0.8rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', outline: 'none', cursor: 'pointer' }}>
-                  <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>Tüm Dersler</option>
-                  {SUBJECTS.map(s => <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>)}
+                <select value={trendSubject} onChange={e => setTrendSubject(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', outline: 'none', cursor: 'pointer' }}>
+                  <option value="all">Tüm Dersler</option>
+                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               {trendData.length > 0 ? (
@@ -1644,36 +1640,36 @@ export default function StudentResultsPage() {
                     <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <defs>
                         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.45} />
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey="name" style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#c7d2fe' }} />
-                      <YAxis domain={[0, 100]} style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#c7d2fe' }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
+                      <YAxis domain={[0, 100]} style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
                       <Tooltip content={<ChartTooltip />} />
-                      <ReferenceLine y={70} stroke="#34d399" strokeDasharray="5 5" label={{ value: 'Hedef %70', fill: '#34d399', fontSize: 11, fontWeight: 800 }} />
-                      <Area type="monotone" dataKey="Başarı %" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#areaGrad)" dot={{ fill: '#a78bfa', r: 4 }} activeDot={{ r: 7, fill: '#c4b5fd', stroke: '#0f172a', strokeWidth: 2 }} />
+                      <ReferenceLine y={70} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Hedef %70', fill: '#15803d', fontSize: 11, fontWeight: 800 }} />
+                      <Area type="monotone" dataKey="Başarı %" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#areaGrad)" dot={{ fill: '#8b5cf6', r: 4 }} activeDot={{ r: 7, fill: '#6366f1', stroke: '#ffffff', strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>Bu derse ait trend verisi yok</div>
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>Bu derse ait trend verisi yok</div>
               )}
             </div>
 
             {/* Doğru/Yanlış/Boş Stacked/Grouped Bar */}
             {trendData.length > 0 && (
-              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 22, padding: '1.4rem 1.6rem', border: '1.5px solid rgba(255, 255, 255, 0.14)', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)', minWidth: 0, overflow: 'hidden' }}>
-                <h3 style={{ margin: '0 0 1rem', fontWeight: 900, fontSize: '1rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem 1.6rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+                <h3 style={{ margin: '0 0 1rem', fontWeight: 900, fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
                   📊 Doğru / Yanlış / Boş Dağılımı
                 </h3>
                 <div style={{ width: '100%', height: 250 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey="name" style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#c7d2fe' }} />
-                      <YAxis style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#c7d2fe' }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
+                      <YAxis style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
                       <Tooltip content={<ChartTooltip />} />
                       <Legend wrapperStyle={{ fontSize: '0.8rem', fontWeight: 800, paddingTop: '0.5rem' }} />
                       <Bar dataKey="Doğru"  fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -1693,41 +1689,41 @@ export default function StudentResultsPage() {
         {activeTab === 'all' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Filter bar */}
-            <div className="sr-filter-bar" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 18, padding: '0.9rem 1.15rem', border: '1.5px solid rgba(255,255,255,0.14)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', backdropFilter: 'blur(20px)' }}>
+            <div className="sr-filter-bar" style={{ background: '#ffffff', borderRadius: 18, padding: '0.9rem 1.15rem', border: '1.5px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 140 }}>
-                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.5)' }} />
-                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Sınav / ders ara..." style={{ width: '100%', paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.16)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'rgba(255,255,255,0.06)', color: '#ffffff', boxSizing: 'border-box' }} />
+                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Sınav / ders ara..." style={{ width: '100%', paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }} />
               </div>
-              <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.16)', fontWeight: 800, fontSize: '0.8rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', outline: 'none', cursor: 'pointer' }}>
-                <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>Tüm Dersler</option>
-                {SUBJECTS.map(s => <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>)}
+              <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', outline: 'none', cursor: 'pointer' }}>
+                <option value="all">Tüm Dersler</option>
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.16)', fontWeight: 800, fontSize: '0.8rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', outline: 'none', cursor: 'pointer' }}>
-                <option value="all" style={{ background: '#0f172a', color: '#ffffff' }}>Tüm Türler</option>
-                <option value="homework" style={{ background: '#0f172a', color: '#ffffff' }}>📝 Ödevler</option>
-                <option value="physicalExam" style={{ background: '#0f172a', color: '#ffffff' }}>🏛️ Denemeler</option>
-                <option value="book" style={{ background: '#0f172a', color: '#ffffff' }}>📕 Kitap Testleri</option>
-                <option value="individual" style={{ background: '#0f172a', color: '#ffffff' }}>⚡ Bireysel</option>
+              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', outline: 'none', cursor: 'pointer' }}>
+                <option value="all">Tüm Türler</option>
+                <option value="homework">📝 Ödevler</option>
+                <option value="physicalExam">🏛️ Denemeler</option>
+                <option value="book">📕 Kitap Testleri</option>
+                <option value="individual">⚡ Bireysel</option>
               </select>
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.06)', padding: 4, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
                 {['table', 'cards'].map(m => (
-                  <button key={m} onClick={() => setViewMode(m)} style={{ padding: '0.35rem 0.8rem', borderRadius: 9, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', background: viewMode === m ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: viewMode === m ? 'white' : 'rgba(255,255,255,0.6)' }}>
+                  <button key={m} onClick={() => setViewMode(m)} style={{ padding: '0.35rem 0.8rem', borderRadius: 9, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', background: viewMode === m ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: viewMode === m ? 'white' : '#64748b' }}>
                     {m === 'table' ? '📋 Tablo' : '🃏 Kartlar'}
                   </button>
                 ))}
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{filteredSubs.length} sonuç</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>{filteredSubs.length} sonuç</span>
             </div>
 
             {/* TABLE VIEW */}
             {viewMode === 'table' && (
-              <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 20, border: '1.5px solid rgba(255, 255, 255, 0.14)', overflow: 'hidden', boxShadow: '0 12px 36px rgba(0,0,0,0.35)', backdropFilter: 'blur(20px)' }}>
+              <div style={{ background: '#ffffff', borderRadius: 20, border: '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700, fontSize: '0.82rem' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1.5px solid rgba(255,255,255,0.12)' }}>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
                         {['SINAV / BAŞLIK', 'DERS', 'TARİH', 'TÜR', 'D / Y / B', 'BAŞARI', 'EYLEM'].map(h => (
-                          <th key={h} style={{ padding: '0.9rem 1rem', fontWeight: 900, fontSize: '0.72rem', color: '#c7d2fe', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} style={{ padding: '0.9rem 1rem', fontWeight: 900, fontSize: '0.72rem', color: '#475569', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -1736,16 +1732,16 @@ export default function StudentResultsPage() {
                         const th = theme(s.subjectKey);
                         const SubIcon = th.icon;
                         return (
-                          <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: i % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent', transition: 'background 0.15s' }}>
+                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 1 ? '#f8fafc' : '#ffffff', transition: 'background 0.15s' }}>
                             <td style={{ padding: '0.8rem 1rem' }}>
-                              <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.86rem', lineHeight: 1.35 }}>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.86rem', lineHeight: 1.35 }}>
                                 {s.bookTitle ? (
                                   <>
-                                    <span style={{ color: '#a5b4fc', fontWeight: 900 }}>{s.bookTitle}</span>
-                                    <span style={{ color: 'rgba(255,255,255,0.4)', margin: '0 4px' }}>—</span>
+                                    <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                                    <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
                                     <span>{s.subjectName || s.subjectKey}</span>
-                                    {s.topicName && <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}> · {s.topicName}</span>}
-                                    <span style={{ color: '#ffffff', fontWeight: 900 }}> ({s.testName})</span>
+                                    {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                                    <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
                                   </>
                                 ) : (
                                   s.testTitle
@@ -1757,17 +1753,17 @@ export default function StudentResultsPage() {
                                 <SubIcon size={12} /> {s.subjectKey}
                               </span>
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700, whiteSpace: 'nowrap' }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : '—'}</td>
+                            <td style={{ padding: '0.8rem 1rem', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : '—'}</td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <span style={{ background: typeConfig[s.typeKey]?.bg || 'rgba(255,255,255,0.08)', color: typeConfig[s.typeKey]?.color || '#ffffff', border: `1px solid ${typeConfig[s.typeKey]?.border || 'rgba(255,255,255,0.15)'}`, borderRadius: 8, padding: '0.22rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                              <span style={{ background: typeConfig[s.typeKey]?.bg || '#f8fafc', color: typeConfig[s.typeKey]?.color || '#0f172a', border: `1px solid ${typeConfig[s.typeKey]?.border || '#e2e8f0'}`, borderRadius: 8, padding: '0.22rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
                                 {typeConfig[s.typeKey]?.label || '⚡ Bireysel'}
                               </span>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 4 }}>
-                                <span style={{ background: 'rgba(5,150,105,0.2)', color: '#4ade80', border: '1px solid rgba(52,211,153,0.35)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
-                                <span style={{ background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.35)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
-                                <span style={{ background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>○{s.blankCount}</span>
+                                <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
+                                <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
+                                <span style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>○{s.blankCount}</span>
                               </div>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
@@ -1775,11 +1771,11 @@ export default function StudentResultsPage() {
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               {s.type !== 'physicalExam' ? (
-                                <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.35)' }}>
+                                <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                                   <Eye size={13} /> İncele
                                 </button>
                               ) : (
-                                <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }}>
+                                <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 9, padding: '0.38rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
                                   <Eye size={13} /> Karne
                                 </button>
                               )}
@@ -1788,8 +1784,8 @@ export default function StudentResultsPage() {
                         );
                       })}
                       {filteredSubs.length === 0 && (
-                        <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
-                          <ListTree size={36} style={{ display: 'block', margin: '0 auto 8px', color: 'rgba(255,255,255,0.2)' }} />
+                        <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
+                          <ListTree size={36} style={{ display: 'block', margin: '0 auto 8px', color: '#cbd5e1' }} />
                           Sonuç bulunamadı. Filtreleri değiştirin.
                         </td></tr>
                       )}
@@ -1806,45 +1802,45 @@ export default function StudentResultsPage() {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} className="sr-card-hover" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)', borderRadius: 18, border: `1.5px solid ${th.border}`, padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.25)', position: 'relative', overflow: 'hidden', backdropFilter: 'blur(16px)' }}>
+                    <div key={i} className="sr-card-hover" style={{ background: '#ffffff', borderRadius: 18, border: `1.5px solid ${th.border}`, padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.03)', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ height: 4, background: th.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: th.bg, color: th.color, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.2rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
                           <SubIcon size={13} /> {s.subjectKey}
                         </span>
-                        <span style={{ background: typeConfig[s.typeKey]?.bg || 'rgba(255,255,255,0.08)', color: typeConfig[s.typeKey]?.color || '#ffffff', border: `1px solid ${typeConfig[s.typeKey]?.border || 'rgba(255,255,255,0.15)'}`, borderRadius: 8, padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                        <span style={{ background: typeConfig[s.typeKey]?.bg || '#f8fafc', color: typeConfig[s.typeKey]?.color || '#0f172a', border: `1px solid ${typeConfig[s.typeKey]?.border || '#e2e8f0'}`, borderRadius: 8, padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
                           {typeConfig[s.typeKey]?.label || '⚡'}
                         </span>
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', lineHeight: 1.35 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.35 }}>
                         {s.bookTitle ? (
                           <>
-                            <span style={{ color: '#a5b4fc', fontWeight: 900 }}>{s.bookTitle}</span>
-                            <span style={{ color: 'rgba(255,255,255,0.4)', margin: '0 4px' }}>—</span>
+                            <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
+                            <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
                             <span>{s.subjectName || s.subjectKey}</span>
-                            {s.topicName && <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}> · {s.topicName}</span>}
-                            <span style={{ color: '#ffffff', fontWeight: 900 }}> ({s.testName})</span>
+                            {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
+                            <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
                           </>
                         ) : (
                           s.testTitle
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <span style={{ background: 'rgba(5,150,105,0.2)', color: '#4ade80', border: '1px solid rgba(52,211,153,0.35)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                        <span style={{ background: 'rgba(225,29,72,0.2)', color: '#f87171', border: '1px solid rgba(253,164,175,0.35)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                        <span style={{ background: 'rgba(255,255,255,0.06)', color: '#cbd5e1', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>○ {s.blankCount}</span>
+                        <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                        <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                        <span style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>○ {s.blankCount}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
                         <div>
                           <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} />
-                          <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
                         {s.type !== 'physicalExam' ? (
-                          <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.35)' }}>
+                          <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                             <Eye size={13} /> İncele
                           </button>
                         ) : (
-                          <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.35)' }}>
+                          <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
                             <Eye size={13} /> Karne
                           </button>
                         )}
@@ -1853,7 +1849,7 @@ export default function StudentResultsPage() {
                   );
                 })}
                 {filteredSubs.length === 0 && (
-                  <div style={{ gridColumn: '1/-1', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.85) 100%)', borderRadius: 18, padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontWeight: 700, border: '1.5px solid rgba(255,255,255,0.12)' }}>
+                  <div style={{ gridColumn: '1/-1', background: '#ffffff', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0' }}>
                     Sonuç bulunamadı
                   </div>
                 )}

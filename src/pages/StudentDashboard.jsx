@@ -81,12 +81,12 @@ const DAYS_OF_WEEK = [
 ];
 
 const GOAL_TYPE_THEMES = {
-  Soru:   { color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.18)',    text: '#fb7185', border: 'rgba(244, 63, 94, 0.35)', icon: Target,      unit: 'soru', step: 10 },
-  Sayfa:  { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.18)',   text: '#38bdf8', border: 'rgba(56, 189, 248, 0.35)', icon: BookOpen,    unit: 'sayfa', step: 5 },
-  Konu:   { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.18)', text: '#c084fc', border: 'rgba(192, 132, 252, 0.35)', icon: Brain,       unit: 'konu', step: 1 },
-  Dakika: { color: '#34d399', bg: 'rgba(52, 211, 153, 0.18)',  text: '#34d399', border: 'rgba(52, 211, 153, 0.35)', icon: Timer,       unit: 'dk', step: 15 },
-  Net:    { color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.18)',   text: '#22d3ee', border: 'rgba(34, 211, 238, 0.35)', icon: TrendingUp, unit: 'net', step: 1 },
-  Puan:   { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.18)',   text: '#fbbf24', border: 'rgba(251, 191, 36, 0.35)', icon: Trophy,     unit: 'puan', step: 5 },
+  Soru:   { color: '#e11d48', bg: '#ffe4e6', light: '#fff1f2', text: '#be123c', border: '#fecdd3', icon: Target,      unit: 'soru', step: 10 },
+  Sayfa:  { color: '#0284c7', bg: '#e0f2fe', light: '#f0f9ff', text: '#0369a1', border: '#bae6fd', icon: BookOpen,    unit: 'sayfa', step: 5 },
+  Konu:   { color: '#7c3aed', bg: '#f3e8ff', light: '#faf5ff', text: '#6d28d9', border: '#e9d5ff', icon: Brain,       unit: 'konu', step: 1 },
+  Dakika: { color: '#059669', bg: '#d1fae5', light: '#ecfdf5', text: '#047857', border: '#a7f3d0', icon: Timer,       unit: 'dk', step: 15 },
+  Net:    { color: '#0891b2', bg: '#cffafe', light: '#ecfeff', text: '#0e7490', border: '#a5f3fc', icon: TrendingUp, unit: 'net', step: 1 },
+  Puan:   { color: '#d97706', bg: '#fef3c7', light: '#fffbeb', text: '#b45309', border: '#fde68a', icon: Trophy,     unit: 'puan', step: 5 },
 };
 
 const DASHBOARD_QUOTES = [

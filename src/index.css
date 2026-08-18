@@ -139,14 +139,15 @@ body {
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.08);
-  color: #c7d2fe;
-  border: 1.5px solid rgba(165, 180, 252, 0.4);
+  background: #ffffff;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
 }
 
 .btn-outline:hover {
-  background: rgba(99, 102, 241, 0.25);
-  color: white;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
 }
 
 /* Layout utilities */
@@ -174,19 +175,18 @@ body {
 
 /* Base Card */
 .card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   border-radius: var(--border-radius-xl);
   padding: 1.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(20px);
-  color: #ffffff;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+  color: #0f172a;
   transition: transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 .card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.08);
 }
 
 /* Responsive constraints & Native Mobile Safe Area */

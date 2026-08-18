@@ -160,15 +160,15 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
         </div>
 
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1.5px solid #e2e8f0', background: '#f8fafc' }}>
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.22) 0%, rgba(168,85,247,0.18) 100%)', padding: '0.65rem 0.75rem', borderRadius: '0.95rem', border: '1.5px solid rgba(165,180,252,0.35)', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
-              <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: '#ffffff', padding: '0.65rem 0.75rem', borderRadius: '0.95rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
                 {currentUser.name?.charAt(0).toUpperCase()}
               </div>
               <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
               </div>
               <button 
                 onClick={async () => { 
@@ -179,13 +179,13 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 title="Oturumu Kapat"
                 style={{ 
                   width: '2rem', height: '2rem', borderRadius: '50%', 
-                  background: 'rgba(244,63,94,0.15)', border: 'none', 
-                  color: '#f43f5e', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  background: '#fef2f2', border: '1px solid #fecaca', 
+                  color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
                 }}
                 className="hover:scale-105 active:scale-95"
               >
-                <LogOut size={16} />
+                <LogOut size={15} />
               </button>
             </div>
           ) : (
@@ -198,7 +198,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
 
           {/* Global Quick Search Button */}
           {currentUser && (
-            <div style={{ marginTop: '0.75rem' }}>
+            <div style={{ marginTop: '0.65rem' }}>
               <button
                 onClick={() => {
                   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
@@ -209,20 +209,21 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                   justifyContent: 'space-between',
                   padding: '0.5rem 0.75rem',
                   borderRadius: '0.75rem',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: 'rgba(255, 255, 255, 0.75)',
-                  fontSize: '0.76rem',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#475569',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   width: '100%',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Search size={14} color="#818cf8" /> Hızlı Arama
+                  <Search size={14} color="#6366f1" /> Hızlı Arama
                 </span>
-                <kbd style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '4px', padding: '1px 5px', fontSize: '0.65rem', color: '#a5b4fc' }}>Ctrl K</kbd>
+                <kbd style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '1px 5px', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>Ctrl K</kbd>
               </button>
             </div>
           )}
