@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   STATISTICS DASHBOARD - COSMIC AURORA GLASSMORPHISM PRO SUITE
+   STATISTICS DASHBOARD - LIGHT THEME DESIGN SUITE
    ═══════════════════════════════════════════════════ */
 
 .stats-dashboard-page {
@@ -8,12 +8,14 @@
   max-width: 100%;
   margin: 0;
   padding: 1.25rem 1.5rem 5rem 1.5rem;
-  background: radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%),
-              radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%),
-              linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%);
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
+    #f8fafc;
+  background-attachment: fixed;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: #f8fafc;
+  color: #0f172a;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -21,31 +23,30 @@
 }
 
 .stats-glass-card {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   border-radius: 1.5rem;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
   padding: 1.5rem;
   box-sizing: border-box;
+  color: #0f172a;
 }
 
 .recharts-default-tooltip {
-  background-color: rgba(15, 23, 42, 0.95) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
   border-radius: 14px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
-  color: #ffffff !important;
-  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
 }
 
 .recharts-tooltip-item {
-  color: #ffffff !important;
+  color: #0f172a !important;
   font-weight: 700 !important;
 }
 
 .recharts-tooltip-label {
-  color: #c7d2fe !important;
+  color: #6366f1 !important;
   font-weight: 800 !important;
   margin-bottom: 4px !important;
 }

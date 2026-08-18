@@ -5,8 +5,8 @@
   max-width: 100%;
   display: flex;
   flex-direction: row;
-  background-color: #0d1527;
-  color: #f8fafc;
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
 .main-content {
@@ -17,7 +17,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  background-color: #0d1527;
+  background-color: #f8fafc;
   min-height: 100vh;
 }
 
@@ -27,9 +27,9 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(13, 21, 39, 0.95);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(16px);
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1.5px solid #e2e8f0;
   padding: 1rem;
   align-items: center;
   justify-content: space-between;
@@ -53,19 +53,18 @@
   top: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1.5px solid rgba(255, 255, 255, 0.16);
-  background: linear-gradient(180deg, #111c38 0%, #162447 35%, #1d2c54 70%, #131e3b 100%);
-  backdrop-filter: blur(20px);
+  border-right: 1.5px solid #e2e8f0;
+  background: #ffffff;
   z-index: 9999;
   flex-shrink: 0;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
-  box-shadow: 10px 0 35px rgba(0, 0, 0, 0.25);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-header {
   padding: 1.25rem 1.25rem 1.1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
 .brand {
@@ -76,16 +75,14 @@
   font-size: 1.4rem;
   font-weight: 900;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #38bdf8 0%, #a5b4fc 50%, #f472b6 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
 }
 
 .brand-icon {
   font-size: 1.6rem;
   -webkit-text-fill-color: initial;
-  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
 }
 
 .nav-links {
@@ -101,7 +98,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   font-weight: 900;
-  color: #c7d2fe;
+  color: #64748b;
   letter-spacing: 0.08em;
   margin: 1.1rem 0 0.4rem 0.6rem;
   display: flex;
@@ -114,13 +111,13 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 8px #38bdf8;
+  background: #6366f1;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.5);
 }
 
 .nav-links .nav-link {
   text-decoration: none;
-  color: #e2e8f0;
+  color: #475569;
   font-weight: 700;
   font-size: 0.86rem;
   padding: 0.55rem 0.75rem;
@@ -129,16 +126,16 @@
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   position: relative;
 }
 
 .nav-links .nav-link:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #eff6ff;
+  color: #1d4ed8;
   transform: translateX(4px);
-  border-color: rgba(165, 180, 252, 0.35);
+  border-color: #cbd5e1;
 }
 
 .nav-links .nav-link:active {
@@ -146,11 +143,11 @@
 }
 
 .nav-links .nav-link.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.45) 0%, rgba(168, 85, 247, 0.45) 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: #ffffff;
   font-weight: 900;
-  border: 1.5px solid rgba(165, 180, 252, 0.65);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45), inset 0 0 12px rgba(168, 85, 247, 0.25);
+  border: 1.5px solid #6366f1;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
 }
 
 .nav-icon-badge {
@@ -162,17 +159,18 @@
   justify-content: center;
   flex-shrink: 0;
   transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
 .nav-link:hover .nav-icon-badge {
   transform: scale(1.08) rotate(2deg);
-  filter: brightness(1.15);
 }
 
 .nav-link.active .nav-icon-badge {
   transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .nav-hot-badge {
@@ -184,7 +182,7 @@
   border-radius: 99px;
   background: linear-gradient(135deg, #ec4899, #f43f5e);
   color: white;
-  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.5);
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
 }
 
 /* --- Main Content --- */
@@ -203,8 +201,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
   z-index: 9998;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -218,18 +216,18 @@
   
   .mobile-header {
     display: flex;
-    background: rgba(17, 28, 56, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(16px);
-    border-bottom: 1.5px solid rgba(255, 255, 255, 0.16);
+    border-bottom: 1.5px solid #e2e8f0;
     padding: 0.85rem 1rem;
   }
 
   .mobile-header .brand-text {
-    color: white;
+    color: #0f172a;
   }
 
   .mobile-menu-btn {
-    color: white;
+    color: #0f172a;
   }
   
   .app-container:not(.no-sidebar) .main-content {
@@ -264,17 +262,17 @@
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #c7d2fe;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .sidebar-collapse-toggle-btn:hover {
-  background: rgba(99, 102, 241, 0.4);
-  border-color: rgba(165, 180, 252, 0.5);
-  color: white;
+  background: #eff6ff;
+  border-color: #cbd5e1;
+  color: #1d4ed8;
   transform: scale(1.06);
 }
 
@@ -288,10 +286,10 @@
   gap: 0.5rem;
   padding: 0.55rem 0.95rem;
   border-radius: 0.85rem;
-  background: linear-gradient(135deg, #1e293b, #3730a3);
-  color: #c7d2fe;
-  border: 1.5px solid rgba(165, 180, 252, 0.45);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  background: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   font-weight: 800;
   font-size: 0.84rem;
   cursor: pointer;
@@ -306,10 +304,10 @@
 }
 
 .sidebar-floating-toggle-btn:hover {
-  background: linear-gradient(135deg, #334155, #4338ca);
-  color: white;
-  border-color: rgba(165, 180, 252, 0.7);
-  box-shadow: 0 10px 28px rgba(67, 56, 202, 0.5);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
 }
 

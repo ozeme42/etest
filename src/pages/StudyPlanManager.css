@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════
-   COSMIC AURORA GLASSMORPHISM — STUDY PLANS & ROADMAPS SUITE
+   LIGHT THEME DESIGN SYSTEM — STUDY PLANS & ROADMAPS SUITE
 ═══════════════════════════════════════════════════════════════════ */
 
 .study-plans-page-container,
@@ -10,14 +10,13 @@
   box-sizing: border-box;
   margin: 0;
   padding: 1.25rem 1.5rem 5rem 1.5rem;
-  background-color: #0d1527;
+  background-color: #f8fafc;
   background-image: 
-    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%),
-    linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%);
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
+    #f8fafc;
   background-attachment: fixed;
-  color: #f8fafc;
+  color: #0f172a;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
@@ -26,19 +25,18 @@
 
 /* Glass Card Foundation */
 .study-glass-card {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(20px);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   border-radius: 1.25rem;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #f8fafc;
+  color: #0f172a;
   box-sizing: border-box;
 }
 
 .study-glass-card:hover {
-  border-color: rgba(165, 180, 252, 0.35);
-  box-shadow: 0 16px 42px rgba(99, 102, 241, 0.25);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.06);
 }
 
 /* Top Header */
@@ -49,11 +47,11 @@
   flex-wrap: wrap;
   gap: 1rem;
   padding: 1.25rem 1.75rem;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   border-radius: 1.5rem;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  color: #0f172a;
 }
 
 .study-header-left {
@@ -82,13 +80,13 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .study-btn-add-main:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
 }
 
 /* 4 KPI Live Metric Cards - 4 col on desktop, strictly 2x2 on mobile */
@@ -105,23 +103,23 @@
 }
 
 .study-kpi-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   border-radius: 1.25rem;
   padding: 1.15rem 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
   box-sizing: border-box;
+  color: #0f172a;
 }
 
 .study-kpi-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
 }
 
 .study-kpi-icon {
@@ -137,13 +135,13 @@
 .study-kpi-val {
   font-size: 1.5rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #0f172a;
   line-height: 1.2;
 }
 
 .study-kpi-lbl {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -159,6 +157,9 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1.25rem;
 }
 
 .study-presets-container {
@@ -176,29 +177,29 @@
 }
 
 .roadmap-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(20px);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   border-radius: 1.35rem;
   padding: 1.4rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+  color: #0f172a;
 }
 
 .roadmap-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(165, 180, 252, 0.4);
-  box-shadow: 0 18px 45px rgba(99, 102, 241, 0.3);
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.08);
 }
 
 .roadmap-card-actions {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #e2e8f0;
   padding-top: 1rem;
   flex-wrap: wrap;
 }
@@ -210,12 +211,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: #f1f5f9;
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: #cbd5e1;
   border-radius: 4px;
 }
 

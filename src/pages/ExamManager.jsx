@@ -547,9 +547,9 @@ export default function ExamManager() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '0.55rem 1.1rem', borderRadius: '0.75rem',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(255,255,255,0.18)',
-                color: '#ffffff', fontWeight: 800, fontSize: '0.8rem',
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                color: '#334155', fontWeight: 800, fontSize: '0.8rem',
                 cursor: 'pointer'
               }}
             >
@@ -561,47 +561,47 @@ export default function ExamManager() {
 
       {/* ══════════ 4 LIVE KPI METRIC CARDS (2x2 ON MOBILE) ══════════ */}
       <div className="exam-kpi-grid">
-        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(56, 189, 248, 0.35)' }}>
-          <div className="exam-kpi-icon" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid #e2e8f0' }}>
+          <div className="exam-kpi-icon" style={{ background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd' }}>
             <FileSpreadsheet size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Kayıtlı Fiziki Deneme</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{physicalExamsDatabase.length} Deneme</span>
-            <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Havuzda hazır</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Kayıtlı Fiziki Deneme</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{physicalExamsDatabase.length} Deneme</span>
+            <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700 }}>Havuzda hazır</span>
           </div>
         </div>
 
-        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(52, 211, 153, 0.35)' }}>
-          <div className="exam-kpi-icon" style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34d399' }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid #e2e8f0' }}>
+          <div className="exam-kpi-icon" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
             <Layers size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam Soru Havuzu</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{totalQuestionsInPool} Soru</span>
-            <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Cevap anahtarlı</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam Soru Havuzu</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{totalQuestionsInPool} Soru</span>
+            <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>Cevap anahtarlı</span>
           </div>
         </div>
 
-        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(251, 191, 36, 0.35)' }}>
-          <div className="exam-kpi-icon" style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24' }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid #e2e8f0' }}>
+          <div className="exam-kpi-icon" style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}>
             <Award size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Sınav Formatları</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>LGS · TYT · AYT</span>
-            <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Özel şablon destekli</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Sınav Formatları</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>LGS · TYT · AYT</span>
+            <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700 }}>Özel şablon destekli</span>
           </div>
         </div>
 
-        <div className="exam-kpi-card" style={{ border: '1.5px solid rgba(192, 132, 252, 0.35)' }}>
-          <div className="exam-kpi-icon" style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc' }}>
+        <div className="exam-kpi-card" style={{ border: '1.5px solid #e2e8f0' }}>
+          <div className="exam-kpi-icon" style={{ background: '#faf5ff', color: '#7c3aed', border: '1px solid #e9d5ff' }}>
             <CheckCircle2 size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ödev & Optik Sync</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>1-Tıkla Atama</span>
-            <span style={{ fontSize: '0.72rem', color: '#c084fc', fontWeight: 700 }}>Öğrenci & Sınıf</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ödev & Optik Sync</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>1-Tıkla Atama</span>
+            <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 700 }}>Öğrenci & Sınıf</span>
           </div>
         </div>
       </div>
@@ -613,13 +613,13 @@ export default function ExamManager() {
           {/* SEARCH & FILTER BAR */}
           <div className="exam-filter-bar">
             <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-              <Search size={16} color="rgba(255,255,255,0.4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 placeholder="Deneme adı veya yayın ile ara..."
                 value={searchFilter}
                 onChange={e => setSearchFilter(e.target.value)}
-                style={{ width: '100%', padding: '0.6rem 0.9rem 0.6rem 2.4rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.6rem 0.9rem 0.6rem 2.4rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -630,10 +630,10 @@ export default function ExamManager() {
                   onClick={() => setFormatFilter(f)}
                   style={{
                     padding: '0.5rem 0.85rem', borderRadius: '0.65rem',
-                    border: formatFilter === f ? '1px solid rgba(165,180,252,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                    background: formatFilter === f ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
-                    color: '#ffffff', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                    boxShadow: formatFilter === f ? '0 4px 12px rgba(99,102,241,0.4)' : 'none'
+                    border: formatFilter === f ? '1px solid #818cf8' : '1.5px solid #cbd5e1',
+                    background: formatFilter === f ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
+                    color: formatFilter === f ? '#ffffff' : '#475569', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                    boxShadow: formatFilter === f ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
                   }}
                 >
                   {f === 'ALL' ? 'Tüm Formatlar' : f === 'CUSTOM' ? 'Özel' : f}
@@ -644,11 +644,11 @@ export default function ExamManager() {
 
           {/* EXAMS GRID */}
           <div className="exam-pool-container">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem' }}>
-              <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Layers size={20} color="#818cf8" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem' }}>
+              <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Layers size={20} color="#6366f1" />
                 Fiziki Deneme Havuzu
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.35)' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
                   {filteredExams.length} Deneme
                 </span>
               </h2>
@@ -659,7 +659,7 @@ export default function ExamManager() {
                   padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
                   background: 'linear-gradient(135deg,#059669,#10b981)',
                   border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
+                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
                 }}
               >
                 <Plus size={15} /> Yeni Deneme Girişi Yap
@@ -668,12 +668,12 @@ export default function ExamManager() {
 
             {filteredExams.length === 0 ? (
               <div style={{
-                border: '1.5px dashed rgba(255,255,255,0.2)',
+                border: '1.5px dashed #cbd5e1',
                 borderRadius: '1.25rem', padding: '3.5rem 1.5rem', textAlign: 'center',
-                color: 'rgba(255,255,255,0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem'
+                color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem'
               }}>
                 <ClipboardCheck size={48} style={{ opacity: 0.3 }} />
-                <h3 style={{ margin: 0, color: '#ffffff', fontWeight: 800, fontSize: '1.1rem' }}>Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
+                <h3 style={{ margin: 0, color: '#0f172a', fontWeight: 800, fontSize: '1.1rem' }}>Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
                 <p style={{ margin: 0, fontSize: '0.82rem', maxWidth: 460 }}>
                   Özdebir, Töder veya Kurumsal fiziki denemelerinizin cevap anahtarlarını dijital optik forma kodlayarak ilk kaydı oluşturun.
                 </p>
@@ -684,7 +684,7 @@ export default function ExamManager() {
                     padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
                     background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
                     border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
-                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
+                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
                   }}
                 >
                   <Plus size={15} /> Yeni Fiziki Deneme Kodla
@@ -697,49 +697,49 @@ export default function ExamManager() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: 99, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.35)', textTransform: 'uppercase' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: 99, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', textTransform: 'uppercase' }}>
                             {m.publisher || 'LGS'}
                           </span>
                           {m.pdfUrl && (
-                            <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                               <Link2 size={10} /> PDF
                             </span>
                           )}
-                          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b' }}>
                             {m.penaltyRatio ? `${m.penaltyRatio}Y = 1D` : 'Ceza Yok'}
                           </span>
                         </div>
-                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#ffffff', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: '#0f172a', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {m.title}
                         </h3>
                       </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399', background: 'rgba(5, 150, 105, 0.2)', border: '1px solid rgba(52, 211, 153, 0.35)', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', flexShrink: 0 }}>
                         {m.totalQuestions || 0} Soru
                       </span>
                     </div>
 
                     {/* SUBJECT QUESTION BREAKDOWN */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: '0.4rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))', gap: '0.4rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
                       {(m.subjects || []).slice(0, 4).map((s, sIdx) => (
-                        <div key={sIdx} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '0.6rem', padding: '0.4rem', textAlign: 'center' }}>
-                          <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', fontWeight: 800, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#ffffff' }}>{s.count}S</span>
+                        <div key={sIdx} style={{ background: '#f8fafc', borderRadius: '0.6rem', padding: '0.4rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 800, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#0f172a' }}>{s.count}S</span>
                         </div>
                       ))}
                     </div>
 
                     {/* ACTION BUTTONS */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <button
                           onClick={() => navigate(`/exam-analysis/${m.id}`)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#34d399', display: 'flex', alignItems: 'center', gap: 4 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}
                         >
                           <BarChart3 size={14} /> Analiz
                         </button>
                         <button
                           onClick={() => handleViewExamDetails(m)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#818cf8', display: 'flex', alignItems: 'center', gap: 4 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 4 }}
                         >
                           <Eye size={14} /> Detaylar
                         </button>
@@ -752,14 +752,14 @@ export default function ExamManager() {
                             padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
                             background: 'linear-gradient(135deg,#059669,#10b981)',
                             border: 'none', color: 'white', fontWeight: 900, fontSize: '0.72rem',
-                            cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+                            cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.25)'
                           }}
                         >
                           Ödev Ata
                         </button>
                         <button
                           onClick={() => { if(window.confirm('Bu denemeyi havuzdan silmek istediğinize emin misiniz?')) deleteTrackedBook(m.id); }}
-                          style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '0.5rem', padding: '0.35rem', cursor: 'pointer', color: '#f87171', display: 'flex' }}
+                          style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.35rem', cursor: 'pointer', color: '#dc2626', display: 'flex' }}
                           title="Denemeyi Sil"
                         >
                           <Trash2 size={13} />
@@ -780,14 +780,14 @@ export default function ExamManager() {
           
           {/* TOP CONFIG BAR */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-            border: '1.5px solid rgba(255, 255, 255, 0.14)',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
             borderRadius: '1.5rem', padding: '1.5rem',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)',
+            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
             display: 'flex', flexDirection: 'column', gap: '1.25rem'
           }}>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={18} color="#818cf8" /> Sınav Formatı Seçimi
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Layers size={18} color="#6366f1" /> Sınav Formatı Seçimi
             </h3>
 
             {/* PRESET SELECTOR (2x2 ON MOBILE) */}
@@ -801,15 +801,15 @@ export default function ExamManager() {
                     className="exam-preset-btn"
                     style={{
                       padding: '0.85rem 1rem', borderRadius: '1rem',
-                      border: isSel ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.1)',
-                      background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.05)',
-                      color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                      boxShadow: isSel ? '0 6px 20px rgba(99,102,241,0.45)' : 'none',
+                      border: isSel ? '1.5px solid #818cf8' : '1.5px solid #e2e8f0',
+                      background: isSel ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#f8fafc',
+                      color: isSel ? '#ffffff' : '#0f172a', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                      boxShadow: isSel ? '0 4px 14px rgba(99,102,241,0.25)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <span style={{ fontSize: '0.85rem', fontWeight: 900 }}>{key === 'CUSTOM' ? 'Özel / Boş Şablon' : `${key} Sınavı`}</span>
-                    <span style={{ fontSize: '0.7rem', color: isSel ? '#c7d2fe' : 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.7rem', color: isSel ? '#c7d2fe' : '#64748b', fontWeight: 700 }}>
                       {subjects.length > 0 ? `${subjects.reduce((a, s) => a + s.count, 0)} Soru` : 'Boş (Elle / JSON)'}
                     </span>
                   </button>
@@ -818,51 +818,51 @@ export default function ExamManager() {
             </div>
 
             {/* INPUTS & OPTIONAL PENALTY RATIO SELECTOR */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Fiziki Deneme Adı / Yayın *</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: 4 }}>Fiziki Deneme Adı / Yayın *</label>
                 <input
                   type="text"
                   placeholder="Örn: Özdebir LGS Genel Deneme 1"
                   value={examTitle}
                   onChange={e => setExamTitle(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Deneme Tarihi</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: 4 }}>Deneme Tarihi</label>
                 <input
                   type="date"
                   value={examDate}
                   onChange={e => setExamDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>PDF Linki (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: 4 }}>PDF Linki (İsteğe Bağlı)</label>
                 <input
                   type="url"
                   value={examPdfUrl}
                   onChange={e => setExamPdfUrl(e.target.value)}
                   placeholder="https://drive.google.com/... veya PDF linki"
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Değerlendirme (Ceza Kuralı)</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: 4 }}>Değerlendirme (Ceza Kuralı)</label>
                 <select
                   value={penaltyRatio}
                   onChange={e => setPenaltyRatio(Number(e.target.value))}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(56, 189, 248, 0.4)', background: 'rgba(15,23,42,0.95)', color: '#38bdf8', fontSize: '0.85rem', fontWeight: 800, outline: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem', fontWeight: 800, outline: 'none', cursor: 'pointer' }}
                 >
-                  <option value={3} style={{ background: '#0f172a', color: '#ffffff' }}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
-                  <option value={4} style={{ background: '#0f172a', color: '#ffffff' }}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
-                  <option value={0} style={{ background: '#0f172a', color: '#ffffff' }}>✨ Yanlışlar Doğruyu Götürmüyor (0 Yanlış)</option>
-                  <option value={2} style={{ background: '#0f172a', color: '#ffffff' }}>⚡ 2 Yanlış 1 Doğruyu Götürür</option>
-                  <option value={5} style={{ background: '#0f172a', color: '#ffffff' }}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
+                  <option value={3} style={{ background: '#ffffff', color: '#0f172a' }}>📐 3 Yanlış 1 Doğruyu Götürür (LGS Standart)</option>
+                  <option value={4} style={{ background: '#ffffff', color: '#0f172a' }}>🏛️ 4 Yanlış 1 Doğruyu Götürür (YKS Standart)</option>
+                  <option value={0} style={{ background: '#ffffff', color: '#0f172a' }}>✨ Yanlışlar Doğruyu Götürmüyor (0 Yanlış)</option>
+                  <option value={2} style={{ background: '#ffffff', color: '#0f172a' }}>⚡ 2 Yanlış 1 Doğruyu Götürür</option>
+                  <option value={5} style={{ background: '#ffffff', color: '#0f172a' }}>🎯 5 Yanlış 1 Doğruyu Götürür</option>
                 </select>
               </div>
             </div>
@@ -870,19 +870,19 @@ export default function ExamManager() {
 
           {/* DERSLER VE CEVAP ANAHTARI OPTİK KODLAMA ALANI */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-            border: '1.5px solid rgba(255, 255, 255, 0.14)',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
             borderRadius: '1.5rem', padding: '1.5rem',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)',
+            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
             display: 'flex', flexDirection: 'column', gap: '1.25rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <KeyRound size={20} color="#fbbf24" />
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#ffffff' }}>
+                <KeyRound size={20} color="#d97706" />
+                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#0f172a' }}>
                   Dijital Optik Form & Cevap Anahtarı Kodlama
                 </h3>
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(52, 211, 153, 0.2)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
                   {evaluationResults.totalFilled} / {evaluationResults.totalQuestions} Kodlandı
                 </span>
               </div>
@@ -893,9 +893,9 @@ export default function ExamManager() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '0.45rem 0.9rem', borderRadius: '0.65rem',
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#c7d2fe', fontWeight: 800, fontSize: '0.75rem',
+                    background: '#f8fafc',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#334155', fontWeight: 800, fontSize: '0.75rem',
                     cursor: 'pointer'
                   }}
                 >
@@ -1028,11 +1028,11 @@ export default function ExamManager() {
             )}
 
             {/* SAVE BUTTON */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
               >
                 Vazgeç
               </button>
@@ -1044,7 +1044,7 @@ export default function ExamManager() {
                   padding: '0.65rem 1.5rem', borderRadius: '0.75rem',
                   background: 'linear-gradient(135deg,#059669,#10b981)',
                   border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem',
-                  cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.4)'
+                  cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.25)'
                 }}
               >
                 <CheckCircle2 size={16} /> Denemeyi Sisteme Ekle
@@ -1058,25 +1058,25 @@ export default function ExamManager() {
 
       {/* ══════════ MODAL: TOPLU CEVAP YAPIŞTIR ══════════ */}
       {showBulkModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+            background: '#ffffff',
             borderRadius: '1.5rem', width: '100%', maxWidth: 480, padding: '1.75rem',
-            border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-            display: 'flex', flexDirection: 'column', gap: '1rem'
+            border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fbbf24', fontWeight: 900, fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#d97706', fontWeight: 900, fontSize: '1rem' }}>
                 <Key size={18} /> {subjects[activeSubjectIndex]?.name} — Cevap Anahtarı Yapıştır
               </div>
-              <button onClick={() => setShowBulkModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}>
+              <button onClick={() => setShowBulkModal(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
                 <X size={15} />
               </button>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
-              Cevapları yapıştırın (Örn: <code style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '0.1rem 0.4rem', borderRadius: 4 }}>ABCDABCD</code> veya <code style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '0.1rem 0.4rem', borderRadius: 4 }}>A, B, C, D</code>).
-              <br/><strong style={{ color: '#fbbf24' }}>✨ Kaç soru girerseniz o kadarı sırayla uygulanır.</strong>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+              Cevapları yapıştırın (Örn: <code style={{ background: '#fffbeb', color: '#d97706', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid #fde68a' }}>ABCDABCD</code> veya <code style={{ background: '#fffbeb', color: '#d97706', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid #fde68a' }}>A, B, C, D</code>).
+              <br/><strong style={{ color: '#d97706' }}>✨ Kaç soru girerseniz o kadarı sırayla uygulanır.</strong>
             </p>
 
             <form onSubmit={handleApplyBulkInput} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -1085,23 +1085,23 @@ export default function ExamManager() {
                 placeholder="Örn: A B C D A B C D A B C D A B C D A B C D"
                 value={bulkInputText}
                 onChange={e => setBulkInputText(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(0,0,0,0.3)', color: '#ffffff', fontSize: '0.85rem', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.1em' }}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.1em' }}
               />
 
               {parsedBulkInput.length > 0 && (
-                <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(165,180,252,0.3)', fontSize: '0.78rem', color: '#c7d2fe', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '0.78rem', color: '#1d4ed8', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <CheckCircle2 size={14} color="#34d399" />
+                    <CheckCircle2 size={14} color="#16a34a" />
                     {parsedBulkInput.length} Soru Cevabı Algılandı (1 - {Math.min(parsedBulkInput.length, subjects[activeSubjectIndex]?.count || 20)}):
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 900, color: '#ffffff', wordBreak: 'break-all' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', wordBreak: 'break-all' }}>
                     {parsedBulkInput.slice(0, subjects[activeSubjectIndex]?.count || 20).join(' - ')}
                   </div>
                 </div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowBulkModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setShowBulkModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
                   İptal
                 </button>
                 <button
@@ -1114,7 +1114,7 @@ export default function ExamManager() {
                     border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900,
                     cursor: parsedBulkInput.length === 0 ? 'not-allowed' : 'pointer',
                     opacity: parsedBulkInput.length === 0 ? 0.5 : 1,
-                    boxShadow: '0 4px 14px rgba(245,158,11,0.4)'
+                    boxShadow: '0 4px 14px rgba(245,158,11,0.25)'
                   }}
                 >
                   <Sparkles size={14} /> Cevap Anahtarını Uygula
@@ -1127,32 +1127,32 @@ export default function ExamManager() {
 
       {/* ══════════ MODAL: DENEME DETAYLARI & CEVAP ANAHTARI ══════════ */}
       {viewingExamDetails && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+            background: '#ffffff',
             borderRadius: '1.5rem', width: '100%', maxWidth: 640, padding: '1.75rem',
-            border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-            maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem'
+            border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ flex: 1, marginRight: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   {isEditingExam ? (
                     <select
                       value={editingExamMeta.publisher}
                       onChange={(e) => setEditingExamMeta(p => ({ ...p, publisher: e.target.value }))}
-                      style={{ padding: '0.25rem 0.5rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.4)', background: 'rgba(15,23,42,0.95)', color: '#c7d2fe', fontSize: '0.72rem', fontWeight: 900, outline: 'none' }}
+                      style={{ padding: '0.25rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.72rem', fontWeight: 900, outline: 'none' }}
                     >
                       {['LGS', 'TYT', 'AYT', 'Özdebir', 'Töder', 'Sinan Kuzucu', 'Nartest', 'Okyanus', 'Özel'].map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
                   ) : (
-                    <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.35)', textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', textTransform: 'uppercase' }}>
                       {viewingExamDetails.publisher || 'LGS'} Sınav Önizlemesi
                     </span>
                   )}
-                  <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
                     {viewingExamDetails.date || new Date(viewingExamDetails.createdAt).toLocaleDateString('tr-TR')}
                   </span>
                 </div>
@@ -1161,21 +1161,21 @@ export default function ExamManager() {
                     type="text"
                     value={editingExamMeta.title}
                     onChange={(e) => setEditingExamMeta(p => ({ ...p, title: e.target.value }))}
-                    style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '0.6rem', border: '1.5px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '1rem', fontWeight: 900, outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '0.6rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '1rem', fontWeight: 900, outline: 'none', boxSizing: 'border-box' }}
                   />
                 ) : (
-                  <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: '#ffffff', lineHeight: 1.2 }}>{viewingExamDetails.title}</h3>
+                  <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: '#0f172a', lineHeight: 1.2 }}>{viewingExamDetails.title}</h3>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {!isEditingExam ? (
-                  <button onClick={() => setIsEditingExam(true)} style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: '0.6rem', padding: '0.4rem 0.75rem', color: '#fbbf24', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button onClick={() => setIsEditingExam(true)} style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.6rem', padding: '0.4rem 0.75rem', color: '#d97706', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Edit3 size={13} /> Düzenle
                   </button>
                 ) : (
-                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#fbbf24', animation: 'pulse 1.5s infinite' }}>Düzenleme Modu</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#d97706', animation: 'pulse 1.5s infinite' }}>Düzenleme Modu</span>
                 )}
-                <button onClick={() => setViewingExamDetails(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}>
+                <button onClick={() => setViewingExamDetails(null)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
                   <X size={15} />
                 </button>
               </div>
@@ -1183,34 +1183,34 @@ export default function ExamManager() {
 
             {/* QUICK SPECS */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', textAlign: 'center' }}>
-              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '0.85rem' }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase' }}>Toplam Soru</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>{viewingExamDetails.totalQuestions} Soru</span>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.75rem', borderRadius: '0.85rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Toplam Soru</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{viewingExamDetails.totalQuestions} Soru</span>
               </div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '0.85rem' }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase' }}>Ceza Kuralı</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fbbf24' }}>{viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}</span>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.75rem', borderRadius: '0.85rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Ceza Kuralı</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#d97706' }}>{viewingExamDetails.penaltyRatio ? `${viewingExamDetails.penaltyRatio}Y = 1D` : 'Ceza Yok'}</span>
               </div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '0.85rem' }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', display: 'block', textTransform: 'uppercase' }}>Ders Sayısı</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#818cf8' }}>{viewingExamDetails.subjects?.length || 0} Ders</span>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.75rem', borderRadius: '0.85rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Ders Sayısı</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#6366f1' }}>{viewingExamDetails.subjects?.length || 0} Ders</span>
               </div>
             </div>
 
             {/* SUBJECTS & ANSWER KEYS BREAKDOWN */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <h4 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
-                <Key size={14} color="#fbbf24" /> Dersler ve Cevap Anahtarları:
+              <h4 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
+                <Key size={14} color="#d97706" /> Dersler ve Cevap Anahtarları:
               </h4>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {(viewingExamDetails.subjects || []).map((sub, sIdx) => {
                   const subAnswers = isEditingExam ? (editingAnswerKey[sub.name] || []) : (viewingExamDetails.answerKey?.[sub.name] || []);
                   return (
-                    <div key={sIdx} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div key={sIdx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1rem', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#818cf8' }} />
+                        <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
                           {sub.name}
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1220,23 +1220,23 @@ export default function ExamManager() {
                               value={inlineInputs[sub.name] || ''}
                               onChange={(e) => handleInlineInputChange(sub.name, e.target.value, sub.count)}
                               placeholder="Cevaplar..."
-                              style={{ width: 140, padding: '0.25rem 0.5rem', borderRadius: '0.45rem', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#ffffff', fontSize: '0.75rem', fontFamily: 'monospace', textTransform: 'uppercase', outline: 'none' }}
+                              style={{ width: 140, padding: '0.25rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.75rem', fontFamily: 'monospace', textTransform: 'uppercase', outline: 'none' }}
                             />
                           )}
-                          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
                             {sub.count} Soru
                           </span>
                         </div>
                       </div>
 
                       {/* Optical Answer Strip */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', maxHeight: 120, overflowY: 'auto', padding: '0.35rem', background: 'rgba(0,0,0,0.25)', borderRadius: '0.65rem' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', maxHeight: 120, overflowY: 'auto', padding: '0.35rem', background: '#ffffff', borderRadius: '0.65rem', border: '1px solid #e2e8f0' }}>
                         {Array.from({ length: sub.count }).map((_, qIdx) => {
                           const ans = subAnswers[qIdx] || '-';
                           return (
-                            <div key={qIdx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 26, height: 32, borderRadius: '0.45rem', background: ans !== '-' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${ans !== '-' ? 'rgba(165,180,252,0.4)' : 'rgba(255,255,255,0.1)'}`, fontSize: '0.7rem' }}>
-                              <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>{qIdx + 1}</span>
-                              <span style={{ fontWeight: 900, color: ans !== '-' ? '#818cf8' : 'rgba(255,255,255,0.3)' }}>{ans}</span>
+                            <div key={qIdx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 26, height: 32, borderRadius: '0.45rem', background: ans !== '-' ? '#eff6ff' : '#f8fafc', border: `1px solid ${ans !== '-' ? '#bfdbfe' : '#e2e8f0'}`, fontSize: '0.7rem' }}>
+                              <span style={{ fontSize: '0.55rem', color: '#64748b', fontWeight: 700 }}>{qIdx + 1}</span>
+                              <span style={{ fontWeight: 900, color: ans !== '-' ? '#1d4ed8' : '#94a3b8' }}>{ans}</span>
                             </div>
                           );
                         })}
@@ -1247,38 +1247,27 @@ export default function ExamManager() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
               {!isEditingExam ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const examToAssign = viewingExamDetails;
-                      setViewingExamDetails(null);
-                      setAssignModalExam(examToAssign);
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '0.6rem 1.25rem', borderRadius: '0.75rem',
-                      background: 'linear-gradient(135deg,#059669,#10b981)',
-                      border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                      cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
-                    }}
-                  >
-                    <Plus size={15} /> Bu Denemeyi Ödev Olarak Ata
-                  </button>
-                  <button onClick={() => setViewingExamDetails(null)} style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
-                    Kapat
-                  </button>
-                </>
+                <button
+                  onClick={() => {
+                    const e = viewingExamDetails;
+                    setViewingExamDetails(null);
+                    setAssignModalExam(e);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}
+                >
+                  <Send size={15} /> Bu Denemeyi Öğrencilere Ata
+                </button>
               ) : (
-                <>
-                  <button onClick={() => setIsEditingExam(false)} style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
-                    İptal Et
+                <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setIsEditingExam(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                    Vazgeç
                   </button>
-                  <button onClick={handleSaveExamEdits} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#d97706,#f59e0b)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(245,158,11,0.35)' }}>
-                    <CheckCircle2 size={15} /> Değişiklikleri Kaydet
+                  <button onClick={handleSaveExamEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}>
+                    <Save size={14} /> Değişiklikleri Kaydet
                   </button>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -1287,40 +1276,40 @@ export default function ExamManager() {
 
       {/* ══════════ MODAL: DERS & SORU SAYISI DÜZENLEME ══════════ */}
       {showSettingsModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+            background: '#ffffff',
             borderRadius: '1.5rem', width: '100%', maxWidth: 500, padding: '1.75rem',
-            border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-            display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '90vh', overflowY: 'auto'
+            border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '90vh', overflowY: 'auto', color: '#0f172a'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#818cf8', fontWeight: 900, fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#6366f1', fontWeight: 900, fontSize: '1rem' }}>
                 <Settings2 size={18} /> Ders Soru Sayıları & Özel Ders Ekle
               </div>
-              <button onClick={() => setShowSettingsModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}>
+              <button onClick={() => setShowSettingsModal(false)} style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
                 <X size={15} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
               {subjects.length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', margin: 0, padding: '1rem' }}>Henüz tanımlı ders yok. Aşağıdan ekleyebilirsiniz.</p>
+                <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem', margin: 0, padding: '1rem' }}>Henüz tanımlı ders yok. Aşağıdan ekleyebilirsiniz.</p>
               ) : (
                 subjects.map(s => (
-                  <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', fontSize: '0.8rem' }}>
-                    <span style={{ fontWeight: 800, color: '#ffffff' }}>{s.name}</span>
+                  <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.8rem' }}>
+                    <span style={{ fontWeight: 800, color: '#0f172a' }}>{s.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>Soru Sayısı:</label>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>Soru Sayısı:</label>
                       <input
                         type="number"
                         min="1"
                         max="100"
                         value={s.count}
                         onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
-                        style={{ width: 52, padding: '0.25rem 0.4rem', borderRadius: '0.45rem', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.3)', color: '#ffffff', fontWeight: 900, textAlign: 'center', outline: 'none' }}
+                        style={{ width: 52, padding: '0.25rem 0.4rem', borderRadius: '0.45rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 900, textAlign: 'center', outline: 'none' }}
                       />
-                      <button onClick={() => handleDeleteSubject(s.name)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 4 }}>
+                      <button onClick={() => handleDeleteSubject(s.name)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4 }}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -1330,15 +1319,15 @@ export default function ExamManager() {
             </div>
 
             {/* ADD CUSTOM SUBJECT */}
-            <form onSubmit={handleAddCustomSubject} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#ffffff' }}>+ Yeni Özel Ders Tanımla</div>
+            <form onSubmit={handleAddCustomSubject} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>+ Yeni Özel Ders Tanımla</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                 <input
                   type="text"
                   placeholder="Ders Adı (Örn: Geometri)"
                   value={newSubName}
                   onChange={e => setNewSubName(e.target.value)}
-                  style={{ padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                  style={{ padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.78rem', outline: 'none' }}
                   required
                 />
                 <input
@@ -1346,13 +1335,13 @@ export default function ExamManager() {
                   placeholder="Soru Sayısı"
                   value={newSubCount}
                   onChange={e => setNewSubCount(e.target.value)}
-                  style={{ padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.78rem', outline: 'none' }}
+                  style={{ padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.78rem', outline: 'none' }}
                   required
                 />
                 <select
                   value={newSubOptions}
                   onChange={e => setNewSubOptions(Number(e.target.value))}
-                  style={{ padding: '0.55rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(15,23,42,0.95)', color: '#ffffff', fontSize: '0.78rem', outline: 'none', cursor: 'pointer' }}
+                  style={{ padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.78rem', outline: 'none', cursor: 'pointer' }}
                 >
                   <option value={4}>4 Şıklı (A-D)</option>
                   <option value={5}>5 Şıklı (A-E)</option>
@@ -1360,7 +1349,7 @@ export default function ExamManager() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowSettingsModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setShowSettingsModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
                   Kapat
                 </button>
                 <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#4f46e5,#6366f1)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer' }}>
@@ -1374,28 +1363,28 @@ export default function ExamManager() {
 
       {/* ══════════ MODAL: TOPLU JSON AKTARIMI ══════════ */}
       {showJsonModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+            background: '#ffffff',
             borderRadius: '1.5rem', width: '100%', maxWidth: 560, padding: '1.75rem',
-            border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-            display: 'flex', flexDirection: 'column', gap: '1rem'
+            border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#34d399', fontWeight: 900, fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#16a34a', fontWeight: 900, fontSize: '1rem' }}>
                 <FileCode2 size={18} /> Toplu JSON ile Deneme Aktarımı
               </div>
-              <button onClick={() => setShowJsonModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}>
+              <button onClick={() => setShowJsonModal(false)} style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
                 <X size={15} />
               </button>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
               Tüm deneme soru ve cevap anahtarlarını JSON formatında yapıştırarak optik formu tek tıkla saniyeler içinde doldurabilirsiniz.
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.05)', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ffffff' }}>📋 Örnek JSON Şablon Yapısı</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#eff6ff', padding: '0.75rem 1rem', borderRadius: '0.85rem', border: '1px solid #bfdbfe' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e40af' }}>📋 Örnek JSON Şablon Yapısı</span>
               <button
                 type="button"
                 onClick={handleCopySampleJson}
@@ -1406,7 +1395,7 @@ export default function ExamManager() {
             </div>
 
             {jsonError && (
-              <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#f87171', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <AlertCircle size={15} /> {jsonError}
               </div>
             )}
@@ -1417,11 +1406,11 @@ export default function ExamManager() {
                 placeholder="Örnek JSON yapısını buraya yapıştırın..."
                 value={jsonInputText}
                 onChange={e => setJsonInputText(e.target.value)}
-                style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(0,0,0,0.3)', color: '#ffffff', fontSize: '0.8rem', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
               />
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowJsonModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setShowJsonModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
                   İptal
                 </button>
                 <button
@@ -1431,7 +1420,7 @@ export default function ExamManager() {
                     padding: '0.55rem 1.25rem', borderRadius: '0.65rem',
                     background: 'linear-gradient(135deg,#059669,#10b981)',
                     border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900,
-                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.4)'
+                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
                   }}
                 >
                   <Sparkles size={14} /> Optik Formu Doldur & İçe Aktar
@@ -1444,30 +1433,30 @@ export default function ExamManager() {
 
       {/* ══════════ MODAL: HIZLI ÖDEV ATA ══════════ */}
       {assignModalExam && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+            background: '#ffffff',
             borderRadius: '1.5rem', width: '100%', maxWidth: 500, padding: '1.75rem',
-            border: '1.5px solid rgba(255,255,255,0.18)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
-            display: 'flex', flexDirection: 'column', gap: '1rem'
+            border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+            display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#34d399', fontWeight: 900, fontSize: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#16a34a', fontWeight: 900, fontSize: '1rem' }}>
                 <CheckCircle2 size={18} /> "{assignModalExam.title}" Ödev Olarak Ata
               </div>
-              <button onClick={() => setAssignModalExam(null)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}>
+              <button onClick={() => setAssignModalExam(null)} style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
                 <X size={15} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>📅 Son Teslim Tarihi *</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: 4 }}>📅 Son Teslim Tarihi *</label>
                 <input
                   type="date"
                   value={assignDueDate}
                   onChange={e => setAssignDueDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
                   required
                 />
               </div>
@@ -1478,9 +1467,9 @@ export default function ExamManager() {
                   onClick={() => { setAssignTargetMode('grade'); setAssignTargets([]); }}
                   style={{
                     flex: 1, padding: '0.55rem', borderRadius: '0.75rem',
-                    border: assignTargetMode === 'grade' ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.1)',
-                    background: assignTargetMode === 'grade' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
-                    color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                    border: assignTargetMode === 'grade' ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
+                    background: assignTargetMode === 'grade' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
+                    color: assignTargetMode === 'grade' ? '#ffffff' : '#475569', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
                   }}
                 >
                   Sınıf Bazlı ({curData.grades.length})
@@ -1490,21 +1479,21 @@ export default function ExamManager() {
                   onClick={() => { setAssignTargetMode('student'); setAssignTargets([]); }}
                   style={{
                     flex: 1, padding: '0.55rem', borderRadius: '0.75rem',
-                    border: assignTargetMode === 'student' ? '1.5px solid rgba(165,180,252,0.6)' : '1px solid rgba(255,255,255,0.1)',
-                    background: assignTargetMode === 'student' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'rgba(255,255,255,0.06)',
-                    color: '#ffffff', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                    border: assignTargetMode === 'student' ? '1.5px solid #818cf8' : '1.5px solid #cbd5e1',
+                    background: assignTargetMode === 'student' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : '#ffffff',
+                    color: assignTargetMode === 'student' ? '#ffffff' : '#475569', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
                   }}
                 >
                   Öğrenci Bazlı ({students.length})
                 </button>
               </div>
 
-              <div style={{ maxHeight: 180, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.85rem', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ maxHeight: 180, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.85rem', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 {assignTargetMode === 'grade' ? (
                   curData.grades.map(g => {
                     const checked = assignTargets.includes(g.id);
                     return (
-                      <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${checked ? 'rgba(165,180,252,0.4)' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#ffffff' }}>
+                      <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? '#eff6ff' : '#ffffff', border: `1.5px solid ${checked ? '#818cf8' : '#e2e8f0'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
                         <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(g.id) ? p.filter(id => id !== g.id) : [...p, g.id])} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎓 {g.name}</span>
                       </label>
@@ -1514,7 +1503,7 @@ export default function ExamManager() {
                   students.map(s => {
                     const checked = assignTargets.includes(s.id);
                     return (
-                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${checked ? 'rgba(165,180,252,0.4)' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#ffffff' }}>
+                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? '#eff6ff' : '#ffffff', border: `1.5px solid ${checked ? '#818cf8' : '#e2e8f0'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
                         <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(s.id) ? p.filter(id => id !== s.id) : [...p, s.id])} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {s.name}</span>
                       </label>
@@ -1524,11 +1513,11 @@ export default function ExamManager() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-              <button type="button" onClick={() => setAssignModalExam(null)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+              <button type="button" onClick={() => setAssignModalExam(null)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
                 İptal
               </button>
-              <button onClick={handleQuickAssign} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.4)' }}>
+              <button onClick={handleQuickAssign} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}>
                 Ödevi Yayınla
               </button>
             </div>

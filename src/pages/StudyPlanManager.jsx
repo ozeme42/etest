@@ -401,7 +401,7 @@ export default function StudyPlanManager() {
           color: '#ffffff',
           padding: '1rem 1.5rem',
           borderRadius: '1rem',
-          boxShadow: '0 12px 30px rgba(0,0,0,0.5)',
+          boxShadow: '0 12px 30px rgba(0,0,0,0.2)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
@@ -423,14 +423,14 @@ export default function StudyPlanManager() {
             style={{
               padding: '0.7rem',
               borderRadius: '1rem',
-              background: 'rgba(255, 255, 255, 0.07)',
-              border: '1.5px solid rgba(255, 255, 255, 0.16)',
-              color: '#ffffff',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#334155',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backdropFilter: 'blur(10px)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               transition: 'all 0.2s'
             }}
             title="Geri Dön"
@@ -440,14 +440,14 @@ export default function StudyPlanManager() {
           
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #ffffff 30%, #a5b4fc 70%, #38bdf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Target size={30} style={{ color: '#818cf8' }} /> Çalışma Planları &amp; Yol Haritaları
+              <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Target size={30} style={{ color: '#6366f1' }} /> Çalışma Planları &amp; Yol Haritaları
               </h1>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(236,72,153,0.3))', color: '#c7d2fe', border: '1px solid rgba(165,180,252,0.4)', padding: '0.2rem 0.75rem', borderRadius: '1rem', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '0.2rem 0.75rem', borderRadius: '1rem', letterSpacing: '0.05em' }}>
                 PRO KOÇLUK SİSTEMİ
               </span>
             </div>
-            <p style={{ margin: '0.35rem 0 0 0', color: 'rgba(255, 255, 255, 0.65)', fontSize: '0.92rem', fontWeight: 600 }}>
+            <p style={{ margin: '0.35rem 0 0 0', color: '#64748b', fontSize: '0.92rem', fontWeight: 600 }}>
               Öğrencileriniz için adım adım konu anlatımı, soru çözme ve çalışma takvimi yol haritaları tasarlayın.
             </p>
           </div>
@@ -467,7 +467,7 @@ export default function StudyPlanManager() {
       {/* ── 4 LIVE KPI HERO CARDS (2x2 ON MOBILE) ── */}
       <div className="study-kpi-grid">
         <div className="study-kpi-card">
-          <div className="study-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(79,70,229,0.35))', color: '#818cf8', border: '1px solid rgba(165,180,252,0.3)' }}>
+          <div className="study-kpi-icon" style={{ background: '#eff6ff', color: '#6366f1', border: '1px solid #bfdbfe' }}>
             <Compass size={26} />
           </div>
           <div>
@@ -477,7 +477,7 @@ export default function StudyPlanManager() {
         </div>
 
         <div className="study-kpi-card">
-          <div className="study-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.25), rgba(2,132,199,0.35))', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)' }}>
+          <div className="study-kpi-icon" style={{ background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd' }}>
             <Layers size={26} />
           </div>
           <div>
@@ -487,7 +487,7 @@ export default function StudyPlanManager() {
         </div>
 
         <div className="study-kpi-card">
-          <div className="study-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(5,150,105,0.35))', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+          <div className="study-kpi-icon" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
             <BookmarkCheck size={26} />
           </div>
           <div>
@@ -497,7 +497,7 @@ export default function StudyPlanManager() {
         </div>
 
         <div className="study-kpi-card">
-          <div className="study-kpi-icon" style={{ background: 'linear-gradient(135deg, rgba(236,72,153,0.25), rgba(219,39,119,0.35))', color: '#f472b6', border: '1px solid rgba(244,114,182,0.3)' }}>
+          <div className="study-kpi-icon" style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8' }}>
             <Users size={26} />
           </div>
           <div>
@@ -512,7 +512,7 @@ export default function StudyPlanManager() {
         
         {/* Search Box */}
         <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '450px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             type="text"
             value={searchQuery}
@@ -522,9 +522,9 @@ export default function StudyPlanManager() {
               width: '100%',
               padding: '0.75rem 1rem 0.75rem 2.75rem',
               borderRadius: '0.85rem',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
-              color: '#ffffff',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#0f172a',
               fontSize: '0.9rem',
               fontWeight: 600,
               boxSizing: 'border-box'
@@ -533,7 +533,7 @@ export default function StudyPlanManager() {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
+              style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
             >
               <X size={16} />
             </button>
@@ -542,8 +542,8 @@ export default function StudyPlanManager() {
 
         {/* Quick Ready-Made Templates Chips */}
         <div className="study-presets-container">
-          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#c7d2fe', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Sparkles size={16} style={{ color: '#fbbf24' }} /> Hazır Şablon Yükle:
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Sparkles size={16} style={{ color: '#d97706' }} /> Hazır Şablon Yükle:
           </span>
           {PRESET_TEMPLATES.map(tmpl => (
             <button
@@ -554,9 +554,9 @@ export default function StudyPlanManager() {
                 fontWeight: 800,
                 padding: '0.45rem 0.85rem',
                 borderRadius: '0.75rem',
-                background: 'rgba(99, 102, 241, 0.15)',
-                border: '1px solid rgba(165, 180, 252, 0.3)',
-                color: '#ffffff',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                color: '#1d4ed8',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -565,7 +565,7 @@ export default function StudyPlanManager() {
               }}
               title={tmpl.desc}
             >
-              <Zap size={13} style={{ color: '#38bdf8' }} /> {tmpl.category}
+              <Zap size={13} style={{ color: '#0284c7' }} /> {tmpl.category}
             </button>
           ))}
         </div>
@@ -589,11 +589,11 @@ export default function StudyPlanManager() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.9rem', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '0.85rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(168,85,247,0.25))', border: '1px solid rgba(165,180,252,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc' }}>
+                      <div style={{ width: '42px', height: '42px', borderRadius: '0.85rem', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
                         <Target size={22} />
                       </div>
                       <div>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#38bdf8', background: 'rgba(56,189,248,0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid rgba(56,189,248,0.3)' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0284c7', background: '#f0f9ff', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid #bae6fd' }}>
                           YOL HARİTASI
                         </span>
                       </div>
@@ -602,7 +602,7 @@ export default function StudyPlanManager() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <button
                         onClick={() => handleDelete(plan.id, plan.title)}
-                        style={{ padding: '0.45rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '0.6rem', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ padding: '0.45rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.6rem', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Yol Haritasını Sil"
                       >
                         <Trash2 size={16} />
@@ -611,50 +611,50 @@ export default function StudyPlanManager() {
                   </div>
 
                   {/* Plan Title & Desc */}
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3 }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.3 }}>
                     {plan.title}
                   </h3>
                   {plan.description && (
-                    <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.84rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {plan.description}
                     </p>
                   )}
 
                   {/* Mini Stats Bar */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.85rem', padding: '0.75rem 0.5rem', margin: '1rem 0', textAlign: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.75rem 0.5rem', margin: '1rem 0', textAlign: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#818cf8' }}>{planSubjects.length}</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Ünite</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#6366f1' }}>{planSubjects.length}</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ünite</div>
                     </div>
-                    <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#34d399' }}>{planTopicsCount}</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Konu / Adım</div>
+                    <div style={{ borderLeft: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>{planTopicsCount}</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Konu / Adım</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f472b6' }}>{assignedStudentsCount}</div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Öğrenci</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#db2777' }}>{assignedStudentsCount}</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Öğrenci</div>
                     </div>
                   </div>
 
                   {/* Units & Topics Preview */}
                   {planSubjects.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.75rem' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>İÇERİK ÖN İZLEME:</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>İÇERİK ÖN İZLEME:</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                         {planSubjects.slice(0, 3).map((subj, idx) => (
-                          <span key={subj.id || idx} style={{ fontSize: '0.74rem', fontWeight: 700, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.85)', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          <span key={subj.id || idx} style={{ fontSize: '0.74rem', fontWeight: 700, background: '#f8fafc', color: '#334155', padding: '0.2rem 0.55rem', borderRadius: '0.45rem', border: '1px solid #e2e8f0' }}>
                             📚 {subj.name}
                           </span>
                         ))}
                         {planSubjects.length > 3 && (
-                          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#c7d2fe', padding: '0.2rem 0.4rem' }}>
+                          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6366f1', padding: '0.2rem 0.4rem' }}>
                             +{planSubjects.length - 3} ünite daha...
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'rgba(255,255,255,0.4)', padding: '0.5rem 0' }}>
+                    <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: '#94a3b8', padding: '0.5rem 0' }}>
                       Henüz ünite eklenmemiş. İçeriği yönet butonuna tıklayarak ekleyebilirsiniz.
                     </div>
                   )}
@@ -668,9 +668,9 @@ export default function StudyPlanManager() {
                       flex: 1,
                       padding: '0.65rem 0.85rem',
                       borderRadius: '0.75rem',
-                      background: 'rgba(99, 102, 241, 0.15)',
-                      border: '1.5px solid rgba(165, 180, 252, 0.3)',
-                      color: '#c7d2fe',
+                      background: '#eff6ff',
+                      border: '1.5px solid #bfdbfe',
+                      color: '#1d4ed8',
                       fontWeight: 800,
                       fontSize: '0.84rem',
                       display: 'flex',
@@ -700,7 +700,7 @@ export default function StudyPlanManager() {
                       justifyContent: 'center',
                       gap: '0.4rem',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                      boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
                       transition: 'all 0.15s'
                     }}
                   >
@@ -714,15 +714,15 @@ export default function StudyPlanManager() {
         </div>
       ) : (
         /* Empty State */
-        <div className="study-glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.25rem' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))', border: '1.5px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc' }}>
+        <div className="study-glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.25rem', background: '#ffffff' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#eff6ff', border: '1.5px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
             <Compass size={40} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff' }}>
+            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#0f172a' }}>
               {searchQuery ? 'Arama Kriterine Uygun Yol Haritası Bulunamadı' : 'Henüz Bir Yol Haritası Oluşturulmadı'}
             </h3>
-            <p style={{ margin: '0.5rem 0 0 0', color: 'rgba(255,255,255,0.6)', maxWidth: '480px', fontSize: '0.92rem' }}>
+            <p style={{ margin: '0.5rem 0 0 0', color: '#64748b', maxWidth: '480px', fontSize: '0.92rem' }}>
               {searchQuery 
                 ? `"${searchQuery}" kelimesi ile eşleşen bir plan bulunamadı. Aramanızı temizleyebilir veya yeni bir plan oluşturabilirsiniz.`
                 : 'Öğrencileriniz için adım adım takip edebilecekleri ders üniteleri, konu anlatımları ve soru hedefleri oluşturun.'}
@@ -744,7 +744,7 @@ export default function StudyPlanManager() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(99,102,241,0.35)'
+                boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
               }}
             >
               <Plus size={18} /> İlk Yol Haritasını Oluştur
@@ -754,9 +754,9 @@ export default function StudyPlanManager() {
               style={{
                 padding: '0.75rem 1.4rem',
                 borderRadius: '0.85rem',
-                background: 'rgba(255,255,255,0.08)',
-                color: '#c7d2fe',
-                border: '1.5px solid rgba(165,180,252,0.3)',
+                background: '#f8fafc',
+                color: '#1d4ed8',
+                border: '1.5px solid #bfdbfe',
                 fontWeight: 800,
                 fontSize: '0.92rem',
                 display: 'flex',
@@ -765,7 +765,7 @@ export default function StudyPlanManager() {
                 cursor: 'pointer'
               }}
             >
-              <Sparkles size={17} style={{ color: '#fbbf24' }} /> LGS Matematik Şablonuyla Başla
+              <Sparkles size={17} style={{ color: '#d97706' }} /> LGS Matematik Şablonuyla Başla
             </button>
           </div>
         </div>
@@ -773,28 +773,28 @@ export default function StudyPlanManager() {
 
       {/* ── MODAL: YENİ YOL HARİTASI OLUŞTUR ── */}
       {isAddModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '580px', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '580px', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a', overflow: 'hidden' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Target size={24} style={{ color: '#818cf8' }} /> Yeni Yol Haritası Oluştur
+                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Target size={24} style={{ color: '#6366f1' }} /> Yeni Yol Haritası Oluştur
                 </h3>
-                <p style={{ margin: '0.3rem 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+                <p style={{ margin: '0.3rem 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
                   Öğrenciler için çalışma ve konu takip planı tanımlayın.
                 </p>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
-                <X size={22} />
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', cursor: 'pointer' }}>
+                <X size={18} />
               </button>
             </div>
 
             {/* Modal Body */}
             <form onSubmit={handleCreatePlan} style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.4rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem' }}>
                   Yol Haritası Başlığı *
                 </label>
                 <input
@@ -807,9 +807,9 @@ export default function StudyPlanManager() {
                     width: '100%',
                     padding: '0.8rem 1rem',
                     borderRadius: '0.75rem',
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1.5px solid rgba(255,255,255,0.18)',
-                    color: '#ffffff',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#0f172a',
                     fontSize: '0.92rem',
                     fontWeight: 700,
                     boxSizing: 'border-box'
@@ -818,7 +818,7 @@ export default function StudyPlanManager() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.4rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem' }}>
                   Açıklama / Hedef (İsteğe Bağlı)
                 </label>
                 <textarea
@@ -830,9 +830,9 @@ export default function StudyPlanManager() {
                     width: '100%',
                     padding: '0.8rem 1rem',
                     borderRadius: '0.75rem',
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1.5px solid rgba(255,255,255,0.18)',
-                    color: '#ffffff',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#0f172a',
                     fontSize: '0.88rem',
                     boxSizing: 'border-box',
                     resize: 'none'
@@ -842,7 +842,7 @@ export default function StudyPlanManager() {
 
               {/* Quick Preset Template Inserters */}
               <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', marginBottom: '0.45rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', marginBottom: '0.45rem' }}>
                   💡 Veya hazır şablon başlıklarından seçin:
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
@@ -856,9 +856,9 @@ export default function StudyPlanManager() {
                         fontWeight: 800,
                         padding: '0.3rem 0.65rem',
                         borderRadius: '0.5rem',
-                        background: 'rgba(99,102,241,0.15)',
-                        border: '1px solid rgba(165,180,252,0.3)',
-                        color: '#c7d2fe',
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        color: '#1d4ed8',
                         cursor: 'pointer'
                       }}
                     >
@@ -869,16 +869,16 @@ export default function StudyPlanManager() {
               </div>
 
               {/* Modal Footer */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   style={{
                     padding: '0.65rem 1.25rem',
                     borderRadius: '0.65rem',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    color: '#ffffff',
+                    background: '#f8fafc',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#475569',
                     fontWeight: 800,
                     fontSize: '0.88rem',
                     cursor: 'pointer'
@@ -897,7 +897,7 @@ export default function StudyPlanManager() {
                     fontWeight: 900,
                     fontSize: '0.88rem',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(99,102,241,0.35)'
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
                   }}
                 >
                   Oluştur ve İçeriği Düzenle →
@@ -911,34 +911,34 @@ export default function StudyPlanManager() {
 
       {/* ── MODAL: ÖĞRENCİYE HIZLI ATA ── */}
       {isAssignModalOpen && targetPlanForAssign && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '620px', maxHeight: '88vh', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '620px', maxHeight: '88vh', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Users size={24} style={{ color: '#f472b6' }} /> Yol Haritasını Öğrenciye Ata
+                <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Users size={24} style={{ color: '#db2777' }} /> Yol Haritasını Öğrenciye Ata
                 </h3>
-                <p style={{ margin: '0.3rem 0 0 0', color: '#c7d2fe', fontSize: '0.88rem', fontWeight: 700 }}>
+                <p style={{ margin: '0.3rem 0 0 0', color: '#6366f1', fontSize: '0.88rem', fontWeight: 700 }}>
                   {targetPlanForAssign.title}
                 </p>
               </div>
-              <button onClick={() => setIsAssignModalOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
-                <X size={22} />
+              <button onClick={() => setIsAssignModalOpen(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', cursor: 'pointer' }}>
+                <X size={18} />
               </button>
             </div>
 
             {/* Student Search & Select All */}
             <div style={{ padding: '1rem 1.75rem 0.5rem 1.75rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                 <input
                   type="text"
                   value={assignSearch}
                   onChange={(e) => setAssignSearch(e.target.value)}
                   placeholder="Öğrenci adı veya sınıf ara..."
-                  style={{ width: '100%', padding: '0.65rem 0.85rem 0.65rem 2.4rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem 0.65rem 2.4rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.88rem', boxSizing: 'border-box' }}
                 />
               </div>
               <button
@@ -955,7 +955,7 @@ export default function StudyPlanManager() {
                     setSelectedStudentIds(prev => Array.from(new Set([...prev, ...filteredStudentIds])));
                   }
                 }}
-                style={{ padding: '0.65rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(165,180,252,0.3)', color: '#c7d2fe', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '0.65rem 0.95rem', borderRadius: '0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 Tümünü Seç / Kaldır
               </button>
@@ -973,8 +973,8 @@ export default function StudyPlanManager() {
                       style={{
                         padding: '0.75rem 1rem',
                         borderRadius: '0.75rem',
-                        background: isChecked ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.03)',
-                        border: `1.5px solid ${isChecked ? 'rgba(165,180,252,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                        background: isChecked ? '#eff6ff' : '#f8fafc',
+                        border: `1.5px solid ${isChecked ? '#93c5fd' : '#e2e8f0'}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -993,10 +993,10 @@ export default function StudyPlanManager() {
                           style={{ width: '1.15rem', height: '1.15rem', accentColor: '#6366f1', cursor: 'pointer' }}
                         />
                         <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
                             {student.name} {student.surname || ''}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', display: 'flex', gap: '0.5rem', marginTop: '0.1rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem', marginTop: '0.1rem' }}>
                             <span>{student.className || student.grade || 'Sınıf Belirtilmemiş'}</span>
                             {student.email && <span>• {student.email}</span>}
                           </div>
@@ -1004,7 +1004,7 @@ export default function StudyPlanManager() {
                       </div>
 
                       {isChecked && (
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(16,185,129,0.2)', color: '#34d399', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.35)' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #bbf7d0' }}>
                           Seçildi
                         </span>
                       )}
@@ -1014,22 +1014,22 @@ export default function StudyPlanManager() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '1.25rem 1.75rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe' }}>
+            <div style={{ padding: '1.25rem 1.75rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
                 {selectedStudentIds.length} Öğrenci Seçildi
               </div>
               <div style={{ display: 'flex', gap: '0.65rem' }}>
                 <button
                   type="button"
                   onClick={() => setIsAssignModalOpen(false)}
-                  style={{ padding: '0.6rem 1.25rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
+                  style={{ padding: '0.6rem 1.25rem', borderRadius: '0.6rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
                 >
                   İptal
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveAssignments}
-                  style={{ padding: '0.6rem 1.5rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}
+                  style={{ padding: '0.6rem 1.5rem', borderRadius: '0.6rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}
                 >
                   Öğrencilere Ata ({selectedStudentIds.length})
                 </button>

@@ -942,7 +942,7 @@ export default function BookContentManager() {
     showToast("Yanlış analizi indirildi.");
   };
 
-  if (!book) return <div className="books-page-container" style={{ padding: '4rem', textAlign: 'center', color: '#ffffff', fontWeight: 800, fontSize: '1.2rem' }}>Yükleniyor...</div>;
+  if (!book) return <div className="books-page-container" style={{ padding: '4rem', textAlign: 'center', color: '#0f172a', fontWeight: 800, fontSize: '1.2rem' }}>Yükleniyor...</div>;
 
   return (
     <div className="books-page-container" style={{ paddingBottom: selectedTests.length > 0 ? '7rem' : '4rem' }}>
@@ -953,26 +953,26 @@ export default function BookContentManager() {
           <button 
             className="btn btn-outline" 
             onClick={() => navigate('/books')} 
-            style={{ padding: '0.6rem', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', borderRadius: '0.75rem', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ padding: '0.6rem', border: '1.5px solid #cbd5e1', background: '#ffffff', borderRadius: '0.75rem', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Kitap Listesine Dön"
           >
             <ArrowLeft size={20} />
           </button>
           
-          <div style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.85rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(99,102,241,0.35)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.85rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.25)' }}>
             <BookMarked size={28} />
           </div>
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.65rem', fontWeight: 900, margin: 0, color: '#ffffff', letterSpacing: '-0.02em' }}>{book.title}</h1>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid rgba(165,180,252,0.3)' }}>
+              <h1 style={{ fontSize: '1.65rem', fontWeight: 900, margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>{book.title}</h1>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid #bfdbfe' }}>
                 {book.optionCount === 4 ? '🎯 4 Şık Optik (Ortaokul / LGS)' : '🎯 5 Şık Optik (Lise / YKS)'}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.25rem' }}>
-              <span style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>
-                İçerik &amp; Ödev Takip Yönetimi • <strong style={{ color: '#ffffff' }}>{book.publisher}</strong>
+              <span style={{ fontSize: '0.88rem', color: '#64748b', fontWeight: 600 }}>
+                İçerik &amp; Ödev Takip Yönetimi • <strong style={{ color: '#0f172a' }}>{book.publisher}</strong>
               </span>
             </div>
           </div>
@@ -982,27 +982,27 @@ export default function BookContentManager() {
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button 
             onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} 
-            style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.18)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#334155', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <Settings size={17} /> Kitap Ayarları
           </button>
           <button 
             onClick={handleAssignEntireBook} 
-            style={{ padding: '0.65rem 1.15rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(245,158,11,0.35)' }}
+            style={{ padding: '0.65rem 1.15rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(245,158,11,0.25)' }}
             className="hover:scale-105 active:scale-95"
           >
             <BookOpen size={17} /> Tüm Kitabı Ata
           </button>
           <button 
             onClick={() => setIsBulkWizardOpen(true)} 
-            style={{ padding: '0.65rem 1.15rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(99,102,241,0.35)' }}
+            style={{ padding: '0.65rem 1.15rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(99,102,241,0.25)' }}
             className="hover:scale-105 active:scale-95"
           >
             <Zap size={17} /> Toplu Ekle &amp; Yapılandır
           </button>
           <button 
-            onClick={() => { setCurrentSubject(null); setNewSubjectName(""); setIsSubjectDialogOpen(true); }}
-            style={{ padding: '0.65rem 1.15rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(16,185,129,0.35)' }}
+            onClick={() => { setCurrentSubject(null); setNewSubjectName(""); setIsSubjectDialogOpen(true); }} 
+            style={{ padding: '0.65rem 1.15rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}
             className="hover:scale-105 active:scale-95"
           >
             <Plus size={17} /> Ders Ekle
@@ -1011,14 +1011,14 @@ export default function BookContentManager() {
       </div>
 
       {/* ── MODERN GLASS TABS SWITCHER ── */}
-      <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.75rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.35rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)', width: 'fit-content', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.75rem', background: '#ffffff', padding: '0.35rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', width: 'fit-content', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
         <button 
           onClick={() => setActiveTab("contents")}
           style={{ 
             padding: '0.65rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', transition: 'all 0.2s',
             background: activeTab === "contents" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-            color: activeTab === "contents" ? '#ffffff' : 'rgba(255,255,255,0.7)',
-            boxShadow: activeTab === "contents" ? '0 4px 14px rgba(99,102,241,0.35)' : 'none'
+            color: activeTab === "contents" ? '#ffffff' : '#64748b',
+            boxShadow: activeTab === "contents" ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
           }}
         >
           <BookOpen size={18} /> İçindekiler Yapısı
@@ -1029,13 +1029,13 @@ export default function BookContentManager() {
           style={{ 
             padding: '0.65rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', transition: 'all 0.2s',
             background: activeTab === "homeworks" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-            color: activeTab === "homeworks" ? '#ffffff' : 'rgba(255,255,255,0.7)',
-            boxShadow: activeTab === "homeworks" ? '0 4px 14px rgba(99,102,241,0.35)' : 'none'
+            color: activeTab === "homeworks" ? '#ffffff' : '#64748b',
+            boxShadow: activeTab === "homeworks" ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
           }}
         >
           <CheckSquare size={18} /> Atanan Ödevler &amp; İlerleme
           {bookHomeworks.length > 0 && (
-            <span style={{ background: activeTab === "homeworks" ? 'rgba(255,255,255,0.25)' : '#6366f1', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 900 }}>
+            <span style={{ background: activeTab === "homeworks" ? 'rgba(255,255,255,0.25)' : '#eff6ff', color: activeTab === "homeworks" ? '#ffffff' : '#1d4ed8', padding: '0.15rem 0.6rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 900 }}>
               {bookHomeworks.length}
             </span>
           )}
@@ -1046,8 +1046,8 @@ export default function BookContentManager() {
           style={{ 
             padding: '0.65rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', transition: 'all 0.2s',
             background: activeTab === "mistakes" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-            color: activeTab === "mistakes" ? '#ffffff' : 'rgba(255,255,255,0.7)',
-            boxShadow: activeTab === "mistakes" ? '0 4px 14px rgba(99,102,241,0.35)' : 'none'
+            color: activeTab === "mistakes" ? '#ffffff' : '#64748b',
+            boxShadow: activeTab === "mistakes" ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
           }}
         >
           <ListX size={18} /> Yanlış Analizi 
@@ -2035,8 +2035,8 @@ export default function BookContentManager() {
 
       {/* ── ⚡ UNIFIED BULK IMPORT WIZARD ── */}
       {isBulkWizardOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.3rem', fontWeight: 900 }}>
                 <Zap size={22} style={{ color: '#818cf8' }} /> Toplu İçerik &amp; Test Sihirbazı
@@ -2241,8 +2241,8 @@ export default function BookContentManager() {
 
       {/* ── SUBJECT MODAL ── */}
       {isSubjectDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <h3 style={{ marginTop: 0, color: '#ffffff', fontSize: '1.25rem', fontWeight: 900 }}>{currentSubject ? '✏️ Dersi Düzenle' : '➕ Yeni Ders Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.25rem 0' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#ffffff' }}>Ders Adı</label>
@@ -2258,8 +2258,8 @@ export default function BookContentManager() {
 
       {/* ── TOPIC MODAL ── */}
       {isTopicDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <h3 style={{ marginTop: 0, color: '#ffffff', fontSize: '1.25rem', fontWeight: 900 }}>{currentTopic ? '✏️ Konuyu Düzenle' : '➕ Yeni Konu Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.25rem 0' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#ffffff' }}>Konu Adı</label>
@@ -2275,8 +2275,8 @@ export default function BookContentManager() {
 
       {/* ── TEST MODAL ── */}
       {isTestDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
               <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1.25rem', fontWeight: 900 }}>
                 {currentTest ? `✏️ Testi Düzenle: ${currentTest.name}` : '➕ Yeni Test Ekle'}
@@ -2388,8 +2388,8 @@ export default function BookContentManager() {
 
       {/* ── 🏫 ADVANCED ASSIGN HOMEWORK MODAL ── */}
       {isAssignDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '560px', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '560px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
               <h3 style={{ marginTop: 0, marginBottom: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
                 <Send size={20} style={{ color: '#818cf8' }} /> Ödev Ata ({selectedTests.length} Test Seçildi)
@@ -2582,8 +2582,8 @@ export default function BookContentManager() {
 
       {/* ── 📅 EDIT ASSIGNED HOMEWORK DUE DATE MODAL ── */}
       {editDateHw && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '480px', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '480px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
               <h3 style={{ margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
                 <Calendar size={20} style={{ color: '#818cf8' }} /> Bitirme Tarihini Değiştir / Süre Uzat
@@ -2680,8 +2680,8 @@ export default function BookContentManager() {
         const bookSolvePct = totalBookTests > 0 ? Math.round((totalSolvedBookTests / totalBookTests) * 100) : 0;
 
         return (
-          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1rem' }}>
-            <div className="modal-content" style={{ width: '96vw', maxWidth: '880px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
+            <div className="modal-content" style={{ width: '96vw', maxWidth: '880px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
               
               {/* Modal Header */}
               <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -3266,8 +3266,8 @@ export default function BookContentManager() {
 
       {/* ── BOOK SETTINGS MODAL ── */}
       {isBookSettingsDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7, 10, 18, 0.85)', backdropFilter: 'blur(16px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', padding: '1.75rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
             <h2 style={{ color: '#ffffff', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.35rem', fontWeight: 900 }}>
               <Settings style={{ color: '#818cf8' }} /> Kitap Ayarlarını Düzenle
             </h2>
