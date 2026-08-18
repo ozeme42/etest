@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, PlayCircle, ArrowRight } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, PlayCircle, ArrowRight } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
