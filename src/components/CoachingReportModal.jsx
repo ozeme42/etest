@@ -227,16 +227,16 @@ export default function CoachingReportModal({
 
       <div 
         style={{
-          background: '#0f172a',
-          color: '#f8fafc',
-          border: '1.5px solid rgba(165, 180, 252, 0.3)',
+          background: '#ffffff',
+          color: '#0f172a',
+          border: '1.5px solid #e2e8f0',
           borderRadius: '1.5rem',
           maxWidth: '880px',
           width: '100%',
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
           overflow: 'hidden'
         }}
         onClick={e => e.stopPropagation()}
@@ -244,8 +244,8 @@ export default function CoachingReportModal({
         {/* Modal Top Header (Actions) */}
         <div className="no-print" style={{
           padding: '1rem 1.5rem',
-          background: '#1e293b',
-          borderBottom: '1px solid #334155',
+          background: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -253,14 +253,14 @@ export default function CoachingReportModal({
           gap: '0.75rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileText size={20} color="#818cf8" />
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={20} color="#6366f1" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
                 Haftalık Koçluk & Veli Karnesi
               </h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
                 Öğrencinin çözdüğü tüm test ve denemelerin resmi karne dökümü
               </p>
             </div>
@@ -281,7 +281,7 @@ export default function CoachingReportModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)'
+                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)'
               }}
             >
               <Share2 size={15} /> WhatsApp'ta Paylaş
@@ -300,7 +300,7 @@ export default function CoachingReportModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)'
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)'
               }}
             >
               <Printer size={15} /> Yazdır / PDF İndir
@@ -308,8 +308,8 @@ export default function CoachingReportModal({
             <button
               onClick={onClose}
               style={{
-                background: '#334155',
-                border: 'none',
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
                 borderRadius: '50%',
                 width: 34,
                 height: 34,
@@ -317,7 +317,7 @@ export default function CoachingReportModal({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#cbd5e1'
+                color: '#475569'
               }}
             >
               <X size={18} />
@@ -326,7 +326,7 @@ export default function CoachingReportModal({
         </div>
 
         {/* Printable Document Body */}
-        <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, background: '#0b1120' }}>
+        <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, background: '#f1f5f9' }}>
           <div 
             id="printable-coaching-report"
             ref={reportRef}
@@ -335,7 +335,7 @@ export default function CoachingReportModal({
               color: '#0f172a',
               borderRadius: '1rem',
               padding: '1.75rem',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+              boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
               fontFamily: "'Inter', system-ui, sans-serif"
             }}
           >

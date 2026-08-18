@@ -64,7 +64,7 @@ export default function QuizPanelLayout({
   }, [isDragging, position]);
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: position === 'right' ? 'row' : 'column', flex: 1, overflow: 'hidden', background: '#0f172a' }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: position === 'right' ? 'row' : 'column', flex: 1, overflow: 'hidden', background: '#f8fafc' }}>
       
       {/* ── LEFT / TOP: Document Viewer ── */}
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -92,7 +92,7 @@ export default function QuizPanelLayout({
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
               zIndex: 50
             }}
           >
@@ -112,7 +112,7 @@ export default function QuizPanelLayout({
             style={{
               width: position === 'right' ? '6px' : '100%',
               height: position === 'right' ? '100%' : '6px',
-              background: isDragging ? '#6366f1' : '#334155',
+              background: isDragging ? '#6366f1' : '#e2e8f0',
               cursor: position === 'right' ? 'col-resize' : 'row-resize',
               display: 'flex',
               alignItems: 'center',
@@ -131,20 +131,22 @@ export default function QuizPanelLayout({
               width: position === 'right' ? panelSize : '100%',
               height: position === 'right' ? '100%' : panelSize,
               flexShrink: 0,
-              background: '#1e293b',
+              background: '#ffffff',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: position === 'right' ? '-8px 0 24px rgba(0,0,0,0.3)' : '0 -8px 24px rgba(0,0,0,0.3)'
+              boxShadow: position === 'right' ? '-4px 0 20px rgba(0,0,0,0.06)' : '0 -4px 20px rgba(0,0,0,0.06)',
+              borderLeft: position === 'right' ? '1.5px solid #e2e8f0' : 'none',
+              borderTop: position === 'bottom' ? '1.5px solid #e2e8f0' : 'none'
             }}
           >
             {/* Header / Controls */}
-            <div style={{ padding: isMobile ? '0.45rem 0.75rem' : '0.85rem 1.25rem', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a', flexShrink: 0 }}>
+            <div style={{ padding: isMobile ? '0.45rem 0.75rem' : '0.85rem 1.25rem', borderBottom: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', flexShrink: 0 }}>
               <div style={{ minWidth: 0, flex: 1, paddingRight: isMobile ? '0.4rem' : '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: isMobile ? '0.82rem' : '0.95rem', fontWeight: 900, color: '#38bdf8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? '0.82rem' : '0.95rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {icon} {panelTitle}
                 </h3>
                 {!isMobile && panelSubtitle && (
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.7rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {panelSubtitle}
                   </p>
                 )}
@@ -158,9 +160,9 @@ export default function QuizPanelLayout({
                       title="Sağa Yasla"
                       style={{
                         width: '28px', height: '28px', borderRadius: '0.5rem',
-                        background: position === 'right' ? 'rgba(99,102,241,0.2)' : 'transparent',
-                        border: `1px solid ${position === 'right' ? '#6366f1' : 'transparent'}`,
-                        color: position === 'right' ? '#818cf8' : '#94a3b8',
+                        background: position === 'right' ? '#eff6ff' : 'transparent',
+                        border: `1px solid ${position === 'right' ? '#bfdbfe' : 'transparent'}`,
+                        color: position === 'right' ? '#1d4ed8' : '#64748b',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', transition: 'all 0.15s ease'
                       }}
@@ -172,16 +174,16 @@ export default function QuizPanelLayout({
                       title="Alta Yasla"
                       style={{
                         width: '28px', height: '28px', borderRadius: '0.5rem',
-                        background: position === 'bottom' ? 'rgba(99,102,241,0.2)' : 'transparent',
-                        border: `1px solid ${position === 'bottom' ? '#6366f1' : 'transparent'}`,
-                        color: position === 'bottom' ? '#818cf8' : '#94a3b8',
+                        background: position === 'bottom' ? '#eff6ff' : 'transparent',
+                        border: `1px solid ${position === 'bottom' ? '#bfdbfe' : 'transparent'}`,
+                        color: position === 'bottom' ? '#1d4ed8' : '#64748b',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', transition: 'all 0.15s ease'
                       }}
                     >
                       <Rows size={16} />
                     </button>
-                    <div style={{ width: '1px', height: '16px', background: '#334155', margin: '0 0.25rem' }} />
+                    <div style={{ width: '1px', height: '16px', background: '#e2e8f0', margin: '0 0.25rem' }} />
                   </>
                 )}
                 <button
@@ -189,9 +191,9 @@ export default function QuizPanelLayout({
                   title="Gizle"
                   style={{
                     width: '28px', height: '28px', borderRadius: '0.5rem',
-                    background: 'rgba(239,68,68,0.1)',
-                    border: '1px solid transparent',
-                    color: '#f87171',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', transition: 'all 0.15s ease'
                   }}
@@ -202,7 +204,7 @@ export default function QuizPanelLayout({
             </div>
 
             {/* Content Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#ffffff' }}>
               {answerContent}
             </div>
           </div>
