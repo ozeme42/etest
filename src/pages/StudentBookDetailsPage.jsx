@@ -924,7 +924,7 @@ export default function StudentBookDetailsPage() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }} 
-                  contentStyle={{ background: '#0f172a', borderRadius: '0.85rem', border: '1px solid #334155', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', fontWeight: 800, fontSize: '0.83rem', color: '#ffffff' }} 
+                  contentStyle={{ background: '#ffffff', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.83rem', color: '#0f172a' }} 
                   formatter={(value, name, props) => [
                     bookChartMetric === 'rate' ? `%${value} Başarı` : `${value} Soru`,
                     name

@@ -408,17 +408,17 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
   if (!test) {
     if (initLoading) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
           Sınav Yükleniyor...
         </div>
       );
     }
-    return <div className="container" style={{ padding: '4rem', textAlign: 'center', color: '#f8fafc', background: '#0f172a', height: '100vh' }}>Sınav bulunamadı.</div>;
+    return <div className="container" style={{ padding: '4rem', textAlign: 'center', color: '#0f172a', background: '#f8fafc', height: '100vh' }}>Sınav bulunamadı.</div>;
   }
 
   if (isSyncing) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
         Sınav Yükleniyor...
       </div>
     );
@@ -426,14 +426,12 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
 
   if (testQuestions.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1rem' }}>
-        <h2>Bu testin içerisinde soru bulunmuyor.</h2>
-        <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '1rem', marginTop: '1rem', borderRadius: '8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
+        <h2 style={{ color: '#0f172a', fontWeight: 900 }}>Bu testin içerisinde soru bulunmuyor.</h2>
+        <div style={{ textAlign: 'left', background: '#ffffff', border: '1.5px solid #e2e8f0', padding: '1rem', marginTop: '1rem', borderRadius: '12px', color: '#475569' }}>
           <p><strong>Test ID:</strong> {id}</p>
           <p><strong>isHomework:</strong> {isHomework ? 'Yes' : 'No'}</p>
-          {test && <div style={{ fontSize: '10px', overflowX: 'auto', background: '#fff', padding: '8px', border: '1px solid #ddd' }}><strong>Test Object Dump:</strong> <pre>{JSON.stringify(test, null, 2)}</pre></div>}
-          <p><strong>All Questions Count:</strong> {allQuestions?.length}</p>
-          <p><strong>All Questions Sample (first 5 IDs):</strong> {JSON.stringify(allQuestions?.slice(0, 5).map(q => q.id))}</p>
+          {test && <div style={{ fontSize: '10px', overflowX: 'auto', background: '#f8fafc', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}><strong>Test Object Dump:</strong> <pre>{JSON.stringify(test, null, 2)}</pre></div>}
         </div>
       </div>
     );

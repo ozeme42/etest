@@ -545,7 +545,7 @@ export default function ModularQuizPage() {
 
   if (loading || isSyncing || isDataLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
         Sınav Yükleniyor...
       </div>
     );
@@ -554,23 +554,23 @@ export default function ModularQuizPage() {
   if (!test) {
     if (initLoading) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
           Sınav Yükleniyor...
         </div>
       );
     }
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', gap: '1.25rem', padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '3rem' }}>🔍</div>
-        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Sınav Bulunamadı</h2>
-        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', lineHeight: 1.5 }}>
+        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>Sınav Bulunamadı</h2>
+        <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', maxWidth: '400px', lineHeight: 1.5 }}>
           Bu teste ait kayıt bulunamadı veya henüz yükleniyor olabilir. Lütfen listenizi kontrol ediniz.
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-          <button onClick={() => navigate('/student')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
+          <button onClick={() => navigate('/student')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
             Öğrenci Paneline Dön
           </button>
-          <button onClick={() => navigate('/student/books')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#334155', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
+          <button onClick={() => navigate('/student/books')} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
             Kitaplarıma Dön
           </button>
         </div>
@@ -760,19 +760,19 @@ export default function ModularQuizPage() {
   if (submissionResult) {
     if (submissionResult.isPending) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', padding: '1.5rem', color: 'white' }}>
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.5rem', padding: '3rem 2rem', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.15)', border: '2px solid #f59e0b', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 25px rgba(245, 158, 11, 0.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc', padding: '1.5rem', color: '#0f172a' }}>
+          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.5rem', padding: '3rem 2rem', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 4px 25px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#fffbeb', border: '2px solid #fde68a', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Clock3 size={44} />
             </div>
             <div>
-              <span style={{ padding: '0.35rem 0.75rem', background: '#f59e0b', color: '#0f172a', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ padding: '0.35rem 0.75rem', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 ✍️ Değerlendirmeye Gönderildi
               </span>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0.75rem 0 0.5rem 0', color: 'white' }}>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0.75rem 0 0.5rem 0', color: '#0f172a' }}>
                 Cevaplarınız Başarıyla Kaydedildi!
               </h1>
-              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
                 Bu sınavda açık uçlu / yazılı sorular yer almaktadır. Yanıtlarınız öğretmeninizin değerlendirmesine gönderilmiştir. Puanınız öğretmen değerlendirmesinden sonra açıklanacaktır.
               </p>
             </div>
@@ -786,14 +786,14 @@ export default function ModularQuizPage() {
               {test?.bookId ? (
                 <button
                   onClick={() => navigate(`/student/books/${test.bookId}`)}
-                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   <BookOpen size={18} /> Kitaba Dön
                 </button>
               ) : (
                 <button
                   onClick={() => navigate('/student')}
-                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   <Home size={18} /> Ana Sayfaya Dön
                 </button>
@@ -805,32 +805,32 @@ export default function ModularQuizPage() {
     }
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', padding: '1.5rem', color: 'white' }}>
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.5rem', padding: '3rem 2rem', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)', border: '2px solid #10b981', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 25px rgba(16, 185, 129, 0.3)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc', padding: '1.5rem', color: '#0f172a' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.5rem', padding: '3rem 2rem', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 4px 25px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f0fdf4', border: '2px solid #bbf7d0', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Trophy size={44} />
           </div>
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'white' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: '#0f172a' }}>
               Tebrikler! Test Tamamlandı
             </h1>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#34d399', margin: '0.5rem 0' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#15803d', margin: '0.5rem 0' }}>
               %{submissionResult.score} Başarı
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', width: '100%', background: '#0f172a', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #334155' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', width: '100%', background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0' }}>
             <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#34d399' }}>{submissionResult.correctCount}</div>
-              <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Doğru</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d' }}>{submissionResult.correctCount}</div>
+              <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>Doğru</div>
             </div>
             <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#f87171' }}>{submissionResult.wrongCount}</div>
-              <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Yanlış</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b91c1c' }}>{submissionResult.wrongCount}</div>
+              <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 700 }}>Yanlış</div>
             </div>
             <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#94a3b8' }}>{submissionResult.blankCount}</div>
-              <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Boş</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#475569' }}>{submissionResult.blankCount}</div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>Boş</div>
             </div>
           </div>
 
@@ -844,14 +844,14 @@ export default function ModularQuizPage() {
             {test?.bookId ? (
               <button
                 onClick={() => navigate(`/student/books/${test.bookId}`)}
-                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 <BookOpen size={18} /> Kitaba Dön
               </button>
             ) : (
               <button
                 onClick={() => navigate('/student')}
-                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#334155', color: 'white', fontWeight: 900, fontSize: '0.92rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ flex: 1, minWidth: '180px', padding: '0.85rem 1.25rem', borderRadius: '0.85rem', background: '#ffffff', color: '#475569', border: '1.5px solid #cbd5e1', fontWeight: 900, fontSize: '0.92rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 <Home size={18} /> Ana Sayfaya Dön
               </button>
@@ -976,16 +976,16 @@ export default function ModularQuizPage() {
     const hasExistingDraft = Boolean(draftSubmission && draftSubmission.answers && draftSubmission.answers.length > 0);
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', padding: '1.5rem', color: 'white' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc', padding: '1.5rem', color: '#0f172a' }}>
         <div style={{
-          background: '#1e293b',
-          border: '1px solid #334155',
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
           borderRadius: '1.5rem',
           padding: '2.5rem 2rem',
           maxWidth: '620px',
           width: '100%',
           textAlign: 'center',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)',
+          boxShadow: '0 4px 25px rgba(0,0,0,0.04)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -996,13 +996,13 @@ export default function ModularQuizPage() {
             width: '80px',
             height: '80px',
             borderRadius: '50%',
-            background: 'rgba(99, 102, 241, 0.15)',
-            border: '2px solid #6366f1',
-            color: '#818cf8',
+            background: '#eff6ff',
+            border: '2px solid #bfdbfe',
+            color: '#2563eb',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 25px rgba(99, 102, 241, 0.35)'
+            boxShadow: '0 4px 14px rgba(37,99,235,0.15)'
           }}>
             <Sparkles size={40} />
           </div>
@@ -1010,62 +1010,62 @@ export default function ModularQuizPage() {
           {/* BADGES & TITLE */}
           <div>
             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
-              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(99,102,241,0.2)', border: '1px solid #6366f1', color: '#a5b4fc', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span style={{ padding: '0.25rem 0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {testSubject}
               </span>
-              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', color: '#6ee7b7', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
+              <span style={{ padding: '0.25rem 0.65rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
                 {formatLabel}
               </span>
               {activeHomework && (
-                <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(245,158,11,0.2)', border: '1px solid #f59e0b', color: '#fcd34d', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
+                <span style={{ padding: '0.25rem 0.65rem', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '99px', fontWeight: 800, fontSize: '0.72rem' }}>
                   Ödev Görevi
                 </span>
               )}
             </div>
 
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'white', lineHeight: 1.25 }}>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: '#0f172a', lineHeight: 1.25 }}>
               {testTitle}
             </h1>
-            <p style={{ color: '#94a3b8', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
               Sınavınız hazırlandı. Başlamaya hazır olduğunuzda <b>"{hasExistingDraft ? 'Kaldığın Yerden Devam Et' : 'Sınava Başla'}"</b> butonuna tıklayınız.
             </p>
           </div>
 
           {/* STATS 4-CARD GRID */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: '0.75rem', width: '100%' }}>
-            <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
-              <div style={{ color: '#818cf8', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Layers size={17} /></div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'white' }}>{displayQuestionCount} Soru</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Toplam Soru</div>
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', textAlign: 'center' }}>
+              <div style={{ color: '#4f46e5', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Layers size={17} /></div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>{displayQuestionCount} Soru</div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>Toplam Soru</div>
             </div>
             
-            <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
-              <div style={{ color: '#34d399', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Clock3 size={17} /></div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#34d399' }}>{totalMinutes} Dk</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>{timePerQ} dk / soru</div>
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', textAlign: 'center' }}>
+              <div style={{ color: '#16a34a', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Clock3 size={17} /></div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>{totalMinutes} Dk</div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{timePerQ} dk / soru</div>
             </div>
 
             {dueDateStr && (
-              <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
-                <div style={{ color: '#fbbf24', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Calendar size={17} /></div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1.2, marginTop: 3 }}>{dueDateStr}</div>
-                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Son Teslim</div>
+              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', textAlign: 'center' }}>
+                <div style={{ color: '#d97706', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Calendar size={17} /></div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#d97706', lineHeight: 1.2, marginTop: 3 }}>{dueDateStr}</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>Son Teslim</div>
               </div>
             )}
 
-            <div style={{ background: '#0f172a', padding: '0.85rem', borderRadius: '0.85rem', border: '1px solid #334155', textAlign: 'center' }}>
-              <div style={{ color: '#38bdf8', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><ShieldCheck size={17} /></div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#38bdf8', marginTop: 2 }}>Aktif</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Sınav Durumu</div>
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', textAlign: 'center' }}>
+              <div style={{ color: '#0284c7', display: 'flex', justifyContent: 'center', marginBottom: 4 }}><ShieldCheck size={17} /></div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0284c7', marginTop: 2 }}>Aktif</div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>Sınav Durumu</div>
             </div>
           </div>
 
           {/* RULES / TIPS BOX */}
-          <div style={{ width: '100%', background: '#0f172a', borderRadius: '0.9rem', border: '1px solid #334155', padding: '0.9rem 1.15rem', textAlign: 'left' }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#f8fafc', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ width: '100%', background: '#f8fafc', borderRadius: '0.9rem', border: '1.5px solid #e2e8f0', padding: '0.9rem 1.15rem', textAlign: 'left' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               💡 Sınav Bilgilendirmesi
             </div>
-            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.76rem', color: '#64748b', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
               <li>İşaretlediğiniz cevaplar anlık olarak otomatik kaydedilir.</li>
               <li>Sorular arasında dilediğiniz gibi geçiş yapabilir, cevabınızı güncelleyebilirsiniz.</li>
               <li>Testi bitirdikten sonra sağ üstteki <b>"Sınavı Tamamla"</b> butonuna basarak teslim ediniz.</li>
@@ -1091,7 +1091,7 @@ export default function ModularQuizPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.6rem',
-                boxShadow: '0 8px 24px rgba(79,70,229,0.45)',
+                boxShadow: '0 4px 16px rgba(79,70,229,0.35)',
                 transition: 'all 0.15s'
               }}
             >
@@ -1104,11 +1104,11 @@ export default function ModularQuizPage() {
                 minWidth: '110px',
                 padding: '0.9rem 1.1rem',
                 borderRadius: '0.85rem',
-                background: '#334155',
-                color: '#cbd5e1',
+                background: '#ffffff',
+                color: '#475569',
                 fontWeight: 800,
                 fontSize: '0.85rem',
-                border: 'none',
+                border: '1.5px solid #cbd5e1',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -1126,21 +1126,22 @@ export default function ModularQuizPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc' }}>
       <div style={{
         padding: '0.4rem 1rem',
-        background: '#0f172a',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        background: '#ffffff',
+        borderBottom: '1.5px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
-        zIndex: 50
+        zIndex: 50,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
         <button 
           onClick={() => navigate(-1)}
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: 'none',
-            color: '#94a3b8',
+            background: '#f1f5f9',
+            border: '1px solid #e2e8f0',
+            color: '#475569',
             padding: '0.4rem 0.8rem',
             borderRadius: '0.5rem',
             display: 'flex',
@@ -1148,10 +1149,9 @@ export default function ModularQuizPage() {
             gap: '0.4rem',
             cursor: 'pointer',
             fontSize: '0.8rem',
-            fontWeight: '600',
+            fontWeight: '700',
             transition: 'all 0.2s'
           }}
-          className="hover:bg-slate-800 hover:text-white"
         >
           <ArrowLeft size={16} />
           Çıkış Yap

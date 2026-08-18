@@ -237,6 +237,16 @@ const FOCUS_QUOTES = [
 // ─── THEMES ────────────────────────────────────────────────────────────────────
 const THEMES = [
   {
+    id: 'pastel',
+    name: '☀️ Aydınlık Pastel',
+    bg: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #fdf2f8 100%)',
+    cardBg: 'rgba(255, 255, 255, 0.88)',
+    border: '#e2e8f0',
+    accent: '#4f46e5',
+    text: '#0f172a',
+    subText: '#475569'
+  },
+  {
     id: 'cozy',
     name: '☕ Sıcak Çalışma Odası',
     bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
@@ -296,7 +306,7 @@ export default function StudyRoomPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [stopwatchSeconds, setStopwatchSeconds] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [activeTheme, setActiveTheme] = useState('cozy');
+  const [activeTheme, setActiveTheme] = useState('pastel');
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
 
   // Focus Target & Checklist

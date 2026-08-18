@@ -391,7 +391,7 @@ export default function ModularQuizReviewPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
         İnceleme Raporu Yükleniyor...
       </div>
     );
@@ -399,10 +399,11 @@ export default function ModularQuizReviewPage() {
 
   if (!test || !submission) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', gap: '1rem' }}>
-        <h2>İnceleme Raporu Bulunamadı</h2>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Bu sınava ait herhangi bir tamamlanmış çözüm kaydı bulunamadı.</p>
-        <button onClick={() => navigate('/student', { replace: true })} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#0f172a', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem' }}>📋</div>
+        <h2 style={{ margin: 0, color: '#0f172a', fontWeight: 900 }}>İnceleme Raporu Bulunamadı</h2>
+        <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0, maxWidth: 420 }}>Bu sınava ait herhangi bir tamamlanmış çözüm kaydı bulunamadı.</p>
+        <button onClick={() => navigate('/student', { replace: true })} style={{ padding: '0.65rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 800, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
           Geri Dön
         </button>
       </div>

@@ -621,7 +621,7 @@ export default function TrackedBookQuizRunner() {
   const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc', color: '#0f172a' }}>
       
       {/* ── HEADER ── */}
       <header style={{ 
@@ -629,14 +629,15 @@ export default function TrackedBookQuizRunner() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#1e293b', 
-        borderBottom: '1px solid #334155',
+        background: '#ffffff', 
+        borderBottom: '1.5px solid #e2e8f0',
         position: 'sticky', 
         top: 0, 
         zIndex: 10,
         flexShrink: 0,
         gap: '0.5rem',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         {/* Left: Back + Book & Test Title */}
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
@@ -647,16 +648,16 @@ export default function TrackedBookQuizRunner() {
                 else if (window.history.length > 1) navigate(-1);
                 else navigate('/student/books');
               }}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Kitaba Dön"
             >
               <ArrowLeft size={isMobile ? 18 : 22} />
             </button>
-            <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#0891b2', color: 'white', padding: '0.12rem 0.45rem', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               KİTAP TESTİ
             </span>
             <h2 style={{ 
-              color: '#f8fafc', 
+              color: '#0f172a', 
               fontSize: isMobile ? '0.9rem' : '1.05rem', 
               fontWeight: 800, 
               margin: 0, 
@@ -668,11 +669,11 @@ export default function TrackedBookQuizRunner() {
             </h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700 }}>
+            <span style={{ color: '#64748b', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700 }}>
               {subjectName} • {questionCount} Soru
             </span>
             {!isSubmitted && (
-              <span style={{ color: '#34d399', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800 }}>
+              <span style={{ color: '#16a34a', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800 }}>
                 • Kodlanan: {answeredCount}/{questionCount} (%{progressPct})
               </span>
             )}
@@ -685,41 +686,40 @@ export default function TrackedBookQuizRunner() {
           {/* Large Stylish Countdown Timer in Navbar */}
           {!isSubmitted && !isTeacherReviewing && (
             <div style={{
-              padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1.15rem',
-              borderRadius: '0.85rem',
+              padding: isMobile ? '0.35rem 0.75rem' : '0.4rem 1rem',
+              borderRadius: '0.75rem',
               background: timeLeft < 300
-                ? 'linear-gradient(135deg, rgba(153, 27, 27, 0.95), rgba(225, 29, 72, 0.95))'
-                : 'linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 27, 75, 0.96) 100%)',
-              border: timeLeft < 300 ? '2px solid #ef4444' : '1.5px solid rgba(129, 140, 248, 0.45)',
-              boxShadow: timeLeft < 300 ? '0 0 20px rgba(239, 68, 68, 0.5)' : '0 4px 18px rgba(99, 102, 241, 0.35)',
+                ? '#fef2f2'
+                : '#ffffff',
+              border: timeLeft < 300 ? '1.5px solid #fecaca' : '1.5px solid #cbd5e1',
+              boxShadow: timeLeft < 300 ? '0 0 15px rgba(239, 68, 68, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
               display: 'flex',
               alignItems: 'center',
               gap: isMobile ? '0.45rem' : '0.65rem',
               transition: 'all 0.2s ease'
             }}>
               <div style={{
-                width: isMobile ? 26 : 30,
-                height: isMobile ? 26 : 30,
+                width: isMobile ? 24 : 28,
+                height: isMobile ? 24 : 28,
                 borderRadius: '50%',
-                background: timeLeft < 300 ? 'rgba(255,255,255,0.2)' : 'rgba(99,102,241,0.25)',
+                background: timeLeft < 300 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(5, 150, 105, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Clock size={isMobile ? 15 : 18} color={timeLeft < 300 ? '#ffffff' : '#38bdf8'} />
+                <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: timeLeft < 300 ? '#fecdd3' : '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: timeLeft < 300 ? '#dc2626' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {timeLeft < 300 ? '⚠️ AZ KALDI' : 'SÜRE'}
                 </span>
                 <span style={{
                   fontFamily: "'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace",
-                  fontSize: isMobile ? '1.05rem' : '1.25rem',
+                  fontSize: isMobile ? '1rem' : '1.15rem',
                   fontWeight: 900,
-                  color: timeLeft < 300 ? '#ffffff' : '#38bdf8',
+                  color: timeLeft < 300 ? '#dc2626' : '#0f172a',
                   letterSpacing: '0.06em',
-                  marginTop: 2,
-                  textShadow: timeLeft < 300 ? '0 0 10px rgba(255,255,255,0.6)' : '0 0 10px rgba(56,189,248,0.4)'
+                  marginTop: 2
                 }}>
                   {formatTime(timeLeft)}
                 </span>
@@ -737,9 +737,9 @@ export default function TrackedBookQuizRunner() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '0.4rem 0.65rem',
-                    borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'side' ? '#3b82f6' : '#334155'}`,
-                    background: effectivePdfMode === 'side' ? '#1d4ed8' : '#0f172a',
-                    color: effectivePdfMode === 'side' ? 'white' : '#93c5fd',
+                    borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'side' ? '#2563eb' : '#cbd5e1'}`,
+                    background: effectivePdfMode === 'side' ? '#eff6ff' : '#ffffff',
+                    color: effectivePdfMode === 'side' ? '#1d4ed8' : '#475569',
                     fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
                   }}
                 >
@@ -753,9 +753,9 @@ export default function TrackedBookQuizRunner() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'top' ? '#3b82f6' : '#334155'}`,
-                  background: effectivePdfMode === 'top' ? '#1d4ed8' : '#0f172a',
-                  color: effectivePdfMode === 'top' ? 'white' : '#93c5fd',
+                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'top' ? '#2563eb' : '#cbd5e1'}`,
+                  background: effectivePdfMode === 'top' ? '#eff6ff' : '#ffffff',
+                  color: effectivePdfMode === 'top' ? '#1d4ed8' : '#475569',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
                 }}
               >
@@ -768,9 +768,9 @@ export default function TrackedBookQuizRunner() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'float' ? '#3b82f6' : '#334155'}`,
-                  background: effectivePdfMode === 'float' ? '#1d4ed8' : '#0f172a',
-                  color: effectivePdfMode === 'float' ? 'white' : '#93c5fd',
+                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'float' ? '#2563eb' : '#cbd5e1'}`,
+                  background: effectivePdfMode === 'float' ? '#eff6ff' : '#ffffff',
+                  color: effectivePdfMode === 'float' ? '#1d4ed8' : '#475569',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
                 }}
               >
@@ -783,9 +783,9 @@ export default function TrackedBookQuizRunner() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'hidden' ? '#ef4444' : '#334155'}`,
-                  background: effectivePdfMode === 'hidden' ? '#7f1d1d' : '#0f172a',
-                  color: effectivePdfMode === 'hidden' ? '#fca5a5' : '#94a3b8',
+                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
+                  background: effectivePdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
+                  color: effectivePdfMode === 'hidden' ? '#dc2626' : '#64748b',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
                 }}
               >
@@ -801,9 +801,9 @@ export default function TrackedBookQuizRunner() {
             style={{
               padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.85rem',
               borderRadius: '0.7rem',
-              background: showOptikForm ? '#0891b2' : '#0f172a',
-              border: `1.5px solid ${showOptikForm ? '#06b6d4' : '#334155'}`,
-              color: 'white',
+              background: showOptikForm ? '#eff6ff' : '#ffffff',
+              border: `1.5px solid ${showOptikForm ? '#bfdbfe' : '#cbd5e1'}`,
+              color: showOptikForm ? '#1d4ed8' : '#475569',
               fontWeight: 800,
               fontSize: isMobile ? '0.72rem' : '0.8rem',
               cursor: 'pointer',
@@ -823,9 +823,9 @@ export default function TrackedBookQuizRunner() {
             style={{
               padding: isMobile ? '0.4rem 0.5rem' : '0.45rem 0.85rem',
               borderRadius: '0.7rem',
-              background: isDrawingOpen ? '#eab308' : '#0f172a',
-              border: '1.5px solid #334155',
-              color: isDrawingOpen ? 'white' : '#e2e8f0',
+              background: isDrawingOpen ? '#fffbeb' : '#ffffff',
+              border: `1.5px solid ${isDrawingOpen ? '#fde68a' : '#cbd5e1'}`,
+              color: isDrawingOpen ? '#b45309' : '#475569',
               fontWeight: 800,
               fontSize: isMobile ? '0.72rem' : '0.8rem',
               cursor: 'pointer',
@@ -855,7 +855,7 @@ export default function TrackedBookQuizRunner() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
+                boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
               }}
             >
               <CheckCircle2 size={isMobile ? 14 : 16} /> 
@@ -865,7 +865,7 @@ export default function TrackedBookQuizRunner() {
           )}
 
           {isSubmitted && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#059669', color: 'white', padding: '0.35rem 0.75rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900 }}>
               <CheckCircle2 size={14} /> Test Tamamlandı
             </div>
           )}
@@ -908,62 +908,57 @@ export default function TrackedBookQuizRunner() {
 
         {/* Optical Area */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: '#0f172a' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: '#f8fafc' }}>
             <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 960 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
               {/* 1. SCORECARD HERO AFTER SUBMISSION */}
               {isSubmitted && results && (
-                <div style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 27, 75, 0.96) 100%)', borderRadius: '1.4rem', padding: '1.25rem 1.4rem', color: 'white', boxShadow: '0 12px 36px rgba(0,0,0,0.45)', border: '1.5px solid rgba(165, 180, 252, 0.28)', backdropFilter: 'blur(20px)' }}>
+                <div style={{ background: '#ffffff', borderRadius: '1.4rem', padding: '1.25rem 1.4rem', color: '#0f172a', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.25rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 14, background: results.scorePct >= 70 ? 'linear-gradient(135deg, rgba(16,185,129,0.3), rgba(5,150,105,0.4))' : results.scorePct >= 50 ? 'linear-gradient(135deg, rgba(245,158,11,0.3), rgba(217,119,6,0.4))' : 'linear-gradient(135deg, rgba(239,68,68,0.3), rgba(225,29,72,0.4))', display: 'flex', alignItems: 'center', justifyContent: 'center', border: results.scorePct >= 70 ? '1.5px solid rgba(52,211,153,0.5)' : results.scorePct >= 50 ? '1.5px solid rgba(251,191,36,0.5)' : '1.5px solid rgba(251,113,133,0.5)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                        <Trophy size={26} color={results.scorePct >= 70 ? '#4ade80' : results.scorePct >= 50 ? '#fbbf24' : '#fb7185'} />
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: results.scorePct >= 70 ? '#f0fdf4' : results.scorePct >= 50 ? '#fffbeb' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', border: results.scorePct >= 70 ? '1.5px solid #bbf7d0' : results.scorePct >= 50 ? '1.5px solid #fde68a' : '1.5px solid #fecaca' }}>
+                        <Trophy size={26} color={results.scorePct >= 70 ? '#15803d' : results.scorePct >= 50 ? '#b45309' : '#b91c1c'} />
                       </div>
                       <div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(99,102,241,0.22)', border: '1px solid rgba(165,180,252,0.35)', borderRadius: 99, padding: '0.15rem 0.6rem', marginBottom: 4 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#c7d2fe', letterSpacing: '0.05em' }}>TEST TAMAMLANDI</span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 99, padding: '0.15rem 0.6rem', marginBottom: 4 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#1d4ed8', letterSpacing: '0.05em' }}>TEST TAMAMLANDI</span>
                         </div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffffff' }}>{resolvedTest.name}</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{resolvedTest.name}</div>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                       {/* Doğru */}
-                      <div style={{ background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(5, 150, 105, 0.45) 100%)', border: '1.5px solid rgba(52, 211, 153, 0.65)', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68, boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#4ade80', textShadow: '0 0 12px rgba(74,222,128,0.5)', lineHeight: 1.1 }}>{results.correct}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#a7f3d0', letterSpacing: '0.04em', marginTop: 3 }}>DOĞRU</div>
+                      <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1 }}>{results.correct}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a', letterSpacing: '0.04em', marginTop: 3 }}>DOĞRU</div>
                       </div>
 
                       {/* Yanlış */}
-                      <div style={{ background: 'linear-gradient(135deg, rgba(136, 19, 55, 0.85) 0%, rgba(225, 29, 72, 0.45) 100%)', border: '1.5px solid rgba(251, 113, 133, 0.65)', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68, boxShadow: '0 4px 14px rgba(239,68,68,0.25)' }}>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fb7185', textShadow: '0 0 12px rgba(251,113,133,0.5)', lineHeight: 1.1 }}>{results.wrong}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#fecdd3', letterSpacing: '0.04em', marginTop: 3 }}>YANLIŞ</div>
+                      <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#b91c1c', lineHeight: 1.1 }}>{results.wrong}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626', letterSpacing: '0.04em', marginTop: 3 }}>YANLIŞ</div>
                       </div>
 
                       {/* Boş */}
-                      <div style={{ background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.6) 100%)', border: '1.5px solid rgba(148, 163, 184, 0.45)', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68, boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#e2e8f0', lineHeight: 1.1 }}>{results.blank}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#94a3b8', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
+                      <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#475569', lineHeight: 1.1 }}>{results.blank}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
                       </div>
 
-                      {/* Başarı Yüzdesi (Net yerine) */}
+                      {/* Başarı Yüzdesi */}
                       <div style={{
-                        background: results.scorePct >= 70
-                          ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(13, 148, 136, 0.95) 100%)'
-                          : results.scorePct >= 50
-                            ? 'linear-gradient(135deg, rgba(120, 53, 15, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)'
-                            : 'linear-gradient(135deg, rgba(136, 19, 55, 0.95) 0%, rgba(225, 29, 72, 0.95) 100%)',
-                        border: results.scorePct >= 70 ? '2px solid #34d399' : results.scorePct >= 50 ? '2px solid #fbbf24' : '2px solid #fb7185',
+                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                         borderRadius: 16,
                         padding: '0.55rem 1.25rem',
                         textAlign: 'center',
                         minWidth: 95,
-                        boxShadow: '0 6px 20px rgba(0,0,0,0.45)'
+                        boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
                       }}>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                           %{results.scorePct}
                         </div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
                           🎯 BAŞARI
                         </div>
                       </div>
@@ -971,11 +966,11 @@ export default function TrackedBookQuizRunner() {
                   </div>
 
                   {/* Action buttons after submission */}
-                  <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center' }}>
                     {resolvedBook && (
                       <button 
                         onClick={() => navigate(`/student/books/${resolvedBook.id}`)}
-                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(79,70,229,0.4)', transition: 'transform 0.15s' }}
+                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                       >
@@ -985,7 +980,7 @@ export default function TrackedBookQuizRunner() {
                     {results && (results.wrong > 0 || results.blank > 0) && (
                       <button
                         onClick={handleRetakeWrong}
-                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(245,158,11,0.35)', transition: 'transform 0.15s' }}
+                        style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(245,158,11,0.25)', transition: 'transform 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                       >
@@ -997,29 +992,29 @@ export default function TrackedBookQuizRunner() {
               )}
 
               {/* 2. OPTICAL BUBBLES / OPEN-ENDED FORM */}
-              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 
                 {/* Header & Progress Bar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#06b6d4', boxShadow: '0 0 12px #06b6d4' }} />
-                      <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#f8fafc', letterSpacing: '-0.01em' }}>
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#2563eb' }} />
+                      <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', letterSpacing: '-0.01em' }}>
                         Optik Form
                       </span>
-                      <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 800, background: '#0f172a', padding: '0.25rem 0.7rem', borderRadius: '0.6rem', border: '1px solid #334155' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 800, background: '#f8fafc', padding: '0.25rem 0.7rem', borderRadius: '0.6rem', border: '1px solid #e2e8f0' }}>
                         {questionCount} Soru
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       {flaggedCount > 0 && (
-                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fbbf24', background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.4)', padding: '0.3rem 0.7rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.3rem 0.7rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', gap: 5 }}>
                           <Flag size={13} /> {flaggedCount} Şüpheli
                         </div>
                       )}
                       {!isSubmitted && (
-                        <div style={{ fontSize: '0.84rem', fontWeight: 900, color: answeredCount === questionCount ? '#34d399' : '#38bdf8', background: 'rgba(255,255,255,0.06)', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 900, color: answeredCount === questionCount ? '#15803d' : '#2563eb', background: answeredCount === questionCount ? '#f0fdf4' : '#eff6ff', padding: '0.35rem 0.8rem', borderRadius: '0.65rem', border: `1px solid ${answeredCount === questionCount ? '#bbf7d0' : '#bfdbfe'}` }}>
                           {answeredCount}/{questionCount} Kodlandı {questionCount > 0 ? `(%${Math.round((answeredCount / questionCount) * 100)})` : ''}
                         </div>
                       )}
@@ -1028,12 +1023,12 @@ export default function TrackedBookQuizRunner() {
 
                   {/* Progress Bar */}
                   {!isSubmitted && questionCount > 0 && (
-                    <div style={{ width: '100%', height: 6, background: '#0f172a', borderRadius: 99, overflow: 'hidden', border: '1px solid #334155' }}>
+                    <div style={{ width: '100%', height: 6, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                       <div 
                         style={{ 
                           width: `${Math.min(100, Math.round((answeredCount / questionCount) * 100))}%`, 
                           height: '100%', 
-                          background: answeredCount === questionCount ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #0891b2, #06b6d4)', 
+                          background: answeredCount === questionCount ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #2563eb, #3b82f6)', 
                           transition: 'width 0.25s ease' 
                         }} 
                       />
@@ -1041,7 +1036,7 @@ export default function TrackedBookQuizRunner() {
                   )}
                 </div>
 
-                {/* Natural Question Grid (1 2 3... yukarıdan aşağıya sıralı akış) */}
+                {/* Natural Question Grid */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: isMobile ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
@@ -1069,8 +1064,8 @@ export default function TrackedBookQuizRunner() {
 
                         if (isOpenEnded) {
                           return (
-                            <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '1rem', border: selected ? '1.5px solid #0891b2' : '1px solid #334155', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#f8fafc' }}>
+                            <div key={qNo} style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '1rem', border: selected ? '1.5px solid #2563eb' : '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0f172a' }}>
                                 Soru {qNo}
                               </span>
                               <textarea
@@ -1079,7 +1074,7 @@ export default function TrackedBookQuizRunner() {
                                 onChange={e => handleOpenEndedChange(qNo, e.target.value)}
                                 placeholder="Cevabınızı buraya yazınız..."
                                 rows={2}
-                                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '0.5rem', color: 'white', fontSize: '0.85rem', resize: 'vertical' }}
+                                style={{ width: '100%', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 8, padding: '0.5rem', color: '#0f172a', fontSize: '0.85rem', resize: 'vertical' }}
                               />
                             </div>
                           );
@@ -1090,26 +1085,26 @@ export default function TrackedBookQuizRunner() {
                             key={qNo} 
                             style={{
                               background: flagged[qNo] && !isSubmitted
-                                ? 'rgba(245, 158, 11, 0.08)'
+                                ? '#fffbeb'
                                 : selected 
-                                  ? 'rgba(8, 145, 178, 0.08)' 
-                                  : '#0f172a',
+                                  ? '#eff6ff' 
+                                  : '#f8fafc',
                               padding: isMobile ? '0.6rem 0.75rem' : '0.65rem 1rem',
                               borderRadius: '1rem',
                               border: isCorrect 
-                                ? '1.5px solid #10b981' 
+                                ? '1.5px solid #bbf7d0' 
                                 : isWrong 
-                                ? '1.5px solid #ef4444' 
+                                ? '1.5px solid #fecaca' 
                                 : flagged[qNo] && !isSubmitted
-                                ? '1.5px solid #f59e0b'
+                                ? '1.5px solid #fde68a'
                                 : selected 
-                                ? '1.5px solid #0891b2' 
-                                : '1px solid #334155',
+                                ? '1.5px solid #93c5fd' 
+                                : '1.5px solid #e2e8f0',
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '0.45rem',
                               transition: 'all 0.15s ease',
-                              boxShadow: selected ? '0 4px 14px rgba(8,145,178,0.15)' : 'none'
+                              boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.08)' : 'none'
                             }}
                           >
                             {/* Top Question Row */}
@@ -1120,15 +1115,15 @@ export default function TrackedBookQuizRunner() {
                                   width: isMobile ? 26 : 32,
                                   height: isMobile ? 26 : 32,
                                   borderRadius: isMobile ? '0.45rem' : '0.6rem',
-                                  background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#1e293b',
-                                  color: selected ? '#ffffff' : '#94a3b8',
+                                  background: selected ? '#2563eb' : '#ffffff',
+                                  color: selected ? '#ffffff' : '#334155',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   fontWeight: 900,
                                   fontSize: isMobile ? '0.78rem' : '0.85rem',
-                                  border: selected ? 'none' : '1px solid #334155',
-                                  boxShadow: selected ? '0 2px 8px rgba(8,145,178,0.4)' : 'none'
+                                  border: selected ? 'none' : '1.5px solid #cbd5e1',
+                                  boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
                                 }}>
                                   {qNo}
                                 </div>
@@ -1139,23 +1134,23 @@ export default function TrackedBookQuizRunner() {
                                     onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
                                     title={flagged[qNo] ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
                                     style={{
-                                      background: flagged[qNo] ? 'rgba(245,158,11,0.25)' : 'transparent',
-                                      border: flagged[qNo] ? '1px solid #f59e0b' : 'none',
+                                      background: flagged[qNo] ? '#fffbeb' : 'transparent',
+                                      border: flagged[qNo] ? '1px solid #fde68a' : 'none',
                                       borderRadius: '0.4rem',
                                       padding: isMobile ? '2px' : '4px',
                                       cursor: 'pointer',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      color: flagged[qNo] ? '#fbbf24' : '#64748b'
+                                      color: flagged[qNo] ? '#d97706' : '#94a3b8'
                                     }}
                                   >
-                                    <Flag size={isMobile ? 12 : 14} fill={flagged[qNo] ? '#fbbf24' : 'none'} />
+                                    <Flag size={isMobile ? 12 : 14} fill={flagged[qNo] ? '#d97706' : 'none'} />
                                   </button>
                                 )}
 
                                 {isSubmitted && (
-                                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: isCorrect ? '#4ade80' : isWrong ? '#f87171' : '#94a3b8' }}>
+                                  <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
                                     {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
                                   </span>
                                 )}
@@ -1167,29 +1162,29 @@ export default function TrackedBookQuizRunner() {
                                   const isSelected = selected === opt;
                                   const isThisOptCorrect = isSubmitted && correctKey === opt;
 
-                                  let bubbleBg = '#1e293b';
-                                  let bubbleBorder = '1.5px solid #475569';
-                                  let bubbleColor = '#cbd5e1';
+                                  let bubbleBg = '#ffffff';
+                                  let bubbleBorder = '1.5px solid #cbd5e1';
+                                  let bubbleColor = '#334155';
                                   let bubbleShadow = 'none';
 
                                   if (isSelected) {
-                                    bubbleBg = 'linear-gradient(135deg, #0891b2, #06b6d4)';
-                                    bubbleBorder = '2px solid #38bdf8';
+                                    bubbleBg = '#2563eb';
+                                    bubbleBorder = '2px solid #1d4ed8';
                                     bubbleColor = '#ffffff';
-                                    bubbleShadow = '0 4px 14px rgba(8,145,178,0.45)';
+                                    bubbleShadow = '0 2px 8px rgba(37,99,235,0.3)';
                                   }
 
                                   if (isSubmitted) {
                                     if (isThisOptCorrect) {
-                                      bubbleBg = 'linear-gradient(135deg, #10b981, #059669)';
-                                      bubbleBorder = '2px solid #34d399';
+                                      bubbleBg = '#16a34a';
+                                      bubbleBorder = '2px solid #15803d';
                                       bubbleColor = '#ffffff';
-                                      bubbleShadow = '0 4px 12px rgba(16,185,129,0.4)';
+                                      bubbleShadow = '0 2px 8px rgba(22,163,74,0.3)';
                                     } else if (isSelected && !isThisOptCorrect) {
-                                      bubbleBg = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                                      bubbleBorder = '2px solid #f87171';
+                                      bubbleBg = '#dc2626';
+                                      bubbleBorder = '2px solid #b91c1c';
                                       bubbleColor = '#ffffff';
-                                      bubbleShadow = '0 4px 12px rgba(239,68,68,0.4)';
+                                      bubbleShadow = '0 2px 8px rgba(220,38,38,0.3)';
                                     }
                                   }
 
@@ -1232,9 +1227,9 @@ export default function TrackedBookQuizRunner() {
                                       width: isMobile ? 24 : 28,
                                       height: isMobile ? 24 : 28,
                                       borderRadius: '50%',
-                                      background: selected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                                      border: selected ? '1px solid rgba(239, 68, 68, 0.4)' : 'none',
-                                      color: selected ? '#f87171' : 'transparent',
+                                      background: selected ? '#fef2f2' : 'transparent',
+                                      border: selected ? '1px solid #fecaca' : 'none',
+                                      color: selected ? '#dc2626' : 'transparent',
                                       cursor: selected ? 'pointer' : 'default',
                                       display: 'flex',
                                       alignItems: 'center',
@@ -1251,29 +1246,29 @@ export default function TrackedBookQuizRunner() {
                               </div>
                             </div>
 
-                            {/* Mistake Diagnostic Selector (Why did I get it wrong?) */}
+                            {/* Mistake Diagnostic Selector */}
                             {isSubmitted && isWrong && (
                               <div style={{
                                 width: '100%',
                                 marginTop: '0.45rem',
                                 paddingTop: '0.45rem',
-                                borderTop: '1px dashed rgba(239, 68, 68, 0.25)',
+                                borderTop: '1px dashed #fecaca',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
                                 flexWrap: 'wrap',
                                 gap: '0.35rem'
                               }}>
-                                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: 4 }}>
                                   🤔 Yanlış Sebebi:
                                 </span>
                                 <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                   {[
-                                    { label: '⚡ İşlem Hatası', color: '#f59e0b' },
-                                    { label: '⚠️ Dikkat Kaybı', color: '#fb7185' },
-                                    { label: '📖 Formül / Bilgi', color: '#38bdf8' },
-                                    { label: '🧠 Konu Eksiği', color: '#a855f7' },
-                                    { label: '⏱️ Zaman Yetmedi', color: '#ec4899' }
+                                    { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+                                    { label: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+                                    { label: '📖 Formül / Bilgi', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+                                    { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+                                    { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
                                   ].map(r => {
                                     const isSelected = mistakeReasons[qNo] === r.label;
                                     return (
@@ -1286,11 +1281,11 @@ export default function TrackedBookQuizRunner() {
                                           fontSize: isMobile ? '0.58rem' : '0.62rem',
                                           fontWeight: 800,
                                           borderRadius: 6,
-                                          border: isSelected ? `1.5px solid ${r.color}` : '1px solid rgba(255,255,255,0.12)',
-                                          background: isSelected ? `${r.color}33` : 'rgba(15,23,42,0.6)',
-                                          color: isSelected ? r.color : 'rgba(255,255,255,0.7)',
+                                          border: `1.5px solid ${isSelected ? r.color : r.border}`,
+                                          background: isSelected ? r.color : r.bg,
+                                          color: isSelected ? '#ffffff' : r.color,
                                           cursor: 'pointer',
-                                          boxShadow: isSelected ? `0 2px 8px ${r.color}40` : 'none',
+                                          boxShadow: isSelected ? `0 2px 6px ${r.color}33` : 'none',
                                           transition: 'all 0.15s'
                                         }}
                                       >
@@ -1326,7 +1321,7 @@ export default function TrackedBookQuizRunner() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem',
-                      boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4)'
+                      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
                     }}
                   >
                     <CheckCircle2 size={20} />
@@ -1344,25 +1339,25 @@ export default function TrackedBookQuizRunner() {
 
       {/* ── FINISH MODAL ── */}
       {showFinishModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'blur(5px)' }}>
-          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2rem', background: '#1e293b', borderRadius: '1.5rem', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#f8fafc', margin: '1rem' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)', border: '2px solid #10b981', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2rem', background: '#ffffff', borderRadius: '1.5rem', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a', margin: '1rem' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#f0fdf4', border: '2px solid #bbf7d0', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <CheckCircle2 size={30} />
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900 }}>Testi Bitiriyorsunuz</h3>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>Testi Bitiriyorsunuz</h3>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>
               {answeredCount}/{questionCount} soru işaretlediniz. Testi tamamlayıp sonuçlarınızı kaydetmek istiyor musunuz?
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
               <button 
                 onClick={() => setShowFinishModal(false)}
-                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
               >
                 Geri Dön
               </button>
               <button 
                 onClick={() => handleSubmit(true)}
-                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}
+                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)' }}
               >
                 Kaydet
               </button>
@@ -1380,7 +1375,7 @@ export default function TrackedBookQuizRunner() {
             bottom: '1.5rem',
             right: '1.25rem',
             zIndex: 9999,
-            background: 'linear-gradient(135deg, #0891b2, #06b6d4)',
+            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
             color: 'white',
             border: 'none',
             borderRadius: '50%',
@@ -1389,7 +1384,7 @@ export default function TrackedBookQuizRunner() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(8,145,178,0.5)',
+            boxShadow: '0 8px 24px rgba(37,99,235,0.35)',
             cursor: 'pointer'
           }}
           title="Optik Formu Aç"
@@ -1402,32 +1397,32 @@ export default function TrackedBookQuizRunner() {
       {isMobile && showMobileOpticModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(6px)',
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
         }} onClick={() => setShowMobileOpticModal(false)}>
           <div style={{
-            background: '#0f172a',
-            color: '#f8fafc',
+            background: '#ffffff',
+            color: '#0f172a',
             borderRadius: '1.5rem 1.5rem 0 0',
             maxHeight: '85vh',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
-            boxShadow: '0 -10px 35px rgba(0,0,0,0.5)',
-            borderTop: '1px solid #334155'
+            boxShadow: '0 -10px 35px rgba(0,0,0,0.15)',
+            borderTop: '1.5px solid #e2e8f0'
           }} onClick={e => e.stopPropagation()}>
 
             <div style={{
               padding: '0.9rem 1.25rem',
-              background: '#1e293b',
-              borderBottom: '1px solid #334155',
+              background: '#ffffff',
+              borderBottom: '1.5px solid #e2e8f0',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem'
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>
                   📝 {resolvedTest.name}
                 </h3>
-                <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>
                   {answeredCount}/{questionCount} soru kodlandı
                 </p>
               </div>
@@ -1437,19 +1432,17 @@ export default function TrackedBookQuizRunner() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: timeLeft < 300
-                    ? 'linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(225, 29, 72, 0.9))'
-                    : 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.95))',
-                  border: timeLeft < 300 ? '1.5px solid #ef4444' : '1.5px solid rgba(129, 140, 248, 0.4)',
+                  background: timeLeft < 300 ? '#fef2f2' : '#f8fafc',
+                  border: timeLeft < 300 ? '1.5px solid #fecaca' : '1.5px solid #e2e8f0',
                   borderRadius: '0.75rem',
                   padding: '0.35rem 0.75rem'
                 }}>
-                  <Clock size={15} color={timeLeft < 300 ? '#ffffff' : '#38bdf8'} />
+                  <Clock size={15} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
                   <span style={{
                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                     fontSize: '1.05rem',
                     fontWeight: 900,
-                    color: timeLeft < 300 ? '#ffffff' : '#38bdf8'
+                    color: timeLeft < 300 ? '#dc2626' : '#0f172a'
                   }}>
                     {formatTime(timeLeft)}
                   </span>
@@ -1459,16 +1452,16 @@ export default function TrackedBookQuizRunner() {
               <button
                 onClick={() => setShowMobileOpticModal(false)}
                 style={{
-                  background: '#334155', border: 'none', borderRadius: '50%',
+                  background: '#f1f5f9', border: 'none', borderRadius: '50%',
                   width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: '#cbd5e1'
+                  cursor: 'pointer', color: '#475569'
                 }}
               >
                 <XIcon size={18} />
               </button>
             </div>
 
-            <div style={{ padding: '0.85rem', overflowY: 'auto', flex: 1, background: '#0f172a' }}>
+            <div style={{ padding: '0.85rem', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {Array.from({ length: questionCount }).map((_, idx) => {
                   const qNo = idx + 1;
@@ -1478,10 +1471,10 @@ export default function TrackedBookQuizRunner() {
                     <div 
                       key={qNo} 
                       style={{ 
-                        background: selected ? 'rgba(8, 145, 178, 0.08)' : '#1e293b', 
+                        background: selected ? '#eff6ff' : '#ffffff', 
                         padding: '0.55rem 0.85rem', 
                         borderRadius: '0.85rem', 
-                        border: selected ? '1.5px solid #0891b2' : '1px solid #334155', 
+                        border: selected ? '1.5px solid #93c5fd' : '1.5px solid #e2e8f0', 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'space-between', 
@@ -1493,14 +1486,14 @@ export default function TrackedBookQuizRunner() {
                           width: 28,
                           height: 28,
                           borderRadius: '0.5rem',
-                          background: selected ? 'linear-gradient(135deg, #0891b2, #0e7490)' : '#0f172a',
-                          color: selected ? '#ffffff' : '#94a3b8',
+                          background: selected ? '#2563eb' : '#ffffff',
+                          color: selected ? '#ffffff' : '#475569',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 900,
                           fontSize: '0.8rem',
-                          border: selected ? 'none' : '1px solid #334155'
+                          border: selected ? 'none' : '1.5px solid #cbd5e1'
                         }}>
                           {qNo}
                         </div>
@@ -1521,11 +1514,11 @@ export default function TrackedBookQuizRunner() {
                                 fontWeight: 900,
                                 fontSize: '0.95rem',
                                 cursor: 'pointer',
-                                border: isSelected ? '2px solid #38bdf8' : '1.5px solid #475569',
-                                background: isSelected ? 'linear-gradient(135deg, #0891b2, #06b6d4)' : '#0f172a',
-                                color: isSelected ? 'white' : '#cbd5e1',
+                                border: isSelected ? '2px solid #1d4ed8' : '1.5px solid #cbd5e1',
+                                background: isSelected ? '#2563eb' : '#ffffff',
+                                color: isSelected ? 'white' : '#334155',
                                 transition: 'all 0.12s ease',
-                                boxShadow: isSelected ? '0 4px 12px rgba(8,145,178,0.45)' : 'none',
+                                boxShadow: isSelected ? '0 2px 8px rgba(37,99,235,0.3)' : 'none',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1546,9 +1539,9 @@ export default function TrackedBookQuizRunner() {
                               width: 26,
                               height: 26,
                               borderRadius: '50%',
-                              background: 'rgba(239, 68, 68, 0.15)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              color: '#f87171',
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              color: '#dc2626',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -1567,14 +1560,15 @@ export default function TrackedBookQuizRunner() {
               </div>
             </div>
 
-            <div style={{ padding: '0.75rem 1.25rem', background: '#1e293b', borderTop: '1px solid #334155' }}>
+            <div style={{ padding: '0.75rem 1.25rem', background: '#ffffff', borderTop: '1.5px solid #e2e8f0' }}>
               <button
                 onClick={() => setShowMobileOpticModal(false)}
                 style={{
                   width: '100%', padding: '0.75rem', borderRadius: '0.75rem',
-                  background: 'linear-gradient(135deg, #0891b2, #06b6d4)',
+                  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                   color: 'white', border: 'none', fontWeight: 900, fontSize: '0.9rem',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  boxShadow: '0 3px 10px rgba(37,99,235,0.25)'
                 }}
               >
                 <CheckCircle2 size={16} />
@@ -1600,12 +1594,12 @@ export default function TrackedBookQuizRunner() {
             width: '3.5rem',
             height: '3.5rem',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #0891b2, #06b6d4)',
+            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 30px rgba(8,145,178,0.5)',
+            boxShadow: '0 8px 30px rgba(37,99,235,0.35)',
             border: 'none',
             zIndex: 9999,
             cursor: 'pointer'

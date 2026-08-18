@@ -249,33 +249,33 @@ export default function PeriodicQuestionAnalytics({
     const data = payload[0]?.payload;
     return (
       <div style={{
-        background: '#0f172a',
-        color: '#f8fafc',
+        background: '#ffffff',
+        color: '#0f172a',
         padding: isMobile ? '6px 10px' : '8px 12px',
         borderRadius: '10px',
-        border: '1.5px solid rgba(165, 180, 252, 0.4)',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+        border: '1.5px solid #e2e8f0',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
         fontSize: isMobile ? '0.72rem' : '0.8rem',
         minWidth: 130
       }}>
-        <div style={{ fontWeight: 900, color: '#a5b4fc', marginBottom: 3, borderBottom: '1px solid #334155', paddingBottom: 2 }}>
+        <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: 3, borderBottom: '1px solid #e2e8f0', paddingBottom: 2 }}>
           {data?.fullLabel || data?.label || label}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, margin: '1px 0' }}>
-          <span style={{ color: '#94a3b8' }}>Soru:</span>
-          <span style={{ fontWeight: 900, color: '#60a5fa' }}>{data?.toplamSoru || 0}</span>
+          <span style={{ color: '#64748b' }}>Soru:</span>
+          <span style={{ fontWeight: 900, color: '#2563eb' }}>{data?.toplamSoru || 0}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, margin: '1px 0' }}>
-          <span style={{ color: '#4ade80' }}>Doğru:</span>
-          <span style={{ fontWeight: 900, color: '#4ade80' }}>{data?.doğru || 0}</span>
+          <span style={{ color: '#64748b' }}>Doğru:</span>
+          <span style={{ fontWeight: 900, color: '#15803d' }}>{data?.doğru || 0}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, margin: '1px 0' }}>
-          <span style={{ color: '#f87171' }}>Yanlış:</span>
-          <span style={{ fontWeight: 900, color: '#f87171' }}>{data?.yanlış || 0}</span>
+          <span style={{ color: '#64748b' }}>Yanlış:</span>
+          <span style={{ fontWeight: 900, color: '#b91c1c' }}>{data?.yanlış || 0}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 3, paddingTop: 2, borderTop: '1px dashed #334155' }}>
-          <span style={{ color: '#fbbf24', fontWeight: 800 }}>Başarı:</span>
-          <span style={{ fontWeight: 900, color: '#fbbf24' }}>%{data?.başarıOranı || 0}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 3, paddingTop: 2, borderTop: '1px dashed #e2e8f0' }}>
+          <span style={{ color: '#b45309', fontWeight: 800 }}>Başarı:</span>
+          <span style={{ fontWeight: 900, color: '#b45309' }}>%{data?.başarıOranı || 0}</span>
         </div>
       </div>
     );

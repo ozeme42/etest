@@ -1992,8 +1992,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             }
           />
         ) : (
-          /* STANDARD QUESTION CARDS + OPTIK PANEL (DARK THEME) */
-          /* STANDARD QUESTION CARDS + OPTIK PANEL (DARK THEME) */
+          /* STANDARD QUESTION CARDS + OPTIK PANEL */
           <QuizPanelLayout
             panelTitle="Optik Form"
             panelSubtitle={`${activeSecIdx + 1}. Bölüm`}
@@ -2001,9 +2000,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
             defaultPosition="right"
             defaultSize={320}
             documentContent={
-              <div style={{ flex: 1, minWidth: 0, background: '#0f172a', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+              <div style={{ flex: 1, minWidth: 0, background: '#f8fafc', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
                 {/* SECTION BANNER */}
-                <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 6px 20px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #4f46e5, #3730a3)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 4px 16px rgba(79,70,229,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <FileSpreadsheet size={24} />
@@ -2015,12 +2014,12 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       </p>
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.4rem 0.85rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900 }}>
                     Bölüm {activeSecIdx + 1} / {sections.length}
                   </div>
                 </div>
 
-                {/* QUESTION CARDS STACKED VERTICALLY (DARK THEME) */}
+                {/* QUESTION CARDS STACKED VERTICALLY */}
                 {Array.from({ length: activeSec.qCount }).map((_, idx) => {
                   const qNo = idx + 1;
                   const qObj = (activeSec.resolvedQuestions && activeSec.resolvedQuestions[idx]) || {};
@@ -2077,24 +2076,24 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
                   return (
                     <div key={qNo} style={{
-                      background: '#1e293b',
+                      background: '#ffffff',
                       borderRadius: '1.1rem',
                       border: isReviewMode && !isQOpenEnded && isStdAnswered
-                        ? `1.5px solid ${isStdCorrect ? '#10b981' : '#ef4444'}`
-                        : '1px solid #334155',
+                        ? `1.5px solid ${isStdCorrect ? '#bbf7d0' : '#fecaca'}`
+                        : '1.5px solid #e2e8f0',
                       padding: '1.5rem',
-                      boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                      boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
                       display: 'flex', flexDirection: 'column', gap: '1rem'
                     }}>
                       
                       {/* QUESTION HEADER */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ padding: '0.3rem 0.75rem', background: '#6366f1', color: 'white', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
+                          <span style={{ padding: '0.3rem 0.75rem', background: '#4f46e5', color: 'white', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.85rem' }}>
                             SORU {qNo}
                           </span>
                           {isQOpenEnded && (
-                            <span style={{ padding: '0.2rem 0.6rem', background: '#fef3c7', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
+                            <span style={{ padding: '0.2rem 0.6rem', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.75rem' }}>
                               ✍️ Açık Uçlu / Yazılı
                             </span>
                           )}
@@ -2102,17 +2101,17 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
 
                         {isReviewMode ? (
                           isQOpenEnded ? (
-                            <span style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
+                            <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 900 }}>⏳ Öğretmen değerlendirmesinde</span>
                           ) : isStdAnswered ? (
                             isStdCorrect
-                              ? <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ DOĞRU</span>
-                              : <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 900 }}>✗ YANLIŞ</span>
+                              ? <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 900 }}>✓ DOĞRU</span>
+                              : <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 900 }}>✗ YANLIŞ</span>
                           ) : (
                             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— BOŞ</span>
                           )
                         ) : (
                           isStdAnswered || textVal ? (
-                            <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 900 }}>✓ Cevaplandı</span>
+                            <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 900 }}>✓ Cevaplandı</span>
                           ) : (
                             <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>— Yanıtlanmadı</span>
                           )
@@ -2125,7 +2124,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                       ))}
 
                       {/* QUESTION TEXT */}
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.65 }}>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.65 }}>
                         {qText}
                       </div>
 
@@ -2141,16 +2140,16 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                             else if (opt && typeof opt === 'object') optText = opt.text || opt.optionText || opt.label || opt.title || opt.value || opt.content || '';
                             const showText = Boolean(optText && optText.trim() !== optLetter);
 
-                            let bg = '#0f172a';
-                            let border = '1.5px solid #334155';
-                            let color = '#cbd5e1';
+                            let bg = '#ffffff';
+                            let border = '1.5px solid #cbd5e1';
+                            let color = '#334155';
 
                             if (isReviewMode) {
-                              if (isSelected && isCorrectOpt) { bg = 'linear-gradient(135deg,#059669,#10b981)'; border = 'none'; color = 'white'; }
-                              else if (isSelected && !isCorrectOpt) { bg = 'linear-gradient(135deg,#dc2626,#b91c1c)'; border = 'none'; color = 'white'; }
-                              else if (isCorrectOpt) { bg = 'rgba(16,185,129,0.12)'; border = '1.5px solid #10b981'; color = '#34d399'; }
+                              if (isSelected && isCorrectOpt) { bg = '#f0fdf4'; border = '2px solid #22c55e'; color = '#15803d'; }
+                              else if (isSelected && !isCorrectOpt) { bg = '#fef2f2'; border = '2px solid #ef4444'; color = '#b91c1c'; }
+                              else if (isCorrectOpt) { bg = '#f0fdf4'; border = '1.5px solid #86efac'; color = '#15803d'; }
                             } else if (isSelected) {
-                              bg = 'linear-gradient(135deg, #4f46e5, #3730a3)'; border = 'none'; color = 'white';
+                              bg = '#eff6ff'; border = '2px solid #2563eb'; color = '#1d4ed8';
                             }
 
                             return (
@@ -2164,14 +2163,14 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                                   border, background: bg, color, transition: 'all 0.15s ease',
                                   display: 'flex', alignItems: 'center'
                                 }}>
-                                <span style={{ fontWeight: 900, color: isSelected ? (isReviewMode ? 'rgba(255,255,255,0.8)' : '#a5b4fc') : (isCorrectOpt && isReviewMode ? '#34d399' : '#38bdf8'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
+                                <span style={{ fontWeight: 900, color: isSelected ? '#2563eb' : (isCorrectOpt && isReviewMode ? '#15803d' : '#64748b'), fontSize: '0.95rem', marginRight: '0.75rem', minWidth: '24px' }}>
                                   {optLetter})
                                 </span>
                                 <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
                                   {showText ? optText : `Seçenek ${optLetter}`}
                                 </span>
                                 {isReviewMode && isCorrectOpt && !isSelected && (
-                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Doğru Yanıt</span>
+                                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#15803d', fontWeight: 900 }}>✓ Doğru Yanıt</span>
                                 )}
                               </button>
                             );
@@ -2179,7 +2178,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isReviewMode ? '#94a3b8' : '#a5b4fc' }}>
+                          <label style={{ fontWeight: 800, fontSize: '0.85rem', color: isReviewMode ? '#64748b' : '#4f46e5' }}>
                             {isReviewMode ? '📝 Öğrenci Yanıtı:' : '✍️ Açık Uçlu Yanıtınızı Buraya Yazınız:'}
                           </label>
                           <textarea
@@ -2190,9 +2189,9 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                             rows={4}
                             style={{
                               width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem',
-                              background: '#0f172a',
-                              border: isReviewMode ? (textVal ? '1.5px solid #10b981' : '1px solid #475569') : '1.5px solid #475569',
-                              color: '#f8fafc', fontFamily: 'inherit', fontSize: '0.95rem',
+                              background: '#ffffff',
+                              border: isReviewMode ? (textVal ? '1.5px solid #bbf7d0' : '1.5px solid #e2e8f0') : '1.5px solid #cbd5e1',
+                              color: '#0f172a', fontFamily: 'inherit', fontSize: '0.95rem',
                               resize: isReviewMode ? 'none' : 'vertical',
                               boxSizing: 'border-box', outline: 'none',
                               cursor: isReviewMode ? 'default' : 'text'
@@ -2209,7 +2208,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   <button
                     onClick={() => setActiveSecIdx(p => Math.max(0, p - 1))}
                     disabled={activeSecIdx === 0}
-                    style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#1e293b' : '#334155', border: '1px solid #475569', color: activeSecIdx === 0 ? '#64748b' : 'white', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    style={{ padding: '0.75rem 1.5rem', borderRadius: '0.85rem', background: activeSecIdx === 0 ? '#f1f5f9' : '#ffffff', border: '1.5px solid #cbd5e1', color: activeSecIdx === 0 ? '#94a3b8' : '#475569', fontWeight: 900, fontSize: '0.9rem', cursor: activeSecIdx === 0 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                   >
                     <ChevronLeft size={18} /> Önceki Bölüm
                   </button>
@@ -2217,7 +2216,7 @@ export default function MultiHomeworkRunner({ test, questions, onSubmit, isRevie
                   {activeSecIdx < sections.length - 1 ? (
                     <button
                       onClick={() => setActiveSecIdx(p => Math.min(sections.length - 1, p + 1))}
-                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
+                      style={{ padding: '0.75rem 1.75rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(99,102,241,0.25)' }}
                     >
                       Sonraki Bölüm <ChevronRight size={18} />
                     </button>
