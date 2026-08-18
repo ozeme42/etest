@@ -659,12 +659,42 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                     {tt?.label}
                   </div>
                 )}
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'), textDecoration: item.done ? 'line-through' : 'none' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'), textDecoration: item.done ? 'line-through' : 'none', wordBreak: 'break-word', lineHeight: 1.3 }}>
                   {item.bookName || item.subject}
                 </div>
                 {item.topic && (
-                  <div style={{ fontSize: '0.7rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'), fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {item.topic}
+                  <div style={{ fontSize: '0.72rem', color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'), fontWeight: 600, marginTop: 2, wordBreak: 'break-word', lineHeight: 1.35 }}>
+                    {(() => {
+                      if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
+                        const parts = item.topic.split(' — ');
+                        const bookOrMain = parts[0];
+                        const testOrSub = parts.slice(1).join(' — ');
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                            <span style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontSize: '0.68rem', wordBreak: 'break-word' }}>
+                              📖 {bookOrMain}
+                            </span>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontWeight: 800,
+                              fontSize: '0.7rem',
+                              color: isDark ? '#a5b4fc' : '#4338ca',
+                              background: isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff',
+                              border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                              borderRadius: '0.35rem',
+                              padding: '1px 6px',
+                              width: 'fit-content',
+                              wordBreak: 'break-word'
+                            }}>
+                              🎯 {testOrSub}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return item.topic;
+                    })()}
                   </div>
                 )}
                 {(item.startTime || item.endTime) && (
@@ -2088,9 +2118,36 @@ export function MonthlyListPanel({
                                 color: item.done ? (isDark ? '#34d399' : '#22c55e') : (isDark ? 'rgba(255,255,255,0.75)' : '#475569'),
                                 fontWeight: 600,
                                 lineHeight: 1.45,
-                                wordBreak: 'break-word'
+                                wordBreak: 'break-word',
+                                marginTop: 2
                               }}>
-                                {item.topic}
+                                {(() => {
+                                  if (typeof item.topic === 'string' && item.topic.includes(' — ')) {
+                                    const parts = item.topic.split(' — ');
+                                    const bookOrMain = parts[0];
+                                    const testOrSub = parts.slice(1).join(' — ');
+                                    return (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <span style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b' }}>📖 {bookOrMain}</span>
+                                        <span style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          fontWeight: 800,
+                                          fontSize: '0.72rem',
+                                          color: isDark ? '#a5b4fc' : '#4338ca',
+                                          background: isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff',
+                                          border: isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #c7d2fe',
+                                          borderRadius: '0.35rem',
+                                          padding: '1px 6px'
+                                        }}>
+                                          🎯 {testOrSub}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  return item.topic;
+                                })()}
                               </div>
                             )}
 
