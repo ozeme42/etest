@@ -19,6 +19,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { toUUID } from '../services/supabaseService';
 import ProgramCenter from '../components/ProgramCenter';
 import CoachingReportModal from '../components/CoachingReportModal';
+import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -1599,6 +1600,7 @@ export default function StudentCoachingPage() {
 
   const TABS = [
     { id: 'ozet', label: '🏠 Özetim' },
+    { id: 'soruanaliz', label: '📈 Soru Analizi' },
     { id: 'kisiselbilgiler', label: '👤 Kişisel Bilgiler' },
     { id: 'hedefler', label: '🎯 Hedeflerim & Takip Panosu' },
     { id: 'aliskanlik', label: '🔥 Alışkanlıklarım' },
@@ -1716,6 +1718,17 @@ export default function StudentCoachingPage() {
 
       {/* ── CONTENT AREA ── */}
       <div style={{ background: 'white', borderRadius: '0 0 1.25rem 1.25rem', border: '2px solid #e2e8f0', borderTop: 'none', padding: '1.5rem', minHeight: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+
+        {/* ═══ PERİYODİK SORU & BAŞARI ANALİZİ ═══ */}
+        {activeTab === 'soruanaliz' && (
+          <div style={{ animation: 'fadeIn 0.2s ease' }}>
+            <PeriodicQuestionAnalytics
+              homeworkSubmissions={otherHomeworkSubmissions}
+              mockExams={generalTrialExams}
+              studentName={targetStudent?.name || personalInfo?.fullName || 'Öğrenci'}
+            />
+          </div>
+        )}
 
         {/* ═══ KONU & PROGRAM MERKEZİ (Tek Ekran Akıllı Görünüm) ═══ */}
         {activeTab === 'konumerkezi' && (
@@ -1971,29 +1984,54 @@ export default function StudentCoachingPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('testlerim')}
-                      style={{
-                        background: '#eef2ff',
-                        color: '#4f46e5',
-                        border: '1px solid #c7d2fe',
-                        borderRadius: '0.65rem',
-                        padding: '0.35rem 0.8rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        transition: 'all 0.15s ease'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#4f46e5'; e.currentTarget.style.color = 'white'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; }}
-                    >
-                      <span>Testlerimi İncele</span>
-                      <span>→</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('soruanaliz')}
+                        style={{
+                          background: '#ecfdf5',
+                          color: '#059669',
+                          border: '1px solid #a7f3d0',
+                          borderRadius: '0.65rem',
+                          padding: '0.35rem 0.8rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#ecfdf5'; e.currentTarget.style.color = '#059669'; }}
+                      >
+                        <span>📈 Günlük/Haftalık Analiz</span>
+                        <span>→</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('testlerim')}
+                        style={{
+                          background: '#eef2ff',
+                          color: '#4f46e5',
+                          border: '1px solid #c7d2fe',
+                          borderRadius: '0.65rem',
+                          padding: '0.35rem 0.8rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#4f46e5'; e.currentTarget.style.color = 'white'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; }}
+                      >
+                        <span>Testlerimi İncele</span>
+                        <span>→</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* 4'lü İstatistik Kartları Grid */}

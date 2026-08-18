@@ -22,6 +22,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
 /* ── Subject Config ────────────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
@@ -87,11 +88,12 @@ function StatusTag({ accuracy }) {
 }
 
 const TAB_DEFS = [
-  { key: 'overview',  label: '🏠 Genel Bakış',    icon: Home },
-  { key: 'subjects',  label: '📚 Ders & Konu',     icon: BookOpen },
-  { key: 'bytype',    label: '📝 Ödev & Deneme',   icon: FileText },
-  { key: 'trend',     label: '📈 Zaman Trendi',    icon: TrendingUp },
-  { key: 'all',       label: '🗃️ Tüm Sonuçlar',   icon: Table },
+  { key: 'overview',  label: '🏠 Genel Bakış',             icon: Home },
+  { key: 'periodic',  label: '📊 Günlük / Aylık Soru Analizi', icon: BarChart3 },
+  { key: 'subjects',  label: '📚 Ders & Konu',              icon: BookOpen },
+  { key: 'bytype',    label: '📝 Ödev & Deneme',            icon: FileText },
+  { key: 'trend',     label: '📈 Zaman Trendi',             icon: TrendingUp },
+  { key: 'all',       label: '🗃️ Tüm Sonuçlar',            icon: Table },
 ];
 
 /* ── Custom Tooltip ─────────────────────────────────────────────────── */
@@ -605,6 +607,18 @@ export default function StudentResultsPage() {
             </button>
           ))}
         </div>
+
+        {/* ══════════════════════════════════════
+            TAB 2: GÜNLÜK / AYLIK PERİYODİK SORU ANALİZİ
+        ══════════════════════════════════════ */}
+        {activeTab === 'periodic' && (
+          <div className="sr-anim">
+            <PeriodicQuestionAnalytics
+              homeworkSubmissions={studentSubmissions}
+              studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
+            />
+          </div>
+        )}
 
         {/* ══════════════════════════════════════
             TAB 1: GENEL BAKIŞ
