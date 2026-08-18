@@ -663,7 +663,7 @@ export default function MyCoachingPage() {
   /* ── Çözülen Ödevler & Testler Filtreleme & Gruplama State ── */
   const [hwSubjectFilter, setHwSubjectFilter] = useState('all');
   const [hwSearchQuery, setHwSearchQuery] = useState('');
-  const [collapsedHwSubjects, setCollapsedHwSubjects] = useState({});
+  const [expandedHwSubjects, setExpandedHwSubjects] = useState({});
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
@@ -4017,9 +4017,54 @@ export default function MyCoachingPage() {
                           Aradığınız kriterlere uygun test bulunamadı.
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {/* Hızlı Tümünü Aç / Kapat Butonları */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+                              Ders gruplarına tıklayarak detaylı test listesini görebilirsiniz:
+                            </span>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const allOpen = {};
+                                  groupEntries.forEach(([k]) => { allOpen[k] = true; });
+                                  setExpandedHwSubjects(allOpen);
+                                }}
+                                style={{
+                                  background: '#eef2ff',
+                                  color: '#4f46e5',
+                                  border: '1px solid #c7d2fe',
+                                  borderRadius: '0.45rem',
+                                  padding: '0.2rem 0.55rem',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ▼ Tümünü Aç
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedHwSubjects({})}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.8)',
+                                  color: '#64748b',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '0.45rem',
+                                  padding: '0.2rem 0.55rem',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ▲ Tümünü Kapat
+                              </button>
+                            </div>
+                          </div>
+
                           {groupEntries.map(([subjName, tests]) => {
-                            const isCollapsed = Boolean(collapsedHwSubjects[subjName]);
+                            const isOpen = Boolean(expandedHwSubjects[subjName]);
                             const col = SUBJECT_COLORS[subjName] || SUBJECT_COLORS['Genel / Diğer'];
                             const ico = SUBJECT_ICONS[subjName] || '📚';
 
@@ -4033,7 +4078,7 @@ export default function MyCoachingPage() {
                               <div key={subjName} style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
                                 {/* Ders Başlık Çubuğu */}
                                 <div
-                                  onClick={() => setCollapsedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
+                                  onClick={() => setExpandedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -4043,7 +4088,7 @@ export default function MyCoachingPage() {
                                     padding: '0.75rem 1rem',
                                     background: col.bg,
                                     cursor: 'pointer',
-                                    borderBottom: isCollapsed ? 'none' : `1.5px solid ${col.border}`,
+                                    borderBottom: isOpen ? `1.5px solid ${col.border}` : 'none',
                                     userSelect: 'none'
                                   }}
                                 >
@@ -4064,14 +4109,14 @@ export default function MyCoachingPage() {
                                         ✅ {grpD} · ❌ {grpY}
                                       </span>
                                     </div>
-                                    <div style={{ color: col.text, transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
+                                    <div style={{ color: col.text, transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
                                       <ChevronDown size={18} strokeWidth={2.5} />
                                     </div>
                                   </div>
                                 </div>
 
                                 {/* Ders İçi Test Kartları Grid Düzeni */}
-                                {!isCollapsed && (
+                                {isOpen && (
                                   <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.4)' }}>
                                     {tests.map((s, i) => {
                                       const d = s.correctCount || 0;
