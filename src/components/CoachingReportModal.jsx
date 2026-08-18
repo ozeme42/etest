@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { 
   X, Printer, Share2, Award, Target, CheckCircle2, 
-  Calendar, BookOpen, Clock, FileText, User, Sparkles
+  BookOpen, FileText, Sparkles
 } from 'lucide-react';
 
 export default function CoachingReportModal({
@@ -24,44 +24,47 @@ export default function CoachingReportModal({
 
   if (!isOpen) return null;
 
-  // Calculate metrics
-  const totalTasks = weeklyProgram.reduce((acc, day) => acc + (day.items?.length || 0), 0);
-  const doneTasks = weeklyProgram.reduce((acc, day) => acc + (day.items?.filter(i => i.done)?.length || 0), 0);
-  const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-
-  // Question counts & Homework test performance
+  // 1. Çözülen Ödevler ve Konu Testleri
   const allHw = (homeworkSubmissions && homeworkSubmissions.length > 0) 
     ? homeworkSubmissions 
     : (submissions || []).filter(s => !s.isTrial);
 
-  const totalHwTests = allHw.length;
-  const totalHwD = allHw.reduce((a, b) => a + (b.correctCount || 0), 0);
-  const totalHwY = allHw.reduce((a, b) => a + (b.wrongCount || 0), 0);
-  const totalHwB = allHw.reduce((a, b) => a + (b.emptyCount || 0), 0);
-  const totalHwQ = totalHwD + totalHwY + totalHwB;
-  const hwSuccessRate = totalHwQ > 0 ? Math.round((totalHwD / totalHwQ) * 100) : 0;
+  const hwTestsCount = allHw.length;
+  const hwD = allHw.reduce((a, b) => a + (b.correctCount || 0), 0);
+  const hwY = allHw.reduce((a, b) => a + (b.wrongCount || 0), 0);
+  const hwB = allHw.reduce((a, b) => a + (b.emptyCount || 0), 0);
+  const hwQ = hwD + hwY + hwB;
 
-  // Question counts from counterGoals or real solved questions
-  const questionGoal = counterGoals.find(g => g.title?.toLowerCase().includes('soru') && g.period === 'Haftalık') 
-    || counterGoals.find(g => g.title?.toLowerCase().includes('soru'))
-    || { target: 350, current: 0 };
+  // 2. Çözülen Deneme Sınavları
+  const allTrials = mockExams || [];
+  const trialCount = allTrials.length;
+  const trialD = allTrials.reduce((a, b) => a + (b.totalCorrect || 0), 0);
+  const trialY = allTrials.reduce((a, b) => a + (b.totalWrong || 0), 0);
+  const trialB = allTrials.reduce((a, b) => a + (b.totalEmpty || 0), 0);
+  const trialQ = trialD + trialY + trialB;
 
-  const finalQuestionCount = totalHwQ > 0 ? totalHwQ : (questionGoal.current || (doneTasks * 20));
+  // 3. Genel Toplamlar (Gerçek Çözülenler)
+  const grandD = hwD + trialD;
+  const grandY = hwY + trialY;
+  const grandB = hwB + trialB;
+  const grandTotalQuestions = hwQ + trialQ;
+  const grandSuccessRate = grandTotalQuestions > 0 ? Math.round((grandD / grandTotalQuestions) * 100) : 0;
+  const grandTotalTests = hwTestsCount + trialCount;
 
-  // Subject-wise stats
+  // 4. Ders Bazlı Soru Karnesi (Ödev & Konu Testlerinden)
   const subjMap = {};
   allHw.forEach(s => {
     const subj = s.subject || s.subjectName || 'Genel';
-    if (!subjMap[subj]) subjMap[subj] = { d: 0, y: 0, b: 0, count: 0 };
+    if (!subjMap[subj]) subjMap[subj] = { d: 0, y: 0, b: 0, testCount: 0 };
     subjMap[subj].d += (s.correctCount || 0);
     subjMap[subj].y += (s.wrongCount || 0);
     subjMap[subj].b += (s.emptyCount || 0);
-    subjMap[subj].count += 1;
+    subjMap[subj].testCount += 1;
   });
   const subjectList = Object.entries(subjMap).sort((a, b) => (b[1].d + b[1].y + b[1].b) - (a[1].d + a[1].y + a[1].b));
 
-  // Mock exams (sorted descending so [0] is the latest)
-  const latestExam = mockExams && mockExams.length > 0 ? mockExams[0] : null;
+  // 5. En Son Deneme
+  const latestExam = allTrials.length > 0 ? allTrials[0] : null;
 
   // Ultra-reliable isolated Iframe Print Handler
   const handlePrint = () => {
@@ -111,7 +114,7 @@ export default function CoachingReportModal({
               background: #ffffff;
               padding: 0;
               margin: 0;
-              font-size: 12px;
+              font-size: 11.5px;
               line-height: 1.35;
             }
             @page {
@@ -151,12 +154,12 @@ export default function CoachingReportModal({
   };
 
   const handleShareWhatsApp = () => {
-    const text = `📊 *E-Test Haftalık Koçluk Takip Raporu*\n` +
+    const text = `📊 *E-Test Haftalık Koçluk & Veli Karnesi*\n` +
       `👤 *Öğrenci:* ${studentName}\n` +
       `🎯 *Hedef:* ${targetExam} ${targetSchool ? `(${targetSchool})` : ''}\n` +
-      `📈 *Haftalık Program Başarısı:* %${completionPct} (${doneTasks}/${totalTasks} Görev)\n` +
-      `✍️ *Çözülen Soru Sayısı:* ${finalQuestionCount} Soru (${totalHwTests} Test, %${hwSuccessRate} Başarı)\n` +
-      (latestExam ? `📝 *Son Deneme Neti:* ${latestExam.totalNet ?? latestExam.net ?? '-'} Net (${latestExam.title || latestExam.examName || 'Deneme'})\n` : '') +
+      `📝 *Çözülen Sınav / Test:* ${grandTotalTests} Adet (${hwTestsCount} Test, ${trialCount} Deneme)\n` +
+      `✍️ *Toplam Çözülen Soru:* ${grandTotalQuestions} Soru (%${grandSuccessRate} Başarı · ${grandD} Doğru, ${grandY} Yanlış)\n` +
+      (latestExam ? `📝 *Son Deneme:* ${latestExam.totalNet ?? latestExam.net ?? '-'} Net (${latestExam.title || latestExam.examName || 'Deneme'})\n` : '') +
       (teacherNote ? `💡 *Koçluk Notu:* ${teacherNote}\n` : '') +
       `\n✨ _E-Test Premium Eğitim & Koçluk Sistemi_`;
 
@@ -246,7 +249,7 @@ export default function CoachingReportModal({
                 Haftalık Koçluk & Veli Karnesi
               </h3>
               <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                Yazdırılabilir ve veliyle paylaşılabilir resmi takip belgesi
+                Öğrencinin çözdüğü tüm test ve denemelerin resmi karne dökümü
               </p>
             </div>
           </div>
@@ -325,16 +328,16 @@ export default function CoachingReportModal({
             }}
           >
             {/* Document Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: '1.4rem' }}>✨</span>
-                  <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#1e1b4b', letterSpacing: '-0.02em' }}>
+                  <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#1e1b4b', letterSpacing: '-0.02em' }}>
                     E-TEST PREMIUM EĞİTİM & KOÇLUK
                   </h1>
                 </div>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginTop: 2 }}>
-                  Öğrenci Haftalık Gelişim & Veli Takip Karnesi
+                  Öğrenci Gelişim, Soru & Deneme Takip Karnesi
                 </div>
               </div>
 
@@ -343,75 +346,84 @@ export default function CoachingReportModal({
                   Tarih: {new Date().toLocaleDateString('tr-TR')}
                 </div>
                 <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#4f46e5', background: '#e0e7ff', padding: '2px 8px', borderRadius: 4, marginTop: 4, display: 'inline-block' }}>
-                  HAFTALIK KARNE
+                  RESMİ TAKİP KARNESİ
                 </div>
               </div>
             </div>
 
             {/* Student Info Card */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.85rem 1.15rem', marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.65rem' }}>
               <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>ÖĞRENCİ</div>
-                <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{studentName}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>ÖĞRENCİ</div>
+                <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', marginTop: 2 }}>{studentName}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>SINIF / SEVİYE</div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{gradeClass}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>SINIF / SEVİYE</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{gradeClass}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>HEDEF SINAV</div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#4f46e5', marginTop: 2 }}>{targetExam}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>HEDEF SINAV</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#4f46e5', marginTop: 2 }}>{targetExam}</div>
               </div>
               {targetSchool && (
                 <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>HEDEF OKUL</div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{targetSchool}</div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>HEDEF OKUL</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{targetSchool}</div>
                 </div>
               )}
             </div>
 
             {/* Core Metrics Grid (4'lü İstatistik) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', marginBottom: '1.25rem' }}>
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>PROGRAM BAŞARISI</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d', marginTop: 2 }}>%{completionPct}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', marginTop: 2 }}>{doneTasks}/{totalTasks} Görev</div>
-              </div>
-
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', marginBottom: '1.15rem' }}>
+              
+              {/* 1. Çözülen Sınav / Test Adedi */}
               <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>TOPLAM SORU</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#2563eb', marginTop: 2 }}>{finalQuestionCount}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1e40af', marginTop: 2 }}>{totalHwTests > 0 ? `${totalHwTests} Test Çözüldü` : `Hedef: ${questionGoal.target || 350}`}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>ÇÖZÜLEN SINAV & TEST</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1e3a8a', marginTop: 2 }}>{grandTotalTests}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#3b82f6', marginTop: 2 }}>
+                  {hwTestsCount} Test {trialCount > 0 ? `· ${trialCount} Deneme` : ''}
+                </div>
               </div>
 
+              {/* 2. Toplam Çözülen Soru */}
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#5b21b6', textTransform: 'uppercase' }}>TOPLAM SORU</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#4c1d95', marginTop: 2 }}>{grandTotalQuestions}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#7c3aed', marginTop: 2 }}>Gerçek Çözülen Soru</div>
+              </div>
+
+              {/* 3. Genel Soru Başarı Oranı */}
+              <div style={{ background: grandSuccessRate >= 70 ? '#f0fdf4' : grandSuccessRate >= 50 ? '#fffbeb' : '#fef2f2', border: `1px solid ${grandSuccessRate >= 70 ? '#bbf7d0' : grandSuccessRate >= 50 ? '#fde68a' : '#fecaca'}`, borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: grandSuccessRate >= 70 ? '#166534' : grandSuccessRate >= 50 ? '#92400e' : '#991b1b', textTransform: 'uppercase' }}>BAŞARI ORANI</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: grandSuccessRate >= 70 ? '#15803d' : grandSuccessRate >= 50 ? '#b45309' : '#b91c1c', marginTop: 2 }}>%{grandSuccessRate}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#475569', marginTop: 2 }}>✅ {grandD} · ❌ {grandY} {grandB > 0 ? `· ⭕ ${grandB}` : ''}</div>
+              </div>
+
+              {/* 4. Son Deneme Neti veya Hedef */}
               <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6b21a8', textTransform: 'uppercase' }}>SORU BAŞARI ORANI</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7e22ce', marginTop: 2 }}>%{hwSuccessRate}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6b21a8', marginTop: 2 }}>✅ {totalHwD} · ❌ {totalHwY}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#6b21a8', textTransform: 'uppercase' }}>SON DENEME NETİ</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7e22ce', marginTop: 2 }}>{latestExam?.totalNet ?? latestExam?.net ?? (targetNet || '—')}</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#6b21a8', marginTop: 2 }}>{latestExam?.title || latestExam?.examName || 'Hedef: ' + (targetNet || targetScore || '—')}</div>
               </div>
 
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#92400e', textTransform: 'uppercase' }}>SON DENEME NETİ</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: 2 }}>{latestExam?.totalNet ?? latestExam?.net ?? (targetNet || '—')}</div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#92400e', marginTop: 2 }}>{latestExam?.title || latestExam?.examName || 'Hedef: ' + (targetNet || targetScore || '85 Net')}</div>
-              </div>
             </div>
 
-            {/* Subject-Wise Question Performance Table */}
+            {/* ─── TABLO 1: DERS BAZLI SORU ÇÖZÜMÜ & BAŞARI KARNESİ ─── */}
             {subjectList.length > 0 && (
-              <div className="page-avoid-break" style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem' }}>
-                  📊 Ders Bazlı Soru Çözümü & Başarı Karnesi
+              <div className="page-avoid-break" style={{ marginBottom: '1.15rem' }}>
+                <h3 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.45rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📊</span> Ders Bazlı Soru Çözümü & Başarı Karnesi
                 </h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                   <thead>
                     <tr style={{ background: '#f1f5f9', color: '#334155' }}>
                       <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Ders Adı</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Test Sayısı</th>
                       <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Çözülen Soru</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '70px' }}>Doğru</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '70px' }}>Yanlış</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '60px' }}>Boş</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '90px' }}>Başarı (%)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '70px' }}>Doğru (D)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '70px' }}>Yanlış (Y)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '60px' }}>Boş (B)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '85px' }}>Başarı (%)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -420,8 +432,11 @@ export default function CoachingReportModal({
                       const sRate = sTotal > 0 ? Math.round((stat.d / sTotal) * 100) : 0;
                       return (
                         <tr key={sName} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#0f172a' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 800, color: '#0f172a' }}>
                             {sName}
+                          </td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 700, color: '#475569' }}>
+                            {stat.testCount} Test
                           </td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#2563eb' }}>
                             {sTotal}
@@ -446,83 +461,121 @@ export default function CoachingReportModal({
               </div>
             )}
 
-            {/* Weekly Timetable Summary Table */}
-            <div className="page-avoid-break" style={{ marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem' }}>
-                📅 Haftalık Ders & Çalışma Programı
-              </h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '85px' }}>Gün</th>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Planlanan Çalışmalar / Konular</th>
-                    <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '90px' }}>Durum</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {weeklyProgram.map((dayObj) => {
-                    const items = dayObj.items || [];
-                    const isAllDone = items.length > 0 && items.every(i => i.done);
-                    const hasItems = items.length > 0;
-
-                    return (
-                      <tr key={dayObj.day} style={{ borderBottom: '1px solid #e2e8f0' }}>
+            {/* ─── TABLO 2: ÇÖZÜLEN DENEME SINAVLARI (VARSA) ─── */}
+            {allTrials.length > 0 && (
+              <div className="page-avoid-break" style={{ marginBottom: '1.15rem' }}>
+                <h3 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.45rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📝</span> Çözülen Deneme Sınavları & Net Sonuçları
+                </h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '85px' }}>Tarih</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Deneme Sınavı Adı</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '65px' }}>Doğru</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '65px' }}>Yanlış</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '55px' }}>Boş</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Toplam Net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allTrials.map((m, idx) => (
+                      <tr key={m.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', color: '#64748b', fontWeight: 700 }}>
+                          {m.date || '—'}
+                        </td>
                         <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 800, color: '#0f172a' }}>
-                          {dayObj.day}
+                          {m.title || m.examName || 'Deneme Sınavı'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', color: '#334155' }}>
-                          {hasItems ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              {items.map((it, idx) => (
-                                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <span style={{ color: it.done ? '#16a34a' : '#94a3b8' }}>{it.done ? '✓' : '•'}</span>
-                                  <span style={{ textDecoration: it.done ? 'line-through' : 'none', color: it.done ? '#64748b' : '#0f172a', fontWeight: 600 }}>
-                                    {it.subject} {it.topic ? `(${it.topic})` : ''} {it.hours ? `— ${it.hours}` : ''}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Serbest Çalışma / Tekrar</span>
-                          )}
+                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
+                          {m.totalCorrect ?? '—'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800 }}>
-                          {hasItems ? (
-                            <span style={{ color: isAllDone ? '#15803d' : '#d97706' }}>
-                              {items.filter(i => i.done).length}/{items.length} Tamam
-                            </span>
-                          ) : (
-                            <span style={{ color: '#64748b' }}>—</span>
-                          )}
+                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>
+                          {m.totalWrong ?? '—'}
+                        </td>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', color: '#64748b' }}>
+                          {m.totalEmpty ?? '—'}
+                        </td>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 900, color: '#7c3aed' }}>
+                          {m.totalNet ?? m.net ?? '—'} Net
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* ─── TABLO 3: ÇÖZÜLEN ÖDEVLER & KONU TESTLERİ DETAY LİSTESİ ─── */}
+            {allHw.length > 0 && (
+              <div className="page-avoid-break" style={{ marginBottom: '1.15rem' }}>
+                <h3 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.45rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📚</span> Çözülen Ödevler & Konu Testleri Listesi ({allHw.length} Test)
+                </h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', color: '#334155' }}>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '80px' }}>Tarih</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '100px' }}>Ders</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Test / Kitap Adı</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '90px' }}>Sonuç (D/Y/B)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Başarı (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allHw.map((t, idx) => {
+                      const d = t.correctCount || 0;
+                      const y = t.wrongCount || 0;
+                      const b = t.emptyCount || 0;
+                      const tot = d + y + b;
+                      const rate = tot > 0 ? Math.round((d / tot) * 100) : 0;
+
+                      return (
+                        <tr key={t.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', color: '#64748b', fontWeight: 700 }}>
+                            {t.date || '—'}
+                          </td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 800, color: '#3b82f6' }}>
+                            {t.subject || t.subjectName || 'Genel'}
+                          </td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#0f172a' }}>
+                            {t.title}
+                          </td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800 }}>
+                            <span style={{ color: '#15803d' }}>{d}D</span> · <span style={{ color: '#b91c1c' }}>{y}Y</span> {b > 0 ? `· ${b}B` : ''}
+                          </td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 900, color: rate >= 70 ? '#15803d' : rate >= 50 ? '#b45309' : '#b91c1c' }}>
+                            %{rate}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Teacher / Coach Note */}
-            <div className="page-avoid-break" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.85rem 1.15rem', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e1b4b', marginBottom: 3 }}>
+            <div className="page-avoid-break" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '1.15rem' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 900, color: '#1e1b4b', marginBottom: 3 }}>
                 ✍️ KOÇLUK DEĞERLENDİRME & ÖĞRETMEN NOTU:
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.45, minHeight: '32px', fontStyle: teacherNote ? 'normal' : 'italic' }}>
-                {teacherNote || 'Öğrencinin haftalık çalışma planına uyumu ve soru çözüm hedefleri titizlikle takip edilmektedir. Soru sayısını ve konu eksik analizlerini istikrarlı şekilde sürdürmesi tavsiye edilir.'}
+              <div style={{ fontSize: '0.76rem', color: '#334155', lineHeight: 1.45, minHeight: '30px', fontStyle: teacherNote ? 'normal' : 'italic' }}>
+                {teacherNote || 'Öğrencinin soru çözüm hedefleri ve test başarı oranları sistem üzerinden titizlikle takip edilmektedir. Soru sayısını ve konu eksik analizlerini istikrarlı şekilde sürdürmesi tavsiye edilir.'}
               </div>
             </div>
 
             {/* Signatures */}
-            <div className="page-avoid-break" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1' }}>
+            <div className="page-avoid-break" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', paddingTop: '0.65rem', borderTop: '1px dashed #cbd5e1' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>Öğretmen / Eğitim Koçu İmza</div>
-                <div style={{ height: '35px' }} />
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>E-Test Koçluk Birimi</div>
+                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155' }}>Öğretmen / Eğitim Koçu İmza</div>
+                <div style={{ height: '32px' }} />
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>E-Test Koçluk Birimi</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>Veli Görüşü & İmza</div>
-                <div style={{ height: '35px' }} />
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Görüldü / Onay</div>
+                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155' }}>Veli Görüşü & İmza</div>
+                <div style={{ height: '32px' }} />
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Görüldü / Onay</div>
               </div>
             </div>
 
