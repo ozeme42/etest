@@ -439,6 +439,40 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
     onSubmit(formattedAnswers);
   };
 
+  // 📱 Touch Swipe Gestures for Mobile
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handleNext = () => setCurrentIndex(Math.min(qCount - 1, currentIndex + 1));
+  const handlePrev = () => setCurrentIndex(Math.max(0, currentIndex - 1));
+
+  const handleTouchStart = (e) => {
+    if (isDrawingOpen) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (isDrawingOpen || touchStartX.current === null || touchStartY.current === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+
+    // Horizontal swipe threshold: at least 50px deltaX and predominantly horizontal
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      if (deltaX < 0 && currentIndex < qCount - 1) {
+        // Swiped Left -> Next Question
+        handleNext();
+      } else if (deltaX > 0 && currentIndex > 0) {
+        // Swiped Right -> Prev Question
+        handlePrev();
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
   const currentAnsObj = answers[currentIndex + 1] || {};
   const currentTextVal = openEndedText[currentIndex + 1] || '';
 
@@ -517,7 +551,7 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
             title="Çizim Aracı"
           >
             <Pencil size={isMobile ? 14 : 16} /> 
-            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
+            {!isMobile && (isDrawingOpen ? "Karalamayı Kapat" : "Karalama Kağıdı")}
           </button>
 
           <button
@@ -544,8 +578,12 @@ export default function StandardQuizRunner({ test, questions, onSubmit, onAutoSa
         </div>
       </header>
 
-      {/* Main Body */}
-      <div style={{ maxWidth: '1000px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+      {/* Main Body with Touch Swipe Support */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{ maxWidth: '1000px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}
+      >
         <QuestionGridNav
           totalQuestions={qCount}
           currentIndex={currentIndex}

@@ -15,49 +15,22 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { getAvatarBg, getSubjectTheme } from '../config/subjectThemes';
+import { timeAgo } from '../utils/dateHelpers';
 import './TeacherDashboard.css';
 
 /* ─────────────────────────────────────────
-   Helpers & Color Maps
+   Components & Sub-views
 ───────────────────────────────────────── */
-const AVATAR_COLORS = [
-  'linear-gradient(135deg,#6366f1,#8b5cf6)',
-  'linear-gradient(135deg,#38bdf8,#0284c7)',
-  'linear-gradient(135deg,#10b981,#059669)',
-  'linear-gradient(135deg,#f59e0b,#ef4444)',
-  'linear-gradient(135deg,#ec4899,#8b5cf6)',
-  'linear-gradient(135deg,#14b8a6,#6366f1)',
-];
-const avatarBg = (i) => AVATAR_COLORS[i % AVATAR_COLORS.length];
-
-const SUBJECT_COLORS = {
-  'Matematik':       { pill: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.35)', dot: '#38bdf8' },
-  'Fen Bilimleri':   { pill: 'rgba(52, 211, 153, 0.15)', text: '#34d399', border: 'rgba(52, 211, 153, 0.35)', dot: '#34d399' },
-  'Türkçe':          { pill: 'rgba(251, 146, 60, 0.15)', text: '#fb923c', border: 'rgba(251, 146, 60, 0.35)', dot: '#fb923c' },
-  'Sosyal Bilgiler': { pill: 'rgba(192, 132, 252, 0.15)', text: '#c084fc', border: 'rgba(192, 132, 252, 0.35)', dot: '#c084fc' },
-  'İngilizce':       { pill: 'rgba(244, 114, 182, 0.15)', text: '#f472b6', border: 'rgba(244, 114, 182, 0.35)', dot: '#f472b6' },
-};
-const subColor = (s) => SUBJECT_COLORS[s] || { pill: 'rgba(255, 255, 255, 0.08)', text: '#cbd5e1', border: 'rgba(255, 255, 255, 0.15)', dot: '#94a3b8' };
-
-function timeAgo(dateStr) {
-  if (!dateStr) return '';
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
-  if (diff < 1)  return 'şimdi';
-  if (diff < 60) return `${diff}dk önce`;
-  const h = Math.floor(diff / 60);
-  if (h < 24)    return `${h}s önce`;
-  return `${Math.floor(h / 24)}g önce`;
-}
-
 function Avatar({ name, index, size = 36 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      background: avatarBg(index ?? 0),
+      background: getAvatarBg(index ?? 0),
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: '#fff', fontWeight: 900, fontSize: size * 0.38,
-      flexShrink: 0, boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-      border: '1.5px solid rgba(255,255,255,0.2)'
+      flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1.5px solid #ffffff'
     }}>
       {(name || 'Ö').charAt(0).toUpperCase()}
     </div>
@@ -66,8 +39,8 @@ function Avatar({ name, index, size = 36 }) {
 
 function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border }) {
   return (
-    <div className="stat-hero-card" style={{ borderColor: border || 'rgba(255,255,255,0.14)' }}>
-      <div className="stat-hero-icon" style={{ background: bg || 'rgba(99, 102, 241, 0.15)', color: color || '#818cf8' }}>
+    <div className="stat-hero-card" style={{ borderColor: border || '#e2e8f0' }}>
+      <div className="stat-hero-icon" style={{ background: bg || '#eff6ff', color: color || '#2563eb' }}>
         <Icon size={24} />
       </div>
       <div style={{ minWidth: 0 }}>
@@ -81,15 +54,15 @@ function StatHeroCard({ label, value, sub, icon: Icon, color, bg, border }) {
 
 function QuickAction({ icon: Icon, label, sub, grad, shadow, onClick }) {
   return (
-    <button onClick={onClick} className="quick-action-btn" style={{ background: grad, boxShadow: shadow }}>
+    <button onClick={onClick} className="quick-action-btn" style={{ background: grad, boxShadow: shadow || '0 4px 14px rgba(0,0,0,0.06)' }}>
       <div className="quick-action-icon">
         <Icon size={20} />
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <p style={{ fontWeight: 900, fontSize: '0.88rem', margin: 0, lineHeight: 1.2 }}>{label}</p>
-        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', margin: '0.15rem 0 0', fontWeight: 600 }}>{sub}</p>
+        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', margin: '0.15rem 0 0', fontWeight: 600 }}>{sub}</p>
       </div>
-      <ChevronRight size={16} style={{ opacity: 0.7, flexShrink: 0 }} />
+      <ChevronRight size={16} style={{ opacity: 0.8, flexShrink: 0 }} />
     </button>
   );
 }
@@ -102,22 +75,22 @@ function PillTab({ id, label, icon: Icon, badge, active, onClick }) {
         display: 'flex', alignItems: 'center', gap: '0.5rem',
         padding: '0.65rem 1.15rem',
         borderRadius: '0.9rem',
-        border: active ? '1.5px solid rgba(165, 180, 252, 0.5)' : '1px solid transparent',
-        background: active ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255, 255, 255, 0.06)',
-        color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+        border: active ? '1.5px solid #bfdbfe' : '1.5px solid transparent',
+        background: active ? '#eff6ff' : '#ffffff',
+        color: active ? '#1d4ed8' : '#64748b',
         fontWeight: 800, fontSize: '0.82rem',
         cursor: 'pointer',
         whiteSpace: 'nowrap', flexShrink: 0,
-        boxShadow: active ? '0 4px 18px rgba(99,102,241,0.45)' : 'none',
-        transition: 'all 0.18s',
+        boxShadow: active ? '0 2px 8px rgba(37,99,235,0.12)' : 'none',
+        transition: 'all 0.15s',
       }}
     >
       <Icon size={16} />
       <span>{label}</span>
       {badge !== undefined && (
         <span style={{
-          background: active ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
-          color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
+          background: active ? '#dbeafe' : '#f1f5f9',
+          color: active ? '#1e40af' : '#475569',
           fontSize: '0.68rem', fontWeight: 900,
           padding: '0.15rem 0.5rem', borderRadius: 99
         }}>{badge}</span>

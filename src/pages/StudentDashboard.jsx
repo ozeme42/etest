@@ -1392,9 +1392,9 @@ export default function StudentDashboard() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(180deg, #dbe4f0 0%, #e2eaf4 40%, #d8e2ee 100%)',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#1e293b',
+      color: '#0f172a',
       paddingBottom: '5rem'
     }}>
       <style>{`

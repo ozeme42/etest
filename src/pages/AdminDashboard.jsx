@@ -32,22 +32,21 @@ export default function AdminDashboard() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#f8fafc',
+      color: '#0f172a',
       padding: '1.5rem 1rem 5rem 1rem',
       boxSizing: 'border-box'
     }}>
-      <div style={{ width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         
         {/* TOP CONTROL CENTER HEADER */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.88) 0%, rgba(45, 41, 105, 0.88) 100%)',
-          border: '1.5px solid rgba(255, 255, 255, 0.18)',
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
           borderRadius: '1.5rem',
-          padding: '1.5rem 1.75rem',
-          boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(20px)',
+          padding: '1.25rem 1.75rem',
+          boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -56,29 +55,29 @@ export default function AdminDashboard() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{
-              width: 52,
-              height: 52,
+              width: 50,
+              height: 50,
               borderRadius: '1rem',
               background: 'linear-gradient(135deg, #6366f1, #a855f7)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)',
-              border: '2px solid rgba(255, 255, 255, 0.25)',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+              border: '2px solid #ffffff',
               flexShrink: 0
             }}>
-              <ShieldCheck size={28} color="white" />
+              <ShieldCheck size={26} color="white" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                <h1 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
                   Admin Kontrol Merkezi
                 </h1>
-                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(99, 102, 241, 0.25)', color: '#c7d2fe', border: '1px solid rgba(165, 180, 252, 0.35)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
                   PRO CONTROL
                 </span>
               </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748b', fontWeight: 500 }}>
                 Müfredat Hiyerarşisi, Kullanıcı Yetkilendirmeleri, Öğretmen-Öğrenci Eşleşmeleri ve Sistem Yönetimi
               </p>
             </div>
@@ -94,13 +93,12 @@ export default function AdminDashboard() {
                   gap: 6,
                   padding: '0.5rem 0.9rem',
                   borderRadius: '0.85rem',
-                  background: 'rgba(245, 158, 11, 0.18)',
-                  border: '1.5px solid rgba(245, 158, 11, 0.4)',
-                  color: '#fbbf24',
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  color: '#b45309',
                   fontSize: '0.78rem',
                   fontWeight: 800,
-                  cursor: 'pointer',
-                  animation: 'pulse 2s infinite'
+                  cursor: 'pointer'
                 }}
               >
                 <Clock size={15} /> {pendingTeachers.length} Onay Bekleyen Öğretmen
@@ -112,9 +110,9 @@ export default function AdminDashboard() {
               gap: 6,
               padding: '0.45rem 0.85rem',
               borderRadius: '0.85rem',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(52, 211, 153, 0.35)',
-              color: '#34d399',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#16a34a',
               fontSize: '0.78rem',
               fontWeight: 800
             }}>
@@ -126,32 +124,31 @@ export default function AdminDashboard() {
         {/* 5 GLOWING KPI METRIC CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
           {[
-            { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğretmen`, icon: Users, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.35)' },
-            { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)', border: 'rgba(192, 132, 252, 0.35)' },
-            { label: 'Aktif Öğretmen', value: `${teachers.length} Öğretmen`, sub: pendingTeachers.length > 0 ? `⏳ ${pendingTeachers.length} Onay Bekliyor` : 'Tüm Kayıtlar Aktif', icon: UserCheck, color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)', border: 'rgba(52, 211, 153, 0.35)' },
-            { label: 'Müfredat Kapsamı', value: `${totalGrades} Sınıf · ${totalSubjects} Ders`, sub: `${totalUnits} Ünite · ${totalTopics} Konu`, icon: Layers, color: '#fb7185', bg: 'rgba(244, 63, 94, 0.15)', border: 'rgba(244, 63, 94, 0.35)' },
-            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri', icon: BarChart3, color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)', border: 'rgba(251, 191, 36, 0.35)' },
+            { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğretmen`, icon: Users, color: '#0284c7', bg: '#eff6ff', border: '#bfdbfe' },
+            { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+            { label: 'Aktif Öğretmen', value: `${teachers.length} Öğretmen`, sub: pendingTeachers.length > 0 ? `⏳ ${pendingTeachers.length} Onay Bekliyor` : 'Tüm Kayıtlar Aktif', icon: UserCheck, color: '#059669', bg: '#f0fdf4', border: '#bbf7d0' },
+            { label: 'Müfredat Kapsamı', value: `${totalGrades} Sınıf · ${totalSubjects} Ders`, sub: `${totalUnits} Ünite · ${totalTopics} Konu`, icon: Layers, color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri', icon: BarChart3, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           ].map(kpi => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)',
-                border: `1.5px solid ${kpi.border}`,
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
                 borderRadius: '1.25rem',
                 padding: '1rem 1.25rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                backdropFilter: 'blur(16px)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+                boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
               }}>
-                <div style={{ width: 46, height: 46, borderRadius: '0.85rem', background: kpi.bg, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={24} />
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: kpi.bg, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={22} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{kpi.label}</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffffff', display: 'block', lineHeight: 1.2 }}>{kpi.value}</span>
-                  <span style={{ fontSize: '0.72rem', color: kpi.sub.includes('⚠️') || kpi.sub.includes('⏳') ? '#fbbf24' : 'rgba(255,255,255,0.55)', fontWeight: 600 }}>{kpi.sub}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{kpi.label}</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{kpi.value}</span>
+                  <span style={{ fontSize: '0.72rem', color: kpi.sub.includes('⚠️') || kpi.sub.includes('⏳') ? '#d97706' : '#94a3b8', fontWeight: 600 }}>{kpi.sub}</span>
                 </div>
               </div>
             );
@@ -163,11 +160,11 @@ export default function AdminDashboard() {
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          background: 'rgba(15, 23, 42, 0.85)',
+          background: '#ffffff',
           padding: '0.45rem',
           borderRadius: '1.25rem',
-          border: '1.5px solid rgba(255, 255, 255, 0.12)',
-          backdropFilter: 'blur(16px)',
+          border: '1.5px solid #e2e8f0',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
           overflowX: 'auto'
         }}>
           {[
@@ -178,7 +175,7 @@ export default function AdminDashboard() {
             { id: 'homeworks', label: 'Ödev Takip Merkezi', icon: BarChart3, count: 'Rapor' },
           ].map(tab => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+            const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
@@ -186,21 +183,22 @@ export default function AdminDashboard() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
+                  gap: '0.55rem',
                   padding: '0.65rem 1.15rem',
                   borderRadius: '0.9rem',
-                  border: isActive ? '1.5px solid rgba(165, 180, 252, 0.5)' : '1px solid transparent',
-                  background: isActive ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                  color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
-                  fontSize: '0.82rem',
+                  border: active ? '1.5px solid #bfdbfe' : '1.5px solid transparent',
+                  background: active ? '#eff6ff' : '#ffffff',
+                  color: active ? '#1d4ed8' : '#64748b',
                   fontWeight: 800,
+                  fontSize: '0.82rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isActive ? '0 4px 18px rgba(99, 102, 241, 0.45)' : 'none'
+                  flexShrink: 0,
+                  boxShadow: active ? '0 2px 8px rgba(37,99,235,0.12)' : 'none',
+                  transition: 'all 0.15s'
                 }}
               >
-                <Icon size={16} />
+                <Icon size={16} color={active ? '#1d4ed8' : '#64748b'} />
                 <span>{tab.label}</span>
                 {tab.count && (
                   <span style={{
@@ -208,24 +206,20 @@ export default function AdminDashboard() {
                     fontWeight: 900,
                     padding: '0.15rem 0.5rem',
                     borderRadius: 99,
-                    background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                    color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.6)'
+                    background: active ? '#dbeafe' : '#f1f5f9',
+                    color: active ? '#1e40af' : '#475569'
                   }}>
                     {tab.count}
                   </span>
                 )}
-                {tab.alert > 0 && (
+                {Boolean(tab.alert) && (
                   <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 900,
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: 99,
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
                     background: '#f59e0b',
-                    color: '#0f172a',
-                    boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)'
-                  }}>
-                    {tab.alert}
-                  </span>
+                    boxShadow: '0 0 8px #f59e0b'
+                  }} />
                 )}
               </button>
             );
