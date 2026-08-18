@@ -757,27 +757,33 @@ export default function TeacherDashboard() {
                               <span style={{ padding: '0.2rem 0.55rem', borderRadius: '0.45rem', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#fbbf24', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 <Key size={11} /> {student.password || '123456'}
                               </span>
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center', fontWeight: 900, color: solved > 0 ? '#34d399' : 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>{solved}</td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                              {isCoached ? (
-                                <span style={{ padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(192, 132, 252, 0.2)', color: '#c084fc', border: '1px solid rgba(192, 132, 252, 0.35)', fontWeight: 800, fontSize: '0.7rem' }}>🎯 Koçlukta</span>
-                              ) : (
-                                <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>—</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                              <button
-                                onClick={() => openEditStudentModal(student)}
-                                style={{
-                                  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                                  borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                                  fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
-                                  display: 'inline-flex', alignItems: 'center', gap: 4
-                                }}
-                              >
-                                <Edit2 size={12} /> Düzenle
-                              </button>
+                                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>
+                                  <button
+                                    style={{
+                                      background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(99, 102, 241, 0.25))',
+                                      border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                                      borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
+                                      fontWeight: 800, fontSize: '0.75rem', color: '#c084fc',
+                                      display: 'inline-flex', alignItems: 'center', gap: 4
+                                    }}
+                                  >
+                                    <Calendar size={13} /> Program &amp; Koçluk
+                                  </button>
+                                </Link>
+                                <button
+                                  onClick={() => openEditStudentModal(student)}
+                                  style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: '0.6rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
+                                    fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
+                                    display: 'inline-flex', alignItems: 'center', gap: 4
+                                  }}
+                                >
+                                  <Edit2 size={12} /> Düzenle
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -811,9 +817,9 @@ export default function TeacherDashboard() {
                           <button
                             onClick={() => openEditStudentModal(student)}
                             style={{
-                              background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(165,180,252,0.35)',
+                              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
                               borderRadius: '0.65rem', padding: '0.4rem 0.75rem', cursor: 'pointer',
-                              fontWeight: 800, fontSize: '0.75rem', color: '#c7d2fe',
+                              fontWeight: 800, fontSize: '0.75rem', color: '#ffffff',
                               display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0
                             }}
                           >
@@ -869,6 +875,21 @@ export default function TeacherDashboard() {
                             )}
                           </div>
                         </div>
+
+                        {/* Direct Program & Coaching Navigation Button */}
+                        <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none', width: '100%', marginTop: '0.35rem' }}>
+                          <button
+                            style={{
+                              width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem',
+                              background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(99, 102, 241, 0.25))',
+                              border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                              color: '#c084fc', fontWeight: 800, fontSize: '0.8rem',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                              boxShadow: '0 4px 12px rgba(124,58,237,0.15)'
+                            }}
+                          >
+                            <Calendar size={14} /> Haftalık Program &amp; Koçluk Paneli ➔
+                          </button>
                       </div>
                     );
                   })}
