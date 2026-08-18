@@ -534,14 +534,14 @@ export default function StudentBookDetailsPage() {
   }, [subjectProgress, selectedChartSubject, selectedChartTopic]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc', padding: '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: '#0f172a', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
       <style>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .sbdp-anim { animation: fadeSlideUp 0.3s ease both; }
         .sbdp-subject-card { transition: box-shadow 0.2s, transform 0.2s; }
         .sbdp-subject-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important; transform: translateY(-2px); }
         .sbdp-test-row { transition: background 0.15s, box-shadow 0.15s; }
-        .sbdp-test-row:hover { background: #f1f5f9 !important; }
+        .sbdp-test-row:hover { background: var(--color-surface-hover) !important; }
         .sbdp-btn-solve { transition: box-shadow 0.15s, transform 0.15s; }
         .sbdp-btn-solve:hover { box-shadow: 0 4px 14px rgba(99,102,241,0.3) !important; transform: translateY(-1px); }
 
@@ -551,7 +551,7 @@ export default function StudentBookDetailsPage() {
           width: 100%;
         }
         .sbdp-stat-item {
-          border-right: 1px solid #f1f5f9;
+          border-right: 1px solid var(--color-border);
           padding: 1.1rem 0.75rem;
           text-align: center;
           box-sizing: border-box;
@@ -566,13 +566,13 @@ export default function StudentBookDetailsPage() {
           .sbdp-stat-dogru {
             grid-column: span 2;
             grid-row: 1;
-            border-right: 1px solid #f1f5f9;
+            border-right: 1px solid var(--color-border);
             padding: 0.85rem 0.4rem;
           }
           .sbdp-stat-yanlis {
             grid-column: span 2;
             grid-row: 1;
-            border-right: 1px solid #f1f5f9;
+            border-right: 1px solid var(--color-border);
             padding: 0.85rem 0.4rem;
           }
           .sbdp-stat-bos {
@@ -584,14 +584,14 @@ export default function StudentBookDetailsPage() {
           .sbdp-stat-test {
             grid-column: span 3;
             grid-row: 2;
-            border-top: 1px solid #f1f5f9;
-            border-right: 1px solid #f1f5f9;
+            border-top: 1px solid var(--color-border);
+            border-right: 1px solid var(--color-border);
             padding: 0.85rem 0.5rem;
           }
           .sbdp-stat-basari {
             grid-column: span 3;
             grid-row: 2;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid var(--color-border);
             border-right: none;
             padding: 0.85rem 0.5rem;
           }
@@ -601,7 +601,7 @@ export default function StudentBookDetailsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <button
           onClick={() => navigate(isFromTeacher ? `/books/${book?.id}` : (book?.bookType === 'exam' ? '/student/exams' : '/student/books'))}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 800, fontSize: '0.85rem', color: '#334155', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
         >
           <ArrowLeft size={16} /> {isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}
         </button>
@@ -616,23 +616,23 @@ export default function StudentBookDetailsPage() {
       </div>
 
       {isFromTeacher && (
-        <div className="sbdp-anim" style={{ background: '#eff6ff', color: '#1e3a8a', padding: '0.9rem 1.25rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', border: '1.5px solid #bfdbfe' }}>
+        <div className="sbdp-anim" style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.9rem 1.25rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', border: '1.5px solid #3b82f6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
               {(targetStudent?.name || 'Ö').charAt(0).toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6, color: '#1e3a8a' }}>
-                👤 {targetStudent?.name || 'Öğrenci'} <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: 99 }}>Öğrenci Kitap İlerleme Görünümü</span>
+              <div style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-text)' }}>
+                👤 {targetStudent?.name || 'Öğrenci'} <span style={{ fontSize: '0.75rem', fontWeight: 700, background: 'rgba(37,99,235,0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: 99 }}>Öğrenci Kitap İlerleme Görünümü</span>
               </div>
-              <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: 2 }}>
+              <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
                 Öğrencinin gördüğü birebir kitap ekranı • Çözülen testler, başarı oranları ve optik formlar
               </div>
             </div>
           </div>
           <button
             onClick={() => navigate(`/books/${book?.id}`)}
-            style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '0.45rem 1rem', borderRadius: '0.6rem', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', padding: '0.45rem 1rem', borderRadius: '0.6rem', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <ArrowLeft size={15} /> Kitap Yönetimine Dön
           </button>
@@ -699,42 +699,42 @@ export default function StudentBookDetailsPage() {
           </div>
         </div>
 
-        <div className="sbdp-stats-grid" style={{ background: '#ffffff', borderTop: '1px solid #e2e8f0' }}>
-          <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: '#f0fdf4' }}>
+        <div className="sbdp-stats-grid" style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
+          <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: 'rgba(16,185,129,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>✅</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a' }}>{overallCorrect}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: '#fef2f2' }}>
+          <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: 'rgba(239,68,68,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>❌</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#dc2626' }}>{overallWrong}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: '#f8fafc' }}>
+          <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: 'var(--color-surface-hover)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>⬜</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#64748b' }}>{overallBlank}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>{overallBlank}</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-test" style={{ background: '#eff6ff' }}>
+          <div className="sbdp-stat-item sbdp-stat-test" style={{ background: 'rgba(37,99,235,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>📋</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#2563eb' }}>{overallCompleted}/{overallTotal}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: '#faf5ff' }}>
+          <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: 'rgba(124,58,237,0.08)' }}>
             <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>🎯</div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7c3aed' }}>%{overallSuccessRate}</div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
           </div>
         </div>
       </div>
 
       {subjectChartData.length > 0 && (
-        <div className="sbdp-anim" style={{ background: '#ffffff', borderRadius: '1.4rem', border: '1.5px solid #e2e8f0', padding: '1.75rem 2rem', marginBottom: '2rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+        <div className="sbdp-anim" style={{ background: 'var(--color-surface)', borderRadius: '1.4rem', border: '1.5px solid var(--color-border)', padding: '1.75rem 2rem', marginBottom: '2rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
           
           {/* Chart Header & Selectors */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <BarChart2 size={22} color="#6366f1" />
                 {selectedChartSubject === 'all' 
                   ? 'Derslere Göre Başarı Dağılımı' 
@@ -744,19 +744,19 @@ export default function StudentBookDetailsPage() {
               </h3>
               
               {/* Breadcrumb Path */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#64748b', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 4 }}>
                 <span 
                   onClick={() => { setSelectedChartSubject('all'); setSelectedChartTopic('all'); }} 
-                  style={{ cursor: 'pointer', color: selectedChartSubject === 'all' ? '#0f172a' : '#2563eb', background: selectedChartSubject === 'all' ? '#f1f5f9' : 'transparent', padding: '0.15rem 0.5rem', borderRadius: 6, transition: 'all 0.15s' }}
+                  style={{ cursor: 'pointer', color: selectedChartSubject === 'all' ? 'var(--color-text)' : '#2563eb', background: selectedChartSubject === 'all' ? 'var(--color-surface-hover)' : 'transparent', padding: '0.15rem 0.5rem', borderRadius: 6, transition: 'all 0.15s' }}
                 >
                   📚 Tüm Dersler
                 </span>
                 {currentChartSubjectObj && (
                   <>
-                    <span style={{ color: '#cbd5e1' }}>/</span>
+                    <span style={{ color: 'var(--color-border-input)' }}>/</span>
                     <span 
                       onClick={() => setSelectedChartTopic('all')} 
-                      style={{ cursor: 'pointer', color: selectedChartTopic === 'all' ? '#0f172a' : '#2563eb', background: selectedChartTopic === 'all' ? '#f1f5f9' : 'transparent', padding: '0.15rem 0.5rem', borderRadius: 6, transition: 'all 0.15s' }}
+                      style={{ cursor: 'pointer', color: selectedChartTopic === 'all' ? 'var(--color-text)' : '#2563eb', background: selectedChartTopic === 'all' ? 'var(--color-surface-hover)' : 'transparent', padding: '0.15rem 0.5rem', borderRadius: 6, transition: 'all 0.15s' }}
                     >
                       {currentChartSubjectObj.name}
                     </span>
@@ -764,8 +764,8 @@ export default function StudentBookDetailsPage() {
                 )}
                 {currentChartTopicObj && (
                   <>
-                    <span style={{ color: '#cbd5e1' }}>/</span>
-                    <span style={{ color: '#1e3a8a', fontWeight: 800, background: '#eff6ff', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
+                    <span style={{ color: 'var(--color-border-input)' }}>/</span>
+                    <span style={{ color: '#60a5fa', fontWeight: 800, background: 'rgba(37,99,235,0.12)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
                       {currentChartTopicObj.name}
                     </span>
                   </>
@@ -776,7 +776,7 @@ export default function StudentBookDetailsPage() {
             {/* Select Dropdowns & Metric Toggle */}
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Metric Toggle */}
-              <div style={{ display: 'flex', background: '#f8fafc', padding: 3, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
                 <button
                   onClick={() => setBookChartMetric('grouped')}
                   style={{
@@ -786,8 +786,8 @@ export default function StudentBookDetailsPage() {
                     fontSize: '0.75rem',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    background: bookChartMetric === 'grouped' ? '#eff6ff' : 'transparent',
-                    color: bookChartMetric === 'grouped' ? '#1d4ed8' : '#64748b',
+                    background: bookChartMetric === 'grouped' ? 'rgba(37,99,235,0.12)' : 'transparent',
+                    color: bookChartMetric === 'grouped' ? '#60a5fa' : 'var(--color-text-muted)',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -1026,12 +1026,12 @@ export default function StudentBookDetailsPage() {
         {subjectProgress.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>📚 Ders Listesi</span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '99px', border: '1px solid #bfdbfe' }}>{subjectProgress.length} Ders</span>
+              <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)' }}>📚 Ders Listesi</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '2px 8px', borderRadius: '99px', border: '1px solid #3b82f6' }}>{subjectProgress.length} Ders</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button onClick={expandAllSubjects} style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 10px', borderRadius: '8px' }}>Tümünü Aç</button>
-              <button onClick={collapseAllSubjects} style={{ background: '#ffffff', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 10px', borderRadius: '8px' }}>Kapat</button>
+              <button onClick={expandAllSubjects} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 10px', borderRadius: '8px' }}>Tümünü Aç</button>
+              <button onClick={collapseAllSubjects} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 10px', borderRadius: '8px' }}>Kapat</button>
             </div>
           </div>
         )}
@@ -1050,58 +1050,58 @@ export default function StudentBookDetailsPage() {
           const sc = subjectColors[subjIdx % subjectColors.length];
 
           return (
-            <div key={subj.id} className="sbdp-subject-card" style={{ borderRadius: '1.3rem', overflow: 'hidden', border: `1.5px solid ${isOpen ? '#cbd5e1' : '#e2e8f0'}`, boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.02)', background: '#ffffff' }}>
+            <div key={subj.id} className="sbdp-subject-card" style={{ borderRadius: '1.3rem', overflow: 'hidden', border: `1.5px solid ${isOpen ? 'var(--color-border-input)' : 'var(--color-border)'}`, boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.02)', background: 'var(--color-surface)' }}>
               <div
                 onClick={() => toggleSubject(subj.id)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', userSelect: 'none', background: isOpen ? '#f8fafc' : '#ffffff', transition: 'background 0.25s', flexWrap: 'wrap', gap: '0.75rem', borderBottom: isOpen ? '1px solid #e2e8f0' : 'none' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', userSelect: 'none', background: isOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.25s', flexWrap: 'wrap', gap: '0.75rem', borderBottom: isOpen ? '1px solid var(--color-border)' : 'none' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                   <div style={{ width: 36, height: 36, borderRadius: '0.6rem', background: sc.light, color: sc.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${sc.light}` }}>
                     <Layers size={18} />
                   </div>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{subj.name}</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>{subj.name}</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: sc.light, padding: '0.3rem 0.75rem', borderRadius: '99px', border: `1px solid ${sc.light}` }}>
-                    <div style={{ width: 60, height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ width: 60, height: 5, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{ width: `${subj.pct}%`, height: '100%', background: `linear-gradient(90deg, ${sc.from}, ${sc.to})`, borderRadius: 99 }} />
                     </div>
                     <span style={{ fontSize: '0.75rem', fontWeight: 900, color: sc.accent, whiteSpace: 'nowrap' }}>{subj.completedCount}/{subj.totalCount}</span>
                   </div>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', flexShrink: 0 }}>
                     {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </div>
                 </div>
               </div>
 
               {isOpen && (
-                <div style={{ padding: '0.85rem', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ padding: '0.85rem', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   
                   {/* Direct Tests */}
                   {subj.directTests && subj.directTests.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                       {subj.topics && subj.topics.length > 0 && (
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 4 }}>
                           <FileText size={14} color={sc.accent} /> Direkt Testler
                         </div>
                       )}
                       {subj.directTests.map(test => {
-                        let stateBg = '#ffffff', stateBorder = '#e2e8f0', stateAccent = '#cbd5e1';
-                        if (test.isCompleted) { stateBg = '#ffffff'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
-                        else if (!test.isLocked) { stateBg = '#ffffff'; stateBorder = '#e2e8f0'; stateAccent = sc.accent; }
+                        let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
+                        if (test.isCompleted) { stateBg = 'var(--color-surface)'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                        else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                         return (
                           <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#f1f5f9' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                               {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
                             </div>
 
                             <div style={{ flex: 1, minWidth: 140 }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a' }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
                                 {test.name}
                               </div>
-                              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                 <span>{test.questionCount || 20} Soru</span>
                                 {test.testDueDate ? (
                                   <span style={{
@@ -1109,9 +1109,9 @@ export default function StudentBookDetailsPage() {
                                     fontWeight: 800,
                                     padding: '2px 7px',
                                     borderRadius: '6px',
-                                    background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eff6ff'),
-                                    color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#1d4ed8'),
-                                    border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fecaca' : '#bfdbfe')}`
+                                    background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : 'rgba(37,99,235,0.12)'),
+                                    color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#60a5fa'),
+                                    border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fecaca' : '#3b82f6')}`
                                   }}>
                                     📅 Ödev Hedefi: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
                                   </span>
@@ -1121,9 +1121,9 @@ export default function StudentBookDetailsPage() {
                                     fontWeight: 700,
                                     padding: '2px 6px',
                                     borderRadius: '6px',
-                                    background: '#f1f5f9',
-                                    color: '#64748b',
-                                    border: '1px solid #e2e8f0'
+                                    background: 'var(--color-surface-hover)',
+                                    color: 'var(--color-text-muted)',
+                                    border: '1px solid var(--color-border)'
                                   }}>
                                     📖 Kitap Testi
                                   </span>
@@ -1237,41 +1237,41 @@ export default function StudentBookDetailsPage() {
                       const isTopicOpen = !!openTopics[topic.id];
 
                       return (
-                        <div key={topic.id} style={{ borderRadius: '0.85rem', border: '1px solid #e2e8f0', overflow: 'hidden', background: '#ffffff' }}>
+                        <div key={topic.id} style={{ borderRadius: '0.85rem', border: '1px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)' }}>
                           <div
                             onClick={() => toggleTopic(topic.id)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', cursor: 'pointer', background: isTopicOpen ? '#f1f5f9' : '#ffffff', borderBottom: isTopicOpen ? '1px solid #e2e8f0' : 'none', flexWrap: 'wrap', gap: '0.5rem' }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', cursor: 'pointer', background: isTopicOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', borderBottom: isTopicOpen ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: '0.5rem' }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                               <FileText size={16} color={sc.accent} />
-                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>{topic.name}</span>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', background: '#f1f5f9', padding: '2px 8px', borderRadius: 99, border: '1px solid #e2e8f0' }}>
+                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text)' }}>{topic.name}</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: 99, border: '1px solid var(--color-border)' }}>
                                 {topic.completedCount}/{topic.totalCount} Test
                               </span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
                               {isTopicOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </div>
                           </div>
 
                           {isTopicOpen && (
-                            <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', background: '#f8fafc' }}>
+                            <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', background: 'var(--color-bg)' }}>
                               {topic.tests.map(test => {
-                                let stateBg = '#ffffff', stateBorder = '#e2e8f0', stateAccent = '#cbd5e1';
-                                if (test.isCompleted) { stateBg = '#ffffff'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
-                                else if (!test.isLocked) { stateBg = '#ffffff'; stateBorder = '#e2e8f0'; stateAccent = sc.accent; }
+                                let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
+                                if (test.isCompleted) { stateBg = 'var(--color-surface)'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                                else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                                 return (
                                   <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#f1f5f9' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                                       {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
                                     </div>
 
                                     <div style={{ flex: 1, minWidth: 140 }}>
-                                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a' }}>
+                                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
                                         {test.name}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                         <span>{test.questionCount || 20} Soru</span>
                                         {test.testDueDate ? (
                                           <span style={{
@@ -1279,9 +1279,9 @@ export default function StudentBookDetailsPage() {
                                             fontWeight: 800,
                                             padding: '2px 7px',
                                             borderRadius: '6px',
-                                            background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eff6ff'),
-                                            color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#1d4ed8'),
-                                            border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fecaca' : '#bfdbfe')}`
+                                            background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : 'rgba(37,99,235,0.12)'),
+                                            color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#60a5fa'),
+                                            border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fecaca' : '#3b82f6')}`
                                           }}>
                                             📅 Ödev Hedefi: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
                                           </span>
@@ -1291,9 +1291,9 @@ export default function StudentBookDetailsPage() {
                                             fontWeight: 700,
                                             padding: '2px 6px',
                                             borderRadius: '6px',
-                                            background: '#f1f5f9',
-                                            color: '#64748b',
-                                            border: '1px solid #e2e8f0'
+                                            background: 'var(--color-surface-hover)',
+                                            color: 'var(--color-text-muted)',
+                                            border: '1px solid var(--color-border)'
                                           }}>
                                             📖 Kitap Testi
                                           </span>
@@ -1405,21 +1405,21 @@ export default function StudentBookDetailsPage() {
                     })
                   ) : (
                     subj.tests.map(test => {
-                      let stateBg = '#ffffff', stateBorder = '#e2e8f0', stateAccent = '#cbd5e1';
-                      if (test.isCompleted) { stateBg = '#ffffff'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
-                      else if (!test.isLocked) { stateBg = '#ffffff'; stateBorder = '#e2e8f0'; stateAccent = sc.accent; }
+                      let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
+                      if (test.isCompleted) { stateBg = 'var(--color-surface)'; stateBorder = '#bbf7d0'; stateAccent = '#10b981'; }
+                      else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                       return (
                         <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? '#f1f5f9' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? '#94a3b8' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
                             {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
                           </div>
 
                           <div style={{ flex: 1, minWidth: 140 }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? '#94a3b8' : '#0f172a' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
                               {test.name}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <span>{test.questionCount || 20} Soru</span>
                               {test.testDueDate && (
                                 <span style={{
@@ -1427,9 +1427,9 @@ export default function StudentBookDetailsPage() {
                                   fontWeight: 800,
                                   padding: '2px 7px',
                                   borderRadius: '6px',
-                                  background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : '#eff6ff'),
-                                  color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#1d4ed8'),
-                                  border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fecaca' : '#bfdbfe')}`
+                                  background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : 'rgba(37,99,235,0.12)'),
+                                  color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#60a5fa'),
+                                  border: `1px solid ${test.isCompleted ? '#bbf7d0' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fecaca' : '#3b82f6')}`
                                 }}>
                                   📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
                                 </span>
@@ -1443,10 +1443,10 @@ export default function StudentBookDetailsPage() {
                                 <Award size={12} /> %{test.bestScore}
                               </span>
                               {test.bestSub && (
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#f8fafc', padding: '3px 9px', borderRadius: '99px', border: '1px solid #e2e8f0', display: 'inline-flex', gap: 6 }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '3px 9px', borderRadius: '99px', border: '1px solid var(--color-border)', display: 'inline-flex', gap: 6 }}>
                                   <span style={{ color: '#16a34a' }}>{test.bestSub.correctCount || 0}D</span>
                                   <span style={{ color: '#dc2626' }}>{test.bestSub.wrongCount || 0}Y</span>
-                                  <span style={{ color: '#64748b' }}>{test.bestSub.blankCount || 0}B</span>
+                                  <span style={{ color: 'var(--color-text-muted)' }}>{test.bestSub.blankCount || 0}B</span>
                                 </span>
                               )}
                             </div>
@@ -1504,7 +1504,7 @@ export default function StudentBookDetailsPage() {
                                 )}
                               </div>
                             ) : test.isLocked ? (
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Lock size={14} /> Kilitli
                               </span>
                             ) : (
@@ -1543,21 +1543,21 @@ export default function StudentBookDetailsPage() {
         })}
 
         {subjectProgress.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: '1.25rem', border: '1.5px dashed #cbd5e1', color: '#64748b' }}>
+          <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--color-surface)', borderRadius: '1.25rem', border: '1.5px dashed var(--color-border-input)', color: 'var(--color-text-muted)' }}>
             {hwLoading || booksLoading ? 'Atanmış görevler yükleniyor…' : 'Bu kitaba ait atanmış görev bulunamadı.'}
           </div>
         )}
       </div>
 
       {isBulkSettingsModalOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
           <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--color-surface)', borderRadius: 'var(--border-radius-lg)', boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.4rem', fontWeight: 900 }}>
-                  <Settings size={24} /> Toplu Test Ayarları
+                <h3 style={{ margin: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.4rem', fontWeight: 900 }}>
+                  <Settings size={24} color="#6366f1" /> Toplu Test Ayarları
                 </h3>
-                <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+                <p style={{ margin: '0.25rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                   Cevap anahtarlarını klavyeden doğrudan (Örn: ABCDE) yazabilirsiniz.
                 </p>
               </div>
@@ -1568,7 +1568,7 @@ export default function StudentBookDetailsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {subjectProgress.map(subj => (
                   <div key={subj.id}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: 'var(--color-text)', fontSize: '1.1rem', fontWeight: 800, borderBottom: '2px solid var(--color-border)', paddingBottom: '0.5rem' }}>
                       {subj.name}
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1579,16 +1579,16 @@ export default function StudentBookDetailsPage() {
                         const cleanedLen = testData.answerKeyString.replace(cleanRegex, '').length;
 
                         return (
-                          <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                          <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', background: 'var(--color-surface-hover)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--color-border)' }}>
                             <div style={{ flex: 1, minWidth: '150px' }}>
-                              <div style={{ fontWeight: 800, color: '#334155', marginBottom: '0.25rem' }}>{t.name}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                              <div style={{ fontWeight: 800, color: 'var(--color-text)', marginBottom: '0.25rem' }}>{t.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                                 Girilen Cevap: <strong style={{ color: cleanedLen === testData.questionCount ? '#10b981' : '#ef4444' }}>{cleanedLen}</strong> / {testData.questionCount}
                               </div>
                             </div>
                             
                             <div>
-                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>Soru</label>
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Soru</label>
                               <input 
                                 type="number" 
                                 min="1" 
@@ -1597,12 +1597,12 @@ export default function StudentBookDetailsPage() {
                                   ...prev, 
                                   [t.id]: { ...prev[t.id], questionCount: Number(e.target.value) }
                                 }))}
-                                style={{ width: '60px', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 800, textAlign: 'center' }} 
+                                style={{ width: '60px', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontWeight: 800, textAlign: 'center', background: 'var(--color-surface)', color: 'var(--color-text)' }} 
                               />
                             </div>
 
                             <div style={{ flex: 3 }}>
-                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
                                 Cevap Anahtarı ({isFour ? 'A,B,C,D - Ortaokul' : 'A,B,C,D,E - Lise'})
                               </label>
                               <input 
@@ -1618,8 +1618,9 @@ export default function StudentBookDetailsPage() {
                                 }}
                                 style={{ 
                                   width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', 
-                                  border: `1px solid ${cleanedLen > testData.questionCount ? '#ef4444' : '#cbd5e1'}`, 
-                                  fontWeight: 800, letterSpacing: '0.25em', fontFamily: 'monospace' 
+                                  border: `1px solid ${cleanedLen > testData.questionCount ? '#ef4444' : 'var(--color-border-input)'}`, 
+                                  fontWeight: 800, letterSpacing: '0.25em', fontFamily: 'monospace',
+                                  background: 'var(--color-surface)', color: 'var(--color-text)'
                                 }} 
                               />
                             </div>
@@ -1632,7 +1633,7 @@ export default function StudentBookDetailsPage() {
               </div>
             </div>
 
-            <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: '#f8fafc', borderBottomLeftRadius: 'var(--border-radius-lg)', borderBottomRightRadius: 'var(--border-radius-lg)' }}>
+            <div style={{ padding: '1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: 'var(--color-surface-hover)', borderBottomLeftRadius: 'var(--border-radius-lg)', borderBottomRightRadius: 'var(--border-radius-lg)' }}>
               <button className="btn btn-outline" onClick={() => setIsBulkSettingsModalOpen(false)}>İptal</button>
               <button 
                 className="btn btn-primary" 
@@ -1649,50 +1650,50 @@ export default function StudentBookDetailsPage() {
 
       {/* Single Test Edit Modal (Teacher) */}
       {isEditTestModalOpen && editingTest && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '450px', background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-            <h3 style={{ marginTop: 0, color: 'var(--color-primary)', fontSize: '1.15rem', fontWeight: 800 }}>Testi Düzenle: {editingTest.name}</h3>
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content card glass animate-fade-in" style={{ width: '100%', maxWidth: '450px', background: 'var(--color-surface)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', border: '1.5px solid var(--color-border)' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--color-text)', fontSize: '1.15rem', fontWeight: 800 }}>Testi Düzenle: {editingTest.name}</h3>
             
             <div style={{ margin: '1rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>Test Adı</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>Test Adı</label>
               <input 
                 type="text" 
                 value={editTestFormData.name} 
                 onChange={e => setEditTestFormData(p => ({ ...p, name: e.target.value }))} 
-                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }} 
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontWeight: 700, background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
                 autoFocus 
               />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>Soru Sayısı</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
               <input 
                 type="number" 
-                min="1"
-                max="100"
+                min="1" 
+                max="100" 
                 value={editTestFormData.questionCount} 
                 onChange={e => setEditTestFormData(p => ({ ...p, questionCount: parseInt(e.target.value) || 0 }))} 
-                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontWeight: 700 }} 
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontWeight: 700, background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
               />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>PDF Linki (İsteğe Bağlı)</label>
-              <input
-                type="url"
-                value={editTestFormData.pdfUrl || ''}
-                onChange={e => setEditTestFormData(p => ({ ...p, pdfUrl: e.target.value }))}
-                placeholder="https://drive.google.com/... veya PDF URL"
-                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>PDF Linki (İsteğe Bağlı)</label>
+              <input 
+                type="url" 
+                value={editTestFormData.pdfUrl || ''} 
+                onChange={e => setEditTestFormData(p => ({ ...p, pdfUrl: e.target.value }))} 
+                placeholder="https://drive.google.com/... veya PDF URL" 
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontSize: '0.85rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
               />
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem' }}>
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>
                 <span>Cevap Anahtarı</span>
                 <input 
                   type="text" 
-                  placeholder="Toplu Gir (Örn: ABC...)"
+                  placeholder="Toplu Gir (Örn: ABC...)" 
                   onChange={(e) => {
                     const str = e.target.value;
                     const newKey = {};
@@ -1701,17 +1702,17 @@ export default function StudentBookDetailsPage() {
                     });
                     setEditTestFormData(p => ({ ...p, answerKey: newKey }));
                   }}
-                  style={{ padding: '0.3rem 0.5rem', fontSize: '0.78rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', width: '150px', outline: 'none' }}
+                  style={{ padding: '0.3rem 0.5rem', fontSize: '0.78rem', borderRadius: '0.4rem', border: '1px solid var(--color-border-input)', width: '150px', outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
                 />
               </label>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto', padding: '0.5rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto', padding: '0.5rem', background: 'var(--color-surface-hover)', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}>
                 {Array.from({ length: editTestFormData.questionCount }).map((_, i) => {
                   const qNum = i + 1;
                   const val = editTestFormData.answerKey?.[qNum] || '';
                   return (
-                    <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0' }}>
-                      <div style={{ width: '18px', fontWeight: 800, fontSize: '0.75rem', color: '#64748b' }}>{qNum}.</div>
+                    <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-border)' }}>
+                      <div style={{ width: '18px', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
                       <div style={{ display: 'flex', gap: '0.2rem' }}>
                         {['A', 'B', 'C', 'D', 'E'].map(opt => {
                           const isSelected = val === opt;
@@ -1721,9 +1722,9 @@ export default function StudentBookDetailsPage() {
                               key={opt}
                               onClick={() => setEditTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
                               style={{
-                                width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #cbd5e1',
-                                background: isSelected ? 'var(--color-primary)' : 'white',
-                                color: isSelected ? 'white' : '#1e293b', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem',
+                                width: '24px', height: '24px', borderRadius: '50%', border: '1px solid var(--color-border-input)',
+                                background: isSelected ? 'var(--color-primary)' : 'var(--color-surface-hover)',
+                                color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center'
                               }}
                             >

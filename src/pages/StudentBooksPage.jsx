@@ -36,10 +36,10 @@ const palette = (idx) => BOOK_PALETTES[idx % BOOK_PALETTES.length];
 function StatCard({ icon, label, value, gradient, shadow, border, sub, iconBg = 'rgba(99,102,241,0.12)', iconColor = '#6366f1' }) {
   return (
     <div style={{
-      background: '#ffffff',
+      background: 'var(--color-surface)',
       borderRadius: 18,
       padding: '1.1rem 1.3rem',
-      border: '1.5px solid #e2e8f0',
+      border: '1.5px solid var(--color-border)',
       boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
       display: 'flex',
       alignItems: 'center',
@@ -60,9 +60,9 @@ function StatCard({ icon, label, value, gradient, shadow, border, sub, iconBg = 
         {React.cloneElement(icon, { size: 22, color: iconColor })}
       </div>
       <div>
-        <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: '1.55rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -337,20 +337,20 @@ export default function StudentBooksPage() {
      RENDER
   ════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc', padding: '1.5rem 1.25rem', fontFamily: "'Inter', sans-serif", color: '#0f172a' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: '1.5rem 1.25rem', fontFamily: "'Inter', sans-serif", color: 'var(--color-text)' }}>
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
 
         {/* ── HEADER ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(37,99,235,0.12)', border: '1.5px solid #3b82f6', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
               <Map size={14} color="#3b82f6" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#1d4ed8', letterSpacing: '0.05em' }}>KİTAP HARİTASI</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>KİTAP HARİTASI</span>
             </div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
               Kitaplarım ve İlerlemem 📚
             </h1>
-            <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '0.92rem', fontWeight: 600 }}>
+            <p style={{ margin: '6px 0 0', color: 'var(--color-text-muted)', fontSize: '0.92rem', fontWeight: 600 }}>
               Atanan kitapları adım adım çöz, başarı oranını izle ve hedeflerine ulaş! 🚀
             </p>
           </div>
@@ -377,20 +377,20 @@ export default function StudentBooksPage() {
             </div>
 
             {/* ── CHART PANEL ── */}
-            <div style={{ background: '#ffffff', borderRadius: 20, border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: 22, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: 22, overflow: 'hidden' }}>
               <div
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid #f1f5f9' : 'none', flexWrap: 'wrap', gap: 10 }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
               >
                 <div
                   onClick={() => setShowChart(c => !c)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: '#0f172a', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
                 >
                   <BarChart2 size={20} color="#6366f1" /> Kitaplara Göre Soru Dağılımı
-                  <ChevronRight size={18} color="#64748b" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                  <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                 </div>
 
                 {showChart && (
-                  <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
                     <button
                       onClick={() => setBookChartMetric('grouped')}
                       style={{
@@ -401,7 +401,7 @@ export default function StudentBooksPage() {
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: bookChartMetric === 'grouped' ? '#6366f1' : 'transparent',
-                        color: bookChartMetric === 'grouped' ? '#ffffff' : '#64748b',
+                        color: bookChartMetric === 'grouped' ? '#ffffff' : 'var(--color-text-muted)',
                         boxShadow: bookChartMetric === 'grouped' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
                         transition: 'all 0.15s'
                       }}
@@ -418,7 +418,7 @@ export default function StudentBooksPage() {
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: bookChartMetric === 'rate' ? '#6366f1' : 'transparent',
-                        color: bookChartMetric === 'rate' ? '#ffffff' : '#64748b',
+                        color: bookChartMetric === 'rate' ? '#ffffff' : 'var(--color-text-muted)',
                         boxShadow: bookChartMetric === 'rate' ? '0 2px 8px rgba(99,102,241,0.25)' : 'none',
                         transition: 'all 0.15s'
                       }}
@@ -561,43 +561,43 @@ export default function StudentBooksPage() {
         {assignedBooks.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: '1 1 220px' }}>
-              <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
               <input
                 value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Kitap ara..."
-                style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, borderRadius: 12, border: '1.5px solid #e2e8f0', fontSize: '0.84rem', fontWeight: 700, background: '#ffffff', outline: 'none', color: '#0f172a', boxSizing: 'border-box' }}
+                style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, borderRadius: 12, border: '1.5px solid var(--color-border-input)', fontSize: '0.84rem', fontWeight: 700, background: 'var(--color-surface)', outline: 'none', color: 'var(--color-text)', boxSizing: 'border-box' }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 4, borderRadius: 12, border: '1.5px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 4, borderRadius: 12, border: '1.5px solid var(--color-border)' }}>
               {[
                 { key: 'progress', label: '📊 İlerleme' },
                 { key: 'success',  label: '🏆 Başarı' },
                 { key: 'title',    label: '🔤 A-Z' },
               ].map(s => (
-                <button key={s.key} onClick={() => setSortBy(s.key)} style={{ padding: '0.4rem 0.85rem', borderRadius: 8, border: 'none', fontWeight: 800, fontSize: '0.76rem', cursor: 'pointer', background: sortBy === s.key ? '#eff6ff' : 'transparent', color: sortBy === s.key ? '#1d4ed8' : '#64748b', whiteSpace: 'nowrap' }}>
+                <button key={s.key} onClick={() => setSortBy(s.key)} style={{ padding: '0.4rem 0.85rem', borderRadius: 8, border: 'none', fontWeight: 800, fontSize: '0.76rem', cursor: 'pointer', background: sortBy === s.key ? 'rgba(37,99,235,0.12)' : 'transparent', color: sortBy === s.key ? '#60a5fa' : 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                   {s.label}
                 </button>
               ))}
             </div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b' }}>{displayedBooks.length} kitap</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{displayedBooks.length} kitap</span>
           </div>
         )}
 
         {/* ── BOOK GRID ── */}
         {assignedBooks.length === 0 ? (
           booksLoading ? (
-            <div style={{ background: '#ffffff', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid #e2e8f0' }}>
-              <div style={{ width: 44, height: 44, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
-              <div style={{ fontWeight: 800, color: '#64748b' }}>Kitaplar yükleniyor…</div>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)' }}>
+              <div style={{ width: 44, height: 44, border: '4px solid var(--color-border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
+              <div style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitaplar yükleniyor…</div>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : (
-            <div style={{ background: '#ffffff', borderRadius: 20, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <div style={{ width: 90, height: 90, background: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1.5px solid #bfdbfe' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ width: 90, height: 90, background: 'rgba(37,99,235,0.12)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1.5px solid #3b82f6' }}>
                 <BookOpen size={40} color="#3b82f6" />
               </div>
-              <h2 style={{ margin: '0 0 8px', color: '#0f172a', fontWeight: 900 }}>Henüz Atanmış Kitap Yok</h2>
-              <p style={{ color: '#64748b', margin: '0 0 20px', fontSize: '0.92rem' }}>Öğretmenin sana bir kitap atadığında burada görünecek.</p>
+              <h2 style={{ margin: '0 0 8px', color: 'var(--color-text)', fontWeight: 900 }}>Henüz Atanmış Kitap Yok</h2>
+              <p style={{ color: 'var(--color-text-muted)', margin: '0 0 20px', fontSize: '0.92rem' }}>Öğretmenin sana bir kitap atadığında burada görünecek.</p>
               <button onClick={() => setIsAddModalOpen(true)} style={{ padding: '0.75rem 1.6rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
                 <Plus size={16} /> Kendi Kitabını Ekle
               </button>
@@ -616,9 +616,9 @@ export default function StudentBooksPage() {
                   key={book.id}
                   onClick={() => navigate(`/student/books/${book.id}`)}
                   style={{
-                    background: '#ffffff',
+                    background: 'var(--color-surface)',
                     borderRadius: 20,
-                    border: isCompleted ? '2px solid #86efac' : '1.5px solid #e2e8f0',
+                    border: isCompleted ? '2px solid #86efac' : '1.5px solid var(--color-border)',
                     padding: '1.4rem',
                     cursor: 'pointer',
                     position: 'relative',
@@ -650,36 +650,36 @@ export default function StudentBooksPage() {
                       <BookMarked size={28} color="#ffffff" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-                      <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', lineHeight: 1.25, marginBottom: 4, paddingRight: book.remainingDays !== undefined || isCompleted ? 80 : 0 }}>
+                      <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', lineHeight: 1.25, marginBottom: 4, paddingRight: book.remainingDays !== undefined || isCompleted ? 80 : 0 }}>
                         {book.title}
                       </div>
-                      <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>{book.publisher}</div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{book.publisher}</div>
                       <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                         {(book.subjects || []).slice(0, 3).map((s, i) => (
-                          <span key={i} style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>{s.name}</span>
+                          <span key={i} style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>{s.name}</span>
                         ))}
                         {(book.subjects || []).length > 3 && (
-                          <span style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>+{(book.subjects || []).length - 3}</span>
+                          <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>+{(book.subjects || []).length - 3}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', borderRadius: 16, padding: '1rem', marginBottom: 14, border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: 'var(--color-surface-hover)', borderRadius: 16, padding: '1rem', marginBottom: 14, border: '1px solid var(--color-border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Test İlerlemesi</div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{book.totalSolvedTests} / {book.totalAssignedTests} test</div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Test İlerlemesi</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', marginTop: 2 }}>{book.totalSolvedTests} / {book.totalAssignedTests} test</div>
                       </div>
                       <div style={{ position: 'relative', width: 56, height: 56 }}>
                         <CircularProgress pct={pct} size={56} stroke={5} color={isCompleted ? '#10b981' : pal.to} />
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.74rem', fontWeight: 900, color: isCompleted ? '#10b981' : '#0f172a' }}>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.74rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text)' }}>
                           %{pct}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: 7, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`, borderRadius: 99, transition: 'width 0.7s ease' }} />
                     </div>
                   </div>
@@ -717,14 +717,14 @@ export default function StudentBooksPage() {
           ADD BOOK MODAL
       ══════════════════════ */}
       {isAddModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: 20, width: '100%', maxWidth: 480, padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', animation: 'scaleIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 20, width: '100%', maxWidth: 480, padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>Kendi Kitabını Ekle</h2>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Çalışmak istediğin kitabı kaydet ve ilerlemeni takip et</p>
+                <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)' }}>Kendi Kitabını Ekle</h2>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Çalışmak istediğin kitabı kaydet ve ilerlemeni takip et</p>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <X size={18} />
               </button>
             </div>
@@ -735,23 +735,23 @@ export default function StudentBooksPage() {
                 { label: 'Yayınevi', key: 'publisher', placeholder: 'Örn: 3D Yayınları' },
               ].map(field => (
                 <div key={field.key}>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>{field.label}</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>{field.label}</label>
                   <input
                     type="text"
                     value={newBook[field.key]}
                     onChange={e => setNewBook(p => ({ ...p, [field.key]: e.target.value }))}
                     placeholder={field.placeholder}
-                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, outline: 'none', background: '#ffffff', color: '#0f172a', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1.5px solid var(--color-border-input)', fontSize: '0.9rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)', boxSizing: 'border-box' }}
                   />
                 </div>
               ))}
 
               <div>
-                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>
                   Optik Form Seçenek Sayısı (Seviye)
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 4 ? '#3b82f6' : '#e2e8f0'}`, background: newBook.optionCount === 4 ? '#eff6ff' : '#f8fafc', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 4 ? '#3b82f6' : 'var(--color-border)'}`, background: newBook.optionCount === 4 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)', color: 'var(--color-text)', cursor: 'pointer' }}>
                     <input
                       type="radio" name="studentBookOptionCount" value={4}
                       checked={newBook.optionCount === 4}
@@ -759,11 +759,11 @@ export default function StudentBooksPage() {
                       style={{ accentColor: '#2563eb' }}
                     />
                     <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>4 Seçenek (A-D)</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Ortaokul / LGS</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>4 Seçenek (A-D)</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ortaokul / LGS</div>
                     </div>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 5 ? '#3b82f6' : '#e2e8f0'}`, background: newBook.optionCount === 5 ? '#eff6ff' : '#f8fafc', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 5 ? '#3b82f6' : 'var(--color-border)'}`, background: newBook.optionCount === 5 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)', color: 'var(--color-text)', cursor: 'pointer' }}>
                     <input
                       type="radio" name="studentBookOptionCount" value={5}
                       checked={newBook.optionCount === 5}
@@ -771,15 +771,15 @@ export default function StudentBooksPage() {
                       style={{ accentColor: '#2563eb' }}
                     />
                     <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>5 Seçenek (A-E)</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Lise / YKS</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>5 Seçenek (A-E)</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Lise / YKS</div>
                     </div>
                   </label>
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #e2e8f0' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>
                   Dersler / Bölümler
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -788,28 +788,28 @@ export default function StudentBooksPage() {
                       <input
                         type="text" value={subj.name} placeholder={`Ders ${idx + 1}`}
                         onChange={e => { const s = [...newBook.subjects]; s[idx].name = e.target.value; setNewBook({ ...newBook, subjects: s }); }}
-                        style={{ flex: 2, padding: '0.6rem 0.75rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: '#ffffff', color: '#0f172a' }}
+                        style={{ flex: 2, padding: '0.6rem 0.75rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
                       />
                       <input
                         type="number" min="1" value={subj.testCount} title="Test Sayısı"
                         onChange={e => { const s = [...newBook.subjects]; s[idx].testCount = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
-                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: '#ffffff', color: '#0f172a' }}
+                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
                       />
                       <input
                         type="number" min="1" value={subj.questionsPerTest} title="Test başına soru"
                         onChange={e => { const s = [...newBook.subjects]; s[idx].questionsPerTest = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
-                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: '#ffffff', color: '#0f172a' }}
+                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
                       />
                       <button
                         onClick={() => { const s = newBook.subjects.filter((_, i) => i !== idx); setNewBook({ ...newBook, subjects: s }); }}
                         disabled={newBook.subjects.length <= 1}
-                        style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: newBook.subjects.length > 1 ? '#fee2e2' : '#f1f5f9', color: newBook.subjects.length > 1 ? '#ef4444' : '#cbd5e1', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                        style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: newBook.subjects.length > 1 ? '#fee2e2' : 'var(--color-surface-hover)', color: newBook.subjects.length > 1 ? '#ef4444' : 'var(--color-text-muted)', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                       >
                         <X size={14} />
                       </button>
                     </div>
                   ))}
-                  <div style={{ display: 'flex', gap: 4, fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>
+                  <div style={{ display: 'flex', gap: 4, fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
                     <span style={{ flex: 2 }}>Ders Adı</span>
                     <span style={{ width: 62, textAlign: 'center' }}>Test Sayısı</span>
                     <span style={{ width: 62, textAlign: 'center' }}>Soru/Test</span>
@@ -818,7 +818,7 @@ export default function StudentBooksPage() {
                   <button
                     type="button"
                     onClick={() => setNewBook(p => ({ ...p, subjects: [...p.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
-                    style={{ padding: '0.55rem', background: '#eff6ff', color: '#2563eb', border: '1.5px dashed #bfdbfe', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}
+                    style={{ padding: '0.55rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1.5px dashed #3b82f6', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}
                   >
                     <Plus size={14} /> Yeni Ders Ekle
                   </button>

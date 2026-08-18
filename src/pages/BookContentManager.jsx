@@ -943,7 +943,7 @@ export default function BookContentManager() {
     showToast("Yanlış analizi indirildi.");
   };
 
-  if (!book) return <div className="books-page-container" style={{ padding: '4rem', textAlign: 'center', color: '#0f172a', fontWeight: 800, fontSize: '1.2rem' }}>Yükleniyor...</div>;
+  if (!book) return <div className="books-page-container" style={{ padding: '4rem', textAlign: 'center', color: 'var(--color-text)', fontWeight: 800, fontSize: '1.2rem' }}>Yükleniyor...</div>;
 
   return (
     <div className="books-page-container" style={{ paddingBottom: selectedTests.length > 0 ? '7rem' : '4rem' }}>
@@ -954,7 +954,7 @@ export default function BookContentManager() {
           <button 
             className="btn btn-outline" 
             onClick={() => navigate('/books')} 
-            style={{ padding: '0.6rem', border: '1.5px solid #cbd5e1', background: '#ffffff', borderRadius: '0.75rem', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ padding: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', borderRadius: '0.75rem', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Kitap Listesine Dön"
           >
             <ArrowLeft size={20} />
@@ -966,14 +966,14 @@ export default function BookContentManager() {
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.65rem', fontWeight: 900, margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>{book.title}</h1>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid #bfdbfe' }}>
+              <h1 style={{ fontSize: '1.65rem', fontWeight: 900, margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>{book.title}</h1>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.2rem 0.65rem', borderRadius: '999px', border: '1px solid #3b82f6' }}>
                 {book.optionCount === 4 ? '🎯 4 Şık Optik (Ortaokul / LGS)' : '🎯 5 Şık Optik (Lise / YKS)'}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.25rem' }}>
-              <span style={{ fontSize: '0.88rem', color: '#64748b', fontWeight: 600 }}>
-                İçerik &amp; Ödev Takip Yönetimi • <strong style={{ color: '#0f172a' }}>{book.publisher}</strong>
+              <span style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                İçerik &amp; Ödev Takip Yönetimi • <strong style={{ color: 'var(--color-text)' }}>{book.publisher}</strong>
               </span>
             </div>
           </div>
@@ -983,7 +983,7 @@ export default function BookContentManager() {
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button 
             onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} 
-            style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#334155', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <Settings size={17} /> Kitap Ayarları
           </button>
@@ -1012,13 +1012,13 @@ export default function BookContentManager() {
       </div>
 
       {/* ── MODERN GLASS TABS SWITCHER ── */}
-      <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.75rem', background: '#ffffff', padding: '0.35rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', width: 'fit-content', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+      <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '1.75rem', background: 'var(--color-surface)', padding: '0.35rem', borderRadius: '1rem', border: '1.5px solid var(--color-border)', width: 'fit-content', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
         <button 
           onClick={() => setActiveTab("contents")}
           style={{ 
             padding: '0.65rem 1.25rem', borderRadius: '0.75rem', fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', transition: 'all 0.2s',
             background: activeTab === "contents" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-            color: activeTab === "contents" ? '#ffffff' : '#64748b',
+            color: activeTab === "contents" ? '#ffffff' : 'var(--color-text-muted)',
             boxShadow: activeTab === "contents" ? '0 4px 14px rgba(99,102,241,0.25)' : 'none'
           }}
         >
@@ -1113,19 +1113,19 @@ export default function BookContentManager() {
                 const isExpanded = collapsedSubjects[subject.id] === false;
 
                 return (
-                  <div key={subject.id} style={{ border: '1.5px solid #e2e8f0', borderRadius: '1rem', overflow: 'hidden', background: '#ffffff', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                  <div key={subject.id} style={{ border: '1.5px solid var(--color-border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                     
                     {/* Subject Header */}
-                    <div style={{ background: '#f8fafc', display: 'flex', alignItems: 'center', borderBottom: isExpanded ? '1.5px solid #e2e8f0' : 'none', padding: '0.85rem 1.25rem', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', borderBottom: isExpanded ? '1.5px solid var(--color-border)' : 'none', padding: '0.85rem 1.25rem', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                       <div 
                         onClick={() => toggleSubject(subject.id)}
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flex: 1, gap: '0.5rem' }}
                       >
                         {isExpanded ? <ChevronDown size={20} style={{ color: '#6366f1' }} /> : <ChevronRight size={20} style={{ color: '#6366f1' }} />}
-                        <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900 }}>
+                        <h3 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900 }}>
                           <Layers size={18} style={{ color: '#6366f1' }} /> {subject.name}
                         </h3>
-                        <span style={{ marginLeft: '0.75rem', fontSize: '0.78rem', color: '#1d4ed8', background: '#eff6ff', padding: '0.2rem 0.65rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid #bfdbfe' }}>
+                        <span style={{ marginLeft: '0.75rem', fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.2rem 0.65rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid #3b82f6' }}>
                           {topicsList.length > 0 ? `${topicsList.length} Konu` : ''} 
                           {directTests.length > 0 ? `${topicsList.length > 0 ? ' • ' : ''}${directTests.length} Direkt Test` : ''}
                           {topicsList.length === 0 && directTests.length === 0 ? 'İçerik Yok' : ''}
@@ -1136,7 +1136,7 @@ export default function BookContentManager() {
                         <button onClick={(e) => { e.stopPropagation(); handleAssignSubject(subject); }} style={{ padding: '0.4rem 0.85rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', borderRadius: '0.6rem', color: '#ffffff', cursor: 'pointer', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 8px rgba(245,158,11,0.25)' }} title="Tüm Dersi Ödev Olarak Ata">
                           <BookOpen size={14} /> Dersi Ata
                         </button>
-                        <button onClick={() => { setCurrentSubject(subject); setNewSubjectName(subject.name); setIsSubjectDialogOpen(true); }} style={{ padding: '0.4rem 0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '0.6rem', color: '#334155', cursor: 'pointer' }} title="Dersi Düzenle">
+                        <button onClick={() => { setCurrentSubject(subject); setNewSubjectName(subject.name); setIsSubjectDialogOpen(true); }} style={{ padding: '0.4rem 0.65rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', borderRadius: '0.6rem', color: 'var(--color-text)', cursor: 'pointer' }} title="Dersi Düzenle">
                           <Edit size={14} />
                         </button>
                         <button onClick={() => handleDeleteSubject(subject.id)} style={{ padding: '0.4rem 0.65rem', background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '0.6rem', color: '#dc2626', cursor: 'pointer' }} title="Dersi Sil">
@@ -1151,13 +1151,13 @@ export default function BookContentManager() {
 
                         {/* Direct Tests (when Ders > Test structure) */}
                         {directTests.length > 0 && (
-                          <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f8fafc', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0' }}>
-                            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', color: '#1d4ed8', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--color-surface-hover)', borderRadius: '0.85rem', border: '1.5px solid var(--color-border)' }}>
+                            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', color: '#60a5fa', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <FileText size={16} /> Direkt Testler ({directTests.length})
                             </h4>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.65rem' }}>
                               {directTests.map(test => (
-                                <div key={test.id} style={{ padding: '0.85rem 1rem', background: '#ffffff', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                                <div key={test.id} style={{ padding: '0.85rem 1rem', background: 'var(--color-surface)', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <input 
                                       type="checkbox" 
@@ -1166,8 +1166,8 @@ export default function BookContentManager() {
                                       style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1' }}
                                     />
                                     <div>
-                                      <h5 style={{ margin: 0, fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>{test.name}</h5>
-                                      <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                      <h5 style={{ margin: 0, fontSize: '0.92rem', color: 'var(--color-text)', fontWeight: 800 }}>{test.name}</h5>
+                                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
                                         {test.questionCount} Soru
                                         {test.answerKey && Object.keys(test.answerKey).length > 0 && (
                                           <span style={{ marginLeft: '0.5rem', color: '#16a34a', fontWeight: 800 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).length})</span>
@@ -1206,16 +1206,16 @@ export default function BookContentManager() {
                                   style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexGrow: 1, gap: '0.4rem' }}
                                 >
                                   {isTopicExpanded ? <ChevronDown size={16} style={{ color: '#6366f1' }} /> : <ChevronRight size={16} style={{ color: '#6366f1' }} />}
-                                  <h4 style={{ margin: 0, fontSize: '1rem', color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-text)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                     <FileText size={16} style={{ color: '#7c3aed' }} /> {topic.name}
                                   </h4>
-                                  <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid #e2e8f0' }}>{topicTests.length} Test</span>
+                                  <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', background: 'var(--color-surface)', color: 'var(--color-text-muted)', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid var(--color-border)' }}>{topicTests.length} Test</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.35rem' }}>
-                                  <button onClick={() => handleAssignTopic(topic)} style={{ padding: '0.35rem 0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.45rem', color: '#1d4ed8', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} title="Bu Konudaki Testlere Bitirme Tarihi / Ödev Ata">
+                                  <button onClick={() => handleAssignTopic(topic)} style={{ padding: '0.35rem 0.75rem', background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', borderRadius: '0.45rem', color: '#60a5fa', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} title="Bu Konudaki Testlere Bitirme Tarihi / Ödev Ata">
                                     <Calendar size={13} /> Ata
                                   </button>
-                                  <button onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setNewTopicName(topic.name); setIsTopicDialogOpen(true); }} style={{ padding: '0.35rem 0.6rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '0.45rem', color: '#334155', cursor: 'pointer' }}><Edit size={13} /></button>
+                                  <button onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setNewTopicName(topic.name); setIsTopicDialogOpen(true); }} style={{ padding: '0.35rem 0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', color: 'var(--color-text)', cursor: 'pointer' }}><Edit size={13} /></button>
                                   <button onClick={() => handleDeleteTopic(subject.id, topic.id)} style={{ padding: '0.35rem 0.6rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.45rem', color: '#dc2626', cursor: 'pointer' }}><Trash2 size={13} /></button>
                                 </div>
                               </div>
@@ -1226,7 +1226,7 @@ export default function BookContentManager() {
                                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.65rem', marginBottom: '1rem' }}>
                                     {topicTests.length > 0 ? (
                                       topicTests.map(test => (
-                                        <div key={test.id} style={{ padding: '0.85rem 1rem', background: '#ffffff', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                                        <div key={test.id} style={{ padding: '0.85rem 1rem', background: 'var(--color-surface)', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                             <input 
                                               type="checkbox" 
@@ -1235,8 +1235,8 @@ export default function BookContentManager() {
                                               style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1' }}
                                             />
                                             <div>
-                                              <h5 style={{ margin: 0, fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>{test.name}</h5>
-                                              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                              <h5 style={{ margin: 0, fontSize: '0.92rem', color: 'var(--color-text)', fontWeight: 800 }}>{test.name}</h5>
+                                              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
                                                 {test.questionCount} Soru
                                                 {test.answerKey && Object.keys(test.answerKey).length > 0 && (
                                                   <span style={{ marginLeft: '0.5rem', color: '#16a34a', fontWeight: 800 }}>• Cevap Anahtarlı ({Object.keys(test.answerKey).length})</span>
@@ -1245,10 +1245,10 @@ export default function BookContentManager() {
                                             </div>
                                           </div>
                                           <div style={{ display: 'flex', gap: '0.3rem' }}>
-                                            <button style={{ padding: '0.35rem 0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.45rem', color: '#1d4ed8', cursor: 'pointer' }} onClick={() => handleAssignSingleTest(test)} title="Bu Teste Bitirme Tarihi / Ödev Ata">
+                                            <button style={{ padding: '0.35rem 0.6rem', background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', borderRadius: '0.45rem', color: '#60a5fa', cursor: 'pointer' }} onClick={() => handleAssignSingleTest(test)} title="Bu Teste Bitirme Tarihi / Ödev Ata">
                                               <Calendar size={13} />
                                             </button>
-                                            <button style={{ padding: '0.35rem 0.6rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '0.45rem', color: '#334155', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleOpenEditTest(subject, topic, test); }} title="Bu Testi Düzenle">
+                                            <button style={{ padding: '0.35rem 0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', color: 'var(--color-text)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleOpenEditTest(subject, topic, test); }} title="Bu Testi Düzenle">
                                               <Edit size={13} />
                                             </button>
                                             <button style={{ padding: '0.35rem 0.6rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.45rem', color: '#dc2626', cursor: 'pointer' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
@@ -1258,11 +1258,11 @@ export default function BookContentManager() {
                                         </div>
                                       ))
                                     ) : (
-                                      <p style={{ fontSize: '0.85rem', fontStyle: 'italic', margin: 0, color: '#64748b' }}>Bu konuda henüz test bulunmuyor.</p>
+                                      <p style={{ fontSize: '0.85rem', fontStyle: 'italic', margin: 0, color: 'var(--color-text-muted)' }}>Bu konuda henüz test bulunmuyor.</p>
                                     )}
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button style={{ fontSize: '0.82rem', padding: '0.45rem 0.9rem', borderRadius: '0.6rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#334155', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
+                                    <button style={{ fontSize: '0.82rem', padding: '0.45rem 0.9rem', borderRadius: '0.6rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
                                       <Plus size={14} /> Test Ekle
                                     </button>
                                   </div>
@@ -1459,22 +1459,22 @@ export default function BookContentManager() {
                   const isExpired = new Date(hw.dueDate) < new Date();
 
                   return (
-                    <div key={hw.id} style={{ border: '1.5px solid #e2e8f0', borderRadius: '1rem', overflow: 'hidden', background: '#ffffff', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                    <div key={hw.id} style={{ border: '1.5px solid var(--color-border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                       
                       {/* HOMEWORK HEADER */}
-                      <div style={{ padding: '1.15rem 1.35rem', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: isExpanded ? '1.5px solid #e2e8f0' : 'none' }}>
+                      <div style={{ padding: '1.15rem 1.35rem', background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: isExpanded ? '1.5px solid var(--color-border)' : 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                           <div style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', padding: '0.65rem', borderRadius: '0.75rem', display: 'flex', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
                             <BookOpen size={20} />
                           </div>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 900 }}>{hw.title}</h4>
+                              <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--color-text)', fontWeight: 900 }}>{hw.title}</h4>
                               <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.45rem', fontWeight: 900, background: isExpired ? '#fef2f2' : '#f0fdf4', color: isExpired ? '#b91c1c' : '#15803d', border: `1px solid ${isExpired ? '#fecaca' : '#bbf7d0'}` }}>
                                 {isExpired ? '⏳ Süresi Bitti' : '✓ Aktif'}
                               </span>
                               {hw.targetType === 'class' || hw.targetType === 'grade' ? (
-                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.45rem', fontWeight: 800, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.45rem', fontWeight: 800, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6' }}>
                                   🏫 Sınıf ({targetStudents.length} Öğrenci)
                                 </span>
                               ) : targetStudents.length === 1 ? (
@@ -1486,14 +1486,14 @@ export default function BookContentManager() {
                                   👤 {targetStudents.map(s => s.name).join(', ')}
                                 </span>
                               ) : (
-                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.45rem', fontWeight: 800, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '0.45rem', fontWeight: 800, background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}>
                                   👤 {targetStudents.length} Öğrenci ({targetStudents.slice(0, 2).map(s => s.name).join(', ')}...)
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.35rem', display: 'flex', gap: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.35rem', display: 'flex', gap: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span>📝 {totalTestsInHw} Test ({hw.totalQuestions || '?'} Soru)</span>
-                              <span>📅 Genel Son Tarih: <strong style={{ color: '#0f172a' }}>{new Date(hw.dueDate).toLocaleDateString('tr-TR')}</strong></span>
+                              <span>📅 Genel Son Tarih: <strong style={{ color: 'var(--color-text)' }}>{new Date(hw.dueDate).toLocaleDateString('tr-TR')}</strong></span>
                             </div>
                           </div>
                         </div>
@@ -1502,10 +1502,10 @@ export default function BookContentManager() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
                           <div style={{ minWidth: '160px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.35rem' }}>
-                              <span style={{ color: '#64748b' }}>İlerleme</span>
+                              <span style={{ color: 'var(--color-text-muted)' }}>İlerleme</span>
                               <span style={{ color: overallHwProgressPct === 100 ? '#16a34a' : '#4f46e5', fontWeight: 900 }}>%{overallHwProgressPct} ({totalSolvedInHw}/{totalPossibleInHw} Test)</span>
                             </div>
-                            <div style={{ background: '#e2e8f0', borderRadius: 99, height: 7, overflow: 'hidden' }}>
+                            <div style={{ background: 'var(--color-border)', borderRadius: 99, height: 7, overflow: 'hidden' }}>
                               <div style={{ width: `${overallHwProgressPct}%`, background: overallHwProgressPct === 100 ? '#10b981' : 'linear-gradient(90deg, #6366f1, #0284c7)', height: '100%', borderRadius: 99 }} />
                             </div>
                           </div>
@@ -1515,7 +1515,7 @@ export default function BookContentManager() {
                               setEditDateHw(hw);
                               setEditDateValue(hw.dueDate ? hw.dueDate.split('T')[0] : '');
                             }}
-                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#1d4ed8', background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '0.6rem', cursor: 'pointer' }}
+                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#60a5fa', background: 'rgba(37,99,235,0.12)', border: '1.5px solid #3b82f6', borderRadius: '0.6rem', cursor: 'pointer' }}
                             title="Tüm Kitap İçin Bitirme Tarihini Güncelle"
                           >
                             <Calendar size={15} /> Genel Tarih
@@ -1537,7 +1537,7 @@ export default function BookContentManager() {
                               setScheduleCollapsedSubj(initialCollapsedSubj);
                               setScheduleCollapsedTopic(initialCollapsedTopic);
                             }}
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0284c7', background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '0.6rem', cursor: 'pointer' }}
+                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', background: 'rgba(2,132,199,0.12)', border: '1.5px solid #0284c7', borderRadius: '0.6rem', cursor: 'pointer' }}
                             title="Kitap İçindeki Her Teste Özel Tek Tek Tarih Belirle"
                           >
                             <Clock size={16} /> İçerik Test Tarihlerini Planla
@@ -1551,7 +1551,7 @@ export default function BookContentManager() {
                                 toggleHwDetails(hw.id);
                               }
                             }}
-                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#334155', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '0.6rem', cursor: 'pointer' }}
+                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-text)', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', borderRadius: '0.6rem', cursor: 'pointer' }}
                             title="Öğrencinin gördüğü birebir kitap ekranında detaylı ilerlemeyi aç"
                           >
                             <BookOpen size={15} /> Detaylı İlerleme
@@ -1576,8 +1576,8 @@ export default function BookContentManager() {
 
                       {/* EXPANDED STUDENT DETAILS */}
                       {isExpanded && (
-                        <div style={{ padding: '1.25rem', borderTop: '1.5px solid #e2e8f0', background: '#f8fafc' }}>
-                          <h5 style={{ margin: '0 0 0.85rem 0', fontSize: '0.95rem', color: '#0f172a', fontWeight: 900 }}>
+                        <div style={{ padding: '1.25rem', borderTop: '1.5px solid var(--color-border)', background: 'var(--color-bg)' }}>
+                          <h5 style={{ margin: '0 0 0.85rem 0', fontSize: '0.95rem', color: 'var(--color-text)', fontWeight: 900 }}>
                             Öğrenci Bazlı İlerleme Tablosu ({targetStudents.length} Öğrenci)
                           </h5>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -2044,25 +2044,25 @@ export default function BookContentManager() {
 
       {/* ── ⚡ UNIFIED BULK IMPORT WIZARD ── */}
       {isBulkWizardOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.3rem', fontWeight: 900 }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.3rem', fontWeight: 900 }}>
                 <Zap size={22} style={{ color: '#6366f1' }} /> Toplu İçerik &amp; Test Sihirbazı
               </h3>
-              <button onClick={() => setIsBulkWizardOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setIsBulkWizardOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <XCircle size={22} />
               </button>
             </div>
 
             {/* Wizard Tabs */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', background: '#f1f5f9', padding: '0.35rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', background: 'var(--color-surface-hover)', padding: '0.35rem', borderRadius: '0.75rem', border: '1px solid var(--color-border)' }}>
               <button
                 onClick={() => setBulkWizardTab("text")}
                 style={{
                   flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
                   background: bulkWizardTab === "text" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                  color: bulkWizardTab === "text" ? '#ffffff' : '#64748b',
+                  color: bulkWizardTab === "text" ? '#ffffff' : 'var(--color-text-muted)',
                   boxShadow: bulkWizardTab === "text" ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
                 }}
               >
@@ -2073,7 +2073,7 @@ export default function BookContentManager() {
                 style={{
                   flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
                   background: bulkWizardTab === "series" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                  color: bulkWizardTab === "series" ? '#ffffff' : '#64748b',
+                  color: bulkWizardTab === "series" ? '#ffffff' : 'var(--color-text-muted)',
                   boxShadow: bulkWizardTab === "series" ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
                 }}
               >
@@ -2084,7 +2084,7 @@ export default function BookContentManager() {
                 style={{
                   flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
                   background: bulkWizardTab === "json" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                  color: bulkWizardTab === "json" ? '#ffffff' : '#64748b',
+                  color: bulkWizardTab === "json" ? '#ffffff' : 'var(--color-text-muted)',
                   boxShadow: bulkWizardTab === "json" ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
                 }}
               >
@@ -2095,11 +2095,11 @@ export default function BookContentManager() {
             {/* TAB 1: TEXT LIST IMPORT */}
             {bulkWizardTab === "text" && (
               <div>
-                <p style={{ fontSize: '0.88rem', color: '#64748b', marginTop: 0 }}>
+                <p style={{ fontSize: '0.88rem', color: 'var(--color-text-muted)', marginTop: 0 }}>
                   Aşağıdaki alana metin listesini yapıştırabilirsiniz. Sistem yapıyı ve cevap anahtarlarını otomatik algılar:
                 </p>
-                <div style={{ background: '#eff6ff', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #bfdbfe', fontSize: '0.82rem', color: '#1d4ed8', marginBottom: '1rem' }}>
-                  <strong style={{ color: '#0f172a' }}>Örnek Satırlar:</strong><br />
+                <div style={{ background: 'rgba(37,99,235,0.12)', padding: '0.85rem', borderRadius: '0.65rem', border: '1px solid #3b82f6', fontSize: '0.82rem', color: '#60a5fa', marginBottom: '1rem' }}>
+                  <strong style={{ color: 'var(--color-text)' }}>Örnek Satırlar:</strong><br />
                   • <code>Matematik &gt; Çarpanlar ve Katlar &gt; Test 1 : ABCDEABCDE</code><br />
                   • <code>Türkçe &gt; Test 1 [ABCDEABCDE]</code><br />
                   • <code>Paragraf (5 Test)</code>
@@ -2110,7 +2110,7 @@ export default function BookContentManager() {
                   onChange={(e) => setBulkTextInput(e.target.value)}
                   placeholder={`Matematik > Üslü Sayılar > Test 1 : ABCDEABCDEAB\nMatematik > Üslü Sayılar > Test 2 [ABCDEABCDEAB]\nTürkçe > Test 1 : BACDEBACDE`}
                   rows={8}
-                  style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontFamily: 'monospace', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontFamily: 'monospace', fontSize: '0.88rem', boxSizing: 'border-box' }}
                 />
 
                 {/* Live Preview */}
@@ -2250,15 +2250,15 @@ export default function BookContentManager() {
 
       {/* ── SUBJECT MODAL ── */}
       {isSubjectDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <h3 style={{ marginTop: 0, color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>{currentSubject ? '✏️ Dersi Düzenle' : '➕ Yeni Ders Ekle'}</h3>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 900 }}>{currentSubject ? '✏️ Dersi Düzenle' : '➕ Yeni Ders Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.25rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Ders Adı</label>
-              <input type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} placeholder="Matematik, Fizik..." style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', boxSizing: 'border-box', fontSize: '0.95rem' }} autoFocus />
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Ders Adı</label>
+              <input type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} placeholder="Matematik, Fizik..." style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', boxSizing: 'border-box', fontSize: '0.95rem' }} autoFocus />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsSubjectDialogOpen(false)} style={{ color: '#475569', borderColor: '#cbd5e1', background: '#f8fafc' }}>İptal</button>
+              <button className="btn btn-outline" onClick={() => setIsSubjectDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
               <button className="btn btn-primary" onClick={handleSubjectSave} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', fontWeight: 900, border: 'none', padding: '0.65rem 1.25rem', borderRadius: '0.5rem', color: 'white' }}>Kaydet</button>
             </div>
           </div>
@@ -2267,15 +2267,15 @@ export default function BookContentManager() {
 
       {/* ── TOPIC MODAL ── */}
       {isTopicDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <h3 style={{ marginTop: 0, color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>{currentTopic ? '✏️ Konuyu Düzenle' : '➕ Yeni Konu Ekle'}</h3>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '420px', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 900 }}>{currentTopic ? '✏️ Konuyu Düzenle' : '➕ Yeni Konu Ekle'}</h3>
             <div className="form-group" style={{ margin: '1.25rem 0' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Konu Adı</label>
-              <input type="text" value={newTopicName} onChange={e => setNewTopicName(e.target.value)} placeholder="Üslü Sayılar, Dinamik..." style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', boxSizing: 'border-box', fontSize: '0.95rem' }} autoFocus />
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Konu Adı</label>
+              <input type="text" value={newTopicName} onChange={e => setNewTopicName(e.target.value)} placeholder="Üslü Sayılar, Dinamik..." style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', boxSizing: 'border-box', fontSize: '0.95rem' }} autoFocus />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsTopicDialogOpen(false)} style={{ color: '#475569', borderColor: '#cbd5e1', background: '#f8fafc' }}>İptal</button>
+              <button className="btn btn-outline" onClick={() => setIsTopicDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
               <button className="btn btn-primary" onClick={handleTopicSave} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', fontWeight: 900, border: 'none', padding: '0.65rem 1.25rem', borderRadius: '0.5rem', color: 'white' }}>Kaydet</button>
             </div>
           </div>
@@ -2284,55 +2284,55 @@ export default function BookContentManager() {
 
       {/* ── TEST MODAL ── */}
       {isTestDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 900 }}>
                 {currentTest ? `✏️ Testi Düzenle: ${currentTest.name}` : '➕ Yeni Test Ekle'}
               </h3>
-              <button onClick={() => setIsTestDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setIsTestDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <X size={20} />
               </button>
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Test Adı</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Test Adı</label>
               <input 
                 type="text" 
                 value={testFormData.name} 
                 onChange={e => setTestFormData(p => ({...p, name: e.target.value}))} 
                 placeholder="Örn: Test 1, Kazanım Testi 1..." 
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
                 autoFocus 
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Soru Sayısı</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
               <input 
                 type="number" 
                 min="1"
                 max="100"
                 value={testFormData.questionCount} 
                 onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value) || 0}))} 
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>PDF Linki (İsteğe Bağlı)</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>PDF Linki (İsteğe Bağlı)</label>
               <input
                 type="url"
                 value={testFormData.pdfUrl || ''}
                 onChange={e => setTestFormData(p => ({...p, pdfUrl: e.target.value}))}
                 placeholder="https://drive.google.com/... veya PDF URL"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.88rem', boxSizing: 'border-box' }}
               />
             </div>
 
             {book.bookType !== 'open_ended' && (
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
                   <span>Cevap Anahtarı ({book.optionCount === 4 ? 'A, B, C, D' : 'A, B, C, D, E'})</span>
                   <input 
                     type="text" 
@@ -2345,18 +2345,18 @@ export default function BookContentManager() {
                       });
                       setTestFormData(p => ({...p, answerKey: newKey}));
                     }}
-                    style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem', borderRadius: '0.5rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', width: '160px', fontWeight: 800 }}
+                    style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem', borderRadius: '0.5rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', width: '160px', fontWeight: 800 }}
                   />
                 </label>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto', padding: '0.75rem', background: '#f8fafc', borderRadius: '0.65rem', border: '1.5px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
                   {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
                     const qNum = i + 1;
                     const val = testFormData.answerKey?.[qNum] || '';
                     const optList = book.optionCount === 4 ? ['A','B','C','D'] : ['A','B','C','D','E'];
                     return (
-                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#ffffff', padding: '0.4rem 0.6rem', borderRadius: '0.45rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: '#64748b' }}>{qNum}.</div>
+                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: '0.45rem', border: '1px solid var(--color-border)' }}>
+                        <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
                           {optList.map(opt => {
                             const isSelected = val === opt;
@@ -2366,9 +2366,9 @@ export default function BookContentManager() {
                                 key={opt}
                                 onClick={() => setTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
                                 style={{
-                                  width: '26px', height: '26px', borderRadius: '50%', border: isSelected ? 'none' : '1px solid #cbd5e1',
-                                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#ffffff',
-                                  color: isSelected ? 'white' : '#334155', cursor: 'pointer', fontWeight: 900, fontSize: '0.72rem',
+                                  width: '26px', height: '26px', borderRadius: '50%', border: isSelected ? 'none' : '1px solid var(--color-border-input)',
+                                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                                  color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 900, fontSize: '0.72rem',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
                                 }}
                               >
@@ -2381,14 +2381,14 @@ export default function BookContentManager() {
                     );
                   })}
                   {(!testFormData.questionCount || testFormData.questionCount === 0) && (
-                    <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: '#64748b' }}>Önce soru sayısı girin.</span>
+                    <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
                   )}
                 </div>
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid #e2e8f0', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)} style={{ color: '#475569', borderColor: '#cbd5e1', background: '#f8fafc' }}>İptal</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
+              <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
               <button className="btn btn-primary" onClick={handleTestSave} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '0.65rem 1.4rem', fontWeight: 900, border: 'none', borderRadius: '0.5rem', color: 'white' }}>Kaydet</button>
             </div>
           </div>
@@ -2397,33 +2397,33 @@ export default function BookContentManager() {
 
       {/* ── 🏫 ADVANCED ASSIGN HOMEWORK MODAL ── */}
       {isAssignDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '560px', padding: '1.75rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
-              <h3 style={{ marginTop: 0, marginBottom: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '560px', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ marginTop: 0, marginBottom: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
                 <Send size={20} style={{ color: '#6366f1' }} /> Ödev Ata ({selectedTests.length} Test Seçildi)
               </h3>
-              <button onClick={() => setIsAssignDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setIsAssignDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <XCircle size={20} />
               </button>
             </div>
 
             {/* Custom Homework Title Input */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Ödev Başlığı</label>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Ödev Başlığı</label>
               <input
                 type="text"
                 value={assignCustomTitle}
                 onChange={(e) => setAssignCustomTitle(e.target.value)}
                 placeholder="Örn: LGS Matematik 1. Dönem Ödevi"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
               />
             </div>
 
             {/* Target Type Selector (Class vs Student) */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Hedef Kitle Seçimi</label>
-              <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '0.35rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Hedef Kitle Seçimi</label>
+              <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface-hover)', padding: '0.35rem', borderRadius: '0.75rem', border: '1px solid var(--color-border)' }}>
                 <button
                   type="button"
                   onClick={() => { setAssignTargetMode("class"); setAssignSelectedTargetIds([]); }}
@@ -2689,35 +2689,35 @@ export default function BookContentManager() {
         const bookSolvePct = totalBookTests > 0 ? Math.round((totalSolvedBookTests / totalBookTests) * 100) : 0;
 
         return (
-          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
-            <div className="modal-content" style={{ width: '96vw', maxWidth: '880px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
+          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem' }}>
+            <div className="modal-content" style={{ width: '96vw', maxWidth: '880px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
               
               {/* Modal Header */}
-              <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1.5px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ padding: '1.5rem 1.75rem', borderBottom: '1.5px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.35rem', fontWeight: 900 }}>
+                    <h3 style={{ margin: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.35rem', fontWeight: 900 }}>
                       <Clock size={24} style={{ color: '#0284c7' }} /> İçerik Test Tarihlerini Planla
                     </h3>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 900, background: totalSolvedBookTests > 0 ? '#f0fdf4' : '#eff6ff', color: totalSolvedBookTests > 0 ? '#15803d' : '#1d4ed8', padding: '0.25rem 0.75rem', borderRadius: '1rem', border: `1px solid ${totalSolvedBookTests > 0 ? '#bbf7d0' : '#bfdbfe'}` }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 900, background: totalSolvedBookTests > 0 ? '#f0fdf4' : 'rgba(37,99,235,0.12)', color: totalSolvedBookTests > 0 ? '#15803d' : '#60a5fa', padding: '0.25rem 0.75rem', borderRadius: '1rem', border: `1px solid ${totalSolvedBookTests > 0 ? '#bbf7d0' : '#3b82f6'}` }}>
                       {totalSolvedBookTests > 0 ? `🟢 ${totalSolvedBookTests}/${totalBookTests} Test Çözüldü (%${bookSolvePct})` : `⏳ 0/${totalBookTests} Çözüldü`}
                     </span>
                   </div>
                   
-                  <div style={{ margin: '0.35rem 0 0 0', color: '#64748b', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#0f172a', fontWeight: 800 }}>{scheduleModalHw.title}</span>
+                  <div style={{ margin: '0.35rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                    <span style={{ color: 'var(--color-text)', fontWeight: 800 }}>{scheduleModalHw.title}</span>
                     {modalTargetStudents.length === 1 ? (
                       <span style={{ background: '#faf5ff', color: '#7e22ce', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.78rem', fontWeight: 900, border: '1px solid #e9d5ff' }}>
                         👤 Öğrenci: {modalTargetStudents[0].name}
                       </span>
                     ) : modalTargetStudents.length > 1 ? (
-                      <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.78rem', fontWeight: 900, border: '1px solid #bfdbfe' }}>
+                      <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', fontSize: '0.78rem', fontWeight: 900, border: '1px solid #3b82f6' }}>
                         👥 {modalTargetStudents.length} Öğrenci ({modalTargetStudents.slice(0, 2).map(s => s.name).join(', ')}...)
                       </span>
                     ) : null}
                   </div>
                 </div>
-                <button onClick={() => setScheduleModalHw(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <button onClick={() => setScheduleModalHw(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                   <XCircle size={24} />
                 </button>
               </div>
@@ -2726,26 +2726,26 @@ export default function BookContentManager() {
               <div style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }} className="custom-scrollbar">
                 
                 {/* Quick Auto Distribute Box */}
-                <div style={{ background: '#f0f9ff', padding: '1.15rem 1.35rem', borderRadius: '1rem', border: '1.5px solid #bae6fd', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ background: 'var(--color-surface-hover)', padding: '1.15rem 1.35rem', borderRadius: '1rem', border: '1.5px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Zap size={18} /> Otomatik Tarih Dağıtıcı (Hızlı Planlama)
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', alignItems: 'end' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', color: '#0f172a', fontWeight: 800, marginBottom: '0.35rem' }}>Başlangıç Tarihi:</label>
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--color-text)', fontWeight: 800, marginBottom: '0.35rem' }}>Başlangıç Tarihi:</label>
                       <input
                         type="date"
                         value={autoStartDate}
                         onChange={(e) => setAutoStartDate(e.target.value)}
-                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '0.88rem', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.88rem', boxSizing: 'border-box' }}
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', color: '#0f172a', fontWeight: 800, marginBottom: '0.35rem' }}>Test Sıklığı (Aralık):</label>
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--color-text)', fontWeight: 800, marginBottom: '0.35rem' }}>Test Sıklığı (Aralık):</label>
                       <select
                         value={autoIntervalDays}
                         onChange={(e) => setAutoIntervalDays(Number(e.target.value))}
-                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '0.88rem', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.88rem', boxSizing: 'border-box' }}
                       >
                         <option value={1}>Her Gün 1 Test (+1 Gün)</option>
                         <option value={2}>2 Günde 1 Test (+2 Gün - Önerilen)</option>

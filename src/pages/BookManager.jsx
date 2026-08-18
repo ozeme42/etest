@@ -273,7 +273,7 @@ export default function BookManager() {
           <button 
             className="btn btn-outline" 
             onClick={() => navigate(currentUser?.role === 'admin' ? '/admin' : '/teacher')} 
-            style={{ padding: '0.6rem', border: '1.5px solid #cbd5e1', background: '#ffffff', borderRadius: '0.75rem', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ padding: '0.6rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', borderRadius: '0.75rem', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Geri Dön"
           >
             <ArrowLeft size={20} />
@@ -285,7 +285,7 @@ export default function BookManager() {
 
           <div className="books-header-titles">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.65rem', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.2rem 0.65rem', borderRadius: '6px', border: '1px solid #3b82f6' }}>
                 📚 FİZİKİ KİTAP &amp; SORU BANKASI MERKEZİ
               </span>
             </div>
@@ -451,7 +451,7 @@ export default function BookManager() {
                 </button>
                 <button 
                   title="JSON İle Toplu İçerik Ekle"
-                  style={{ padding: '0.75rem', width: '3.2rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ padding: '0.75rem', width: '3.2rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onClick={() => {
                     setJsonInput("");
                     setImportModal({ isOpen: true, book });
@@ -468,37 +468,37 @@ export default function BookManager() {
 
       {/* ── NEW / EDIT BOOK MODAL ── */}
       {isDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', padding: '2rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <h2 style={{ color: '#0f172a', fontSize: '1.4rem', fontWeight: 900, marginBottom: '0.35rem' }}>{editingBook ? "✏️ Kitabı Düzenle" : "➕ Yeni Kitap Ekle"}</h2>
-            <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.88rem' }}>{editingBook ? "Kitap bilgilerini güncelleyin." : "Takip edilecek yeni bir kitap oluşturun."}</p>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', padding: '2rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', color: 'var(--color-text)' }}>
+            <h2 style={{ color: 'var(--color-text)', fontSize: '1.4rem', fontWeight: 900, marginBottom: '0.35rem' }}>{editingBook ? "✏️ Kitabı Düzenle" : "➕ Yeni Kitap Ekle"}</h2>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.88rem' }}>{editingBook ? "Kitap bilgilerini güncelleyin." : "Takip edilecek yeni bir kitap oluşturun."}</p>
             
             <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '0.4rem' }}>Kitap Adı</label>
+              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Kitap Adı</label>
               <input 
                 type="text" 
                 value={newBook.title} 
                 onChange={(e) => setNewBook({ ...newBook, title: e.target.value })} 
                 placeholder="Örn: 8. Sınıf LGS Matematik Soru Bankası"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.95rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.95rem', boxSizing: 'border-box' }}
               />
             </div>
             
             <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '0.4rem' }}>Yayınevi</label>
+              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Yayınevi</label>
               <input 
                 type="text" 
                 value={newBook.publisher} 
                 onChange={(e) => setNewBook({ ...newBook, publisher: e.target.value })} 
                 placeholder="Örn: Çap Yayınları, Merkez Yayınları..."
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.95rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.95rem', boxSizing: 'border-box' }}
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '0.4rem' }}>Kitap Türü</label>
+              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Kitap Türü</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'standard' ? '#6366f1' : '#e2e8f0'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'standard' ? '#eff6ff' : '#f8fafc' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'standard' ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)' }}>
                   <input 
                     type="radio" 
                     name="bookType" 
@@ -507,9 +507,9 @@ export default function BookManager() {
                     onChange={() => setNewBook({ ...newBook, bookType: 'standard' })}
                     style={{ accentColor: '#6366f1' }}
                   />
-                  <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>Standart Soru Bankası</strong> (Çoktan Seçmeli)
+                  <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>Standart Soru Bankası</strong> (Çoktan Seçmeli)
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'open_ended' ? '#8b5cf6' : '#e2e8f0'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'open_ended' ? '#faf5ff' : '#f8fafc' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'open_ended' ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
                   <input 
                     type="radio" 
                     name="bookType" 
@@ -518,16 +518,16 @@ export default function BookManager() {
                     onChange={() => setNewBook({ ...newBook, bookType: 'open_ended' })}
                     style={{ accentColor: '#8b5cf6' }}
                   />
-                  <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>Açık Uçlu Kitap</strong> (Klasik / Yazılı Sorular)
+                  <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>Açık Uçlu Kitap</strong> (Klasik / Yazılı Sorular)
                 </label>
               </div>
             </div>
 
             {newBook.bookType !== 'open_ended' && (
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '0.4rem' }}>Optik Form Seçenek Sayısı (Seviye)</label>
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Optik Form Seçenek Sayısı (Seviye)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 4 ? '#16a34a' : '#e2e8f0'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.optionCount === 4 ? '#f0fdf4' : '#f8fafc' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 4 ? '#16a34a' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.optionCount === 4 ? 'rgba(22,163,74,0.12)' : 'var(--color-surface-hover)' }}>
                     <input
                       type="radio"
                       name="optionCount"
@@ -537,11 +537,11 @@ export default function BookManager() {
                       style={{ accentColor: '#16a34a' }}
                     />
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0f172a' }}>4 Şık (A-D)</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Ortaokul / LGS</div>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Ortaokul / LGS</div>
                     </div>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 5 ? '#8b5cf6' : '#e2e8f0'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.optionCount === 5 ? '#faf5ff' : '#f8fafc' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.optionCount === 5 ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
                     <input
                       type="radio"
                       name="optionCount"
@@ -551,8 +551,8 @@ export default function BookManager() {
                       style={{ accentColor: '#8b5cf6' }}
                     />
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0f172a' }}>5 Şık (A-E)</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Lise / YKS</div>
+                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
                     </div>
                   </label>
                 </div>
@@ -560,18 +560,18 @@ export default function BookManager() {
             )}
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '0.4rem' }}>PDF Linki (İsteğe Bağlı)</label>
+              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>PDF Linki (İsteğe Bağlı)</label>
               <input
                 type="url"
                 value={newBook.pdfUrl || ''}
                 onChange={(e) => setNewBook({ ...newBook, pdfUrl: e.target.value })}
                 placeholder="https://drive.google.com/... veya direkt PDF URL"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
               />
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsDialogOpen(false)} style={{ color: '#475569', borderColor: '#cbd5e1', padding: '0.65rem 1.25rem', background: '#f8fafc', borderRadius: '0.75rem' }}>İptal</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+              <button className="btn btn-outline" onClick={() => setIsDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', padding: '0.65rem 1.25rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem' }}>İptal</button>
               <button className="btn btn-primary" onClick={handleAddOrUpdateBook} style={{ padding: '0.65rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff' }}>{editingBook ? "✓ Güncelle" : "➕ Ekle"}</button>
             </div>
           </div>
@@ -580,18 +580,18 @@ export default function BookManager() {
 
       {/* ── JSON IMPORT MODAL ── */}
       {importModal.isOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '720px', padding: '2rem', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a' }}>
-            <h2 style={{ color: '#0f172a', fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+          <div className="modal-content" style={{ width: '96vw', maxWidth: '720px', padding: '2rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', color: 'var(--color-text)' }}>
+            <h2 style={{ color: 'var(--color-text)', fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FileJson style={{ color: '#6366f1' }} /> Toplu İçerik İçe Aktar
             </h2>
-            <p style={{ color: '#64748b', marginBottom: '1.25rem', fontSize: '0.88rem' }}>
-              <strong style={{ color: '#1e40af' }}>{importModal.book?.title}</strong> kitabına ait dersleri, konuları ve testleri JSON formatında tek seferde ekleyin.
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.25rem', fontSize: '0.88rem' }}>
+              <strong style={{ color: '#60a5fa' }}>{importModal.book?.title}</strong> kitabına ait dersleri, konuları ve testleri JSON formatında tek seferde ekleyin.
             </p>
             
-            <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1.25rem' }}>
+            <div style={{ background: 'rgba(37,99,235,0.1)', border: '1.5px solid #3b82f6', padding: '1rem', borderRadius: '0.85rem', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <span style={{ fontWeight: 800, color: '#1e40af', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ fontWeight: 800, color: '#60a5fa', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <AlertCircle size={16} /> Kopyalanabilir Örnek JSON Formatları:
                 </span>
                 <button
@@ -615,8 +615,8 @@ export default function BookManager() {
                   onClick={() => setSampleFormatTab("standard")}
                   style={{
                     padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
-                    background: sampleFormatTab === "standard" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#ffffff',
-                    color: sampleFormatTab === "standard" ? '#ffffff' : '#475569',
+                    background: sampleFormatTab === "standard" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                    color: sampleFormatTab === "standard" ? '#ffffff' : 'var(--color-text)',
                     boxShadow: sampleFormatTab === "standard" ? '0 2px 8px rgba(99,102,241,0.2)' : 'none'
                   }}
                 >
@@ -627,8 +627,8 @@ export default function BookManager() {
                   onClick={() => setSampleFormatTab("direct")}
                   style={{
                     padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
-                    background: sampleFormatTab === "direct" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#ffffff',
-                    color: sampleFormatTab === "direct" ? '#ffffff' : '#475569',
+                    background: sampleFormatTab === "direct" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                    color: sampleFormatTab === "direct" ? '#ffffff' : 'var(--color-text)',
                     boxShadow: sampleFormatTab === "direct" ? '0 2px 8px rgba(99,102,241,0.2)' : 'none'
                   }}
                 >
@@ -639,8 +639,8 @@ export default function BookManager() {
                   onClick={() => setSampleFormatTab("open_ended")}
                   style={{
                     padding: '0.4rem 0.85rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
-                    background: sampleFormatTab === "open_ended" ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#ffffff',
-                    color: sampleFormatTab === "open_ended" ? '#ffffff' : '#475569',
+                    background: sampleFormatTab === "open_ended" ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'var(--color-surface)',
+                    color: sampleFormatTab === "open_ended" ? '#ffffff' : 'var(--color-text)',
                     boxShadow: sampleFormatTab === "open_ended" ? '0 2px 8px rgba(139,92,246,0.2)' : 'none'
                   }}
                 >
@@ -648,25 +648,25 @@ export default function BookManager() {
                 </button>
               </div>
 
-              <pre style={{ background: '#f8fafc', color: '#0369a1', padding: '0.85rem', borderRadius: '0.5rem', fontSize: '0.82rem', overflowX: 'auto', margin: 0, maxHeight: '180px', border: '1px solid #e2e8f0' }}>
+              <pre style={{ background: 'var(--color-surface)', color: '#38bdf8', padding: '0.85rem', borderRadius: '0.5rem', fontSize: '0.82rem', overflowX: 'auto', margin: 0, maxHeight: '180px', border: '1px solid var(--color-border)' }}>
                 {sampleJsonFormats[sampleFormatTab]}
               </pre>
             </div>
             
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '0.4rem' }}>JSON Verisini Buraya Yapıştırın</label>
+              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>JSON Verisini Buraya Yapıştırın</label>
               <textarea 
                 autoFocus 
                 value={jsonInput} 
                 onChange={(e) => setJsonInput(e.target.value)} 
                 placeholder='Yukarıdaki "Kopyala ve Kutuya Yapıştır" butonuna basarak örnek veriyi buraya aktarabilir ve düzenleyebilirsiniz...'
-                style={{ width: '100%', minHeight: '180px', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                style={{ width: '100%', minHeight: '180px', padding: '0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 spellCheck={false}
               />
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setImportModal({ isOpen: false, book: null })} style={{ color: '#475569', borderColor: '#cbd5e1', background: '#f8fafc', padding: '0.65rem 1.25rem', borderRadius: '0.5rem' }}>Vazgeç</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+              <button className="btn btn-outline" onClick={() => setImportModal({ isOpen: false, book: null })} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface-hover)', padding: '0.65rem 1.25rem', borderRadius: '0.5rem' }}>Vazgeç</button>
               <button className="btn btn-primary" onClick={handleImportJson} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', fontWeight: 900, color: 'white', padding: '0.65rem 1.5rem', borderRadius: '0.5rem' }}>Verileri Aktar</button>
             </div>
           </div>
