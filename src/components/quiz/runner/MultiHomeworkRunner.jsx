@@ -302,13 +302,13 @@ function RightOptikPanel({
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
-    <div style={{ width: '100%', background: '#ffffff', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1rem', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', fontWeight: 900, fontSize: isMobile ? '0.8rem' : '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ width: '100%', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1rem', background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)', fontWeight: 900, fontSize: isMobile ? '0.8rem' : '0.85rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{isReviewMode ? '🔍 İnceleme & Cevaplar' : '📋 Optik Kodlama'}</span>
-        <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', color: '#64748b' }}>Toplam {qCount} Soru</span>
+        <span style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', color: 'var(--color-text-muted)' }}>Toplam {qCount} Soru</span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.4rem' : '0.85rem', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.35rem' : '0.65rem', background: '#f8fafc' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0.4rem' : '0.85rem', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.35rem' : '0.65rem', background: 'var(--color-bg)' }}>
         {Array.from({ length: qCount }).map((_, idx) => {
           const qNo = idx + 1;
           const qObj = (resolvedQuestions && resolvedQuestions[idx]) || {};
@@ -323,8 +323,8 @@ function RightOptikPanel({
             : (userAns !== undefined && userAns !== null ? checkIsAnswerCorrect(userAns, qObj, bankQ, qNo) : null);
 
           return (
-            <div key={qNo} style={{ background: '#ffffff', padding: isMobile ? '0.4rem 0.5rem' : '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.3rem' : '0.4rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: isMobile ? '0.72rem' : '0.78rem', color: '#0f172a' }}>
+            <div key={qNo} style={{ background: 'var(--color-surface)', padding: isMobile ? '0.4rem 0.5rem' : '0.65rem 0.75rem', borderRadius: '0.65rem', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: isMobile ? '0.3rem' : '0.4rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text)' }}>
                 <span>Soru {qNo} {isQOE ? '(✍️ Yazılı)' : ''}</span>
                 {isReviewMode ? (
                   isQOE ? (
@@ -580,16 +580,16 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
   const hasOE = totalOEQuestions > 0;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
-      <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.5rem', width: '100%', maxWidth: '750px', color: '#0f172a', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', margin: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
+      <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.5rem', width: '100%', maxWidth: '750px', color: 'var(--color-text)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', margin: 'auto' }}>
         
         {/* TOP HEADER */}
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#ecfdf5', border: '2px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
             🎉
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>Sınav Başarıyla Gönderildi!</h2>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>{test.title || test.name}</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: 'var(--color-text)' }}>Sınav Başarıyla Gönderildi!</h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', margin: 0 }}>{test.title || test.name}</p>
         </div>
 
         {/* TEACHER EVALUATION ALERT BANNER */}
@@ -609,18 +609,18 @@ function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose }) {
 
         {/* OVERALL SUMMARY CARDS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800 }}>ÇOKTAN SEÇMELİ NET</div>
+          <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>ÇOKTAN SEÇMELİ NET</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0284c7', marginTop: '0.2rem' }}>{totalMCNet.toFixed(2)}</div>
           </div>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800 }}>DOĞRU / YANLIŞ</div>
+          <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>DOĞRU / YANLIŞ</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '0.3rem' }}>
               {totalMCDoğru} <span style={{ fontSize: '0.85rem', color: '#dc2626' }}>D / {totalMCYanlış} Y</span>
             </div>
           </div>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
+          <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '1rem', padding: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7c3aed', marginTop: '0.3rem' }}>
               {totalOECevaplanan} / {totalOEQuestions}
             </div>

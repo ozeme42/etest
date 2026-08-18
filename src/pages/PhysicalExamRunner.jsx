@@ -448,7 +448,7 @@ export default function PhysicalExamRunner() {
   const currentAnswers = answers[activeSubject?.name] || [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc', color: '#0f172a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
       {/* ── HEADER ── */}
       <header style={{ 
@@ -456,8 +456,8 @@ export default function PhysicalExamRunner() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#ffffff', 
-        borderBottom: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)', 
+        borderBottom: '1.5px solid var(--color-border)',
         position: 'sticky', 
         top: 0, 
         zIndex: 10,
@@ -483,7 +483,7 @@ export default function PhysicalExamRunner() {
               FİZİKİ DENEME
             </span>
             <h2 style={{ 
-              color: '#0f172a', 
+              color: 'var(--color-text)', 
               fontSize: isMobile ? '0.9rem' : '1.1rem', 
               fontWeight: 800, 
               margin: 0, 
@@ -495,7 +495,7 @@ export default function PhysicalExamRunner() {
             </h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ color: '#64748b', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700 }}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700 }}>
               {homework.examType || 'LGS / YKS'} • {homework.totalQuestions} Soru ({subjects.length} Ders)
             </span>
             {!isSubmitted && (
@@ -514,9 +514,9 @@ export default function PhysicalExamRunner() {
             <div style={{
               padding: isMobile ? '0.35rem 0.6rem' : '0.4rem 0.85rem',
               borderRadius: '0.65rem',
-              background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
-              border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
-              color: timeLeft < 300 ? '#dc2626' : '#0f172a',
+              background: timeLeft < 300 ? '#fef2f2' : 'var(--color-surface)',
+              border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border)'}`,
+              color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
               fontWeight: 900,
               fontSize: isMobile ? '0.75rem' : '0.85rem',
               display: 'flex',
@@ -737,15 +737,15 @@ export default function PhysicalExamRunner() {
               
               {/* 1. SCORECARD HERO (AFTER SUBMISSION) */}
               {isSubmitted && results && (
-                <div style={{ background: '#ffffff', borderRadius: '1.25rem', padding: '1rem 1.25rem', color: '#0f172a', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid #e2e8f0' }}>
+                <div style={{ background: 'var(--color-surface)', borderRadius: '1.25rem', padding: '1rem 1.25rem', color: 'var(--color-text)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid var(--color-border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fef3c7', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Trophy size={22} color="#b45309" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748b' }}>Sonuç Karnesi</div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{homework.title}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-muted)' }}>Sonuç Karnesi</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>{homework.title}</div>
                       </div>
                     </div>
 
@@ -818,16 +818,16 @@ export default function PhysicalExamRunner() {
 
               {/* 3. OPTICAL QUESTIONS GRID FOR ACTIVE SUBJECT */}
               {activeSubject && (
-                <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: isMobile ? '1rem' : '1.25rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   
                   {/* Subject Title Bar inside Optic Panel */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#4f46e5' }} />
-                      <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
                         {activeSubject.name} — Optik Form
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                         ({activeSubject.count} Soru)
                       </span>
                     </div>
@@ -874,10 +874,10 @@ export default function PhysicalExamRunner() {
                         <div 
                           key={qNo} 
                           style={{
-                            background: selected ? '#eff6ff' : '#f8fafc',
+                            background: selected ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)',
                             padding: '0.75rem 0.85rem',
                             borderRadius: '0.85rem',
-                            border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid #e2e8f0',
+                            border: isCorrect ? '1.5px solid #bbf7d0' : isWrong ? '1.5px solid #fecaca' : selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -888,12 +888,12 @@ export default function PhysicalExamRunner() {
                             <span style={{
                               fontWeight: 900,
                               fontSize: '0.82rem',
-                              color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#0f172a'
+                              color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text)'
                             }}>
                               Soru {qNo}
                             </span>
                             {isSubmitted && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted)' }}>
                                 {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `—`}
                               </span>
                             )}
@@ -917,9 +917,9 @@ export default function PhysicalExamRunner() {
                                     fontWeight: 900,
                                     fontSize: '0.8rem',
                                     cursor: isSubmitted ? 'default' : 'pointer',
-                                    border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid #cbd5e1',
-                                    background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : '#ffffff',
-                                    color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : '#334155',
+                                    border: isSelected ? 'none' : isSubmitted && isThisOptCorrect ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
+                                    background: isSubmitted && isThisOptCorrect ? '#16a34a' : isSubmitted && isSelected && isWrong ? '#dc2626' : isSelected ? '#4f46e5' : 'var(--color-surface)',
+                                    color: isSelected || (isSubmitted && isThisOptCorrect) ? 'white' : 'var(--color-text)',
                                     transition: 'all 0.12s ease',
                                     boxShadow: isSelected ? '0 2px 8px rgba(79,70,229,0.3)' : 'none'
                                   }}
