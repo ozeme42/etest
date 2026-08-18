@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGoal } from '../context/GoalContext';
 import { useUser } from '../context/UserContext';
@@ -7,61 +7,66 @@ import { useCoaching } from '../context/CoachingContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { toUUID } from '../services/supabaseService';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import {
   Target, Plus, X, CalendarClock, CheckCircle2, BookOpen,
   Timer, Flame, Trophy, ChevronRight, ChevronDown,
-  Clock, Trash2, GraduationCap, Check, Sparkles, TrendingUp, Save, RefreshCw,
-  Brain, BookOpenCheck, BarChart3, Layers, CheckSquare, Square, Repeat, Zap, Award, ArrowLeft
+  Trash2, GraduationCap, Check, Sparkles, TrendingUp, Save, RefreshCw,
+  Brain, Award, ArrowLeft, Calendar, Zap, Compass, CheckCircle, BarChart3
 } from 'lucide-react';
-
-function cn(...inputs) { return twMerge(clsx(inputs)); }
 
 const WEEK_DAYS = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 const MONTH_WEEKS = ['Hafta 1', 'Hafta 2', 'Hafta 3', 'Hafta 4'];
 
 const GOAL_TYPE_CONFIG = {
-  Soru:   { color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.2)',    light: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: 'rgba(244, 63, 94, 0.35)', icon: Target,      unit: 'soru'  },
-  Sayfa:  { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.2)',   light: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.35)', icon: BookOpen,    unit: 'sayfa' },
-  Konu:   { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.2)', light: 'rgba(192, 132, 252, 0.15)', text: '#c084fc', border: 'rgba(192, 132, 252, 0.35)', icon: Brain,       unit: 'konu'  },
-  Dakika: { color: '#34d399', bg: 'rgba(52, 211, 153, 0.2)',  light: 'rgba(52, 211, 153, 0.15)', text: '#34d399', border: 'rgba(52, 211, 153, 0.35)', icon: Timer,       unit: 'dk'    },
-  Net:    { color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.2)',   light: 'rgba(34, 211, 238, 0.15)', text: '#22d3ee', border: 'rgba(34, 211, 238, 0.35)', icon: TrendingUp, unit: 'net'   },
-  Puan:   { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.2)',   light: 'rgba(251, 191, 36, 0.15)', text: '#fbbf24', border: 'rgba(251, 191, 36, 0.35)', icon: Trophy,     unit: 'puan'  },
+  Soru:   { color: '#e11d48', bg: '#ffe4e6', light: '#fff1f2', text: '#be123c', border: '#fecdd3', icon: Target,      unit: 'soru'  },
+  Sayfa:  { color: '#0284c7', bg: '#e0f2fe', light: '#f0f9ff', text: '#0369a1', border: '#bae6fd', icon: BookOpen,    unit: 'sayfa' },
+  Konu:   { color: '#7c3aed', bg: '#f3e8ff', light: '#faf5ff', text: '#6d28d9', border: '#e9d5ff', icon: Brain,       unit: 'konu'  },
+  Dakika: { color: '#059669', bg: '#d1fae5', light: '#ecfdf5', text: '#047857', border: '#a7f3d0', icon: Timer,       unit: 'dk'    },
+  Net:    { color: '#0891b2', bg: '#cffafe', light: '#ecfeff', text: '#0e7490', border: '#a5f3fc', icon: TrendingUp, unit: 'net'   },
+  Puan:   { color: '#d97706', bg: '#fef3c7', light: '#fffbeb', text: '#b45309', border: '#fde68a', icon: Trophy,     unit: 'puan'  },
 };
 
 const PERIOD_CONFIG = {
-  'Günlük':     { icon: Flame,        badge: 'bg-rose-500/20 text-rose-300 border border-rose-500/30' },
-  'Haftalık':   { icon: CalendarClock,badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/30' },
-  'Aylık':      { icon: Trophy,       badge: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' },
-  'Uzun Vadeli':{ icon: GraduationCap,badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' },
+  'Günlük':     { icon: Flame,        badgeBg: '#ffe4e6', badgeText: '#e11d48', border: '#fecdd3' },
+  'Haftalık':   { icon: CalendarClock,badgeBg: '#f3e8ff', badgeText: '#7c3aed', border: '#e9d5ff' },
+  'Aylık':      { icon: Trophy,       badgeBg: '#e0e7ff', badgeText: '#4338ca', border: '#c7d2fe' },
+  'Uzun Vadeli':{ icon: GraduationCap,badgeBg: '#d1fae5', badgeText: '#047857', border: '#a7f3d0' },
 };
 
-/* ─── Mini progress bar ─── */
+/* ─── Mini Progress Bar ─── */
 function BarProgress({ value, color }) {
   return (
-    <div style={{ width: '100%', height: 7, background: 'rgba(255, 255, 255, 0.1)', borderRadius: 99, overflow: 'hidden' }}>
-      <div style={{ height: '100%', borderRadius: 99, transition: 'all 0.6s ease', width: `${Math.min(100, Math.max(0, value))}%`, background: color || 'linear-gradient(90deg, #6366f1, #a855f7)' }} />
+    <div style={{ width: '100%', height: 7, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+      <div style={{
+        height: '100%',
+        borderRadius: 99,
+        transition: 'all 0.5s ease',
+        width: `${Math.min(100, Math.max(0, value))}%`,
+        background: color || 'linear-gradient(90deg, #4f46e5, #7c3aed)'
+      }} />
     </div>
   );
 }
 
 /* ─── Ring SVG ─── */
-function Ring({ value, size = 64, stroke = 6, color }) {
+function Ring({ value, size = 60, stroke = 5, color }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (circ * Math.min(100, Math.max(0, value))) / 100;
   return (
-    <svg width={size} height={size} className="-rotate-90 shrink-0">
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+      <circle
+        cx={size/2} cy={size/2} r={r} fill="none"
+        stroke={color} strokeWidth={stroke}
         strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-        style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+      />
     </svg>
   );
 }
 
-/* ─── Helper to parse checklist items ─── */
+/* ─── Parsers ─── */
 export const parseCheckableGoalList = (val, defaultItems = []) => {
   if (Array.isArray(val) && val.length > 0) return val;
   if (typeof val === 'string' && val.trim()) {
@@ -74,170 +79,43 @@ export const parseCheckableGoalList = (val, defaultItems = []) => {
   return defaultItems;
 };
 
-/* ─── Helper for Daily Habits with 7-Day Matrix ─── */
 export const parseDailyHabitList = (val, defaultItems = []) => {
   if (Array.isArray(val) && val.length > 0) {
     return val.map(item => ({
       id: item.id || `d_${Math.random()}`,
       text: typeof item === 'string' ? item : item.text || '',
-      days: item.days || { Pzt: true, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false }
+      days: item.days || { Pzt: false, Sal: false, Çrş: false, Prş: false, Cum: false, Cts: false, Paz: false }
     }));
   }
   if (typeof val === 'string' && val.trim()) {
     return val.split('\n').filter(Boolean).map((line, i) => ({
       id: `dh_${i}_${Date.now()}`,
       text: line.replace(/^[•\-\*\d\.\s]+/, '').trim(),
-      days: { Pzt: i % 2 === 0, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false }
+      days: { Pzt: i % 2 === 0, Sal: true, Çrş: false, Prş: false, Cum: true, Cts: false, Paz: false }
     }));
   }
   return defaultItems;
 };
 
-/* ─── Helper for Weekly Habits with 4-Week Matrix ─── */
 export const parseWeeklyHabitList = (val, defaultItems = []) => {
   if (Array.isArray(val) && val.length > 0) {
     return val.map(item => ({
       id: item.id || `w_${Math.random()}`,
       text: typeof item === 'string' ? item : item.text || '',
-      weeks: item.weeks || { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': true, 'Hafta 4': false }
+      weeks: item.weeks || { 'Hafta 1': false, 'Hafta 2': false, 'Hafta 3': false, 'Hafta 4': false }
     }));
   }
   if (typeof val === 'string' && val.trim()) {
     return val.split('\n').filter(Boolean).map((line, i) => ({
       id: `wh_${i}_${Date.now()}`,
       text: line.replace(/^[•\-\*\d\.\s]+/, '').trim(),
-      weeks: { 'Hafta 1': true, 'Hafta 2': i % 2 === 0, 'Hafta 3': true, 'Hafta 4': false }
+      weeks: { 'Hafta 1': true, 'Hafta 2': false, 'Hafta 3': false, 'Hafta 4': false }
     }));
   }
   return defaultItems;
 };
 
-/* ─── Collapsible Monthly Goal Checklist ─── */
-function MonthlyChecklistSection({ title, icon: Icon, colorClass, badgeText, items, onToggleItem, onAddItem, onDeleteItem }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [newText, setNewText] = useState('');
-  const completedCount = items.filter(i => i.done).length;
-  const totalCount = items.length;
-  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (newText.trim()) {
-      onAddItem(newText.trim());
-      setNewText('');
-    }
-  };
-
-  return (
-    <div style={{
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-      border: '1.5px solid rgba(255, 255, 255, 0.14)',
-      borderRadius: '1.25rem',
-      padding: '1.1rem',
-      boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-      backdropFilter: 'blur(20px)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.85rem'
-    }}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(v => !v)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.65rem', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, fontSize: '0.82rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#818cf8' }}>
-          {isOpen ? <ChevronDown size={18} color="#a5b4fc" /> : <ChevronRight size={18} color="#a5b4fc" />}
-          <Icon size={18} /> {title}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(255, 255, 255, 0.6)' }}>
-            {completedCount}/{totalCount} Tamamlandı (%{pct})
-          </span>
-          <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(99, 102, 241, 0.25)', color: '#c7d2fe', border: '1px solid rgba(165, 180, 252, 0.3)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-            {badgeText}
-          </span>
-        </div>
-      </button>
-
-      {isOpen && (
-        <>
-          {totalCount > 0 && <BarProgress value={pct} color={pct === 100 ? '#34d399' : '#818cf8'} />}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.25rem' }}>
-            {items.map(item => (
-              <div
-                key={item.id}
-                onClick={() => onToggleItem(item.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: '0.85rem',
-                  background: item.done ? 'rgba(5, 150, 105, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  border: item.done ? '1px solid rgba(52, 211, 153, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
-                  <button
-                    type="button"
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      border: item.done ? 'none' : '1.5px solid rgba(255,255,255,0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: item.done ? '#10b981' : 'transparent',
-                      color: 'white',
-                      flexShrink: 0,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {item.done && <Check size={14} strokeWidth={3} />}
-                  </button>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: item.done ? '#6ee7b7' : '#f8fafc', textDecoration: item.done ? 'line-through' : 'none', lineHeight: 1.3 }}>
-                    {item.text}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
-                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', padding: 4, cursor: 'pointer', borderRadius: 4 }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.25rem' }}>
-            <input
-              type="text"
-              placeholder="+ Yeni aylık hedef maddesi..."
-              value={newText}
-              onChange={e => setNewText(e.target.value)}
-              style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', outline: 'none' }}
-            />
-            <button
-              type="submit"
-              style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}
-            >
-              <Plus size={14} /> Ekle
-            </button>
-          </form>
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ─── 🔥 GÜNLÜK RUTİN ALIŞKANLIK & SERİ TAKİBİ COMPONENT ─── */
+/* ─── 1. GÜNLÜK RUTİN ALIŞKANLIK & SERİ TAKİBİ ─── */
 function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }) {
   const [newText, setNewText] = useState('');
 
@@ -260,53 +138,68 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-      border: '1.5px solid rgba(244, 63, 94, 0.35)',
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
       borderRadius: '1.25rem',
-      padding: '1.1rem',
-      boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-      backdropFilter: 'blur(20px)',
+      padding: '1.25rem',
+      boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.85rem'
+      gap: '1rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.65rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fb7185', fontWeight: 900, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          <Flame size={18} className="fill-rose-500 animate-pulse" /> 🔥 GÜNLÜK RUTİN & SERİ TAKİBİ
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#e11d48', fontWeight: 900, fontSize: '0.9rem' }}>
+          <Flame size={20} color="#e11d48" /> 🔥 Günlük Rutinler & Seri Takibi (Pzt–Paz)
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'linear-gradient(135deg, #f59e0b, #f43f5e)', color: 'white', fontWeight: 900, fontSize: '0.72rem', boxShadow: '0 2px 10px rgba(244,63,94,0.4)' }}>
-            <Flame size={12} className="fill-white" /> {totalDaysCompleted} Günlük Seri!
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#fff1f2', color: '#e11d48', fontWeight: 900, fontSize: '0.75rem', border: '1px solid #fecdd3' }}>
+            <Flame size={13} color="#e11d48" /> {totalDaysCompleted} Günlük Tam Seri
           </span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', paddingTop: '0.25rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {items.length === 0 ? (
-          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', margin: 0 }}>Henüz günlük rutin maddesi eklenmedi.</p>
+          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+            Henüz günlük rutin eklenmedi. Aşağıdan hemen ekleyin!
+          </p>
         ) : (
           items.map(item => {
             const completedDaysCount = WEEK_DAYS.filter(d => item.days?.[d]).length;
             const pct = Math.round((completedDaysCount / 7) * 100);
 
             return (
-              <div key={item.id} style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '1rem', padding: '0.75rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+              <div key={item.id} style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '1rem',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Sparkles size={14} color="#fbbf24" />
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={14} color="#f59e0b" />
                     {item.text}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completedDaysCount === 7 ? '#16a34a' : '#64748b' }}>
                       {completedDaysCount}/7 Gün (%{pct})
                     </span>
-                    <button type="button" onClick={() => onDeleteItem(item.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 2 }} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
-                      <Trash2 size={13} />
+                    <button
+                      type="button"
+                      onClick={() => onDeleteItem(item.id)}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}
+                      title="Rutini Sil"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                {/* 7-Day Buttons Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
                   {WEEK_DAYS.map(day => {
                     const done = item.days?.[day];
                     return (
@@ -319,21 +212,30 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          padding: '0.4rem 0.2rem',
-                          borderRadius: '0.65rem',
-                          border: done ? '1.5px solid #f43f5e' : '1px solid rgba(255,255,255,0.12)',
-                          background: done ? 'linear-gradient(135deg, #f43f5e, #e11d48)' : 'rgba(255,255,255,0.06)',
-                          color: done ? 'white' : 'rgba(255,255,255,0.7)',
-                          fontSize: '0.68rem',
+                          padding: '0.5rem 0.2rem',
+                          borderRadius: '0.75rem',
+                          border: done ? '1.5px solid #f43f5e' : '1px solid #cbd5e1',
+                          background: done ? 'linear-gradient(135deg, #f43f5e, #e11d48)' : '#ffffff',
+                          color: done ? '#ffffff' : '#475569',
+                          fontSize: '0.72rem',
                           fontWeight: 900,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          boxShadow: done ? '0 2px 8px rgba(244,63,94,0.35)' : 'none'
+                          boxShadow: done ? '0 3px 10px rgba(244,63,94,0.3)' : '0 1px 3px rgba(0,0,0,0.02)'
                         }}
                       >
                         <span>{day}</span>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? 'white' : 'rgba(255,255,255,0.15)' }}>
-                          {done && <Check size={7} color="#f43f5e" strokeWidth={4} />}
+                        <div style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          marginTop: 3,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: done ? '#ffffff' : '#f1f5f9'
+                        }}>
+                          {done ? <Check size={9} color="#e11d48" strokeWidth={4} /> : null}
                         </div>
                       </button>
                     );
@@ -351,20 +253,42 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
           placeholder="+ Yeni günlük rutin ekle (Örn: Günlük 20 Paragraf sorusu)..."
           value={newText}
           onChange={e => setNewText(e.target.value)}
-          style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', outline: 'none' }}
+          style={{
+            flex: 1,
+            padding: '0.65rem 0.95rem',
+            borderRadius: '0.85rem',
+            border: '1.5px solid #cbd5e1',
+            background: '#ffffff',
+            color: '#0f172a',
+            fontSize: '0.85rem',
+            outline: 'none'
+          }}
         />
         <button
           type="submit"
-          style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(244,63,94,0.35)' }}
+          style={{
+            padding: '0.65rem 1.25rem',
+            borderRadius: '0.85rem',
+            background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+            border: 'none',
+            color: 'white',
+            fontSize: '0.85rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            boxShadow: '0 3px 10px rgba(244,63,94,0.3)'
+          }}
         >
-          <Plus size={14} /> Ekle
+          <Plus size={16} /> Ekle
         </button>
       </form>
     </div>
   );
 }
 
-/* ─── ⚡ HAFTALIK HEDEF ALIŞKANLIK & SERİ TAKİBİ COMPONENT ─── */
+/* ─── 2. HAFTALIK HEDEF ALIŞKANLIK & SERİ TAKİBİ (4-WEEK MATRIX) ─── */
 function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem }) {
   const [newText, setNewText] = useState('');
 
@@ -387,53 +311,66 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-      border: '1.5px solid rgba(168, 85, 247, 0.35)',
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
       borderRadius: '1.25rem',
-      padding: '1.1rem',
-      boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-      backdropFilter: 'blur(20px)',
+      padding: '1.25rem',
+      boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.85rem'
+      gap: '1rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.65rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#c084fc', fontWeight: 900, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          <Zap size={18} className="fill-purple-500" /> ⚡ HAFTALIK HEDEF & SERİ TAKİBİ
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#7c3aed', fontWeight: 900, fontSize: '0.9rem' }}>
+          <Zap size={20} color="#7c3aed" /> ⚡ Haftalık Hedefler & Ay İçi Takip (1–4. Hafta)
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'linear-gradient(135deg, #7c3aed, #6366f1)', color: 'white', fontWeight: 900, fontSize: '0.72rem', boxShadow: '0 2px 10px rgba(124,58,237,0.4)' }}>
-            <Trophy size={12} className="fill-white" /> {totalWeeksCompleted} Haftalık Seri!
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#f3e8ff', color: '#7c3aed', fontWeight: 900, fontSize: '0.75rem', border: '1px solid #e9d5ff' }}>
+            <Trophy size={13} color="#7c3aed" /> {totalWeeksCompleted} Hafta Tamamlandı
           </span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', paddingTop: '0.25rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {items.length === 0 ? (
-          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', margin: 0 }}>Henüz haftalık hedef maddesi eklenmedi.</p>
+          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+            Henüz haftalık hedef eklenmedi.
+          </p>
         ) : (
           items.map(item => {
             const completedWeeksCount = MONTH_WEEKS.filter(w => item.weeks?.[w]).length;
             const pct = Math.round((completedWeeksCount / 4) * 100);
 
             return (
-              <div key={item.id} style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '1rem', padding: '0.75rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+              <div key={item.id} style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '1rem',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Award size={14} color="#a855f7" />
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Award size={15} color="#7c3aed" />
                     {item.text}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completedWeeksCount === 4 ? '#16a34a' : '#64748b' }}>
                       {completedWeeksCount}/4 Hafta (%{pct})
                     </span>
-                    <button type="button" onClick={() => onDeleteItem(item.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 2 }} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
-                      <Trash2 size={13} />
+                    <button
+                      type="button"
+                      onClick={() => onDeleteItem(item.id)}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {MONTH_WEEKS.map(w => {
                     const done = item.weeks?.[w];
                     return (
@@ -445,21 +382,21 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 4,
-                          padding: '0.45rem 0.5rem',
-                          borderRadius: '0.65rem',
-                          border: done ? '1.5px solid #a855f7' : '1px solid rgba(255,255,255,0.12)',
-                          background: done ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'rgba(255,255,255,0.06)',
-                          color: done ? 'white' : 'rgba(255,255,255,0.7)',
-                          fontSize: '0.7rem',
+                          gap: 5,
+                          padding: '0.55rem 0.5rem',
+                          borderRadius: '0.75rem',
+                          border: done ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
+                          background: done ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : '#ffffff',
+                          color: done ? '#ffffff' : '#475569',
+                          fontSize: '0.75rem',
                           fontWeight: 900,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          boxShadow: done ? '0 2px 8px rgba(168,85,247,0.35)' : 'none'
+                          boxShadow: done ? '0 3px 10px rgba(124,58,237,0.3)' : 'none'
                         }}
                       >
                         <span>{w}</span>
-                        {done && <Check size={12} color="white" strokeWidth={3} />}
+                        {done && <Check size={13} color="#ffffff" strokeWidth={3} />}
                       </button>
                     );
                   })}
@@ -476,13 +413,176 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
           placeholder="+ Yeni haftalık hedef ekle (Örn: Haftada 400 soru + 2 deneme)..."
           value={newText}
           onChange={e => setNewText(e.target.value)}
-          style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', outline: 'none' }}
+          style={{
+            flex: 1,
+            padding: '0.65rem 0.95rem',
+            borderRadius: '0.85rem',
+            border: '1.5px solid #cbd5e1',
+            background: '#ffffff',
+            color: '#0f172a',
+            fontSize: '0.85rem',
+            outline: 'none'
+          }}
         />
         <button
           type="submit"
-          style={{ padding: '0.55rem 1rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#7c3aed,#6366f1)', border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(124,58,237,0.35)' }}
+          style={{
+            padding: '0.65rem 1.25rem',
+            borderRadius: '0.85rem',
+            background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+            border: 'none',
+            color: 'white',
+            fontSize: '0.85rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            boxShadow: '0 3px 10px rgba(124,58,237,0.3)'
+          }}
         >
-          <Plus size={14} /> Ekle
+          <Plus size={16} /> Ekle
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* ─── 3. ORTA VADELİ AYLIK KAZANIMLAR CHECKLIST ─── */
+function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem }) {
+  const [newText, setNewText] = useState('');
+  const completedCount = items.filter(i => i.done).length;
+  const totalCount = items.length;
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    if (newText.trim()) {
+      onAddItem(newText.trim());
+      setNewText('');
+    }
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '1.25rem',
+      padding: '1.25rem',
+      boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, fontSize: '0.9rem', color: '#4338ca' }}>
+          <Trophy size={20} color="#4f46e5" /> 📅 Bu Ayın Ana Kazanımları & Hedef Listesi
+        </div>
+        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#e0e7ff', color: '#4338ca', padding: '0.3rem 0.8rem', borderRadius: 99, border: '1px solid #c7d2fe' }}>
+          {completedCount}/{totalCount} Tamamlandı (%{pct})
+        </span>
+      </div>
+
+      {totalCount > 0 && <BarProgress value={pct} color={pct === 100 ? '#16a34a' : '#4f46e5'} />}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+        {items.length === 0 ? (
+          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '0.75rem 0' }}>
+            Henüz aylık hedef maddesi eklenmedi.
+          </p>
+        ) : (
+          items.map(item => (
+            <div
+              key={item.id}
+              onClick={() => onToggleItem(item.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.75rem 1rem',
+                borderRadius: '0.85rem',
+                background: item.done ? '#f0fdf4' : '#f8fafc',
+                border: item.done ? '1.5px solid #86efac' : '1.5px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                <button
+                  type="button"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    border: item.done ? 'none' : '1.5px solid #cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: item.done ? '#16a34a' : '#ffffff',
+                    color: 'white',
+                    flexShrink: 0,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {item.done && <Check size={13} strokeWidth={3} />}
+                </button>
+                <span style={{
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  color: item.done ? '#166534' : '#0f172a',
+                  textDecoration: item.done ? 'line-through' : 'none',
+                  lineHeight: 1.3
+                }}>
+                  {item.text}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', padding: 4, cursor: 'pointer' }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.25rem' }}>
+        <input
+          type="text"
+          placeholder="+ Yeni aylık hedef maddesi ekle..."
+          value={newText}
+          onChange={e => setNewText(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '0.65rem 0.95rem',
+            borderRadius: '0.85rem',
+            border: '1.5px solid #cbd5e1',
+            background: '#ffffff',
+            color: '#0f172a',
+            fontSize: '0.85rem',
+            outline: 'none'
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: '0.65rem 1.25rem',
+            borderRadius: '0.85rem',
+            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+            border: 'none',
+            color: 'white',
+            fontSize: '0.85rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            boxShadow: '0 3px 10px rgba(79,70,229,0.3)'
+          }}
+        >
+          <Plus size={16} /> Ekle
         </button>
       </form>
     </div>
@@ -510,58 +610,58 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
   return (
     <div style={{
       position: 'relative',
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-      border: done ? '1.5px solid rgba(52, 211, 153, 0.5)' : '1.5px solid rgba(255, 255, 255, 0.14)',
+      background: '#ffffff',
+      border: done ? '1.5px solid #86efac' : '1.5px solid #e2e8f0',
       borderRadius: '1.25rem',
-      padding: '1rem',
-      boxShadow: done ? '0 12px 36px rgba(16,185,129,0.2)' : '0 12px 36px rgba(0,0,0,0.35)',
-      backdropFilter: 'blur(20px)',
+      padding: '1.15rem',
+      boxShadow: '0 4px 16px rgba(100, 116, 139, 0.05)',
       display: 'flex',
       flexDirection: 'column',
       gap: '0.75rem',
-      transition: 'all 0.2s ease'
+      transition: 'all 0.15s ease'
     }}>
       {done && (
-        <div style={{ position: 'absolute', top: 12, right: 38, display: 'flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg,#059669,#10b981)', color: 'white', fontSize: '0.62rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: '0.05em', boxShadow: '0 2px 8px rgba(16,185,129,0.4)' }}>
-          <CheckCircle2 size={11} /> Tamam!
+        <div style={{ position: 'absolute', top: 12, right: 36, display: 'flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99, border: '1px solid #86efac' }}>
+          <CheckCircle2 size={12} /> Tamamlandı
         </div>
       )}
       <button
         onClick={() => onDelete(goal.id)}
-        style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', padding: 4, borderRadius: 6, cursor: 'pointer' }}
-        onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+        style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#94a3b8', padding: 4, cursor: 'pointer' }}
+        title="Hedefi Sil"
       >
         <Trash2 size={14} />
       </button>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <Ring value={pct} size={62} stroke={6} color={done ? '#34d399' : t.color} />
+          <Ring value={pct} size={58} stroke={5} color={done ? '#16a34a' : t.color} />
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: done ? '#4ade80' : '#ffffff' }}>{pct}%</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: done ? '#16a34a' : '#0f172a' }}>%{pct}</span>
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-            <span className={cn('inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full', p.badge)}>
-              <PIcon className="w-2.5 h-2.5" /> {goal.period}
+        <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, padding: '1px 7px', borderRadius: 99, background: p.badgeBg, color: p.badgeText, border: `1px solid ${p.border}` }}>
+              <PIcon size={10} /> {goal.period}
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '1px 8px', borderRadius: 99, background: t.bg, color: t.text, border: `1px solid ${t.border}` }}>
-              <TIcon className="w-2.5 h-2.5" /> {goal.type}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, padding: '1px 7px', borderRadius: 99, background: t.bg, color: t.text, border: `1px solid ${t.border}` }}>
+              <TIcon size={10} /> {goal.type}
             </span>
           </div>
-          <h3 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.3, margin: 0 }}>{goal.title}</h3>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3, margin: 0 }}>{goal.title}</h3>
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 2 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>
-          <span>İlerleme: <strong style={{ color: '#ffffff' }}>{goal.current || 0}</strong> / {goal.target} {t.unit}</span>
-          <span style={{ color: done ? '#4ade80' : t.text }}>{goal.target - (goal.current || 0) > 0 ? `${goal.target - (goal.current || 0)} ${t.unit} kaldı` : '🎉 Tamamlandı'}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#64748b' }}>
+          <span>İlerleme: <strong style={{ color: '#0f172a' }}>{goal.current || 0}</strong> / {goal.target} {t.unit}</span>
+          <span style={{ color: done ? '#16a34a' : t.text }}>
+            {goal.target - (goal.current || 0) > 0 ? `${goal.target - (goal.current || 0)} ${t.unit} kaldı` : '🎉 Tebrikler!'}
+          </span>
         </div>
-        <BarProgress value={pct} color={done ? '#34d399' : t.color} />
+        <BarProgress value={pct} color={done ? '#16a34a' : t.color} />
       </div>
 
       {!done && (
@@ -569,7 +669,17 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
           <button
             type="button"
             onClick={() => onAddProgress(goal.id, quickIncrementStep)}
-            style={{ padding: '0.4rem 0.65rem', borderRadius: '0.65rem', background: t.light, color: t.text, border: `1px solid ${t.border}`, fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+            style={{
+              padding: '0.4rem 0.75rem',
+              borderRadius: '0.65rem',
+              background: t.bg,
+              color: t.text,
+              border: `1px solid ${t.border}`,
+              fontSize: '0.76rem',
+              fontWeight: 900,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
           >
             +{quickIncrementStep} {t.unit}
           </button>
@@ -578,14 +688,32 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
             <input
               type="number"
               min="1"
-              placeholder={`Özel (${t.unit})`}
+              placeholder={`Miktar`}
               value={adding}
               onChange={e => setAdding(e.target.value)}
-              style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.75rem', outline: 'none' }}
+              style={{
+                flex: 1,
+                padding: '0.4rem 0.6rem',
+                borderRadius: '0.65rem',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#0f172a',
+                fontSize: '0.76rem',
+                outline: 'none'
+              }}
             />
             <button
               type="submit"
-              style={{ padding: '0.4rem 0.75rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', color: 'white', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
+              style={{
+                padding: '0.4rem 0.75rem',
+                borderRadius: '0.65rem',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                border: 'none',
+                color: 'white',
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
             >
               Ekle
             </button>
@@ -597,7 +725,7 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   MAIN PAGE
+   MAIN PAGE: GOALS AND SCHEDULE PAGE
 ═══════════════════════════════════════════════════════════ */
 export default function GoalsAndSchedulePage() {
   const navigate = useNavigate();
@@ -608,6 +736,9 @@ export default function GoalsAndSchedulePage() {
   const { submissions } = useEvaluation();
   const { homeworks } = useHomework();
 
+  // Active Tab: 'habits' (Alışkanlıklar & Rutinler) | 'visual' (Hedef Takibi) | 'academic' (Akademik & Sınav)
+  const [activeTab, setActiveTab] = useState('habits');
+
   const students = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   const defaultStudentId = currentUser?.role === 'student' ? currentUser?.id : (students[0]?.id || 'u1');
   const [selectedStudentId, setSelectedStudentId] = useState(defaultStudentId);
@@ -615,7 +746,7 @@ export default function GoalsAndSchedulePage() {
 
   const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
 
-  /* ─── Real-Time Solved Questions Calculation (Today, Week, Month, Total) ─── */
+  /* ─── Real-Time Solved Questions Calculation ─── */
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
     const studentIdStr = String(selectedStudent.id);
@@ -681,10 +812,7 @@ export default function GoalsAndSchedulePage() {
     return { today: todayCount, thisWeek: weekCount, thisMonth: monthCount, total: totalCount };
   }, [selectedStudent, submissions, homeworks]);
 
-  // Collapsible Accordion States (Closed by default)
-  const [isLongTermOpen, setIsLongTermOpen] = useState(false);
-  const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);
-
+  // Academic Targets States
   const [examGoalType, setExamGoalType] = useState(coachingProfile.examGoalType || coachingProfile.goals?.examGoalType || 'LGS 2026');
   const [customExamName, setCustomExamName] = useState(coachingProfile.customExamName || coachingProfile.goals?.customExamName || '');
   const [targetSchool, setTargetSchool] = useState(coachingProfile.targetSchool || coachingProfile.goals?.targetSchool || '');
@@ -694,19 +822,17 @@ export default function GoalsAndSchedulePage() {
   const [gradeTerm, setGradeTerm] = useState(coachingProfile.gradeTerm || coachingProfile.goals?.gradeTerm || '1');
   const [gradeTarget, setGradeTarget] = useState(coachingProfile.gradeTarget || coachingProfile.goals?.gradeTarget || 'Takçek');
 
-  // Monthly Goal Items List
+  // Lists
   const [monthlyItems, setMonthlyItems] = useState(() => parseCheckableGoalList(coachingProfile.monthlyGoals, [
     { id: 'm1', text: 'Matematik Çarpanlar ve EKOK problemleri tamamlanacak', done: false },
     { id: 'm2', text: 'Türkçe Paragraf taktikleri ve 400 soru çözümü', done: true }
   ]));
 
-  // Weekly Habit Goal Items List with 4-Week Matrix
   const [weeklyHabitItems, setWeeklyHabitItems] = useState(() => parseWeeklyHabitList(coachingProfile.weeklyGoals, [
-    { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', weeks: { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': true, 'Hafta 4': false } },
+    { id: 'w1', text: 'Haftada 400 soru + 2 deneme çözümü', weeks: { 'Hafta 1': true, 'Hafta 2': true, 'Hafta 3': false, 'Hafta 4': false } },
     { id: 'w2', text: 'Matematik yeni nesil problem kartları tekrarı', weeks: { 'Hafta 1': true, 'Hafta 2': false, 'Hafta 3': true, 'Hafta 4': false } }
   ]));
 
-  // Daily Routine Habit Items List with 7-Day Matrix
   const [dailyHabitItems, setDailyHabitItems] = useState(() => parseDailyHabitList(coachingProfile.dailyGoals, [
     { id: 'd1', text: 'Günlük 20 Paragraf sorusu (zaman tutularak)', days: { Pzt: true, Sal: true, Çrş: true, Prş: false, Cum: true, Cts: false, Paz: false } },
     { id: 'd2', text: 'Günlük 20 Matematik yeni nesil problem', days: { Pzt: true, Sal: true, Çrş: false, Prş: true, Cum: true, Cts: true, Paz: false } }
@@ -714,9 +840,11 @@ export default function GoalsAndSchedulePage() {
 
   const [isSavedNotice, setIsSavedNotice] = useState(false);
 
-  // Filter state for Custom Visual Goals Panel
+  // Filters for Visual Goals
   const [periodFilter, setPeriodFilter] = useState('Tümü');
   const [typeFilter, setTypeFilter] = useState('Tümü');
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [newGoal, setNewGoal] = useState({ title: '', type: 'Soru', period: 'Günlük', target: 50 });
 
   useEffect(() => {
     if (coachingProfile) {
@@ -742,9 +870,6 @@ export default function GoalsAndSchedulePage() {
       }
     }
   }, [coachingProfile]);
-
-  const [showGoalModal, setShowGoalModal] = useState(false);
-  const [newGoal, setNewGoal] = useState({ title: '', type: 'Soru', period: 'Günlük', target: 50 });
 
   const studentGoals = useMemo(() => {
     if (!selectedStudent) return [];
@@ -844,7 +969,7 @@ export default function GoalsAndSchedulePage() {
     saveAllProfilesWithLists(next, weeklyHabitItems, dailyHabitItems);
   };
 
-  // Handlers for Weekly Habit Matrix Items
+  // Handlers for Weekly Habit Items
   const handleToggleWeeklyMatrixDay = (id, weekKey) => {
     const next = weeklyHabitItems.map(item => {
       if (item.id === id) {
@@ -872,7 +997,7 @@ export default function GoalsAndSchedulePage() {
     saveAllProfilesWithLists(monthlyItems, next, dailyHabitItems);
   };
 
-  // Handlers for Daily Habit Matrix Items
+  // Handlers for Daily Habit Items
   const handleToggleDailyMatrixDay = (id, dayKey) => {
     const next = dailyHabitItems.map(item => {
       if (item.id === id) {
@@ -900,11 +1025,6 @@ export default function GoalsAndSchedulePage() {
     saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, next);
   };
 
-  const handleSaveAllCoachingGoals = (e) => {
-    if (e) e.preventDefault();
-    saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, dailyHabitItems);
-  };
-
   const handleSaveGoal = (e) => {
     e.preventDefault();
     if (newGoal.title && newGoal.target > 0) {
@@ -917,77 +1037,92 @@ export default function GoalsAndSchedulePage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.28) 0%, transparent 50%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.22) 0%, transparent 50%), radial-gradient(ellipse at 50% 85%, rgba(14, 165, 233, 0.22) 0%, transparent 55%), linear-gradient(180deg, #0d1527 0%, #131f3b 35%, #1a274d 70%, #101a33 100%)',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#f8fafc',
+      color: '#0f172a',
       padding: '1.25rem 1rem',
       boxSizing: 'border-box'
     }}>
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .goal-anim { animation: fadeIn 0.3s ease both; }
-        @media (max-width: 768px) {
-          .goal-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .goal-anim { animation: fadeIn 0.25s ease both; }
+        @media (max-width: 640px) {
+          .goal-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+          .goal-tabs-bar { overflow-x: auto !important; width: 100% !important; }
         }
       `}</style>
 
-      <div style={{ width: '100%', maxWidth: '100%', margin: 0, paddingBottom: 80 }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: 0, paddingBottom: 60 }}>
         
-        {/* HEADER BAR */}
-        <div className="goal-header-wrap goal-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        {/* TOP ACTION BAR */}
+        <div className="goal-header-wrap goal-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => navigate('/student')}
               style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(255,255,255,0.18)',
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
                 borderRadius: '0.75rem',
-                padding: '0.55rem 0.9rem',
+                padding: '0.5rem 0.95rem',
                 cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.45rem',
                 fontWeight: 800,
-                color: '#ffffff',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
-                backdropFilter: 'blur(8px)'
+                fontSize: '0.82rem',
+                color: '#1e293b',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s'
               }}
             >
-              <ArrowLeft size={18} /> Öğrenci Paneli
+              <ArrowLeft size={16} /> Öğrenci Paneli
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #f43f5e, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.15rem', color: 'white', border: '2px solid rgba(255,255,255,0.35)', boxShadow: '0 0 16px rgba(244,63,94,0.4)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #f43f5e, #a855f7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '1.15rem',
+                color: 'white',
+                border: '2px solid #ffffff',
+                boxShadow: '0 4px 14px rgba(244,63,94,0.3)',
+                flexShrink: 0
+              }}>
                 🎯
               </div>
               <div>
-                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>
+                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: '#0f172a', lineHeight: 1.2 }}>
                   Hedeflerim & Alışkanlık Takibi
                 </h1>
-                <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 2 }}>
-                  {selectedStudent?.name ? `${selectedStudent.name} için ` : ''}Günlük & Haftalık Seri Takibi (Flame Streak Tracker)
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                  {selectedStudent?.name ? `${selectedStudent.name} · ` : ''}Günlük & Haftalık Seri Takibi (Streak Tracker)
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Student Selector (If teacher/admin has multiple students) */}
+          {/* Student Selector for Teachers */}
           {students.length > 1 && currentUser?.role !== 'student' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(15,23,42,0.85)', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1.5px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', overflowX: 'auto', maxWidth: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
               {students.map(s => (
                 <button
                   key={s.id}
                   onClick={() => setSelectedStudentId(s.id)}
                   style={{
-                    padding: '0.4rem 0.8rem',
+                    padding: '0.35rem 0.75rem',
                     borderRadius: '0.65rem',
-                    fontSize: '0.76rem',
+                    fontSize: '0.75rem',
                     fontWeight: 800,
                     border: 'none',
                     background: s.id === selectedStudent?.id ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                    color: s.id === selectedStudent?.id ? 'white' : 'rgba(255,255,255,0.7)',
+                    color: s.id === selectedStudent?.id ? 'white' : '#64748b',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s'
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {s.name}
@@ -997,289 +1132,86 @@ export default function GoalsAndSchedulePage() {
           )}
         </div>
 
-        {/* LIVE SYNC NOTICE BANNER */}
-        <div style={{
-          marginBottom: '1.25rem',
-          background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(30, 27, 75, 0.5) 100%)',
-          border: '1.5px solid rgba(52, 211, 153, 0.35)',
-          borderRadius: '1.1rem',
-          padding: '0.85rem 1.25rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.85rem',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
-        }}>
-          <RefreshCw size={24} color="#34d399" className="animate-spin" style={{ animationDuration: '6s', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#34d399' }}>🔄 Birebir Alışkanlık & Seri Takip Senkronizasyonu</div>
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginTop: 2 }}>
-              Günlük (Pzt-Paz) ve Haftalık (1.Hafta-4.Hafta) seri takibi Öğrenci ve Koçluk panelleri arasında anlık senkronize çalışır.
-            </div>
-          </div>
-        </div>
-
-        {/* TOP VISUAL TRACKING STATS BANNER */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+        {/* TOP SUMMARY STATS BANNER */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
           {[
-            { label: 'Çözülen Soru', value: `${totalQuestionSolved} Soru`, icon: Target, color: '#fb7185', border: 'rgba(244,63,94,0.35)', bg: 'rgba(244,63,94,0.15)' },
-            { label: 'Kitap Okuma', value: `${totalPagesRead} Sayfa`, icon: BookOpen, color: '#38bdf8', border: 'rgba(56,189,248,0.35)', bg: 'rgba(56,189,248,0.15)' },
-            { label: 'Tamamlanan Konu', value: `${totalTopicsCompleted} Konu`, icon: Brain, color: '#c084fc', border: 'rgba(192,132,252,0.35)', bg: 'rgba(192,132,252,0.15)' },
-            { label: 'Çalışma Süresi', value: `${totalMinutesStudied} Dk`, icon: Timer, color: '#34d399', border: 'rgba(52,211,153,0.35)', bg: 'rgba(52,211,153,0.15)' },
+            { label: 'Çözülen Soru (Bugün)', value: `${solvedQuestionsStats.today} Soru`, sub: `Bu Hafta: ${solvedQuestionsStats.thisWeek}`, icon: Target, color: '#e11d48', border: '#fecdd3', bg: '#ffe4e6' },
+            { label: 'Kitap Okuma', value: `${totalPagesRead} Sayfa`, sub: 'Hedefe doğru', icon: BookOpen, color: '#0284c7', border: '#bae6fd', bg: '#e0f2fe' },
+            { label: 'Tamamlanan Konu', value: `${totalTopicsCompleted} Konu`, sub: 'Aktif Müfredat', icon: Brain, color: '#7c3aed', border: '#e9d5ff', bg: '#f3e8ff' },
+            { label: 'Çalışma Süresi', value: `${totalMinutesStudied} Dk`, sub: 'Zaman takibi', icon: Timer, color: '#059669', border: '#a7f3d0', bg: '#d1fae5' },
           ].map(s => {
             const Icon = s.icon;
             return (
               <div key={s.label} style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)',
+                background: '#ffffff',
                 border: `1.5px solid ${s.border}`,
                 borderRadius: '1.15rem',
                 padding: '0.85rem 1.1rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.85rem',
-                backdropFilter: 'blur(16px)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+                boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
               }}>
                 <div style={{ width: 42, height: 42, borderRadius: '0.85rem', background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={22} />
+                  <Icon size={20} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{s.label}</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffffff' }}>{s.value}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{s.label}</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{s.value}</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* MAIN 2-COLUMN LAYOUT */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-          
-          {/* LEFT COLUMN: 🏛️ UZUN VADELİ + ORTA VADELİ + GÜNLÜK & HAFTALIK ALIŞKANLIK & SERİ TAKİBİ */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                <GraduationCap size={20} color="#34d399" />
-                1. Akademik Yapı & Seri Takip Matrisi
-              </h2>
-            </div>
-
-            {/* UZUN VADELİ HEDEFLER (COLLAPSIBLE ACCORDION - CLOSED BY DEFAULT) */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)',
-              border: '1.5px solid rgba(255, 255, 255, 0.14)',
-              borderRadius: '1.25rem',
-              padding: '1.1rem',
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
-              backdropFilter: 'blur(20px)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.85rem'
-            }}>
+        {/* 🌟 3-TAB NAVIGATION BAR (CLEAR, ORGANIZED & INTUITIVE) */}
+        <div style={{
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '1rem',
+          padding: '0.4rem',
+          display: 'flex',
+          gap: 6,
+          marginBottom: '1.25rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          overflowX: 'auto'
+        }}>
+          {[
+            { id: 'habits', label: '🔥 Günlük & Haftalık Alışkanlıklar', desc: 'Rutinler & Seri Matrisi' },
+            { id: 'visual', label: '🎯 Hedeflerim & Göstergeler', desc: 'Soru, Kitap, Süre Kartları' },
+            { id: 'academic', label: '🏛️ Akademik & Sınav Hedefleri', desc: 'LGS/YKS, Puan & Net' },
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
               <button
-                type="button"
-                onClick={() => setIsLongTermOpen(v => !v)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '0.65rem', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  flex: 1,
+                  minWidth: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '0.65rem 0.9rem',
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+                  color: isActive ? '#ffffff' : '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  boxShadow: isActive ? '0 4px 12px rgba(79,70,229,0.25)' : 'none'
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#34d399', fontWeight: 900, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {isLongTermOpen ? <ChevronDown size={18} color="#a5b4fc" /> : <ChevronRight size={18} color="#a5b4fc" />}
-                  <GraduationCap size={18} /> 🏛️ UZUN VADELİ HEDEFLER
-                </div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(5, 150, 105, 0.25)', color: '#6ee7b7', border: '1px solid rgba(52, 211, 153, 0.35)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                  {isLongTermOpen ? 'Açık' : 'Sınav & Okul (Kapalı)'}
-                </span>
+                <span style={{ fontWeight: 900, fontSize: '0.85rem' }}>{tab.label}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 600, opacity: isActive ? 0.9 : 0.7, marginTop: 2 }}>{tab.desc}</span>
               </button>
+            );
+          })}
+        </div>
 
-              {isLongTermOpen && (() => {
-                const isStandardExam = ['LGS 2026', 'YKS (TYT/AYT) 2026', 'KPSS', 'Ara Sınıf Takip & Takdir Hedefi'].includes(examGoalType);
-                const isGradeTracking = examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', paddingTop: '0.5rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Sınav / Hedef Türü</label>
-                      <select
-                        value={isStandardExam ? examGoalType : 'Özel Sınav'}
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (val === 'Özel Sınav') {
-                            const customVal = customExamName || '';
-                            setExamGoalType('Özel Sınav');
-                            saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: 'Özel Sınav', customExamName: customVal });
-                          } else {
-                            setExamGoalType(val);
-                            saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: val });
-                          }
-                        }}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
-                      >
-                        <option value="LGS 2026" style={{ background: '#0f172a', color: '#ffffff' }}>🎓 LGS (Liselere Geçiş Sınavı)</option>
-                        <option value="YKS (TYT/AYT) 2026" style={{ background: '#0f172a', color: '#ffffff' }}>🏛️ YKS (TYT & AYT Sınavı)</option>
-                        <option value="KPSS" style={{ background: '#0f172a', color: '#ffffff' }}>💼 KPSS (Kamu Personeli Seçme Sınavı)</option>
-                        <option value="Ara Sınıf Takip & Takdir Hedefi" style={{ background: '#0f172a', color: '#ffffff' }}>📊 Ara Sınıf Takip & Takdir Hedefi</option>
-                        <option value="Özel Sınav" style={{ background: '#0f172a', color: '#ffffff' }}>✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
-                      </select>
-                    </div>
-
-                    {(!isStandardExam || examGoalType === 'Özel Sınav') && (
-                      <div>
-                        <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Özel Sınav Adı</label>
-                        <input
-                          type="text"
-                          placeholder="Örn: DGS, ALES, BİLSEM..."
-                          value={customExamName || (examGoalType !== 'Özel Sınav' ? examGoalType : '')}
-                          onChange={e => {
-                            const val = e.target.value;
-                            setCustomExamName(val);
-                            saveAllProfilesWithLists(undefined, undefined, undefined, { customExamName: val, examGoalType: val || 'Özel Sınav' });
-                          }}
-                          style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(168,85,247,0.4)', background: 'rgba(168,85,247,0.1)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                    )}
-
-                    {isGradeTracking ? (
-                      <>
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Sınıf / Seviye</label>
-                          <select
-                            value={gradeClass}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setGradeClass(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { gradeClass: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
-                          >
-                            <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>— Seçin —</option>
-                            {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c} value={c} style={{ background: '#0f172a', color: '#ffffff' }}>{c}</option>)}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Dönem</label>
-                          <select
-                            value={gradeTerm}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setGradeTerm(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTerm: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
-                          >
-                            <option value="1" style={{ background: '#0f172a', color: '#ffffff' }}>1. Dönem</option>
-                            <option value="2" style={{ background: '#0f172a', color: '#ffffff' }}>2. Dönem</option>
-                            <option value="yıllık" style={{ background: '#0f172a', color: '#ffffff' }}>Yıllık</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Hedef Belgem</label>
-                          <select
-                            value={gradeTarget}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setGradeTarget(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTarget: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(52,211,153,0.4)', background: 'rgba(5,150,105,0.15)', color: '#6ee7b7', fontSize: '0.82rem', fontWeight: 800, outline: 'none', cursor: 'pointer' }}
-                          >
-                            <option value="Takçek" style={{ background: '#0f172a', color: '#ffffff' }}>🟢 Takçek (Temel)</option>
-                            <option value="Teşekkür" style={{ background: '#0f172a', color: '#ffffff' }}>🧡 Teşekkür (70–84)</option>
-                            <option value="Takdir" style={{ background: '#0f172a', color: '#ffffff' }}>🏅 Takdir (85+)</option>
-                            <option value="Onur" style={{ background: '#0f172a', color: '#ffffff' }}>⭐ Onur Belgesi (Tüm dersler Takdir)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Devamsızlık Hedefi (Maks Gün)</label>
-                          <input
-                            type="text"
-                            placeholder="Maks. devamsızlık gün sayısı"
-                            value={targetScore}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setTargetScore(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { targetScore: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
-                          <input
-                            type="text"
-                            placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
-                            value={targetSchool}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setTargetSchool(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { targetSchool: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Puan Hedefi</label>
-                          <input
-                            type="text"
-                            placeholder="Örn: 485 Puan"
-                            value={targetScore}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setTargetScore(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { targetScore: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Toplam Net Hedefi</label>
-                          <input
-                            type="number"
-                            placeholder="Örn: 90 Net"
-                            value={targetNet}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setTargetNet(val);
-                              saveAllProfilesWithLists(undefined, undefined, undefined, { targetNet: val });
-                            }}
-                            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ORTA VADELİ HEDEFLER (AYLIK KAZANIMLAR CHECKLIST - COLLAPSIBLE ACCORDION) */}
-            <MonthlyChecklistSection
-              title="📅 ORTA VADELİ HEDEFLER (AYLIK)"
-              icon={Trophy}
-              colorClass="text-indigo-400"
-              badgeText="Aylık Kazanımlar"
-              items={monthlyItems}
-              onToggleItem={handleToggleMonthlyItem}
-              onAddItem={handleAddMonthlyItem}
-              onDeleteItem={handleDeleteMonthlyItem}
-            />
-
-            {/* ⚡ HAFTALIK HEDEF ALIŞKANLIK & SERİ TAKİBİ (4-WEEK MATRIX) */}
-            <WeeklyHabitStreakSection
-              items={weeklyHabitItems}
-              onToggleWeek={handleToggleWeeklyMatrixDay}
-              onAddItem={handleAddWeeklyHabitItem}
-              onDeleteItem={handleDeleteWeeklyHabitItem}
-            />
-
-            {/* 🔥 GÜNLÜK RUTİN ALIŞKANLIK & SERİ TAKİBİ (7-DAY MATRIX) */}
+        {/* ════════ TAB 1: GÜNLÜK & HAFTALIK ALIŞKANLIKLAR ════════ */}
+        {activeTab === 'habits' && (
+          <div className="goal-anim" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             <DailyHabitStreakSection
               items={dailyHabitItems}
               onToggleDay={handleToggleDailyMatrixDay}
@@ -1287,143 +1219,128 @@ export default function GoalsAndSchedulePage() {
               onDeleteItem={handleDeleteDailyHabitItem}
             />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
-              {isSavedNotice ? (
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CheckCircle2 size={16} /> Tüm Hedefler & Seri Takibi Kaydedildi!
-                </span>
-              ) : <span />}
-              <button
-                onClick={handleSaveAllCoachingGoals}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '0.65rem 1.35rem',
-                  borderRadius: '0.85rem',
-                  background: 'linear-gradient(135deg, #059669, #10b981)',
-                  color: 'white',
-                  border: '1.5px solid rgba(255,255,255,0.2)',
-                  fontSize: '0.82rem',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 24px rgba(16,185,129,0.35)',
-                  transition: 'all 0.2s',
-                  marginLeft: 'auto'
-                }}
-              >
-                <Save size={16} /> Tüm Seri & Hedefleri Kaydet
-              </button>
-            </div>
-
+            <WeeklyHabitStreakSection
+              items={weeklyHabitItems}
+              onToggleWeek={handleToggleWeeklyMatrixDay}
+              onAddItem={handleAddWeeklyHabitItem}
+              onDeleteItem={handleDeleteWeeklyHabitItem}
+            />
           </div>
+        )}
 
-          {/* RIGHT COLUMN: 📊 GÖRSEL TAKİP PANOSU (ÖZEL HEDEFLER: SORU, KİTAP, KONU, SÜRE) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* ════════ TAB 2: GÖRSEL ÖZEL HEDEF TAKİP PANOSU ════════ */}
+        {activeTab === 'visual' && (
+          <div className="goal-anim" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                <BarChart3 size={20} color="#818cf8" />
-                2. Görsel Özel Hedef Takip Panosu
-              </h2>
+            {/* Header + Add Goal + Filters Bar */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '1.15rem',
+              padding: '0.9rem 1.15rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              flexWrap: 'wrap',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b' }}>Periyot:</span>
+                <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: 2, borderRadius: 8 }}>
+                  {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPeriodFilter(p)}
+                      style={{
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: periodFilter === p ? '#4f46e5' : 'transparent',
+                        color: periodFilter === p ? '#ffffff' : '#475569',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', marginLeft: 8 }}>Tür:</span>
+                <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: 2, borderRadius: 8 }}>
+                  {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      style={{
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: typeFilter === t ? '#e11d48' : 'transparent',
+                        color: typeFilter === t ? '#ffffff' : '#475569',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={() => setShowGoalModal(true)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  padding: '0.45rem 0.95rem',
+                  padding: '0.55rem 1rem',
                   borderRadius: '0.75rem',
                   background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
                   color: 'white',
                   border: 'none',
-                  fontSize: '0.76rem',
+                  fontSize: '0.8rem',
                   fontWeight: 900,
-                  boxShadow: '0 4px 14px rgba(244,63,94,0.35)',
+                  boxShadow: '0 3px 10px rgba(244,63,94,0.3)',
                   cursor: 'pointer'
                 }}
               >
-                <Plus size={14} /> + Özel Hedef Ekle
+                <Plus size={15} /> + Yeni Hedef Ekle
               </button>
             </div>
 
-            {/* FILTER TABS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(15,23,42,0.85)', padding: '0.3rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.12)', flexShrink: 0, backdropFilter: 'blur(10px)' }}>
-                {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriodFilter(p)}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '0.55rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      border: 'none',
-                      background: periodFilter === p ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: periodFilter === p ? 'white' : 'rgba(255,255,255,0.65)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(15,23,42,0.85)', padding: '0.3rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.12)', flexShrink: 0, backdropFilter: 'blur(10px)' }}>
-                {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTypeFilter(t)}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '0.55rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      border: 'none',
-                      background: typeFilter === t ? 'linear-gradient(135deg, #f43f5e, #e11d48)' : 'transparent',
-                      color: typeFilter === t ? 'white' : 'rgba(255,255,255,0.65)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* VISUAL CARDS GRID */}
+            {/* Visual Cards Grid */}
             {filteredVisualGoals.length === 0 ? (
               <div style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)',
-                border: '1.5px dashed rgba(255,255,255,0.2)',
+                background: '#ffffff',
+                border: '1.5px dashed #cbd5e1',
                 borderRadius: '1.25rem',
                 padding: '2.5rem 1.5rem',
                 textAlign: 'center',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '0.75rem',
-                backdropFilter: 'blur(16px)'
+                gap: '0.75rem'
               }}>
-                <div style={{ width: 56, height: 56, borderRadius: '1rem', background: 'rgba(244,63,94,0.15)', color: '#fb7185', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Target size={28} />
+                <div style={{ width: 52, height: 52, borderRadius: '1rem', background: '#ffe4e6', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Target size={26} />
                 </div>
-                <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Seçilen Kriterlere Uygun Özel Hedef Bulunmuyor</h3>
-                <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', maxWidth: 300, margin: 0, lineHeight: 1.4 }}>
-                  Günlük soru çözme, kitap okuma, konu tamamlama veya süre hedefleri ekleyerek görsel takibinizi başlatın!
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Seçilen Kriterlere Uygun Hedef Bulunmuyor</h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 360, margin: 0, lineHeight: 1.4 }}>
+                  Günlük soru çözme, kitap okuma veya konu hedefleri ekleyerek motivasyonunuzu artırın!
                 </p>
                 <button
                   onClick={() => setShowGoalModal(true)}
-                  style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', color: 'white', border: 'none', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 16px rgba(244,63,94,0.35)' }}
+                  style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', color: 'white', border: 'none', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.3)' }}
                 >
-                  <Plus size={16} /> Yeni Özel Hedef Tanımla
+                  <Plus size={16} /> Yeni Hedef Tanımla
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                 {filteredVisualGoals.map(goal => (
                   <VisualGoalCard
                     key={goal.id}
@@ -1436,20 +1353,244 @@ export default function GoalsAndSchedulePage() {
             )}
 
           </div>
+        )}
 
-        </div>
-
-        {/* MODAL: ÖZEL HEDEF EKLE */}
-        {showGoalModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(8px)' }}>
+        {/* ════════ TAB 3: AKADEMİK HEDEFLER & SINAV / OKUL ════════ */}
+        {activeTab === 'academic' && (
+          <div className="goal-anim" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            
+            {/* Sınav & Okul & Puan Formu */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '1.25rem',
+              padding: '1.25rem',
+              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', fontWeight: 900, fontSize: '0.9rem' }}>
+                  <GraduationCap size={20} color="#059669" /> 🏛️ Uzun Vadeli Sınav & Okul Hedefleri
+                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#d1fae5', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid #a7f3d0' }}>
+                  Akademik
+                </span>
+              </div>
+
+              {(() => {
+                const isStandardExam = ['LGS 2026', 'YKS (TYT/AYT) 2026', 'KPSS', 'Ara Sınıf Takip & Takdir Hedefi'].includes(examGoalType);
+                const isGradeTracking = examGoalType === 'Ara Sınıf Takip & Takdir Hedefi';
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınav / Hedef Türü</label>
+                      <select
+                        value={isStandardExam ? examGoalType : 'Özel Sınav'}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === 'Özel Sınav') {
+                            setExamGoalType('Özel Sınav');
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: 'Özel Sınav', customExamName: customExamName || '' });
+                          } else {
+                            setExamGoalType(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { examGoalType: val });
+                          }
+                        }}
+                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                      >
+                        <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
+                        <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
+                        <option value="KPSS">💼 KPSS (Kamu Personeli Seçme Sınavı)</option>
+                        <option value="Ara Sınıf Takip & Takdir Hedefi">📊 Ara Sınıf Takip & Takdir Hedefi</option>
+                        <option value="Özel Sınav">✏️ Özel Sınav (DGS, ALES, BİLSEM...)</option>
+                      </select>
+                    </div>
+
+                    {(!isStandardExam || examGoalType === 'Özel Sınav') && (
+                      <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Özel Sınav Adı</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: DGS, ALES, BİLSEM..."
+                          value={customExamName || (examGoalType !== 'Özel Sınav' ? examGoalType : '')}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setCustomExamName(val);
+                            saveAllProfilesWithLists(undefined, undefined, undefined, { customExamName: val, examGoalType: val || 'Özel Sınav' });
+                          }}
+                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #c084fc', background: '#faf5ff', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    )}
+
+                    {isGradeTracking ? (
+                      <>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınıf / Seviye</label>
+                            <select
+                              value={gradeClass}
+                              onChange={e => {
+                                setGradeClass(e.target.value);
+                                saveAllProfilesWithLists(undefined, undefined, undefined, { gradeClass: e.target.value });
+                              }}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                            >
+                              <option value="">— Seçin —</option>
+                              {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Dönem</label>
+                            <select
+                              value={gradeTerm}
+                              onChange={e => {
+                                setGradeTerm(e.target.value);
+                                saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTerm: e.target.value });
+                              }}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                            >
+                              <option value="1">1. Dönem</option>
+                              <option value="2">2. Dönem</option>
+                              <option value="yıllık">Yıllık</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Belgem</label>
+                          <select
+                            value={gradeTarget}
+                            onChange={e => {
+                              setGradeTarget(e.target.value);
+                              saveAllProfilesWithLists(undefined, undefined, undefined, { gradeTarget: e.target.value });
+                            }}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #86efac', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem', fontWeight: 800, outline: 'none' }}
+                          >
+                            <option value="Takçek">🟢 Takçek (Temel Seviye)</option>
+                            <option value="Teşekkür">🧡 Teşekkür Belgesi (70–84 Puan)</option>
+                            <option value="Takdir">🏅 Takdir Belgesi (85+ Puan)</option>
+                            <option value="Onur">⭐ Onur Belgesi (Tüm dersler yüksek)</option>
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
+                          <input
+                            type="text"
+                            placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
+                            value={targetSchool}
+                            onChange={e => {
+                              setTargetSchool(e.target.value);
+                              saveAllProfilesWithLists(undefined, undefined, undefined, { targetSchool: e.target.value });
+                            }}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Puan</label>
+                            <input
+                              type="text"
+                              placeholder="Örn: 485"
+                              value={targetScore}
+                              onChange={e => {
+                                setTargetScore(e.target.value);
+                                saveAllProfilesWithLists(undefined, undefined, undefined, { targetScore: e.target.value });
+                              }}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Toplam Net Hedefi</label>
+                            <input
+                              type="number"
+                              placeholder="Örn: 90"
+                              value={targetNet}
+                              onChange={e => {
+                                setTargetNet(e.target.value);
+                                saveAllProfilesWithLists(undefined, undefined, undefined, { targetNet: e.target.value });
+                              }}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6 }}>
+                {isSavedNotice ? (
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <CheckCircle2 size={16} /> Başarıyla Kaydedildi!
+                  </span>
+                ) : <span />}
+
+                <button
+                  onClick={() => saveAllProfilesWithLists(monthlyItems, weeklyHabitItems, dailyHabitItems)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '0.85rem',
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    color: 'white',
+                    border: 'none',
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                    marginLeft: 'auto'
+                  }}
+                >
+                  <Save size={16} /> Bilgileri Kaydet
+                </button>
+              </div>
+            </div>
+
+            {/* Aylık Kazanımlar Checklist */}
+            <MonthlyChecklistSection
+              items={monthlyItems}
+              onToggleItem={handleToggleMonthlyItem}
+              onAddItem={handleAddMonthlyItem}
+              onDeleteItem={handleDeleteMonthlyItem}
+            />
+
+          </div>
+        )}
+
+        {/* ════════ MODAL: ÖZEL HEDEF EKLE ════════ */}
+        {showGoalModal && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            background: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(6px)'
+          }}>
+            <div style={{
+              background: '#ffffff',
               borderRadius: '1.5rem',
               padding: '1.5rem',
               width: '100%',
               maxWidth: 440,
-              border: '1.5px solid rgba(255,255,255,0.18)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+              border: '1.5px solid #e2e8f0',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem',
@@ -1457,71 +1598,85 @@ export default function GoalsAndSchedulePage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Target size={22} color="#fb7185" />
-                  <h3 style={{ fontWeight: 900, color: '#ffffff', fontSize: '1.05rem', margin: 0 }}>Yeni Özel Hedef Tanımla</h3>
+                  <Target size={22} color="#e11d48" />
+                  <h3 style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.05rem', margin: 0 }}>Yeni Özel Hedef Tanımla</h3>
                 </div>
-                <button onClick={() => setShowGoalModal(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+                <button
+                  onClick={() => setShowGoalModal(false)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}
+                >
                   <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveGoal} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <form onSubmit={handleSaveGoal} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Tanımı / Başlığı</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Tanımı / Başlığı</label>
                   <input
                     type="text"
                     placeholder="Örn: Günlük 30 Paragraf Sorusu / 50 Sayfa Kitap"
                     value={newGoal.title}
                     onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
                     required
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Türü</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Türü</label>
                     <select
                       value={newGoal.type}
                       onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.08)', color: '#ffffff', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                     >
-                      <option value="Soru" style={{ background: '#0f172a', color: '#ffffff' }}>🎯 Soru Çözme</option>
-                      <option value="Sayfa" style={{ background: '#0f172a', color: '#ffffff' }}>📖 Kitap Okuma</option>
-                      <option value="Konu" style={{ background: '#0f172a', color: '#ffffff' }}>🧠 Konu Tamamlama</option>
-                      <option value="Dakika" style={{ background: '#0f172a', color: '#ffffff' }}>⏱️ Çalışma Süresi (dk)</option>
+                      <option value="Soru">🎯 Soru Çözme</option>
+                      <option value="Sayfa">📖 Kitap Okuma</option>
+                      <option value="Konu">🧠 Konu Tamamlama</option>
+                      <option value="Dakika">⏱️ Çalışma Süresi (dk)</option>
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Periyot</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Periyot</label>
                     <select
                       value={newGoal.period}
                       onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.08)', color: '#ffffff', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                     >
-                      <option value="Günlük" style={{ background: '#0f172a', color: '#ffffff' }}>⚡ Günlük</option>
-                      <option value="Haftalık" style={{ background: '#0f172a', color: '#ffffff' }}>📅 Haftalık</option>
-                      <option value="Aylık" style={{ background: '#0f172a', color: '#ffffff' }}>🏆 Aylık</option>
+                      <option value="Günlük">⚡ Günlük</option>
+                      <option value="Haftalık">📅 Haftalık</option>
+                      <option value="Aylık">🏆 Aylık</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Miktar</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Miktar</label>
                   <input
                     type="number"
                     min="1"
                     placeholder="Örn: 50"
                     value={newGoal.target}
                     onChange={e => setNewGoal(p => ({ ...p, target: Number(e.target.value) }))}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.07)', color: '#ffffff', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
                     required
                   />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem' }}>
-                  <button type="button" onClick={() => setShowGoalModal(false)} style={{ padding: '0.65rem 1.1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.08)', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer' }}>İptal</button>
-                  <button type="submit" style={{ padding: '0.65rem 1.4rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.4)' }}>Hedef Ekle</button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGoalModal(false)}
+                    style={{ padding: '0.65rem 1.1rem', borderRadius: '0.75rem', background: '#f1f5f9', border: 'none', color: '#475569', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    style={{ padding: '0.65rem 1.4rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', border: 'none', color: 'white', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(244,63,94,0.35)' }}
+                  >
+                    Hedef Ekle
+                  </button>
                 </div>
               </form>
             </div>
