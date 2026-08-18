@@ -46,7 +46,7 @@ export default function StudentWrongAnswersPage() {
   const { users } = useUser();
   const { questions: bankQuestions } = useQuestionBank();
   const { data: curData } = useCurriculum();
-  const { homeworks } = useHomework();
+  const { homeworks = [] } = useHomework();
   const { books = [], bookTests = [] } = useTrackedBooks();
   const {
     getCoachingProfileForStudent,
@@ -154,14 +154,14 @@ export default function StudentWrongAnswersPage() {
     const map = new Map();
     if (!curData) return map;
     (curData.tests || []).forEach(t => {
-      if (t.id) map.set(t.id, { title: t.title || t.name, subject: t.subjectName || t.subject });
+      if (t.id) map.set(String(t.id), { title: t.title || t.name, subject: t.subjectName || t.subject });
     });
     (curData.grades || []).forEach(g => {
       (g.subjects || []).forEach(s => {
         (s.units || []).forEach(u => {
           (u.topics || []).forEach(top => {
             (top.tests || []).forEach(t => {
-              if (t.id) map.set(t.id, { title: t.title || t.name, subject: s.name, topic: top.name });
+              if (t.id) map.set(String(t.id), { title: t.title || t.name, subject: s.name, topic: top.name });
             });
           });
         });
@@ -206,24 +206,78 @@ export default function StudentWrongAnswersPage() {
     return map;
   }, [books, bookTests]);
 
-  // Submissions for activeStudent
+  // Submissions for activeStudent (Filters out deleted homeworks, deleted tests, drafts, and orphaned submissions)
   const allSubmissions = useMemo(() => {
     if (!activeStudent?.id) return [];
-    const studentIdStr = String(activeStudent.id);
+    const studentIdStr = String(activeStudent.id).trim();
+    const studentUuidStr = String(toUUID(studentIdStr) || '').trim();
+
+    const isMatchStudent = (sid) => {
+      if (!sid) return false;
+      const str = String(sid).trim();
+      if (str === studentIdStr || str.toLowerCase() === studentIdStr.toLowerCase()) return true;
+      if (studentUuidStr && (str === studentUuidStr || String(toUUID(str)) === studentUuidStr)) return true;
+      return false;
+    };
 
     const baseSubs = (submissions || []).filter(s => {
       if (!s) return false;
-      const sid = String(s.studentId || s.student_id || s.userId || '');
-      return sid === studentIdStr;
+      const sid = s.studentId || s.student_id || s.userId || s.user_id || (s.raw_data && (s.raw_data.studentId || s.raw_data.student_id));
+      if (!isMatchStudent(sid)) return false;
+
+      // Filter out drafts / in progress / not submitted
+      const subIdStr = String(s.id || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+      if (s.isSubmitted === false) return false;
+      if (s.raw_data && (s.raw_data.status === 'draft' || s.raw_data.status === 'in_progress')) return false;
+
+      // Filter out empty submissions with 0 questions answered
+      const c = s.correctCount ?? s.correct ?? 0;
+      const w = s.wrongCount ?? s.wrong ?? 0;
+      const e = s.emptyCount ?? s.blankCount ?? s.empty ?? 0;
+      if (c === 0 && w === 0 && e === 0 && (!s.answers || s.answers.length === 0)) return false;
+
+      // ── SİLİNMİŞ ÖDEVLERİ FİLTRELEME ──
+      const bTestId = String(s.bookTestId || s.testId || '');
+      const matchedBookTest = allBookTestsMap.get(bTestId);
+      const matchedCurTest = allCurTestsMap.get(String(s.testId));
+      const parentHw = (homeworks || []).find(h =>
+        String(h.id) === String(s.hwId) ||
+        String(h.id) === String(s.testId) ||
+        String(h.id) === String(s.id) ||
+        (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(s.hwId || s.testId || s.id)))
+      );
+
+      // If submission is linked to a homework that has been deleted (and is not an independent curriculum/book test), DISCARD IT!
+      const isHwSub = Boolean(s.hwId || s.isHomework || (s.testId && !matchedBookTest && !matchedCurTest));
+      if (isHwSub && !parentHw) {
+        return false; // Silinmiş ödev
+      }
+
+      // If submission is linked to a book test that was deleted, DISCARD IT!
+      if (s.bookTestId && !matchedBookTest) {
+        return false; // Silinmiş kitap testi
+      }
+
+      return true;
     });
 
     const hwSubs = [];
     (homeworks || []).forEach(hw => {
+      if (!hw) return;
       (hw.submissions || []).forEach(sub => {
-        if (String(sub.studentId || sub.student_id || sub.userId) === studentIdStr) {
+        const sid = sub.studentId || sub.student_id || sub.userId || sub.user_id;
+        if (isMatchStudent(sid)) {
+          const subIdStr = String(sub.id || '');
+          if (subIdStr.startsWith('draft_') || sub.status === 'in_progress' || sub.status === 'draft') return;
+          if (sub.isSubmitted === false) return;
+
           const alreadyExists = baseSubs.some(s =>
-            String(s.hwId || s.testId || s.id) === String(hw.id)
+            String(s.hwId || s.testId || s.id) === String(hw.id) ||
+            (toUUID(s.hwId || s.testId || s.id) && String(toUUID(s.hwId || s.testId || s.id)) === String(toUUID(hw.id)))
           );
+
           if (!alreadyExists) {
             hwSubs.push({
               id: `hw_sub_${hw.id}_${studentIdStr}`,
@@ -248,7 +302,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     return [...baseSubs, ...hwSubs];
-  }, [submissions, homeworks, activeStudent]);
+  }, [submissions, homeworks, activeStudent, allBookTestsMap, allCurTestsMap]);
 
   // Grouped Submissions with robust Subject Resolution
   const testGroupedSubmissions = useMemo(() => {
@@ -291,10 +345,11 @@ export default function StudentWrongAnswersPage() {
       const matchedHw = (homeworks || []).find(h =>
         String(h.id) === String(sub.hwId) ||
         String(h.id) === String(sub.testId) ||
-        String(h.id) === String(sub.id)
+        String(h.id) === String(sub.id) ||
+        (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(sub.hwId || sub.testId || sub.id)))
       );
 
-      const matchedCurTest = allCurTestsMap.get(sub.testId) || allCurTestsMap.get(sub.hwId);
+      const matchedCurTest = allCurTestsMap.get(String(sub.testId)) || allCurTestsMap.get(String(sub.hwId));
 
       let resolvedTitle = sub.testTitle || sub.title;
       const isGeneric = !resolvedTitle ||
@@ -397,7 +452,7 @@ export default function StudentWrongAnswersPage() {
   const globalBlankCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [testGroupedSubmissions]);
   const globalReviewedCount = useMemo(() => testGroupedSubmissions.filter(sub => sub.isReviewed).length, [testGroupedSubmissions]);
 
-  // Available Homework options for Add Modal
+  // Available Homework options for Add Modal (Active only)
   const availableHomeworkOptions = useMemo(() => {
     if (!selectedStudent) return [];
     const map = new Map();
