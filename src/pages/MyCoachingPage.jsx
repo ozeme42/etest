@@ -1631,25 +1631,7 @@ export default function MyCoachingPage() {
     return found ? found.topics.map(t => t.name) : [];
   };
 
-  /* ─── KOÇ ÖĞRETMENİ OLMAYAN ÖĞRENCİ KONTROLÜ ─── */
-  if (currentUser?.role === 'student' && !isCoached) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-        <div style={{ padding: '2.5rem 2rem', textAlign: 'center', maxWidth: 480, width: '100%', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.5rem', border: '2px solid #e2e8f0', boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', border: '2px solid #fde68a' }}>
-            <AlertTriangle size={32} />
-          </div>
-          <h2 style={{ fontWeight: 900, fontSize: '1.25rem', color: '#0f172a', marginBottom: '0.65rem' }}>Koç Öğretmeni Tanımlanmadı</h2>
-          <p style={{ color: '#64748b', fontSize: '0.86rem', lineHeight: 1.6, marginBottom: '1.75rem', fontWeight: 600 }}>
-            Henüz bir koç öğretmeniniz tanımlanmamıştır. Kişisel çalışma programı ve koçluk takibi için lütfen rehber öğretmeninizle / koçunuzla iletişime geçin.
-          </p>
-          <button onClick={() => navigate('/student')} style={{ padding: '0.75rem 1.6rem', background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: 'white', border: 'none', borderRadius: '0.85rem', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}>
-            Öğrenci Paneline Dön
-          </button>
-        </div>
-      </div>
-    );
-  }
+  /* ─── GİRİŞ KONTROLÜ ─── */
 
   if (!currentUser) {
     return (

@@ -24,6 +24,7 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 const parseSafeDate = (d) => {
@@ -671,6 +672,24 @@ export default function StudentDashboard() {
       .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
       .slice(0, 5);
   }, [selectedStudent, submissions, homeworks, books, bookTests]);
+
+  /* ─── All Submissions For Question Analytics ─── */
+  const allStudentSubmissions = useMemo(() => {
+    if (!selectedStudent) return [];
+    const sid = String(selectedStudent.id);
+    const suuid = String(toUUID(selectedStudent.id) || '');
+    const sName = (selectedStudent.name || '').toLowerCase();
+    const sEmail = (selectedStudent.email || '').toLowerCase();
+
+    return (submissions || []).filter(s => {
+      if (!s) return false;
+      const subSid = String(s.studentId || s.student_id || s.userId || '');
+      if (subSid === sid || (suuid && subSid === suuid)) return true;
+      if (s.studentName && s.studentName.toLowerCase() === sName) return true;
+      if (s.studentEmail && s.studentEmail.toLowerCase() === sEmail) return true;
+      return false;
+    });
+  }, [submissions, selectedStudent]);
 
   /* ─── Pending Tasks ─── */
   const pendingTasks = useMemo(() => {
@@ -2005,6 +2024,16 @@ export default function StudentDashboard() {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* ════════════════════════════════════════════
+            📊 PERİYODİK SORU & BAŞARI ANALİZİ (TÜM ÖĞRENCİLER İÇİN)
+        ════════════════════════════════════════════ */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <PeriodicQuestionAnalytics
+            homeworkSubmissions={allStudentSubmissions}
+            studentName={selectedStudent?.name || 'Öğrenci'}
+          />
         </div>
 
         {/* ════════════════════════════════════════════
