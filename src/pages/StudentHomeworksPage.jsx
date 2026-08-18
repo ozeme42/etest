@@ -539,11 +539,39 @@ export default function StudentHomeworksPage() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .hw-anim { animation: fadeIn 0.25s ease both; }
-        .hw-row:hover { background-color: #f8fafc !important; }
+        .hw-row:hover { filter: brightness(0.98); }
+        .hw-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.85rem;
+          padding: 0.85rem 1.15rem;
+          transition: all 0.15s ease;
+        }
         @media (max-width: 640px) {
-          .hw-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
-          .hw-row-content { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
-          .hw-row-actions { width: 100% !important; justify-content: space-between !important; }
+          .hw-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+          .hw-row {
+            padding: 0.75rem 0.85rem !important;
+            gap: 0.6rem !important;
+          }
+          .hw-icon-box {
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 0.82rem !important;
+          }
+          .hw-title-text {
+            font-size: 0.85rem !important;
+          }
+          .hw-meta-text {
+            font-size: 0.68rem !important;
+          }
+          .hw-row-actions {
+            gap: 4px !important;
+          }
+          .hw-row-actions button {
+            padding: 0.42rem 0.75rem !important;
+            font-size: 0.75rem !important;
+          }
         }
       `}</style>
 
@@ -936,6 +964,16 @@ export default function StudentHomeworksPage() {
                     const isLast = idx === group.items.length - 1;
                     const rowTheme = getRowTheme(task.subject, idx);
 
+                    // Clean up title duplication with book name
+                    const rawTitle = task.title || task.name || task.testName || 'Ödev Görevi';
+                    const rawBook = task.bookTitle || '';
+                    let displayTitle = rawTitle;
+                    if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                      const regex = new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                      displayTitle = displayTitle.replace(regex, '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                      if (!displayTitle) displayTitle = task.testName || rawTitle;
+                    }
+
                     return (
                       <div
                         key={task.id}
@@ -952,13 +990,12 @@ export default function StudentHomeworksPage() {
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        {/* SOL: İkon, Ders, Tip ve Başlık */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
-                          
-                          {/* Durum İkonu */}
-                          <div style={{
-                            width: 34,
-                            height: 34,
+                        {/* SOL: İkon */}
+                        <div
+                          className="hw-icon-box"
+                          style={{
+                            width: 32,
+                            height: 32,
                             borderRadius: '50%',
                             background: '#ffffff',
                             color: task.isDone ? '#16a34a' : isOverdue ? '#e11d48' : rowTheme.accent,
@@ -966,90 +1003,112 @@ export default function StudentHomeworksPage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.92rem',
+                            fontSize: '0.88rem',
                             fontWeight: 900,
                             flexShrink: 0,
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.04)'
-                          }}>
-                            {task.isDone ? '✓' : isOverdue ? '!' : '⏳'}
-                          </div>
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                          }}
+                        >
+                          {task.isDone ? '✓' : isOverdue ? '!' : '⏳'}
+                        </div>
 
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            {/* Rozetler ve Başlık Satırı */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-                              {task.subject && (
-                                <span style={{
-                                  fontSize: '0.68rem',
-                                  fontWeight: 900,
-                                  color: rowTheme.text,
-                                  background: rowTheme.badgeBg,
-                                  padding: '2px 7px',
-                                  borderRadius: 6,
-                                  border: `1px solid ${rowTheme.border}`
-                                }}>
-                                  {task.subject}
-                                </span>
-                              )}
-
+                        {/* ORTA: Rozetler, Başlık ve Alt Bilgi */}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          {/* Rozetler */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 2 }}>
+                            {task.subject && (
                               <span style={{
                                 fontSize: '0.66rem',
-                                fontWeight: 800,
-                                color: task.isBookAssignment ? '#047857' : '#6d28d9',
-                                background: '#ffffff',
-                                padding: '2px 7px',
-                                borderRadius: 6,
-                                border: task.isBookAssignment ? '1px solid #a7f3d0' : '1px solid #e9d5ff'
+                                fontWeight: 900,
+                                color: rowTheme.text,
+                                background: rowTheme.badgeBg,
+                                padding: '1.5px 6px',
+                                borderRadius: 5,
+                                border: `1px solid ${rowTheme.border}`,
+                                whiteSpace: 'nowrap'
                               }}>
-                                {task.isPhysical ? '📋 Fiziki Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
+                                {task.subject}
                               </span>
+                            )}
 
-                              {task.isDone ? (
-                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '2px 7px', borderRadius: 99, border: '1px solid #86efac' }}>
-                                  Tamamlandı
-                                </span>
-                              ) : isOverdue ? (
-                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#fff1f2', color: '#e11d48', padding: '2px 7px', borderRadius: 99, border: '1px solid #fecdd3' }}>
-                                  Gecikti
-                                </span>
-                              ) : isDueToday ? (
-                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', padding: '2px 7px', borderRadius: 99, border: '1px solid #fde68a' }}>
-                                  Bugün Son
-                                </span>
-                              ) : null}
-                            </div>
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 800,
+                              color: task.isBookAssignment ? '#047857' : '#6d28d9',
+                              background: '#ffffff',
+                              padding: '1.5px 6px',
+                              borderRadius: 5,
+                              border: task.isBookAssignment ? '1px solid #a7f3d0' : '1px solid #e9d5ff',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {task.isPhysical ? '📋 Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
+                            </span>
 
-                            {/* Ödev Başlığı */}
-                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3, wordBreak: 'break-word' }}>
-                              {task.title || task.name || 'Ödev Görevi'}
-                            </div>
+                            {task.isDone ? (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '1.5px 6px', borderRadius: 99, border: '1px solid #86efac', whiteSpace: 'nowrap' }}>
+                                Tamamlandı
+                              </span>
+                            ) : isOverdue ? (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#fff1f2', color: '#e11d48', padding: '1.5px 6px', borderRadius: 99, border: '1px solid #fecdd3', whiteSpace: 'nowrap' }}>
+                                Gecikti
+                              </span>
+                            ) : isDueToday ? (
+                              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', padding: '1.5px 6px', borderRadius: 99, border: '1px solid #fde68a', whiteSpace: 'nowrap' }}>
+                                Bugün Son
+                              </span>
+                            ) : null}
+                          </div>
 
-                            {/* Detay Bilgisi */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: '#475569', fontWeight: 600, marginTop: 2 }}>
-                              {task.bookTitle && <span>📖 {task.bookTitle}</span>}
-                              <span>• ❓ {task.questionCount || 20} Soru</span>
-                              {dueLabel && <span>• ⏰ Son: {dueLabel}</span>}
-                              {task.isDone && task.submittedAt && (
-                                <span style={{ color: '#16a34a', fontWeight: 700 }}>• 🗓️ Çözülme: {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
-                              )}
-                            </div>
+                          {/* Ödev Başlığı */}
+                          <div 
+                            className="hw-title-text"
+                            style={{ 
+                              fontSize: '0.9rem', 
+                              fontWeight: 800, 
+                              color: '#0f172a', 
+                              lineHeight: 1.25, 
+                              margin: '2px 0' 
+                            }}
+                          >
+                            {displayTitle}
+                          </div>
+
+                          {/* Alt Bilgi */}
+                          <div 
+                            className="hw-meta-text"
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 6, 
+                              flexWrap: 'wrap', 
+                              fontSize: '0.7rem', 
+                              color: '#475569', 
+                              fontWeight: 600 
+                            }}
+                          >
+                            {rawBook && <span style={{ color: '#334155', fontWeight: 700 }}>📖 {rawBook}</span>}
+                            <span>• ❓ {task.questionCount || 20} Soru</span>
+                            {dueLabel && <span>• ⏰ Son: {dueLabel}</span>}
+                            {task.isDone && task.submittedAt && (
+                              <span style={{ color: '#16a34a', fontWeight: 700 }}>• 🗓️ {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
+                            )}
                           </div>
                         </div>
 
                         {/* SAĞ: Skor ve Eylem Butonu */}
-                        <div className="hw-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <div className="hw-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           {task.isDone && task.scorePct !== null && (
                             <div style={{
                               background: task.scorePct >= 80 ? '#f0fdf4' : task.scorePct >= 50 ? '#eff6ff' : '#fff1f2',
                               border: task.scorePct >= 80 ? '1px solid #86efac' : task.scorePct >= 50 ? '1px solid #bfdbfe' : '1px solid #fecdd3',
-                              padding: '0.25rem 0.65rem',
-                              borderRadius: 8,
-                              textAlign: 'center',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: 6,
+                              textAlign: 'center'
                             }}>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: task.scorePct >= 80 ? '#16a34a' : task.scorePct >= 50 ? '#2563eb' : '#e11d48', lineHeight: 1.1 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 900, color: task.scorePct >= 80 ? '#16a34a' : task.scorePct >= 50 ? '#2563eb' : '#e11d48', lineHeight: 1.1 }}>
                                 %{task.scorePct}
                               </div>
-                              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b' }}>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b' }}>
                                 {task.correctAnswers}/{task.totalScoreQuestions} D
                               </div>
                             </div>
@@ -1063,8 +1122,8 @@ export default function StudentHomeworksPage() {
                                 background: '#ffffff',
                                 color: '#2563eb',
                                 border: '1.5px solid #bfdbfe',
-                                borderRadius: 9,
-                                padding: '0.45rem 0.9rem',
+                                borderRadius: 8,
+                                padding: '0.45rem 0.85rem',
                                 fontSize: '0.78rem',
                                 fontWeight: 900,
                                 cursor: 'pointer',
@@ -1076,7 +1135,7 @@ export default function StudentHomeworksPage() {
                                 whiteSpace: 'nowrap'
                               }}
                             >
-                              <Eye size={14} /> İncele
+                              <Eye size={13} /> İncele
                             </button>
                           ) : (
                             <button
@@ -1086,20 +1145,20 @@ export default function StudentHomeworksPage() {
                                 background: 'linear-gradient(135deg, #ef4444, #f97316)',
                                 color: '#ffffff',
                                 border: 'none',
-                                borderRadius: 9,
-                                padding: '0.5rem 1.05rem',
-                                fontSize: '0.8rem',
+                                borderRadius: 8,
+                                padding: '0.48rem 0.95rem',
+                                fontSize: '0.78rem',
                                 fontWeight: 900,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 5,
-                                boxShadow: '0 2px 8px rgba(239,68,68,0.25)',
+                                gap: 4,
+                                boxShadow: '0 2px 8px rgba(239,68,68,0.22)',
                                 transition: 'all 0.15s',
                                 whiteSpace: 'nowrap'
                               }}
                             >
-                              <PlayCircle size={15} /> Çöz
+                              <PlayCircle size={14} /> Çöz
                             </button>
                           )}
                         </div>
