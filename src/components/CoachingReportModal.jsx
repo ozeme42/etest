@@ -17,17 +17,14 @@ export default function CoachingReportModal({
   mockExams = [],
   counterGoals = [],
   teacherNote = '',
-  submissions = [],
   homeworkSubmissions = []
 }) {
   const reportRef = useRef(null);
 
   if (!isOpen) return null;
 
-  // 1. Çözülen Ödevler ve Konu Testleri
-  const allHw = (homeworkSubmissions && homeworkSubmissions.length > 0) 
-    ? homeworkSubmissions 
-    : (submissions || []).filter(s => !s.isTrial);
+  // 1. Seçilen Öğrencinin Çözdüğü Ödevler ve Konu Testleri
+  const allHw = Array.isArray(homeworkSubmissions) ? homeworkSubmissions : [];
 
   const hwTestsCount = allHw.length;
   const hwD = allHw.reduce((a, b) => a + (b.correctCount || 0), 0);
@@ -35,15 +32,15 @@ export default function CoachingReportModal({
   const hwB = allHw.reduce((a, b) => a + (b.emptyCount || 0), 0);
   const hwQ = hwD + hwY + hwB;
 
-  // 2. Çözülen Deneme Sınavları
-  const allTrials = mockExams || [];
+  // 2. Seçilen Öğrencinin Çözdüğü Deneme Sınavları
+  const allTrials = Array.isArray(mockExams) ? mockExams : [];
   const trialCount = allTrials.length;
   const trialD = allTrials.reduce((a, b) => a + (b.totalCorrect || 0), 0);
   const trialY = allTrials.reduce((a, b) => a + (b.totalWrong || 0), 0);
   const trialB = allTrials.reduce((a, b) => a + (b.totalEmpty || 0), 0);
   const trialQ = trialD + trialY + trialB;
 
-  // 3. Genel Toplamlar (Gerçek Çözülenler)
+  // 3. Genel Toplamlar (Yalnızca Seçilen Öğrencinin Gerçek Çözdükleri)
   const grandD = hwD + trialD;
   const grandY = hwY + trialY;
   const grandB = hwB + trialB;
@@ -127,7 +124,7 @@ export default function CoachingReportModal({
             }
             th, td {
               border: 1px solid #cbd5e1;
-              padding: 5px 8px;
+              padding: 6px 10px;
             }
             th {
               background-color: #f1f5f9 !important;
@@ -139,7 +136,7 @@ export default function CoachingReportModal({
           </style>
         </head>
         <body>
-          <div style="padding: 4px;">
+          <div style="padding: 6px;">
             ${reportElement.innerHTML}
           </div>
         </body>
@@ -409,7 +406,7 @@ export default function CoachingReportModal({
             </div>
 
             {/* ─── TABLO 1: DERS BAZLI SORU ÇÖZÜMÜ & BAŞARI KARNESİ ─── */}
-            {subjectList.length > 0 && (
+            {subjectList.length > 0 ? (
               <div className="page-avoid-break" style={{ marginBottom: '1.15rem' }}>
                 <h3 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.45rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>📊</span> Ders Bazlı Soru Çözümü & Başarı Karnesi
@@ -417,13 +414,13 @@ export default function CoachingReportModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                   <thead>
                     <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Ders Adı</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Test Sayısı</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Çözülen Soru</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '70px' }}>Doğru (D)</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '70px' }}>Yanlış (Y)</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '60px' }}>Boş (B)</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '85px' }}>Başarı (%)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left' }}>Ders Adı</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '85px' }}>Test Sayısı</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '85px' }}>Çözülen Soru</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '75px' }}>Doğru (D)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '75px' }}>Yanlış (Y)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '65px' }}>Boş (B)</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '90px' }}>Başarı (%)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -432,25 +429,25 @@ export default function CoachingReportModal({
                       const sRate = sTotal > 0 ? Math.round((stat.d / sTotal) * 100) : 0;
                       return (
                         <tr key={sName} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 800, color: '#0f172a' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', fontWeight: 800, color: '#0f172a' }}>
                             {sName}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 700, color: '#475569' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#475569' }}>
                             {stat.testCount} Test
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#2563eb' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#2563eb' }}>
                             {sTotal}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
                             {stat.d}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>
                             {stat.y}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', color: '#64748b' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', color: '#64748b' }}>
                             {stat.b}
                           </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 900, color: sRate >= 70 ? '#15803d' : sRate >= 50 ? '#b45309' : '#b91c1c' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 900, color: sRate >= 70 ? '#15803d' : sRate >= 50 ? '#b45309' : '#b91c1c' }}>
                             %{sRate}
                           </td>
                         </tr>
@@ -458,6 +455,10 @@ export default function CoachingReportModal({
                     })}
                   </tbody>
                 </table>
+              </div>
+            ) : (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.65rem', padding: '0.85rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem', marginBottom: '1.15rem' }}>
+                Öğrenciye ait çözülmüş ödev veya konu testi kaydı bulunmamaktadır.
               </div>
             )}
 
@@ -470,86 +471,37 @@ export default function CoachingReportModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                   <thead>
                     <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '85px' }}>Tarih</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Deneme Sınavı Adı</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '65px' }}>Doğru</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '65px' }}>Yanlış</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '55px' }}>Boş</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Toplam Net</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left', width: '90px' }}>Tarih</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left' }}>Deneme Sınavı Adı</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '70px' }}>Doğru</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '70px' }}>Yanlış</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '60px' }}>Boş</th>
+                      <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', width: '85px' }}>Toplam Net</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allTrials.map((m, idx) => (
                       <tr key={m.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', color: '#64748b', fontWeight: 700 }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', color: '#64748b', fontWeight: 700 }}>
                           {m.date || '—'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 800, color: '#0f172a' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', fontWeight: 800, color: '#0f172a' }}>
                           {m.title || m.examName || 'Deneme Sınavı'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#15803d' }}>
                           {m.totalCorrect ?? '—'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#b91c1c' }}>
                           {m.totalWrong ?? '—'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', color: '#64748b' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', color: '#64748b' }}>
                           {m.totalEmpty ?? '—'}
                         </td>
-                        <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 900, color: '#7c3aed' }}>
+                        <td style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'center', fontWeight: 900, color: '#7c3aed' }}>
                           {m.totalNet ?? m.net ?? '—'} Net
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* ─── TABLO 3: ÇÖZÜLEN ÖDEVLER & KONU TESTLERİ DETAY LİSTESİ ─── */}
-            {allHw.length > 0 && (
-              <div className="page-avoid-break" style={{ marginBottom: '1.15rem' }}>
-                <h3 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.45rem 0', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>📚</span> Çözülen Ödevler & Konu Testleri Listesi ({allHw.length} Test)
-                </h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
-                  <thead>
-                    <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '80px' }}>Tarih</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left', width: '100px' }}>Ders</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'left' }}>Test / Kitap Adı</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '90px' }}>Sonuç (D/Y/B)</th>
-                      <th style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', width: '80px' }}>Başarı (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allHw.map((t, idx) => {
-                      const d = t.correctCount || 0;
-                      const y = t.wrongCount || 0;
-                      const b = t.emptyCount || 0;
-                      const tot = d + y + b;
-                      const rate = tot > 0 ? Math.round((d / tot) * 100) : 0;
-
-                      return (
-                        <tr key={t.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', color: '#64748b', fontWeight: 700 }}>
-                            {t.date || '—'}
-                          </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 800, color: '#3b82f6' }}>
-                            {t.subject || t.subjectName || 'Genel'}
-                          </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#0f172a' }}>
-                            {t.title}
-                          </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 800 }}>
-                            <span style={{ color: '#15803d' }}>{d}D</span> · <span style={{ color: '#b91c1c' }}>{y}Y</span> {b > 0 ? `· ${b}B` : ''}
-                          </td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', textAlign: 'center', fontWeight: 900, color: rate >= 70 ? '#15803d' : rate >= 50 ? '#b45309' : '#b91c1c' }}>
-                            %{rate}
-                          </td>
-                        </tr>
-                      );
-                    })}
                   </tbody>
                 </table>
               </div>
