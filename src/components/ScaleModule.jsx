@@ -717,17 +717,17 @@ export default function ScaleModule({ students = [], teacherId }) {
       )}
 
       {/* ── TOP HERO HEADER ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="scale-header-wrap">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <BarChart3 size={30} style={{ color: '#6366f1' }} /> Çok Yönlü Değerlendirme &amp; Gözlem Ölçekleri
+            <h1 className="scale-title">
+              <BarChart3 size={28} style={{ color: '#6366f1', flexShrink: 0 }} /> Çok Yönlü Değerlendirme &amp; Gözlem Ölçekleri
             </h1>
-            <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', padding: '0.2rem 0.75rem', borderRadius: '1rem', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', padding: '0.2rem 0.65rem', borderRadius: '1rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
               MEB &amp; REHBERLİK UYUMLU
             </span>
           </div>
-          <p style={{ margin: '0.35rem 0 0 0', color: '#64748b', fontSize: '0.92rem', fontWeight: 600 }}>
+          <p className="scale-subtitle">
             Akademik başarı, ders içi katılım, rehberlik, sınav kaygısı, proje rubrikleri ve koçluk için tüm ölçekleri puanlayın ve gelişim raporlayın.
           </p>
         </div>
@@ -742,20 +742,7 @@ export default function ScaleModule({ students = [], teacherId }) {
               setFormCriteria([{ id: `c_${Date.now()}`, name: '', type: 'binary' }]);
               setShowCreateScale(true);
             }}
-            style={{
-              padding: '0.75rem 1.4rem',
-              borderRadius: '1rem',
-              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 900,
-              fontSize: '0.92rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(99, 102, 241, 0.25)'
-            }}
+            className="scale-top-btn"
           >
             <Plus size={18} /> Yeni Ölçek Oluştur
           </button>
@@ -766,7 +753,7 @@ export default function ScaleModule({ students = [], teacherId }) {
       <div className="scale-kpi-grid">
         <div className="scale-kpi-card">
           <div className="scale-kpi-icon" style={{ background: '#eff6ff', color: '#4f46e5', border: '1px solid #bfdbfe' }}>
-            <ClipboardList size={26} />
+            <ClipboardList size={24} />
           </div>
           <div>
             <div className="scale-kpi-val">{totalScalesCount}</div>
@@ -776,7 +763,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
         <div className="scale-kpi-card">
           <div className="scale-kpi-icon" style={{ background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd' }}>
-            <Calendar size={26} />
+            <Calendar size={24} />
           </div>
           <div>
             <div className="scale-kpi-val">{totalSessionsCount}</div>
@@ -786,7 +773,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
         <div className="scale-kpi-card">
           <div className="scale-kpi-icon" style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8' }}>
-            <Users size={26} />
+            <Users size={24} />
           </div>
           <div>
             <div className="scale-kpi-val">{totalStudentsCount}</div>
@@ -796,7 +783,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
         <div className="scale-kpi-card">
           <div className="scale-kpi-icon" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
-            <Award size={26} />
+            <Award size={24} />
           </div>
           <div>
             <div className="scale-kpi-val">%{classOverallAvg}</div>
@@ -806,45 +793,33 @@ export default function ScaleModule({ students = [], teacherId }) {
       </div>
 
       {/* ── PRESET TEMPLATES FAST BAR ── */}
-      <div className="scale-glass-card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.86rem', fontWeight: 900, color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Sparkles size={18} /> 1 Tıkla Hazır Ölçek Yükle:
+      <div className="scale-glass-card scale-presets-bar">
+        <div className="scale-presets-wrap">
+          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <Sparkles size={16} /> 1 Tıkla Hazır Ölçek Yükle:
           </span>
           {PRESET_SCALES.map(preset => (
             <button
               key={preset.id}
               onClick={() => handleLoadPreset(preset)}
-              style={{
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                padding: '0.45rem 0.85rem',
-                borderRadius: '0.75rem',
-                background: '#f8fafc',
-                border: '1.5px solid #cbd5e1',
-                color: '#1e293b',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                transition: 'all 0.15s'
-              }}
+              className="scale-preset-chip"
               title={preset.desc}
             >
-              <Zap size={13} style={{ color: '#0284c7' }} /> {preset.name}
+              <Zap size={13} style={{ color: '#0284c7', flexShrink: 0 }} /> {preset.name}
             </button>
           ))}
         </div>
       </div>
 
       {/* ── SCALE SELECTOR & SESSION CONTROL BAR ── */}
-      <div className="scale-glass-card" style={{ padding: '1rem 1.4rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem' }}>
+      <div className="scale-glass-card scale-controls-bar">
         
         {/* Ölçek Seçici Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
+          <div style={{ position: 'relative' }} className="scale-dropdown-wrap">
             <button
               onClick={() => setScaleDropdownOpen(o => !o)}
+              className="scale-dropdown-btn"
               style={{
                 padding: '0.65rem 1.15rem',
                 borderRadius: '0.85rem',
@@ -879,6 +854,8 @@ export default function ScaleModule({ students = [], teacherId }) {
                   borderRadius: '1rem',
                   boxShadow: '0 16px 40px rgba(0,0,0,0.12)',
                   minWidth: '280px',
+                  width: '100%',
+                  maxWidth: '340px',
                   overflow: 'hidden'
                 }}
                 onMouseLeave={() => setScaleDropdownOpen(false)}
@@ -973,7 +950,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
         {/* Seanslar ve Tarih Seçici */}
         {activeScale && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflowX: 'auto', maxWidth: '600px' }} className="custom-scrollbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflowX: 'auto', maxWidth: '600px' }} className="scale-sessions-scroll custom-scrollbar">
             {(activeScale.sessions || []).map(sess => {
               const isActive = sess.id === activeSession;
               const hwCount = Object.values(sess.homeworkStudents || {}).filter(Boolean).length;
@@ -1032,57 +1009,33 @@ export default function ScaleModule({ students = [], teacherId }) {
         )}
 
         {/* View Tabs */}
-        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid #e2e8f0' }}>
+        <div className="scale-view-tabs">
           <button
             onClick={() => setViewTab('grid')}
+            className="scale-view-tab-btn"
             style={{
-              padding: '0.45rem 0.95rem',
-              borderRadius: '0.6rem',
-              border: 'none',
               background: viewTab === 'grid' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none',
-              color: viewTab === 'grid' ? '#ffffff' : '#64748b',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              color: viewTab === 'grid' ? '#ffffff' : '#64748b'
             }}
           >
             📋 Tablo Matrisi
           </button>
           <button
             onClick={() => setViewTab('analytics')}
+            className="scale-view-tab-btn"
             style={{
-              padding: '0.45rem 0.95rem',
-              borderRadius: '0.6rem',
-              border: 'none',
               background: viewTab === 'analytics' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none',
-              color: viewTab === 'analytics' ? '#ffffff' : '#64748b',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              color: viewTab === 'analytics' ? '#ffffff' : '#64748b'
             }}
           >
             📊 Sınıf Analizi
           </button>
           <button
             onClick={() => setViewTab('trend')}
+            className="scale-view-tab-btn"
             style={{
-              padding: '0.45rem 0.95rem',
-              borderRadius: '0.6rem',
-              border: 'none',
               background: viewTab === 'trend' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none',
-              color: viewTab === 'trend' ? '#ffffff' : '#64748b',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              color: viewTab === 'trend' ? '#ffffff' : '#64748b'
             }}
           >
             📈 Gelişim Trendi

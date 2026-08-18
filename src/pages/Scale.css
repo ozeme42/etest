@@ -104,6 +104,125 @@
   background: #94a3b8;
 }
 
+/* Responsive Components & Classes */
+.scale-header-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.scale-title {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.scale-subtitle {
+  margin: 0.35rem 0 0 0;
+  color: #64748b;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.scale-top-btn {
+  padding: 0.75rem 1.4rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border: none;
+  font-weight: 900;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.scale-top-btn:active {
+  transform: scale(0.98);
+}
+
+.scale-presets-bar {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.scale-presets-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.scale-preset-chip {
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s;
+}
+
+.scale-preset-chip:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.scale-controls-bar {
+  padding: 1rem 1.4rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.scale-view-tabs {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.scale-view-tab-btn {
+  padding: 0.45rem 0.95rem;
+  border-radius: 0.6rem;
+  border: none;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s;
+}
+
 /* Print Styling for Student Report Cards */
 @media print {
   body {
@@ -116,5 +235,125 @@
   }
   .no-print {
     display: none !important;
+  }
+}
+
+/* ─────────────── MOBILE BREAKPOINTS (< 768px) ─────────────── */
+@media (max-width: 768px) {
+  .scales-page-container {
+    padding: 0.75rem 0.75rem 5rem 0.75rem;
+  }
+
+  .scale-header-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .scale-title {
+    font-size: 1.28rem;
+    line-height: 1.25;
+  }
+
+  .scale-subtitle {
+    font-size: 0.82rem;
+  }
+
+  .scale-top-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+  }
+
+  .scale-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+
+  .scale-kpi-card {
+    padding: 0.75rem 0.8rem;
+    gap: 0.65rem;
+    border-radius: 0.95rem;
+  }
+
+  .scale-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 0.7rem;
+  }
+
+  .scale-kpi-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .scale-kpi-val {
+    font-size: 1.25rem;
+  }
+
+  .scale-kpi-lbl {
+    font-size: 0.65rem;
+    margin-top: 0.1rem;
+  }
+
+  .scale-presets-bar {
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .scale-presets-wrap {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.35rem;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .scale-preset-chip {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.74rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  .scale-controls-bar {
+    padding: 0.85rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .scale-dropdown-wrap {
+    width: 100%;
+  }
+
+  .scale-dropdown-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .scale-sessions-scroll {
+    max-width: 100% !important;
+    width: 100%;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scale-view-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    box-sizing: border-box;
+  }
+
+  .scale-view-tab-btn {
+    padding: 0.45rem 0.25rem !important;
+    font-size: 0.72rem !important;
+    justify-content: center !important;
+    text-align: center;
+    white-space: nowrap;
   }
 }
