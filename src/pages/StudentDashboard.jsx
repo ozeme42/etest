@@ -470,42 +470,52 @@ export default function StudentDashboard() {
       .filter(g => g.pendingCount > 0);
   }, [tests]);
 
-  /* ─── Overall Student Success Rate (%) ─── */
+  /* ─── All Submissions & Mock Exams For Question Analytics (Synced with Coaching & Results) ─── */
+  const studentMockExams = useMemo(() => {
+    if (!selectedStudent?.id || typeof getMockExamsForStudent !== 'function') return [];
+    return getMockExamsForStudent(selectedStudent.id) || [];
+  }, [selectedStudent, getMockExamsForStudent]);
+
+  const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
+    return computeStudentAnalyticsData({
+      studentId: selectedStudent?.id,
+      targetStudent: selectedStudent,
+      submissions,
+      homeworks,
+      books,
+      bookTests,
+      studentMockExams
+    });
+  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
+
+  /* ─── Overall Student Success Rate (%) (Sonuçlarım & Koçluk ile %100 Senkronize) ─── */
   const overallSuccessRate = useMemo(() => {
-    const completedList = tests.filter(t => (t.status === 'Sonuçlandı' || t.status === 'Tamamlandı'));
-    if (completedList.length > 0) {
-      let totalScore = 0;
-      let totalQuestions = 0;
-      completedList.forEach(t => {
-        const qCount = t.questionCount || 20;
-        const cCount = t.correctAnswers || 0;
-        totalQuestions += qCount;
-        totalScore += cCount;
-      });
-      if (totalQuestions > 0) {
-        return Math.round((totalScore / totalQuestions) * 100);
-      }
-    }
+    let totalCorrect = 0;
+    let totalQuestions = 0;
 
-    const studentIdStr = String(selectedStudent?.id || '');
-    const studentSubs = (submissions || []).filter(s => String(s.studentId) === studentIdStr && s.status !== 'in_progress' && s.status !== 'draft');
-    if (studentSubs.length > 0) {
-      let totalScore = 0;
-      let count = 0;
-      studentSubs.forEach(s => {
-        if (typeof s.score === 'number' && s.totalQuestions && s.totalQuestions > 0) {
-          totalScore += (s.score / s.totalQuestions) * 100;
-          count++;
-        } else if (typeof s.score === 'number') {
-          totalScore += s.score;
-          count++;
-        }
-      });
-      if (count > 0) return Math.round(totalScore / count);
-    }
+    (otherHomeworkSubmissions || []).forEach(s => {
+      const c = Number(s.correctCount) || 0;
+      const w = Number(s.wrongCount) || 0;
+      const e = Number(s.emptyCount) || 0;
+      const q = c + w + e;
+      totalCorrect += c;
+      totalQuestions += q > 0 ? q : (c + w);
+    });
 
-    return 85;
-  }, [tests, selectedStudent, submissions]);
+    (generalTrialExams || []).forEach(m => {
+      const c = Number(m.totalCorrect) || 0;
+      const w = Number(m.totalWrong) || 0;
+      const e = Number(m.totalEmpty) || 0;
+      const q = c + w + e;
+      totalCorrect += c;
+      totalQuestions += q > 0 ? q : (c + w);
+    });
+
+    if (totalQuestions > 0) {
+      return Math.round((totalCorrect / totalQuestions) * 100);
+    }
+    return 0;
+  }, [otherHomeworkSubmissions, generalTrialExams]);
 
   /* ─── Hero Date & Task Stats for Top KPI Cards ─── */
   const heroDateStr = useMemo(() => {
@@ -673,23 +683,6 @@ export default function StudentDashboard() {
       .slice(0, 5);
   }, [selectedStudent, submissions, homeworks, books, bookTests]);
 
-  /* ─── All Submissions & Mock Exams For Question Analytics (Synced with Coaching) ─── */
-  const studentMockExams = useMemo(() => {
-    if (!selectedStudent?.id || typeof getMockExamsForStudent !== 'function') return [];
-    return getMockExamsForStudent(selectedStudent.id) || [];
-  }, [selectedStudent, getMockExamsForStudent]);
-
-  const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
-    return computeStudentAnalyticsData({
-      studentId: selectedStudent?.id,
-      targetStudent: selectedStudent,
-      submissions,
-      homeworks,
-      books,
-      bookTests,
-      studentMockExams
-    });
-  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
 
   /* ─── Pending Tasks ─── */
   const pendingTasks = useMemo(() => {
