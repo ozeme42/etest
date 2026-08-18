@@ -178,12 +178,12 @@ function ScoreCell({ type, value, onChange }) {
             width: 36,
             height: 30,
             borderRadius: '0.5rem',
-            border: value === 1 ? '2px solid #16a34a' : '1.5px solid #cbd5e1',
+            border: value === 1 ? '2px solid #16a34a' : '1.5px solid var(--color-border-input)',
             cursor: 'pointer',
             fontWeight: 900,
             fontSize: '1rem',
-            background: value === 1 ? '#f0fdf4' : '#f8fafc',
-            color: value === 1 ? '#15803d' : '#94a3b8',
+            background: value === 1 ? 'rgba(16,185,129,0.15)' : 'var(--color-surface-hover)',
+            color: value === 1 ? '#16a34a' : 'var(--color-text-muted)',
             transition: 'all 0.15s',
             display: 'flex',
             alignItems: 'center',
@@ -199,12 +199,12 @@ function ScoreCell({ type, value, onChange }) {
             width: 36,
             height: 30,
             borderRadius: '0.5rem',
-            border: value === 0 ? '2px solid #dc2626' : '1.5px solid #cbd5e1',
+            border: value === 0 ? '2px solid #dc2626' : '1.5px solid var(--color-border-input)',
             cursor: 'pointer',
             fontWeight: 900,
             fontSize: '1rem',
-            background: value === 0 ? '#fef2f2' : '#f8fafc',
-            color: value === 0 ? '#dc2626' : '#94a3b8',
+            background: value === 0 ? 'rgba(239,68,68,0.15)' : 'var(--color-surface-hover)',
+            color: value === 0 ? '#dc2626' : 'var(--color-text-muted)',
             transition: 'all 0.15s',
             display: 'flex',
             alignItems: 'center',
@@ -229,13 +229,13 @@ function ScoreCell({ type, value, onChange }) {
               height: 28,
               minWidth: 26,
               borderRadius: '0.4rem',
-              border: value === v ? `2px solid ${color}` : '1.5px solid #cbd5e1',
+              border: value === v ? `2px solid ${color}` : '1.5px solid var(--color-border-input)',
               cursor: 'pointer',
               fontSize: '0.68rem',
               fontWeight: 900,
-              background: value === v ? color : '#f8fafc',
-              color: value === v ? '#ffffff' : '#475569',
-              transition: 'all 0.1s',
+              background: value === v ? color : 'var(--color-surface-hover)',
+              color: value === v ? '#ffffff' : 'var(--color-text)',
+              transition: 'all 0.1 exposed',
               padding: '0 4px'
             }}
           >
@@ -260,7 +260,7 @@ function ScoreCell({ type, value, onChange }) {
               padding: '2px 1px',
               fontSize: '1.15rem',
               lineHeight: 1,
-              color: s <= (value || 0) ? '#f59e0b' : '#cbd5e1',
+              color: s <= (value || 0) ? '#f59e0b' : 'var(--color-border-input)',
               transition: 'color 0.1s'
             }}
           >
@@ -286,11 +286,11 @@ function ScoreCell({ type, value, onChange }) {
             width: 58,
             padding: '0.35rem 0.4rem',
             borderRadius: 8,
-            border: `1.5px solid ${value != null ? scoreColor('numeric', value) : '#cbd5e1'}`,
-            background: value != null ? '#f0f9ff' : '#ffffff',
+            border: `1.5px solid ${value != null ? scoreColor('numeric', value) : 'var(--color-border-input)'}`,
+            background: value != null ? 'rgba(56,189,248,0.1)' : 'var(--color-surface-hover)',
             fontSize: '0.86rem',
             fontWeight: 900,
-            color: value != null ? scoreColor('numeric', value) : '#0f172a',
+            color: value != null ? scoreColor('numeric', value) : 'var(--color-text)',
             outline: 'none',
             textAlign: 'center',
             fontFamily: 'monospace'
@@ -309,7 +309,7 @@ function ScoreCell({ type, value, onChange }) {
             onClick={() => onChange(value === i + 1 ? null : i + 1)}
             title={EMOJI_LABELS[i + 1]}
             style={{
-              background: value === i + 1 ? '#fdf2f8' : 'none',
+              background: value === i + 1 ? 'rgba(236,72,153,0.15)' : 'none',
               border: value === i + 1 ? '2px solid #db2777' : '1px solid transparent',
               borderRadius: '0.45rem',
               cursor: 'pointer',
@@ -341,12 +341,12 @@ function ScoreCell({ type, value, onChange }) {
               height: 28,
               minWidth: 28,
               borderRadius: '0.4rem',
-              border: value === v ? `2px solid ${RUBRIC_COLORS[v]}` : '1.5px solid #cbd5e1',
+              border: value === v ? `2px solid ${RUBRIC_COLORS[v]}` : '1.5px solid var(--color-border-input)',
               cursor: 'pointer',
               fontSize: '0.68rem',
               fontWeight: 900,
-              background: value === v ? RUBRIC_COLORS[v] + '25' : '#f8fafc',
-              color: value === v ? RUBRIC_COLORS[v] : '#475569',
+              background: value === v ? RUBRIC_COLORS[v] + '25' : 'var(--color-surface-hover)',
+              color: value === v ? RUBRIC_COLORS[v] : 'var(--color-text-muted)',
               transition: 'all 0.1s',
               padding: '0 4px',
               display: 'flex',
@@ -849,8 +849,8 @@ export default function ScaleModule({ students = [], teacherId }) {
                   top: 'calc(100% + 8px)',
                   left: 0,
                   zIndex: 9999,
-                  background: '#ffffff',
-                  border: '1.5px solid #cbd5e1',
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border)',
                   borderRadius: '1rem',
                   boxShadow: '0 16px 40px rgba(0,0,0,0.12)',
                   minWidth: '280px',
@@ -861,7 +861,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                 onMouseLeave={() => setScaleDropdownOpen(false)}
               >
                 {scales.length === 0 ? (
-                  <div style={{ padding: '1rem', color: '#64748b', fontSize: '0.82rem', textAlign: 'center' }}>
+                  <div style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.82rem', textAlign: 'center' }}>
                     Henüz kayıtlı ölçek yok
                   </div>
                 ) : (
@@ -875,19 +875,19 @@ export default function ScaleModule({ students = [], teacherId }) {
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
                         cursor: 'pointer',
-                        background: sc.id === activeScaleId ? '#eff6ff' : 'transparent',
+                        background: sc.id === activeScaleId ? 'rgba(37,99,235,0.12)' : 'transparent',
                         borderLeft: `3px solid ${sc.id === activeScaleId ? '#6366f1' : 'transparent'}`,
-                        borderBottom: '1px solid #e2e8f0'
+                        borderBottom: '1px solid var(--color-border)'
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{sc.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{sc.criteria?.length || 0} kriter • {sc.sessions?.length || 0} seans</div>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>{sc.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{sc.criteria?.length || 0} kriter • {sc.sessions?.length || 0} seans</div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.3rem' }}>
                         <button
                           onClick={e => { e.stopPropagation(); openEditScale(sc); setScaleDropdownOpen(false); }}
-                          style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '0.4rem', padding: '0.35rem', cursor: 'pointer', color: '#4f46e5' }}
+                          style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '0.4rem', padding: '0.35rem', cursor: 'pointer', color: '#6366f1' }}
                         >
                           <Edit2 size={13} />
                         </button>
@@ -902,7 +902,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                   ))
                 )}
                 
-                <div style={{ padding: '0.65rem', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ padding: '0.65rem', borderTop: '1px solid var(--color-border)' }}>
                   <button
                     onClick={() => {
                       setEditingScaleId(null);
@@ -939,7 +939,7 @@ export default function ScaleModule({ students = [], teacherId }) {
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
                 onClick={() => openEditScale(activeScale)}
-                style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#334155', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                 title="Ölçeği ve Kriterlerini Düzenle"
               >
                 <Edit2 size={14} /> Ölçeği Düzenle
@@ -1084,38 +1084,38 @@ export default function ScaleModule({ students = [], teacherId }) {
               
               {/* Search input */}
               <div style={{ position: 'relative', minWidth: '240px' }}>
-                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                 <input
                   type="text"
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
                   placeholder="Öğrenci ara..."
-                  style={{ width: '100%', padding: '0.55rem 0.85rem 0.55rem 2.3rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.55rem 0.85rem 0.55rem 2.3rem', borderRadius: '0.65rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               {/* Quick info & bulk tips */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                   💡 <strong>Hızlı İpucu:</strong> Sütun başlıklarındaki "Tümüne Uygula" ile sınıfa tek tıkla standart puan verip istisnaları değiştirebilirsiniz.
                 </span>
               </div>
             </div>
 
             {/* Matrix Table */}
-            <div style={{ overflowX: 'auto', borderRadius: '1rem', border: '1.5px solid #e2e8f0', background: '#ffffff' }} className="custom-scrollbar">
-              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '780px', color: '#0f172a' }}>
+            <div style={{ overflowX: 'auto', borderRadius: '1rem', border: '1.5px solid var(--color-border)', background: 'var(--color-surface)' }} className="custom-scrollbar">
+              <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '780px', color: 'var(--color-text)' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ padding: '0.9rem 1.1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.06em', minWidth: '180px', position: 'sticky', left: 0, background: '#f8fafc', zIndex: 2, borderRight: '1px solid #e2e8f0' }}>
+                  <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '2px solid var(--color-border)' }}>
+                    <th style={{ padding: '0.9rem 1.1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.06em', minWidth: '180px', position: 'sticky', left: 0, background: 'var(--color-surface-hover)', zIndex: 2, borderRight: '1px solid var(--color-border)' }}>
                       Öğrenci
                     </th>
                     
                     {activeScale.criteria.map((crit) => {
                       const ct = CRITERION_TYPES.find(t => t.id === crit.type);
                       return (
-                        <th key={crit.id} style={{ padding: '0.85rem 0.65rem', textAlign: 'center', borderRight: '1px solid #e2e8f0', minWidth: '140px' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>
+                        <th key={crit.id} style={{ padding: '0.85rem 0.65rem', textAlign: 'center', borderRight: '1px solid var(--color-border)', minWidth: '140px' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>
                             {crit.name}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
@@ -1166,7 +1166,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                 <tbody>
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={activeScale.criteria.length + 4} style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '0.9rem' }}>
+                      <td colSpan={activeScale.criteria.length + 4} style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                         Öğrenci bulunamadı.
                       </td>
                     </tr>
@@ -1186,20 +1186,20 @@ export default function ScaleModule({ students = [], teacherId }) {
                         <tr
                           key={std.id}
                           style={{
-                            background: isEven ? '#ffffff' : '#f8fafc',
-                            borderBottom: '1px solid #e2e8f0',
+                            background: isEven ? 'var(--color-surface)' : 'var(--color-surface-hover)',
+                            borderBottom: '1px solid var(--color-border)',
                             transition: 'background 0.12s'
                           }}
                         >
                           {/* Student Info (Sticky) */}
-                          <td style={{ padding: '0.75rem 1.1rem', position: 'sticky', left: 0, zIndex: 1, background: isEven ? '#ffffff' : '#f8fafc', borderRight: '1px solid #e2e8f0', verticalAlign: 'middle' }}>
+                          <td style={{ padding: '0.75rem 1.1rem', position: 'sticky', left: 0, zIndex: 1, background: isEven ? 'var(--color-surface)' : 'var(--color-surface-hover)', borderRight: '1px solid var(--color-border)', verticalAlign: 'middle' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                               <Av name={std.name} idx={si} size={30} />
                               <div>
-                                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', whiteSpace: 'nowrap' }}>
                                   {std.name} {std.surname || ''}
                                 </div>
-                                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                                   {std.className || std.grade || 'Öğrenci'}
                                 </div>
                               </div>
@@ -1208,7 +1208,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
                           {/* Criteria Score Cells */}
                           {activeScale.criteria.map((crit) => (
-                            <td key={crit.id} style={{ padding: '0.65rem 0.55rem', textAlign: 'center', verticalAlign: 'middle', borderRight: '1px solid #e2e8f0' }}>
+                            <td key={crit.id} style={{ padding: '0.65rem 0.55rem', textAlign: 'center', verticalAlign: 'middle', borderRight: '1px solid var(--color-border)' }}>
                               <ScoreCell
                                 type={crit.type}
                                 value={scores[crit.id] ?? null}
@@ -1498,20 +1498,20 @@ export default function ScaleModule({ students = [], teacherId }) {
 
       {/* ── MODAL: YENİ ÖLÇEK OLUŞTUR / DÜZENLE ── */}
       {showCreateScale && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#0f172a' }}>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   {editingScaleId ? 'Ölçeği Düzenle' : 'Yeni Değerlendirme Ölçeği Oluştur'}
                 </h3>
-                <p style={{ margin: '0.2rem 0 0 0', color: '#64748b', fontSize: '0.82rem' }}>
+                <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
                   Ölçeğin adını ve değerlendirilecek kriterleri tanımlayın.
                 </p>
               </div>
-              <button onClick={() => setShowCreateScale(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', cursor: 'pointer' }}>
+              <button onClick={() => setShowCreateScale(false)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
@@ -1519,43 +1519,43 @@ export default function ScaleModule({ students = [], teacherId }) {
             {/* Modal Body */}
             <div style={{ padding: '1.35rem 1.6rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.15rem' }} className="custom-scrollbar">
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>Ölçek Adı *</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: '0.35rem' }}>Ölçek Adı *</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Örn: 8. Sınıf Fen Bilimleri Katılım Ölçeği, Sınav Kaygısı Değerlendirme..."
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>Açıklama (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: '0.35rem' }}>Açıklama (İsteğe Bağlı)</label>
                 <input
                   type="text"
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
                   placeholder="Bu ölçeğin amacı ve kullanım alanı..."
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               {/* Kriter Ekleme Paneli */}
-              <div style={{ background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1rem' }}>
+              <div style={{ background: 'var(--color-surface-hover)', borderRadius: '1rem', border: '1px solid var(--color-border)', padding: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>Kriterler ({formCriteria.length})</div>
-                  <div style={{ display: 'flex', background: '#ffffff', borderRadius: '0.5rem', padding: '0.2rem', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>Kriterler ({formCriteria.length})</div>
+                  <div style={{ display: 'flex', background: 'var(--color-surface)', borderRadius: '0.5rem', padding: '0.2rem', border: '1px solid var(--color-border-input)' }}>
                     <button
                       type="button"
                       onClick={() => setCriteriaTab('single')}
-                      style={{ padding: '0.25rem 0.65rem', borderRadius: '0.4rem', border: 'none', background: criteriaTab === 'single' ? '#6366f1' : 'none', color: criteriaTab === 'single' ? '#ffffff' : '#475569', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}
+                      style={{ padding: '0.25rem 0.65rem', borderRadius: '0.4rem', border: 'none', background: criteriaTab === 'single' ? '#6366f1' : 'none', color: criteriaTab === 'single' ? '#ffffff' : 'var(--color-text-muted)', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}
                     >
                       Tek Tek Ekle
                     </button>
                     <button
                       type="button"
                       onClick={() => setCriteriaTab('bulk')}
-                      style={{ padding: '0.25rem 0.65rem', borderRadius: '0.4rem', border: 'none', background: criteriaTab === 'bulk' ? '#6366f1' : 'none', color: criteriaTab === 'bulk' ? '#ffffff' : '#475569', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}
+                      style={{ padding: '0.25rem 0.65rem', borderRadius: '0.4rem', border: 'none', background: criteriaTab === 'bulk' ? '#6366f1' : 'none', color: criteriaTab === 'bulk' ? '#ffffff' : 'var(--color-text-muted)', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}
                     >
                       Toplu Metin
                     </button>
@@ -1570,14 +1570,14 @@ export default function ScaleModule({ students = [], teacherId }) {
                         value={singleCritName}
                         onChange={(e) => setSingleCritName(e.target.value)}
                         placeholder="Kriter adı yazın..."
-                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.55rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '0.55rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.84rem', boxSizing: 'border-box' }}
                       />
                     </div>
                     <div>
                       <select
                         value={singleCritType}
                         onChange={(e) => setSingleCritType(e.target.value)}
-                        style={{ padding: '0.55rem 0.75rem', borderRadius: '0.55rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.84rem', fontWeight: 800 }}
+                        style={{ padding: '0.55rem 0.75rem', borderRadius: '0.55rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.84rem', fontWeight: 800 }}
                       >
                         {CRITERION_TYPES.map(ct => (
                           <option key={ct.id} value={ct.id}>{ct.label}</option>
@@ -1599,11 +1599,11 @@ export default function ScaleModule({ students = [], teacherId }) {
                 ) : (
                   <div style={{ marginBottom: '0.85rem' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.4rem' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 800 }}>Tümüne Tür:</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text)', fontWeight: 800 }}>Tümüne Tür:</span>
                       <select
                         value={bulkCritType}
                         onChange={(e) => setBulkCritType(e.target.value)}
-                        style={{ padding: '0.35rem 0.65rem', borderRadius: '0.45rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.78rem', fontWeight: 800 }}
+                        style={{ padding: '0.35rem 0.65rem', borderRadius: '0.45rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 800 }}
                       >
                         {CRITERION_TYPES.map(ct => (
                           <option key={ct.id} value={ct.id}>{ct.label}</option>
@@ -1615,7 +1615,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                       onChange={(e) => setBulkCritText(e.target.value)}
                       placeholder={'Derse hazırlıklı gelme\nAktif katılım\nÖdev teslimi\nDikkat süresi'}
                       rows={4}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.84rem', boxSizing: 'border-box', resize: 'none' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.65rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.84rem', boxSizing: 'border-box', resize: 'none' }}
                     />
                     <button
                       type="button"
@@ -1635,8 +1635,8 @@ export default function ScaleModule({ students = [], teacherId }) {
                 {/* Criteria List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '220px', overflowY: 'auto' }} className="custom-scrollbar">
                   {formCriteria.map((crit, idx) => (
-                    <div key={crit.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.65rem', borderRadius: '0.55rem', background: '#ffffff', border: '1px solid #e2e8f0' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#94a3b8', width: '20px' }}>#{idx + 1}</span>
+                    <div key={crit.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.65rem', borderRadius: '0.55rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-text-muted)', width: '20px' }}>#{idx + 1}</span>
                       <input
                         type="text"
                         value={crit.name}
@@ -1645,7 +1645,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                           updated[idx].name = e.target.value;
                           setFormCriteria(updated);
                         }}
-                        style={{ flex: 1, background: 'none', border: 'none', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                        style={{ flex: 1, background: 'none', border: 'none', color: 'var(--color-text)', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
                       />
                       <select
                         value={crit.type}
@@ -1654,7 +1654,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                           updated[idx].type = e.target.value;
                           setFormCriteria(updated);
                         }}
-                        style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0284c7', fontSize: '0.74rem', borderRadius: '0.4rem', padding: '0.25rem 0.45rem', fontWeight: 800 }}
+                        style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: '#0284c7', fontSize: '0.74rem', borderRadius: '0.4rem', padding: '0.25rem 0.45rem', fontWeight: 800 }}
                       >
                         {CRITERION_TYPES.map(ct => (
                           <option key={ct.id} value={ct.id}>{ct.label}</option>
@@ -1675,10 +1675,10 @@ export default function ScaleModule({ students = [], teacherId }) {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setShowCreateScale(false)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -1695,42 +1695,42 @@ export default function ScaleModule({ students = [], teacherId }) {
 
       {/* ── MODAL: YENİ SEANS OLUŞTUR ── */}
       {showCreateSession && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '440px', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a', overflow: 'hidden' }}>
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Yeni Seans Başlat</h3>
-              <button onClick={() => setShowCreateSession(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', cursor: 'pointer' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '440px', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>Yeni Seans Başlat</h3>
+              <button onClick={() => setShowCreateSession(false)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
 
             <div style={{ padding: '1.35rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>Seans Etiketi / Adı</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: '0.35rem' }}>Seans Etiketi / Adı</label>
                 <input
                   type="text"
                   value={sessionLabel}
                   onChange={(e) => setSessionLabel(e.target.value)}
                   placeholder="Örn: 2. Hafta Değerlendirmesi, Kasım Ayı Gözlemi..."
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>Seans Tarihi</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: '0.35rem' }}>Seans Tarihi</label>
                 <input
                   type="date"
                   value={sessionDate}
                   onChange={(e) => setSessionDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setShowCreateSession(false)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -1747,16 +1747,16 @@ export default function ScaleModule({ students = [], teacherId }) {
 
       {/* ── MODAL: ÖĞRETMEN GÖZLEM NOTU ── */}
       {showNoteModal && selectedStudentForNote && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '500px', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a', overflow: 'hidden' }}>
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '500px', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Öğretmen Gözlem Notu</h3>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>Öğretmen Gözlem Notu</h3>
                 <p style={{ margin: '0.2rem 0 0 0', color: '#6366f1', fontSize: '0.84rem', fontWeight: 700 }}>
                   {selectedStudentForNote.name} {selectedStudentForNote.surname || ''}
                 </p>
               </div>
-              <button onClick={() => setShowNoteModal(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', cursor: 'pointer' }}>
+              <button onClick={() => setShowNoteModal(false)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
@@ -1767,14 +1767,14 @@ export default function ScaleModule({ students = [], teacherId }) {
                 onChange={(e) => setStudentObservationNote(e.target.value)}
                 placeholder="Öğrencinin ders içi tutumu, gelişimi, güçlü yönleri veya veliye/koça iletilecek özel gözlem..."
                 rows={5}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#0f172a', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'none' }}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'none' }}
               />
             </div>
 
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setShowNoteModal(false)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -1791,19 +1791,19 @@ export default function ScaleModule({ students = [], teacherId }) {
 
       {/* ── MODAL: ÖĞRENCİ BİREYSEL GELİŞİM KARNESİ / RAPORU (YAZDIRILABİLİR) ── */}
       {showReportCardModal && selectedStudentForReport && activeScale && activeSess && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '640px', maxHeight: '92vh', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '640px', maxHeight: '92vh', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             {/* Header */}
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Printer size={22} style={{ color: '#0284c7' }} />
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>Öğrenci Gelişim &amp; Değerlendirme Karnesi</h3>
-                  <p style={{ margin: '0.2rem 0 0 0', color: '#64748b', fontSize: '0.8rem' }}>{activeScale.name} • {activeSess.label}</p>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>Öğrenci Gelişim &amp; Değerlendirme Karnesi</h3>
+                  <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{activeScale.name} • {activeSess.label}</p>
                 </div>
               </div>
-              <button onClick={() => setShowReportCardModal(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', cursor: 'pointer' }}>
+              <button onClick={() => setShowReportCardModal(false)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
@@ -1812,14 +1812,14 @@ export default function ScaleModule({ students = [], teacherId }) {
             <div style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }} className="custom-scrollbar">
               
               {/* Student Hero Info */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-hover)', padding: '1rem 1.25rem', borderRadius: '1rem', border: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                   <Av name={selectedStudentForReport.name} size={42} />
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
                       {selectedStudentForReport.name} {selectedStudentForReport.surname || ''}
                     </h3>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
                       {selectedStudentForReport.className || selectedStudentForReport.grade || 'Öğrenci'} {selectedStudentForReport.email && `• ${selectedStudentForReport.email}`}
                     </div>
                   </div>
@@ -1835,7 +1835,7 @@ export default function ScaleModule({ students = [], teacherId }) {
                         <div style={{ fontSize: '1.5rem', fontWeight: 900, color: avg >= 70 ? '#16a34a' : avg >= 45 ? '#d97706' : '#dc2626' }}>
                           {avg !== null ? `%{avg}` : '—'}
                         </div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Genel Başarı</div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Genel Başarı</div>
                       </div>
                     );
                   })()}
@@ -1844,7 +1844,7 @@ export default function ScaleModule({ students = [], teacherId }) {
 
               {/* Criteria Scores Grid */}
               <div>
-                <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   Kriter Değerlendirme Sonuçları
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1862,13 +1862,13 @@ export default function ScaleModule({ students = [], teacherId }) {
                           justifyContent: 'space-between',
                           padding: '0.7rem 0.95rem',
                           borderRadius: '0.75rem',
-                          background: '#f8fafc',
-                          border: '1px solid #e2e8f0'
+                          background: 'var(--color-surface-hover)',
+                          border: '1px solid var(--color-border)'
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{crit.name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text)' }}>{crit.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                             {CRITERION_TYPES.find(t => t.id === crit.type)?.label}
                           </div>
                         </div>
@@ -1891,11 +1891,11 @@ export default function ScaleModule({ students = [], teacherId }) {
 
               {/* Teacher Observation Note */}
               {activeSess.notes?.[selectedStudentForReport.id] && (
-                <div style={{ background: '#faf5ff', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e9d5ff' }}>
-                  <h5 style={{ margin: '0 0 0.35rem 0', fontSize: '0.85rem', fontWeight: 900, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <div style={{ background: 'rgba(124,58,237,0.1)', padding: '1rem', borderRadius: '0.85rem', border: '1px solid rgba(124,58,237,0.3)' }}>
+                  <h5 style={{ margin: '0 0 0.35rem 0', fontSize: '0.85rem', fontWeight: 900, color: '#a855f7', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <MessageSquare size={14} /> Öğretmen / Koç Notu:
                   </h5>
-                  <p style={{ margin: 0, fontSize: '0.86rem', color: '#334155', lineHeight: 1.4 }}>
+                  <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--color-text)', lineHeight: 1.4 }}>
                     {activeSess.notes[selectedStudentForReport.id]}
                   </p>
                 </div>
@@ -1904,10 +1904,10 @@ export default function ScaleModule({ students = [], teacherId }) {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setShowReportCardModal(false)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: '#f8fafc', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 Kapat
               </button>

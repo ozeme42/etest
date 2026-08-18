@@ -136,7 +136,7 @@
   font-size: 1.85rem;
   font-weight: 900;
   letter-spacing: -0.02em;
-  color: #0f172a;
+  color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -144,7 +144,7 @@
 
 .scale-subtitle {
   margin: 0.35rem 0 0 0;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.92rem;
   font-weight: 600;
   line-height: 1.4;
@@ -179,6 +179,9 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.85rem;
+  background: var(--color-card-bg);
+  border: 1.5px solid var(--color-card-border);
+  border-radius: 1.25rem;
 }
 
 .scale-presets-wrap {
@@ -193,9 +196,9 @@
   font-weight: 800;
   padding: 0.45rem 0.85rem;
   border-radius: 0.75rem;
-  background: #f8fafc;
-  border: 1.5px solid #cbd5e1;
-  color: #1e293b;
+  background: var(--color-surface-hover);
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -204,9 +207,9 @@
 }
 
 .scale-preset-chip:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.12);
+  border-color: #3b82f6;
+  color: #60a5fa;
 }
 
 .scale-controls-bar {
@@ -217,14 +220,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.85rem;
+  background: var(--color-card-bg);
+  border: 1.5px solid var(--color-card-border);
+  border-radius: 1.25rem;
 }
 
 .scale-view-tabs {
   display: flex;
-  background: #f1f5f9;
+  background: var(--color-surface-hover);
   border-radius: 0.75rem;
   padding: 0.25rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border);
 }
 
 .scale-view-tab-btn {
@@ -238,6 +244,7 @@
   align-items: center;
   gap: 0.4rem;
   transition: all 0.15s;
+  color: var(--color-text-muted);
 }
 
 /* Print Styling for Student Report Cards */

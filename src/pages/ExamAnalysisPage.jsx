@@ -250,21 +250,15 @@ export default function ExamAnalysisPage() {
       boxSizing: 'border-box',
       margin: 0,
       padding: '1.25rem 1.5rem 5rem 1.5rem',
-      backgroundColor: '#f8fafc',
-      backgroundImage: `
-        radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
-        radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
-        #f8fafc
-      `,
-      backgroundAttachment: 'fixed',
-      color: '#0f172a',
+      backgroundColor: 'var(--color-bg)',
+      color: 'var(--color-text)',
       fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
     }}>
       
       {/* ── TOP HERO HEADER ── */}
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
         padding: '1.5rem 1.75rem',
         marginBottom: '1.5rem',
@@ -282,9 +276,9 @@ export default function ExamAnalysisPage() {
             style={{
               padding: '0.7rem',
               borderRadius: '1rem',
-              background: '#f8fafc',
-              border: '1.5px solid #cbd5e1',
-              color: '#334155',
+              background: 'var(--color-surface-hover)',
+              border: '1.5px solid var(--color-border-input)',
+              color: 'var(--color-text)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -297,14 +291,14 @@ export default function ExamAnalysisPage() {
           
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+              <h1 style={{ margin: 0, fontSize: '1.65rem', fontWeight: 900, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
                 {exam ? exam.title : 'Fiziki Deneme Sınavı Analizi'}
               </h1>
-              <span style={{ fontSize: '0.74rem', fontWeight: 900, background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid #bfdbfe' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid #3b82f6' }}>
                 {exam?.targetClass || '8. Sınıf LGS'} • {exam?.totalQuestions || 90} Soru
               </span>
             </div>
-            <p style={{ margin: '0.35rem 0 0 0', color: '#64748b', fontSize: '0.88rem', fontWeight: 600 }}>
+            <p style={{ margin: '0.35rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.88rem', fontWeight: 600 }}>
               Sınava katılan öğrencilerin ders bazlı netleri, optik form cevap dağılımı ve soru zorluk analizi 📊
             </p>
           </div>
@@ -317,9 +311,9 @@ export default function ExamAnalysisPage() {
             style={{
               padding: '0.65rem 1.25rem',
               borderRadius: '0.75rem',
-              background: '#f0f9ff',
-              border: '1.5px solid #bae6fd',
-              color: '#0284c7',
+              background: 'rgba(2,132,199,0.12)',
+              border: '1.5px solid #0284c7',
+              color: '#38bdf8',
               fontWeight: 800,
               fontSize: '0.84rem',
               display: 'flex',
@@ -337,43 +331,43 @@ export default function ExamAnalysisPage() {
       {/* ── 4 LIVE KPI HERO CARDS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         
-        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: '#eff6ff', color: '#6366f1', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', border: '1px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Users size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{totalParticipants}</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '0.2rem' }}>Toplam Katılımcı</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{totalParticipants}</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Toplam Katılımcı</div>
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <TrendingUp size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{overallAvgScore.toFixed(1)} Net</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '0.2rem' }}>Genel Sınıf Ortalaması</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{overallAvgScore.toFixed(1)} Net</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Genel Sınıf Ortalaması</div>
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Trophy size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#d97706', lineHeight: 1.1 }}>{maxScore.toFixed(1)} Net</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '0.2rem' }}>En Yüksek Net (Zirve)</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1.1 }}>{maxScore.toFixed(1)} Net</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>En Yüksek Net (Zirve)</div>
           </div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.25rem 1.4rem', display: 'flex', alignItems: 'center', gap: '1.15rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '1rem', background: 'rgba(219,39,119,0.12)', color: '#f472b6', border: '1px solid rgba(219,39,119,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Award size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{exam?.subjects?.length || 6} Ders</div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '0.2rem' }}>Sınav Kapsamı</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{exam?.subjects?.length || 6} Ders</div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Sınav Kapsamı</div>
           </div>
         </div>
 
@@ -381,8 +375,8 @@ export default function ExamAnalysisPage() {
 
       {/* ── VIEW TAB SELECTOR ── */}
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
         borderRadius: '1rem',
         padding: '0.35rem',
         display: 'inline-flex',
@@ -403,7 +397,7 @@ export default function ExamAnalysisPage() {
                 borderRadius: '0.75rem',
                 border: 'none',
                 background: isActive ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'none',
-                color: isActive ? '#ffffff' : '#64748b',
+                color: isActive ? '#ffffff' : 'var(--color-text-muted)',
                 fontWeight: 800,
                 fontSize: '0.86rem',
                 cursor: 'pointer',
@@ -429,25 +423,25 @@ export default function ExamAnalysisPage() {
             
             {/* Subject Net Averages Bar Chart */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
               borderRadius: '1.25rem',
               padding: '1.75rem',
               boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
             }}>
-              <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <BarChart3 size={22} style={{ color: '#6366f1' }} /> Ders Bazında Sınıf Net Ortalamaları
+              <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BarChart3 size={22} style={{ color: '#818cf8' }} /> Ders Bazında Sınıf Net Ortalamaları
               </h3>
               
               <div style={{ height: '320px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={subjectChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)', fontWeight: 700 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)', fontWeight: 700 }} />
                     <RechartsTooltip 
                       cursor={{ fill: 'rgba(99,102,241,0.05)' }}
-                      contentStyle={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+                      contentStyle={{ background: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 800, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
                     />
                     <Bar dataKey="Ortalama Net" fill="#6366f1" radius={[8, 8, 0, 0]} maxBarSize={60} />
                   </BarChart>
@@ -459,8 +453,8 @@ export default function ExamAnalysisPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
               {subjectChartData.map((subj, sIdx) => (
                 <div key={sIdx} style={{
-                  background: '#ffffff',
-                  border: '1.5px solid #e2e8f0',
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border)',
                   borderRadius: '1rem',
                   padding: '1.15rem 1.35rem',
                   display: 'flex',
@@ -469,12 +463,12 @@ export default function ExamAnalysisPage() {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#0f172a' }}>{subj.name}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.2rem' }}>Toplam {subj['Soru Sayısı']} Soru</div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>{subj.name}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>Toplam {subj['Soru Sayısı']} Soru</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0284c7' }}>{subj['Ortalama Net']}</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ort. Net</div>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{subj['Ortalama Net']}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Ort. Net</div>
                   </div>
                 </div>
               ))}
@@ -486,33 +480,33 @@ export default function ExamAnalysisPage() {
         {/* ══ TAB 2: CLASS BREAKDOWN ══ */}
         {activeTab === 'class' && (
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: '1.25rem',
             padding: '1.75rem',
             boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
           }}>
-            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={22} style={{ color: '#0284c7' }} /> Sınıflara Göre Başarı Dağılımı
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Layers size={22} style={{ color: '#38bdf8' }} /> Sınıflara Göre Başarı Dağılımı
             </h3>
             
             {classChartData.length > 0 ? (
               <div style={{ height: '340px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={classChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 700 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)', fontWeight: 700 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)', fontWeight: 700 }} />
                     <RechartsTooltip 
                       cursor={{ fill: 'rgba(16,185,129,0.05)' }}
-                      contentStyle={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+                      contentStyle={{ background: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 800, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
                     />
                     <Bar dataKey="Ortalama Net / Puan" fill="#10b981" radius={[8, 8, 0, 0]} maxBarSize={70} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Sınıf verisi bulunamadı.</div>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Sınıf verisi bulunamadı.</div>
             )}
           </div>
         )}
@@ -520,33 +514,33 @@ export default function ExamAnalysisPage() {
         {/* ══ TAB 3: STUDENT LEADERBOARD & REPORT CARD ══ */}
         {activeTab === 'students' && (
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
             borderRadius: '1.25rem',
             padding: '1.5rem',
             boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Trophy size={22} style={{ color: '#d97706' }} /> Öğrenci Sıralaması &amp; Bireysel Karneler
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Trophy size={22} style={{ color: '#fbbf24' }} /> Öğrenci Sıralaması &amp; Bireysel Karneler
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#1e40af', background: '#eff6ff', padding: '0.2rem 0.65rem', borderRadius: '0.5rem', fontWeight: 800, border: '1px solid #bfdbfe' }}>
+              <span style={{ fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.2rem 0.65rem', borderRadius: '0.5rem', fontWeight: 800, border: '1px solid #3b82f6' }}>
                 {studentStats.length} Katılımcı
               </span>
             </div>
 
-            <div style={{ overflowX: 'auto', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', color: '#0f172a' }}>
+            <div style={{ overflowX: 'auto', borderRadius: '1rem', border: '1px solid var(--color-border)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--color-text)' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', width: '60px', color: '#475569' }}>Sıra</th>
-                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#475569' }}>Öğrenci</th>
-                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#475569' }}>Sınıf</th>
-                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#16a34a' }}>Doğru</th>
-                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#dc2626' }}>Yanlış</th>
-                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#64748b' }}>Boş</th>
-                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#0284c7' }}>Toplam Net</th>
-                    <th style={{ padding: '0.85rem 1rem', textAlign: 'right', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#475569' }}>Karne</th>
+                  <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '2px solid var(--color-border)' }}>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', width: '60px', color: 'var(--color-text-muted)' }}>Sıra</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Öğrenci</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Sınıf</th>
+                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#34d399' }}>Doğru</th>
+                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#f87171' }}>Yanlış</th>
+                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Boş</th>
+                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#38bdf8' }}>Toplam Net</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'right', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Karne</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -555,31 +549,31 @@ export default function ExamAnalysisPage() {
                       key={std.studentId}
                       onClick={() => setSelectedStudent(std)}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        background: idx === 0 ? '#fffbeb' : idx % 2 === 0 ? '#f8fafc' : 'transparent',
+                        borderBottom: '1px solid var(--color-border)',
+                        background: idx === 0 ? 'rgba(245,158,11,0.1)' : idx % 2 === 0 ? 'var(--color-surface-hover)' : 'transparent',
                         cursor: 'pointer',
                         transition: 'background 0.12s'
                       }}
                     >
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 900, fontSize: '0.88rem', color: idx === 0 ? '#d97706' : idx === 1 ? '#475569' : idx === 2 ? '#ea580c' : '#94a3b8' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 900, fontSize: '0.88rem', color: idx === 0 ? '#fbbf24' : idx === 1 ? 'var(--color-text-muted)' : idx === 2 ? '#fb923c' : 'var(--color-text-muted)' }}>
                         #{idx + 1}
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)' }}>
                         {std.studentName}
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.82rem', color: '#64748b' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
                         {std.classId}
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#16a34a' }}>
+                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#34d399' }}>
                         {std.totalCorrect}
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#dc2626' }}>
+                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#f87171' }}>
                         {std.totalWrong}
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#64748b' }}>
+                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: 'var(--color-text-muted)' }}>
                         {std.totalEmpty}
                       </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, fontSize: '1rem', color: '#0284c7' }}>
+                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, fontSize: '1rem', color: '#38bdf8' }}>
                         {std.avgScore.toFixed(2)}
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
@@ -588,9 +582,9 @@ export default function ExamAnalysisPage() {
                           style={{
                             padding: '0.35rem 0.75rem',
                             borderRadius: '0.5rem',
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            color: '#1d4ed8',
+                            background: 'rgba(37,99,235,0.12)',
+                            border: '1px solid #3b82f6',
+                            color: '#60a5fa',
                             fontWeight: 800,
                             fontSize: '0.76rem',
                             cursor: 'pointer',
@@ -607,7 +601,7 @@ export default function ExamAnalysisPage() {
 
                   {studentStats.length === 0 && (
                     <tr>
-                      <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+                      <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                         Bu sınav için henüz öğrenci teslim kaydı bulunmuyor.
                       </td>
                     </tr>
@@ -627,14 +621,14 @@ export default function ExamAnalysisPage() {
 
                 return (
                   <div key={subjectName} style={{
-                    background: '#ffffff',
-                    border: '1.5px solid #e2e8f0',
+                    background: 'var(--color-surface)',
+                    border: '1.5px solid var(--color-border)',
                     borderRadius: '1.25rem',
                     padding: '1.5rem',
                     boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
                   }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
-                      <Target size={20} style={{ color: '#6366f1' }} /> {subjectName} ({sortedQuestions.length} Soru)
+                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem' }}>
+                      <Target size={20} style={{ color: '#818cf8' }} /> {subjectName} ({sortedQuestions.length} Soru)
                     </h3>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -654,38 +648,38 @@ export default function ExamAnalysisPage() {
                               justifyContent: 'space-between',
                               padding: '0.65rem 0.95rem',
                               borderRadius: '0.75rem',
-                              background: '#f8fafc',
-                              border: '1px solid #e2e8f0',
+                              background: 'var(--color-surface-hover)',
+                              border: '1px solid var(--color-border)',
                               flexWrap: 'wrap',
                               gap: '0.65rem'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: '130px' }}>
-                              <div style={{ width: '32px', height: '32px', borderRadius: '0.5rem', background: isHard ? '#fef2f2' : '#eff6ff', border: `1px solid ${isHard ? '#fecaca' : '#bfdbfe'}`, color: isHard ? '#dc2626' : '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem' }}>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '0.5rem', background: isHard ? 'rgba(239,68,68,0.15)' : 'rgba(37,99,235,0.12)', border: `1px solid ${isHard ? '#f87171' : '#3b82f6'}`, color: isHard ? '#f87171' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem' }}>
                                 {q.qIndex}
                               </div>
                               <div>
-                                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>Soru {q.qIndex}</span>
-                                <span style={{ fontSize: '0.68rem', color: '#d97706', display: 'block', fontWeight: 800 }}>Cevap: {q.correctAnswer}</span>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)' }}>Soru {q.qIndex}</span>
+                                <span style={{ fontSize: '0.68rem', color: '#fbbf24', display: 'block', fontWeight: 800 }}>Cevap: {q.correctAnswer}</span>
                               </div>
                             </div>
 
                             {/* Progress bar */}
-                            <div style={{ flex: 1, minWidth: '160px', height: '10px', background: '#e2e8f0', borderRadius: '1rem', overflow: 'hidden', display: 'flex' }}>
+                            <div style={{ flex: 1, minWidth: '160px', height: '10px', background: 'var(--color-border)', borderRadius: '1rem', overflow: 'hidden', display: 'flex' }}>
                               <div style={{ width: `${correctPct}%`, background: '#10b981' }} title={`Doğru: %${Math.round(correctPct)}`} />
                               <div style={{ width: `${wrongPct}%`, background: '#ef4444' }} title={`Yanlış: %${Math.round(wrongPct)}`} />
-                              <div style={{ width: `${emptyPct}%`, background: '#cbd5e1' }} title={`Boş: %${Math.round(emptyPct)}`} />
+                              <div style={{ width: `${emptyPct}%`, background: '#94a3b8' }} title={`Boş: %${Math.round(emptyPct)}`} />
                             </div>
 
                             {/* Stat Badges */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.76rem', fontWeight: 800 }}>
-                              <span style={{ color: '#16a34a', background: '#f0fdf4', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', border: '1px solid #bbf7d0' }}>
+                              <span style={{ color: '#34d399', background: 'rgba(16,185,129,0.12)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', border: '1px solid rgba(16,185,129,0.25)' }}>
                                 ✓ {q.correct} (%{Math.round(correctPct)})
                               </span>
-                              <span style={{ color: '#dc2626', background: '#fef2f2', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', border: '1px solid #fecaca' }}>
+                              <span style={{ color: '#f87171', background: 'rgba(239,68,68,0.12)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', border: '1px solid rgba(239,68,68,0.25)' }}>
                                 ✗ {q.wrong} (%{Math.round(wrongPct)})
                               </span>
-                              <span style={{ color: '#475569', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', border: '1px solid #e2e8f0' }}>
+                              <span style={{ color: 'var(--color-text-muted)', background: 'var(--color-surface)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', border: '1px solid var(--color-border)' }}>
                                 ○ {q.empty}
                               </span>
                             </div>
@@ -697,7 +691,7 @@ export default function ExamAnalysisPage() {
                 );
               })
             ) : (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                 Bu sınav için henüz soru madde analizi verisi oluşturulmadı.
               </div>
             )}
@@ -708,25 +702,25 @@ export default function ExamAnalysisPage() {
 
       {/* ── MODAL: ÖĞRENCİ BİREYSEL KARNESİ & OPTİK CEVAP DAĞILIMI ── */}
       {selectedStudent && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '780px', maxHeight: '90vh', borderRadius: '1.5rem', background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', color: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '780px', maxHeight: '90vh', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             {/* Header */}
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
                   <User size={20} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>
                     {selectedStudent.studentName}
                   </h3>
-                  <p style={{ margin: '0.2rem 0 0 0', color: '#64748b', fontSize: '0.8rem' }}>
+                  <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
                     {selectedStudent.classId} • {exam ? exam.title : 'Fiziki Deneme Sınavı'} Karnesi
                   </p>
                 </div>
               </div>
-              <button onClick={() => setSelectedStudent(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+              <button onClick={() => setSelectedStudent(null)} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -736,39 +730,39 @@ export default function ExamAnalysisPage() {
               
               {/* Summary KPIs */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16a34a' }}>{selectedStudent.totalCorrect}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase' }}>Doğru</div>
+                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399' }}>{selectedStudent.totalCorrect}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase' }}>Doğru</div>
                 </div>
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#dc2626' }}>{selectedStudent.totalWrong}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase' }}>Yanlış</div>
+                <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f87171' }}>{selectedStudent.totalWrong}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f87171', textTransform: 'uppercase' }}>Yanlış</div>
                 </div>
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#475569' }}>{selectedStudent.totalEmpty}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Boş</div>
+                <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent.totalEmpty}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Boş</div>
                 </div>
-                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0284c7' }}>{selectedStudent.avgScore.toFixed(2)}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>Toplam Net</div>
+                <div style={{ background: 'rgba(2,132,199,0.12)', border: '1px solid rgba(2,132,199,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{selectedStudent.avgScore.toFixed(2)}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase' }}>Toplam Net</div>
                 </div>
               </div>
 
               {/* Subject Breakdown */}
               {Object.keys(selectedStudent.combinedSubjectStats).length > 0 && (
                 <div>
-                  <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                  <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
                     Ders Bazlı Net Dağılımı
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
                     {Object.entries(selectedStudent.combinedSubjectStats).map(([subjName, sObj]) => (
-                      <div key={subjName} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.65rem 0.85rem' }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>{subjName}</div>
+                      <div key={subjName} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.65rem 0.85rem' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>{subjName}</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.75rem', fontWeight: 800 }}>
-                          <span style={{ color: '#16a34a' }}>{sObj.correct || 0}D</span>
-                          <span style={{ color: '#dc2626' }}>{sObj.wrong || 0}Y</span>
-                          <span style={{ color: '#64748b' }}>{sObj.blank || 0}B</span>
-                          <span style={{ color: '#0284c7', fontWeight: 900 }}>{sObj.net?.toFixed(2) || 0} Net</span>
+                          <span style={{ color: '#34d399' }}>{sObj.correct || 0}D</span>
+                          <span style={{ color: '#f87171' }}>{sObj.wrong || 0}Y</span>
+                          <span style={{ color: 'var(--color-text-muted)' }}>{sObj.blank || 0}B</span>
+                          <span style={{ color: '#38bdf8', fontWeight: 900 }}>{sObj.net?.toFixed(2) || 0} Net</span>
                         </div>
                       </div>
                     ))}
@@ -779,10 +773,10 @@ export default function ExamAnalysisPage() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setSelectedStudent(null)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: '#f8fafc', border: '1px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 Kapat
               </button>
