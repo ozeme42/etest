@@ -14,7 +14,9 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useHomework } from '../context/HomeworkContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
+import { toUUID } from '../services/supabaseService';
 
 const SUBJECT_CONFIG = {
   'Tümü': { label: 'Tüm Dersler', icon: GraduationCap, color: '#818cf8', bg: 'rgba(99, 102, 241, 0.12)', border: 'rgba(129, 140, 248, 0.35)' },
@@ -45,6 +47,7 @@ export default function StudentWrongAnswersPage() {
   const { questions: bankQuestions } = useQuestionBank();
   const { data: curData } = useCurriculum();
   const { homeworks } = useHomework();
+  const { books = [], bookTests = [] } = useTrackedBooks();
   const {
     getCoachingProfileForStudent,
     addStudentError,
@@ -167,6 +170,42 @@ export default function StudentWrongAnswersPage() {
     return map;
   }, [curData]);
 
+  // Tracked Books & BookTests map for 100% accurate subject and title resolution
+  const allBookTestsMap = useMemo(() => {
+    const map = new Map();
+    (books || []).forEach(b => {
+      const bTests = (bookTests || []).filter(bt => 
+        String(bt.bookId) === String(b.id) || 
+        (toUUID(bt.bookId) && String(toUUID(bt.bookId)) === String(toUUID(b.id)))
+      );
+
+      bTests.forEach(bt => {
+        let subName = '';
+        if (bt.subjectId && Array.isArray(b.subjects)) {
+          const matchSub = b.subjects.find(s => String(s.id) === String(bt.subjectId));
+          if (matchSub) subName = matchSub.name;
+        }
+        if (!subName) {
+          subName = b.subject || b.subjectName || '';
+        }
+
+        const info = {
+          testName: bt.name || 'Test',
+          bookTitle: b.title || 'Kitap',
+          subject: subName,
+          topic: bt.topic || '',
+          bookId: b.id,
+          testId: bt.id
+        };
+
+        map.set(String(bt.id), info);
+        const uuid = toUUID(bt.id);
+        if (uuid) map.set(String(uuid), info);
+      });
+    });
+    return map;
+  }, [books, bookTests]);
+
   // Submissions for activeStudent
   const allSubmissions = useMemo(() => {
     if (!activeStudent?.id) return [];
@@ -211,7 +250,7 @@ export default function StudentWrongAnswersPage() {
     return [...baseSubs, ...hwSubs];
   }, [submissions, homeworks, activeStudent]);
 
-  // Grouped Submissions
+  // Grouped Submissions with robust Subject Resolution
   const testGroupedSubmissions = useMemo(() => {
     const parsedSubs = allSubmissions.map(sub => {
       const wrongQuestions = [];
@@ -243,12 +282,19 @@ export default function StudentWrongAnswersPage() {
         for (let j = 1; j <= eCount; j++) blankQuestions.push({ qNum: wCount + j });
       }
 
+      // Check matched book test
+      const matchedBookTest = allBookTestsMap.get(String(sub.testId)) || 
+                              allBookTestsMap.get(String(sub.bookTestId)) ||
+                              allBookTestsMap.get(String(sub.hwId)) ||
+                              (sub.metadata?.realTestId ? allBookTestsMap.get(String(sub.metadata.realTestId)) : null);
+
       const matchedHw = (homeworks || []).find(h =>
         String(h.id) === String(sub.hwId) ||
         String(h.id) === String(sub.testId) ||
         String(h.id) === String(sub.id)
       );
-      const matchedTest = allCurTestsMap.get(sub.testId) || allCurTestsMap.get(sub.hwId);
+
+      const matchedCurTest = allCurTestsMap.get(sub.testId) || allCurTestsMap.get(sub.hwId);
 
       let resolvedTitle = sub.testTitle || sub.title;
       const isGeneric = !resolvedTitle ||
@@ -256,33 +302,54 @@ export default function StudentWrongAnswersPage() {
         resolvedTitle.trim().toLowerCase() === 'test sinavi' ||
         resolvedTitle.trim().toLowerCase() === 'test';
 
-      if (matchedHw?.title) {
+      if (matchedBookTest) {
+        const cleanBook = (matchedBookTest.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+        resolvedTitle = cleanBook ? `${cleanBook} — ${matchedBookTest.testName}` : matchedBookTest.testName;
+      } else if (matchedHw?.title) {
         resolvedTitle = matchedHw.title;
-      } else if (matchedTest?.title) {
-        resolvedTitle = matchedTest.title;
+      } else if (matchedCurTest?.title) {
+        resolvedTitle = matchedCurTest.title;
       } else if (isGeneric) {
         if (matchedHw?.subject) resolvedTitle = `${matchedHw.subject} Ödevi`;
         else resolvedTitle = 'Sınav Testi';
       }
 
-      let subject = sub.subject;
-      if (matchedHw?.subject && SUBJECT_CONFIG[matchedHw.subject]) {
+      // ── DERS TESPİTİ (SUBJECT DEDUCTION) ──
+      let subject = '';
+
+      if (matchedBookTest?.subject) {
+        subject = matchedBookTest.subject;
+      } else if (matchedHw?.subject) {
         subject = matchedHw.subject;
-      } else if (matchedTest?.subject && SUBJECT_CONFIG[matchedTest.subject]) {
-        subject = matchedTest.subject;
-      } else if (!subject || subject === 'Genel' || !SUBJECT_CONFIG[subject]) {
-        const titleLower = (resolvedTitle || '').toLowerCase();
-        if (titleLower.includes('mat')) subject = 'Matematik';
-        else if (titleLower.includes('fen')) subject = 'Fen Bilimleri';
-        else if (titleLower.includes('türk') || titleLower.includes('turk')) subject = 'Türkçe';
-        else if (titleLower.includes('sosyal') || titleLower.includes('inkılap') || titleLower.includes('inkilap')) subject = 'Sosyal Bilgiler';
-        else if (titleLower.includes('ing') || titleLower.includes('english')) subject = 'İngilizce';
-        else if (titleLower.includes('din')) subject = 'Din Kültürü';
-        else if (titleLower.includes('deneme')) subject = 'Genel Testler';
-        else subject = 'Matematik';
+      } else if (matchedCurTest?.subject) {
+        subject = matchedCurTest.subject;
+      } else if (sub.subject && sub.subject !== 'Genel') {
+        subject = sub.subject;
       }
 
-      const topic = sub.topic || matchedHw?.topic || matchedHw?.topicName || matchedHw?.unit || matchedTest?.topic || '';
+      // Subject normalization to known 7 subjects
+      const checkSubjectName = (str) => {
+        if (!str) return '';
+        const lower = String(str).toLowerCase();
+        if (lower.includes('mat') || lower.includes('geometri')) return 'Matematik';
+        if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyo')) return 'Fen Bilimleri';
+        if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat')) return 'Türkçe';
+        if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('inkilap') || lower.includes('tarih') || lower.includes('coğrafya')) return 'Sosyal Bilgiler';
+        if (lower.includes('ing') || lower.includes('english')) return 'İngilizce';
+        if (lower.includes('din')) return 'Din Kültürü';
+        if (lower.includes('deneme') || lower.includes('lgs') || lower.includes('yks') || lower.includes('tyt') || lower.includes('ayt')) return 'Genel Testler';
+        return '';
+      };
+
+      const directMatched = checkSubjectName(subject);
+      if (directMatched) {
+        subject = directMatched;
+      } else {
+        const titleMatched = checkSubjectName(resolvedTitle + ' ' + (matchedHw?.title || '') + ' ' + (sub.topic || ''));
+        subject = titleMatched || (SUBJECT_CONFIG[subject] ? subject : 'Matematik');
+      }
+
+      const topic = sub.topic || matchedBookTest?.topic || matchedHw?.topic || matchedHw?.topicName || matchedHw?.unit || matchedCurTest?.topic || '';
       const isReviewed = reviewedSubSet.has(sub.id);
       const dateStr = sub.submittedAt || sub.createdAt || sub.created_at || new Date().toISOString();
       const totQ = sub.totalQuestions || rawAnswers.length || (wrongQuestions.length + blankQuestions.length + correctCount) || 10;
@@ -303,7 +370,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     return parsedSubs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [allSubmissions, homeworks, allCurTestsMap, reviewedSubSet]);
+  }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, reviewedSubSet]);
 
   // Filtered Test Submissions
   const filteredTestSubmissions = useMemo(() => {
@@ -518,7 +585,7 @@ export default function StudentWrongAnswersPage() {
                 <AlertCircle color="#f87171" size={24} /> Yanlışlarım & Hata Defteri
               </h1>
               <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>
-                Sınavlarda yanlış veya boş bıraktığınız soruları tek tıkla inceleyin, hatalarınızı pekiştirin.
+                Sınavlarda ve kitap takibinde yanlış veya boş bıraktığınız soruları tek tıkla inceleyin, hatalarınızı pekiştirin.
               </p>
             </div>
           </div>
@@ -550,7 +617,7 @@ export default function StudentWrongAnswersPage() {
                 transition: 'all 0.15s'
               }}
             >
-              <Layers size={16} /> Sınav Yanlışları
+              <Layers size={16} /> Sınav & Kitap Yanlışları
               <span style={{
                 background: activeMainTab === 'wrong_controls' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
                 color: '#fff',
@@ -755,7 +822,7 @@ export default function StudentWrongAnswersPage() {
         </div>
 
         {/* ════════════════════════════════════════════
-            SEKME 1: SINAV YANLIŞLARI
+            SEKME 1: SINAV VE KİTAP YANLIŞLARI
         ════════════════════════════════════════════ */}
         {activeMainTab === 'wrong_controls' && (
           <div>
@@ -779,7 +846,7 @@ export default function StudentWrongAnswersPage() {
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Sınav veya konu adı ara..."
+                  placeholder="Sınav, kitap veya konu adı ara..."
                   style={{
                     width: '100%',
                     padding: '0.5rem 0.75rem 0.5rem 2.2rem',
@@ -1072,7 +1139,7 @@ export default function StudentWrongAnswersPage() {
                   }}>
                     <CheckCircle2 size={36} color="#34d399" style={{ marginBottom: '0.5rem' }} />
                     <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>Harika! Eşleşen Yanlış Soru Bulunamadı</div>
-                    <div style={{ fontSize: '0.78rem', marginTop: 4 }}>Seçilen ders veya filtrede incelenecek sınav kaydı yok.</div>
+                    <div style={{ fontSize: '0.78rem', marginTop: 4 }}>Seçilen ders veya filtrede incelenecek sınav/kitap kaydı yok.</div>
                   </div>
                 )}
               </div>
@@ -1090,7 +1157,7 @@ export default function StudentWrongAnswersPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: 700 }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1.5px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: '0.72rem' }}>
-                      <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>SINAV / ÖDEV</th>
+                      <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>SINAV / KİTAP BAŞLIĞI</th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>DERS</th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>TARİH</th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>❌ YANLIŞLAR</th>
@@ -1435,7 +1502,7 @@ export default function StudentWrongAnswersPage() {
             <form onSubmit={handleSaveNewError} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {/* 1. Ait Olduğu Ödev / Sınav */}
               <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Ait Olduğu Sınav / Ödev</label>
+                <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Ait Olduğu Sınav / Ödev / Kitap</label>
                 <select
                   value={newErrorForm.homeworkId}
                   onChange={e => {
@@ -1450,7 +1517,7 @@ export default function StudentWrongAnswersPage() {
                   }}
                   style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '10px', border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, outline: 'none' }}
                 >
-                  <option value="" style={{ background: '#0f172a' }}>-- Ödev veya Sınav Seçin --</option>
+                  <option value="" style={{ background: '#0f172a' }}>-- Ödev, Sınav veya Kitap Testi Seçin --</option>
                   {availableHomeworkOptions.map(hw => (
                     <option key={hw.id} value={hw.id} style={{ background: '#0f172a' }}>
                       {hw.title} ({hw.subject})
