@@ -1,3 +1,5 @@
+import { toUUID } from '../services/supabaseService';
+
 /**
  * Helper to extract question text robustly from any question object format.
  */
