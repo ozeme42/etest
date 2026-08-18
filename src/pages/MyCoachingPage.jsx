@@ -661,9 +661,11 @@ export default function MyCoachingPage() {
   const [expandedPoolSubjects, setExpandedPoolSubjects] = useState({});
 
   /* ── Çözülen Ödevler & Testler Filtreleme & Gruplama State ── */
+  const [hwGroupByMode, setHwGroupByMode] = useState('subject'); // 'subject' | 'date'
   const [hwSubjectFilter, setHwSubjectFilter] = useState('all');
   const [hwSearchQuery, setHwSearchQuery] = useState('');
   const [expandedHwSubjects, setExpandedHwSubjects] = useState({});
+  const [expandedHwDates, setExpandedHwDates] = useState({});
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
@@ -3896,7 +3898,7 @@ export default function MyCoachingPage() {
                   );
                 })()}
 
-                {/* Ders Filtreleri ve Arama Çubuğu */}
+                {/* Ders Filtreleri, Tarih Gruplama ve Arama Çubuğu */}
                 {(() => {
                   const SUBJECT_ICONS = {
                     'Matematik': '📐',
@@ -3917,6 +3919,20 @@ export default function MyCoachingPage() {
                     'Genel / Diğer': { text: '#475569', bg: 'rgba(248, 250, 252, 0.7)', border: '#e2e8f0' }
                   };
 
+                  const formatDateTR = (dateStr) => {
+                    if (!dateStr) return 'Tarih Belirtilmemiş';
+                    try {
+                      const d = new Date(dateStr);
+                      if (isNaN(d.getTime())) return dateStr;
+                      const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+                      const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+                      const isBugun = dateStr === today();
+                      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${days[d.getDay()]}${isBugun ? ' (Bugün)' : ''}`;
+                    } catch (e) {
+                      return dateStr;
+                    }
+                  };
+
                   const subjectCounts = {};
                   otherHomeworkSubmissions.forEach(s => {
                     const subj = s.subject || 'Genel / Diğer';
@@ -3930,31 +3946,113 @@ export default function MyCoachingPage() {
                       const q = hwSearchQuery.toLowerCase().trim();
                       const matchTitle = (s.title || '').toLowerCase().includes(q);
                       const matchSubj = (s.subject || '').toLowerCase().includes(q);
-                      if (!matchTitle && !matchSubj) return false;
+                      const matchDate = (s.date || '').toLowerCase().includes(q);
+                      if (!matchTitle && !matchSubj && !matchDate) return false;
                     }
                     return true;
                   });
 
-                  const groups = {};
+                  // Derslere Göre Gruplar
+                  const groupsBySubject = {};
                   filtered.forEach(s => {
                     const subj = s.subject || 'Genel / Diğer';
-                    if (!groups[subj]) groups[subj] = [];
-                    groups[subj].push(s);
+                    if (!groupsBySubject[subj]) groupsBySubject[subj] = [];
+                    groupsBySubject[subj].push(s);
                   });
-                  const groupEntries = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+                  const subjectEntries = Object.entries(groupsBySubject).sort((a, b) => b[1].length - a[1].length);
+
+                  // Tarihe / Günlere Göre Gruplar
+                  const groupsByDate = {};
+                  filtered.forEach(s => {
+                    const d = s.date || 'Tarihsiz';
+                    if (!groupsByDate[d]) groupsByDate[d] = [];
+                    groupsByDate[d].push(s);
+                  });
+                  const dateEntries = Object.entries(groupsByDate).sort((a, b) => new Date(b[0]) - new Date(a[0]));
+
+                  const currentEntries = hwGroupByMode === 'subject' ? subjectEntries : dateEntries;
 
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {/* Filtre ve Arama Alanı */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.6)', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.9)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {/* Görünüm Modu ve Arama Çubuğu */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '0.75rem 0.9rem', background: 'rgba(255, 255, 255, 0.6)', borderRadius: '0.9rem', border: '1px solid rgba(255,255,255,0.9)' }}>
+                        {/* Görünüm Modu Seçici (Derslere Göre / Günlere Göre) */}
+                        <div style={{ display: 'flex', gap: 6, background: 'rgba(226, 232, 240, 0.8)', padding: 3, borderRadius: '0.65rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setHwGroupByMode('subject')}
+                            style={{
+                              padding: '0.35rem 0.8rem',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.76rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              border: 'none',
+                              background: hwGroupByMode === 'subject' ? 'white' : 'transparent',
+                              color: hwGroupByMode === 'subject' ? '#4f46e5' : '#64748b',
+                              boxShadow: hwGroupByMode === 'subject' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            <span>📚</span> Derslere Göre ({subjectEntries.length} Ders)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHwGroupByMode('date')}
+                            style={{
+                              padding: '0.35rem 0.8rem',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.76rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              border: 'none',
+                              background: hwGroupByMode === 'date' ? 'white' : 'transparent',
+                              color: hwGroupByMode === 'date' ? '#4f46e5' : '#64748b',
+                              boxShadow: hwGroupByMode === 'date' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            <span>📅</span> Günlere / Tarihe Göre ({dateEntries.length} Gün)
+                          </button>
+                        </div>
+
+                        {/* Arama Kutusu (Yazı Rengi Net Koyu) */}
+                        <div style={{ minWidth: 220, flex: '1 1 220px', maxWidth: 350 }}>
+                          <input
+                            type="text"
+                            value={hwSearchQuery}
+                            onChange={e => setHwSearchQuery(e.target.value)}
+                            placeholder="🔍 Test, ders veya tarih ara..."
+                            style={{
+                              width: '100%',
+                              padding: '0.4rem 0.75rem',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: '#0f172a',
+                              background: '#ffffff',
+                              borderRadius: '0.55rem',
+                              border: '1.5px solid #cbd5e1',
+                              outline: 'none',
+                              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Ders Filtre Çipleri (Sadece Ders Modunda) */}
+                      {hwGroupByMode === 'subject' && (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                           <button
                             type="button"
                             onClick={() => setHwSubjectFilter('all')}
                             style={{
-                              padding: '0.35rem 0.75rem',
+                              padding: '0.3rem 0.7rem',
                               borderRadius: '0.55rem',
-                              fontSize: '0.76rem',
+                              fontSize: '0.75rem',
                               fontWeight: 800,
                               cursor: 'pointer',
                               border: hwSubjectFilter === 'all' ? '1.5px solid #4f46e5' : '1px solid #e2e8f0',
@@ -3963,7 +4061,7 @@ export default function MyCoachingPage() {
                               transition: 'all 0.15s ease'
                             }}
                           >
-                            🌐 Tümü ({otherHomeworkSubmissions.length})
+                            🌐 Tüm Dersler ({otherHomeworkSubmissions.length})
                           </button>
                           {availableSubjects.map(([subj, count]) => {
                             const isSel = hwSubjectFilter === subj;
@@ -3975,9 +4073,9 @@ export default function MyCoachingPage() {
                                 type="button"
                                 onClick={() => setHwSubjectFilter(isSel ? 'all' : subj)}
                                 style={{
-                                  padding: '0.35rem 0.75rem',
+                                  padding: '0.3rem 0.7rem',
                                   borderRadius: '0.55rem',
-                                  fontSize: '0.76rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: 800,
                                   cursor: 'pointer',
                                   border: isSel ? `1.5px solid ${col.text}` : `1px solid ${col.border}`,
@@ -3991,28 +4089,54 @@ export default function MyCoachingPage() {
                             );
                           })}
                         </div>
+                      )}
 
-                        <div style={{ minWidth: 200 }}>
-                          <input
-                            type="text"
-                            value={hwSearchQuery}
-                            onChange={e => setHwSearchQuery(e.target.value)}
-                            placeholder="🔍 Test ara..."
-                            style={{
-                              width: '100%',
-                              padding: '0.35rem 0.65rem',
-                              fontSize: '0.78rem',
-                              borderRadius: '0.55rem',
-                              border: '1px solid #cbd5e1',
-                              outline: 'none',
-                              background: 'white'
-                            }}
-                          />
+                      {/* Tarihsel Hızlı Özet Şeridi (Sadece Tarih Modunda) */}
+                      {hwGroupByMode === 'date' && dateEntries.length > 0 && (
+                        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                          {dateEntries.slice(0, 10).map(([dStr, tests]) => {
+                            const qCount = tests.reduce((a, b) => a + (b.correctCount || 0) + (b.wrongCount || 0) + (b.emptyCount || 0), 0);
+                            const dCount = tests.reduce((a, b) => a + (b.correctCount || 0), 0);
+                            const rate = qCount > 0 ? Math.round((dCount / qCount) * 100) : 0;
+                            const isBugun = dStr === today();
+
+                            return (
+                              <div
+                                key={dStr}
+                                onClick={() => setExpandedHwDates(prev => ({ ...prev, [dStr]: true }))}
+                                style={{
+                                  background: isBugun ? '#f0fdf4' : 'rgba(255,255,255,0.9)',
+                                  border: isBugun ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+                                  borderRadius: '0.7rem',
+                                  padding: '0.5rem 0.75rem',
+                                  minWidth: 140,
+                                  cursor: 'pointer',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                                  flexShrink: 0
+                                }}
+                              >
+                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isBugun ? '#15803d' : '#0f172a' }}>
+                                  📅 {dStr.split('-').reverse().join('.')}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#2563eb' }}>
+                                    ✏️ {qCount} Soru
+                                  </span>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: rate >= 70 ? '#059669' : '#d97706' }}>
+                                    %{rate}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                                  {tests.length} Test Çözüldü
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
+                      )}
 
-                      {/* Gruplanmış Ders Akordiyon & Kart Listesi */}
-                      {groupEntries.length === 0 ? (
+                      {/* Gruplanmış Akordiyon & Kart Listesi */}
+                      {currentEntries.length === 0 ? (
                         <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontWeight: 600, background: 'rgba(255, 255, 255, 0.4)', borderRadius: '0.85rem', border: '1px dashed #cbd5e1' }}>
                           Aradığınız kriterlere uygun test bulunamadı.
                         </div>
@@ -4021,15 +4145,18 @@ export default function MyCoachingPage() {
                           {/* Hızlı Tümünü Aç / Kapat Butonları */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
-                              Ders gruplarına tıklayarak detaylı test listesini görebilirsiniz:
+                              {hwGroupByMode === 'subject'
+                                ? 'Ders gruplarına tıklayarak detaylı test listesini görebilirsiniz:'
+                                : 'Günlere tıklayarak o gün çözülen tüm test ve soruları görebilirsiniz:'}
                             </span>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button
                                 type="button"
                                 onClick={() => {
                                   const allOpen = {};
-                                  groupEntries.forEach(([k]) => { allOpen[k] = true; });
-                                  setExpandedHwSubjects(allOpen);
+                                  currentEntries.forEach(([k]) => { allOpen[k] = true; });
+                                  if (hwGroupByMode === 'subject') setExpandedHwSubjects(allOpen);
+                                  else setExpandedHwDates(allOpen);
                                 }}
                                 style={{
                                   background: '#eef2ff',
@@ -4046,7 +4173,10 @@ export default function MyCoachingPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setExpandedHwSubjects({})}
+                                onClick={() => {
+                                  if (hwGroupByMode === 'subject') setExpandedHwSubjects({});
+                                  else setExpandedHwDates({});
+                                }}
                                 style={{
                                   background: 'rgba(255, 255, 255, 0.8)',
                                   color: '#64748b',
@@ -4063,7 +4193,8 @@ export default function MyCoachingPage() {
                             </div>
                           </div>
 
-                          {groupEntries.map(([subjName, tests]) => {
+                          {/* ── 1. DERSLERE GÖRE GRUPLAMA ── */}
+                          {hwGroupByMode === 'subject' && currentEntries.map(([subjName, tests]) => {
                             const isOpen = Boolean(expandedHwSubjects[subjName]);
                             const col = SUBJECT_COLORS[subjName] || SUBJECT_COLORS['Genel / Diğer'];
                             const ico = SUBJECT_ICONS[subjName] || '📚';
@@ -4076,7 +4207,6 @@ export default function MyCoachingPage() {
 
                             return (
                               <div key={subjName} style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-                                {/* Ders Başlık Çubuğu */}
                                 <div
                                   onClick={() => setExpandedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
                                   style={{
@@ -4096,7 +4226,7 @@ export default function MyCoachingPage() {
                                     <span style={{ fontSize: '1.1rem' }}>{ico}</span>
                                     <span style={{ fontWeight: 900, fontSize: '0.92rem', color: col.text }}>{subjName}</span>
                                     <span style={{ fontSize: '0.7rem', fontWeight: 800, color: col.text, background: 'white', border: `1px solid ${col.border}`, padding: '1px 7px', borderRadius: 99 }}>
-                                      {tests.length} Test
+                                      {tests.length} Test · {grpTotalQ} Soru
                                     </span>
                                   </div>
 
@@ -4115,7 +4245,6 @@ export default function MyCoachingPage() {
                                   </div>
                                 </div>
 
-                                {/* Ders İçi Test Kartları Grid Düzeni */}
                                 {isOpen && (
                                   <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.4)' }}>
                                     {tests.map((s, i) => {
@@ -4137,21 +4266,172 @@ export default function MyCoachingPage() {
                                             flexDirection: 'column',
                                             justifyContent: 'space-between',
                                             gap: 8,
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                                            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                                           }}
                                         >
-                                          {/* Üst Kısım: Başlık & Tarih */}
                                           <div>
                                             <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
                                               {s.title}
                                             </div>
-                                            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                              <span>📅</span> {s.date}
+                                            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                              <span>📅 {s.date}</span>
+                                              <span>•</span>
+                                              <span style={{ fontWeight: 700, color: '#2563eb' }}>✏️ {totalQ} Soru</span>
                                             </div>
                                           </div>
 
-                                          {/* Alt Kısım: Doğru / Yanlış ve Başarı Rozeti */}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed #f1f5f9', gap: 6 }}>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>
+                                              ✅ {d} <span style={{ color: '#94a3b8' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: '#94a3b8' }}>·</span> ⭕ {b}</>}
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                              <span
+                                                style={{
+                                                  fontWeight: 900,
+                                                  fontSize: '0.76rem',
+                                                  color: rate >= 70 ? '#15803d' : rate >= 50 ? '#b45309' : '#b91c1c',
+                                                  background: rate >= 70 ? '#dcfce7' : rate >= 50 ? '#fef3c7' : '#fee2e2',
+                                                  border: rate >= 70 ? '1px solid #86efac' : rate >= 50 ? '1px solid #fde68a' : '1px solid #fca5a5',
+                                                  padding: '2px 7px',
+                                                  borderRadius: '0.4rem',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 2
+                                                }}
+                                              >
+                                                %{rate} Başarı
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => deleteSubmission(s.id)}
+                                                title="Testi Sil"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                                onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* ── 2. GÜNLERE / TARİHE GÖRE GRUPLAMA ── */}
+                          {hwGroupByMode === 'date' && currentEntries.map(([dateKey, tests]) => {
+                            const isOpen = Boolean(expandedHwDates[dateKey]);
+                            const isBugun = dateKey === today();
+
+                            const grpD = tests.reduce((a, b) => a + (b.correctCount || 0), 0);
+                            const grpY = tests.reduce((a, b) => a + (b.wrongCount || 0), 0);
+                            const grpB = tests.reduce((a, b) => a + (b.emptyCount || 0), 0);
+                            const grpTotalQ = grpD + grpY + grpB;
+                            const grpRate = grpTotalQ > 0 ? Math.round((grpD / grpTotalQ) * 100) : 0;
+
+                            return (
+                              <div
+                                key={dateKey}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.7)',
+                                  backdropFilter: 'blur(12px)',
+                                  borderRadius: '1rem',
+                                  border: isBugun ? '2px solid #86efac' : '1.5px solid #e2e8f0',
+                                  overflow: 'hidden',
+                                  boxShadow: isBugun ? '0 4px 12px rgba(16,185,129,0.1)' : '0 2px 8px rgba(0,0,0,0.03)'
+                                }}
+                              >
+                                {/* Gün Başlık Çubuğu */}
+                                <div
+                                  onClick={() => setExpandedHwDates(prev => ({ ...prev, [dateKey]: !prev[dateKey] }))}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: 8,
+                                    padding: '0.75rem 1rem',
+                                    background: isBugun ? 'rgba(240, 253, 244, 0.8)' : 'rgba(248, 250, 252, 0.8)',
+                                    cursor: 'pointer',
+                                    borderBottom: isOpen ? (isBugun ? '1.5px solid #86efac' : '1.5px solid #e2e8f0') : 'none',
+                                    userSelect: 'none'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '1.1rem' }}>📅</span>
+                                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: isBugun ? '#15803d' : '#0f172a' }}>
+                                      {formatDateTR(dateKey)}
+                                    </span>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', background: 'white', border: '1px solid #bfdbfe', padding: '1px 8px', borderRadius: 99 }}>
+                                      {tests.length} Test
+                                    </span>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#7c3aed', background: 'white', border: '1px solid #ddd6fe', padding: '1px 8px', borderRadius: 99 }}>
+                                      ✏️ {grpTotalQ} Soru Çözüldü
+                                    </span>
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800 }}>
+                                      <span style={{ color: grpRate >= 70 ? '#15803d' : grpRate >= 50 ? '#b45309' : '#b91c1c', background: 'white', border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: '0.4rem' }}>
+                                        Ort. %{grpRate} Başarı
+                                      </span>
+                                      <span style={{ color: '#475569', background: 'white', border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: '0.4rem' }}>
+                                        ✅ {grpD} · ❌ {grpY} {grpB > 0 && `· ⭕ ${grpB}`}
+                                      </span>
+                                    </div>
+                                    <div style={{ color: '#64748b', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
+                                      <ChevronDown size={18} strokeWidth={2.5} />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Gün İçi Test Kartları Grid Düzeni */}
+                                {isOpen && (
+                                  <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.4)' }}>
+                                    {tests.map((s, i) => {
+                                      const d = s.correctCount || 0;
+                                      const y = s.wrongCount || 0;
+                                      const b = s.emptyCount || 0;
+                                      const totalQ = d + y + b;
+                                      const rate = totalQ > 0 ? Math.round((d / totalQ) * 100) : 0;
+                                      const subj = s.subject || 'Genel / Diğer';
+                                      const col = SUBJECT_COLORS[subj] || SUBJECT_COLORS['Genel / Diğer'];
+                                      const ico = SUBJECT_ICONS[subj] || '📚';
+
+                                      return (
+                                        <div
+                                          key={s.id || i}
+                                          style={{
+                                            background: 'white',
+                                            borderRadius: '0.75rem',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '0.75rem 0.85rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between',
+                                            gap: 8,
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                                          }}
+                                        >
+                                          <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 4 }}>
+                                              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: col.text, background: col.bg, border: `1px solid ${col.border}`, padding: '1px 6px', borderRadius: '0.35rem' }}>
+                                                {ico} {subj}
+                                              </span>
+                                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#2563eb' }}>
+                                                ✏️ {totalQ} Soru
+                                              </span>
+                                            </div>
+                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                                              {s.title}
+                                            </div>
+                                          </div>
+
                                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed #f1f5f9', gap: 6 }}>
                                             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>
                                               ✅ {d} <span style={{ color: '#94a3b8' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: '#94a3b8' }}>·</span> ⭕ {b}</>}

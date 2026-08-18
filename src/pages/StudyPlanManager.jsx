@@ -8,6 +8,7 @@ import {
   FileText, CheckCircle, Search, Sparkles, BookOpen, Users, 
   Calendar, Clock, Check, X, ShieldCheck, Zap, Compass, Filter, 
   ArrowUpRight, BookmarkCheck, Award, Eye, Flame, Share2
+} from 'lucide-react';
 import './StudyPlanManager.css';
 
 // Curated Ready-Made Templates for Teachers
