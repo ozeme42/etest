@@ -799,6 +799,101 @@ export default function StudentWrongAnswersPage() {
         .th-sort:hover { background: rgba(255,255,255,0.12) !important; color: #ffffff !important; }
         .wa-table-row { transition: background 0.15s ease; }
         .wa-table-row:hover { background: rgba(99, 102, 241, 0.18) !important; }
+
+        /* Responsive Mobile Styles */
+        @media (max-width: 640px) {
+          .wa-top-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.55rem !important;
+            margin-bottom: 0.65rem !important;
+          }
+          .wa-header-left {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+          }
+          .wa-title-sub {
+            display: none !important;
+          }
+          .wa-header-title {
+            font-size: 1.1rem !important;
+          }
+          .wa-back-btn {
+            padding: 0.4rem 0.65rem !important;
+            font-size: 0.75rem !important;
+            border-radius: 10px !important;
+          }
+          .wa-tab-bar {
+            width: 100% !important;
+            display: flex !important;
+            gap: 3px !important;
+            padding: 3px !important;
+          }
+          .wa-tab-btn {
+            flex: 1 !important;
+            padding: 0.42rem 0.25rem !important;
+            font-size: 0.72rem !important;
+            justify-content: center !important;
+            text-align: center !important;
+            gap: 0.2rem !important;
+          }
+          .wa-tab-text-full {
+            display: none !important;
+          }
+          .wa-tab-text-mobile {
+            display: inline !important;
+          }
+          .wa-kpi-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.35rem !important;
+            margin-bottom: 0.65rem !important;
+          }
+          .wa-kpi-card {
+            padding: 0.45rem 0.35rem !important;
+            border-radius: 12px !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 0.2rem !important;
+          }
+          .wa-kpi-icon {
+            width: 24px !important;
+            height: 24px !important;
+            font-size: 0.8rem !important;
+            border-radius: 6px !important;
+          }
+          .wa-kpi-title {
+            font-size: 0.58rem !important;
+            line-height: 1.1 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+          }
+          .wa-kpi-val {
+            font-size: 0.95rem !important;
+            line-height: 1.1 !important;
+          }
+          .wa-kpi-unit {
+            display: none !important;
+          }
+          .wa-pill {
+            padding: 0.35rem 0.65rem !important;
+            font-size: 0.74rem !important;
+          }
+          .wa-toolbar {
+            padding: 0.5rem 0.65rem !important;
+            gap: 0.45rem !important;
+            margin-bottom: 0.65rem !important;
+          }
+        }
+        @media (min-width: 641px) {
+          .wa-tab-text-mobile {
+            display: none !important;
+          }
+        }
       `}</style>
 
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -806,10 +901,11 @@ export default function StudentWrongAnswersPage() {
         {/* ════════════════════════════════════════════
             1. ÜST BAŞLIK VE 3'LÜ ANA SEKME ÇUBUĞU
         ════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <div className="wa-top-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div className="wa-header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <button
               onClick={() => navigate('/student')}
+              className="wa-back-btn"
               style={{
                 background: 'rgba(255, 255, 255, 0.08)',
                 border: '1.5px solid rgba(255, 255, 255, 0.18)',
@@ -822,23 +918,24 @@ export default function StudentWrongAnswersPage() {
                 fontWeight: 800,
                 fontSize: '0.82rem',
                 color: '#ffffff',
-                transition: 'all 0.15s'
+                transition: 'all 0.15s',
+                whiteSpace: 'nowrap'
               }}
             >
               <ArrowLeft size={16} /> Öğrenci Paneli
             </button>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '-0.02em' }}>
-                <AlertCircle color="#f87171" size={24} /> Yanlışlarım & Hata Defteri
+              <h1 className="wa-header-title" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.45rem', letterSpacing: '-0.02em' }}>
+                <AlertCircle color="#f87171" size={22} /> Yanlışlarım & Hata Defteri
               </h1>
-              <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', color: '#cbd5e1', fontWeight: 600 }}>
+              <p className="wa-title-sub" style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', color: '#cbd5e1', fontWeight: 600 }}>
                 Sınavlarda ve kitap takibinde yanlış veya boş bıraktığınız soruları inceleyin, hatalarınızı pekiştirin.
               </p>
             </div>
           </div>
 
           {/* TAB DEĞİŞTİRİCİ (Kontrol Edilmeyenler | Kontrol Edilenler | Görsel Hata Defterim) */}
-          <div style={{
+          <div className="wa-tab-bar" style={{
             display: 'flex',
             background: 'rgba(30, 41, 59, 0.95)',
             padding: '4px',
@@ -850,6 +947,7 @@ export default function StudentWrongAnswersPage() {
             {/* SEKME 1: KONTROL EDİLMEYENLER */}
             <button
               onClick={() => setActiveMainTab('unreviewed')}
+              className="wa-tab-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -866,12 +964,14 @@ export default function StudentWrongAnswersPage() {
                 transition: 'all 0.15s'
               }}
             >
-              <Clock size={16} /> ⏳ Kontrol Edilmeyenler
+              <Clock size={15} />
+              <span className="wa-tab-text-full">⏳ Kontrol Edilmeyenler</span>
+              <span className="wa-tab-text-mobile">Bekleyen</span>
               <span style={{
                 background: activeMainTab === 'unreviewed' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                 color: '#fff',
-                fontSize: '0.7rem',
-                padding: '0.1rem 0.45rem',
+                fontSize: '0.68rem',
+                padding: '0.1rem 0.4rem',
                 borderRadius: 99,
                 fontWeight: 900
               }}>
@@ -882,6 +982,7 @@ export default function StudentWrongAnswersPage() {
             {/* SEKME 2: KONTROL EDİLENLER */}
             <button
               onClick={() => setActiveMainTab('reviewed')}
+              className="wa-tab-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -898,12 +999,14 @@ export default function StudentWrongAnswersPage() {
                 transition: 'all 0.15s'
               }}
             >
-              <CheckCircle2 size={16} /> ✅ Kontrol Edilenler
+              <CheckCircle2 size={15} />
+              <span className="wa-tab-text-full">✅ Kontrol Edilenler</span>
+              <span className="wa-tab-text-mobile">Biten</span>
               <span style={{
                 background: activeMainTab === 'reviewed' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                 color: '#fff',
-                fontSize: '0.7rem',
-                padding: '0.1rem 0.45rem',
+                fontSize: '0.68rem',
+                padding: '0.1rem 0.4rem',
                 borderRadius: 99,
                 fontWeight: 900
               }}>
@@ -914,6 +1017,7 @@ export default function StudentWrongAnswersPage() {
             {/* SEKME 3: GÖRSEL HATA DEFTERİM */}
             <button
               onClick={() => setActiveMainTab('error_notebook')}
+              className="wa-tab-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -930,12 +1034,14 @@ export default function StudentWrongAnswersPage() {
                 transition: 'all 0.15s'
               }}
             >
-              <BookMarked size={16} /> 📸 Görsel Hata Defterim
+              <BookMarked size={15} />
+              <span className="wa-tab-text-full">📸 Görsel Hata Defterim</span>
+              <span className="wa-tab-text-mobile">Defter</span>
               <span style={{
                 background: activeMainTab === 'error_notebook' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                 color: '#fff',
-                fontSize: '0.7rem',
-                padding: '0.1rem 0.45rem',
+                fontSize: '0.68rem',
+                padding: '0.1rem 0.4rem',
                 borderRadius: 99,
                 fontWeight: 900
               }}>
@@ -949,14 +1055,14 @@ export default function StudentWrongAnswersPage() {
             2. ÖZET KPI İSTATİSTİK KARTLARI
         ════════════════════════════════════════════ */}
         {activeMainTab !== 'error_notebook' && (
-          <div style={{
+          <div className="wa-kpi-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '0.85rem',
             marginBottom: '1.25rem'
           }}>
             {/* Kart 1: Yanlış Soru */}
-            <div style={{
+            <div className="wa-kpi-card" style={{
               background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(30, 41, 59, 0.85) 100%)',
               border: '1.5px solid rgba(244, 63, 94, 0.35)',
               borderRadius: '16px',
@@ -966,7 +1072,7 @@ export default function StudentWrongAnswersPage() {
               gap: '0.85rem',
               boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
             }}>
-              <div style={{
+              <div className="wa-kpi-icon" style={{
                 width: 42,
                 height: 42,
                 borderRadius: '12px',
@@ -980,16 +1086,18 @@ export default function StudentWrongAnswersPage() {
               }}>
                 ❌
               </div>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#fda4af', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {activeMainTab === 'unreviewed' ? 'İncelenecek Yanlış Soru' : 'Kontrol Edilen Yanlış Soru'}
+              <div style={{ minWidth: 0 }}>
+                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: '#fda4af', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {activeMainTab === 'unreviewed' ? 'Yanlış Soru' : 'Kontrol Edilen Yanlış'}
                 </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{currentWrongCount} Soru</div>
+                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                  {currentWrongCount} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Soru</span>
+                </div>
               </div>
             </div>
 
             {/* Kart 2: Boş Bırakılan */}
-            <div style={{
+            <div className="wa-kpi-card" style={{
               background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
               border: '1.5px solid rgba(148, 163, 184, 0.35)',
               borderRadius: '16px',
@@ -999,7 +1107,7 @@ export default function StudentWrongAnswersPage() {
               gap: '0.85rem',
               boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
             }}>
-              <div style={{
+              <div className="wa-kpi-icon" style={{
                 width: 42,
                 height: 42,
                 borderRadius: '12px',
@@ -1013,16 +1121,18 @@ export default function StudentWrongAnswersPage() {
               }}>
                 ⚪
               </div>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {activeMainTab === 'unreviewed' ? 'İncelenecek Boş Soru' : 'Kontrol Edilen Boş Soru'}
+              <div style={{ minWidth: 0 }}>
+                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {activeMainTab === 'unreviewed' ? 'Boş Soru' : 'Kontrol Edilen Boş'}
                 </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>{currentBlankCount} Soru</div>
+                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                  {currentBlankCount} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Soru</span>
+                </div>
               </div>
             </div>
 
             {/* Kart 3: Durum Bilgisi */}
-            <div style={{
+            <div className="wa-kpi-card" style={{
               background: activeMainTab === 'unreviewed'
                 ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)'
                 : 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(30, 41, 59, 0.85) 100%)',
@@ -1034,7 +1144,7 @@ export default function StudentWrongAnswersPage() {
               gap: '0.85rem',
               boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
             }}>
-              <div style={{
+              <div className="wa-kpi-icon" style={{
                 width: 42,
                 height: 42,
                 borderRadius: '12px',
@@ -1048,12 +1158,12 @@ export default function StudentWrongAnswersPage() {
               }}>
                 {activeMainTab === 'unreviewed' ? '⏳' : '✅'}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.72rem', color: activeMainTab === 'unreviewed' ? '#fde68a' : '#6ee7b7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {activeMainTab === 'unreviewed' ? 'Kontrol Bekleyen Testler' : 'Kontrol Edilen Testler'}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="wa-kpi-title" style={{ fontSize: '0.72rem', color: activeMainTab === 'unreviewed' ? '#fde68a' : '#6ee7b7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {activeMainTab === 'unreviewed' ? 'Bekleyen Test' : 'Biten Test'}
                 </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
-                  {currentTabBaseList.length} Test / Sınav
+                <div className="wa-kpi-val" style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.2 }}>
+                  {currentTabBaseList.length} <span className="wa-kpi-unit" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#cbd5e1' }}>Test</span>
                 </div>
               </div>
             </div>
