@@ -2027,9 +2027,9 @@ export default function StudentDashboard() {
         </div>
 
         {/* ════════════════════════════════════════════
-            📊 PERİYODİK SORU & BAŞARI ANALİZİ (TÜM ÖĞRENCİLER İÇİN)
+            📊 PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK)
         ════════════════════════════════════════════ */}
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ marginBottom: '1.25rem' }}>
           <PeriodicQuestionAnalytics
             homeworkSubmissions={allStudentSubmissions}
             studentName={selectedStudent?.name || 'Öğrenci'}
@@ -2037,20 +2037,20 @@ export default function StudentDashboard() {
         </div>
 
         {/* ════════════════════════════════════════════
-            4. ANA GRID (SOL: ÖDEVLER & YOL HARİTASI | SAĞ: KİTAPLAR & HEDEFLER)
+            4. ANA GRID (SOL: ÖDEVLER & TESTLER & YOL HARİTASI | SAĞ: HEDEFLER & KİTAPLAR & İLHAM)
         ════════════════════════════════════════════ */}
         <div className="sd-grid-layout">
 
-          {/* ──── SOL KOLON: ÖDEVLER & YOL HARİTASI ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* ──── SOL KOLON: ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* 📋 BÖLÜM 1: ÖDEVLERİM & GÖREV TAKİBİ */}
             <div style={{
               background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 22,
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 20,
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
+              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2148,92 +2148,13 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* 🗺️ BÖLÜM 2: YOL HARİTAM & KONU TAKİBİ */}
+            {/* 📝 BÖLÜM 2: SON ÇÖZÜLEN TESTLER */}
             <div style={{
               background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 22,
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 20,
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
-                    🗺️
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                      Yol Haritam & Konu Takibi
-                    </h2>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
-                      Müfredat ve hedef sınav konu tamamlama ilerlemeniz
-                    </span>
-                  </div>
-                </div>
-
-                <span style={{ background: '#f3e8ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
-                  {myRoadmaps.length} Harita
-                </span>
-              </div>
-
-              {myRoadmaps.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
-                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
-                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
-                    Henüz atanmış bir yol haritanız yok
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {myRoadmaps.map(({ assignment, plan, totalTopics, doneTopics, pct }) => (
-                    <div
-                      key={assignment.id}
-                      onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
-                      className="sd-card"
-                      style={{
-                        background: '#f8fafc',
-                        border: '1.5px solid #e2e8f0',
-                        borderRadius: 16,
-                        padding: '1rem 1.15rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a' }}>
-                          {plan.title}
-                        </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7c3aed' }}>
-                          %{pct}
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-                        <span>{doneTopics} / {totalTopics} Konu Tamamlandı</span>
-                        <span style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 2 }}>
-                          Detayları Gör <ChevronRight size={13} />
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 📊 BÖLÜM: SON ÇÖZÜLEN 5 TEST */}
-            <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 22,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
+              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2394,120 +2315,97 @@ export default function StudentDashboard() {
               )}
             </div>
 
-          </div>
-
-          {/* ──── SAĞ KOLON: KİTAPLARIM & HEDEFLERİM ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-            {/* 📚 BÖLÜM 3: TAKİP EDİLEN KİTAPLARIM */}
+            {/* 🗺️ BÖLÜM 3: YOL HARİTAM & KONU TAKİBİ */}
             <div style={{
               background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 22,
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 20,
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
+              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #0891b2, #06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(8,145,178,0.35)' }}>
-                    📚
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}>
+                    🗺️
                   </div>
                   <div>
                     <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                      Kitaplarım ({assignedBooksList.length})
+                      Yol Haritam & Konu Takibi
                     </h2>
                     <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
-                      Takip edilen soru bankalarınız
+                      Müfredat ve hedef sınav konu tamamlama ilerlemeniz
                     </span>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => navigate('/student/books')}
-                  className="sd-btn"
-                  style={{
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    color: '#1e293b',
-                    borderRadius: 8,
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Tümü →
-                </button>
+                <span style={{ background: '#f3e8ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                  {myRoadmaps.length} Harita
+                </span>
               </div>
 
-              {assignedBooksList.length === 0 ? (
-                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16 }}>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    Henüz soru bankası eklenmedi.
+              {myRoadmaps.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
+                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
+                    Henüz atanmış bir yol haritanız yok
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {assignedBooksList.slice(0, 4).map((book, idx) => {
-                    const pal = BOOK_PALETTES[idx % BOOK_PALETTES.length];
-                    return (
-                      <div
-                        key={book.id}
-                        onClick={() => navigate(`/book-details/${book.id}?studentId=${selectedStudent.id}`)}
-                        className="sd-card"
-                        style={{
-                          background: '#f8fafc',
-                          border: `1.5px solid #e2e8f0`,
-                          borderRadius: 14,
-                          padding: '0.85rem 1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 10,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: 900, color: pal.border, background: '#e0e7ff', padding: '1px 6px', borderRadius: 4 }}>
-                              {book.subject || 'Ders Kitabı'}
-                            </span>
-                            {book.publisher && (
-                              <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600 }}>
-                                {book.publisher}
-                              </span>
-                            )}
-                          </div>
-
-                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {book.title}
-                          </div>
-
-                          <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${book.pct}%`, background: pal.gradient, borderRadius: 99 }} />
-                            </div>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b' }}>
-                              {book.solvedCount}/{book.totalTests} Test (%{book.pct})
-                            </span>
-                          </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {myRoadmaps.map(({ assignment, plan, totalTopics, doneTopics, pct }) => (
+                    <div
+                      key={assignment.id}
+                      onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
+                      className="sd-card"
+                      style={{
+                        background: '#f8fafc',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: 16,
+                        padding: '1rem 1.15rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a' }}>
+                          {plan.title}
                         </div>
-
-                        <ChevronRight size={16} color="#94a3b8" />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7c3aed' }}>
+                          %{pct}
+                        </span>
                       </div>
-                    );
-                  })}
+
+                      {/* Progress Bar */}
+                      <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                        <span>{doneTopics} / {totalTopics} Konu Tamamlandı</span>
+                        <span style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 2 }}>
+                          Detayları Gör <ChevronRight size={13} />
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* 🎯 BÖLÜM 4: HEDEF TAKİP PANOSU */}
+          </div>
+
+          {/* ──── SAĞ KOLON: HEDEFLERİM, KİTAPLAR & İLHAM ──── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            {/* 🎯 BÖLÜM 1: HEDEF TAKİP PANOSU */}
             <div style={{
               background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 22,
+              border: '1.5px solid #e2e8f0',
+              borderRadius: 20,
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
+              boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
