@@ -2314,6 +2314,8 @@ export default function ProgramCenter({
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [weeklyPrintOrientation, setWeeklyPrintOrientation] = useState('landscape');
+  const [selectedDayFilter, setSelectedDayFilter] = useState('all'); // 'all' | 'Pzt' | 'Sal' | 'Çrş' | 'Prş' | 'Cum' | 'Cts' | 'Paz'
+  const [weeklySubView, setWeeklySubView] = useState('cards'); // 'cards' | 'agenda'
   const todayKey = getTodayKey();
   const navigate = useNavigate();
 
@@ -2897,19 +2899,6 @@ export default function ProgramCenter({
               >
                 Sonraki Hafta <ChevronRight size={16} />
               </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Calendar size={20} color="#818cf8" />
-                <span style={{ fontSize: '1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
-                  {weekInfo.monthTitle}
-                </span>
-              </div>
-              <span style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b', fontWeight: 700, background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0' }}>
-                📅 {weekInfo.rangeStr}
-              </span>
-
               {/* Dual Print Buttons: Yatay & Dikey */}
               <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
                 <button
@@ -2953,35 +2942,177 @@ export default function ProgramCenter({
                 </button>
               </div>
             </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Calendar size={20} color="#818cf8" />
+                <span style={{ fontSize: '1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                  {weekInfo.monthTitle}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: isDark ? 'rgba(255,255,255,0.8)' : '#64748b', fontWeight: 700, background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc', padding: '0.25rem 0.75rem', borderRadius: '0.65rem', border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0' }}>
+                📅 {weekInfo.rangeStr}
+              </span>
+            </div>
           </div>
+
+          {/* Day Selector Strip & View Toggle */}
+          <div className="no-print" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            marginBottom: '1.1rem',
+            flexWrap: 'wrap'
+          }}>
+            {/* Day Selector Pills */}
+            <div style={{
+              display: 'flex',
+              gap: 6,
+              overflowX: 'auto',
+              paddingBottom: 4,
+              alignItems: 'center',
+              flex: 1,
+              minWidth: 260
+            }}>
+              <button
+                onClick={() => setSelectedDayFilter('all')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: 12,
+                  border: selectedDayFilter === 'all' ? '1.5px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                  background: selectedDayFilter === 'all' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                  color: selectedDayFilter === 'all' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: selectedDayFilter === 'all' ? '0 3px 10px rgba(99,102,241,0.3)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span>🌟 Tüm Hafta ({totalItems})</span>
+              </button>
+
+              {(processedWeeklyProgram || []).map((dayObj, idx) => {
+                const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[idx];
+                const isSelected = selectedDayFilter === dayObj.day;
+                const isDayToday = weekOffset === 0 && dayObj.day === todayKey;
+                const dayItemCount = dayObj.items?.length || 0;
+                const dayDoneCount = dayObj.items?.filter(i => i.done).length || 0;
+                const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
+
+                return (
+                  <button
+                    key={dayObj.day}
+                    onClick={() => setSelectedDayFilter(isSelected ? 'all' : dayObj.day)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: 12,
+                      border: isSelected ? `2px solid ${theme.badgeBg || '#6366f1'}` : (isDayToday ? '1.5px solid #f59e0b' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0')),
+                      background: isSelected
+                        ? (theme.gradient || 'linear-gradient(135deg, #6366f1, #4f46e5)')
+                        : (isDayToday ? (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff')),
+                      color: isSelected ? '#ffffff' : (isDayToday ? (isDark ? '#fcd34d' : '#b45309') : (isDark ? '#cbd5e1' : '#334155')),
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: isSelected ? '0 3px 10px rgba(0,0,0,0.15)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <span>{isDayToday ? '🔥 ' : ''}{dayMeta.key}</span>
+                    {dayItemCount > 0 ? (
+                      <span style={{
+                        background: isSelected ? 'rgba(255,255,255,0.25)' : (dayDoneCount === dayItemCount ? (isDark ? '#065f46' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.12)' : '#f1f5f9')),
+                        color: isSelected ? '#ffffff' : (dayDoneCount === dayItemCount ? (isDark ? '#34d399' : '#15803d') : (isDark ? '#cbd5e1' : '#64748b')),
+                        fontSize: '0.66rem',
+                        fontWeight: 900,
+                        padding: '1px 6px',
+                        borderRadius: 99
+                      }}>
+                        {dayDoneCount}/{dayItemCount}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.66rem', opacity: 0.6 }}>0</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* View Mode Toggle: Cards vs Agenda List */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+              padding: 3,
+              borderRadius: 12,
+              border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+              flexShrink: 0
+            }}>
+              <button
+                onClick={() => setWeeklySubView('cards')}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: 9,
+                  border: 'none',
+                  background: weeklySubView === 'cards' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
+                  color: weeklySubView === 'cards' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                  fontWeight: weeklySubView === 'cards' ? 900 : 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  boxShadow: weeklySubView === 'cards' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                🗂️ Kartlar
+              </button>
+              <button
+                onClick={() => setWeeklySubView('agenda')}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: 9,
+                  border: 'none',
+                  background: weeklySubView === 'agenda' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
+                  color: weeklySubView === 'agenda' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                  fontWeight: weeklySubView === 'agenda' ? 900 : 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  boxShadow: weeklySubView === 'agenda' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                📋 Liste (Ajanda)
+              </button>
+            </div>
+          </div>
+
           <style>{`
             .print-weekly-program-doc { display: none; }
             .weekly-grid {
               display: grid;
-              grid-template-columns: repeat(12, 1fr);
-              gap: 0.9rem;
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+              gap: 1.1rem;
+              align-items: start;
             }
-            .weekly-grid > div:nth-child(-n+4) {
-              grid-column: span 3;
-            }
-            .weekly-grid > div:nth-child(n+5) {
-              grid-column: span 4;
-            }
-            @media (max-width: 992px) {
-              .weekly-grid {
-                grid-template-columns: repeat(2, 1fr);
-              }
-              .weekly-grid > div:nth-child(n) {
-                grid-column: span 1;
+            @media (min-width: 1500px) {
+              .weekly-grid.all-days {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 0.75rem;
               }
             }
             @media (max-width: 640px) {
               .weekly-grid {
                 grid-template-columns: 1fr;
-                gap: 1rem;
-              }
-              .weekly-grid > div:nth-child(n) {
-                grid-column: span 1;
+                gap: 0.9rem;
               }
             }
             @media print {
@@ -3199,62 +3330,48 @@ export default function ProgramCenter({
             <div className={`print-wk-days-container ${weeklyPrintOrientation}`}>
               {(processedWeeklyProgram || []).map((dayObj, i) => {
                 const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
-                const dayDoneCount = (dayObj.items || []).filter(item => item.done).length;
+                const dayTasks = dayObj.items || [];
+                const dayDoneTasks = dayTasks.filter(item => item.done).length;
+
                 return (
                   <div key={dayObj.day} className="print-wk-day-card">
                     <div className="print-wk-day-title-bar">
-                      <div className="print-wk-day-date">
-                        📅 {dayMeta?.label || dayObj.day}
-                      </div>
+                      <div className="print-wk-day-date">{dayObj.dateLabel || dayMeta.key}</div>
                       <div className="print-wk-day-meta">
-                        {dayObj.items?.length || 0} Görev {dayDoneCount > 0 ? `(${dayDoneCount} Tamamlandı)` : ''}
+                        {dayMeta.long} • {dayDoneTasks}/{dayTasks.length} Tamamlandı
                       </div>
                     </div>
 
                     <div className="print-wk-tasks-table">
-                      {(!dayObj.items || dayObj.items.length === 0) ? (
-                        <div style={{ fontSize: '7.5pt', color: '#94a3b8', fontStyle: 'italic', padding: '2px 4px' }}>
-                          Serbest Çalışma / Tekrar Günü
+                      {dayTasks.length === 0 ? (
+                        <div style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '6.8pt', padding: '2px 0' }}>
+                          Planlanan görev yok
                         </div>
                       ) : (
-                        dayObj.items.map((item, idx) => (
-                          <div key={item.id || idx} className={`print-wk-task-row ${item.done ? 'is-done' : ''}`}>
+                        dayTasks.map(item => (
+                          <div key={item.id} className={`print-wk-task-row ${item.done ? 'is-done' : ''}`}>
                             <div className="print-wk-col-check">
                               <span className={`print-wk-check-box ${item.done ? 'checked' : ''}`}>
                                 {item.done ? '✓' : ''}
                               </span>
                             </div>
                             <div className="print-wk-col-info">
-                              <div className="print-wk-subject">
-                                {item.subject || 'Ders Çalışması'}
-                              </div>
-                              {item.topic && item.topic !== item.subject && (
-                                <div className="print-wk-topic">
-                                  {item.topic}
-                                </div>
+                              <div className="print-wk-subject">{item.bookName || item.subject}</div>
+                              {item.topic && (
+                                <div className="print-wk-topic">{item.topic}</div>
                               )}
                             </div>
                             <div className="print-wk-col-details">
+                              {item.taskType && (
+                                <span className="print-wk-pill">
+                                  {TASK_TYPES.find(t => t.id === item.taskType)?.label || item.taskType}
+                                </span>
+                              )}
                               {item.questionCount && (
                                 <span className="print-wk-pill print-wk-pill-q">
                                   ✏️ {String(item.questionCount).includes('soru') ? item.questionCount : `${item.questionCount} soru`}
                                 </span>
                               )}
-                              {(item.startTime || item.time || item.saat) && (
-                                <span className="print-wk-pill">
-                                  🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
-                                </span>
-                              )}
-                              {item.hours && (
-                                <span className="print-wk-pill">
-                                  ⏱️ {item.hours} sa
-                                </span>
-                              )}
-                            </div>
-                            <div className="print-wk-col-status">
-                              <span className={`print-wk-status-tag ${item.done ? 'done' : 'pending'}`}>
-                                {item.done ? 'Tamamlandı ✓' : 'Planlandı'}
-                              </span>
                             </div>
                           </div>
                         ))
@@ -3272,22 +3389,224 @@ export default function ProgramCenter({
             </div>
           </div>
 
-          {/* SCREEN INTERACTIVE GRID */}
+          {/* SCREEN INTERACTIVE VIEW */}
           <div className="weekly-screen-view">
-            <div className="weekly-grid">
-              {(processedWeeklyProgram || []).map((dayObj, i) => {
-                const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
-                return (
-                  <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
-                    isToday={weekOffset === 0 && dayObj.day === todayKey}
-                    onToggle={handleToggle} onDelete={handleDelete}
-                    onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
-                    onAddClick={d => setAddingToDay(d)}
-                    onOpenResult={handleOpenTaskResult}
-                    isDark={isDark} />
-                );
-              })}
-            </div>
+            {weeklySubView === 'cards' ? (
+              <div className={`weekly-grid ${selectedDayFilter === 'all' ? 'all-days' : 'single-day'}`}>
+                {(processedWeeklyProgram || [])
+                  .filter(dayObj => selectedDayFilter === 'all' || dayObj.day === selectedDayFilter)
+                  .map((dayObj, i) => {
+                    const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
+                    return (
+                      <DayCard key={dayObj.day} dayObj={dayObj} dayMeta={dayMeta}
+                        isToday={weekOffset === 0 && dayObj.day === todayKey}
+                        onToggle={handleToggle} onDelete={handleDelete}
+                        onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
+                        onAddClick={d => setAddingToDay(d)}
+                        onOpenResult={handleOpenTaskResult}
+                        isDark={isDark} />
+                    );
+                  })}
+              </div>
+            ) : (
+              /* AGENDA / LIST VIEW */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {(processedWeeklyProgram || [])
+                  .filter(dayObj => selectedDayFilter === 'all' || dayObj.day === selectedDayFilter)
+                  .map((dayObj, i) => {
+                    const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i];
+                    const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
+                    const isDayToday = weekOffset === 0 && dayObj.day === todayKey;
+                    const items = dayObj.items || [];
+                    const doneCount = items.filter(it => it.done).length;
+
+                    return (
+                      <div key={dayObj.day} style={{
+                        background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : '#ffffff',
+                        border: isDayToday ? (isDark ? '2px solid #818cf8' : '2px solid #6366f1') : (isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #e2e8f0'),
+                        borderRadius: '1.15rem',
+                        overflow: 'hidden',
+                        boxShadow: isDayToday ? '0 4px 20px rgba(99,102,241,0.15)' : '0 2px 10px rgba(0,0,0,0.03)'
+                      }}>
+                        {/* Day Row Header */}
+                        <div style={{
+                          padding: '0.75rem 1.1rem',
+                          background: isDayToday ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : theme.gradient,
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: 6
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 900, fontSize: '0.95rem' }}>
+                              {dayObj.dateLabel ? `${dayObj.dateLabel} - ` : ''}{dayMeta.long}
+                            </span>
+                            {isDayToday && (
+                              <span style={{ background: '#f59e0b', color: '#ffffff', fontSize: '0.62rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99 }}>
+                                BUGÜN
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 99 }}>
+                              {doneCount}/{items.length} Tamamlandı
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setAddingToDay(dayObj.day)}
+                              style={{
+                                background: 'rgba(255,255,255,0.25)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '0.25rem 0.6rem',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <Plus size={12} /> Görev Ekle
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Tasks List */}
+                        <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {items.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '1rem', color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic' }}>
+                              Bu gün için kayıtlı görev bulunmuyor.
+                            </div>
+                          ) : (
+                            items.map(item => {
+                              const tt = TASK_TYPES.find(t => t.id === item.taskType);
+                              const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+
+                              return (
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: 10,
+                                    padding: '0.65rem 0.85rem',
+                                    borderRadius: '0.75rem',
+                                    background: item.done ? (isDark ? 'rgba(5,150,105,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
+                                    border: item.done ? (isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0') : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e2e8f0')
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggle(dayObj.day, item.id)}
+                                      style={{
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: 6,
+                                        border: item.done ? 'none' : '1.5px solid #94a3b8',
+                                        background: item.done ? '#22c55e' : 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      {item.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                                    </button>
+
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        {item.taskType && (
+                                          <span style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: 800,
+                                            color: tt?.color || '#6366f1',
+                                            background: isDark ? `${tt?.color || '#6366f1'}22` : (tt?.bg || '#eef2ff'),
+                                            padding: '1px 6px',
+                                            borderRadius: 5,
+                                            border: `1px solid ${tt?.color || '#6366f1'}33`
+                                          }}>
+                                            {tt?.label}
+                                          </span>
+                                        )}
+                                        <span style={{
+                                          fontSize: '0.84rem',
+                                          fontWeight: 800,
+                                          color: item.done ? (isDark ? '#4ade80' : '#166534') : (isDark ? '#ffffff' : '#0f172a'),
+                                          textDecoration: item.done ? 'line-through' : 'none'
+                                        }}>
+                                          {item.bookName || item.subject}
+                                        </span>
+                                        {item.topic && (
+                                          <span style={{ fontSize: '0.74rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600 }}>
+                                            • {item.topic}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                    {item.questionCount && (
+                                      <span style={{ fontSize: '0.7rem', color: '#0284c7', background: '#e0f2fe', padding: '2px 7px', borderRadius: 6, fontWeight: 700 }}>
+                                        ✏️ {item.questionCount}
+                                      </span>
+                                    )}
+                                    {isQuizTask && !item.done && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenTaskResult(item)}
+                                        style={{
+                                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                          color: '#ffffff',
+                                          border: 'none',
+                                          borderRadius: 8,
+                                          padding: '0.35rem 0.65rem',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 900,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)'
+                                        }}
+                                      >
+                                        <PlayCircle size={13} /> Çöz
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(dayObj.day, item.id)}
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#94a3b8',
+                                        cursor: 'pointer',
+                                        padding: 4
+                                      }}
+                                      title="Görevi Sil"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
             {pct === 100 && totalItems > 0 && (
               <div style={{ marginTop: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.6), rgba(6, 95, 70, 0.6))' : '#f0fdf4', border: isDark ? '1.5px solid rgba(52, 211, 153, 0.4)' : '1.5px solid #86efac', borderRadius: '1rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
                 <CheckCircle2 size={24} color="#34d399" />
