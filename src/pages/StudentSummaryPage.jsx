@@ -12,31 +12,54 @@ import {
 } from 'lucide-react';
 import './StudentSummaryPage.css';
 
-// Helper to determine subject icon and vibrant color theme
+// Subject color theme helper
 const getSubjectTheme = (subjectName = '') => {
-  const s = subjectName.toLowerCase();
+  const s = String(subjectName || '').toLowerCase();
   if (s.includes('matematik') || s.includes('geometri')) {
-    return { icon: '📐', color: '#38bdf8', gradient: 'linear-gradient(135deg, #0284c7, #38bdf8)', lightBg: 'rgba(14, 165, 233, 0.16)', border: 'rgba(56, 189, 248, 0.4)', shadow: 'rgba(14, 165, 233, 0.35)', badge: 'Matematik' };
+    return { icon: '📐', color: '#2563eb', gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', bg: '#f0f7ff', border: '#bfdbfe', text: '#1d4ed8', badgeBg: '#dbeafe', name: 'Matematik' };
   }
   if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) {
-    return { icon: '🔬', color: '#34d399', gradient: 'linear-gradient(135deg, #059669, #10b981)', lightBg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(52, 211, 153, 0.4)', shadow: 'rgba(16, 185, 129, 0.35)', badge: 'Fen Bilimleri' };
+    return { icon: '🔬', color: '#059669', gradient: 'linear-gradient(135deg, #059669, #10b981)', bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', badgeBg: '#dcfce7', name: 'Fen Bilimleri' };
   }
   if (s.includes('türkçe') || s.includes('edebiyat') || s.includes('dil')) {
-    return { icon: '📖', color: '#fb7185', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', lightBg: 'rgba(244, 63, 94, 0.16)', border: 'rgba(251, 113, 133, 0.4)', shadow: 'rgba(244, 63, 94, 0.35)', badge: 'Türkçe' };
+    return { icon: '📖', color: '#e11d48', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', bg: '#fff1f2', border: '#fecdd3', text: '#be123c', badgeBg: '#ffe4e6', name: 'Türkçe' };
   }
   if (s.includes('inkılap') || s.includes('tarih') || s.includes('sosyal') || s.includes('coğrafya')) {
-    return { icon: '🏛️', color: '#fb923c', gradient: 'linear-gradient(135deg, #ea580c, #f97316)', lightBg: 'rgba(234, 88, 12, 0.16)', border: 'rgba(251, 146, 60, 0.4)', shadow: 'rgba(234, 88, 12, 0.35)', badge: 'Sosyal / Tarih' };
+    return { icon: '🏛️', color: '#d97706', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', bg: '#fffbeb', border: '#fde68a', text: '#b45309', badgeBg: '#fef3c7', name: 'Sosyal Bilgiler' };
   }
   if (s.includes('ingilizce') || s.includes('yabancı') || s.includes('almanca')) {
-    return { icon: '🌍', color: '#818cf8', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: 'rgba(99, 102, 241, 0.16)', border: 'rgba(129, 140, 248, 0.4)', shadow: 'rgba(99, 102, 241, 0.35)', badge: 'İngilizce' };
+    return { icon: '🌍', color: '#7c3aed', gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', bg: '#faf5ff', border: '#e9d5ff', text: '#6d28d9', badgeBg: '#f3e8ff', name: 'İngilizce' };
   }
   if (s.includes('din') || s.includes('ahlak')) {
-    return { icon: '🕌', color: '#2dd4bf', gradient: 'linear-gradient(135deg, #0d9488, #14b8a6)', lightBg: 'rgba(13, 148, 136, 0.16)', border: 'rgba(45, 212, 191, 0.4)', shadow: 'rgba(13, 148, 136, 0.35)', badge: 'Din Kültürü' };
+    return { icon: '🕌', color: '#0891b2', gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', bg: '#ecfeff', border: '#a5f3fc', text: '#0e7490', badgeBg: '#cffafe', name: 'Din Kültürü' };
   }
-  return { icon: '📚', color: '#c084fc', gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)', lightBg: 'rgba(168, 85, 247, 0.16)', border: 'rgba(192, 132, 252, 0.4)', shadow: 'rgba(168, 85, 247, 0.35)', badge: 'Ders' };
+  return { icon: '📚', color: '#4f46e5', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', bg: '#f8fafc', border: '#cbd5e1', text: '#334155', badgeBg: '#f1f5f9', name: 'Ders' };
 };
 
-// Natural alphanumeric / unit number extractor and sorter
+// Row theme palettes for color variety in topic list
+const ROW_COLOR_PALETTES = [
+  { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
+  { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
+  { bg: '#f0fdf4', border: '#bbf7d0', accent: '#10b981', text: '#15803d', badgeBg: '#dcfce7' },
+  { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#b45309', badgeBg: '#fef3c7' },
+  { bg: '#ecfeff', border: '#a5f3fc', accent: '#06b6d4', text: '#0e7490', badgeBg: '#cffafe' },
+];
+
+const getRowTheme = (subjectName, idx) => {
+  if (subjectName) {
+    const s = String(subjectName).toLowerCase();
+    if (s.includes('matematik')) return ROW_COLOR_PALETTES[0];
+    if (s.includes('türkçe')) return ROW_COLOR_PALETTES[1];
+    if (s.includes('fen')) return ROW_COLOR_PALETTES[2];
+    if (s.includes('ingilizce')) return ROW_COLOR_PALETTES[3];
+    if (s.includes('sosyal') || s.includes('inkılap')) return ROW_COLOR_PALETTES[4];
+    if (s.includes('din')) return ROW_COLOR_PALETTES[5];
+  }
+  return ROW_COLOR_PALETTES[idx % ROW_COLOR_PALETTES.length];
+};
+
+// Natural alphanumeric order extractor and sorter
 const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
   if (!unit) return fallbackIndex;
   if (typeof unit.order === 'number') return unit.order;
@@ -44,11 +67,8 @@ const extractUnitOrderNumber = (unit, fallbackIndex = 999) => {
   if (typeof unit.unitNumber === 'number') return unit.unitNumber;
 
   const raw = String(unit.name || '').trim();
-  // Match "1. Ünite", "Ünite 1", "1 - ...", or leading numbers
   const match = raw.match(/(\d+)/);
-  if (match) {
-    return parseInt(match[1], 10);
-  }
+  if (match) return parseInt(match[1], 10);
   return fallbackIndex;
 };
 
@@ -56,9 +76,7 @@ const sortUnitsNaturally = (unitList = []) => {
   return [...unitList].sort((a, b) => {
     const numA = extractUnitOrderNumber(a, 999);
     const numB = extractUnitOrderNumber(b, 999);
-    if (numA !== numB) {
-      return numA - numB;
-    }
+    if (numA !== numB) return numA - numB;
     return String(a.name || '').localeCompare(String(b.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
   });
 };
@@ -75,12 +93,10 @@ const sortTopicsNaturally = (topicList = []) => {
   });
 };
 
-// Format clean unit details and titles
 const getUnitDetails = (unit, index) => {
   const unitNum = extractUnitOrderNumber(unit, index + 1);
   const raw = String(unit?.name || '').trim();
 
-  // If raw is just "1", "1. Ünite", "Ünite 1", "1 - Ünite", etc.
   const isGeneric = !raw || 
     /^\d+$/.test(raw) || 
     /^(\d+)\.\s*ünite$/i.test(raw) || 
@@ -115,7 +131,7 @@ export default function StudentSummaryPage() {
 
   const [selectedGradeId, setSelectedGradeId] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
-  const [activeReadingTarget, setActiveReadingTarget] = useState(null); // null = Catalog view, object = Full-screen Reader view
+  const [activeReadingTarget, setActiveReadingTarget] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [fontSize, setFontSize] = useState(16);
@@ -126,7 +142,7 @@ export default function StudentSummaryPage() {
   const units = curriculumData.units || [];
   const topics = curriculumData.topics || [];
 
-  // Set initial grade matching student's grade if available
+  // Sync selectedGradeId
   useEffect(() => {
     if (currentUser?.gradeId && grades.some(g => String(g.id) === String(currentUser.gradeId))) {
       setSelectedGradeId(currentUser.gradeId);
@@ -150,13 +166,13 @@ export default function StudentSummaryPage() {
     }
   }, [filteredSubjects, selectedSubjectId]);
 
-  // Filter and naturally sort units by selected subject (1. Ünite, 2. Ünite, 3. Ünite...)
+  // Filter & sort units by selected subject
   const filteredUnits = useMemo(() => {
     const list = units.filter(u => String(u.subjectId) === String(selectedSubjectId));
     return sortUnitsNaturally(list);
   }, [units, selectedSubjectId]);
 
-  // Linear list of all reading items for next / previous navigation in natural order
+  // Reading items for next/previous navigation
   const readingItemList = useMemo(() => {
     const list = [];
     filteredUnits.forEach((u, uIdx) => {
@@ -184,7 +200,7 @@ export default function StudentSummaryPage() {
     return list;
   }, [filteredUnits, topics]);
 
-  // Active summary object
+  // Active summary
   const currentSummary = useMemo(() => {
     if (!activeReadingTarget) return null;
     return getSummary(activeReadingTarget.type, activeReadingTarget.id);
@@ -195,18 +211,33 @@ export default function StudentSummaryPage() {
   const prevItem = currentIdx > 0 ? readingItemList[currentIdx - 1] : null;
   const nextItem = currentIdx >= 0 && currentIdx < readingItemList.length - 1 ? readingItemList[currentIdx + 1] : null;
 
-  // Selected labels
+  // Selected entities
   const currentGrade = grades.find(g => String(g.id) === String(selectedGradeId));
   const currentSubject = subjects.find(s => String(s.id) === String(selectedSubjectId));
   const currentUnit = units.find(u => String(u.id) === String(activeReadingTarget?.unitId || activeReadingTarget?.id));
 
   const activeTheme = getSubjectTheme(currentSubject?.name);
 
+  // Total available summaries count in current grade
+  const totalSummariesInGrade = useMemo(() => {
+    let count = 0;
+    filteredSubjects.forEach(s => {
+      const sUnits = units.filter(u => String(u.subjectId) === String(s.id));
+      sUnits.forEach(u => {
+        if (hasSummary('unit', u.id)) count++;
+        const uTopics = topics.filter(t => String(t.unitId) === String(u.id));
+        uTopics.forEach(t => {
+          if (hasSummary('topic', t.id)) count++;
+        });
+      });
+    });
+    return count;
+  }, [filteredSubjects, units, topics, summaries]);
+
   const handlePrint = () => {
     window.print();
   };
 
-  // Scroll to top when reading target changes
   useEffect(() => {
     if (activeReadingTarget) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -214,10 +245,25 @@ export default function StudentSummaryPage() {
   }, [activeReadingTarget?.id]);
 
   return (
-    <div className={`edu-portal-root ${activeReadingTarget ? 'reading-active' : ''}`}>
-      
+    <div style={{
+      minHeight: '100vh',
+      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
+      color: '#0f172a',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      padding: activeReadingTarget ? 0 : '1.25rem 1rem 5rem',
+      boxSizing: 'border-box'
+    }}>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .summary-anim { animation: fadeIn 0.25s ease both; }
+        .summary-row:hover { filter: brightness(0.98); }
+        @media (max-width: 640px) {
+          .summary-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+        }
+      `}</style>
+
       {/* ════════════════════════════════════════════════════════════════
-          VIEW 1: FULLSCREEN EDGE-TO-EDGE READER (Sağa Sola Yasla)
+          VIEW 1: FULLSCREEN EDGE-TO-EDGE READER
          ════════════════════════════════════════════════════════════════ */}
       {activeReadingTarget ? (
         <div className="edu-reader-view-fullscreen">
@@ -292,7 +338,7 @@ export default function StudentSummaryPage() {
             </div>
           </header>
 
-          {/* MAIN EDGE-TO-EDGE ARTICLE CONTAINER */}
+          {/* MAIN ARTICLE CONTAINER */}
           <main className="edu-fullscreen-article-wrap">
             <article className="edu-reader-card-full">
               
@@ -301,7 +347,7 @@ export default function StudentSummaryPage() {
                 <div className="edu-header-meta">
                   <span 
                     className="edu-meta-badge"
-                    style={{ background: activeTheme.lightBg, color: activeTheme.color, borderColor: activeTheme.border }}
+                    style={{ background: activeTheme.bg, color: activeTheme.color, borderColor: activeTheme.border }}
                   >
                     {activeReadingTarget.type === 'unit' ? '📁 ÜNİTE GENEL ÖZETİ' : '📄 KONU ANLATIMI & ÖZET'}
                   </span>
@@ -314,7 +360,7 @@ export default function StudentSummaryPage() {
                 <h1 className="edu-article-title">{activeReadingTarget.name}</h1>
               </div>
 
-              {/* IFRAME HTML VIEWER (Edge to edge) */}
+              {/* IFRAME HTML VIEWER */}
               <div className="edu-iframe-container">
                 <SummaryHtmlViewer
                   htmlContent={currentSummary?.contentHtml || ''}
@@ -375,7 +421,7 @@ export default function StudentSummaryPage() {
             </article>
           </main>
 
-          {/* SLIDE-OVER TOPIC DRAWER (Off-canvas) */}
+          {/* SLIDE-OVER TOPIC DRAWER */}
           {isDrawerOpen && (
             <div className="edu-drawer-backdrop no-print" onClick={() => setIsDrawerOpen(false)}>
               <div className="edu-drawer-panel" onClick={e => e.stopPropagation()}>
@@ -391,7 +437,7 @@ export default function StudentSummaryPage() {
 
                 <div className="edu-drawer-scroll custom-scrollbar">
                   {filteredUnits.map((u, uIdx) => {
-                    const { unitNum, fullDisplayName, badgeText } = getUnitDetails(u, uIdx);
+                    const { unitNum, fullDisplayName } = getUnitDetails(u, uIdx);
                     const isUnitActive = activeReadingTarget?.type === 'unit' && String(activeReadingTarget?.id) === String(u.id);
                     const unitHasSummary = hasSummary('unit', u.id);
                     const unitTopics = sortTopicsNaturally(topics.filter(t => String(t.unitId) === String(u.id)));
@@ -443,101 +489,265 @@ export default function StudentSummaryPage() {
       ) : (
 
         /* ════════════════════════════════════════════════════════════════
-            VIEW 2: VIBRANT COLORFUL CATALOG VIEW
+            VIEW 2: CLEAN MODERN LIGHT CATALOG VIEW WITH COLORFUL LIST ROWS
            ════════════════════════════════════════════════════════════════ */
-        <div className="edu-catalog-view">
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           
-          {/* HERO HEADER */}
-          <header className="edu-hero-header" style={{ borderTop: `4px solid ${activeTheme.color}` }}>
-            <div className="edu-hero-container">
-              
-              <div className="edu-hero-top-row">
-                <div className="edu-brand-badge">
-                  <span className="edu-pulse-dot" />
-                  <span>Ders Notları & Konu Anlatımları</span>
+          {/* ─── TOP ACTION & HEADER ─── */}
+          <div className="summary-header-wrap summary-anim" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/student')}
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '0.75rem',
+                  padding: '0.5rem 0.95rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  color: '#1e293b',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <ArrowLeft size={16} /> Öğrenci Paneli
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '1.15rem',
+                  color: 'white',
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+                  flexShrink: 0
+                }}>
+                  📚
                 </div>
-                <div className="edu-grade-selector">
-                  <span className="edu-selector-title">Sınıf:</span>
-                  <div className="edu-grade-pills">
-                    {grades.map(g => (
-                      <button
-                        key={g.id}
-                        className={`edu-grade-pill ${String(selectedGradeId) === String(g.id) ? 'active' : ''}`}
-                        onClick={() => setSelectedGradeId(g.id)}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
+                <div>
+                  <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: '#0f172a', lineHeight: 1.2 }}>
+                    Ders Notları & Konu Özetleri
+                  </h1>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                    Müfredata tam uyumlu ünite özetleri ve sınav hazırlık notları
                   </div>
                 </div>
               </div>
-
-              <div className="edu-hero-main-banner">
-                <div className="edu-banner-text">
-                  <h1>{currentGrade?.name || 'Tüm Sınıflar'} Ders Özetleri & Konu Rehberi 📚</h1>
-                  <p>Müfredata tam uyumlu ünite özetleri ve sınav notları parmaklarının ucunda.</p>
-                </div>
-              </div>
-
-              {/* SUBJECT SELECTOR HORIZONTAL TABS */}
-              <div className="edu-subjects-scroll-wrap">
-                <div className="edu-subjects-scroll-row">
-                  {filteredSubjects.map(s => {
-                    const theme = getSubjectTheme(s.name);
-                    const isSelected = String(selectedSubjectId) === String(s.id);
-                    
-                    // Count available summaries
-                    const subjectUnits = units.filter(u => String(u.subjectId) === String(s.id));
-                    let summaryCount = 0;
-                    subjectUnits.forEach(u => {
-                      if (hasSummary('unit', u.id)) summaryCount++;
-                      const unitTopics = topics.filter(t => String(t.unitId) === String(u.id));
-                      unitTopics.forEach(t => {
-                        if (hasSummary('topic', t.id)) summaryCount++;
-                      });
-                    });
-
-                    return (
-                      <button
-                        key={s.id}
-                        className={`edu-subject-card-btn ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedSubjectId(s.id)}
-                        style={{
-                          '--sub-color': theme.color,
-                          '--sub-bg': theme.lightBg,
-                          '--sub-border': theme.border,
-                          '--sub-gradient': theme.gradient
-                        }}
-                      >
-                        <span className="edu-subject-icon">{theme.icon}</span>
-                        <div className="edu-subject-info">
-                          <strong className="edu-subject-name">{s.name}</strong>
-                          <span className="edu-subject-count">{summaryCount > 0 ? `${summaryCount} Özet Hazır` : 'Müfredat'}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
             </div>
-          </header>
 
-          {/* SEARCH & FILTER BAR */}
-          <div className="edu-catalog-toolbar">
-            <div className="edu-catalog-search">
-              <Search size={16} color="#64748b" />
+            {/* Sınıf Seçici Rozeti */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '0.35rem 0.6rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginLeft: 4 }}>🎓 Sınıf:</span>
+              <div style={{ display: 'inline-flex', gap: 4 }}>
+                {grades.map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => setSelectedGradeId(g.id)}
+                    style={{
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: String(selectedGradeId) === String(g.id) ? '#4f46e5' : '#f1f5f9',
+                      color: String(selectedGradeId) === String(g.id) ? '#ffffff' : '#475569',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ─── 4 SUMMARY OVERVIEW METRICS ─── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '0.85rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Card 1: Seçili Sınıf */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '1.15rem',
+              padding: '0.9rem 1.15rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                🎓
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Seviye / Sınıf</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>{currentGrade?.name || 'Sınıf'}</span>
+              </div>
+            </div>
+
+            {/* Card 2: Ders Sayısı */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '1.15rem',
+              padding: '0.9rem 1.15rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#faf5ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                📖
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Ders</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#7c3aed' }}>{filteredSubjects.length} Ders</span>
+              </div>
+            </div>
+
+            {/* Card 3: Ünite Sayısı */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '1.15rem',
+              padding: '0.9rem 1.15rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#ecfeff', color: '#0891b2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                📁
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Ünite Sayısı</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0891b2' }}>{filteredUnits.length} Ünite</span>
+              </div>
+            </div>
+
+            {/* Card 4: Hazır Özet */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #bbf7d0',
+              borderRadius: '1.15rem',
+              padding: '0.9rem 1.15rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                ✨
+              </div>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Hazır Özetler</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>{totalSummariesInGrade} İçerik</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── DERS SEÇİCİ TABLAR & ARAMA ÇUBUĞU ─── */}
+          <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '1.15rem',
+            padding: '0.85rem 1.15rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+          }}>
+            {/* SUBJECT HORIZONTAL CARDS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflowX: 'auto', paddingBottom: 4 }}>
+              {filteredSubjects.map(s => {
+                const theme = getSubjectTheme(s.name);
+                const isSelected = String(selectedSubjectId) === String(s.id);
+                
+                const sUnits = units.filter(u => String(u.subjectId) === String(s.id));
+                let count = 0;
+                sUnits.forEach(u => {
+                  if (hasSummary('unit', u.id)) count++;
+                  const uTopics = topics.filter(t => String(t.unitId) === String(u.id));
+                  uTopics.forEach(t => {
+                    if (hasSummary('topic', t.id)) count++;
+                  });
+                });
+
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedSubjectId(s.id)}
+                    style={{
+                      background: isSelected ? theme.bg : '#ffffff',
+                      border: isSelected ? `2px solid ${theme.color}` : '1.5px solid #e2e8f0',
+                      borderRadius: '0.85rem',
+                      padding: '0.5rem 0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      boxShadow: isSelected ? `0 4px 12px ${theme.border}` : '0 1px 3px rgba(0,0,0,0.02)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.15rem' }}>{theme.icon}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <strong style={{ fontSize: '0.84rem', color: isSelected ? theme.color : '#0f172a', display: 'block', fontWeight: 900 }}>
+                        {s.name}
+                      </strong>
+                      <span style={{ fontSize: '0.68rem', color: isSelected ? theme.text : '#64748b', fontWeight: 700 }}>
+                        {count > 0 ? `${count} Özet Hazır` : `${sUnits.length} Ünite`}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* SEARCH INPUT */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
-                placeholder={`${currentSubject?.name || 'Ders'} içinde konu veya ünite ara...`}
+                placeholder={`${currentSubject?.name || 'Ders'} içinde ünite veya konu ara...`}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: 10,
+                  padding: '0.5rem 0.85rem 0.5rem 2.2rem',
+                  color: '#0f172a',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
           </div>
 
-          {/* VIBRANT & COLORFUL UNIT LIST */}
-          <div className="edu-units-catalog-grid">
+          {/* ─── VIBRANT & COLORFUL UNIT LIST (LIST VIEW) ─── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {filteredUnits.length > 0 ? (
               filteredUnits.map((u, uIdx) => {
                 const { unitNum, cleanTitle, fullDisplayName, badgeText } = getUnitDetails(u, uIdx);
@@ -553,85 +763,184 @@ export default function StudentSummaryPage() {
                 }
 
                 return (
-                  <div key={u.id} className="edu-unit-vibrant-card">
+                  <div key={u.id} className="summary-anim" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     
-                    {/* Colorful Unit Header Bar */}
-                    <div 
-                      className="edu-unit-vibrant-bar"
-                      style={{
-                        background: activeTheme.lightBg,
-                        borderLeftColor: activeTheme.color
-                      }}
-                    >
-                      <div className="edu-unit-vibrant-left">
-                        <span 
-                          className="edu-unit-tag-badge"
-                          style={{
-                            background: activeTheme.gradient,
-                            color: '#ffffff'
-                          }}
-                        >
+                    {/* 📁 ÜNİTE BAŞLIK ÇUBUĞU */}
+                    <div style={{
+                      background: '#ffffff',
+                      border: `1.5px solid ${activeTheme.border}`,
+                      borderLeft: `5px solid ${activeTheme.color}`,
+                      borderRadius: '1.15rem',
+                      padding: '0.75rem 1.15rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 220 }}>
+                        <span style={{
+                          background: activeTheme.gradient,
+                          color: '#ffffff',
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          letterSpacing: '0.04em'
+                        }}>
                           {badgeText}
                         </span>
-                        {cleanTitle ? (
-                          <h3 className="edu-unit-vibrant-title">{cleanTitle}</h3>
-                        ) : null}
+                        {cleanTitle && (
+                          <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                            {cleanTitle}
+                          </h3>
+                        )}
                       </div>
 
-                      {/* General Unit Summary Button */}
+                      {/* Ünite Genel Özeti Butonu */}
                       <button
-                        className={`edu-unit-summary-action-btn ${unitHasSummary ? 'has-summary' : ''}`}
                         onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName })}
                         style={{
-                          '--action-color': activeTheme.color,
-                          '--action-bg': activeTheme.lightBg,
-                          background: unitHasSummary ? activeTheme.gradient : 'rgba(255,255,255,0.1)'
+                          background: unitHasSummary ? activeTheme.bg : '#f8fafc',
+                          color: unitHasSummary ? activeTheme.color : '#64748b',
+                          border: `1.5px solid ${unitHasSummary ? activeTheme.border : '#cbd5e1'}`,
+                          borderRadius: 10,
+                          padding: '0.4rem 0.85rem',
+                          fontSize: '0.76rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          transition: 'all 0.15s'
                         }}
                       >
                         <BookMarked size={14} />
-                        <span>{unitHasSummary ? 'Ünite Özeti Oku' : 'Ünite Özeti'}</span>
-                        <ChevronRight size={14} />
+                        <span>{unitHasSummary ? 'Ünite Genel Özeti' : 'Ünite Notları'}</span>
+                        <ChevronRight size={13} />
                       </button>
                     </div>
 
-                    {/* Colorful Topics Grid */}
-                    <div className="edu-unit-topics-container">
+                    {/* 📋 KONU LİSTESİ (Farklı Renklerde Satırlar) */}
+                    <div style={{
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '1.15rem',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}>
                       {filteredTopicsList.length > 0 ? (
-                        <div className="edu-vibrant-topics-grid">
-                          {filteredTopicsList.map((t, tIdx) => {
-                            const topicHasSummary = hasSummary('topic', t.id);
-                            const topicTitle = t.name || `Konu ${tIdx + 1}`;
+                        filteredTopicsList.map((t, tIdx) => {
+                          const topicHasSummary = hasSummary('topic', t.id);
+                          const topicTitle = t.name || `Konu ${tIdx + 1}`;
+                          const isLast = tIdx === filteredTopicsList.length - 1;
+                          const rowTheme = getRowTheme(currentSubject?.name, tIdx);
 
-                            return (
-                              <div
-                                key={t.id}
-                                className={`edu-topic-vibrant-chip ${topicHasSummary ? 'has-content' : ''}`}
-                                onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: fullDisplayName })}
-                              >
-                                <div className="edu-topic-chip-left">
-                                  <span className="edu-topic-pill-num">{tIdx + 1}</span>
-                                  <span className="edu-topic-pill-title">{topicTitle}</span>
+                          return (
+                            <div
+                              key={t.id}
+                              className="summary-row"
+                              onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: fullDisplayName })}
+                              style={{
+                                background: rowTheme.bg,
+                                borderLeft: `4.5px solid ${topicHasSummary ? rowTheme.accent : '#94a3b8'}`,
+                                borderBottom: isLast ? 'none' : `1px solid ${rowTheme.border}`,
+                                padding: '0.85rem 1.15rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {/* SOL: Konu Numarası, Başlık ve Rozet */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
+                                
+                                <div style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: '50%',
+                                  background: '#ffffff',
+                                  color: rowTheme.accent,
+                                  border: `1.5px solid ${rowTheme.border}`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 900,
+                                  flexShrink: 0,
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                                }}>
+                                  {tIdx + 1}
                                 </div>
 
-                                <div className="edu-topic-chip-right">
-                                  {topicHasSummary ? (
-                                    <span className="edu-badge-ready">
-                                      <span>Özet Oku</span>
-                                      <ChevronRight size={12} />
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                                    <span style={{
+                                      fontSize: '0.66rem',
+                                      fontWeight: 900,
+                                      color: rowTheme.text,
+                                      background: rowTheme.badgeBg,
+                                      padding: '1px 6px',
+                                      borderRadius: 5,
+                                      border: `1px solid ${rowTheme.border}`
+                                    }}>
+                                      {currentSubject?.name || 'Ders'}
                                     </span>
-                                  ) : (
-                                    <span className="edu-badge-plain">
-                                      <span>İncele</span>
-                                      <ChevronRight size={12} />
-                                    </span>
-                                  )}
+
+                                    {topicHasSummary ? (
+                                      <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '1px 6px', borderRadius: 99, border: '1px solid #86efac' }}>
+                                        ● Özet Hazır
+                                      </span>
+                                    ) : (
+                                      <span style={{ fontSize: '0.64rem', fontWeight: 700, background: '#ffffff', color: '#64748b', padding: '1px 6px', borderRadius: 99, border: '1px solid #cbd5e1' }}>
+                                        Müfredat Konusu
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 }}>
+                                    {topicTitle}
+                                  </div>
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
+
+                              {/* SAĞ: Oku / İncele Butonu */}
+                              <div style={{ flexShrink: 0 }}>
+                                <button
+                                  type="button"
+                                  style={{
+                                    background: topicHasSummary ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#ffffff',
+                                    color: topicHasSummary ? '#ffffff' : '#334155',
+                                    border: topicHasSummary ? 'none' : '1.5px solid #cbd5e1',
+                                    borderRadius: 9,
+                                    padding: '0.45rem 0.95rem',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    boxShadow: topicHasSummary ? '0 2px 8px rgba(79,70,229,0.25)' : '0 1px 3px rgba(0,0,0,0.02)',
+                                    transition: 'all 0.15s',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {topicHasSummary ? <BookOpen size={14} /> : <FileText size={14} />}
+                                  <span>{topicHasSummary ? 'Özeti Oku' : 'İncele'}</span>
+                                  <ChevronRight size={13} />
+                                </button>
+                              </div>
+
+                            </div>
+                          );
+                        })
                       ) : (
-                        <div className="edu-no-topics-hint">Bu ünitede kayıtlı konu bulunmuyor.</div>
+                        <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
+                          Bu ünitede kayıtlı konu bulunmuyor.
+                        </div>
                       )}
                     </div>
 
@@ -639,10 +948,22 @@ export default function StudentSummaryPage() {
                 );
               })
             ) : (
-              <div className="edu-empty-catalog">
+              <div style={{
+                background: '#ffffff',
+                border: '1.5px dashed #cbd5e1',
+                borderRadius: '1.25rem',
+                padding: '3rem 1.5rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
                 <BookOpen size={40} color="#94a3b8" />
-                <h3>Bu Derse Ait Ünite Bulunamadı</h3>
-                <p>Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.</p>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Bu Derse Ait Ünite Bulunamadı</h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 420, margin: 0, lineHeight: 1.4 }}>
+                  Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.
+                </p>
               </div>
             )}
           </div>
