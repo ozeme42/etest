@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
 /* ── Subject Config ────────────────────────────────────────────────── */
@@ -227,6 +228,7 @@ export default function StudentResultsPage() {
   }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
 
   const [activeTab, setActiveTab] = useState('overview');
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [typeFilter, setTypeFilter]   = useState('all');
