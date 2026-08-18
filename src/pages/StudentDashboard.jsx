@@ -22,7 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
-import { isHomeworkForStudent, sortItemsByBookOrder } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
@@ -170,7 +170,7 @@ export default function StudentDashboard() {
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
   const { bookTests = [], books = [] } = useTrackedBooks() || {};
-  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
 
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -673,23 +673,23 @@ export default function StudentDashboard() {
       .slice(0, 5);
   }, [selectedStudent, submissions, homeworks, books, bookTests]);
 
-  /* ─── All Submissions For Question Analytics ─── */
-  const allStudentSubmissions = useMemo(() => {
-    if (!selectedStudent) return [];
-    const sid = String(selectedStudent.id);
-    const suuid = String(toUUID(selectedStudent.id) || '');
-    const sName = (selectedStudent.name || '').toLowerCase();
-    const sEmail = (selectedStudent.email || '').toLowerCase();
+  /* ─── All Submissions & Mock Exams For Question Analytics (Synced with Coaching) ─── */
+  const studentMockExams = useMemo(() => {
+    if (!selectedStudent?.id || typeof getMockExamsForStudent !== 'function') return [];
+    return getMockExamsForStudent(selectedStudent.id) || [];
+  }, [selectedStudent, getMockExamsForStudent]);
 
-    return (submissions || []).filter(s => {
-      if (!s) return false;
-      const subSid = String(s.studentId || s.student_id || s.userId || '');
-      if (subSid === sid || (suuid && subSid === suuid)) return true;
-      if (s.studentName && s.studentName.toLowerCase() === sName) return true;
-      if (s.studentEmail && s.studentEmail.toLowerCase() === sEmail) return true;
-      return false;
+  const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
+    return computeStudentAnalyticsData({
+      studentId: selectedStudent?.id,
+      targetStudent: selectedStudent,
+      submissions,
+      homeworks,
+      books,
+      bookTests,
+      studentMockExams
     });
-  }, [submissions, selectedStudent]);
+  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
 
   /* ─── Pending Tasks ─── */
   const pendingTasks = useMemo(() => {
@@ -2031,7 +2031,8 @@ export default function StudentDashboard() {
         ════════════════════════════════════════════ */}
         <div style={{ marginBottom: '1.25rem' }}>
           <PeriodicQuestionAnalytics
-            homeworkSubmissions={allStudentSubmissions}
+            homeworkSubmissions={otherHomeworkSubmissions}
+            mockExams={generalTrialExams}
             studentName={selectedStudent?.name || 'Öğrenci'}
           />
         </div>

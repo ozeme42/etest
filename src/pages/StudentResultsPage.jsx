@@ -20,7 +20,8 @@ import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { useCoaching } from '../context/CoachingContext';
+import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
@@ -123,6 +124,7 @@ export default function StudentResultsPage() {
   const { homeworks } = useHomework();
   const { data: curData } = useCurriculum();
   const { books, bookTests } = useTrackedBooks();
+  const { getMockExamsForStudent } = useCoaching();
 
   const { currentUser } = useAuth();
   const isStudentRole = currentUser?.role === 'student';
@@ -144,6 +146,23 @@ export default function StudentResultsPage() {
       setSelectedStudent(match);
     }
   }, [isStudentRole, currentUser, studentMembers]);
+
+  const studentMockExams = useMemo(() => {
+    if (!selectedStudent?.id || typeof getMockExamsForStudent !== 'function') return [];
+    return getMockExamsForStudent(selectedStudent.id) || [];
+  }, [selectedStudent, getMockExamsForStudent]);
+
+  const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
+    return computeStudentAnalyticsData({
+      studentId: selectedStudent?.id,
+      targetStudent: selectedStudent,
+      submissions,
+      homeworks,
+      books,
+      bookTests,
+      studentMockExams
+    });
+  }, [selectedStudent, submissions, homeworks, books, bookTests, studentMockExams]);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -614,7 +633,8 @@ export default function StudentResultsPage() {
         {activeTab === 'periodic' && (
           <div className="sr-anim">
             <PeriodicQuestionAnalytics
-              homeworkSubmissions={studentSubmissions}
+              homeworkSubmissions={otherHomeworkSubmissions}
+              mockExams={generalTrialExams}
               studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
             />
           </div>
