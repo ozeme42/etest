@@ -660,14 +660,10 @@ export default function MyCoachingPage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [expandedPoolSubjects, setExpandedPoolSubjects] = useState({});
 
-  /* ── Konu & Program Merkezi State ── */
-  const [hubSearch, setHubSearch] = useState('');
-  const [hubFilter, setHubFilter] = useState('all'); // all, baslanmadi, devamediyor, bitti, unassigned
-  const [assigningTopicKey, setAssigningTopicKey] = useState(null);
-  const [assignDay, setAssignDay] = useState('Pzt');
-  const [assignHours, setAssignHours] = useState('1 sa');
-  const [assignType, setAssignType] = useState('Konu Çalışması');
-  const [hideDoneInProgram, setHideDoneInProgram] = useState(true);
+  /* ── Çözülen Ödevler & Testler Filtreleme & Gruplama State ── */
+  const [hwSubjectFilter, setHwSubjectFilter] = useState('all');
+  const [hwSearchQuery, setHwSearchQuery] = useState('');
+  const [collapsedHwSubjects, setCollapsedHwSubjects] = useState({});
 
   const POOL_COLORS = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#0891b2','#db2777','#0f766e'];
 
@@ -1107,10 +1103,23 @@ export default function MyCoachingPage() {
         net = parseFloat(s.score);
       }
 
+      let subject = s.subject || parentObj?.subject || parentObj?.name || '';
+      if (!subject || subject === 'Genel') {
+        const lower = title.toLowerCase();
+        if (lower.includes('matematik') || lower.includes('geometri')) subject = 'Matematik';
+        else if (lower.includes('türkçe') || lower.includes('paragraf') || lower.includes('edebiyat')) subject = 'Türkçe';
+        else if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyoloji')) subject = 'Fen Bilimleri';
+        else if (lower.includes('sosyal') || lower.includes('tarih') || lower.includes('coğrafya') || lower.includes('inkılap')) subject = 'Sosyal Bilgiler';
+        else if (lower.includes('ingilizce') || lower.includes('english')) subject = 'İngilizce';
+        else if (lower.includes('din')) subject = 'Din Kültürü';
+        else subject = 'Genel / Diğer';
+      }
+
       return {
         id: s.id || `sub_${Date.now()}_${Math.random()}`,
         originalSubmissionId: s.id,
         title,
+        subject,
         date: s.submittedAt?.slice(0, 10) || s.createdAt?.slice(0, 10) || today(),
         totalNet: parseFloat(net.toFixed(2)),
         correctCount: correct,
@@ -1122,7 +1131,7 @@ export default function MyCoachingPage() {
         isExamBook,
         parentBookId: relatedBook?.id || null,
         hwId: s.hwId || parentObj?.id || null,
-        subjectName: parentObj?.name || 'Genel'
+        subjectName: subject
       };
     };
 
@@ -3849,7 +3858,7 @@ export default function MyCoachingPage() {
         {/* ═══ TESTLERİM (ÖDEV VE KONU TESTLERİ SEKME) ═══ */}
         {activeTab === 'testlerim' && (
           <div>
-            <Tip>Sistemde veya ödevler sekmesinde çözdüğün tüm konu testleri ve ödev sonuçların burada saklanır.</Tip>
+            <Tip>Sistemde veya ödevler sekmesinde çözdüğün tüm konu testleri ve ödev sonuçların burada ders bazında düzenli olarak listelenir.</Tip>
 
             {otherHomeworkSubmissions.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem', fontWeight: 700 }}>
@@ -3887,35 +3896,264 @@ export default function MyCoachingPage() {
                   );
                 })()}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {otherHomeworkSubmissions.map((s, i) => {
-                    const d = s.correctCount || 0;
-                    const y = s.wrongCount || 0;
-                    const b = s.emptyCount || 0;
-                    const totalQ = d + y + b;
-                    const rate = totalQ > 0 ? Math.round((d / totalQ) * 100) : 0;
+                {/* Ders Filtreleri ve Arama Çubuğu */}
+                {(() => {
+                  const SUBJECT_ICONS = {
+                    'Matematik': '📐',
+                    'Türkçe': '📖',
+                    'Fen Bilimleri': '🔬',
+                    'Sosyal Bilgiler': '🌍',
+                    'İngilizce': '🇬🇧',
+                    'Din Kültürü': '🕌',
+                    'Genel / Diğer': '📚'
+                  };
+                  const SUBJECT_COLORS = {
+                    'Matematik': { text: '#2563eb', bg: 'rgba(239, 246, 255, 0.7)', border: '#bfdbfe' },
+                    'Türkçe': { text: '#d97706', bg: 'rgba(255, 251, 235, 0.7)', border: '#fde68a' },
+                    'Fen Bilimleri': { text: '#059669', bg: 'rgba(240, 253, 244, 0.7)', border: '#bbf7d0' },
+                    'Sosyal Bilgiler': { text: '#dc2626', bg: 'rgba(254, 242, 242, 0.7)', border: '#fecaca' },
+                    'İngilizce': { text: '#7c3aed', bg: 'rgba(245, 243, 255, 0.7)', border: '#ddd6fe' },
+                    'Din Kültürü': { text: '#0891b2', bg: 'rgba(236, 254, 255, 0.7)', border: '#a5f3fc' },
+                    'Genel / Diğer': { text: '#475569', bg: 'rgba(248, 250, 252, 0.7)', border: '#e2e8f0' }
+                  };
 
-                    return (
-                      <div key={s.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>{s.title}</div>
-                          <div style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
-                            Tarih: {s.date} · ✅ {s.correctCount} Doğru · ❌ {s.wrongCount} Yanlış · ⭕ {s.emptyCount} Boş
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: 4, alignItems: 'baseline' }}>
-                            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: rate >= 70 ? '#059669' : rate >= 50 ? '#d97706' : '#dc2626' }}>%{rate}</span>
-                            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>başarı</span>
-                          </div>
-                          <button type="button" onClick={() => deleteSubmission(s.id)} title="Testi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
-                            <Trash2 size={15} />
+                  const subjectCounts = {};
+                  otherHomeworkSubmissions.forEach(s => {
+                    const subj = s.subject || 'Genel / Diğer';
+                    subjectCounts[subj] = (subjectCounts[subj] || 0) + 1;
+                  });
+                  const availableSubjects = Object.entries(subjectCounts).sort((a, b) => b[1] - a[1]);
+
+                  const filtered = otherHomeworkSubmissions.filter(s => {
+                    if (hwSubjectFilter !== 'all' && (s.subject || 'Genel / Diğer') !== hwSubjectFilter) return false;
+                    if (hwSearchQuery.trim()) {
+                      const q = hwSearchQuery.toLowerCase().trim();
+                      const matchTitle = (s.title || '').toLowerCase().includes(q);
+                      const matchSubj = (s.subject || '').toLowerCase().includes(q);
+                      if (!matchTitle && !matchSubj) return false;
+                    }
+                    return true;
+                  });
+
+                  const groups = {};
+                  filtered.forEach(s => {
+                    const subj = s.subject || 'Genel / Diğer';
+                    if (!groups[subj]) groups[subj] = [];
+                    groups[subj].push(s);
+                  });
+                  const groupEntries = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {/* Filtre ve Arama Alanı */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.6)', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,0.9)' }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => setHwSubjectFilter('all')}
+                            style={{
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '0.55rem',
+                              fontSize: '0.76rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              border: hwSubjectFilter === 'all' ? '1.5px solid #4f46e5' : '1px solid #e2e8f0',
+                              background: hwSubjectFilter === 'all' ? '#4f46e5' : 'white',
+                              color: hwSubjectFilter === 'all' ? 'white' : '#475569',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            🌐 Tümü ({otherHomeworkSubmissions.length})
                           </button>
+                          {availableSubjects.map(([subj, count]) => {
+                            const isSel = hwSubjectFilter === subj;
+                            const col = SUBJECT_COLORS[subj] || SUBJECT_COLORS['Genel / Diğer'];
+                            const ico = SUBJECT_ICONS[subj] || '📚';
+                            return (
+                              <button
+                                key={subj}
+                                type="button"
+                                onClick={() => setHwSubjectFilter(isSel ? 'all' : subj)}
+                                style={{
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: '0.55rem',
+                                  fontSize: '0.76rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  border: isSel ? `1.5px solid ${col.text}` : `1px solid ${col.border}`,
+                                  background: isSel ? col.text : col.bg,
+                                  color: isSel ? 'white' : col.text,
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {ico} {subj} ({count})
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div style={{ minWidth: 200 }}>
+                          <input
+                            type="text"
+                            value={hwSearchQuery}
+                            onChange={e => setHwSearchQuery(e.target.value)}
+                            placeholder="🔍 Test ara..."
+                            style={{
+                              width: '100%',
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.78rem',
+                              borderRadius: '0.55rem',
+                              border: '1px solid #cbd5e1',
+                              outline: 'none',
+                              background: 'white'
+                            }}
+                          />
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Gruplanmış Ders Akordiyon & Kart Listesi */}
+                      {groupEntries.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontWeight: 600, background: 'rgba(255, 255, 255, 0.4)', borderRadius: '0.85rem', border: '1px dashed #cbd5e1' }}>
+                          Aradığınız kriterlere uygun test bulunamadı.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          {groupEntries.map(([subjName, tests]) => {
+                            const isCollapsed = Boolean(collapsedHwSubjects[subjName]);
+                            const col = SUBJECT_COLORS[subjName] || SUBJECT_COLORS['Genel / Diğer'];
+                            const ico = SUBJECT_ICONS[subjName] || '📚';
+
+                            const grpD = tests.reduce((a, b) => a + (b.correctCount || 0), 0);
+                            const grpY = tests.reduce((a, b) => a + (b.wrongCount || 0), 0);
+                            const grpB = tests.reduce((a, b) => a + (b.emptyCount || 0), 0);
+                            const grpTotalQ = grpD + grpY + grpB;
+                            const grpRate = grpTotalQ > 0 ? Math.round((grpD / grpTotalQ) * 100) : 0;
+
+                            return (
+                              <div key={subjName} style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                                {/* Ders Başlık Çubuğu */}
+                                <div
+                                  onClick={() => setCollapsedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: 8,
+                                    padding: '0.75rem 1rem',
+                                    background: col.bg,
+                                    cursor: 'pointer',
+                                    borderBottom: isCollapsed ? 'none' : `1.5px solid ${col.border}`,
+                                    userSelect: 'none'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: '1.1rem' }}>{ico}</span>
+                                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: col.text }}>{subjName}</span>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: col.text, background: 'white', border: `1px solid ${col.border}`, padding: '1px 7px', borderRadius: 99 }}>
+                                      {tests.length} Test
+                                    </span>
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800 }}>
+                                      <span style={{ color: '#059669', background: 'white', border: '1px solid #86efac', padding: '2px 6px', borderRadius: '0.4rem' }}>
+                                        Ort. %{grpRate} Başarı
+                                      </span>
+                                      <span style={{ color: '#475569', background: 'white', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '0.4rem' }}>
+                                        ✅ {grpD} · ❌ {grpY}
+                                      </span>
+                                    </div>
+                                    <div style={{ color: col.text, transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
+                                      <ChevronDown size={18} strokeWidth={2.5} />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Ders İçi Test Kartları Grid Düzeni */}
+                                {!isCollapsed && (
+                                  <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.4)' }}>
+                                    {tests.map((s, i) => {
+                                      const d = s.correctCount || 0;
+                                      const y = s.wrongCount || 0;
+                                      const b = s.emptyCount || 0;
+                                      const totalQ = d + y + b;
+                                      const rate = totalQ > 0 ? Math.round((d / totalQ) * 100) : 0;
+
+                                      return (
+                                        <div
+                                          key={s.id || i}
+                                          style={{
+                                            background: 'white',
+                                            borderRadius: '0.75rem',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '0.75rem 0.85rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between',
+                                            gap: 8,
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                                            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                                          }}
+                                        >
+                                          {/* Üst Kısım: Başlık & Tarih */}
+                                          <div>
+                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                                              {s.title}
+                                            </div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                              <span>📅</span> {s.date}
+                                            </div>
+                                          </div>
+
+                                          {/* Alt Kısım: Doğru / Yanlış ve Başarı Rozeti */}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed #f1f5f9', gap: 6 }}>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>
+                                              ✅ {d} <span style={{ color: '#94a3b8' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: '#94a3b8' }}>·</span> ⭕ {b}</>}
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                              <span
+                                                style={{
+                                                  fontWeight: 900,
+                                                  fontSize: '0.76rem',
+                                                  color: rate >= 70 ? '#15803d' : rate >= 50 ? '#b45309' : '#b91c1c',
+                                                  background: rate >= 70 ? '#dcfce7' : rate >= 50 ? '#fef3c7' : '#fee2e2',
+                                                  border: rate >= 70 ? '1px solid #86efac' : rate >= 50 ? '1px solid #fde68a' : '1px solid #fca5a5',
+                                                  padding: '2px 7px',
+                                                  borderRadius: '0.4rem',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 2
+                                                }}
+                                              >
+                                                %{rate} Başarı
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => deleteSubmission(s.id)}
+                                                title="Testi Sil"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                                onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
