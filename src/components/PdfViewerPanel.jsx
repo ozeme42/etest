@@ -54,10 +54,11 @@ export default function PdfViewerPanel({ pdfUrl, title = 'PDF Doküman', default
     <div className={className} style={{
       display: 'flex',
       flexDirection: 'column',
-      background: '#0f172a',
-      borderRadius: '0.75rem',
+      background: '#ffffff',
+      borderRadius: '0.85rem',
       overflow: 'hidden',
-      border: '1px solid #1e293b',
+      border: '1.5px solid #e2e8f0',
+      boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
       minHeight: isOpen ? 320 : 'auto',
     }}>
       {/* Header bar */}
@@ -65,18 +66,18 @@ export default function PdfViewerPanel({ pdfUrl, title = 'PDF Doküman', default
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.5rem 0.85rem',
-        background: '#1e293b',
-        borderBottom: isOpen ? '1px solid #334155' : 'none',
+        padding: '0.55rem 0.85rem',
+        background: '#f8fafc',
+        borderBottom: isOpen ? '1.5px solid #e2e8f0' : 'none',
         gap: 8,
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <FileText size={15} color='#94a3b8' />
-          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <FileText size={15} color='#6366f1' />
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {title}
           </span>
-          <span style={{ fontSize: '0.65rem', background: '#334155', color: '#94a3b8', padding: '1px 6px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
+          <span style={{ fontSize: '0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 6px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
             PDF
           </span>
         </div>
@@ -86,14 +87,14 @@ export default function PdfViewerPanel({ pdfUrl, title = 'PDF Doküman', default
             target='_blank'
             rel='noopener noreferrer'
             title='Yeni sekmede aç'
-            style={{ display: 'flex', alignItems: 'center', padding: '3px 6px', borderRadius: 6, background: '#334155', color: '#94a3b8', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
+            style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6, background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
           >
             <ExternalLink size={12} /> Aç
           </a>
           <button
             onClick={() => setIsOpen(o => !o)}
             title={isOpen ? 'Küçült' : 'PDF Göster'}
-            style={{ display: 'flex', alignItems: 'center', padding: '3px 6px', borderRadius: 6, background: '#334155', color: '#94a3b8', border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
+            style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6, background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
           >
             {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             {isOpen ? 'Küçült' : 'Göster'}

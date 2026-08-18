@@ -213,9 +213,6 @@ export default function ResizablePdfPanel({
 
   if (!pdfUrl) return null;
 
-  // ──────────────────────────────────────────────────────────────
-  // FLOATING MODE
-  // ──────────────────────────────────────────────────────────────
   if (mode === 'float') {
     return (
       <div
@@ -225,29 +222,28 @@ export default function ResizablePdfPanel({
           width: '100vw',
           height: '100vh',
           zIndex: 9998,
-          background: '#0f172a',
+          background: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}
       >
-        {/* Fullscreen header */}
         <div
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0.45rem 0.75rem',
-            background: '#1e293b',
-            borderBottom: '1px solid #334155',
+            padding: '0.5rem 0.85rem',
+            background: '#f8fafc',
+            borderBottom: '1.5px solid #e2e8f0',
             flexShrink: 0,
             gap: 6,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-            <FileText size={13} color="#94a3b8" style={{ flexShrink: 0 }} />
-            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <FileText size={13} color="#6366f1" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title}
             </span>
-            <span style={{ fontSize: '0.6rem', background: '#334155', color: '#94a3b8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+            <span style={{ fontSize: '0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -258,7 +254,7 @@ export default function ResizablePdfPanel({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '0.35rem 0.65rem', borderRadius: '0.5rem',
-                  background: isDrawingOpen ? '#eab308' : '#3b82f6',
+                  background: isDrawingOpen ? '#eab308' : '#6366f1',
                   color: 'white', border: 'none', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
                 }}
               >
@@ -266,10 +262,11 @@ export default function ResizablePdfPanel({
                 <span>{isDrawingOpen ? 'Çizimi Kapat' : 'Çizim Yap'}</span>
               </button>
             )}
-            <ModeBtn title="Küçült (Sol Panele)" onClick={() => changeMode('side')} icon={<Minimize2 size={12} />} />
-            <ModeBtn title="Küçült (Üst Panele)" onClick={() => changeMode('top')} icon={<Minimize2 size={12} />} />
+            <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
+            <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
+            <ModeBtn title="Pencereli Yap" onClick={() => changeMode('float')} icon={<Minimize2 size={12} />} />
             <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
-            <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
+            <ModeBtn title="Kapat" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
           </div>
         </div>
 
@@ -285,9 +282,6 @@ export default function ResizablePdfPanel({
     );
   }
 
-  // ──────────────────────────────────────────────────────────────
-  // SIDE (DOCKED) MODE
-  // ──────────────────────────────────────────────────────────────
   if (mode === 'side') {
     return (
       <>
@@ -297,27 +291,26 @@ export default function ResizablePdfPanel({
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: '#0f172a',
-            borderRight: '1px solid #334155',
+            background: '#ffffff',
+            borderRight: '1.5px solid #e2e8f0',
             flexShrink: 0,
             overflow: 'hidden',
           }}
         >
-          {/* Dock header */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0.45rem 0.75rem',
-            background: '#1e293b',
-            borderBottom: '1px solid #334155',
+            padding: '0.5rem 0.85rem',
+            background: '#f8fafc',
+            borderBottom: '1.5px solid #e2e8f0',
             flexShrink: 0,
             gap: 6,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <FileText size={13} color="#94a3b8" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <FileText size={13} color="#6366f1" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {title}
               </span>
-              <span style={{ fontSize: '0.6rem', background: '#334155', color: '#94a3b8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+              <span style={{ fontSize: '0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -328,7 +321,7 @@ export default function ResizablePdfPanel({
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '0.35rem 0.65rem', borderRadius: '0.5rem',
-                    background: isDrawingOpen ? '#eab308' : '#3b82f6',
+                    background: isDrawingOpen ? '#eab308' : '#6366f1',
                     color: 'white', border: 'none', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
                   }}
                 >
@@ -343,7 +336,6 @@ export default function ResizablePdfPanel({
             </div>
           </div>
 
-          {/* PDF iframe */}
           <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
             <iframe
               src={embedUrl}
@@ -354,7 +346,6 @@ export default function ResizablePdfPanel({
           </div>
         </div>
 
-        {/* Drag divider to resize dock width */}
         {!isFullScreen && (
           <div
             data-dock-divider
@@ -370,12 +361,12 @@ export default function ResizablePdfPanel({
             title="Genişliği ayarla"
           >
             <div style={{
-              position: 'absolute', inset: '2px 0', background: '#334155',
+              position: 'absolute', inset: '2px 0', background: '#e2e8f0',
               borderRadius: 3,
               transition: 'background 0.15s',
             }}
-              onMouseEnter={e => e.currentTarget.style.background = '#3b82f6'}
-              onMouseLeave={e => e.currentTarget.style.background = '#334155'}
+              onMouseEnter={e => e.currentTarget.style.background = '#6366f1'}
+              onMouseLeave={e => e.currentTarget.style.background = '#e2e8f0'}
             />
           </div>
         )}
@@ -383,9 +374,6 @@ export default function ResizablePdfPanel({
     );
   }
 
-  // ──────────────────────────────────────────────────────────────
-  // TOP (DOCKED) MODE
-  // ──────────────────────────────────────────────────────────────
   if (mode === 'top') {
     return (
       <>
@@ -395,28 +383,27 @@ export default function ResizablePdfPanel({
             minHeight: 150,
             display: 'flex',
             flexDirection: 'column',
-            background: '#0f172a',
-            borderBottom: '1px solid #334155',
+            background: '#ffffff',
+            borderBottom: '1.5px solid #e2e8f0',
             flexShrink: 0,
             overflow: 'hidden',
             width: '100%'
           }}
         >
-          {/* Dock header */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0.45rem 0.75rem',
-            background: '#1e293b',
-            borderBottom: '1px solid #334155',
+            padding: '0.5rem 0.85rem',
+            background: '#f8fafc',
+            borderBottom: '1.5px solid #e2e8f0',
             flexShrink: 0,
             gap: 6,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <FileText size={13} color="#94a3b8" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <FileText size={13} color="#6366f1" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {title}
               </span>
-              <span style={{ fontSize: '0.6rem', background: '#334155', color: '#94a3b8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+              <span style={{ fontSize: '0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -427,7 +414,6 @@ export default function ResizablePdfPanel({
             </div>
           </div>
 
-          {/* PDF iframe */}
           <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
             <iframe
               src={embedUrl}
@@ -448,18 +434,17 @@ export default function ResizablePdfPanel({
               background: '#f8fafc',
               position: 'relative',
               zIndex: 2,
-              width: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              borderBottom: '1px solid #e2e8f0',
+              userSelect: 'none'
             }}
-            title="Yüksekliği ayarla"
+            title="Dikey yüksekliği ayarla"
           >
             <div style={{
-              width: 40,
+              width: 48,
               height: 4,
-              background: '#cbd5e1',
               borderRadius: 2,
               transition: 'background 0.15s',
             }}
@@ -482,12 +467,12 @@ function ModeBtn({ title, onClick, href, icon, danger }) {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     width: 22, height: 22,
     borderRadius: 5,
-    background: danger ? 'rgba(239,68,68,0.15)' : '#334155',
-    color: danger ? '#f87171' : '#94a3b8',
-    border: 'none',
+    background: danger ? '#fef2f2' : '#ffffff',
+    color: danger ? '#dc2626' : '#475569',
+    border: danger ? '1px solid #fecaca' : '1px solid #cbd5e1',
     cursor: 'pointer',
     textDecoration: 'none',
-    transition: 'background 0.12s',
+    transition: 'all 0.12s',
     flexShrink: 0,
   };
   if (href) {

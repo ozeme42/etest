@@ -153,27 +153,27 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
 
   if (!isValidContent) {
     return (
-      <div style={{ padding: '3rem 1.5rem', textAlign: 'center', background: '#0f172a', border: '2px dashed #334155', borderRadius: '1rem', margin: '1rem', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', minHeight: '350px' }}>
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(6,182,212,0.15)', color: '#06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+      <div style={{ padding: '3rem 1.5rem', textAlign: 'center', background: '#ffffff', border: '2px dashed #cbd5e1', borderRadius: '1rem', margin: '1rem', color: '#0f172a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', minHeight: '350px' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
           🌐
         </div>
         <div style={{ maxWidth: '400px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 0.5rem 0' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem 0' }}>
             HTML Soru Dokümanı Yüklenemedi
           </h3>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
             Bu test için HTML dosyası sunucuda veya önbellekte bulunamadı. Lütfen HTML dosyasını bilgisayarınızdan seçip anında görüntüleyin:
           </p>
         </div>
         <label style={{
           padding: '0.75rem 1.5rem',
           borderRadius: '0.75rem',
-          background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+          background: 'linear-gradient(135deg, #059669, #10b981)',
           color: 'white',
           fontWeight: 900,
           fontSize: '0.88rem',
           cursor: 'pointer',
-          boxShadow: '0 4px 14px rgba(6,182,212,0.4)',
+          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
           display: 'inline-flex',
           alignItems: 'center',
           gap: '0.5rem'
@@ -218,28 +218,29 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.4rem 0.75rem',
-        background: '#064e3b',
-        color: 'white',
+        padding: '0.45rem 0.85rem',
+        background: '#f8fafc',
+        borderBottom: '1.5px solid #e2e8f0',
+        color: '#0f172a',
         flexWrap: 'wrap',
         gap: '0.4rem',
         zIndex: 10
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Globe size={16} style={{ color: '#6ee7b7' }} />
-          <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#f8fafc' }}>
+          <Globe size={16} style={{ color: '#059669' }} />
+          <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>
             {title} ({zoomLevel}%)
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
           {/* Zoom Controls */}
-          <div style={{ display: 'flex', background: '#022c22', borderRadius: '0.4rem', padding: '0.15rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.45rem', padding: '0.15rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={handleZoomOut}
               title="Küçült (-20%)"
-              style={{ background: 'transparent', border: 'none', color: '#a7f3d0', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomOut size={15} />
             </button>
@@ -247,7 +248,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
               type="button"
               onClick={handleResetZoom}
               title="Yakınlaştırmayı Sıfırla (%100)"
-              style={{ background: 'transparent', border: 'none', color: '#ecfdf5', padding: '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: '0.72rem', fontWeight: 800 }}
+              style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: '0.72rem', fontWeight: 800 }}
             >
               <RotateCcw size={12} style={{ marginRight: '0.2rem' }} /> {zoomLevel}%
             </button>
@@ -255,7 +256,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
               type="button"
               onClick={handleZoomIn}
               title="Büyüt (+20%)"
-              style={{ background: 'transparent', border: 'none', color: '#a7f3d0', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomIn size={15} />
             </button>
@@ -266,7 +267,7 @@ export default React.memo(function HtmlViewerWithControls({ payload, title = "HT
             type="button"
             onClick={toggleExpanded}
             title="Pencereyi Tam Ekran Yap"
-            style={{ background: '#059669', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ background: 'linear-gradient(135deg, #059669, #10b981)', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)' }}
           >
             {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             <span>{isExpanded ? 'Küçült' : 'Tam Ekran'}</span>

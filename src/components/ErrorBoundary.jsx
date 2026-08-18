@@ -24,7 +24,8 @@ export default class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{
-          minHeight: '70vh',
+          minHeight: '100vh',
+          background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -32,35 +33,35 @@ export default class ErrorBoundary extends React.Component {
           fontFamily: "'Inter', system-ui, sans-serif"
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.95) 100%)',
-            border: '1.5px solid rgba(239, 68, 68, 0.35)',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
             borderRadius: '1.5rem',
             padding: '2.5rem 2rem',
             maxWidth: '520px',
             width: '100%',
             textAlign: 'center',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-            color: '#f8fafc'
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.06)',
+            color: '#0f172a'
           }}>
             <div style={{
               width: 64,
               height: 64,
               borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '2px solid rgba(239, 68, 68, 0.4)',
+              background: '#fef2f2',
+              border: '2px solid #fecaca',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1.25rem',
-              color: '#f87171'
+              color: '#dc2626'
             }}>
               <AlertTriangle size={32} />
             </div>
 
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: '#ffffff' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: '#0f172a' }}>
               Bir Şeyler Ters Gitti
             </h2>
-            <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
               Bu sayfa yüklenirken beklenmeyen bir hata oluştu. Sayfayı yenileyerek veya ana sayfaya dönerek devam edebilirsiniz.
             </p>
 
@@ -79,7 +80,7 @@ export default class ErrorBoundary extends React.Component {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)'
                 }}
               >
                 <RotateCcw size={16} /> Sayfayı Yenile
@@ -89,9 +90,9 @@ export default class ErrorBoundary extends React.Component {
                 style={{
                   padding: '0.65rem 1.25rem',
                   borderRadius: '0.75rem',
-                  background: '#1e293b',
-                  border: '1.5px solid #334155',
-                  color: '#cbd5e1',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#475569',
                   fontWeight: 800,
                   fontSize: '0.86rem',
                   textDecoration: 'none',

@@ -114,28 +114,29 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.4rem 0.75rem',
-        background: '#1e293b',
-        color: 'white',
+        padding: '0.45rem 0.85rem',
+        background: '#f8fafc',
+        borderBottom: '1.5px solid #e2e8f0',
+        color: '#0f172a',
         flexWrap: 'wrap',
         gap: '0.4rem',
         zIndex: 10
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={16} style={{ color: '#f87171' }} />
-          <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#f8fafc' }}>
+          <FileText size={16} style={{ color: '#ef4444' }} />
+          <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>
             {title} ({zoomLevel}%)
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
           {/* Zoom Controls */}
-          <div style={{ display: 'flex', background: '#0f172a', borderRadius: '0.4rem', padding: '0.15rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.45rem', padding: '0.15rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={handleZoomOut}
               title="Küçült (-20%)"
-              style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomOut size={15} />
             </button>
@@ -143,7 +144,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
               type="button"
               onClick={handleResetZoom}
               title="Yakınlaştırmayı Sıfırla (%100)"
-              style={{ background: 'transparent', border: 'none', color: '#cbd5e1', padding: '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: '0.72rem', fontWeight: 800 }}
+              style={{ background: 'transparent', border: 'none', color: '#0f172a', padding: '0.25rem 0.5rem', cursor: 'pointer', borderRadius: '0.25rem', fontSize: '0.72rem', fontWeight: 800 }}
             >
               <RotateCcw size={12} style={{ marginRight: '0.2rem' }} /> {zoomLevel}%
             </button>
@@ -151,7 +152,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
               type="button"
               onClick={handleZoomIn}
               title="Büyüt (+20%)"
-              style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '0.25rem 0.45rem', cursor: 'pointer', borderRadius: '0.25rem', display: 'flex', alignItems: 'center' }}
             >
               <ZoomIn size={15} />
             </button>
@@ -162,7 +163,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
             type="button"
             onClick={toggleExpanded}
             title="Pencereyi Tam Ekran Yap"
-            style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)' }}
           >
             {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
             <span>{isExpanded ? 'Küçült' : 'Tam Ekran'}</span>
@@ -170,7 +171,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
 
           {/* Change File */}
           {allowUpload && onUploadFile && (
-            <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.4rem', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <label style={{ cursor: 'pointer', background: '#dc2626', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '0.45rem', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => e.target.files && onUploadFile(e.target.files[0])} />
               📁 PDF Değiştir
             </label>
@@ -183,7 +184,7 @@ export default function PdfViewerWithControls({ payload, title = "PDF Dokümanı
               target="_blank"
               rel="noopener noreferrer"
               title="Yeni Sekmede Aç"
-              style={{ background: '#334155', color: '#f8fafc', padding: '0.35rem 0.55rem', borderRadius: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700 }}
+              style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', padding: '0.35rem 0.55rem', borderRadius: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700 }}
             >
               <ExternalLink size={13} />
             </a>
