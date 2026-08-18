@@ -14,6 +14,43 @@ import {
   Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target
 } from 'lucide-react';
 
+const SUBJECT_ROW_THEMES = {
+  'matematik':       { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
+  'türkçe':          { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
+  'fen':             { bg: '#f0fdf4', border: '#bbf7d0', accent: '#10b981', text: '#15803d', badgeBg: '#dcfce7' },
+  'sosyal':          { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#b45309', badgeBg: '#fef3c7' },
+  'inkılap':         { bg: '#fff7ed', border: '#fed7aa', accent: '#ea580c', text: '#c2410c', badgeBg: '#ffedd5' },
+  'ingilizce':       { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  'yabancı dil':     { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  'din':             { bg: '#ecfeff', border: '#a5f3fc', accent: '#06b6d4', text: '#0e7490', badgeBg: '#cffafe' },
+  'geometri':        { bg: '#f0fdfa', border: '#99f6e4', accent: '#0d9488', text: '#0f766e', badgeBg: '#ccfbf1' },
+  'fizik':           { bg: '#f5f3ff', border: '#ddd6fe', accent: '#6366f1', text: '#4338ca', badgeBg: '#ede9fe' },
+  'kimya':           { bg: '#fdf4ff', border: '#f5d0fe', accent: '#c026d3', text: '#a21caf', badgeBg: '#fae8ff' },
+  'biyoloji':        { bg: '#f0fdf4', border: '#a7f3d0', accent: '#059669', text: '#047857', badgeBg: '#d1fae5' },
+  'tarih':           { bg: '#fffbeb', border: '#fed7aa', accent: '#d97706', text: '#9a3412', badgeBg: '#ffedd5' },
+  'coğrafya':        { bg: '#f0fdf4', border: '#bbf7d0', accent: '#16a34a', text: '#166534', badgeBg: '#dcfce7' },
+  'felsefe':         { bg: '#fdf2f8', border: '#fbcfe8', accent: '#ec4899', text: '#be185d', badgeBg: '#fce7f3' },
+};
+
+const PALETTES_LIST = [
+  { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
+  { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
+  { bg: '#f0fdf4', border: '#bbf7d0', accent: '#10b981', text: '#15803d', badgeBg: '#dcfce7' },
+  { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
+  { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#b45309', badgeBg: '#fef3c7' },
+  { bg: '#ecfeff', border: '#a5f3fc', accent: '#06b6d4', text: '#0e7490', badgeBg: '#cffafe' },
+];
+
+const getRowTheme = (subject, idx) => {
+  if (subject) {
+    const sLower = String(subject).toLowerCase();
+    for (const [key, val] of Object.entries(SUBJECT_ROW_THEMES)) {
+      if (sLower.includes(key)) return val;
+    }
+  }
+  return PALETTES_LIST[idx % PALETTES_LIST.length];
+};
+
 export default function StudentHomeworksPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -897,19 +934,22 @@ export default function StudentHomeworksPage() {
                     }
 
                     const isLast = idx === group.items.length - 1;
+                    const rowTheme = getRowTheme(task.subject, idx);
 
                     return (
                       <div
                         key={task.id}
                         className="hw-row"
                         style={{
+                          background: rowTheme.bg,
+                          borderLeft: `4.5px solid ${task.isDone ? '#16a34a' : isOverdue ? '#e11d48' : rowTheme.accent}`,
+                          borderBottom: isLast ? 'none' : `1px solid ${rowTheme.border}`,
                           padding: '0.85rem 1.15rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: '0.85rem',
-                          borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
-                          transition: 'background-color 0.15s ease'
+                          transition: 'all 0.15s ease'
                         }}
                       >
                         {/* SOL: İkon, Ders, Tip ve Başlık */}
@@ -917,17 +957,19 @@ export default function StudentHomeworksPage() {
                           
                           {/* Durum İkonu */}
                           <div style={{
-                            width: 32,
-                            height: 32,
+                            width: 34,
+                            height: 34,
                             borderRadius: '50%',
-                            background: task.isDone ? '#f0fdf4' : isOverdue ? '#fff1f2' : '#eff6ff',
-                            color: task.isDone ? '#16a34a' : isOverdue ? '#e11d48' : '#2563eb',
-                            border: `1px solid ${task.isDone ? '#86efac' : isOverdue ? '#fecdd3' : '#bfdbfe'}`,
+                            background: '#ffffff',
+                            color: task.isDone ? '#16a34a' : isOverdue ? '#e11d48' : rowTheme.accent,
+                            border: `1.5px solid ${task.isDone ? '#86efac' : isOverdue ? '#fecdd3' : rowTheme.border}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.9rem',
-                            flexShrink: 0
+                            fontSize: '0.92rem',
+                            fontWeight: 900,
+                            flexShrink: 0,
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.04)'
                           }}>
                             {task.isDone ? '✓' : isOverdue ? '!' : '⏳'}
                           </div>
@@ -937,13 +979,13 @@ export default function StudentHomeworksPage() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
                               {task.subject && (
                                 <span style={{
-                                  fontSize: '0.66rem',
+                                  fontSize: '0.68rem',
                                   fontWeight: 900,
-                                  color: '#1d4ed8',
-                                  background: '#eff6ff',
-                                  padding: '1px 6px',
-                                  borderRadius: 5,
-                                  border: '1px solid #bfdbfe'
+                                  color: rowTheme.text,
+                                  background: rowTheme.badgeBg,
+                                  padding: '2px 7px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${rowTheme.border}`
                                 }}>
                                   {task.subject}
                                 </span>
@@ -953,41 +995,41 @@ export default function StudentHomeworksPage() {
                                 fontSize: '0.66rem',
                                 fontWeight: 800,
                                 color: task.isBookAssignment ? '#047857' : '#6d28d9',
-                                background: task.isBookAssignment ? '#ecfdf5' : '#faf5ff',
-                                padding: '1px 6px',
-                                borderRadius: 5,
+                                background: '#ffffff',
+                                padding: '2px 7px',
+                                borderRadius: 6,
                                 border: task.isBookAssignment ? '1px solid #a7f3d0' : '1px solid #e9d5ff'
                               }}>
                                 {task.isPhysical ? '📋 Fiziki Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
                               </span>
 
                               {task.isDone ? (
-                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '1px 6px', borderRadius: 99, border: '1px solid #86efac' }}>
+                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '2px 7px', borderRadius: 99, border: '1px solid #86efac' }}>
                                   Tamamlandı
                                 </span>
                               ) : isOverdue ? (
-                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#fff1f2', color: '#e11d48', padding: '1px 6px', borderRadius: 99, border: '1px solid #fecdd3' }}>
+                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#fff1f2', color: '#e11d48', padding: '2px 7px', borderRadius: 99, border: '1px solid #fecdd3' }}>
                                   Gecikti
                                 </span>
                               ) : isDueToday ? (
-                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', padding: '1px 6px', borderRadius: 99, border: '1px solid #fde68a' }}>
+                                <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', padding: '2px 7px', borderRadius: 99, border: '1px solid #fde68a' }}>
                                   Bugün Son
                                 </span>
                               ) : null}
                             </div>
 
                             {/* Ödev Başlığı */}
-                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3, wordBreak: 'break-word' }}>
                               {task.title || task.name || 'Ödev Görevi'}
                             </div>
 
                             {/* Detay Bilgisi */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: '#475569', fontWeight: 600, marginTop: 2 }}>
                               {task.bookTitle && <span>📖 {task.bookTitle}</span>}
                               <span>• ❓ {task.questionCount || 20} Soru</span>
-                              {dueLabel && <span>• ⏰ {dueLabel}</span>}
+                              {dueLabel && <span>• ⏰ Son: {dueLabel}</span>}
                               {task.isDone && task.submittedAt && (
-                                <span style={{ color: '#16a34a', fontWeight: 700 }}>• 🗓️ {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
+                                <span style={{ color: '#16a34a', fontWeight: 700 }}>• 🗓️ Çözülme: {new Date(task.submittedAt).toLocaleDateString('tr-TR')}</span>
                               )}
                             </div>
                           </div>
@@ -999,14 +1041,15 @@ export default function StudentHomeworksPage() {
                             <div style={{
                               background: task.scorePct >= 80 ? '#f0fdf4' : task.scorePct >= 50 ? '#eff6ff' : '#fff1f2',
                               border: task.scorePct >= 80 ? '1px solid #86efac' : task.scorePct >= 50 ? '1px solid #bfdbfe' : '1px solid #fecdd3',
-                              padding: '0.25rem 0.6rem',
+                              padding: '0.25rem 0.65rem',
                               borderRadius: 8,
-                              textAlign: 'center'
+                              textAlign: 'center',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                             }}>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: task.scorePct >= 80 ? '#16a34a' : task.scorePct >= 50 ? '#2563eb' : '#e11d48', lineHeight: 1.1 }}>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: task.scorePct >= 80 ? '#16a34a' : task.scorePct >= 50 ? '#2563eb' : '#e11d48', lineHeight: 1.1 }}>
                                 %{task.scorePct}
                               </div>
-                              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#64748b' }}>
+                              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b' }}>
                                 {task.correctAnswers}/{task.totalScoreQuestions} D
                               </div>
                             </div>
@@ -1017,22 +1060,23 @@ export default function StudentHomeworksPage() {
                               type="button"
                               onClick={() => handleReviewTask(task)}
                               style={{
-                                background: '#f8fafc',
+                                background: '#ffffff',
                                 color: '#2563eb',
                                 border: '1.5px solid #bfdbfe',
                                 borderRadius: 9,
-                                padding: '0.45rem 0.85rem',
-                                fontSize: '0.76rem',
+                                padding: '0.45rem 0.9rem',
+                                fontSize: '0.78rem',
                                 fontWeight: 900,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
                                 transition: 'all 0.15s',
                                 whiteSpace: 'nowrap'
                               }}
                             >
-                              <Eye size={13} /> İncele
+                              <Eye size={14} /> İncele
                             </button>
                           ) : (
                             <button
@@ -1043,8 +1087,8 @@ export default function StudentHomeworksPage() {
                                 color: '#ffffff',
                                 border: 'none',
                                 borderRadius: 9,
-                                padding: '0.5rem 1rem',
-                                fontSize: '0.78rem',
+                                padding: '0.5rem 1.05rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 900,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
