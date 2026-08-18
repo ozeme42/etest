@@ -241,20 +241,27 @@ export default function StudentCoachingModal({ student, teacherId, onClose }) {
                   <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0 }}>Henüz sınav çözülmemiş.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {studentSubs.slice(0, 5).map(s => (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px solid #f1f5f9' }}>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{s.title || 'Sınav'}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>{s.subject || 'Genel'} · {new Date(s.createdAt || Date.now()).toLocaleDateString('tr-TR')}</div>
+                    {studentSubs.slice(0, 5).map(s => {
+                      const scorePct = s.scorePercentage !== undefined && s.scorePercentage !== null
+                        ? Math.min(100, Math.max(0, Math.round(s.scorePercentage)))
+                        : (s.totalQuestions && s.correctCount !== undefined
+                          ? Math.min(100, Math.max(0, Math.round((s.correctCount / s.totalQuestions) * 100)))
+                          : Math.min(100, Math.max(0, Math.round(s.score || 0))));
+                      return (
+                        <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px solid #f1f5f9' }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{s.title || 'Sınav'}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>{s.subject || 'Genel'} · {new Date(s.createdAt || Date.now()).toLocaleDateString('tr-TR')}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontWeight: 900, fontSize: '0.9rem', color: scorePct >= 70 ? '#16a34a' : '#dc2626' }}>%{scorePct}</span>
+                            <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.5rem', borderRadius: 99, fontWeight: 700 }}>
+                              {s.correctCount || 0}D / {s.wrongCount || 0}Y
+                            </span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ fontWeight: 900, fontSize: '0.9rem', color: (s.score || 0) >= 70 ? '#16a34a' : '#dc2626' }}>%{Math.round(s.score || 0)}</span>
-                          <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.5rem', borderRadius: 99, fontWeight: 700 }}>
-                            {s.correctCount || 0}D / {s.wrongCount || 0}Y
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

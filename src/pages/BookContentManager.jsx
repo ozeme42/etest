@@ -1654,7 +1654,14 @@ export default function BookContentManager() {
                                         <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.15rem' }}>
                                           Çözülen: <strong style={{ color: '#818cf8' }}>{item.solvedCount}</strong> / {item.totalTestsInHw} Test
                                           {item.solvedSubmissions.length > 0 && (
-                                            <> • Ortalama Başarı: <strong style={{ color: '#34d399' }}>%{Math.round(item.solvedSubmissions.reduce((a, b) => a + (b.score || 0), 0) / item.solvedSubmissions.length)}</strong></>
+                                            <> • Ortalama Başarı: <strong style={{ color: '#34d399' }}>%{Math.round(item.solvedSubmissions.reduce((a, b) => {
+                                              const bPct = b.scorePercentage !== undefined && b.scorePercentage !== null
+                                                ? +b.scorePercentage
+                                                : (b.totalQuestions && b.correctCount !== undefined
+                                                  ? (b.correctCount / b.totalQuestions) * 100
+                                                  : (b.score || 0));
+                                              return a + bPct;
+                                            }, 0) / item.solvedSubmissions.length)}</strong></>
                                           )}
                                         </div>
                                       </div>
@@ -1830,8 +1837,8 @@ export default function BookContentManager() {
                                                 {t.isSolved ? (
                                                   <>
                                                     <div style={{ textAlign: 'right' }}>
-                                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: '0.4rem', background: (t.testSub?.score >= 70) ? 'rgba(16,185,129,0.2)' : (t.testSub?.score >= 50) ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)', color: (t.testSub?.score >= 70) ? '#34d399' : (t.testSub?.score >= 50) ? '#60a5fa' : '#f87171', border: `1px solid ${(t.testSub?.score >= 70) ? 'rgba(52,211,153,0.35)' : (t.testSub?.score >= 50) ? 'rgba(96,165,250,0.35)' : 'rgba(248,113,113,0.35)'}` }}>
-                                                        %{t.testSub?.score ?? 0} Başarı
+                                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.15rem 0.55rem', borderRadius: '0.4rem', background: ((t.testSub?.scorePercentage ?? t.testSub?.score ?? 0) >= 70) ? 'rgba(16,185,129,0.2)' : ((t.testSub?.scorePercentage ?? t.testSub?.score ?? 0) >= 50) ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)', color: ((t.testSub?.scorePercentage ?? t.testSub?.score ?? 0) >= 70) ? '#34d399' : ((t.testSub?.scorePercentage ?? t.testSub?.score ?? 0) >= 50) ? '#60a5fa' : '#f87171', border: `1px solid ${((t.testSub?.scorePercentage ?? t.testSub?.score ?? 0) >= 70) ? 'rgba(52,211,153,0.35)' : ((t.testSub?.scorePercentage ?? t.testSub?.score ?? 0) >= 50) ? 'rgba(96,165,250,0.35)' : 'rgba(248,113,113,0.35)'}` }}>
+                                                        %{Math.round(t.testSub?.scorePercentage !== undefined && t.testSub?.scorePercentage !== null ? t.testSub.scorePercentage : (t.testSub?.totalQuestions && t.testSub?.correctCount !== undefined ? (t.testSub.correctCount / t.testSub.totalQuestions) * 100 : (t.testSub?.score ?? 0)))} Başarı
                                                       </span>
                                                       <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.15rem' }}>
                                                         <strong style={{ color: '#34d399' }}>{t.testSub?.correctCount ?? 0}D</strong> • <strong style={{ color: '#f87171' }}>{t.testSub?.wrongCount ?? 0}Y</strong> • <strong style={{ color: 'rgba(255,255,255,0.5)' }}>{t.testSub?.emptyCount ?? 0}B</strong>
@@ -2994,7 +3001,7 @@ export default function BookContentManager() {
                                               {isSolved ? (
                                                 modalTargetStudents.length === 1 ? (
                                                   <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.22)', color: '#34d399', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    ✅ Çözüldü (%{primarySub?.score ?? 0} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
+                                                    ✅ Çözüldü (%{Math.round(primarySub?.scorePercentage !== undefined && primarySub?.scorePercentage !== null ? primarySub.scorePercentage : (primarySub?.totalQuestions && primarySub?.correctCount !== undefined ? (primarySub.correctCount / primarySub.totalQuestions) * 100 : (primarySub?.score ?? 0)))} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
                                                   </span>
                                                 ) : (
                                                   <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.22)', color: '#34d399', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.4)' }}>
@@ -3119,7 +3126,7 @@ export default function BookContentManager() {
                                                     {isSolved ? (
                                                       modalTargetStudents.length === 1 ? (
                                                         <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.22)', color: '#34d399', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                          ✅ Çözüldü (%{primarySub?.score ?? 0} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
+                                                          ✅ Çözüldü (%{Math.round(primarySub?.scorePercentage !== undefined && primarySub?.scorePercentage !== null ? primarySub.scorePercentage : (primarySub?.totalQuestions && primarySub?.correctCount !== undefined ? (primarySub.correctCount / primarySub.totalQuestions) * 100 : (primarySub?.score ?? 0)))} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
                                                         </span>
                                                       ) : (
                                                         <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.22)', color: '#34d399', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.4)' }}>
@@ -3199,7 +3206,7 @@ export default function BookContentManager() {
                                             {isSolved ? (
                                               modalTargetStudents.length === 1 ? (
                                                 <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.22)', color: '#34d399', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                  ✅ Çözüldü (%{primarySub?.score ?? 0} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
+                                                  ✅ Çözüldü (%{Math.round(primarySub?.scorePercentage !== undefined && primarySub?.scorePercentage !== null ? primarySub.scorePercentage : (primarySub?.totalQuestions && primarySub?.correctCount !== undefined ? (primarySub.correctCount / primarySub.totalQuestions) * 100 : (primarySub?.score ?? 0)))} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
                                                 </span>
                                               ) : (
                                                 <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.22)', color: '#34d399', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(52,211,153,0.4)' }}>

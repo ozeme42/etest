@@ -393,12 +393,15 @@ export default function PhysicalExamRunner() {
 
     // Also save to EvaluationContext for central results tracking
     try {
+      const qTotal = homework.totalQuestions || (calculated.totalCorrect + calculated.totalWrong + calculated.totalBlank) || 1;
+      const scorePct = Math.min(100, Math.max(0, Math.round((calculated.totalCorrect / qTotal) * 100)));
       addSubmission({
         testId: hwId,
         hwId: hwId,
         testTitle: homework.title,
         studentId: studentId,
         score: calculated.totalNet,
+        scorePercentage: scorePct,
         type: 'physicalExam',
         isHomework: true,
         status: 'completed',

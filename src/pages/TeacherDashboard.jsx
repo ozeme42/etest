@@ -20,6 +20,33 @@ import { timeAgo } from '../utils/dateHelpers';
 import './TeacherDashboard.css';
 
 /* ─────────────────────────────────────────
+   Calculation Helpers
+───────────────────────────────────────── */
+export function getSubmissionScorePct(sub) {
+  if (!sub) return null;
+  if (sub.scorePercentage !== undefined && sub.scorePercentage !== null) {
+    return Math.min(100, Math.max(0, Math.round(+sub.scorePercentage)));
+  }
+  const correct = sub.correctCount ?? sub.correct;
+  const wrong = sub.wrongCount ?? sub.wrong ?? 0;
+  const blank = sub.blankCount ?? sub.blank ?? 0;
+  const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
+  const total = sub.totalQuestions || ((correct !== undefined ? correct : 0) + wrong + blank) || ansCount;
+  
+  if (total > 0 && correct !== undefined && correct !== null) {
+    return Math.min(100, Math.max(0, Math.round((correct / total) * 100)));
+  }
+  if (sub.score !== undefined && sub.score !== null) {
+    const s = +sub.score;
+    if (total > 0 && s <= total) {
+      return Math.min(100, Math.max(0, Math.round((s / total) * 100)));
+    }
+    return Math.min(100, Math.max(0, Math.round(s)));
+  }
+  return null;
+}
+
+/* ─────────────────────────────────────────
    Components & Sub-views
 ───────────────────────────────────────── */
 function Avatar({ name, index, size = 36 }) {
@@ -187,8 +214,8 @@ export default function TeacherDashboard() {
   /* student leaderboard */
   const leaderboard = useMemo(() => {
     return students.map((s, i) => {
-      const subs = teacherSubmissions.filter(sub => sub.studentId === s.id && sub.score !== undefined);
-      const avg = subs.length ? Math.round(subs.reduce((acc, sub) => acc + sub.score, 0) / subs.length) : 0;
+      const subs = teacherSubmissions.filter(sub => sub.studentId === s.id && getSubmissionScorePct(sub) !== null);
+      const avg = subs.length ? Math.round(subs.reduce((acc, sub) => acc + (getSubmissionScorePct(sub) || 0), 0) / subs.length) : 0;
       return { ...s, avg, count: subs.length, idx: i };
     }).sort((a, b) => b.avg - a.avg);
   }, [students, teacherSubmissions]);
@@ -384,15 +411,19 @@ export default function TeacherDashboard() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {recentSubs.map((sub, i) => {
                     const student = users.find(u => u.id === sub.studentId);
-                    const score   = sub.score !== undefined ? sub.score : null;
-                    const good    = score !== null && score >= 70;
-                    const si      = students.findIndex(s => s.id === sub.studentId);
+                    const scorePct = getSubmissionScorePct(sub);
+                    const good = scorePct !== null && scorePct >= 70;
+                    const si = students.findIndex(s => s.id === sub.studentId);
+                    const correct = sub.correctCount ?? sub.correct;
+                    const wrong = sub.wrongCount ?? sub.wrong;
+                    const hasDetails = correct !== undefined && wrong !== undefined;
+                    const net = sub.score !== undefined && sub.scorePercentage !== undefined ? sub.score : sub.net;
                     return (
                       <div key={sub.id || i} style={{
                         display: 'flex', alignItems: 'center', gap: '0.75rem',
                         padding: '0.65rem 0.9rem', borderRadius: '0.85rem',
-                        background: good ? '#f0fdf4' : score !== null ? '#fef2f2' : '#f8fafc',
-                        border: `1px solid ${good ? '#bbf7d0' : score !== null ? '#fecaca' : '#e2e8f0'}`,
+                        background: good ? '#f0fdf4' : scorePct !== null ? '#fef2f2' : '#f8fafc',
+                        border: `1px solid ${good ? '#bbf7d0' : scorePct !== null ? '#fecaca' : '#e2e8f0'}`,
                       }}>
                         <Avatar name={student?.name} index={si >= 0 ? si : i} size={34} />
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -401,16 +432,17 @@ export default function TeacherDashboard() {
                           </p>
                           <p style={{ margin: '0.1rem 0 0', fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {sub.testTitle || 'Sınav'} · {timeAgo(sub.submittedAt)}
+                            {hasDetails && <span style={{ marginLeft: 6, color: '#94a3b8' }}>({correct}D {wrong}Y{net !== undefined ? ` · ${net} Net` : ''})</span>}
                           </p>
                         </div>
-                        {score !== null ? (
+                        {scorePct !== null ? (
                           <span style={{
                             fontWeight: 900, fontSize: '0.8rem',
                             padding: '0.2rem 0.6rem', borderRadius: '0.5rem',
                             background: good ? '#dcfce7' : '#fee2e2',
                             color: good ? '#15803d' : '#b91c1c', flexShrink: 0,
                             border: `1px solid ${good ? '#86efac' : '#fca5a5'}`
-                          }}>%{score}</span>
+                          }}>%{scorePct}</span>
                         ) : (
                           <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, flexShrink: 0 }}>—</span>
                         )}

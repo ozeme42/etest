@@ -229,6 +229,25 @@ export function EvaluationProvider({ children }) {
       ...subData
     };
 
+    // Calculate scorePercentage if not explicitly provided
+    if (newSub.scorePercentage === undefined || newSub.scorePercentage === null) {
+      const correct = newSub.correctCount ?? newSub.correct;
+      const wrong = newSub.wrongCount ?? newSub.wrong ?? 0;
+      const blank = newSub.blankCount ?? newSub.blank ?? 0;
+      const ansCount = Array.isArray(newSub.answers) ? newSub.answers.length : 0;
+      const total = newSub.totalQuestions || ((correct !== undefined ? correct : 0) + wrong + blank) || ansCount;
+      if (total > 0 && correct !== undefined && correct !== null) {
+        newSub.scorePercentage = Math.min(100, Math.max(0, Math.round((correct / total) * 100)));
+      } else if (newSub.score !== undefined && newSub.score !== null) {
+        const s = +newSub.score;
+        if (total > 0 && s <= total) {
+          newSub.scorePercentage = Math.min(100, Math.max(0, Math.round((s / total) * 100)));
+        } else {
+          newSub.scorePercentage = Math.min(100, Math.max(0, Math.round(s)));
+        }
+      }
+    }
+
     // Yüksek boyutlu verileri silerek localStorage'ı koru
     delete newSub.contentPayload;
     delete newSub.pdfPayload;
