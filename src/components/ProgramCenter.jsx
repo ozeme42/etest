@@ -2315,9 +2315,29 @@ export default function ProgramCenter({
   const [weekOffset, setWeekOffset] = useState(0);
   const [weeklyPrintOrientation, setWeeklyPrintOrientation] = useState('landscape');
   const [selectedDayFilter, setSelectedDayFilter] = useState('all'); // 'all' | 'Pzt' | 'Sal' | 'Çrş' | 'Prş' | 'Cum' | 'Cts' | 'Paz'
-  const [weeklySubView, setWeeklySubView] = useState('cards'); // 'cards' | 'agenda'
+  const [weeklySubView, setWeeklySubView] = useState('agenda'); // default 'agenda' (Liste / Ajanda görünümü)
   const todayKey = getTodayKey();
   const navigate = useNavigate();
+
+  const handlePrevDay = useCallback(() => {
+    const currentIndex = DAYS.findIndex(d => d.key === selectedDayFilter);
+    if (currentIndex > 0) {
+      setSelectedDayFilter(DAYS[currentIndex - 1].key);
+    } else if (currentIndex === 0) {
+      setWeekOffset(w => w - 1);
+      setSelectedDayFilter('Paz');
+    }
+  }, [selectedDayFilter]);
+
+  const handleNextDay = useCallback(() => {
+    const currentIndex = DAYS.findIndex(d => d.key === selectedDayFilter);
+    if (currentIndex >= 0 && currentIndex < DAYS.length - 1) {
+      setSelectedDayFilter(DAYS[currentIndex + 1].key);
+    } else if (currentIndex === DAYS.length - 1) {
+      setWeekOffset(w => w + 1);
+      setSelectedDayFilter('Pzt');
+    }
+  }, [selectedDayFilter]);
 
   const handleWeeklyPrint = (orientation) => {
     setWeeklyPrintOrientation(orientation);
@@ -2959,44 +2979,157 @@ export default function ProgramCenter({
           {/* Day Selector Strip & View Toggle */}
           <div className="no-print" style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
             gap: 10,
-            marginBottom: '1.1rem',
-            flexWrap: 'wrap'
+            marginBottom: '1.2rem'
           }}>
-            {/* Day Selector Pills */}
+            {/* Top Toolbar: Left (Today quick button + Reset All) - Right (View Mode Switcher) */}
             <div style={{
               display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {weekOffset === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDayFilter(todayKey)}
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: 10,
+                      border: selectedDayFilter === todayKey ? '2px solid #f59e0b' : (isDark ? '1px solid rgba(245,158,11,0.4)' : '1.5px solid #fde68a'),
+                      background: selectedDayFilter === todayKey ? 'linear-gradient(135deg, #f59e0b, #d97706)' : (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb'),
+                      color: selectedDayFilter === todayKey ? '#ffffff' : (isDark ? '#fcd34d' : '#b45309'),
+                      fontWeight: 900,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: selectedDayFilter === todayKey ? '0 3px 10px rgba(245,158,11,0.35)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <span>⚡ Bugün ({processedWeeklyProgram.find(d => d.day === todayKey)?.items?.length || 0})</span>
+                  </button>
+                )}
+
+                {selectedDayFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDayFilter('all')}
+                    style={{
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: 10,
+                      border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+                      background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                      color: isDark ? '#ffffff' : '#334155',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>🌟 Tüm Haftayı Gör</span>
+                  </button>
+                )}
+              </div>
+
+              {/* View Mode Toggle: Agenda List vs Cards */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                padding: 3,
+                borderRadius: 12,
+                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                marginLeft: 'auto'
+              }}>
+                <button
+                  onClick={() => setWeeklySubView('agenda')}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: 9,
+                    border: 'none',
+                    background: weeklySubView === 'agenda' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
+                    color: weeklySubView === 'agenda' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                    fontWeight: weeklySubView === 'agenda' ? 900 : 700,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    boxShadow: weeklySubView === 'agenda' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  📋 Liste (Ajanda)
+                </button>
+                <button
+                  onClick={() => setWeeklySubView('cards')}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: 9,
+                    border: 'none',
+                    background: weeklySubView === 'cards' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
+                    color: weeklySubView === 'cards' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
+                    fontWeight: weeklySubView === 'cards' ? 900 : 700,
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    boxShadow: weeklySubView === 'cards' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  🗂️ Kartlar
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile & Desktop Touch-Friendly Day Selector Strip */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
               gap: 6,
               overflowX: 'auto',
               paddingBottom: 4,
-              alignItems: 'center',
-              flex: 1,
-              minWidth: 260
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch'
             }}>
+              {/* All Days Card */}
               <button
                 onClick={() => setSelectedDayFilter('all')}
                 style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 5,
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: 12,
-                  border: selectedDayFilter === 'all' ? '1.5px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                  justifyContent: 'center',
+                  padding: '0.55rem 0.35rem',
+                  borderRadius: 14,
+                  border: selectedDayFilter === 'all' ? '2px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
                   background: selectedDayFilter === 'all' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
-                  color: selectedDayFilter === 'all' ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
+                  color: selectedDayFilter === 'all' ? '#ffffff' : (isDark ? '#cbd5e1' : '#334155'),
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  boxShadow: selectedDayFilter === 'all' ? '0 3px 10px rgba(99,102,241,0.3)' : 'none',
+                  minWidth: 48,
+                  boxShadow: selectedDayFilter === 'all' ? '0 4px 12px rgba(99,102,241,0.35)' : '0 2px 5px rgba(0,0,0,0.02)',
                   transition: 'all 0.15s'
                 }}
               >
-                <span>🌟 Tüm Hafta ({totalItems})</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.9 }}>TÜMÜ</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 900, marginTop: 1 }}>🌟</span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  marginTop: 2,
+                  background: selectedDayFilter === 'all' ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'),
+                  padding: '1px 5px',
+                  borderRadius: 99
+                }}>
+                  {totalItems}
+                </span>
               </button>
 
+              {/* 7 Days Cards */}
               {(processedWeeklyProgram || []).map((dayObj, idx) => {
                 const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[idx];
                 const isSelected = selectedDayFilter === dayObj.day;
@@ -3004,6 +3137,7 @@ export default function ProgramCenter({
                 const dayItemCount = dayObj.items?.length || 0;
                 const dayDoneCount = dayObj.items?.filter(i => i.done).length || 0;
                 const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
+                const dateNumber = dayObj.dateLabel ? dayObj.dateLabel.split(' ')[0] : (idx + 1);
 
                 return (
                   <button
@@ -3011,88 +3145,133 @@ export default function ProgramCenter({
                     onClick={() => setSelectedDayFilter(isSelected ? 'all' : dayObj.day)}
                     style={{
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 6,
-                      padding: '0.45rem 0.85rem',
-                      borderRadius: 12,
-                      border: isSelected ? `2px solid ${theme.badgeBg || '#6366f1'}` : (isDayToday ? '1.5px solid #f59e0b' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0')),
+                      justifyContent: 'center',
+                      padding: '0.55rem 0.3rem',
+                      borderRadius: 14,
+                      border: isSelected
+                        ? `2px solid ${theme.badgeBg || '#6366f1'}`
+                        : (isDayToday ? '2px solid #f59e0b' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0')),
                       background: isSelected
                         ? (theme.gradient || 'linear-gradient(135deg, #6366f1, #4f46e5)')
-                        : (isDayToday ? (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff')),
+                        : (isDayToday ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb') : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff')),
                       color: isSelected ? '#ffffff' : (isDayToday ? (isDark ? '#fcd34d' : '#b45309') : (isDark ? '#cbd5e1' : '#334155')),
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
                       cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      boxShadow: isSelected ? '0 3px 10px rgba(0,0,0,0.15)' : 'none',
+                      minWidth: 46,
+                      position: 'relative',
+                      boxShadow: isSelected
+                        ? '0 4px 14px rgba(0,0,0,0.18)'
+                        : (isDayToday ? '0 2px 8px rgba(245,158,11,0.2)' : '0 2px 5px rgba(0,0,0,0.02)'),
                       transition: 'all 0.15s'
                     }}
                   >
-                    <span>{isDayToday ? '🔥 ' : ''}{dayMeta.key}</span>
-                    {dayItemCount > 0 ? (
+                    {isDayToday && (
                       <span style={{
-                        background: isSelected ? 'rgba(255,255,255,0.25)' : (dayDoneCount === dayItemCount ? (isDark ? '#065f46' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.12)' : '#f1f5f9')),
-                        color: isSelected ? '#ffffff' : (dayDoneCount === dayItemCount ? (isDark ? '#34d399' : '#15803d') : (isDark ? '#cbd5e1' : '#64748b')),
-                        fontSize: '0.66rem',
+                        position: 'absolute',
+                        top: -5,
+                        right: -3,
+                        background: '#f59e0b',
+                        color: '#ffffff',
+                        fontSize: '0.5rem',
                         fontWeight: 900,
-                        padding: '1px 6px',
-                        borderRadius: 99
+                        padding: '0px 4px',
+                        borderRadius: 99,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                       }}>
-                        {dayDoneCount}/{dayItemCount}
+                        BUGÜN
                       </span>
-                    ) : (
-                      <span style={{ fontSize: '0.66rem', opacity: 0.6 }}>0</span>
                     )}
+
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.9 }}>
+                      {dayMeta.key}
+                    </span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, marginTop: 1, lineHeight: 1.1 }}>
+                      {dateNumber}
+                    </span>
+                    <span style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 900,
+                      marginTop: 3,
+                      background: isSelected
+                        ? 'rgba(255,255,255,0.25)'
+                        : (dayItemCount > 0 && dayDoneCount === dayItemCount ? (isDark ? '#065f46' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9')),
+                      color: isSelected
+                        ? '#ffffff'
+                        : (dayItemCount > 0 && dayDoneCount === dayItemCount ? (isDark ? '#34d399' : '#15803d') : (isDark ? '#94a3b8' : '#64748b')),
+                      padding: '1px 5px',
+                      borderRadius: 99
+                    }}>
+                      {dayItemCount > 0 ? `${dayDoneCount}/${dayItemCount}` : '0'}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* View Mode Toggle: Cards vs Agenda List */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-              padding: 3,
-              borderRadius: 12,
-              border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-              flexShrink: 0
-            }}>
-              <button
-                onClick={() => setWeeklySubView('cards')}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: 9,
-                  border: 'none',
-                  background: weeklySubView === 'cards' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
-                  color: weeklySubView === 'cards' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
-                  fontWeight: weeklySubView === 'cards' ? 900 : 700,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  boxShadow: weeklySubView === 'cards' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                🗂️ Kartlar
-              </button>
-              <button
-                onClick={() => setWeeklySubView('agenda')}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: 9,
-                  border: 'none',
-                  background: weeklySubView === 'agenda' ? (isDark ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#ffffff') : 'transparent',
-                  color: weeklySubView === 'agenda' ? (isDark ? '#ffffff' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.6)' : '#64748b'),
-                  fontWeight: weeklySubView === 'agenda' ? 900 : 700,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  boxShadow: weeklySubView === 'agenda' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                📋 Liste (Ajanda)
-              </button>
-            </div>
+            {/* Single Day Active Navigation Header (Appears when 1 day is selected) */}
+            {selectedDayFilter !== 'all' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.6rem 0.9rem',
+                background: isDark ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))' : '#f8fafc',
+                border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0',
+                borderRadius: '0.9rem',
+                marginTop: 2
+              }}>
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  style={{
+                    padding: '0.35rem 0.7rem',
+                    borderRadius: 8,
+                    border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#334155',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                >
+                  <ChevronLeft size={14} /> Önceki Gün
+                </button>
+
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                    {processedWeeklyProgram.find(d => d.day === selectedDayFilter)?.dateLabel ? `${processedWeeklyProgram.find(d => d.day === selectedDayFilter)?.dateLabel} - ` : ''}
+                    {DAYS.find(d => d.key === selectedDayFilter)?.long}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b', marginTop: 1 }}>
+                    {processedWeeklyProgram.find(d => d.day === selectedDayFilter)?.items?.length || 0} Görev
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  style={{
+                    padding: '0.35rem 0.7rem',
+                    borderRadius: 8,
+                    border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                    color: isDark ? '#ffffff' : '#334155',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                >
+                  Sonraki Gün <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
 
           <style>{`
