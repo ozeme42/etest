@@ -38,6 +38,33 @@ const REASON_PRESETS = [
   '⏱️ Zaman Yetmedi'
 ];
 
+const isSubjectName = (str) => {
+  if (!str) return false;
+  const lower = String(str).toLowerCase().trim();
+  return (
+    lower === 'matematik' || lower === 'fen bilimleri' || lower === 'fen' ||
+    lower === 'türkçe' || lower === 'turkce' || lower === 'sosyal bilgiler' ||
+    lower === 'sosyal' || lower === 'ingilizce' || lower === 'din kültürü' ||
+    lower === 'din kulturu' || lower === 'din' || lower === 'genel testler' ||
+    lower === 'fizik' || lower === 'kimya' || lower === 'biyoloji' ||
+    lower === 'tarih' || lower === 'coğrafya' || lower === 'cografya' ||
+    lower === 'edebiyat' || lower === 'geometri'
+  );
+};
+
+const checkSubjectName = (str) => {
+  if (!str) return '';
+  const lower = String(str).toLowerCase();
+  if (lower.includes('mat') || lower.includes('geometri')) return 'Matematik';
+  if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyo')) return 'Fen Bilimleri';
+  if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat')) return 'Türkçe';
+  if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('inkilap') || lower.includes('tarih') || lower.includes('coğrafya')) return 'Sosyal Bilgiler';
+  if (lower.includes('ing') || lower.includes('english')) return 'İngilizce';
+  if (lower.includes('din')) return 'Din Kültürü';
+  if (lower.includes('deneme') || lower.includes('lgs') || lower.includes('yks') || lower.includes('tyt') || lower.includes('ayt')) return 'Genel Testler';
+  return '';
+};
+
 export default function StudentWrongAnswersPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -155,11 +182,13 @@ export default function StudentWrongAnswersPage() {
     if (!curData) return map;
     (curData.tests || []).forEach(t => {
       if (t.id) {
+        const u = t.unitName || t.unit || '';
+        const top = t.topicName || t.topic || '';
         const info = { 
           title: t.title || t.name, 
           subject: t.subjectName || t.subject, 
-          unit: t.unitName || t.unit || '', 
-          topic: t.topicName || t.topic || '' 
+          unit: isSubjectName(u) ? '' : u, 
+          topic: top 
         };
         map.set(String(t.id), info);
         const uuid = toUUID(t.id);
@@ -172,11 +201,13 @@ export default function StudentWrongAnswersPage() {
           (u.topics || []).forEach(top => {
             (top.tests || []).forEach(t => {
               if (t.id) {
+                const uName = u.name || u.title || '';
+                const topName = top.name || top.title || '';
                 const info = { 
                   title: t.title || t.name, 
                   subject: s.name, 
-                  unit: u.name || u.title || '', 
-                  topic: top.name || top.title || '' 
+                  unit: isSubjectName(uName) ? '' : uName, 
+                  topic: topName 
                 };
                 map.set(String(t.id), info);
                 const uuid = toUUID(t.id);
@@ -224,29 +255,46 @@ export default function StudentWrongAnswersPage() {
         }
 
         // Subject name (Branş) vs Unit Name (Ünite)
-        let subName = '';
-        if (b.subject || b.subjectName) {
-          subName = b.subject || b.subjectName;
-        } else if (parentSubject?.name && (parentSubject.name.toLowerCase().includes('mat') || parentSubject.name.toLowerCase().includes('fen') || parentSubject.name.toLowerCase().includes('türk') || parentSubject.name.toLowerCase().includes('sosyal') || parentSubject.name.toLowerCase().includes('ing') || parentSubject.name.toLowerCase().includes('din'))) {
+        let subName = b.subject || b.subjectName || '';
+        if (!subName && parentSubject?.name && isSubjectName(parentSubject.name)) {
           subName = parentSubject.name;
+        }
+        if (!subName) {
+          subName = checkSubjectName(b.title || '') || 'Matematik';
         }
 
         let unitName = bt.unit || bt.unitName || '';
-        if (!unitName && parentSubject?.name) {
-          unitName = parentSubject.name;
+        let topicName = bt.topic || bt.topicName || '';
+
+        // If parentSubject name is a subject (e.g. "Fen Bilimleri"), DO NOT treat it as a unit!
+        // Instead, the unit is parentTopic.name (e.g. "2. Ünite" or "2. Ünite: DNA ve Genetik Kod")
+        if (parentSubject?.name) {
+          if (isSubjectName(parentSubject.name)) {
+            if (!unitName && parentTopic?.name) {
+              unitName = parentTopic.name;
+            }
+          } else {
+            if (!unitName) {
+              unitName = parentSubject.name;
+            }
+            if (!topicName && parentTopic?.name) {
+              topicName = parentTopic.name;
+            }
+          }
+        } else if (parentTopic?.name) {
+          if (!unitName) unitName = parentTopic.name;
         }
+
         if (!unitName) {
           unitName = b.unit || b.unitName || '';
         }
-
-        let topicName = bt.topic || bt.topicName || parentTopic?.name || b.topic || '';
 
         const info = {
           testName: bt.name || 'Test',
           bookTitle: b.title || 'Kitap',
           subject: subName,
-          unit: unitName,
-          topic: topicName,
+          unit: isSubjectName(unitName) ? '' : unitName,
+          topic: (topicName && topicName !== unitName && !isSubjectName(topicName)) ? topicName : '',
           bookId: b.id,
           testId: bt.id
         };
@@ -435,19 +483,6 @@ export default function StudentWrongAnswersPage() {
         subject = sub.subject;
       }
 
-      const checkSubjectName = (str) => {
-        if (!str) return '';
-        const lower = String(str).toLowerCase();
-        if (lower.includes('mat') || lower.includes('geometri')) return 'Matematik';
-        if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyo')) return 'Fen Bilimleri';
-        if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat')) return 'Türkçe';
-        if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('inkilap') || lower.includes('tarih') || lower.includes('coğrafya')) return 'Sosyal Bilgiler';
-        if (lower.includes('ing') || lower.includes('english')) return 'İngilizce';
-        if (lower.includes('din')) return 'Din Kültürü';
-        if (lower.includes('deneme') || lower.includes('lgs') || lower.includes('yks') || lower.includes('tyt') || lower.includes('ayt')) return 'Genel Testler';
-        return '';
-      };
-
       const directMatched = checkSubjectName(subject);
       if (directMatched) {
         subject = directMatched;
@@ -460,17 +495,37 @@ export default function StudentWrongAnswersPage() {
       let unit = sub.unit || sub.unitName || matchedBookTest?.unit || matchedHw?.unit || matchedHw?.unitName || matchedCurTest?.unit || '';
       let topic = sub.topic || sub.topicName || matchedBookTest?.topic || matchedHw?.topic || matchedHw?.topicName || matchedCurTest?.topic || '';
 
-      // If unit is still empty, look into sub.answers question bank metadata
+      // If unit is just the subject name (e.g. "Fen Bilimleri", "Matematik"), it is NOT a unit!
+      if (unit && (isSubjectName(unit) || unit.toLowerCase().trim() === subject.toLowerCase().trim())) {
+        if (topic) {
+          unit = topic;
+          topic = '';
+        } else {
+          unit = '';
+        }
+      }
+
+      // If topic has "ünite" in it (e.g. topic = "2. Ünite"), promote topic to unit!
+      if (topic && (topic.toLowerCase().includes('ünite') || topic.toLowerCase().includes('unite') || !unit)) {
+        if (!unit || topic.toLowerCase().includes('ünite') || topic.toLowerCase().includes('unite')) {
+          unit = topic;
+          topic = '';
+        }
+      }
+
+      // If unit is empty, look into sub.answers question bank metadata
       if (!unit && Array.isArray(sub.answers) && sub.answers.length > 0) {
         for (const ans of sub.answers) {
-          if (ans.unit || ans.unitName) {
-            unit = ans.unit || ans.unitName;
+          const uCandidate = ans.unit || ans.unitName;
+          if (uCandidate && !isSubjectName(uCandidate)) {
+            unit = uCandidate;
             break;
           }
           if (ans.questionId && bankQuestions && bankQuestions.length > 0) {
             const bq = bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)));
-            if (bq?.unit || bq?.unitName) {
-              unit = bq.unit || bq.unitName;
+            const bqCandidate = bq?.unit || bq?.unitName;
+            if (bqCandidate && !isSubjectName(bqCandidate)) {
+              unit = bqCandidate;
               break;
             }
           }
@@ -480,18 +535,25 @@ export default function StudentWrongAnswersPage() {
       // If topic is still empty, look into sub.answers question bank metadata
       if (!topic && Array.isArray(sub.answers) && sub.answers.length > 0) {
         for (const ans of sub.answers) {
-          if (ans.topic || ans.topicName) {
-            topic = ans.topic || ans.topicName;
+          const tCandidate = ans.topic || ans.topicName;
+          if (tCandidate && tCandidate !== unit && !isSubjectName(tCandidate)) {
+            topic = tCandidate;
             break;
           }
           if (ans.questionId && bankQuestions && bankQuestions.length > 0) {
             const bq = bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)));
-            if (bq?.topic || bq?.topicName) {
-              topic = bq.topic || bq.topicName;
+            const bqTopic = bq?.topic || bq?.topicName;
+            if (bqTopic && bqTopic !== unit && !isSubjectName(bqTopic)) {
+              topic = bqTopic;
               break;
             }
           }
         }
+      }
+
+      // If unit and topic are identical, or topic is subject name, clear topic
+      if (topic && (topic.toLowerCase().trim() === unit.toLowerCase().trim() || isSubjectName(topic))) {
+        topic = '';
       }
 
       const isReviewed = reviewedSubSet.has(sub.id);
@@ -1133,50 +1195,43 @@ export default function StudentWrongAnswersPage() {
                         </div>
 
                         {/* ÜNİTE VE KONU ETİKETLERİ */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                          {sub.unit ? (
-                            <span style={{
-                              background: 'rgba(99, 102, 241, 0.25)',
-                              color: '#c7d2fe',
-                              border: '1px solid rgba(165, 180, 252, 0.4)',
-                              padding: '0.2rem 0.55rem',
-                              borderRadius: '6px',
-                              fontSize: '0.74rem',
-                              fontWeight: 900,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}>
-                              📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
-                            </span>
-                          ) : (
-                            <span style={{
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color: '#cbd5e1',
-                              border: '1px solid rgba(255, 255, 255, 0.14)',
-                              padding: '0.2rem 0.55rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800
-                            }}>
-                              📖 Genel Konu Testi
-                            </span>
-                          )}
+                        {(sub.unit || sub.topic) && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                            {sub.unit && (
+                              <span style={{
+                                background: 'rgba(99, 102, 241, 0.25)',
+                                color: '#c7d2fe',
+                                border: '1px solid rgba(165, 180, 252, 0.4)',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 900,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
+                              </span>
+                            )}
 
-                          {sub.topic && (
-                            <span style={{
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color: '#f1f5f9',
-                              border: '1px solid rgba(255, 255, 255, 0.15)',
-                              padding: '0.2rem 0.55rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 800
-                            }}>
-                              📌 {sub.topic}
-                            </span>
-                          )}
-                        </div>
+                            {sub.topic && (
+                              <span style={{
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: '#f1f5f9',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                📌 {sub.topic}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Orta Kısım: Yanlış & Boş Soru Çipleri */}
@@ -1375,22 +1430,20 @@ export default function StudentWrongAnswersPage() {
                             <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.9rem', marginBottom: 2 }}>
                               {sub.testTitle || 'Test Sınavı'}
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: 4 }}>
-                              {sub.unit ? (
-                                <span style={{ background: 'rgba(99, 102, 241, 0.22)', color: '#c7d2fe', border: '1px solid rgba(165, 180, 252, 0.35)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 900 }}>
-                                  📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
-                                </span>
-                              ) : (
-                                <span style={{ background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.7rem', fontWeight: 800 }}>
-                                  📖 Genel Konu Testi
-                                </span>
-                              )}
-                              {sub.topic && (
-                                <span style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#e2e8f0', border: '1px solid rgba(255, 255, 255, 0.14)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                                  📌 {sub.topic}
-                                </span>
-                              )}
-                            </div>
+                            {(sub.unit || sub.topic) && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: 4 }}>
+                                {sub.unit && (
+                                  <span style={{ background: 'rgba(99, 102, 241, 0.22)', color: '#c7d2fe', border: '1px solid rgba(165, 180, 252, 0.35)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 900 }}>
+                                    📖 {sub.unit.toLowerCase().includes('ünite') ? sub.unit : `Ünite: ${sub.unit}`}
+                                  </span>
+                                )}
+                                {sub.topic && (
+                                  <span style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#e2e8f0', border: '1px solid rgba(255, 255, 255, 0.14)', padding: '0.15rem 0.5rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 800 }}>
+                                    📌 {sub.topic}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
                             <span style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: 6 }}>
