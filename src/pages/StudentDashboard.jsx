@@ -1431,8 +1431,8 @@ export default function StudentDashboard() {
         .sd-success:hover { transform: scale(1.1) rotate(3deg); }
         .sd-online { animation: onlinePulse 2.2s ease-in-out infinite; }
         .sd-avatar-ring { animation: ringRotate 8s linear infinite; }
-        .sd-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 900px) { .sd-grid-layout { grid-template-columns: 1fr; } }
+        .sd-grid-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.5rem; align-items: start; }
+        @media (max-width: 1024px) { .sd-grid-layout { grid-template-columns: 1fr; gap: 1.25rem; } }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 99px; } ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 99px; }
       `}</style>
 
@@ -1822,261 +1822,246 @@ export default function StudentDashboard() {
         </div>
 
         {/* ════════════════════════════════════════════
-            3. EYLEM MERKEZİ (GÜNÜN GÖREVLERİ)
-        ════════════════════════════════════════════ */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div
-            className="sd-card"
-            style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 22,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-                    <CheckSquare size={18} color="#ffffff" />
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '1.02rem', fontWeight: 900, color: '#0f172a' }}>
-                      {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
-                    </span>
-                    {dayProgramInfo.fullDateLabel && (
-                      <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 700, marginTop: 1 }}>
-                        📌 {dayProgramInfo.fullDateLabel}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {dayProgramInfo.totalCount > 0 && (
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 900,
-                    padding: '4px 11px',
-                    borderRadius: 99,
-                    background: dayProgramInfo.hasAllCompleted ? '#dcfce7' : '#e0e7ff',
-                    color: dayProgramInfo.hasAllCompleted ? '#16a34a' : '#4338ca',
-                    border: dayProgramInfo.hasAllCompleted ? '1px solid #86efac' : '1px solid #c7d2fe'
-                  }}>
-                    {dayProgramInfo.completedCount}/{dayProgramInfo.totalCount} Tamamlandı
-                  </span>
-                )}
-              </div>
-
-              {dayProgramInfo.items.length > 0 ? (
-                <div>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                    maxHeight: isMobile ? 'none' : '380px',
-                    overflowY: isMobile ? 'visible' : 'auto',
-                    paddingRight: isMobile ? 0 : 4,
-                    overscrollBehavior: 'contain'
-                  }}>
-                    {(showAllDayTasks || !isMobile ? dayProgramInfo.items : dayProgramInfo.items.slice(0, 4)).map((task, idx) => {
-                      const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
-                      const handleTaskClick = () => {
-                        if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
-                        if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
-                        if (task.hwId) {
-                          const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
-                          const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
-                          const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-                          if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
-                          else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
-                          else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
-                          return;
-                        }
-                        handleToggleTask(task);
-                      };
-
-                      return (
-                        <div
-                          key={task.id || idx}
-                          onClick={handleTaskClick}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 10,
-                            background: task.done ? '#f0fdf4' : '#f8fafc',
-                            border: task.done ? '1px solid #86efac' : '1px solid #e2e8f0',
-                            padding: '0.7rem 0.9rem',
-                            borderRadius: 14,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
-                              style={{
-                                width: 21,
-                                height: 21,
-                                marginTop: 2,
-                                borderRadius: 6,
-                                border: task.done ? 'none' : '1.5px solid #94a3b8',
-                                background: task.done ? '#22c55e' : 'transparent',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                                cursor: 'pointer',
-                                padding: 0
-                              }}
-                            >
-                              {task.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
-                            </button>
-
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                                {task.subject && (
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: 900,
-                                    color: '#2563eb',
-                                    background: '#dbeafe',
-                                    border: '1px solid #bfdbfe',
-                                    padding: '1px 6px',
-                                    borderRadius: 5,
-                                    flexShrink: 0
-                                  }}>
-                                    {task.subject}
-                                  </span>
-                                )}
-                                <span style={{
-                                  fontSize: '0.84rem',
-                                  fontWeight: 800,
-                                  color: task.done ? '#94a3b8' : '#0f172a',
-                                  textDecoration: task.done ? 'line-through' : 'none',
-                                  wordBreak: 'break-word',
-                                  lineHeight: 1.3
-                                }}>
-                                  {task.title || task.testName || task.topic || 'Ders Çalışması'}
-                                </span>
-                              </div>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
-                                {task.bookTitle && (
-                                  <span style={{ color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
-                                    📖 {task.bookTitle}
-                                  </span>
-                                )}
-                                {task.unitTopic && !task.bookTitle && (
-                                  <span>📌 {task.unitTopic}</span>
-                                )}
-                                {task.questionCount && (
-                                  <span>• {task.questionCount}</span>
-                                )}
-                                {task.time && (
-                                  <span>• ⏰ {task.time}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {isQuizTask && !task.done && (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleTaskClick(); }}
-                              style={{
-                                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: 9,
-                                padding: '0.4rem 0.75rem',
-                                fontSize: '0.74rem',
-                                fontWeight: 900,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                flexShrink: 0,
-                                boxShadow: '0 3px 10px rgba(99, 102, 241, 0.35)'
-                              }}
-                            >
-                              <PlayCircle size={14} /> Çöz
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {isMobile && dayProgramInfo.items.length > 4 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllDayTasks(prev => !prev)}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(99, 102, 241, 0.08)',
-                        border: '1.5px dashed #a5b4fc',
-                        borderRadius: 12,
-                        padding: '0.55rem 0.8rem',
-                        color: '#4f46e5',
-                        fontWeight: 800,
-                        fontSize: '0.76rem',
-                        cursor: 'pointer',
-                        marginTop: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6
-                      }}
-                    >
-                      {showAllDayTasks ? (
-                        <>▲ Daha Az Göster</>
-                      ) : (
-                        <>▼ Diğer {dayProgramInfo.items.length - 4} Görevi Göster</>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.84rem', color: '#64748b', fontStyle: 'italic' }}>
-                    {dayProgramInfo.isToday ? 'Bugün için kayıtlı görev yok. Harika gidiyorsun! 🎉' : `${dayProgramInfo.dayName} günü için görev bulunamadı.`}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-              <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#4f46e5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                Haftalık Programa Git <ChevronRight size={13} />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* ════════════════════════════════════════════
-            📊 PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK)
-        ════════════════════════════════════════════ */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <PeriodicQuestionAnalytics
-            homeworkSubmissions={otherHomeworkSubmissions}
-            mockExams={generalTrialExams}
-            studentName={selectedStudent?.name || 'Öğrenci'}
-          />
-        </div>
-
-        {/* ════════════════════════════════════════════
-            4. ANA GRID (SOL: ÖDEVLER & TESTLER & YOL HARİTASI | SAĞ: HEDEFLER & KİTAPLAR & İLHAM)
+            4. ANA GRID (SOL: GÜNÜN GÖREVLERİ, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
         <div className="sd-grid-layout">
 
-          {/* ──── SOL KOLON: ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
+          {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            {/* 🎯 BÖLÜM 1: EYLEM MERKEZİ (GÜNÜN GÖREVLERİ) */}
+            <div
+              className="sd-card"
+              style={{
+                background: '#ffffff',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: 22,
+                padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+                boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
+                      <CheckSquare size={18} color="#ffffff" />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '1.02rem', fontWeight: 900, color: '#0f172a' }}>
+                        {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
+                      </span>
+                      {dayProgramInfo.fullDateLabel && (
+                        <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 700, marginTop: 1 }}>
+                          📌 {dayProgramInfo.fullDateLabel}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {dayProgramInfo.totalCount > 0 && (
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 900,
+                      padding: '4px 11px',
+                      borderRadius: 99,
+                      background: dayProgramInfo.hasAllCompleted ? '#dcfce7' : '#e0e7ff',
+                      color: dayProgramInfo.hasAllCompleted ? '#16a34a' : '#4338ca',
+                      border: dayProgramInfo.hasAllCompleted ? '1px solid #86efac' : '1px solid #c7d2fe'
+                    }}>
+                      {dayProgramInfo.completedCount}/{dayProgramInfo.totalCount} Tamamlandı
+                    </span>
+                  )}
+                </div>
+
+                {dayProgramInfo.items.length > 0 ? (
+                  <div>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      maxHeight: isMobile ? 'none' : '380px',
+                      overflowY: isMobile ? 'visible' : 'auto',
+                      paddingRight: isMobile ? 0 : 4,
+                      overscrollBehavior: 'contain'
+                    }}>
+                      {(showAllDayTasks || !isMobile ? dayProgramInfo.items : dayProgramInfo.items.slice(0, 4)).map((task, idx) => {
+                        const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                        const handleTaskClick = () => {
+                          if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
+                          if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
+                          if (task.hwId) {
+                            const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
+                            const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
+                            const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                            if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
+                            else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
+                            else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
+                            return;
+                          }
+                          handleToggleTask(task);
+                        };
+
+                        return (
+                          <div
+                            key={task.id || idx}
+                            onClick={handleTaskClick}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 10,
+                              background: task.done ? '#f0fdf4' : '#f8fafc',
+                              border: task.done ? '1px solid #86efac' : '1px solid #e2e8f0',
+                              padding: '0.7rem 0.9rem',
+                              borderRadius: 14,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
+                                style={{
+                                  width: 21,
+                                  height: 21,
+                                  marginTop: 2,
+                                  borderRadius: 6,
+                                  border: task.done ? 'none' : '1.5px solid #94a3b8',
+                                  background: task.done ? '#22c55e' : 'transparent',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  cursor: 'pointer',
+                                  padding: 0
+                                }}
+                              >
+                                {task.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                              </button>
+
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                                  {task.subject && (
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 900,
+                                      color: '#2563eb',
+                                      background: '#dbeafe',
+                                      border: '1px solid #bfdbfe',
+                                      padding: '1px 6px',
+                                      borderRadius: 5,
+                                      flexShrink: 0
+                                    }}>
+                                      {task.subject}
+                                    </span>
+                                  )}
+                                  <span style={{
+                                    fontSize: '0.84rem',
+                                    fontWeight: 800,
+                                    color: task.done ? '#94a3b8' : '#0f172a',
+                                    textDecoration: task.done ? 'line-through' : 'none',
+                                    wordBreak: 'break-word',
+                                    lineHeight: 1.3
+                                  }}>
+                                    {task.title || task.testName || task.topic || 'Ders Çalışması'}
+                                  </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
+                                  {task.bookTitle && (
+                                    <span style={{ color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
+                                      📖 {task.bookTitle}
+                                    </span>
+                                  )}
+                                  {task.unitTopic && !task.bookTitle && (
+                                    <span>📌 {task.unitTopic}</span>
+                                  )}
+                                  {task.questionCount && (
+                                    <span>• {task.questionCount}</span>
+                                  )}
+                                  {task.time && (
+                                    <span>• ⏰ {task.time}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isQuizTask && !task.done && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleTaskClick(); }}
+                                style={{
+                                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: 9,
+                                  padding: '0.4rem 0.75rem',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  flexShrink: 0,
+                                  boxShadow: '0 3px 10px rgba(99, 102, 241, 0.35)'
+                                }}
+                              >
+                                <PlayCircle size={14} /> Çöz
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {isMobile && dayProgramInfo.items.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllDayTasks(prev => !prev)}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(99, 102, 241, 0.08)',
+                          border: '1.5px dashed #a5b4fc',
+                          borderRadius: 12,
+                          padding: '0.55rem 0.8rem',
+                          color: '#4f46e5',
+                          fontWeight: 800,
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          marginTop: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6
+                        }}
+                      >
+                        {showAllDayTasks ? (
+                          <>▲ Daha Az Göster</>
+                        ) : (
+                          <>▼ Diğer {dayProgramInfo.items.length - 4} Görevi Göster</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.84rem', color: '#64748b', fontStyle: 'italic' }}>
+                      {dayProgramInfo.isToday ? 'Bugün için kayıtlı görev yok. Harika gidiyorsun! 🎉' : `${dayProgramInfo.dayName} günü için görev bulunamadı.`}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#4f46e5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  Haftalık Programa Git <ChevronRight size={13} />
+                </Link>
+              </div>
+            </div>
 
             {/* 📋 BÖLÜM 1: ÖDEVLERİM & GÖREV TAKİBİ */}
             <div style={{
@@ -2430,10 +2415,19 @@ export default function StudentDashboard() {
 
           </div>
 
-          {/* ──── SAĞ KOLON: HEDEFLERİM, KİTAPLAR & İLHAM ──── */}
+          {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* 🎯 BÖLÜM 1: HEDEF TAKİP PANOSU */}
+            {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
+            <div>
+              <PeriodicQuestionAnalytics
+                homeworkSubmissions={otherHomeworkSubmissions}
+                mockExams={generalTrialExams}
+                studentName={selectedStudent?.name || 'Öğrenci'}
+              />
+            </div>
+
+            {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
             <div style={{
               background: '#ffffff',
               border: '1.5px solid #e2e8f0',
