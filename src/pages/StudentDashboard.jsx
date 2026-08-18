@@ -178,6 +178,7 @@ export default function StudentDashboard() {
   const currentDayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
   const todayDayKey = currentDayIndex === 0 ? 'Paz' : DAYS_OF_WEEK[currentDayIndex - 1].key;
   const [activeDayKey, setActiveDayKey] = useState(todayDayKey);
+  const [showAllDayTasks, setShowAllDayTasks] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -1871,136 +1872,175 @@ export default function StudentDashboard() {
               </div>
 
               {dayProgramInfo.items.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '340px', overflowY: 'auto', paddingRight: 4 }}>
-                  {dayProgramInfo.items.map((task, idx) => {
-                    const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
-                    const handleTaskClick = () => {
-                      if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
-                      if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
-                      if (task.hwId) {
-                        const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
-                        const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
-                        const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-                        if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
-                        else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
-                        else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
-                        return;
-                      }
-                      handleToggleTask(task);
-                    };
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    maxHeight: isMobile ? 'none' : '380px',
+                    overflowY: isMobile ? 'visible' : 'auto',
+                    paddingRight: isMobile ? 0 : 4,
+                    overscrollBehavior: 'contain'
+                  }}>
+                    {(showAllDayTasks || !isMobile ? dayProgramInfo.items : dayProgramInfo.items.slice(0, 4)).map((task, idx) => {
+                      const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                      const handleTaskClick = () => {
+                        if (task.roadmapAssignmentId) { navigate(`/student/study-plan/${task.roadmapAssignmentId}`); return; }
+                        if (task.testId) { navigate(`/book-quiz/${task.testId}?studentId=${selectedStudent.id}`); return; }
+                        if (task.hwId) {
+                          const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId));
+                          const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
+                          const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                          if (isExam) navigate(`/physical-exam/${task.hwId}?studentId=${selectedStudent.id}`);
+                          else if (hwObj?.isBookAssignment && hwObj?.tests?.length > 0) navigate(`/book-quiz/${hwObj.tests[0]}?studentId=${selectedStudent.id}`);
+                          else navigate(`/quiz/${task.hwId}?studentId=${selectedStudent.id}`);
+                          return;
+                        }
+                        handleToggleTask(task);
+                      };
 
-                    return (
-                      <div
-                        key={task.id || idx}
-                        onClick={handleTaskClick}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 10,
-                          background: task.done ? '#f0fdf4' : '#f8fafc',
-                          border: task.done ? '1px solid #86efac' : '1px solid #e2e8f0',
-                          padding: '0.7rem 0.9rem',
-                          borderRadius: 14,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
-                            style={{
-                              width: 21,
-                              height: 21,
-                              marginTop: 2,
-                              borderRadius: 6,
-                              border: task.done ? 'none' : '1.5px solid #94a3b8',
-                              background: task.done ? '#22c55e' : 'transparent',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                              cursor: 'pointer',
-                              padding: 0
-                            }}
-                          >
-                            {task.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
-                          </button>
+                      return (
+                        <div
+                          key={task.id || idx}
+                          onClick={handleTaskClick}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            background: task.done ? '#f0fdf4' : '#f8fafc',
+                            border: task.done ? '1px solid #86efac' : '1px solid #e2e8f0',
+                            padding: '0.7rem 0.9rem',
+                            borderRadius: 14,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flex: 1, minWidth: 0 }}>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleToggleTask(task); }}
+                              style={{
+                                width: 21,
+                                height: 21,
+                                marginTop: 2,
+                                borderRadius: 6,
+                                border: task.done ? 'none' : '1.5px solid #94a3b8',
+                                background: task.done ? '#22c55e' : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                cursor: 'pointer',
+                                padding: 0
+                              }}
+                            >
+                              {task.done && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                            </button>
 
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                              {task.subject && (
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                                {task.subject && (
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 900,
+                                    color: '#2563eb',
+                                    background: '#dbeafe',
+                                    border: '1px solid #bfdbfe',
+                                    padding: '1px 6px',
+                                    borderRadius: 5,
+                                    flexShrink: 0
+                                  }}>
+                                    {task.subject}
+                                  </span>
+                                )}
                                 <span style={{
-                                  fontSize: '0.62rem',
-                                  fontWeight: 900,
-                                  color: '#2563eb',
-                                  background: '#dbeafe',
-                                  border: '1px solid #bfdbfe',
-                                  padding: '1px 6px',
-                                  borderRadius: 5,
-                                  flexShrink: 0
+                                  fontSize: '0.84rem',
+                                  fontWeight: 800,
+                                  color: task.done ? '#94a3b8' : '#0f172a',
+                                  textDecoration: task.done ? 'line-through' : 'none',
+                                  wordBreak: 'break-word',
+                                  lineHeight: 1.3
                                 }}>
-                                  {task.subject}
+                                  {task.title || task.testName || task.topic || 'Ders Çalışması'}
                                 </span>
-                              )}
-                              <span style={{
-                                fontSize: '0.84rem',
-                                fontWeight: 800,
-                                color: task.done ? '#94a3b8' : '#0f172a',
-                                textDecoration: task.done ? 'line-through' : 'none',
-                                wordBreak: 'break-word',
-                                lineHeight: 1.3
-                              }}>
-                                {task.title || task.testName || task.topic || 'Ders Çalışması'}
-                              </span>
-                            </div>
+                              </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
-                              {task.bookTitle && (
-                                <span style={{ color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
-                                  📖 {task.bookTitle}
-                                </span>
-                              )}
-                              {task.unitTopic && !task.bookTitle && (
-                                <span>📌 {task.unitTopic}</span>
-                              )}
-                              {task.questionCount && (
-                                <span>• {task.questionCount}</span>
-                              )}
-                              {task.time && (
-                                <span>• ⏰ {task.time}</span>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
+                                {task.bookTitle && (
+                                  <span style={{ color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
+                                    📖 {task.bookTitle}
+                                  </span>
+                                )}
+                                {task.unitTopic && !task.bookTitle && (
+                                  <span>📌 {task.unitTopic}</span>
+                                )}
+                                {task.questionCount && (
+                                  <span>• {task.questionCount}</span>
+                                )}
+                                {task.time && (
+                                  <span>• ⏰ {task.time}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {isQuizTask && !task.done && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleTaskClick(); }}
-                            style={{
-                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: 9,
-                              padding: '0.4rem 0.75rem',
-                              fontSize: '0.74rem',
-                              fontWeight: 900,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              flexShrink: 0,
-                              boxShadow: '0 3px 10px rgba(99, 102, 241, 0.35)'
-                            }}
-                          >
-                            <PlayCircle size={14} /> Çöz
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {isQuizTask && !task.done && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleTaskClick(); }}
+                              style={{
+                                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: 9,
+                                padding: '0.4rem 0.75rem',
+                                fontSize: '0.74rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                flexShrink: 0,
+                                boxShadow: '0 3px 10px rgba(99, 102, 241, 0.35)'
+                              }}
+                            >
+                              <PlayCircle size={14} /> Çöz
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {isMobile && dayProgramInfo.items.length > 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllDayTasks(prev => !prev)}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(99, 102, 241, 0.08)',
+                        border: '1.5px dashed #a5b4fc',
+                        borderRadius: 12,
+                        padding: '0.55rem 0.8rem',
+                        color: '#4f46e5',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        marginTop: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                    >
+                      {showAllDayTasks ? (
+                        <>▲ Daha Az Göster</>
+                      ) : (
+                        <>▼ Diğer {dayProgramInfo.items.length - 4} Görevi Göster</>
+                      )}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1', textAlign: 'center' }}>
