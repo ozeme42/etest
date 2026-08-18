@@ -15,6 +15,8 @@ import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useGoal } from '../context/GoalContext';
 import { useUser } from '../context/UserContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
+import { toUUID } from '../services/supabaseService';
 import ProgramCenter from '../components/ProgramCenter';
 import CoachingReportModal from '../components/CoachingReportModal';
 
@@ -354,6 +356,7 @@ export default function StudentCoachingPage() {
   } = useCoaching();
   const { submissions, deleteSubmission } = useEvaluation();
   const { homeworks = [] } = useHomework() || {};
+  const { books = [], bookTests = [] } = useTrackedBooks() || {};
   const { data: curriculumData = [] } = useCurriculum() || {};
 
   const { studentId: paramId } = useParams();
@@ -1044,13 +1047,34 @@ export default function StudentCoachingPage() {
   };
 
   const { generalTrialExams, otherHomeworkSubmissions } = useMemo(() => {
-    const normalizeSub = (s, parentHw, defaultType = 'online') => {
-      const title = s.title || s.testTitle || parentHw?.title || 'Sınav / Test';
-      const isTrial = s.isDeneme || s.isExam || parentHw?.isDeneme || /deneme|lgs|yks|tyt|ayt|bursluluk|kurumsal/i.test(title);
+    const studentIdStr = String(studentId || '');
+    const studentUuidStr = String(toUUID(studentId) || '');
+
+    const normalizeSub = (s, parentHw, defaultType = 'online', subDate = null, testObj = null, bookObj = null) => {
+      let title = s.title || s.testTitle || parentHw?.title || 'Sınav / Test';
+      
+      let isExamBook = false;
+      if (bookObj && bookObj.bookType === 'exam') {
+        isExamBook = true;
+      }
+
+      if (testObj && bookObj) {
+        const cleanBook = (bookObj.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+        const testName = testObj.name || s.testTitle || s.title || 'Test';
+        title = cleanBook ? `${cleanBook} — ${testName}` : testName;
+      } else {
+        title = (s.title || s.testTitle || parentHw?.title || 'Sınav / Test')
+          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+          .replace(/\s*\(Tüm Kitap\)/gi, '')
+          .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+          .trim();
+      }
+
+      const isTrial = isExamBook || s.isDeneme || s.isExam || parentHw?.isDeneme || /deneme|lgs|yks|tyt|ayt|bursluluk|kurumsal/i.test(title);
 
       let correct = s.correctCount ?? s.correct ?? s.totalCorrect ?? 0;
       let wrong = s.wrongCount ?? s.wrong ?? s.totalWrong ?? 0;
-      let empty = s.emptyCount ?? s.empty ?? s.totalEmpty ?? 0;
+      let empty = s.emptyCount ?? s.blankCount ?? s.empty ?? s.totalEmpty ?? 0;
 
       // Extract from answers array if available
       if (!correct && !wrong && !empty && Array.isArray(s.answers) && s.answers.length > 0) {
@@ -1060,7 +1084,7 @@ export default function StudentCoachingPage() {
       }
 
       // Total questions
-      const totalQ = parentHw?.totalQuestions || parentHw?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10;
+      const totalQ = parentHw?.totalQuestions || parentHw?.questionCount || testObj?.questionCount || s.totalQuestions || (correct + wrong + empty) || 10;
 
       // Deduce D/Y/B if score was stored as 0-100 percentage or points without D/Y/B
       if (!correct && !wrong && s.score !== undefined && s.score !== null) {
@@ -1073,21 +1097,31 @@ export default function StudentCoachingPage() {
         empty = Math.max(0, totalQ - (correct + wrong));
       }
 
-      // Net calculation (NEVER use raw score > totalQ as net!)
+      // Net calculation
       let net = 0;
       if (s.net !== undefined && s.net !== null) {
         net = parseFloat(s.net);
       } else if (s.totalNet !== undefined && s.totalNet !== null) {
         net = parseFloat(s.totalNet);
       } else if (correct > 0 || wrong > 0) {
-        net = Math.max(0, correct - (wrong / 4));
+        const penaltyRatio = /lgs|bursluluk/i.test(title) ? 3 : 4;
+        net = Math.max(0, correct - (wrong / penaltyRatio));
       } else if (s.score !== undefined && parseFloat(s.score) <= totalQ) {
         net = parseFloat(s.score);
       }
 
-      let subject = s.subject || parentHw?.subject || '';
-      if (!subject || subject === 'Genel') {
-        const lower = title.toLowerCase();
+      // Clean subject detection (prevents student name or parent name becoming subject)
+      let subject = '';
+      if (testObj && bookObj) {
+        const subjObj = (bookObj.subjects || []).find(sb => String(sb.id) === String(testObj.subjectId));
+        subject = subjObj?.name || bookObj.subject || '';
+      } else {
+        subject = s.subject || parentHw?.subject || '';
+      }
+
+      const KNOWN_SUBJECTS = ['Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü'];
+      if (!KNOWN_SUBJECTS.includes(subject)) {
+        const lower = (title + ' ' + (subject || '') + ' ' + (parentHw?.title || '')).toLowerCase();
         if (lower.includes('matematik') || lower.includes('geometri')) subject = 'Matematik';
         else if (lower.includes('türkçe') || lower.includes('paragraf') || lower.includes('edebiyat')) subject = 'Türkçe';
         else if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyoloji')) subject = 'Fen Bilimleri';
@@ -1097,36 +1131,91 @@ export default function StudentCoachingPage() {
         else subject = 'Genel / Diğer';
       }
 
+      const cleanDate = (subDate || s.submittedAt || s.completedAt || s.createdAt || today()).slice(0, 10);
+
       return {
         id: s.id || `sub_${Date.now()}_${Math.random()}`,
+        originalSubmissionId: s.id,
         title,
         subject,
-        date: s.submittedAt?.slice(0, 10) || s.createdAt?.slice(0, 10) || today(),
+        date: cleanDate,
         totalNet: parseFloat(net.toFixed(2)),
         correctCount: correct,
         wrongCount: wrong,
         emptyCount: empty,
         sourceType: defaultType,
         approvalStatus: 'approved',
-        isTrial
+        isTrial,
+        isExamBook,
+        parentBookId: bookObj?.id || null,
+        hwId: s.hwId || parentHw?.id || null,
+        subjectName: subject
       };
     };
 
-    // 1. EvaluationContext Online Sınavlar
-    const onlineEval = mySubmissions
-      .filter(s => !s.testId || (homeworks || []).some(h => String(h.id) === String(s.testId)))
-      .map(s => {
-        const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId));
-        return normalizeSub(s, parentHw, 'online');
-      });
+    // 1. EvaluationContext Online Sınavlar & Kitap Testleri (Gerçek çözülenler)
+    const onlineEval = [];
+    const processedBookTestKeys = new Set();
 
-    // 2. HomeworkContext Optik / Ödev Sınavları
+    (submissions || []).forEach(s => {
+      if (!s) return;
+      const sid = String(s.studentId);
+      const isMatch = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
+      if (!isMatch) return;
+
+      const subIdStr = String(s.id || s.supabaseId || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return;
+      if (s.status === 'in_progress' || s.status === 'draft') return;
+      const raw = s.raw_data || {};
+      if (raw.status === 'draft' || raw.status === 'in_progress') return;
+
+      let correct = s.correctCount ?? raw.correctCount ?? 0;
+      let wrong = s.wrongCount ?? raw.wrongCount ?? 0;
+      let empty = s.emptyCount ?? s.blankCount ?? raw.emptyCount ?? raw.blankCount ?? 0;
+
+      if (!correct && !wrong && !empty && Array.isArray(s.answers) && s.answers.length > 0) {
+        correct = s.answers.filter(a => a.isCorrect === true || a.earnedPoints > 0).length;
+        wrong = s.answers.filter(a => a.isCorrect === false).length;
+        empty = Math.max(0, s.answers.length - (correct + wrong));
+      }
+
+      // Soru çözülmemiş/boş taslakları atla
+      if (correct === 0 && wrong === 0 && empty === 0 && (!s.answers || s.answers.length === 0)) return;
+
+      const subDate = s.submittedAt || s.completedAt || raw.submittedAt || s.createdAt;
+      if (!subDate) return;
+
+      const bTestId = String(s.bookTestId || s.testId || raw.bookTestId || raw.testId || '');
+      const testObj = (bookTests || []).find(bt => String(bt.id) === bTestId || (toUUID(bt.id) && String(toUUID(bt.id)) === bTestId));
+      const bookObj = (books || []).find(b => String(b.id) === String(s.bookId || raw.bookId || testObj?.bookId));
+
+      const parentHw = (homeworks || []).find(h => String(h.id) === String(s.testId) || String(h.id) === String(s.hwId));
+
+      if (bTestId) {
+        if (processedBookTestKeys.has(bTestId)) return;
+        processedBookTestKeys.add(bTestId);
+      }
+
+      onlineEval.push(normalizeSub(s, parentHw, 'online', subDate, testObj, bookObj));
+    });
+
+    // 2. HomeworkContext Optik / Ödev Sınavları (Kitap görevleri hariç)
     const hwSubmissions = [];
     (homeworks || []).forEach(hw => {
+      if (!hw) return;
+      if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)')) {
+        return;
+      }
       if (hw.submissions && Array.isArray(hw.submissions)) {
         hw.submissions.forEach(sub => {
-          if (String(sub.studentId) === String(studentId)) {
-            hwSubmissions.push(normalizeSub(sub, hw, 'optik'));
+          const sid = String(sub.studentId);
+          if (sid === studentIdStr || (studentUuidStr && sid === studentUuidStr)) {
+            const subIdStr = String(sub.id || '');
+            if (subIdStr.startsWith('draft_') || sub.status === 'in_progress' || sub.status === 'draft') return;
+            if (sub.isSubmitted === false) return;
+            const sDate = sub.submittedAt || sub.completedAt || sub.createdAt || hw.createdAt;
+            if (!sDate) return;
+            hwSubmissions.push(normalizeSub(sub, hw, 'optik', sDate));
           }
         });
       }
@@ -1136,14 +1225,14 @@ export default function StudentCoachingPage() {
     const manualExams = studentMockExams.map(m => ({
       id: m.id,
       title: m.title || 'Fiziki Deneme Sınavı',
-      date: m.date || m.createdAt?.slice(0, 10) || today(),
+      date: (m.date || m.createdAt || today()).slice(0, 10),
       totalNet: parseFloat(m.totalNet) || 0,
       sourceType: 'manual',
       approvalStatus: m.approvalStatus || (m.createdBy === 'student' ? 'pending' : 'approved'),
-      scores: m.scores,
-      totalCorrect: m.totalCorrect,
-      totalWrong: m.totalWrong,
-      totalEmpty: m.totalEmpty,
+      scores: m.scores || {},
+      totalCorrect: m.totalCorrect || 0,
+      totalWrong: m.totalWrong || 0,
+      totalEmpty: m.totalEmpty || 0,
       isTrial: true
     }));
 
@@ -1156,11 +1245,78 @@ export default function StudentCoachingPage() {
       }
     });
 
-    const trials = all.filter(x => x.isTrial).sort((a, b) => new Date(b.date) - new Date(a.date));
-    const homeworksOnly = all.filter(x => !x.isTrial).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const trials = [];
+    const homeworksOnly = [];
+    const groupedExams = {};
+
+    all.forEach(item => {
+      if (item.sourceType === 'manual') {
+        trials.push(item);
+      } else if (item.isExamBook) {
+        const groupKey = `${item.parentBookId}_${item.date}`;
+        if (!groupedExams[groupKey]) {
+          const groupScores = {};
+          if (item.parentBookId) {
+            const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(item.parentBookId));
+            testsForBook.forEach(bt => {
+              groupScores[bt.name] = { d: 0, y: 0, b: bt.questionCount || 0, net: 0 };
+            });
+          }
+
+          groupedExams[groupKey] = {
+            id: `grp_${groupKey}`,
+            title: item.title,
+            date: item.date,
+            totalNet: 0,
+            totalCorrect: 0,
+            totalWrong: 0,
+            totalEmpty: 0,
+            sourceType: item.sourceType,
+            approvalStatus: item.approvalStatus,
+            isTrial: true,
+            scores: groupScores,
+            submissions: []
+          };
+        }
+
+        const group = groupedExams[groupKey];
+        const subj = item.subjectName || 'Genel';
+        group.scores[subj] = {
+          d: item.correctCount || 0,
+          y: item.wrongCount || 0,
+          b: item.emptyCount || 0,
+          net: item.totalNet || 0
+        };
+        if (item.originalSubmissionId) group.submissions.push(item.originalSubmissionId);
+      } else {
+        if (item.isTrial) {
+          trials.push(item);
+        } else {
+          homeworksOnly.push(item);
+        }
+      }
+    });
+
+    Object.values(groupedExams).forEach(grp => {
+      let tNet = 0, tCorrect = 0, tWrong = 0, tEmpty = 0;
+      Object.values(grp.scores).forEach(sc => {
+        tNet += sc.net || 0;
+        tCorrect += sc.d || 0;
+        tWrong += sc.y || 0;
+        tEmpty += sc.b || 0;
+      });
+      grp.totalNet = parseFloat(tNet.toFixed(2));
+      grp.totalCorrect = tCorrect;
+      grp.totalWrong = tWrong;
+      grp.totalEmpty = tEmpty;
+      trials.push(grp);
+    });
+
+    trials.sort((a, b) => new Date(b.date) - new Date(a.date));
+    homeworksOnly.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return { generalTrialExams: trials, otherHomeworkSubmissions: homeworksOnly };
-  }, [mySubmissions, homeworks, studentMockExams, studentId]);
+  }, [submissions, homeworks, studentMockExams, studentId, books, bookTests]);
 
   const pendingExams = useMemo(() => {
     return studentMockExams.filter(m => m.approvalStatus === 'pending' || (m.createdBy === 'student' && m.approvalStatus !== 'approved'));
