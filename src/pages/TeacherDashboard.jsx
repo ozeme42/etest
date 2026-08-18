@@ -899,6 +899,7 @@ export default function TeacherDashboard() {
                           >
                             <Calendar size={14} /> Haftalık Program &amp; Koçluk Paneli ➔
                           </button>
+                        </Link>
                       </div>
                     );
                   })}
