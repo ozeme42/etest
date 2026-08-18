@@ -6,10 +6,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
-  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles
+  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon
 } from 'lucide-react';
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
+import { useTheme } from './context/ThemeContext';
 
 // Lazy Loaded Pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -103,6 +104,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const { isStudentCoached } = useCoaching();
+  const { theme, isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -125,9 +127,30 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
           <span className="brand-icon">✨</span>
           <span className="brand-text" style={{ fontSize: '1.2rem' }}>E-Test Premium</span>
         </Link>
-        <button className="mobile-menu-btn" onClick={toggleSidebar}>
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button 
+            onClick={toggleTheme}
+            style={{
+              background: 'var(--color-surface-hover)',
+              border: '1.5px solid var(--color-border-input)',
+              color: isDark ? '#fbbf24' : '#6366f1',
+              borderRadius: '0.65rem',
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+            }}
+            title={isDark ? 'Açık Temaya Geç (Light)' : 'Koyu Temaya Geç (Dark)'}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button className="mobile-menu-btn" onClick={toggleSidebar}>
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={closeSidebar}></div>
@@ -160,14 +183,14 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
         </div>
 
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
-        <div style={{ padding: '0.75rem 1rem', borderBottom: '1.5px solid #e2e8f0', background: '#f8fafc' }}>
+        <div style={{ padding: '0.75rem 1rem', borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-bg)' }}>
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: '#ffffff', padding: '0.65rem 0.75rem', borderRadius: '0.95rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', padding: '0.65rem 0.75rem', borderRadius: '0.95rem', border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
                 {currentUser.name?.charAt(0).toUpperCase()}
               </div>
               <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
               </div>
               <button 
@@ -179,8 +202,8 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 title="Oturumu Kapat"
                 style={{ 
                   width: '2rem', height: '2rem', borderRadius: '50%', 
-                  background: '#fef2f2', border: '1px solid #fecaca', 
-                  color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  background: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca', 
+                  color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
                 }}
                 className="hover:scale-105 active:scale-95"
@@ -196,37 +219,60 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
             </Link>
           )}
 
-          {/* Global Quick Search Button */}
-          {currentUser && (
-            <div style={{ marginTop: '0.65rem' }}>
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '0.75rem',
-                  background: '#ffffff',
-                  border: '1.5px solid #cbd5e1',
-                  color: '#475569',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Search size={14} color="#6366f1" /> Hızlı Arama
-                </span>
-                <kbd style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '1px 5px', fontSize: '0.65rem', color: '#64748b', fontWeight: 800 }}>Ctrl K</kbd>
-              </button>
-            </div>
-          )}
+          {/* Quick Search & Theme Switch Row */}
+          <div style={{ marginTop: '0.65rem', display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem 0.65rem',
+                borderRadius: '0.75rem',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border-input)',
+                color: 'var(--color-text-secondary)',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flex: 1,
+                boxSizing: 'border-box',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Search size={14} color="#6366f1" /> Arama
+              </span>
+              <kbd style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '4px', padding: '1px 4px', fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>Ctrl K</kbd>
+            </button>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                padding: '0.5rem 0.65rem',
+                borderRadius: '0.75rem',
+                background: isDark ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : 'linear-gradient(135deg, #fef3c7, #fef08a)',
+                border: isDark ? '1.5px solid #4338ca' : '1.5px solid #fde047',
+                color: isDark ? '#c7d2fe' : '#b45309',
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              title={isDark ? 'Açık Temaya Geç (Light)' : 'Koyu Temaya Geç (Dark)'}
+            >
+              {isDark ? <Sun size={15} color="#fbbf24" /> : <Moon size={15} color="#6366f1" />}
+              <span>{isDark ? 'Açık' : 'Koyu'}</span>
+            </button>
+          </div>
         </div>
         
         <div className="nav-links custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>

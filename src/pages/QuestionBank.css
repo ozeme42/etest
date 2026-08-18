@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   QUESTION BANK - LIGHT THEME DESIGN SUITE
+   QUESTION BANK - DUAL THEME DESIGN SUITE
    ═══════════════════════════════════════════════════ */
 
 .qbank-page {
@@ -8,34 +8,46 @@
   max-width: 100%;
   margin: 0;
   padding: 1.25rem 1.5rem 5rem 1.5rem;
-  background-color: #f8fafc;
+  background-color: var(--color-bg);
   background-image: 
     radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
     radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
-    #f8fafc;
+    var(--color-bg);
   background-attachment: fixed;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: #0f172a;
+  color: var(--color-text);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+[data-theme="dark"] .qbank-page {
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.10) 0%, transparent 45%),
+    #0b0f19;
 }
 
 .qbank-glass-card {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-card-bg);
+  border: 1.5px solid var(--color-card-border);
   border-radius: 1.5rem;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
   padding: 1.5rem;
   box-sizing: border-box;
-  color: #0f172a;
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .qbank-glass-card {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
 }
 
 /* TOP FILTER BAR */
 .top-filter-bar {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-card-bg);
+  border: 1.5px solid var(--color-card-border);
   border-radius: 1.25rem;
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.25rem;

@@ -16,37 +16,40 @@ import { ScheduleProvider } from './context/ScheduleContext.jsx'
 import { CoachingProvider } from './context/CoachingContext.jsx'
 import { ScaleProvider } from './context/ScaleContext.jsx'
 import { SummaryProvider } from './context/SummaryContext.jsx'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <UserProvider>
-        <AuthProvider>
-          <CurriculumProvider>
-            <SummaryProvider>
-              <QuestionBankProvider>
-                <HomeworkProvider>
-                  <EvaluationProvider>
-                    <TrackedBookProvider>
-                      <StudyPlanProvider>
-                        <GoalProvider>
-                          <ScheduleProvider>
-                            <CoachingProvider>
-                              <ScaleProvider>
-                                <App />
-                              </ScaleProvider>
-                            </CoachingProvider>
-                          </ScheduleProvider>
-                        </GoalProvider>
-                      </StudyPlanProvider>
-                    </TrackedBookProvider>
-                  </EvaluationProvider>
-                </HomeworkProvider>
-              </QuestionBankProvider>
-            </SummaryProvider>
-          </CurriculumProvider>
-        </AuthProvider>
-      </UserProvider>
+      <ThemeProvider>
+        <UserProvider>
+          <AuthProvider>
+            <CurriculumProvider>
+              <SummaryProvider>
+                <QuestionBankProvider>
+                  <HomeworkProvider>
+                    <EvaluationProvider>
+                      <TrackedBookProvider>
+                        <StudyPlanProvider>
+                          <GoalProvider>
+                            <ScheduleProvider>
+                              <CoachingProvider>
+                                <ScaleProvider>
+                                  <App />
+                                </ScaleProvider>
+                              </CoachingProvider>
+                            </ScheduleProvider>
+                          </GoalProvider>
+                        </StudyPlanProvider>
+                      </TrackedBookProvider>
+                    </EvaluationProvider>
+                  </HomeworkProvider>
+                </QuestionBankProvider>
+              </SummaryProvider>
+            </CurriculumProvider>
+          </AuthProvider>
+        </UserProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 )
