@@ -388,23 +388,24 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
     onSubmit(formattedAnswers);
   };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#1e293b', 
-        borderBottom: '1px solid #334155',
+        background: '#ffffff', 
+        borderBottom: '1.5px solid #e2e8f0',
         flexShrink: 0,
         gap: '0.5rem',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <h2 style={{ 
-            color: '#f8fafc', 
+            color: '#0f172a', 
             fontSize: isMobile ? '0.9rem' : '1.15rem', 
-            fontWeight: 800, 
+            fontWeight: 900, 
             margin: 0, 
             whiteSpace: 'nowrap', 
             overflow: 'hidden', 
@@ -412,7 +413,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
           }}>
             {test.title || "HTML Testi"}
           </h2>
-          <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
+          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
             {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
           </span>
         </div>
@@ -422,19 +423,19 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
           <div style={{
             padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
-            background: timeLeft < 300 ? 'rgba(225,29,72,0.2)' : 'rgba(255,255,255,0.08)',
-            border: `1px solid ${timeLeft < 300 ? '#f43f5e' : 'rgba(255,255,255,0.15)'}`,
-            color: timeLeft < 300 ? '#fda4af' : '#f8fafc',
+            background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
+            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
+            color: timeLeft < 300 ? '#dc2626' : '#0f172a',
             fontWeight: 900,
             fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem'
           }}>
-            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#f43f5e' : '#06b6d4'} />
+            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#0284c7'} />
             <span>{formatTime(timeLeft)}</span>
             {!isMobile && (
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
                 (Toplam {qCount * perQuestionMins} dk)
               </span>
             )}
@@ -445,9 +446,9 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
             style={{
               padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : 'rgba(255,255,255,0.1)',
-              border: 'none',
-              color: 'white',
+              background: isDrawingOpen ? '#eab308' : '#ffffff',
+              border: `1px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`,
+              color: isDrawingOpen ? 'white' : '#334155',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -457,7 +458,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
             }}
             title="Çizim Aracı"
           >
-            <Pencil size={isMobile ? 14 : 16} /> 
+            <Pencil size={14} /> 
             {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
           </button>
 
@@ -466,7 +467,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
             style={{
               padding: isMobile ? '0.4rem 0.6rem' : '0.55rem 1.25rem',
               borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
+              background: '#059669',
               border: 'none',
               color: 'white',
               fontWeight: 900,
@@ -475,7 +476,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.3)'
+              boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
             }}
           >
             <CheckCircle2 size={isMobile ? 14 : 18} /> 
@@ -503,13 +504,13 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
               const textVal = openEndedText[qNo] || '';
 
               return (
-                <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
+                <div key={qNo} style={{ background: '#ffffff', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#0f172a', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Soru {qNo}</span>
                     {selectedOpt !== undefined || textVal ? (
-                      <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Yanıtlandı</span>
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Yanıtlandı</span>
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
                     )}
                   </div>
 
@@ -523,9 +524,9 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
                         width: '100%',
                         padding: '0.65rem',
                         borderRadius: '0.5rem',
-                        background: '#1e293b',
-                        border: '1px solid #334155',
-                        color: '#f8fafc',
+                        background: '#ffffff',
+                        border: '1.5px solid #cbd5e1',
+                        color: '#0f172a',
                         fontSize: '0.85rem',
                         outline: 'none',
                         fontFamily: 'inherit',
@@ -559,9 +560,9 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
                               flex: 1,
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: isSelected ? 'none' : '1px solid #334155',
-                              background: isSelected ? 'linear-gradient(135deg, #10b981, #059669)' : '#1e293b',
-                              color: isSelected ? 'white' : '#cbd5e1',
+                              border: isSelected ? 'none' : '1px solid #cbd5e1',
+                              background: isSelected ? '#059669' : '#ffffff',
+                              color: isSelected ? 'white' : '#334155',
                               fontWeight: 900,
                               fontSize: '0.85rem',
                               cursor: 'pointer',
@@ -569,7 +570,7 @@ export default function HtmlQuizRunner({ test, questions = [], onSubmit, onAutoS
                               alignItems: 'center',
                               justifyContent: 'center',
                               transition: 'all 0.15s ease',
-                              boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
+                              boxShadow: isSelected ? '0 4px 12px rgba(5,150,105,0.25)' : 'none'
                             }}
                           >
                             {opt}

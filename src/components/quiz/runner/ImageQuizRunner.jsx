@@ -403,23 +403,24 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
   const currentTextVal = openEndedText[currentIndex + 1] || '';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#1e293b', 
-        borderBottom: '1px solid #334155',
+        background: '#ffffff', 
+        borderBottom: '1.5px solid #e2e8f0',
         flexShrink: 0,
         gap: '0.5rem',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <h2 style={{ 
-            color: '#f8fafc', 
+            color: '#0f172a', 
             fontSize: isMobile ? '0.9rem' : '1.15rem', 
-            fontWeight: 800, 
+            fontWeight: 900, 
             margin: 0, 
             whiteSpace: 'nowrap', 
             overflow: 'hidden', 
@@ -427,7 +428,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
           }}>
             {test.title || "Görsel Sınav"}
           </h2>
-          <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
+          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
             {isOpenEndedMode ? "Açık Uçlu Sınav" : "Çoktan Seçmeli"} • {qCount} Soru
           </span>
         </div>
@@ -437,19 +438,19 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
           <div style={{
             padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
-            background: timeLeft < 300 ? '#7f1d1d' : '#0f172a',
-            border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`,
-            color: timeLeft < 300 ? '#fca5a5' : '#38bdf8',
+            background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
+            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
+            color: timeLeft < 300 ? '#dc2626' : '#0f172a',
             fontWeight: 900,
             fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem'
           }}>
-            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#ef4444' : '#38bdf8'} />
+            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#0284c7'} />
             <span>{formatTime(timeLeft)}</span>
             {!isMobile && (
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
                 (Toplam {qCount * perQuestionMins} dk)
               </span>
             )}
@@ -460,9 +461,9 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
             style={{
               padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : '#334155',
-              border: '1px solid #475569',
-              color: isDrawingOpen ? 'white' : '#f8fafc',
+              background: isDrawingOpen ? '#eab308' : '#ffffff',
+              border: `1px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`,
+              color: isDrawingOpen ? 'white' : '#334155',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -472,7 +473,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
             }}
             title="Çizim Aracı"
           >
-            <Pencil size={isMobile ? 14 : 16} /> 
+            <Pencil size={14} /> 
             {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
           </button>
 
@@ -490,7 +491,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.3)'
+              boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
             }}
           >
             <CheckCircle2 size={isMobile ? 14 : 18} /> 
@@ -511,13 +512,13 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
         />
 
         {/* Question Display Card */}
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#818cf8' }}>
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#0284c7' }}>
               Soru {currentIndex + 1} / {qCount}
             </h3>
             {isOpenEndedMode && (
-              <span style={{ padding: '0.25rem 0.65rem', background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid #6366f1', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.75rem' }}>
+              <span style={{ padding: '0.25rem 0.65rem', background: '#faf5ff', color: '#7c3aed', border: '1px solid #e9d5ff', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.75rem' }}>
                 ✍️ Açık Uçlu / Yazılı
               </span>
             )}
@@ -536,23 +537,23 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
               ))}
             </div>
           ) : (
-            <div style={{ padding: '2rem', textAlign: 'center', background: '#0f172a', borderRadius: '1rem', border: '1px dashed #334155', color: '#94a3b8', fontWeight: 700 }}>
+            <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '1rem', border: '1px dashed #cbd5e1', color: '#64748b', fontWeight: 700 }}>
               Görsel yüklenmemiş veya içerik bulunmuyor.
             </div>
           )}
 
           {/* Question Text / Prompt if available */}
           {activeQuestion.questionText && (
-            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.6 }}>
               {activeQuestion.questionText}
             </div>
           )}
 
           {/* Options or Text Area */}
-          <div style={{ marginTop: '0.5rem', paddingTop: '1.25rem', borderTop: '1px solid #334155' }}>
+          <div style={{ marginTop: '0.5rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e8f0' }}>
             {isOpenEndedMode ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#94a3b8' }}>
+                <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569' }}>
                   Cevabınızı / Yanıtınızı Detaylıca Yazınız:
                 </label>
                 <textarea
@@ -564,9 +565,9 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                     width: '100%',
                     padding: '0.75rem 1rem',
                     borderRadius: '0.75rem',
-                    background: '#0f172a',
-                    border: '1.5px solid #334155',
-                    color: '#f8fafc',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#0f172a',
                     fontSize: '0.9rem',
                     outline: 'none',
                     fontFamily: 'inherit',
@@ -576,7 +577,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.65rem' }}>
-                <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#94a3b8', marginBottom: '0.25rem', textAlign: 'center' }}>
+                <label style={{ fontWeight: 800, fontSize: '0.85rem', color: '#475569', marginBottom: '0.25rem', textAlign: 'center' }}>
                   Doğru Şıkkı Seçiniz:
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -603,9 +604,9 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                           width: '42px',
                           height: '42px',
                           borderRadius: '50%',
-                          border: isSelected ? '2px solid #6366f1' : '2px solid #334155',
-                          background: isSelected ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : '#1e293b',
-                          color: isSelected ? '#ffffff' : '#94a3b8',
+                          border: isSelected ? '2px solid #059669' : '1.5px solid #cbd5e1',
+                          background: isSelected ? '#059669' : '#ffffff',
+                          color: isSelected ? '#ffffff' : '#334155',
                           fontWeight: 900,
                           fontSize: '1.1rem',
                           cursor: 'pointer',
@@ -613,7 +614,7 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
                           alignItems: 'center',
                           justifyContent: 'center',
                           transition: 'all 0.15s ease',
-                          boxShadow: isSelected ? '0 4px 14px rgba(79,70,229,0.35)' : 'none'
+                          boxShadow: isSelected ? '0 4px 14px rgba(5,150,105,0.25)' : 'none'
                         }}
                       >
                         {opt}
@@ -635,9 +636,9 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
             style={{
               padding: '0.75rem 1.5rem',
               borderRadius: '0.85rem',
-              border: '1px solid #334155',
-              background: currentIndex === 0 ? '#0f172a' : '#1e293b',
-              color: currentIndex === 0 ? '#475569' : '#e2e8f0',
+              border: '1.5px solid #cbd5e1',
+              background: currentIndex === 0 ? '#f1f5f9' : '#ffffff',
+              color: currentIndex === 0 ? '#94a3b8' : '#334155',
               fontWeight: 800,
               fontSize: '0.9rem',
               cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
@@ -656,15 +657,15 @@ export default function ImageQuizRunner({ test, questions = [], onSubmit, onAuto
               padding: '0.75rem 1.5rem',
               borderRadius: '0.85rem',
               border: 'none',
-              background: currentIndex === qCount - 1 ? '#334155' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-              color: currentIndex === qCount - 1 ? '#64748b' : '#ffffff',
+              background: currentIndex === qCount - 1 ? '#f1f5f9' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: currentIndex === qCount - 1 ? '#94a3b8' : '#ffffff',
               fontWeight: 800,
               fontSize: '0.9rem',
               cursor: currentIndex === qCount - 1 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: currentIndex === qCount - 1 ? 'none' : '0 4px 14px rgba(99,102,241,0.35)'
+              boxShadow: currentIndex === qCount - 1 ? 'none' : '0 4px 14px rgba(99, 102, 241, 0.25)'
             }}
           >
             Sonraki Soru <ChevronRight size={18} />

@@ -85,13 +85,13 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       
       {/* HEADER */}
       <header style={{
         padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 2rem',
-        background: '#1e293b',
-        borderBottom: '1px solid #334155',
+        background: '#ffffff',
+        borderBottom: '1.5px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -101,7 +101,8 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
@@ -109,9 +110,9 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
             style={{
               padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
-              background: '#0f172a',
-              border: '1px solid #334155',
-              color: '#e2e8f0',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#475569',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.8rem',
               cursor: 'pointer',
@@ -130,7 +131,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               fontSize: isMobile ? '0.85rem' : '1.1rem',
               fontWeight: 900,
               margin: 0,
-              color: '#f8fafc',
+              color: '#0f172a',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
@@ -138,70 +139,40 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               {test?.title || test?.name || submission?.testTitle || 'Optik Form İnceleme'}
               {!isMobile && " — Optik Form İnceleme"}
             </h2>
-            {!isMobile && (
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                📋 İşaretlenmiş Optik Form Karşılaştırma Analizi ({qCount} Soru)
-              </div>
-            )}
           </div>
         </div>
 
-        {/* SCORE & BADGES */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
-          <div style={{
-            background: 'rgba(16,185,129,0.15)',
-            color: '#34d399',
-            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-            borderRadius: '0.5rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.72rem' : '0.82rem',
-            border: '1px solid #10b981',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.2rem'
-          }}>
-            <span>✓ {correctCount}</span>
-            {!isMobile && <span>Doğru</span>}
+        {/* METRICS ROW */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.3rem' : '0.6rem', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f0fdf4', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
+            <CheckCircle2 size={isMobile ? 13 : 15} color="#16a34a" />
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#15803d' }}>
+              {correctCount}D
+            </span>
           </div>
-          <div style={{
-            background: 'rgba(239,68,68,0.15)',
-            color: '#fca5a5',
-            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-            borderRadius: '0.5rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.72rem' : '0.82rem',
-            border: '1px solid #ef4444',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.2rem'
-          }}>
-            <span>✕ {wrongCount}</span>
-            {!isMobile && <span>Yanlış</span>}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#fef2f2', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
+            <XCircle size={isMobile ? 13 : 15} color="#dc2626" />
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#b91c1c' }}>
+              {wrongCount}Y
+            </span>
           </div>
-          <div style={{
-            background: 'rgba(255,255,255,0.05)',
-            color: '#94a3b8',
-            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
-            borderRadius: '0.5rem',
-            fontWeight: 900,
-            fontSize: isMobile ? '0.72rem' : '0.82rem',
-            border: '1px solid #334155',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.2rem'
-          }}>
-            <span>○ {blankCount}</span>
-            {!isMobile && <span>Boş</span>}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#f8fafc', padding: isMobile ? '0.2rem 0.4rem' : '0.35rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+            <HelpCircle size={isMobile ? 13 : 15} color="#64748b" />
+            <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: '#475569' }}>
+              {blankCount}B
+            </span>
           </div>
+
           <div style={{
-            background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-            color: '#ffffff',
-            padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.85rem',
+            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            color: 'white',
+            padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.85rem',
             borderRadius: '0.5rem',
             fontWeight: 900,
             fontSize: isMobile ? '0.72rem' : '0.82rem',
-            border: '1px solid #6366f1',
-            boxShadow: '0 2px 8px rgba(79,70,229,0.35)'
+            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
           }}>
             %{scorePct}
           </div>
@@ -263,7 +234,6 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               correctAnsIndex = getAnsIndex(keyVal);
             }
 
-            const isBlank = userAnsIndex === null && !textAns;
             let isCorrect = ansObj.isCorrect;
             if (isCorrect === null || isCorrect === undefined) {
               if (userAnsIndex !== null && correctAnsIndex !== null) {
@@ -277,15 +247,15 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               <div
                 key={qNo}
                 style={{
-                  background: '#1e293b',
+                  background: '#ffffff',
                   padding: isMobile ? '0.5rem 0.75rem' : '0.6rem 0.9rem',
                   borderRadius: '0.85rem',
-                  border: `1.5px solid ${isCorrect === true ? '#10b981' : isCorrect === false ? '#ef4444' : '#334155'}`,
+                  border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0'}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '0.6rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 50, flexShrink: 0 }}>
@@ -293,24 +263,24 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                     width: 30,
                     height: 30,
                     borderRadius: '0.5rem',
-                    background: '#0f172a',
-                    color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#94a3b8',
+                    background: isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#f8fafc',
+                    color: isCorrect === true ? '#16a34a' : isCorrect === false ? '#dc2626' : '#64748b',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 900,
                     fontSize: '0.85rem',
-                    border: '1px solid #334155'
+                    border: '1px solid #e2e8f0'
                   }}>
                     {qNo}
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect === true ? '#4ade80' : isCorrect === false ? '#f87171' : '#94a3b8' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isCorrect === false ? '#dc2626' : '#64748b' }}>
                     {isCorrect === true ? '✓' : isCorrect === false ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
                   </span>
                 </div>
 
                 {textAns ? (
-                  <div style={{ fontSize: '0.8rem', color: '#cbd5e1', background: '#0f172a', padding: '0.35rem 0.6rem', borderRadius: '0.5rem', flex: 1 }}>
+                  <div style={{ fontSize: '0.8rem', color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.35rem 0.6rem', borderRadius: '0.5rem', flex: 1 }}>
                     {textAns}
                   </div>
                 ) : (
@@ -319,25 +289,25 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                       const isUserMarked = userAnsIndex === optIdx;
                       const isAnswerKey = correctAnsIndex === optIdx;
 
-                      let bg = '#0f172a';
-                      let color = '#94a3b8';
-                      let border = '1.5px solid #334155';
+                      let bg = '#f8fafc';
+                      let color = '#64748b';
+                      let border = '1.5px solid #cbd5e1';
                       let shadow = 'none';
 
                       if (isUserMarked && isAnswerKey) {
                         bg = 'linear-gradient(135deg, #10b981, #059669)';
                         color = '#ffffff';
-                        border = '2px solid #34d399';
-                        shadow = '0 3px 10px rgba(16,185,129,0.4)';
+                        border = '2px solid #059669';
+                        shadow = '0 3px 10px rgba(16,185,129,0.25)';
                       } else if (isUserMarked && !isAnswerKey) {
                         bg = 'linear-gradient(135deg, #ef4444, #dc2626)';
                         color = '#ffffff';
-                        border = '2px solid #f87171';
-                        shadow = '0 3px 10px rgba(239,68,68,0.4)';
+                        border = '2px solid #dc2626';
+                        shadow = '0 3px 10px rgba(239,68,68,0.25)';
                       } else if (!isUserMarked && isAnswerKey) {
-                        bg = 'rgba(16, 185, 129, 0.15)';
-                        color = '#34d399';
-                        border = '2px dashed #10b981';
+                        bg = '#f0fdf4';
+                        color = '#16a34a';
+                        border = '2px dashed #16a34a';
                       }
 
                       return (
@@ -357,7 +327,6 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                             fontSize: isMobile ? '0.85rem' : '0.95rem',
                             boxShadow: shadow
                           }}
-                          title={isUserMarked && isAnswerKey ? 'Doğru işaretlendi' : isUserMarked ? 'Hatalı işaretlendi' : isAnswerKey ? 'Doğru cevap anahtarı' : ''}
                         >
                           {opt}
                         </div>

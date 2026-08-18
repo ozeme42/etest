@@ -350,14 +350,14 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
   const currentQCount = currentSecQs.length || currentSection.questionCount || 20;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       
       {/* ── HEADER ── */}
-      <header style={{ padding: '0.85rem 1.5rem', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '0.75rem' }}>
+      <header style={{ padding: '0.85rem 1.5rem', background: '#ffffff', borderBottom: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button 
             onClick={() => window.history.back()}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Geri Dön"
           >
             <ArrowLeft size={22} />
@@ -365,25 +365,25 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
           <span style={{ padding: '0.35rem 0.65rem', background: '#7c3aed', borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <Layers size={14} /> BÖLÜMLÜ ÇOKLU ÖDEV
           </span>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>{test.title || test.name}</h2>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>{test.title || test.name}</h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
             padding: '0.4rem 0.85rem',
             borderRadius: '0.65rem',
-            background: timeLeft < 300 ? '#7f1d1d' : '#0f172a',
-            border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`,
-            color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff',
+            background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
+            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
+            color: timeLeft < 300 ? '#dc2626' : '#0f172a',
             fontWeight: 900,
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem'
           }}>
-            <Clock size={16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
+            <Clock size={16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
             <span>{formatTime(timeLeft)}</span>
-            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
               (Toplam {totalQuestionsCount * perQuestionMins} dk)
             </span>
           </div>
@@ -393,9 +393,9 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : '#0f172a',
-              border: '1px solid #334155',
-              color: isDrawingOpen ? 'white' : '#e2e8f0',
+              background: isDrawingOpen ? '#eab308' : '#ffffff',
+              border: `1px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`,
+              color: isDrawingOpen ? 'white' : '#334155',
               fontWeight: 800,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -421,7 +421,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
+              boxShadow: '0 4px 16px rgba(16,185,129,0.25)'
             }}
           >
             <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder
@@ -430,7 +430,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
       </header>
 
       {/* ── MULTI SECTION NAVIGATION TABS ── */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '0.65rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto' }}>
+      <div style={{ background: '#ffffff', borderBottom: '1.5px solid #e2e8f0', padding: '0.65rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto' }}>
         {sections.map((sec, secIdx) => {
           const isCurrent = secIdx === currentSectionIdx;
           const ansCount = getSectionAnsweredCount(secIdx, sec);
@@ -451,14 +451,14 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : isCompleted ? 'rgba(16,185,129,0.15)' : '#1e293b',
-                border: isCurrent ? '2px solid #818cf8' : isCompleted ? '1px solid #10b981' : '1px solid #334155',
-                color: isCurrent ? 'white' : isCompleted ? '#34d399' : '#cbd5e1',
+                background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : isCompleted ? '#f0fdf4' : '#f8fafc',
+                border: isCurrent ? '2px solid #6366f1' : isCompleted ? '1.5px solid #bbf7d0' : '1.5px solid #e2e8f0',
+                color: isCurrent ? 'white' : isCompleted ? '#16a34a' : '#475569',
                 transition: 'all 0.15s ease'
               }}
             >
               <span>{secIdx + 1}. Bölüm: {sec.title}</span>
-              <span style={{ fontSize: '0.72rem', opacity: 0.85, padding: '0.1rem 0.4rem', borderRadius: '0.3rem', background: 'rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '0.72rem', opacity: 0.85, padding: '0.1rem 0.4rem', borderRadius: '0.3rem', background: isCurrent ? 'rgba(0,0,0,0.2)' : '#e2e8f0', color: isCurrent ? 'white' : '#334155' }}>
                 {ansCount}/{totalCount}
               </span>
             </button>
@@ -470,7 +470,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
       <div style={{ maxWidth: '950px', width: '100%', margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
         
         {/* SECTION BANNER */}
-        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <FileSpreadsheet size={28} />
@@ -491,7 +491,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
         </div>
 
         {/* OPTIK GRID FORM FOR ACTIVE SECTION */}
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
           {Array.from({ length: currentQCount }).map((_, idx) => {
             const qNo = idx + 1;
             const qObj = currentSecQs[idx] || {};
@@ -501,13 +501,13 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
             const textVal = openEndedText[key] || openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
             return (
-              <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
+              <div key={qNo} style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                   <span>Soru {qNo}</span>
                   {selectedOpt !== undefined || textVal ? (
-                    <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
+                    <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Kodlandı</span>
                   ) : (
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
                   )}
                 </div>
 
@@ -521,9 +521,9 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '0.5rem',
-                      background: '#1e293b',
-                      border: '1px solid #334155',
-                      color: '#f8fafc',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#0f172a',
                       fontSize: '0.82rem',
                       fontFamily: 'inherit'
                     }}
@@ -549,22 +549,22 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                           <button
                             key={opt}
                             onClick={() => handleOptionSelect(currentSectionIdx, qNo, optIdx)}
-                          style={{
-                            flex: 1,
-                            height: '34px',
-                            borderRadius: '0.5rem',
-                            border: isSelected ? 'none' : '1px solid #334155',
-                            background: isSelected ? '#059669' : '#1e293b',
-                            color: isSelected ? 'white' : '#cbd5e1',
-                            fontWeight: 900,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {opt}
-                        </button>
-                      );
+                            style={{
+                              flex: 1,
+                              height: '34px',
+                              borderRadius: '0.5rem',
+                              border: isSelected ? 'none' : '1px solid #cbd5e1',
+                              background: isSelected ? '#059669' : '#ffffff',
+                              color: isSelected ? 'white' : '#334155',
+                              fontWeight: 900,
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        );
                       });
                     })()}
                   </div>
@@ -582,10 +582,10 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: '0.75rem 1.5rem',
               borderRadius: '0.85rem',
-              background: currentSectionIdx === 0 ? '#1e293b' : '#334155',
-              border: '1px solid #475569',
-              color: currentSectionIdx === 0 ? '#64748b' : '#f8fafc',
-              fontWeight: 900,
+              background: currentSectionIdx === 0 ? '#f1f5f9' : '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: currentSectionIdx === 0 ? '#94a3b8' : '#334155',
+              fontWeight: 800,
               fontSize: '0.9rem',
               cursor: currentSectionIdx === 0 ? 'default' : 'pointer',
               display: 'flex',
@@ -611,7 +611,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 4px 16px rgba(99,102,241,0.35)'
+                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.25)'
               }}
             >
               Sonraki Bölüm <ChevronRight size={18} />
@@ -631,7 +631,7 @@ export default function BulkHomeworkRunner({ test, questions, onSubmit, onAutoSa
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
+                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)'
               }}
             >
               <CheckCircle2 size={18} /> Sınavı Bitir ve Gönder

@@ -243,20 +243,21 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc', color: '#0f172a' }}>
       <header style={{ 
         padding: isMobile ? '0.5rem 0.75rem' : '0.85rem 1.5rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        background: '#1e293b', 
-        borderBottom: '1px solid #334155',
+        background: '#ffffff', 
+        borderBottom: '1.5px solid #e2e8f0',
         position: 'sticky', 
         top: 0, 
         zIndex: 10,
         flexShrink: 0,
         gap: '0.5rem',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -268,15 +269,15 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   navigate('/');
                 }
               }}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Geri Dön"
             >
               <ArrowLeft size={isMobile ? 18 : 22} />
             </button>
             <h2 style={{ 
-              color: '#f8fafc', 
+              color: '#0f172a', 
               fontSize: isMobile ? '0.9rem' : '1.15rem', 
-              fontWeight: 800, 
+              fontWeight: 900, 
               margin: 0, 
               whiteSpace: 'nowrap', 
               overflow: 'hidden', 
@@ -285,7 +286,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               {test.title || test.name || 'Fiziki Test'}
             </h2>
           </div>
-          <span style={{ color: '#94a3b8', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
+          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem', fontWeight: 600 }}>
             Fiziki Sınav • {qCount} Soru
           </span>
         </div>
@@ -294,19 +295,19 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           <div style={{
             padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.85rem',
             borderRadius: '0.65rem',
-            background: timeLeft < 300 ? '#7f1d1d' : '#0f172a',
-            border: `1.5px solid ${timeLeft < 300 ? '#ef4444' : '#334155'}`,
-            color: timeLeft < 300 ? '#fca5a5' : '#e0e7ff',
+            background: timeLeft < 300 ? '#fef2f2' : '#ffffff',
+            border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : '#cbd5e1'}`,
+            color: timeLeft < 300 ? '#dc2626' : '#0f172a',
             fontWeight: 900,
             fontSize: isMobile ? '0.75rem' : '0.85rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem'
           }}>
-            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#ef4444' : '#059669'} />
+            <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
             <span>{formatTime(timeLeft)}</span>
             {!isMobile && (
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
                 (Toplam {qCount * perQuestionMins} dk)
               </span>
             )}
@@ -323,9 +324,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#3b82f6' : '#334155'}`,
-                    background: pdfMode === 'side' ? '#1d4ed8' : '#0f172a',
-                    color: pdfMode === 'side' ? 'white' : '#93c5fd',
+                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'side' ? '#bfdbfe' : '#cbd5e1'}`,
+                    background: pdfMode === 'side' ? '#eff6ff' : '#ffffff',
+                    color: pdfMode === 'side' ? '#1d4ed8' : '#475569',
                     fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                   }}
                 >
@@ -340,9 +341,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#3b82f6' : '#334155'}`,
-                  background: pdfMode === 'top' ? '#1d4ed8' : '#0f172a',
-                  color: pdfMode === 'top' ? 'white' : '#93c5fd',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#bfdbfe' : '#cbd5e1'}`,
+                  background: pdfMode === 'top' ? '#eff6ff' : '#ffffff',
+                  color: pdfMode === 'top' ? '#1d4ed8' : '#475569',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -356,9 +357,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#3b82f6' : '#334155'}`,
-                  background: pdfMode === 'float' ? '#1d4ed8' : '#0f172a',
-                  color: pdfMode === 'float' ? 'white' : '#93c5fd',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#bfdbfe' : '#cbd5e1'}`,
+                  background: pdfMode === 'float' ? '#eff6ff' : '#ffffff',
+                  color: pdfMode === 'float' ? '#1d4ed8' : '#475569',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -372,9 +373,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: isMobile ? '0.35rem' : '0.4rem 0.7rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#ef4444' : '#334155'}`,
-                  background: pdfMode === 'hidden' ? '#7f1d1d' : '#0f172a',
-                  color: pdfMode === 'hidden' ? '#fca5a5' : '#94a3b8',
+                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
+                  background: pdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
+                  color: pdfMode === 'hidden' ? '#dc2626' : '#64748b',
                   fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -389,21 +390,22 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               const nextState = !showOptikForm;
               setShowOptikForm(nextState);
               if (nextState && isMobile) {
-                setPdfMode('top'); // On mobile, show optic form directly under PDF!
+                setPdfMode('top');
               }
             }}
             style={{
               padding: isMobile ? '0.4rem 0.65rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: showOptikForm ? '#059669' : '#0f172a',
-              border: `1.5px solid ${showOptikForm ? '#10b981' : '#334155'}`,
-              color: 'white',
+              background: showOptikForm ? 'linear-gradient(135deg, #059669, #10b981)' : '#ffffff',
+              border: `1.5px solid ${showOptikForm ? '#059669' : '#cbd5e1'}`,
+              color: showOptikForm ? 'white' : '#334155',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              boxShadow: showOptikForm ? '0 2px 8px rgba(16,185,129,0.25)' : 'none'
             }}
             title={showOptikForm ? "Optik Gizle (Yüzen İkona Geç)" : "Optik Ekranda Göster"}
           >
@@ -416,9 +418,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             style={{
               padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 1rem',
               borderRadius: '0.75rem',
-              background: isDrawingOpen ? '#eab308' : '#0f172a',
-              border: '1px solid #334155',
-              color: isDrawingOpen ? 'white' : '#e2e8f0',
+              background: isDrawingOpen ? '#eab308' : '#ffffff',
+              border: `1.5px solid ${isDrawingOpen ? '#eab308' : '#cbd5e1'}`,
+              color: isDrawingOpen ? 'white' : '#334155',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.82rem',
               cursor: 'pointer',
@@ -446,7 +448,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              boxShadow: '0 4px 16px rgba(16,185,129,0.35)'
+              boxShadow: '0 4px 16px rgba(16,185,129,0.25)'
             }}
           >
             <CheckCircle2 size={isMobile ? 14 : 18} /> 
@@ -482,22 +484,22 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
         {/* RIGHT/BOTTOM: Optik Form — scrollable */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: '#f8fafc' }}>
             <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <FileSpreadsheet size={26} />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem' }}>Dijital Optik Form Kodlama</h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
-                  {hasPdf && pdfMode !== 'hidden' ? 'PDF\u2019i okuyarak cevaplar\u0131 i\u015faretleyin.' : 'Ka\u011f\u0131t \u00fczerinde \u00e7\u00f6zd\u00fc\u011f\u00fcn\u00fcz s\u0131nav\u0131n cevaplar\u0131n\u0131 i\u015faretleyiniz.'}
+                  {hasPdf && pdfMode !== 'hidden' ? 'PDF’i okuyarak cevapları işaretleyin.' : 'Kağıt üzerinde çözdüğünüz sınavın cevaplarını işaretleyiniz.'}
                 </p>
               </div>
             </div>
 
             {/* Optik Grid Form */}
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
               {Array.from({ length: qCount }).map((_, idx) => {
                 const qNo = idx + 1;
                 const qObj = questions[idx] || {};
@@ -505,13 +507,13 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
                 return (
-                  <div key={qNo} style={{ background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#f8fafc' }}>
+                  <div key={qNo} style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
                       <span>{qObj.testName ? `${qObj.testName} - Soru ${qNo}` : `Soru ${qNo}`}</span>
                       {selectedOpt !== undefined || textVal ? (
-                        <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 900 }}>✓ Kodlandı</span>
+                        <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900 }}>✓ Kodlandı</span>
                       ) : (
-                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>— Boş</span>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>— Boş</span>
                       )}
                     </div>
 
@@ -521,7 +523,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                         onChange={(e) => handleTextChange(qNo, e.target.value)}
                         placeholder={`Soru ${qNo} açık uçlu yanıt...`}
                         rows={2}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', background: '#1e293b', border: '1px solid #334155', color: '#f8fafc', fontSize: '0.82rem', fontFamily: 'inherit' }}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.82rem', fontFamily: 'inherit' }}
                       />
                     ) : (
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -548,9 +550,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                                 onClick={() => handleOptionSelect(qNo, optIdx)}
                                 style={{
                                   flex: 1, height: '34px', borderRadius: '0.5rem',
-                                  border: isSelected ? 'none' : '1px solid #334155',
-                                  background: isSelected ? '#059669' : '#1e293b',
-                                  color: isSelected ? 'white' : '#cbd5e1',
+                                  border: isSelected ? 'none' : '1px solid #cbd5e1',
+                                  background: isSelected ? '#059669' : '#ffffff',
+                                  color: isSelected ? 'white' : '#334155',
                                   fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s ease'
                                 }}
                               >
@@ -574,7 +576,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
                   border: 'none', color: 'white', fontWeight: 900, fontSize: '1.1rem',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  boxShadow: '0 8px 25px rgba(79, 70, 229, 0.4)'
+                  boxShadow: '0 8px 25px rgba(79, 70, 229, 0.3)'
                 }}
               >
                 <CheckCircle2 size={22} />
@@ -590,19 +592,19 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
       {/* FINISH MODAL */}
       {showFinishModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(5px)' }}>
-          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2.5rem', background: '#1e293b', borderRadius: '1.5rem', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#f8fafc' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '2px solid #ef4444', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2.5rem', background: '#ffffff', borderRadius: '1.5rem', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#eff6ff', border: '2px solid #bfdbfe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <CheckCircle2 size={32} />
             </div>
-            <h3 style={{ margin: '0', fontSize: '1.5rem', fontWeight: 900 }}>Sınavı Bitiriyorsunuz</h3>
-            <p style={{ margin: '0', color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6 }}>
+            <h3 style={{ margin: '0', fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>Sınavı Bitiriyorsunuz</h3>
+            <p style={{ margin: '0', color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6 }}>
               Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz? Sınavı bitirdikten sonra cevaplarınızı değiştiremezsiniz.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem', flexWrap: 'wrap' }}>
               <button 
                 onClick={() => setShowFinishModal(false)}
-                style={{ flex: 1, minWidth: '140px', padding: '0.85rem 1rem', borderRadius: '0.85rem', background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}
+                style={{ flex: 1, minWidth: '140px', padding: '0.85rem 1rem', borderRadius: '0.85rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer' }}
               >
                 Kontrol Etmeye Dön
               </button>
@@ -611,7 +613,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   setShowFinishModal(false);
                   handleSubmit(true);
                 }}
-                style={{ flex: 1, minWidth: '140px', padding: '0.85rem 1rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}
+                style={{ flex: 1, minWidth: '140px', padding: '0.85rem 1rem', borderRadius: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)' }}
               >
                 Sınavı Kaydet ve Gönder
               </button>
@@ -619,6 +621,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           </div>
         </div>
       )}
+
       {/* Mobile Floating Action Button (Only shown when inline optic form is hidden) */}
       {isMobile && !showOptikForm && (
         <button
@@ -637,7 +640,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(16,185,129,0.5)',
+            boxShadow: '0 8px 24px rgba(16,185,129,0.35)',
             cursor: 'pointer'
           }}
           title="Optik Formu Aç"
@@ -650,42 +653,42 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
       {isMobile && showMobileOpticModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: 'rgba(15, 23, 42, 0.65)',
           backdropFilter: 'blur(6px)',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
         }} onClick={() => setShowMobileOpticModal(false)}>
           <div style={{
-            background: '#0f172a',
-            color: '#f8fafc',
+            background: '#ffffff',
+            color: '#0f172a',
             borderRadius: '1.5rem 1.5rem 0 0',
             maxHeight: '85vh',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
-            boxShadow: '0 -10px 35px rgba(0,0,0,0.5)',
-            borderTop: '1px solid #334155'
+            boxShadow: '0 -10px 35px rgba(0,0,0,0.15)',
+            borderTop: '1.5px solid #e2e8f0'
           }} onClick={e => e.stopPropagation()}>
 
             {/* Header */}
             <div style={{
               padding: '1rem 1.25rem',
-              background: '#1e293b',
-              borderBottom: '1px solid #334155',
+              background: '#f8fafc',
+              borderBottom: '1.5px solid #e2e8f0',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between'
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
                   📝 Optik Cevap Anahtarı
                 </h3>
-                <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
                   {Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '').length}/{qCount} soru işaretlendi
                 </p>
               </div>
               <button
                 onClick={() => setShowMobileOpticModal(false)}
                 style={{
-                  background: '#334155', border: 'none', borderRadius: '50%',
+                  background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '50%',
                   width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: '#cbd5e1'
+                  cursor: 'pointer', color: '#475569'
                 }}
               >
                 <XIcon size={20} />
@@ -693,7 +696,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             </div>
 
             {/* Body */}
-            <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, background: '#0f172a' }}>
+            <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {Array.from({ length: qCount }).map((_, idx) => {
                   const qNo = idx + 1;
@@ -702,8 +705,8 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                   const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
                   return (
-                    <div key={qNo} style={{ background: '#1e293b', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: selectedOpt !== undefined || textVal ? '1.5px solid #10b981' : '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#f8fafc', minWidth: 60 }}>
+                    <div key={qNo} style={{ background: '#ffffff', padding: '0.85rem 1rem', borderRadius: '0.85rem', border: selectedOpt !== undefined || textVal ? '1.5px solid #10b981' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a', minWidth: 60 }}>
                         Soru {qNo}
                       </span>
 
@@ -712,7 +715,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                           placeholder={`${qNo}. sorunun cevabı...`}
                           value={textVal}
                           onChange={(e) => handleTextChange(qNo, e.target.value)}
-                          style={{ flex: 1, minHeight: 60, padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #334155', background: '#0f172a', color: 'white', fontSize: '0.85rem' }}
+                          style={{ flex: 1, minHeight: 60, padding: '0.5rem', borderRadius: '0.4rem', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.85rem' }}
                         />
                       ) : (
                         <div style={{ display: 'flex', gap: '0.4rem', flex: 1, maxWidth: 260 }}>
@@ -741,11 +744,11 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                                   style={{
                                     flex: 1, height: 38, borderRadius: '50%',
                                     fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
-                                    border: isSelected ? '2px solid #10b981' : '1.5px solid #475569',
-                                    background: isSelected ? '#10b981' : '#0f172a',
-                                    color: isSelected ? 'white' : '#cbd5e1',
+                                    border: isSelected ? '2px solid #059669' : '1.5px solid #cbd5e1',
+                                    background: isSelected ? '#059669' : '#ffffff',
+                                    color: isSelected ? 'white' : '#334155',
                                     transition: 'all 0.12s',
-                                    boxShadow: isSelected ? '0 3px 8px rgba(16,185,129,0.4)' : 'none',
+                                    boxShadow: isSelected ? '0 3px 8px rgba(16,185,129,0.25)' : 'none',
                                   }}
                                 >
                                   {opt}
@@ -762,14 +765,14 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '0.85rem 1.25rem', background: '#1e293b', borderTop: '1px solid #334155' }}>
+            <div style={{ padding: '0.85rem 1.25rem', background: '#ffffff', borderTop: '1.5px solid #e2e8f0' }}>
               <button
                 onClick={() => setShowMobileOpticModal(false)}
                 style={{
                   width: '100%', padding: '0.8rem', borderRadius: '0.85rem',
                   background: 'linear-gradient(135deg, #10b981, #059669)',
                   color: 'white', border: 'none', fontWeight: 900, fontSize: '0.92rem',
-                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                 }}
               >

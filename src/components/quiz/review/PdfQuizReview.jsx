@@ -302,19 +302,20 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: 'white' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* Header */}
       <header style={{
         padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
-        background: '#1e293b',
-        borderBottom: '1px solid #334155',
+        background: '#ffffff',
+        borderBottom: '1.5px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexShrink: 0,
         gap: isMobile ? '0.4rem' : '1rem',
         minHeight: isMobile ? '48px' : '62px',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
@@ -322,9 +323,9 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             style={{
               padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              color: 'white',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#475569',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.8rem',
               cursor: 'pointer',
@@ -343,7 +344,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               fontSize: isMobile ? '0.85rem' : '1.1rem',
               fontWeight: 900,
               margin: 0,
-              color: '#f8fafc',
+              color: '#0f172a',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
@@ -352,7 +353,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               {!isMobile && " — İnceleme Raporu"}
             </h2>
             {!isMobile && (
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
                 📄 PDF Formatında Sınav İncelemesi
               </div>
             )}
@@ -362,14 +363,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         {/* Score Badges */}
         {isOpenEndedMode && !isEvaluated ? (
           <div style={{
-            background: 'linear-gradient(135deg, #78350f, #92400e)',
-            color: '#fef3c7',
+            background: '#fffbeb',
+            color: '#b45309',
             padding: isMobile ? '0.25rem 0.55rem' : '0.45rem 1.1rem',
             borderRadius: '0.65rem',
             fontWeight: 900,
             fontSize: isMobile ? '0.72rem' : '0.85rem',
-            border: '1px solid #f59e0b',
-            boxShadow: '0 2px 10px rgba(245,158,11,0.25)',
+            border: '1px solid #fde68a',
             display: 'flex',
             alignItems: 'center',
             gap: '0.3rem',
@@ -380,13 +380,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
             <div style={{
-              background: '#064e3b',
-              color: '#34d399',
+              background: '#f0fdf4',
+              color: '#15803d',
               padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #059669',
+              border: '1px solid #bbf7d0',
               display: 'flex',
               alignItems: 'center',
               gap: '0.2rem'
@@ -395,13 +395,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               {!isMobile && <span>Doğru</span>}
             </div>
             <div style={{
-              background: '#7f1d1d',
-              color: '#f87171',
+              background: '#fef2f2',
+              color: '#b91c1c',
               padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #dc2626',
+              border: '1px solid #fecaca',
               display: 'flex',
               alignItems: 'center',
               gap: '0.2rem'
@@ -410,13 +410,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               {!isMobile && <span>Yanlış</span>}
             </div>
             <div style={{
-              background: '#334155',
-              color: '#94a3b8',
+              background: '#f8fafc',
+              color: '#475569',
               padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #475569',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               gap: '0.2rem'
@@ -425,14 +425,13 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               {!isMobile && <span>Boş</span>}
             </div>
             <div style={{
-              background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-              color: '#e0e7ff',
-              padding: isMobile ? '0.2rem 0.5rem' : '0.35rem 0.85rem',
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: '#ffffff',
+              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.85rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #6366f1',
-              boxShadow: '0 2px 8px rgba(79,70,229,0.35)'
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
             }}>
               %{scorePercentage}
             </div>
@@ -447,7 +446,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         defaultPosition="right"
         defaultSize={400}
         documentContent={
-          <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#ffffff', color: '#1e293b' }}>
+          <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#f8fafc', color: '#0f172a' }}>
             <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
           </div>
         }
@@ -488,34 +487,35 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 <div
                   key={qNo}
                   style={{
-                    background: (isItemOE && !isEvaluated) ? '#0f172a' : (isCorrect === true ? 'rgba(16,185,129,0.1)' : isCorrect === false ? 'rgba(239,68,68,0.1)' : '#0f172a'),
+                    background: (isItemOE && !isEvaluated) ? '#faf5ff' : (isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#ffffff'),
                     padding: '1rem',
                     borderRadius: '0.85rem',
-                    border: `1px solid ${(isItemOE && !isEvaluated) ? '#334155' : (isCorrect === true ? '#059669' : isCorrect === false ? '#dc2626' : '#334155')}`
+                    border: `1.5px solid ${(isItemOE && !isEvaluated) ? '#e9d5ff' : (isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0')}`,
+                    color: '#0f172a'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>Soru {qNo}</span>
+                    <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a' }}>Soru {qNo}</span>
                     {isItemOE && !isEvaluated ? (
                       isText ? (
-                        <span style={{ color: '#f59e0b', fontWeight: 900, fontSize: '0.8rem' }}>✍️ DEĞERLENDİRME BEKLİYOR</span>
+                        <span style={{ color: '#7c3aed', fontWeight: 900, fontSize: '0.8rem' }}>✍️ DEĞERLENDİRME BEKLİYOR</span>
                       ) : (
                         <span style={{ color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
                       )
                     ) : hasAnswer ? (
                       isCorrect === true ? (
-                        <span style={{ color: '#34d399', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <span style={{ color: '#15803d', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                           <CheckCircle size={15} /> DOĞRU
                         </span>
                       ) : isCorrect === false ? (
-                        <span style={{ color: '#f87171', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <span style={{ color: '#b91c1c', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                           <XCircle size={15} /> YANLIŞ
                         </span>
                       ) : (
-                        <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.8rem' }}>✓ CEVAPLANDI</span>
+                        <span style={{ color: '#0284c7', fontWeight: 900, fontSize: '0.8rem' }}>✓ CEVAPLANDI</span>
                       )
                     ) : isText ? (
-                      <span style={{ color: '#f59e0b', fontWeight: 900, fontSize: '0.8rem' }}>✍️ YAZILI YANIT</span>
+                      <span style={{ color: '#d97706', fontWeight: 900, fontSize: '0.8rem' }}>✍️ YAZILI YANIT</span>
                     ) : (
                       <span style={{ color: '#94a3b8', fontWeight: 800, fontSize: '0.8rem' }}>BOŞ</span>
                     )}
@@ -523,23 +523,23 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
                   {isText ? (
                     <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>ÖĞRENCİ YAZILI CEVABI</div>
-                      <div style={{ fontSize: '0.85rem', background: '#1e293b', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #475569', marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ YAZILI CEVABI</div>
+                      <div style={{ fontSize: '0.85rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: '#0f172a' }}>
                         {textAns}
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>SENİN CEVABIN: </span>
-                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#34d399' : isCorrect === false ? '#f87171' : '#38bdf8' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>SENİN CEVABIN: </span>
+                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#0284c7' }}>
                           {hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns) : 'Boş'}
                         </span>
                       </div>
                       {displayCorrectKey && (
                         <div>
-                          <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800 }}>DOĞRU CEVAP: </span>
-                          <span style={{ fontWeight: 900, color: '#34d399' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>DOĞRU CEVAP: </span>
+                          <span style={{ fontWeight: 900, color: '#15803d' }}>
                             {displayCorrectKey}
                           </span>
                         </div>
@@ -548,8 +548,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                   )}
 
                   {qObj.solutionText && (
-                    <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem', color: '#cbd5e1' }}>
-                      <strong style={{ color: '#818cf8' }}>Çözüm Açıklaması: </strong> {qObj.solutionText}
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '0.8rem', color: '#1e40af' }}>
+                      <strong style={{ color: '#1d4ed8' }}>Çözüm Açıklaması: </strong> {qObj.solutionText}
                     </div>
                   )}
                 </div>

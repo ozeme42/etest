@@ -344,11 +344,11 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       <header style={{
         padding: isMobile ? '0.45rem 0.75rem' : '0.75rem 1.5rem',
-        background: '#1e293b',
-        borderBottom: '1px solid #334155',
+        background: '#ffffff',
+        borderBottom: '1.5px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -358,7 +358,8 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.45rem' : '0.75rem', minWidth: 0, flex: 1 }}>
           <button
@@ -366,9 +367,9 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
             style={{
               padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.85rem',
               borderRadius: '0.65rem',
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              color: 'white',
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              color: '#475569',
               fontWeight: 800,
               fontSize: isMobile ? '0.75rem' : '0.8rem',
               cursor: 'pointer',
@@ -387,7 +388,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               fontSize: isMobile ? '0.85rem' : '1.1rem',
               fontWeight: 900,
               margin: 0,
-              color: '#f8fafc',
+              color: '#0f172a',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
@@ -396,7 +397,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               {!isMobile && " — İnceleme Raporu"}
             </h2>
             {!isMobile && (
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
                 🖼️ Görsel Formatında Sınav İncelemesi
               </div>
             )}
@@ -406,14 +407,13 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         {/* Score Badges */}
         {isOpenEndedMode && !isEvaluated ? (
           <div style={{
-            background: 'linear-gradient(135deg, #78350f, #92400e)',
-            color: '#fef3c7',
+            background: '#fffbeb',
+            color: '#b45309',
             padding: isMobile ? '0.25rem 0.55rem' : '0.45rem 1.1rem',
             borderRadius: '0.65rem',
             fontWeight: 900,
             fontSize: isMobile ? '0.72rem' : '0.85rem',
-            border: '1px solid #f59e0b',
-            boxShadow: '0 2px 10px rgba(245,158,11,0.25)',
+            border: '1px solid #fde68a',
             display: 'flex',
             alignItems: 'center',
             gap: '0.3rem',
@@ -424,13 +424,13 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.25rem' : '0.5rem', flexShrink: 0 }}>
             <div style={{
-              background: '#064e3b',
-              color: '#34d399',
+              background: '#f0fdf4',
+              color: '#15803d',
               padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #059669',
+              border: '1px solid #bbf7d0',
               display: 'flex',
               alignItems: 'center',
               gap: '0.2rem'
@@ -439,13 +439,13 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               {!isMobile && <span>Doğru</span>}
             </div>
             <div style={{
-              background: '#7f1d1d',
-              color: '#f87171',
+              background: '#fef2f2',
+              color: '#b91c1c',
               padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #dc2626',
+              border: '1px solid #fecaca',
               display: 'flex',
               alignItems: 'center',
               gap: '0.2rem'
@@ -454,13 +454,13 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               {!isMobile && <span>Yanlış</span>}
             </div>
             <div style={{
-              background: '#334155',
-              color: '#94a3b8',
+              background: '#f8fafc',
+              color: '#475569',
               padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.75rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #475569',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               gap: '0.2rem'
@@ -469,14 +469,13 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               {!isMobile && <span>Boş</span>}
             </div>
             <div style={{
-              background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-              color: '#e0e7ff',
-              padding: isMobile ? '0.2rem 0.5rem' : '0.35rem 0.85rem',
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              color: '#ffffff',
+              padding: isMobile ? '0.2rem 0.45rem' : '0.35rem 0.85rem',
               borderRadius: '0.5rem',
               fontWeight: 900,
               fontSize: isMobile ? '0.72rem' : '0.82rem',
-              border: '1px solid #6366f1',
-              boxShadow: '0 2px 8px rgba(79,70,229,0.35)'
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
             }}>
               %{scorePercentage}
             </div>
@@ -493,9 +492,9 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           isReviewMode={true}
         />
 
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.25rem', padding: '1.75rem', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
-            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: '#ec4899' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#0284c7' }}>
               Soru {currentIndex + 1} İncelemesi
             </h3>
 
@@ -505,13 +504,13 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               if (isQOpenEnded && !isEvaluated) {
                 if (textAns || activeAnsObj.userAnswerText) {
                   return (
-                    <span style={{ padding: '0.35rem 0.75rem', background: '#78350f', color: '#fef3c7', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span style={{ padding: '0.35rem 0.75rem', background: '#faf5ff', color: '#7c3aed', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       ✍️ DEĞERLENDİRME BEKLİYOR
                     </span>
                   );
                 }
                 return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#334155', color: '#94a3b8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#f8fafc', color: '#64748b', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
                     BOŞ BIRAKILDI
                   </span>
                 );
@@ -519,7 +518,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
               if (!hasAnswer && !textAns && !activeAnsObj.userAnswerText) {
                 return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#334155', color: '#94a3b8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#f8fafc', color: '#64748b', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
                     BOŞ BIRAKILDI
                   </span>
                 );
@@ -527,7 +526,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
               if (isCorrect === true || activeAnsObj.score > 0) {
                 return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#064e3b', color: '#34d399', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #059669' }}>
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#f0fdf4', color: '#15803d', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #bbf7d0' }}>
                     <CheckCircle size={16} /> {isQOpenEnded ? `DOĞRU (${activeAnsObj.score ?? 10} Puan)` : 'DOĞRU CEVAPLADIN'}
                   </span>
                 );
@@ -535,7 +534,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
               if (isCorrect === false && (hasAnswer || activeAnsObj.score === 0)) {
                 return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#7f1d1d', color: '#f87171', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #dc2626' }}>
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.3rem', border: '1px solid #fecaca' }}>
                     <XCircle size={16} /> {isQOpenEnded ? 'YANLIŞ (0 Puan)' : 'YANLIŞ CEVAPLADIN'}
                   </span>
                 );
@@ -543,14 +542,14 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
 
               if (hasAnswer) {
                 return (
-                  <span style={{ padding: '0.35rem 0.75rem', background: '#075985', color: '#38bdf8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #0284c7' }}>
+                  <span style={{ padding: '0.35rem 0.75rem', background: '#f0f9ff', color: '#0369a1', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #bae6fd' }}>
                     ✓ CEVAPLANDI
                   </span>
                 );
               }
 
               return (
-                <span style={{ padding: '0.35rem 0.75rem', background: '#334155', color: '#94a3b8', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #475569' }}>
+                <span style={{ padding: '0.35rem 0.75rem', background: '#f8fafc', color: '#64748b', borderRadius: '0.75rem', fontWeight: 900, fontSize: '0.82rem', border: '1px solid #e2e8f0' }}>
                   BOŞ BIRAKILDI
                 </span>
               );
@@ -571,17 +570,17 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           )}
 
           {textAns ? (
-            <div style={{ marginTop: '1rem', background: '#0f172a', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #334155' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' }}>YAZILI CEVABINIZ</div>
-              <div style={{ marginTop: '0.35rem', fontSize: '0.95rem', color: '#f8fafc', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            <div style={{ marginTop: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase' }}>YAZILI CEVABINIZ</div>
+              <div style={{ marginTop: '0.35rem', fontSize: '0.95rem', color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                 {textAns}
               </div>
             </div>
           ) : (
             <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ background: isCorrect === true ? 'rgba(6,78,59,0.4)' : isCorrect === false ? 'rgba(127,29,29,0.4)' : '#0f172a', padding: '1rem', borderRadius: '0.85rem', border: `1px solid ${isCorrect === true ? '#059669' : isCorrect === false ? '#dc2626' : '#334155'}` }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#94a3b8' }}>SENİN CEVABIN</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: isCorrect === true ? '#34d399' : isCorrect === false ? '#f87171' : '#cbd5e1', marginTop: '0.25rem' }}>
+              <div style={{ background: isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#f8fafc', padding: '1rem', borderRadius: '0.85rem', border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0'}` }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#64748b' }}>SENİN CEVABIN</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#334155', marginTop: '0.25rem' }}>
                   {hasAnswer
                     ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns)
                     : 'Boş'}
@@ -589,9 +588,9 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               </div>
 
               {displayCorrectKey && (
-                <div style={{ background: 'rgba(6,78,59,0.4)', padding: '1rem', borderRadius: '0.85rem', border: '1px solid #059669' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#34d399' }}>DOĞRU CEVAP</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#34d399', marginTop: '0.25rem' }}>
+                <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.85rem', border: '1.5px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#15803d' }}>DOĞRU CEVAP</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#15803d', marginTop: '0.25rem' }}>
                     {displayCorrectKey}
                   </div>
                 </div>
@@ -600,22 +599,22 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           )}
 
           {activeQuestion.solutionText && (
-            <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '0.85rem', background: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', fontSize: '0.9rem' }}>
-              <strong>💡 Çözüm Açıklaması: </strong> {activeQuestion.solutionText}
+            <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '0.85rem', background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1e40af', fontSize: '0.9rem' }}>
+              <strong style={{ color: '#1d4ed8' }}>💡 Çözüm Açıklaması: </strong> {activeQuestion.solutionText}
             </div>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', paddingBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2rem' }}>
           <button
             onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
             disabled={currentIndex === 0}
             style={{
               padding: '0.75rem 1.5rem',
               borderRadius: '0.85rem',
-              border: '1px solid #cbd5e1',
+              border: '1.5px solid #cbd5e1',
               background: currentIndex === 0 ? '#f1f5f9' : '#ffffff',
-              color: currentIndex === 0 ? '#94a3b8' : '#1e293b',
+              color: currentIndex === 0 ? '#94a3b8' : '#334155',
               fontWeight: 800,
               fontSize: '0.9rem',
               cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
@@ -634,14 +633,15 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
               padding: '0.75rem 1.5rem',
               borderRadius: '0.85rem',
               border: 'none',
-              background: currentIndex === qCount - 1 ? '#e2e8f0' : '#ec4899',
+              background: currentIndex === qCount - 1 ? '#f1f5f9' : '#4f46e5',
               color: currentIndex === qCount - 1 ? '#94a3b8' : '#ffffff',
               fontWeight: 800,
               fontSize: '0.9rem',
               cursor: currentIndex === qCount - 1 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.4rem',
+              boxShadow: currentIndex === qCount - 1 ? 'none' : '0 4px 14px rgba(79, 70, 229, 0.25)'
             }}
           >
             Sonraki Soru <ChevronRight size={18} />
