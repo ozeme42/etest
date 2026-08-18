@@ -6,7 +6,7 @@ import {
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, HelpCircle, Eye,
   Table, List, ChevronRight, Check, Clock, Plus, Upload,
   Image as ImageIcon, Trash2, ZoomIn, X, Camera, BookMarked,
-  RotateCcw, ExternalLink
+  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar
 } from 'lucide-react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
@@ -100,6 +100,9 @@ export default function StudentWrongAnswersPage() {
 
   // Selected Subject Filter (null or subject name)
   const [selectedSubject, setSelectedSubject] = useState('Tümü');
+
+  // Date & Metric Sort State: 'date_desc' | 'date_asc' | 'wrong_desc' | 'name_asc'
+  const [sortBy, setSortBy] = useState('date_desc');
 
   useEffect(() => {
     if (location.state?.subject !== undefined) {
@@ -575,7 +578,7 @@ export default function StudentWrongAnswersPage() {
       };
     });
 
-    return parsedSubs.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+    return parsedSubs;
   }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet]);
 
   // Split Submissions into Unreviewed vs Reviewed
@@ -594,9 +597,9 @@ export default function StudentWrongAnswersPage() {
     return testGroupedSubmissions;
   }, [activeMainTab, unreviewedSubmissions, reviewedSubmissions, testGroupedSubmissions]);
 
-  // Filtered Test Submissions for the active tab
+  // Filtered & Sorted Test Submissions for the active tab
   const filteredTestSubmissions = useMemo(() => {
-    return currentTabBaseList.filter(sub => {
+    const list = currentTabBaseList.filter(sub => {
       const textMatch =
         !searchQuery.trim() ||
         (sub.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -609,7 +612,21 @@ export default function StudentWrongAnswersPage() {
 
       return textMatch && subjectMatch && wrongMatch;
     });
-  }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter]);
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'date_asc') {
+        return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
+      }
+      if (sortBy === 'wrong_desc') {
+        return b.wrongQuestions.length - a.wrongQuestions.length;
+      }
+      if (sortBy === 'name_asc') {
+        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr');
+      }
+      // default: date_desc (En Yeni)
+      return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
+    });
+  }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter, sortBy]);
 
   // Tab-Specific Global Counts
   const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
@@ -742,7 +759,7 @@ export default function StudentWrongAnswersPage() {
   };
 
   const filteredStudentErrors = useMemo(() => {
-    return studentErrors.filter(err => {
+    const list = studentErrors.filter(err => {
       const matchSubject = selectedSubject === 'Tümü' || err.subject === selectedSubject;
       const matchStatus = notebookStatusFilter === 'all' || err.status === notebookStatusFilter;
       const matchQuery = !notebookSearchQuery.trim() ||
@@ -753,7 +770,14 @@ export default function StudentWrongAnswersPage() {
 
       return matchSubject && matchStatus && matchQuery;
     });
-  }, [studentErrors, selectedSubject, notebookStatusFilter, notebookSearchQuery]);
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'date_asc') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [studentErrors, selectedSubject, notebookStatusFilter, notebookSearchQuery, sortBy]);
 
   return (
     <div style={{
@@ -772,6 +796,8 @@ export default function StudentWrongAnswersPage() {
         .wa-pill:hover { opacity: 0.95; transform: scale(1.02); }
         .wa-scroll-x::-webkit-scrollbar { height: 4px; }
         .wa-scroll-x::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 99px; }
+        .th-sort { cursor: pointer; user-select: none; transition: background 0.15s; }
+        .th-sort:hover { background: rgba(255,255,255,0.12) !important; color: #ffffff !important; }
       `}</style>
 
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -1094,7 +1120,7 @@ export default function StudentWrongAnswersPage() {
         ════════════════════════════════════════════ */}
         {(activeMainTab === 'unreviewed' || activeMainTab === 'reviewed') && (
           <div>
-            {/* Arama & Görünüm Çubuğu */}
+            {/* Arama, Tarihe Göre Sıralama & Görünüm Çubuğu */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -1109,7 +1135,7 @@ export default function StudentWrongAnswersPage() {
               boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
             }}>
               {/* Arama Kutusu */}
-              <div style={{ flex: '1 1 240px', position: 'relative' }}>
+              <div style={{ flex: '1 1 220px', position: 'relative' }}>
                 <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"
@@ -1131,8 +1157,33 @@ export default function StudentWrongAnswersPage() {
                 />
               </div>
 
-              {/* Filtre ve Görünüm Seçici */}
+              {/* Sıralama Seçici & Filtre & Görünüm */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                
+                {/* TARİHE / METRİĞE GÖRE SIRALAMA MENÜSÜ */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.2rem 0.5rem', borderRadius: '10px', border: '1.5px solid rgba(255, 255, 255, 0.14)' }}>
+                  <ArrowUpDown size={14} color="#818cf8" />
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#ffffff',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: '0.3rem 0'
+                    }}
+                  >
+                    <option value="date_desc" style={{ background: '#1e293b' }}>📅 Tarihe Göre: En Yeni</option>
+                    <option value="date_asc" style={{ background: '#1e293b' }}>📅 Tarihe Göre: En Eski</option>
+                    <option value="wrong_desc" style={{ background: '#1e293b' }}>❌ En Çok Yanlış Olan</option>
+                    <option value="name_asc" style={{ background: '#1e293b' }}>🔤 İsim (A-Z)</option>
+                  </select>
+                </div>
+
                 <button
                   onClick={() => setWrongOnlyFilter(prev => !prev)}
                   style={{
@@ -1149,7 +1200,7 @@ export default function StudentWrongAnswersPage() {
                     gap: 4
                   }}
                 >
-                  <span>❌ Sadece Yanlışı Olanlar</span>
+                  <span>❌ Yanlışı Olanlar</span>
                 </button>
 
                 <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.5)', padding: '2px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -1238,7 +1289,8 @@ export default function StudentWrongAnswersPage() {
                             <Icon size={13} /> {sub.subject}
                           </span>
 
-                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 700 }}>
+                          <span style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Calendar size={12} color="#94a3b8" />
                             {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
                           </span>
                         </div>
@@ -1450,7 +1502,7 @@ export default function StudentWrongAnswersPage() {
               </div>
             )}
 
-            {/* TABLO GÖRÜNÜMÜ */}
+            {/* TABLO GÖRÜNÜMÜ (Tıklanabilir Başlık Sıralaması İle) */}
             {viewMode === 'table' && (
               <div style={{
                 background: 'rgba(30, 41, 59, 0.95)',
@@ -1462,10 +1514,39 @@ export default function StudentWrongAnswersPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: 700 }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.06)', borderBottom: '1.5px solid rgba(255,255,255,0.12)', color: '#cbd5e1', fontSize: '0.74rem' }}>
-                      <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>SINAV / KİTAP & ÜNİTE</th>
+                      <th
+                        className="th-sort"
+                        onClick={() => setSortBy('name_asc')}
+                        style={{ padding: '0.85rem 1rem', fontWeight: 900 }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>SINAV / KİTAP & ÜNİTE</span>
+                          {sortBy === 'name_asc' && <ArrowUp size={12} color="#818cf8" />}
+                        </div>
+                      </th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>DERS</th>
-                      <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>TARİH</th>
-                      <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>❌ YANLIŞLAR</th>
+                      <th
+                        className="th-sort"
+                        onClick={() => setSortBy(sortBy === 'date_desc' ? 'date_asc' : 'date_desc')}
+                        style={{ padding: '0.85rem 1rem', fontWeight: 900 }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>TARİH</span>
+                          {sortBy === 'date_desc' && <ArrowDown size={12} color="#818cf8" />}
+                          {sortBy === 'date_asc' && <ArrowUp size={12} color="#818cf8" />}
+                          {sortBy !== 'date_desc' && sortBy !== 'date_asc' && <ArrowUpDown size={12} color="#94a3b8" />}
+                        </div>
+                      </th>
+                      <th
+                        className="th-sort"
+                        onClick={() => setSortBy(sortBy === 'wrong_desc' ? 'date_desc' : 'wrong_desc')}
+                        style={{ padding: '0.85rem 1rem', fontWeight: 900 }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>❌ YANLIŞLAR</span>
+                          {sortBy === 'wrong_desc' && <ArrowDown size={12} color="#f87171" />}
+                        </div>
+                      </th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>⚪ BOŞLAR</th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>DURUM</th>
                       <th style={{ padding: '0.85rem 1rem', fontWeight: 900, textAlign: 'right' }}>İŞLEM</th>
