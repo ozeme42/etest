@@ -3863,38 +3863,58 @@ export default function MyCoachingPage() {
                 </div>
 
                 {/* Özet istatistik */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-                  {[
-                    { label: 'Çözülen Test', value: otherHomeworkSubmissions.length, color: '#2563eb' },
-                    { label: 'Ortalama Net', value: (otherHomeworkSubmissions.reduce((s, x) => s + (x.totalNet || 0), 0) / otherHomeworkSubmissions.length).toFixed(1), color: '#7c3aed' },
-                    { label: 'Toplam Doğru', value: otherHomeworkSubmissions.reduce((s, x) => s + (x.correctCount || 0), 0), color: '#059669' },
-                    { label: 'Toplam Yanlış', value: otherHomeworkSubmissions.reduce((s, x) => s + (x.wrongCount || 0), 0), color: '#dc2626' },
-                  ].map(s => (
-                    <div key={s.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
-                      <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+                {(() => {
+                  const hwTotalD = otherHomeworkSubmissions.reduce((s, x) => s + (x.correctCount || 0), 0);
+                  const hwTotalY = otherHomeworkSubmissions.reduce((s, x) => s + (x.wrongCount || 0), 0);
+                  const hwTotalB = otherHomeworkSubmissions.reduce((s, x) => s + (x.emptyCount || 0), 0);
+                  const hwTotalQ = hwTotalD + hwTotalY + hwTotalB;
+                  const hwSuccessRate = hwTotalQ > 0 ? Math.round((hwTotalD / hwTotalQ) * 100) : 0;
+
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                      {[
+                        { label: 'Çözülen Test', value: otherHomeworkSubmissions.length, color: '#2563eb' },
+                        { label: 'Başarı Durumu', value: `%${hwSuccessRate}`, color: '#7c3aed' },
+                        { label: 'Toplam Doğru', value: hwTotalD, color: '#059669' },
+                        { label: 'Toplam Yanlış', value: hwTotalY, color: '#dc2626' },
+                      ].map(s => (
+                        <div key={s.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
+                          <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {otherHomeworkSubmissions.map((s, i) => (
-                    <div key={s.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>{s.title}</div>
-                        <div style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
-                          Tarih: {s.date} · ✅ {s.correctCount} Doğru · ❌ {s.wrongCount} Yanlış · ⭕ {s.emptyCount} Boş
+                  {otherHomeworkSubmissions.map((s, i) => {
+                    const d = s.correctCount || 0;
+                    const y = s.wrongCount || 0;
+                    const b = s.emptyCount || 0;
+                    const totalQ = d + y + b;
+                    const rate = totalQ > 0 ? Math.round((d / totalQ) * 100) : 0;
+
+                    return (
+                      <div key={s.id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '0.85rem 1rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1e293b' }}>{s.title}</div>
+                          <div style={{ fontSize: '0.73rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                            Tarih: {s.date} · ✅ {s.correctCount} Doğru · ❌ {s.wrongCount} Yanlış · ⭕ {s.emptyCount} Boş
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'baseline' }}>
+                            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: rate >= 70 ? '#059669' : rate >= 50 ? '#d97706' : '#dc2626' }}>%{rate}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>başarı</span>
+                          </div>
+                          <button type="button" onClick={() => deleteSubmission(s.id)} title="Testi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#2563eb' }}>{s.totalNet}</span>
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>net</span>
-                        <button type="button" onClick={() => deleteSubmission(s.id)} title="Testi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
