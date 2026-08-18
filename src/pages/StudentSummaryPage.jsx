@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useSummaries } from '../context/SummaryContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import SummaryHtmlViewer from '../components/summary/SummaryHtmlViewer';
 import { 
@@ -13,50 +14,114 @@ import {
 import './StudentSummaryPage.css';
 
 // Subject color theme helper
-const getSubjectTheme = (subjectName = '') => {
+const getSubjectTheme = (subjectName = '', isDark = false) => {
   const s = String(subjectName || '').toLowerCase();
   if (s.includes('matematik') || s.includes('geometri')) {
-    return { icon: '📐', color: '#2563eb', gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', bg: '#f0f7ff', border: '#bfdbfe', text: '#1d4ed8', badgeBg: '#dbeafe', name: 'Matematik' };
+    return {
+      icon: '📐',
+      color: '#3b82f6',
+      gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+      bg: isDark ? 'rgba(37, 99, 235, 0.16)' : '#f0f7ff',
+      border: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe',
+      text: isDark ? '#93c5fd' : '#1d4ed8',
+      badgeBg: isDark ? 'rgba(37, 99, 235, 0.25)' : '#dbeafe',
+      name: 'Matematik'
+    };
   }
   if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) {
-    return { icon: '🔬', color: '#059669', gradient: 'linear-gradient(135deg, #059669, #10b981)', bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d', badgeBg: '#dcfce7', name: 'Fen Bilimleri' };
+    return {
+      icon: '🔬',
+      color: '#10b981',
+      gradient: 'linear-gradient(135deg, #059669, #10b981)',
+      bg: isDark ? 'rgba(16, 185, 129, 0.16)' : '#f0fdf4',
+      border: isDark ? 'rgba(16, 185, 129, 0.35)' : '#bbf7d0',
+      text: isDark ? '#6ee7b7' : '#15803d',
+      badgeBg: isDark ? 'rgba(16, 185, 129, 0.25)' : '#dcfce7',
+      name: 'Fen Bilimleri'
+    };
   }
   if (s.includes('türkçe') || s.includes('edebiyat') || s.includes('dil')) {
-    return { icon: '📖', color: '#e11d48', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', bg: '#fff1f2', border: '#fecdd3', text: '#be123c', badgeBg: '#ffe4e6', name: 'Türkçe' };
+    return {
+      icon: '📖',
+      color: '#f43f5e',
+      gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)',
+      bg: isDark ? 'rgba(244, 63, 94, 0.16)' : '#fff1f2',
+      border: isDark ? 'rgba(244, 63, 94, 0.35)' : '#fecdd3',
+      text: isDark ? '#fda4af' : '#be123c',
+      badgeBg: isDark ? 'rgba(244, 63, 94, 0.25)' : '#ffe4e6',
+      name: 'Türkçe'
+    };
   }
   if (s.includes('inkılap') || s.includes('tarih') || s.includes('sosyal') || s.includes('coğrafya')) {
-    return { icon: '🏛️', color: '#d97706', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', bg: '#fffbeb', border: '#fde68a', text: '#b45309', badgeBg: '#fef3c7', name: 'Sosyal Bilgiler' };
+    return {
+      icon: '🏛️',
+      color: '#f59e0b',
+      gradient: 'linear-gradient(135deg, #d97706, #f59e0b)',
+      bg: isDark ? 'rgba(245, 158, 11, 0.16)' : '#fffbeb',
+      border: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a',
+      text: isDark ? '#fcd34d' : '#b45309',
+      badgeBg: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7',
+      name: 'Sosyal Bilgiler'
+    };
   }
   if (s.includes('ingilizce') || s.includes('yabancı') || s.includes('almanca')) {
-    return { icon: '🌍', color: '#7c3aed', gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', bg: '#faf5ff', border: '#e9d5ff', text: '#6d28d9', badgeBg: '#f3e8ff', name: 'İngilizce' };
+    return {
+      icon: '🌍',
+      color: '#8b5cf6',
+      gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)',
+      bg: isDark ? 'rgba(139, 92, 246, 0.16)' : '#faf5ff',
+      border: isDark ? 'rgba(139, 92, 246, 0.35)' : '#e9d5ff',
+      text: isDark ? '#c4b5fd' : '#6d28d9',
+      badgeBg: isDark ? 'rgba(139, 92, 246, 0.25)' : '#f3e8ff',
+      name: 'İngilizce'
+    };
   }
   if (s.includes('din') || s.includes('ahlak')) {
-    return { icon: '🕌', color: '#0891b2', gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', bg: '#ecfeff', border: '#a5f3fc', text: '#0e7490', badgeBg: '#cffafe', name: 'Din Kültürü' };
+    return {
+      icon: '🕌',
+      color: '#06b6d4',
+      gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)',
+      bg: isDark ? 'rgba(6, 182, 212, 0.16)' : '#ecfeff',
+      border: isDark ? 'rgba(6, 182, 212, 0.35)' : '#a5f3fc',
+      text: isDark ? '#67e8f9' : '#0e7490',
+      badgeBg: isDark ? 'rgba(6, 182, 212, 0.25)' : '#cffafe',
+      name: 'Din Kültürü'
+    };
   }
-  return { icon: '📚', color: '#4f46e5', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', bg: '#f8fafc', border: '#cbd5e1', text: '#334155', badgeBg: '#f1f5f9', name: 'Ders' };
+  return {
+    icon: '📚',
+    color: '#6366f1',
+    gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+    bg: isDark ? 'rgba(99, 102, 241, 0.16)' : '#f8fafc',
+    border: isDark ? 'rgba(99, 102, 241, 0.35)' : '#cbd5e1',
+    text: isDark ? '#a5b4fc' : '#334155',
+    badgeBg: isDark ? 'rgba(99, 102, 241, 0.25)' : '#f1f5f9',
+    name: 'Ders'
+  };
 };
 
 // Row theme palettes for color variety in topic list
-const ROW_COLOR_PALETTES = [
-  { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
-  { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
-  { bg: '#f0fdf4', border: '#bbf7d0', accent: '#10b981', text: '#15803d', badgeBg: '#dcfce7' },
-  { bg: '#faf5ff', border: '#e9d5ff', accent: '#8b5cf6', text: '#6d28d9', badgeBg: '#f3e8ff' },
-  { bg: '#fffbeb', border: '#fde68a', accent: '#f59e0b', text: '#b45309', badgeBg: '#fef3c7' },
-  { bg: '#ecfeff', border: '#a5f3fc', accent: '#06b6d4', text: '#0e7490', badgeBg: '#cffafe' },
+const getRowPalettes = (isDark = false) => [
+  { bg: isDark ? 'rgba(37, 99, 235, 0.08)' : '#f0f7ff', border: isDark ? 'rgba(59, 130, 246, 0.25)' : '#bfdbfe', accent: '#3b82f6', text: isDark ? '#93c5fd' : '#1d4ed8', badgeBg: isDark ? 'rgba(37, 99, 235, 0.2)' : '#dbeafe' },
+  { bg: isDark ? 'rgba(244, 63, 94, 0.08)' : '#fff1f2', border: isDark ? 'rgba(244, 63, 94, 0.25)' : '#fecdd3', accent: '#f43f5e', text: isDark ? '#fda4af' : '#be123c', badgeBg: isDark ? 'rgba(244, 63, 94, 0.2)' : '#ffe4e6' },
+  { bg: isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4', border: isDark ? 'rgba(16, 185, 129, 0.25)' : '#bbf7d0', accent: '#10b981', text: isDark ? '#6ee7b7' : '#15803d', badgeBg: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7' },
+  { bg: isDark ? 'rgba(139, 92, 246, 0.08)' : '#faf5ff', border: isDark ? 'rgba(139, 92, 246, 0.25)' : '#e9d5ff', accent: '#8b5cf6', text: isDark ? '#c4b5fd' : '#6d28d9', badgeBg: isDark ? 'rgba(139, 92, 246, 0.2)' : '#f3e8ff' },
+  { bg: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffbeb', border: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fde68a', accent: '#f59e0b', text: isDark ? '#fcd34d' : '#b45309', badgeBg: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7' },
+  { bg: isDark ? 'rgba(6, 182, 212, 0.08)' : '#ecfeff', border: isDark ? 'rgba(6, 182, 212, 0.25)' : '#a5f3fc', accent: '#06b6d4', text: isDark ? '#67e8f9' : '#0e7490', badgeBg: isDark ? 'rgba(6, 182, 212, 0.2)' : '#cffafe' },
 ];
 
-const getRowTheme = (subjectName, idx) => {
+const getRowTheme = (subjectName, idx, isDark = false) => {
+  const palettes = getRowPalettes(isDark);
   if (subjectName) {
     const s = String(subjectName).toLowerCase();
-    if (s.includes('matematik')) return ROW_COLOR_PALETTES[0];
-    if (s.includes('türkçe')) return ROW_COLOR_PALETTES[1];
-    if (s.includes('fen')) return ROW_COLOR_PALETTES[2];
-    if (s.includes('ingilizce')) return ROW_COLOR_PALETTES[3];
-    if (s.includes('sosyal') || s.includes('inkılap')) return ROW_COLOR_PALETTES[4];
-    if (s.includes('din')) return ROW_COLOR_PALETTES[5];
+    if (s.includes('matematik')) return palettes[0];
+    if (s.includes('türkçe')) return palettes[1];
+    if (s.includes('fen')) return palettes[2];
+    if (s.includes('ingilizce')) return palettes[3];
+    if (s.includes('sosyal') || s.includes('inkılap')) return palettes[4];
+    if (s.includes('din')) return palettes[5];
   }
-  return ROW_COLOR_PALETTES[idx % ROW_COLOR_PALETTES.length];
+  return palettes[idx % palettes.length];
 };
 
 // Natural alphanumeric order extractor and sorter
@@ -125,6 +190,7 @@ const getUnitDetails = (unit, index) => {
 
 export default function StudentSummaryPage() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { data: curriculumData } = useCurriculum();
   const { summaries, getSummary, hasSummary } = useSummaries();
   const { currentUser } = useAuth();
@@ -216,7 +282,7 @@ export default function StudentSummaryPage() {
   const currentSubject = subjects.find(s => String(s.id) === String(selectedSubjectId));
   const currentUnit = units.find(u => String(u.id) === String(activeReadingTarget?.unitId || activeReadingTarget?.id));
 
-  const activeTheme = getSubjectTheme(currentSubject?.name);
+  const activeTheme = getSubjectTheme(currentSubject?.name, isDark);
 
   // Total available summaries count in current grade
   const totalSummariesInGrade = useMemo(() => {
@@ -247,8 +313,10 @@ export default function StudentSummaryPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
-      color: '#0f172a',
+      background: isDark 
+        ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.08) 0%, transparent 45%), var(--color-bg, #0f172a)'
+        : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg, #f8fafc)',
+      color: 'var(--color-text, #0f172a)',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       padding: activeReadingTarget ? 0 : '1.25rem 1rem 5rem',
       boxSizing: 'border-box'
@@ -256,7 +324,7 @@ export default function StudentSummaryPage() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .summary-anim { animation: fadeIn 0.25s ease both; }
-        .summary-row:hover { filter: brightness(0.98); }
+        .summary-row:hover { filter: brightness(${isDark ? '1.12' : '0.98'}); }
         @media (max-width: 640px) {
           .summary-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
         }
@@ -377,7 +445,9 @@ export default function StudentSummaryPage() {
                   <div className="edu-cta-icon">{activeTheme.icon}</div>
                   <div>
                     <h4>Konuyu Pekiştir & Test Çöz</h4>
-                    <p>Özeti tamamladın mı? Soru bankasından ve denemelerden ilgili soruları çözerek konuyu pekiştir.</p>
+                    <p style={{ color: isDark ? '#a7f3d0' : 'var(--color-text-muted, #047857)' }}>
+                      Özeti tamamladın mı? Soru bankasından ve denemelerden ilgili soruları çözerek konuyu pekiştir.
+                    </p>
                   </div>
                 </div>
                 <button 
@@ -427,7 +497,7 @@ export default function StudentSummaryPage() {
               <div className="edu-drawer-panel" onClick={e => e.stopPropagation()}>
                 <div className="edu-drawer-header">
                   <div className="edu-drawer-title">
-                    <FolderOpen size={17} color="#2563eb" />
+                    <FolderOpen size={17} color="#3b82f6" />
                     <span>Konu Listesi</span>
                   </div>
                   <button className="edu-drawer-close" onClick={() => setIsDrawerOpen(false)}>
@@ -489,7 +559,7 @@ export default function StudentSummaryPage() {
       ) : (
 
         /* ════════════════════════════════════════════════════════════════
-            VIEW 2: CLEAN MODERN LIGHT CATALOG VIEW WITH COLORFUL LIST ROWS
+            VIEW 2: CLEAN MODERN DUAL-THEME CATALOG VIEW WITH COLORFUL LIST ROWS
            ════════════════════════════════════════════════════════════════ */
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           
@@ -499,8 +569,8 @@ export default function StudentSummaryPage() {
               <button
                 onClick={() => navigate('/student')}
                 style={{
-                  background: '#ffffff',
-                  border: '1.5px solid #cbd5e1',
+                  background: 'var(--color-surface, #ffffff)',
+                  border: '1.5px solid var(--color-border-input, #cbd5e1)',
                   borderRadius: '0.75rem',
                   padding: '0.5rem 0.95rem',
                   cursor: 'pointer',
@@ -509,7 +579,7 @@ export default function StudentSummaryPage() {
                   gap: '0.45rem',
                   fontWeight: 800,
                   fontSize: '0.82rem',
-                  color: '#1e293b',
+                  color: 'var(--color-text, #1e293b)',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                   transition: 'all 0.15s'
                 }}
@@ -529,17 +599,17 @@ export default function StudentSummaryPage() {
                   fontWeight: 900,
                   fontSize: '1.15rem',
                   color: 'white',
-                  border: '2px solid #ffffff',
+                  border: isDark ? '2px solid rgba(255,255,255,0.2)' : '2px solid #ffffff',
                   boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
                   flexShrink: 0
                 }}>
                   📚
                 </div>
                 <div>
-                  <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: '#0f172a', lineHeight: 1.2 }}>
+                  <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.2 }}>
                     Ders Notları & Konu Özetleri
                   </h1>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                     Müfredata tam uyumlu ünite özetleri ve sınav hazırlık notları
                   </div>
                 </div>
@@ -547,8 +617,8 @@ export default function StudentSummaryPage() {
             </div>
 
             {/* Sınıf Seçici Rozeti */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '0.35rem 0.6rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginLeft: 4 }}>🎓 Sınıf:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface, #ffffff)', padding: '0.35rem 0.6rem', borderRadius: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginLeft: 4 }}>🎓 Sınıf:</span>
               <div style={{ display: 'inline-flex', gap: 4 }}>
                 {grades.map(g => (
                   <button
@@ -558,8 +628,8 @@ export default function StudentSummaryPage() {
                       padding: '0.25rem 0.65rem',
                       borderRadius: 8,
                       border: 'none',
-                      background: String(selectedGradeId) === String(g.id) ? '#4f46e5' : '#f1f5f9',
-                      color: String(selectedGradeId) === String(g.id) ? '#ffffff' : '#475569',
+                      background: String(selectedGradeId) === String(g.id) ? '#4f46e5' : 'var(--color-surface-hover, #f1f5f9)',
+                      color: String(selectedGradeId) === String(g.id) ? '#ffffff' : 'var(--color-text-muted, #475569)',
                       fontSize: '0.74rem',
                       fontWeight: 800,
                       cursor: 'pointer',
@@ -582,8 +652,8 @@ export default function StudentSummaryPage() {
           }}>
             {/* Card 1: Seçili Sınıf */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
               borderRadius: '1.15rem',
               padding: '0.9rem 1.15rem',
               display: 'flex',
@@ -591,19 +661,19 @@ export default function StudentSummaryPage() {
               gap: '0.85rem',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(37, 99, 235, 0.2)' : '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
                 🎓
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Seviye / Sınıf</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a' }}>{currentGrade?.name || 'Sınıf'}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Seviye / Sınıf</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{currentGrade?.name || 'Sınıf'}</span>
               </div>
             </div>
 
             {/* Card 2: Ders Sayısı */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
               borderRadius: '1.15rem',
               padding: '0.9rem 1.15rem',
               display: 'flex',
@@ -611,19 +681,19 @@ export default function StudentSummaryPage() {
               gap: '0.85rem',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#faf5ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(124, 58, 237, 0.2)' : '#faf5ff', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
                 📖
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Ders</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#7c3aed' }}>{filteredSubjects.length} Ders</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Ders</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#a855f7' }}>{filteredSubjects.length} Ders</span>
               </div>
             </div>
 
             {/* Card 3: Ünite Sayısı */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
               borderRadius: '1.15rem',
               padding: '0.9rem 1.15rem',
               display: 'flex',
@@ -631,19 +701,19 @@ export default function StudentSummaryPage() {
               gap: '0.85rem',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#ecfeff', color: '#0891b2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(8, 145, 178, 0.2)' : '#ecfeff', color: '#06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
                 📁
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Ünite Sayısı</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0891b2' }}>{filteredUnits.length} Ünite</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Ünite Sayısı</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#06b6d4' }}>{filteredUnits.length} Ünite</span>
               </div>
             </div>
 
             {/* Card 4: Hazır Özet */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #bbf7d0',
+              background: 'var(--color-surface, #ffffff)',
+              border: isDark ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid #bbf7d0',
               borderRadius: '1.15rem',
               padding: '0.9rem 1.15rem',
               display: 'flex',
@@ -651,20 +721,20 @@ export default function StudentSummaryPage() {
               gap: '0.85rem',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#f0fdf4', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
                 ✨
               </div>
               <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Hazır Özetler</span>
-                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>{totalSummariesInGrade} İçerik</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Hazır Özetler</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{totalSummariesInGrade} İçerik</span>
               </div>
             </div>
           </div>
 
           {/* ─── DERS SEÇİCİ TABLAR & ARAMA ÇUBUĞU ─── */}
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            background: 'var(--color-surface, #ffffff)',
+            border: '1.5px solid var(--color-border, #e2e8f0)',
             borderRadius: '1.15rem',
             padding: '0.85rem 1.15rem',
             marginBottom: '1.25rem',
@@ -676,7 +746,7 @@ export default function StudentSummaryPage() {
             {/* SUBJECT HORIZONTAL CARDS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflowX: 'auto', paddingBottom: 4 }}>
               {filteredSubjects.map(s => {
-                const theme = getSubjectTheme(s.name);
+                const theme = getSubjectTheme(s.name, isDark);
                 const isSelected = String(selectedSubjectId) === String(s.id);
                 
                 const sUnits = units.filter(u => String(u.subjectId) === String(s.id));
@@ -694,8 +764,8 @@ export default function StudentSummaryPage() {
                     key={s.id}
                     onClick={() => setSelectedSubjectId(s.id)}
                     style={{
-                      background: isSelected ? theme.bg : '#ffffff',
-                      border: isSelected ? `2px solid ${theme.color}` : '1.5px solid #e2e8f0',
+                      background: isSelected ? theme.bg : 'var(--color-surface, #ffffff)',
+                      border: isSelected ? `2px solid ${theme.color}` : '1.5px solid var(--color-border, #e2e8f0)',
                       borderRadius: '0.85rem',
                       padding: '0.5rem 0.85rem',
                       cursor: 'pointer',
@@ -710,10 +780,10 @@ export default function StudentSummaryPage() {
                   >
                     <span style={{ fontSize: '1.15rem' }}>{theme.icon}</span>
                     <div style={{ textAlign: 'left' }}>
-                      <strong style={{ fontSize: '0.84rem', color: isSelected ? theme.color : '#0f172a', display: 'block', fontWeight: 900 }}>
+                      <strong style={{ fontSize: '0.84rem', color: isSelected ? theme.color : 'var(--color-text, #0f172a)', display: 'block', fontWeight: 900 }}>
                         {s.name}
                       </strong>
-                      <span style={{ fontSize: '0.68rem', color: isSelected ? theme.text : '#64748b', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.68rem', color: isSelected ? theme.text : 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                         {count > 0 ? `${count} Özet Hazır` : `${sUnits.length} Ünite`}
                       </span>
                     </div>
@@ -724,7 +794,7 @@ export default function StudentSummaryPage() {
 
             {/* SEARCH INPUT */}
             <div style={{ position: 'relative', width: '100%' }}>
-              <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <Search size={15} color="var(--color-text-muted, #94a3b8)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
                 placeholder={`${currentSubject?.name || 'Ders'} içinde ünite veya konu ara...`}
@@ -732,11 +802,11 @@ export default function StudentSummaryPage() {
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  background: '#f8fafc',
-                  border: '1.5px solid #cbd5e1',
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border-input, #cbd5e1)',
                   borderRadius: 10,
                   padding: '0.5rem 0.85rem 0.5rem 2.2rem',
-                  color: '#0f172a',
+                  color: 'var(--color-text, #0f172a)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   outline: 'none',
@@ -767,7 +837,7 @@ export default function StudentSummaryPage() {
                     
                     {/* 📁 ÜNİTE BAŞLIK ÇUBUĞU */}
                     <div style={{
-                      background: '#ffffff',
+                      background: 'var(--color-surface, #ffffff)',
                       border: `1.5px solid ${activeTheme.border}`,
                       borderLeft: `5px solid ${activeTheme.color}`,
                       borderRadius: '1.15rem',
@@ -792,7 +862,7 @@ export default function StudentSummaryPage() {
                           {badgeText}
                         </span>
                         {cleanTitle && (
-                          <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                          <h3 style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', margin: 0 }}>
                             {cleanTitle}
                           </h3>
                         )}
@@ -802,9 +872,9 @@ export default function StudentSummaryPage() {
                       <button
                         onClick={() => setActiveReadingTarget({ type: 'unit', id: u.id, name: fullDisplayName, unitId: u.id, unitName: fullDisplayName })}
                         style={{
-                          background: unitHasSummary ? activeTheme.bg : '#f8fafc',
-                          color: unitHasSummary ? activeTheme.color : '#64748b',
-                          border: `1.5px solid ${unitHasSummary ? activeTheme.border : '#cbd5e1'}`,
+                          background: unitHasSummary ? activeTheme.bg : 'var(--color-surface-hover, #f8fafc)',
+                          color: unitHasSummary ? activeTheme.color : 'var(--color-text-muted, #64748b)',
+                          border: `1.5px solid ${unitHasSummary ? activeTheme.border : 'var(--color-border, #cbd5e1)'}`,
                           borderRadius: 10,
                           padding: '0.4rem 0.85rem',
                           fontSize: '0.76rem',
@@ -824,8 +894,8 @@ export default function StudentSummaryPage() {
 
                     {/* 📋 KONU LİSTESİ (Farklı Renklerde Satırlar) */}
                     <div style={{
-                      background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
+                      background: 'var(--color-surface, #ffffff)',
+                      border: '1.5px solid var(--color-border, #e2e8f0)',
                       borderRadius: '1.15rem',
                       overflow: 'hidden',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
@@ -835,7 +905,7 @@ export default function StudentSummaryPage() {
                           const topicHasSummary = hasSummary('topic', t.id);
                           const topicTitle = t.name || `Konu ${tIdx + 1}`;
                           const isLast = tIdx === filteredTopicsList.length - 1;
-                          const rowTheme = getRowTheme(currentSubject?.name, tIdx);
+                          const rowTheme = getRowTheme(currentSubject?.name, tIdx, isDark);
 
                           return (
                             <div
@@ -844,7 +914,7 @@ export default function StudentSummaryPage() {
                               onClick={() => setActiveReadingTarget({ type: 'topic', id: t.id, name: topicTitle, unitId: u.id, unitName: fullDisplayName })}
                               style={{
                                 background: rowTheme.bg,
-                                borderLeft: `4.5px solid ${topicHasSummary ? rowTheme.accent : '#94a3b8'}`,
+                                borderLeft: `4.5px solid ${topicHasSummary ? rowTheme.accent : (isDark ? '#475569' : '#94a3b8')}`,
                                 borderBottom: isLast ? 'none' : `1px solid ${rowTheme.border}`,
                                 padding: '0.85rem 1.15rem',
                                 display: 'flex',
@@ -862,7 +932,7 @@ export default function StudentSummaryPage() {
                                   width: 32,
                                   height: 32,
                                   borderRadius: '50%',
-                                  background: '#ffffff',
+                                  background: 'var(--color-surface, #ffffff)',
                                   color: rowTheme.accent,
                                   border: `1.5px solid ${rowTheme.border}`,
                                   display: 'flex',
@@ -891,17 +961,33 @@ export default function StudentSummaryPage() {
                                     </span>
 
                                     {topicHasSummary ? (
-                                      <span style={{ fontSize: '0.64rem', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '1px 6px', borderRadius: 99, border: '1px solid #86efac' }}>
+                                      <span style={{
+                                        fontSize: '0.64rem',
+                                        fontWeight: 900,
+                                        background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#f0fdf4',
+                                        color: '#10b981',
+                                        padding: '1px 6px',
+                                        borderRadius: 99,
+                                        border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #86efac'
+                                      }}>
                                         ● Özet Hazır
                                       </span>
                                     ) : (
-                                      <span style={{ fontSize: '0.64rem', fontWeight: 700, background: '#ffffff', color: '#64748b', padding: '1px 6px', borderRadius: 99, border: '1px solid #cbd5e1' }}>
+                                      <span style={{
+                                        fontSize: '0.64rem',
+                                        fontWeight: 700,
+                                        background: 'var(--color-surface, #ffffff)',
+                                        color: 'var(--color-text-muted, #64748b)',
+                                        padding: '1px 6px',
+                                        borderRadius: 99,
+                                        border: '1px solid var(--color-border, #cbd5e1)'
+                                      }}>
                                         Müfredat Konusu
                                       </span>
                                     )}
                                   </div>
 
-                                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 }}>
+                                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', lineHeight: 1.35 }}>
                                     {topicTitle}
                                   </div>
                                 </div>
@@ -912,9 +998,9 @@ export default function StudentSummaryPage() {
                                 <button
                                   type="button"
                                   style={{
-                                    background: topicHasSummary ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#ffffff',
-                                    color: topicHasSummary ? '#ffffff' : '#334155',
-                                    border: topicHasSummary ? 'none' : '1.5px solid #cbd5e1',
+                                    background: topicHasSummary ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface, #ffffff)',
+                                    color: topicHasSummary ? '#ffffff' : 'var(--color-text, #334155)',
+                                    border: topicHasSummary ? 'none' : '1.5px solid var(--color-border-input, #cbd5e1)',
                                     borderRadius: 9,
                                     padding: '0.45rem 0.95rem',
                                     fontSize: '0.78rem',
@@ -938,7 +1024,7 @@ export default function StudentSummaryPage() {
                           );
                         })
                       ) : (
-                        <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748b', fontSize: '0.82rem' }}>
+                        <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem' }}>
                           Bu ünitede kayıtlı konu bulunmuyor.
                         </div>
                       )}
@@ -949,8 +1035,8 @@ export default function StudentSummaryPage() {
               })
             ) : (
               <div style={{
-                background: '#ffffff',
-                border: '1.5px dashed #cbd5e1',
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px dashed var(--color-border, #cbd5e1)',
                 borderRadius: '1.25rem',
                 padding: '3rem 1.5rem',
                 textAlign: 'center',
@@ -959,9 +1045,9 @@ export default function StudentSummaryPage() {
                 alignItems: 'center',
                 gap: '0.75rem'
               }}>
-                <BookOpen size={40} color="#94a3b8" />
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Bu Derse Ait Ünite Bulunamadı</h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 420, margin: 0, lineHeight: 1.4 }}>
+                <BookOpen size={40} color="var(--color-text-muted, #94a3b8)" />
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', margin: 0 }}>Bu Derse Ait Ünite Bulunamadı</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted, #64748b)', maxWidth: 420, margin: 0, lineHeight: 1.4 }}>
                   Seçtiğiniz sınıf veya derse ait müfredat bilgisi henüz sisteme girilmemiş.
                 </p>
               </div>

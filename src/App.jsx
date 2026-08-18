@@ -57,8 +57,8 @@ function PageLoader() {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '1rem',
-      color: '#818cf8',
-      fontFamily: "'Inter', system-ui, sans-serif"
+      color: 'var(--color-primary, #818cf8)',
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
     }}>
       <div style={{
         width: 42,
@@ -68,7 +68,7 @@ function PageLoader() {
         borderRadius: '50%',
         animation: 'spin 0.75s linear infinite'
       }} />
-      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.04em' }}>
+      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--color-text-muted, rgba(255,255,255,0.75))', letterSpacing: '0.04em' }}>
         Yükleniyor…
       </span>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

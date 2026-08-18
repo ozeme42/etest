@@ -20,8 +20,8 @@ export default function StudentStudyPlanView() {
       <div className="study-plans-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
         <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '460px' }}>
           <Target size={48} style={{ color: '#818cf8', margin: '0 auto 1rem auto' }} />
-          <h2 style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.4rem' }}>Görev Bulunamadı</h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+          <h2 style={{ color: 'var(--color-text, #0f172a)', fontWeight: 900, fontSize: '1.4rem' }}>Görev Bulunamadı</h2>
+          <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
             Atanan çalışma planı silinmiş veya süresi dolmuş olabilir.
           </p>
           <button 
@@ -66,9 +66,9 @@ export default function StudentStudyPlanView() {
                 style={{
                   padding: '0.65rem',
                   borderRadius: '0.85rem',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.16)',
-                  color: '#ffffff',
+                  background: 'var(--color-surface-hover, #f1f5f9)',
+                  border: '1.5px solid var(--color-border, #cbd5e1)',
+                  color: 'var(--color-text, #0f172a)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -80,30 +80,30 @@ export default function StudentStudyPlanView() {
               </button>
 
               <div>
-                <span style={{ fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', padding: '0.2rem 0.65rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)', display: 'inline-block', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.2rem 0.65rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)', display: 'inline-block', marginBottom: '0.35rem' }}>
                   ÖĞRENCİ YOL HARİTASI
                 </span>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', letterSpacing: '-0.02em' }}>
                   {plan.title}
                 </h1>
               </div>
             </div>
 
-            <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(236,72,153,0.3))', border: '1.5px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc', flexShrink: 0 }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))', border: '1.5px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8', flexShrink: 0 }}>
               <Target size={28} />
             </div>
           </div>
 
           {/* Live Progress Bar */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem 1.5rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ background: 'var(--color-surface-hover, #f8fafc)', padding: '1.25rem 1.5rem', borderRadius: '1rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>İlerleme Durumu</span>
-              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: progressPct === 100 ? '#34d399' : '#818cf8' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>İlerleme Durumu</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: progressPct === 100 ? '#10b981' : '#6366f1' }}>
                 %{Math.round(progressPct)}
               </span>
             </div>
 
-            <div style={{ width: '100%', height: '10px', background: 'rgba(0,0,0,0.35)', borderRadius: '1rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ width: '100%', height: '10px', background: 'var(--color-border, #e2e8f0)', borderRadius: '1rem', overflow: 'hidden' }}>
               <div 
                 style={{
                   height: '100%',
@@ -117,7 +117,7 @@ export default function StudentStudyPlanView() {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', marginTop: '0.65rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginTop: '0.65rem' }}>
               <span>🟢 {completedTopics.size} Adım Tamamlandı</span>
               <span>📑 {totalTopics} Toplam Adım</span>
             </div>
@@ -136,18 +136,18 @@ export default function StudentStudyPlanView() {
               <div key={subject.id} className="study-glass-card" style={{ overflow: 'hidden' }}>
                 
                 {/* Unit Title Bar */}
-                <div style={{ padding: '1rem 1.4rem', background: 'rgba(99, 102, 241, 0.12)', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem' }}>
+                <div style={{ padding: '1rem 1.4rem', background: 'var(--color-surface-hover, #f8fafc)', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '30px', height: '30px', borderRadius: '0.55rem', background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(165,180,252,0.3)', color: '#c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 900 }}>
+                    <div style={{ width: '30px', height: '30px', borderRadius: '0.55rem', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(165,180,252,0.3)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 900 }}>
                       {sIdx + 1}
                     </div>
-                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#ffffff' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                       {subject.name}
                     </h2>
                   </div>
 
                   {subject.dueDate && (
-                    <div style={{ fontSize: '0.78rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', background: isSubjectOverdue ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.18)', color: isSubjectOverdue ? '#f87171' : '#38bdf8', border: `1px solid ${isSubjectOverdue ? 'rgba(239,68,68,0.35)' : 'rgba(56,189,248,0.3)'}`, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '0.5rem', background: isSubjectOverdue ? 'rgba(239,68,68,0.12)' : 'rgba(56,189,248,0.12)', color: isSubjectOverdue ? '#ef4444' : '#0284c7', border: `1px solid ${isSubjectOverdue ? 'rgba(239,68,68,0.3)' : 'rgba(56,189,248,0.3)'}`, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <Calendar size={13} /> Hedef: {subject.dueDate}
                     </div>
                   )}
@@ -183,9 +183,9 @@ export default function StudentStudyPlanView() {
                           background: isCompleted 
                             ? 'rgba(16, 185, 129, 0.08)' 
                             : isCurrent 
-                            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.18))' 
-                            : 'rgba(255, 255, 255, 0.02)',
-                          border: `1.5px solid ${isCompleted ? 'rgba(52, 211, 153, 0.4)' : isCurrent ? 'rgba(165, 180, 252, 0.45)' : 'rgba(255, 255, 255, 0.06)'}`,
+                            ? 'rgba(99, 102, 241, 0.1)' 
+                            : 'var(--color-surface-hover, #f8fafc)',
+                          border: `1.5px solid ${isCompleted ? 'rgba(52, 211, 153, 0.4)' : isCurrent ? 'rgba(165, 180, 252, 0.45)' : 'var(--color-border, #e2e8f0)'}`,
                           opacity: isLocked ? 0.45 : 1,
                           display: 'flex',
                           alignItems: 'center',
@@ -213,28 +213,28 @@ export default function StudentStudyPlanView() {
                                 ? 'none' 
                                 : isCurrent 
                                 ? '2px solid #818cf8' 
-                                : '2px solid rgba(255,255,255,0.2)',
+                                : '2px solid var(--color-border-input, #cbd5e1)',
                               background: isCompleted 
                                 ? 'linear-gradient(135deg, #10b981, #059669)' 
                                 : isCurrent 
-                                ? 'rgba(99,102,241,0.2)' 
-                                : 'rgba(255,255,255,0.05)',
+                                ? 'rgba(99,102,241,0.15)' 
+                                : 'var(--color-surface, #ffffff)',
                               color: '#ffffff',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: isLocked ? 'not-allowed' : 'pointer',
                               flexShrink: 0,
-                              boxShadow: isCompleted ? '0 2px 8px rgba(16,185,129,0.4)' : 'none'
+                              boxShadow: isCompleted ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
                             }}
                           >
                             {isCompleted && <Check size={16} />}
-                            {isLocked && <Lock size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />}
+                            {isLocked && <Lock size={14} style={{ color: 'var(--color-text-muted, #94a3b8)' }} />}
                           </button>
 
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: isCompleted ? '#34d399' : isCurrent ? '#a5b4fc' : 'rgba(255,255,255,0.5)' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: isCompleted ? '#10b981' : isCurrent ? '#6366f1' : 'var(--color-text-muted, #64748b)' }}>
                                 {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`) : `Adım ${tIdx + 1}`}
                               </span>
                               {isCurrent && (
@@ -243,18 +243,18 @@ export default function StudentStudyPlanView() {
                                 </span>
                               )}
                               {isTopicOverdue && (
-                                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(239,68,68,0.25)', color: '#f87171', padding: '0.1rem 0.45rem', borderRadius: '0.3rem' }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '0.1rem 0.45rem', borderRadius: '0.3rem' }}>
                                   GECİKTİ
                                 </span>
                               )}
                             </div>
 
-                            <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: isCompleted ? 'rgba(255,255,255,0.6)' : '#ffffff', textDecoration: isCompleted ? 'line-through' : 'none' }}>
+                            <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: isCompleted ? 'var(--color-text-muted, #64748b)' : 'var(--color-text, #0f172a)', textDecoration: isCompleted ? 'line-through' : 'none' }}>
                               {topic.name}
                             </h3>
 
                             {topic.dueDate && (
-                              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.74rem', color: '#38bdf8', fontWeight: 700 }}>
+                              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.74rem', color: '#0284c7', fontWeight: 700 }}>
                                 Son Tarih: {topic.dueDate}
                               </p>
                             )}
@@ -272,9 +272,9 @@ export default function StudentStudyPlanView() {
                               style={{
                                 padding: '0.45rem 0.85rem',
                                 borderRadius: '0.65rem',
-                                background: isLocked ? 'rgba(255,255,255,0.05)' : isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.08)',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                color: isLocked ? 'rgba(255,255,255,0.4)' : '#ffffff',
+                                background: isLocked ? 'var(--color-surface-hover, #f1f5f9)' : isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover, #f1f5f9)',
+                                border: '1px solid var(--color-border, #cbd5e1)',
+                                color: isLocked ? 'var(--color-text-muted, #94a3b8)' : isCurrent ? '#ffffff' : 'var(--color-text, #0f172a)',
                                 fontSize: '0.78rem',
                                 fontWeight: 800,
                                 textDecoration: 'none',
@@ -317,7 +317,7 @@ export default function StudentStudyPlanView() {
                   })}
 
                   {(!subject.topics || subject.topics.length === 0) && (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                    <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.85rem', fontStyle: 'italic' }}>
                       Bu üniteye henüz konu eklenmemiş.
                     </div>
                   )}

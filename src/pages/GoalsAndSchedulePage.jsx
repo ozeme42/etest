@@ -51,7 +51,7 @@ const PERIOD_CONFIG = {
 /* ─── Mini Progress Bar ─── */
 function BarProgress({ value, color }) {
   return (
-    <div style={{ width: '100%', height: 7, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: 7, background: 'var(--color-border, #f1f5f9)', borderRadius: 99, overflow: 'hidden' }}>
       <div style={{
         height: '100%',
         borderRadius: 99,
@@ -70,7 +70,7 @@ function Ring({ value, size = 60, stroke = 5, color }) {
   const offset = circ - (circ * Math.min(100, Math.max(0, value))) / 100;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--color-border, #e2e8f0)" strokeWidth={stroke} />
       <circle
         cx={size/2} cy={size/2} r={r} fill="none"
         stroke={color} strokeWidth={stroke}
@@ -153,29 +153,29 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
 
   return (
     <div style={{
-      background: '#ffffff',
-      border: '1.5px solid #e2e8f0',
+      background: 'var(--color-surface, #ffffff)',
+      border: '1.5px solid var(--color-border, #e2e8f0)',
       borderRadius: '1.25rem',
       padding: '1.25rem',
-      boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
       display: 'flex',
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#e11d48', fontWeight: 900, fontSize: '0.9rem' }}>
           <Flame size={20} color="#e11d48" /> 🔥 Günlük Rutinler & Seri Takibi (Pzt–Paz)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#fff1f2', color: '#e11d48', fontWeight: 900, fontSize: '0.75rem', border: '1px solid #fecdd3' }}>
-            <Flame size={13} color="#e11d48" /> {totalDaysCompleted} Günlük Tam Seri
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(244,63,94,0.12)', color: '#f43f5e', fontWeight: 900, fontSize: '0.75rem', border: '1px solid rgba(244,63,94,0.3)' }}>
+            <Flame size={13} color="#f43f5e" /> {totalDaysCompleted} Günlük Tam Seri
           </span>
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {items.length === 0 ? (
-          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted, #94a3b8)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
             Henüz günlük rutin eklenmedi. Aşağıdan hemen ekleyin!
           </p>
         ) : (
@@ -185,8 +185,8 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
 
             return (
               <div key={item.id} style={{
-                background: '#f8fafc',
-                border: '1.5px solid #e2e8f0',
+                background: 'var(--color-surface-hover, #f8fafc)',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
                 borderRadius: '1rem',
                 padding: '0.85rem 1rem',
                 display: 'flex',
@@ -194,18 +194,18 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
                 gap: '0.65rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Sparkles size={14} color="#f59e0b" />
                     {item.text}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completedDaysCount === 7 ? '#16a34a' : '#64748b' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completedDaysCount === 7 ? '#16a34a' : 'var(--color-text-muted, #64748b)' }}>
                       {completedDaysCount}/7 Gün (%{pct})
                     </span>
                     <button
                       type="button"
                       onClick={() => onDeleteItem(item.id)}
-                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)', cursor: 'pointer', padding: 2 }}
                       title="Rutini Sil"
                     >
                       <Trash2 size={14} />
@@ -229,9 +229,9 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
                           justifyContent: 'center',
                           padding: '0.5rem 0.2rem',
                           borderRadius: '0.75rem',
-                          border: done ? '1.5px solid #f43f5e' : '1px solid #cbd5e1',
-                          background: done ? 'linear-gradient(135deg, #f43f5e, #e11d48)' : '#ffffff',
-                          color: done ? '#ffffff' : '#475569',
+                          border: done ? '1.5px solid #f43f5e' : '1px solid var(--color-border-input, #cbd5e1)',
+                          background: done ? 'linear-gradient(135deg, #f43f5e, #e11d48)' : 'var(--color-surface, #ffffff)',
+                          color: done ? '#ffffff' : 'var(--color-text, #475569)',
                           fontSize: '0.72rem',
                           fontWeight: 900,
                           cursor: 'pointer',
@@ -248,7 +248,7 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          background: done ? '#ffffff' : '#f1f5f9'
+                          background: done ? '#ffffff' : 'var(--color-surface-hover, #f1f5f9)'
                         }}>
                           {done ? <Check size={9} color="#e11d48" strokeWidth={4} /> : null}
                         </div>
@@ -272,9 +272,9 @@ function DailyHabitStreakSection({ items, onToggleDay, onAddItem, onDeleteItem }
             flex: 1,
             padding: '0.65rem 0.95rem',
             borderRadius: '0.85rem',
-            border: '1.5px solid #cbd5e1',
-            background: '#ffffff',
-            color: '#0f172a',
+            border: '1.5px solid var(--color-border-input, #cbd5e1)',
+            background: 'var(--color-surface-hover, #ffffff)',
+            color: 'var(--color-text, #0f172a)',
             fontSize: '0.85rem',
             outline: 'none'
           }}
@@ -326,29 +326,29 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
 
   return (
     <div style={{
-      background: '#ffffff',
-      border: '1.5px solid #e2e8f0',
+      background: 'var(--color-surface, #ffffff)',
+      border: '1.5px solid var(--color-border, #e2e8f0)',
       borderRadius: '1.25rem',
       padding: '1.25rem',
-      boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
       display: 'flex',
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#7c3aed', fontWeight: 900, fontSize: '0.9rem' }}>
           <Zap size={20} color="#7c3aed" /> ⚡ Haftalık Hedefler & Ay İçi Takip (1–4. Hafta)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.3rem 0.8rem', borderRadius: 99, background: '#f3e8ff', color: '#7c3aed', fontWeight: 900, fontSize: '0.75rem', border: '1px solid #e9d5ff' }}>
-            <Trophy size={13} color="#7c3aed" /> {totalWeeksCompleted} Hafta Tamamlandı
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.3rem 0.8rem', borderRadius: 99, background: 'rgba(124,58,237,0.12)', color: '#a855f7', fontWeight: 900, fontSize: '0.75rem', border: '1px solid rgba(124,58,237,0.3)' }}>
+            <Trophy size={13} color="#a855f7" /> {totalWeeksCompleted} Hafta Tamamlandı
           </span>
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {items.length === 0 ? (
-          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted, #94a3b8)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem 0' }}>
             Henüz haftalık hedef eklenmedi.
           </p>
         ) : (
@@ -358,8 +358,8 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
 
             return (
               <div key={item.id} style={{
-                background: '#f8fafc',
-                border: '1.5px solid #e2e8f0',
+                background: 'var(--color-surface-hover, #f8fafc)',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
                 borderRadius: '1rem',
                 padding: '0.85rem 1rem',
                 display: 'flex',
@@ -367,18 +367,18 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
                 gap: '0.65rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Award size={15} color="#7c3aed" />
                     {item.text}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completedWeeksCount === 4 ? '#16a34a' : '#64748b' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completedWeeksCount === 4 ? '#16a34a' : 'var(--color-text-muted, #64748b)' }}>
                       {completedWeeksCount}/4 Hafta (%{pct})
                     </span>
                     <button
                       type="button"
                       onClick={() => onDeleteItem(item.id)}
-                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)', cursor: 'pointer', padding: 2 }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -400,9 +400,9 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
                           gap: 5,
                           padding: '0.55rem 0.5rem',
                           borderRadius: '0.75rem',
-                          border: done ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
-                          background: done ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : '#ffffff',
-                          color: done ? '#ffffff' : '#475569',
+                          border: done ? '1.5px solid #7c3aed' : '1px solid var(--color-border-input, #cbd5e1)',
+                          background: done ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'var(--color-surface, #ffffff)',
+                          color: done ? '#ffffff' : 'var(--color-text, #475569)',
                           fontSize: '0.75rem',
                           fontWeight: 900,
                           cursor: 'pointer',
@@ -432,9 +432,9 @@ function WeeklyHabitStreakSection({ items, onToggleWeek, onAddItem, onDeleteItem
             flex: 1,
             padding: '0.65rem 0.95rem',
             borderRadius: '0.85rem',
-            border: '1.5px solid #cbd5e1',
-            background: '#ffffff',
-            color: '#0f172a',
+            border: '1.5px solid var(--color-border-input, #cbd5e1)',
+            background: 'var(--color-surface-hover, #ffffff)',
+            color: 'var(--color-text, #0f172a)',
             fontSize: '0.85rem',
             outline: 'none'
           }}
@@ -480,20 +480,20 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
 
   return (
     <div style={{
-      background: '#ffffff',
-      border: '1.5px solid #e2e8f0',
+      background: 'var(--color-surface, #ffffff)',
+      border: '1.5px solid var(--color-border, #e2e8f0)',
       borderRadius: '1.25rem',
       padding: '1.25rem',
-      boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
       display: 'flex',
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, fontSize: '0.9rem', color: '#4338ca' }}>
-          <Trophy size={20} color="#4f46e5" /> 📅 Bu Ayın Ana Kazanımları & Hedef Listesi
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, fontSize: '0.9rem', color: '#6366f1' }}>
+          <Trophy size={20} color="#6366f1" /> 📅 Bu Ayın Ana Kazanımları & Hedef Listesi
         </div>
-        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: '#e0e7ff', color: '#4338ca', padding: '0.3rem 0.8rem', borderRadius: 99, border: '1px solid #c7d2fe' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.3rem 0.8rem', borderRadius: 99, border: '1px solid rgba(99,102,241,0.3)' }}>
           {completedCount}/{totalCount} Tamamlandı (%{pct})
         </span>
       </div>
@@ -502,7 +502,7 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
         {items.length === 0 ? (
-          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '0.75rem 0' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted, #94a3b8)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '0.75rem 0' }}>
             Henüz aylık hedef maddesi eklenmedi.
           </p>
         ) : (
@@ -516,8 +516,8 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
                 justifyContent: 'space-between',
                 padding: '0.75rem 1rem',
                 borderRadius: '0.85rem',
-                background: item.done ? '#f0fdf4' : '#f8fafc',
-                border: item.done ? '1.5px solid #86efac' : '1.5px solid #e2e8f0',
+                background: item.done ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover, #f8fafc)',
+                border: item.done ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid var(--color-border, #e2e8f0)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
@@ -529,11 +529,11 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
                     width: 22,
                     height: 22,
                     borderRadius: 6,
-                    border: item.done ? 'none' : '1.5px solid #cbd5e1',
+                    border: item.done ? 'none' : '1.5px solid var(--color-border-input, #cbd5e1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: item.done ? '#16a34a' : '#ffffff',
+                    background: item.done ? '#16a34a' : 'var(--color-surface, #ffffff)',
                     color: 'white',
                     flexShrink: 0,
                     cursor: 'pointer'
@@ -544,7 +544,7 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
                 <span style={{
                   fontSize: '0.86rem',
                   fontWeight: 700,
-                  color: item.done ? '#166534' : '#0f172a',
+                  color: item.done ? '#34d399' : 'var(--color-text, #0f172a)',
                   textDecoration: item.done ? 'line-through' : 'none',
                   lineHeight: 1.3
                 }}>
@@ -554,7 +554,7 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', padding: 4, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)', padding: 4, cursor: 'pointer' }}
               >
                 <Trash2 size={14} />
               </button>
@@ -573,9 +573,9 @@ function MonthlyChecklistSection({ items, onToggleItem, onAddItem, onDeleteItem 
             flex: 1,
             padding: '0.65rem 0.95rem',
             borderRadius: '0.85rem',
-            border: '1.5px solid #cbd5e1',
-            background: '#ffffff',
-            color: '#0f172a',
+            border: '1.5px solid var(--color-border-input, #cbd5e1)',
+            background: 'var(--color-surface-hover, #ffffff)',
+            color: 'var(--color-text, #0f172a)',
             fontSize: '0.85rem',
             outline: 'none'
           }}
@@ -625,24 +625,24 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
   return (
     <div style={{
       position: 'relative',
-      background: '#ffffff',
-      border: done ? '1.5px solid #86efac' : '1.5px solid #e2e8f0',
+      background: done ? 'rgba(16,185,129,0.08)' : 'var(--color-surface, #ffffff)',
+      border: done ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid var(--color-border, #e2e8f0)',
       borderRadius: '1.25rem',
       padding: '1.15rem',
-      boxShadow: '0 4px 16px rgba(100, 116, 139, 0.05)',
+      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
       display: 'flex',
       flexDirection: 'column',
       gap: '0.75rem',
       transition: 'all 0.15s ease'
     }}>
       {done && (
-        <div style={{ position: 'absolute', top: 12, right: 36, display: 'flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99, border: '1px solid #86efac' }}>
+        <div style={{ position: 'absolute', top: 12, right: 36, display: 'flex', alignItems: 'center', gap: 3, background: '#10b981', color: '#ffffff', fontSize: '0.65rem', fontWeight: 900, padding: '2px 8px', borderRadius: 99 }}>
           <CheckCircle2 size={12} /> Tamamlandı
         </div>
       )}
       <button
         onClick={() => onDelete(goal.id)}
-        style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#94a3b8', padding: 4, cursor: 'pointer' }}
+        style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: 'var(--color-text-muted, #94a3b8)', padding: 4, cursor: 'pointer' }}
         title="Hedefi Sil"
       >
         <Trash2 size={14} />
@@ -652,7 +652,7 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <Ring value={pct} size={58} stroke={5} color={done ? '#16a34a' : t.color} />
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: done ? '#16a34a' : '#0f172a' }}>%{pct}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: done ? '#16a34a' : 'var(--color-text, #0f172a)' }}>%{pct}</span>
           </div>
         </div>
 
@@ -665,13 +665,13 @@ function VisualGoalCard({ goal, onDelete, onAddProgress }) {
               <TIcon size={10} /> {goal.type}
             </span>
           </div>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3, margin: 0 }}>{goal.title}</h3>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', lineHeight: 1.3, margin: 0 }}>{goal.title}</h3>
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 2 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#64748b' }}>
-          <span>İlerleme: <strong style={{ color: '#0f172a' }}>{goal.current || 0}</strong> / {goal.target} {t.unit}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>
+          <span>İlerleme: <strong style={{ color: 'var(--color-text, #0f172a)' }}>{goal.current || 0}</strong> / {goal.target} {t.unit}</span>
           <span style={{ color: done ? '#16a34a' : t.text }}>
             {goal.target - (goal.current || 0) > 0 ? `${goal.target - (goal.current || 0)} ${t.unit} kaldı` : '🎉 Tebrikler!'}
           </span>
@@ -1053,9 +1053,9 @@ export default function GoalsAndSchedulePage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
+      background: 'var(--color-bg, #f8fafc)',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      color: '#0f172a',
+      color: 'var(--color-text, #0f172a)',
       padding: '1.25rem 1rem',
       boxSizing: 'border-box'
     }}>
@@ -1076,8 +1076,8 @@ export default function GoalsAndSchedulePage() {
             <button
               onClick={() => navigate('/student')}
               style={{
-                background: '#ffffff',
-                border: '1.5px solid #cbd5e1',
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #cbd5e1)',
                 borderRadius: '0.75rem',
                 padding: '0.5rem 0.95rem',
                 cursor: 'pointer',
@@ -1086,7 +1086,7 @@ export default function GoalsAndSchedulePage() {
                 gap: '0.45rem',
                 fontWeight: 800,
                 fontSize: '0.82rem',
-                color: '#1e293b',
+                color: 'var(--color-text, #1e293b)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 transition: 'all 0.15s'
               }}
@@ -1105,17 +1105,17 @@ export default function GoalsAndSchedulePage() {
                 fontWeight: 900,
                 fontSize: '1.15rem',
                 color: 'white',
-                border: '2px solid #ffffff',
+                border: '2px solid rgba(255,255,255,0.3)',
                 boxShadow: '0 4px 14px rgba(244,63,94,0.3)',
                 flexShrink: 0
               }}>
                 🎯
               </div>
               <div>
-                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: '#0f172a', lineHeight: 1.2 }}>
+                <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.2 }}>
                   Hedeflerim & Alışkanlık Takibi
                 </h1>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                   {selectedStudent?.name ? `${selectedStudent.name} · ` : ''}Günlük & Haftalık Seri Takibi (Streak Tracker)
                 </div>
               </div>
@@ -1124,7 +1124,7 @@ export default function GoalsAndSchedulePage() {
 
           {/* Student Selector for Teachers */}
           {students.length > 1 && currentUser?.role !== 'student' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface, #ffffff)', padding: '0.35rem 0.5rem', borderRadius: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', overflowX: 'auto', maxWidth: '100%' }}>
               {students.map(s => (
                 <button
                   key={s.id}
@@ -1136,7 +1136,7 @@ export default function GoalsAndSchedulePage() {
                     fontWeight: 800,
                     border: 'none',
                     background: s.id === selectedStudent?.id ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                    color: s.id === selectedStudent?.id ? 'white' : '#64748b',
+                    color: s.id === selectedStudent?.id ? 'white' : 'var(--color-text-muted, #64748b)',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap'
                   }}
@@ -1151,15 +1151,15 @@ export default function GoalsAndSchedulePage() {
         {/* TOP SUMMARY STATS BANNER */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
           {[
-            { label: 'Çözülen Soru (Bugün)', value: `${solvedQuestionsStats.today} Soru`, sub: `Bu Hafta: ${solvedQuestionsStats.thisWeek}`, icon: Target, color: '#e11d48', border: '#fecdd3', bg: '#ffe4e6' },
-            { label: 'Kitap Okuma', value: `${totalPagesRead} Sayfa`, sub: 'Hedefe doğru', icon: BookOpen, color: '#0284c7', border: '#bae6fd', bg: '#e0f2fe' },
-            { label: 'Tamamlanan Konu', value: `${totalTopicsCompleted} Konu`, sub: 'Aktif Müfredat', icon: Brain, color: '#7c3aed', border: '#e9d5ff', bg: '#f3e8ff' },
-            { label: 'Çalışma Süresi', value: `${totalMinutesStudied} Dk`, sub: 'Zaman takibi', icon: Timer, color: '#059669', border: '#a7f3d0', bg: '#d1fae5' },
+            { label: 'Çözülen Soru (Bugün)', value: `${solvedQuestionsStats.today} Soru`, sub: `Bu Hafta: ${solvedQuestionsStats.thisWeek}`, icon: Target, color: '#e11d48', border: 'rgba(244,63,94,0.3)', bg: 'rgba(244,63,94,0.12)' },
+            { label: 'Kitap Okuma', value: `${totalPagesRead} Sayfa`, sub: 'Hedefe doğru', icon: BookOpen, color: '#0284c7', border: 'rgba(2,132,199,0.3)', bg: 'rgba(2,132,199,0.12)' },
+            { label: 'Tamamlanan Konu', value: `${totalTopicsCompleted} Konu`, sub: 'Aktif Müfredat', icon: Brain, color: '#7c3aed', border: 'rgba(124,58,237,0.3)', bg: 'rgba(124,58,237,0.12)' },
+            { label: 'Çalışma Süresi', value: `${totalMinutesStudied} Dk`, sub: 'Zaman takibi', icon: Timer, color: '#059669', border: 'rgba(5,150,105,0.3)', bg: 'rgba(5,150,105,0.12)' },
           ].map(s => {
             const Icon = s.icon;
             return (
               <div key={s.label} style={{
-                background: '#ffffff',
+                background: 'var(--color-surface, #ffffff)',
                 border: `1.5px solid ${s.border}`,
                 borderRadius: '1.15rem',
                 padding: '0.85rem 1.1rem',
@@ -1172,8 +1172,8 @@ export default function GoalsAndSchedulePage() {
                   <Icon size={20} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{s.label}</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>{s.value}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>{s.label}</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{s.value}</span>
                 </div>
               </div>
             );
@@ -1182,8 +1182,8 @@ export default function GoalsAndSchedulePage() {
 
         {/* 🌟 3-TAB NAVIGATION BAR (CLEAR, ORGANIZED & INTUITIVE) */}
         <div style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface, #ffffff)',
+          border: '1.5px solid var(--color-border, #e2e8f0)',
           borderRadius: '1rem',
           padding: '0.4rem',
           display: 'flex',
@@ -1212,7 +1212,7 @@ export default function GoalsAndSchedulePage() {
                   borderRadius: '0.75rem',
                   border: 'none',
                   background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
-                  color: isActive ? '#ffffff' : '#475569',
+                  color: isActive ? '#ffffff' : 'var(--color-text-muted, #475569)',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                   boxShadow: isActive ? '0 4px 12px rgba(79,70,229,0.25)' : 'none'
@@ -1250,8 +1250,8 @@ export default function GoalsAndSchedulePage() {
             
             {/* Header + Add Goal + Filters Bar */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
               borderRadius: '1.15rem',
               padding: '0.9rem 1.15rem',
               display: 'flex',
@@ -1262,8 +1262,8 @@ export default function GoalsAndSchedulePage() {
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b' }}>Periyot:</span>
-                <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: 2, borderRadius: 8 }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>Periyot:</span>
+                <div style={{ display: 'inline-flex', background: 'var(--color-surface-hover, #f1f5f9)', padding: 2, borderRadius: 8 }}>
                   {['Tümü', 'Günlük', 'Haftalık', 'Aylık'].map(p => (
                     <button
                       key={p}
@@ -1273,7 +1273,7 @@ export default function GoalsAndSchedulePage() {
                         borderRadius: 6,
                         border: 'none',
                         background: periodFilter === p ? '#4f46e5' : 'transparent',
-                        color: periodFilter === p ? '#ffffff' : '#475569',
+                        color: periodFilter === p ? '#ffffff' : 'var(--color-text-muted, #475569)',
                         fontSize: '0.74rem',
                         fontWeight: 800,
                         cursor: 'pointer'
@@ -1284,8 +1284,8 @@ export default function GoalsAndSchedulePage() {
                   ))}
                 </div>
 
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', marginLeft: 8 }}>Tür:</span>
-                <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: 2, borderRadius: 8 }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginLeft: 8 }}>Tür:</span>
+                <div style={{ display: 'inline-flex', background: 'var(--color-surface-hover, #f1f5f9)', padding: 2, borderRadius: 8 }}>
                   {['Tümü', 'Soru', 'Sayfa', 'Konu', 'Dakika'].map(t => (
                     <button
                       key={t}
@@ -1295,7 +1295,7 @@ export default function GoalsAndSchedulePage() {
                         borderRadius: 6,
                         border: 'none',
                         background: typeFilter === t ? '#e11d48' : 'transparent',
-                        color: typeFilter === t ? '#ffffff' : '#475569',
+                        color: typeFilter === t ? '#ffffff' : 'var(--color-text-muted, #475569)',
                         fontSize: '0.74rem',
                         fontWeight: 800,
                         cursor: 'pointer'
@@ -1331,8 +1331,8 @@ export default function GoalsAndSchedulePage() {
             {/* Visual Cards Grid */}
             {filteredVisualGoals.length === 0 ? (
               <div style={{
-                background: '#ffffff',
-                border: '1.5px dashed #cbd5e1',
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px dashed var(--color-border, #cbd5e1)',
                 borderRadius: '1.25rem',
                 padding: '2.5rem 1.5rem',
                 textAlign: 'center',
@@ -1341,11 +1341,11 @@ export default function GoalsAndSchedulePage() {
                 alignItems: 'center',
                 gap: '0.75rem'
               }}>
-                <div style={{ width: 52, height: 52, borderRadius: '1rem', background: '#ffe4e6', color: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '1rem', background: 'rgba(244,63,94,0.12)', color: '#f43f5e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Target size={26} />
                 </div>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Seçilen Kriterlere Uygun Hedef Bulunmuyor</h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 360, margin: 0, lineHeight: 1.4 }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', margin: 0 }}>Seçilen Kriterlere Uygun Hedef Bulunmuyor</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted, #64748b)', maxWidth: 360, margin: 0, lineHeight: 1.4 }}>
                   Günlük soru çözme, kitap okuma veya konu hedefleri ekleyerek motivasyonunuzu artırın!
                 </p>
                 <button
@@ -1377,16 +1377,16 @@ export default function GoalsAndSchedulePage() {
             
             {/* Sınav & Okul & Puan Kartı (Görünüm ve Düzenleme Modu) */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
               borderRadius: '1.25rem',
               padding: '1.25rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.06)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', fontWeight: 900, fontSize: '0.9rem' }}>
                   <GraduationCap size={20} color="#059669" /> 🏛️ Uzun Vadeli Sınav & Okul Hedefleri
                 </div>
@@ -1400,9 +1400,9 @@ export default function GoalsAndSchedulePage() {
                         gap: 4,
                         padding: '0.35rem 0.75rem',
                         borderRadius: '0.65rem',
-                        background: '#f1f5f9',
-                        border: '1px solid #cbd5e1',
-                        color: '#334155',
+                        background: 'var(--color-surface-hover, #f1f5f9)',
+                        border: '1px solid var(--color-border, #cbd5e1)',
+                        color: 'var(--color-text, #334155)',
                         fontSize: '0.74rem',
                         fontWeight: 800,
                         cursor: 'pointer',
@@ -1412,11 +1412,11 @@ export default function GoalsAndSchedulePage() {
                       <Pencil size={12} /> Düzenle
                     </button>
                   ) : (
-                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#dbeafe', color: '#1e40af', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid #bfdbfe' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid rgba(59,130,246,0.3)' }}>
                       Düzenleme Modu
                     </span>
                   )}
-                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: '#d1fae5', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid #a7f3d0' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.12)', color: '#10b981', padding: '0.2rem 0.65rem', borderRadius: 99, border: '1px solid rgba(16,185,129,0.3)' }}>
                     Akademik
                   </span>
                 </div>
@@ -1426,8 +1426,8 @@ export default function GoalsAndSchedulePage() {
               {!isEditingAcademic ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1.5px solid #e2e8f0',
+                    background: 'var(--color-surface-hover, #f8fafc)',
+                    border: '1.5px solid var(--color-border, #e2e8f0)',
                     borderRadius: '1rem',
                     padding: '1rem',
                     display: 'flex',
@@ -1435,39 +1435,39 @@ export default function GoalsAndSchedulePage() {
                     gap: '0.75rem'
                   }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
-                      <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınav / Hedef Türü</span>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{getExamTypeLabel(examGoalType, customExamName)}</span>
+                      <div style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınav / Hedef Türü</span>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{getExamTypeLabel(examGoalType, customExamName)}</span>
                       </div>
 
                       {examGoalType === 'Ara Sınıf Takip & Takdir Hedefi' ? (
                         <>
-                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınıf & Dönem</span>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{gradeClass || '5. Sınıf'} · {gradeTerm ? `${gradeTerm}. Dönem` : '1. Dönem'}</span>
+                          <div style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınıf & Dönem</span>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{gradeClass || '5. Sınıf'} · {gradeTerm ? `${gradeTerm}. Dönem` : '1. Dönem'}</span>
                           </div>
 
-                          <div style={{ background: '#f0fdf4', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #86efac', gridColumn: 'span 2' }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Hedef Belgem</span>
-                            <span style={{ fontSize: '1rem', fontWeight: 900, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ background: 'rgba(16,185,129,0.1)', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1.5px solid rgba(16,185,129,0.35)', gridColumn: 'span 2' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Hedef Belgem</span>
+                            <span style={{ fontSize: '1rem', fontWeight: 900, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6 }}>
                               {getGradeTargetLabel(gradeTarget)}
                             </span>
                           </div>
                         </>
                       ) : (
                         <>
-                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Hedef Okul / Bölüm</span>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{targetSchool || 'Belirtilmedi'}</span>
+                          <div style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Hedef Okul / Bölüm</span>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{targetSchool || 'Belirtilmedi'}</span>
                           </div>
 
-                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Hedef Puan</span>
+                          <div style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Hedef Puan</span>
                             <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0284c7' }}>{targetScore ? `${targetScore} Puan` : '—'}</span>
                           </div>
 
-                          <div style={{ background: '#ffffff', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Toplam Net</span>
+                          <div style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.9rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Toplam Net</span>
                             <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#7c3aed' }}>{targetNet ? `${targetNet} Net` : '—'}</span>
                           </div>
                         </>
@@ -1484,9 +1484,9 @@ export default function GoalsAndSchedulePage() {
                         gap: 6,
                         padding: '0.55rem 1.15rem',
                         borderRadius: '0.75rem',
-                        background: '#f8fafc',
-                        border: '1.5px solid #cbd5e1',
-                        color: '#1e293b',
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1.5px solid var(--color-border, #cbd5e1)',
+                        color: 'var(--color-text, #1e293b)',
                         fontSize: '0.8rem',
                         fontWeight: 800,
                         cursor: 'pointer'
@@ -1505,7 +1505,7 @@ export default function GoalsAndSchedulePage() {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                       <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınav / Hedef Türü</label>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınav / Hedef Türü</label>
                         <select
                           value={isStandardExam ? examGoalType : 'Özel Sınav'}
                           onChange={e => {
@@ -1516,7 +1516,7 @@ export default function GoalsAndSchedulePage() {
                               setExamGoalType(val);
                             }
                           }}
-                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                          style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
                         >
                           <option value="LGS 2026">🎓 LGS (Liselere Geçiş Sınavı)</option>
                           <option value="YKS (TYT/AYT) 2026">🏛️ YKS (TYT & AYT Sınavı)</option>
@@ -1528,13 +1528,13 @@ export default function GoalsAndSchedulePage() {
 
                       {(!isStandardExam || examGoalType === 'Özel Sınav') && (
                         <div>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Özel Sınav Adı</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Özel Sınav Adı</label>
                           <input
                             type="text"
                             placeholder="Örn: DGS, ALES, BİLSEM..."
                             value={customExamName || (examGoalType !== 'Özel Sınav' ? examGoalType : '')}
                             onChange={e => setCustomExamName(e.target.value)}
-                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #c084fc', background: '#faf5ff', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #c084fc', background: 'rgba(168,85,247,0.1)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                           />
                         </div>
                       )}
@@ -1543,11 +1543,11 @@ export default function GoalsAndSchedulePage() {
                         <>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                             <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınıf / Seviye</label>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Sınıf / Seviye</label>
                               <select
                                 value={gradeClass}
                                 onChange={e => setGradeClass(e.target.value)}
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
                               >
                                 <option value="">— Seçin —</option>
                                 {['1. Sınıf','2. Sınıf','3. Sınıf','4. Sınıf','5. Sınıf','6. Sınıf','7. Sınıf','8. Sınıf','9. Sınıf','10. Sınıf','11. Sınıf','12. Sınıf'].map(c => <option key={c} value={c}>{c}</option>)}
@@ -1555,11 +1555,11 @@ export default function GoalsAndSchedulePage() {
                             </div>
 
                             <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Dönem</label>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Dönem</label>
                               <select
                                 value={gradeTerm}
                                 onChange={e => setGradeTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
                               >
                                 <option value="1">1. Dönem</option>
                                 <option value="2">2. Dönem</option>
@@ -1569,11 +1569,11 @@ export default function GoalsAndSchedulePage() {
                           </div>
 
                           <div>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Belgem</label>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Belgem</label>
                             <select
                               value={gradeTarget}
                               onChange={e => setGradeTarget(e.target.value)}
-                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #86efac', background: '#f0fdf4', color: '#15803d', fontSize: '0.85rem', fontWeight: 800, outline: 'none' }}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid rgba(16,185,129,0.35)', background: 'rgba(16,185,129,0.12)', color: '#34d399', fontSize: '0.85rem', fontWeight: 800, outline: 'none' }}
                             >
                               <option value="Takçek">🟢 Takçek (Temel Seviye)</option>
                               <option value="Teşekkür">🧡 Teşekkür Belgesi (70–84 Puan)</option>
@@ -1585,36 +1585,36 @@ export default function GoalsAndSchedulePage() {
                       ) : (
                         <>
                           <div>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>İstenen Okul & Bölüm</label>
                             <input
                               type="text"
                               placeholder="Örn: Kabataş Erkek Lisesi / Boğaziçi Müh."
                               value={targetSchool}
                               onChange={e => setTargetSchool(e.target.value)}
-                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                              style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                             />
                           </div>
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                             <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Puan</label>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hedef Puan</label>
                               <input
                                 type="text"
                                 placeholder="Örn: 485"
                                 value={targetScore}
                                 onChange={e => setTargetScore(e.target.value)}
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                               />
                             </div>
 
                             <div>
-                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Toplam Net Hedefi</label>
+                              <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Toplam Net Hedefi</label>
                               <input
                                 type="number"
                                 placeholder="Örn: 90"
                                 value={targetNet}
                                 onChange={e => setTargetNet(e.target.value)}
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                               />
                             </div>
                           </div>
@@ -1628,9 +1628,9 @@ export default function GoalsAndSchedulePage() {
                           style={{
                             padding: '0.65rem 1.1rem',
                             borderRadius: '0.85rem',
-                            background: '#f1f5f9',
+                            background: 'var(--color-surface-hover, #f1f5f9)',
                             border: 'none',
-                            color: '#475569',
+                            color: 'var(--color-text-muted, #475569)',
                             fontSize: '0.82rem',
                             fontWeight: 800,
                             cursor: 'pointer'
@@ -1695,17 +1695,17 @@ export default function GoalsAndSchedulePage() {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '1rem',
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))',
             backdropFilter: 'blur(6px)'
           }}>
             <div style={{
-              background: '#ffffff',
+              background: 'var(--color-surface, #ffffff)',
               borderRadius: '1.5rem',
               padding: '1.5rem',
               width: '100%',
               maxWidth: 440,
-              border: '1.5px solid #e2e8f0',
-              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem',
@@ -1714,11 +1714,11 @@ export default function GoalsAndSchedulePage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Target size={22} color="#e11d48" />
-                  <h3 style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.05rem', margin: 0 }}>Yeni Özel Hedef Tanımla</h3>
+                  <h3 style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '1.05rem', margin: 0 }}>Yeni Özel Hedef Tanımla</h3>
                 </div>
                 <button
                   onClick={() => setShowGoalModal(false)}
-                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}
+                  style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}
                 >
                   <X size={16} />
                 </button>
@@ -1726,24 +1726,24 @@ export default function GoalsAndSchedulePage() {
 
               <form onSubmit={handleSaveGoal} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Tanımı / Başlığı</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Tanımı / Başlığı</label>
                   <input
                     type="text"
                     placeholder="Örn: Günlük 30 Paragraf Sorusu / 50 Sayfa Kitap"
                     value={newGoal.title}
                     onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
                     required
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Türü</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Türü</label>
                     <select
                       value={newGoal.type}
                       onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                     >
                       <option value="Soru">🎯 Soru Çözme</option>
                       <option value="Sayfa">📖 Kitap Okuma</option>
@@ -1752,11 +1752,11 @@ export default function GoalsAndSchedulePage() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Periyot</label>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', marginBottom: 4 }}>Periyot</label>
                     <select
                       value={newGoal.period}
                       onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', outline: 'none', cursor: 'pointer' }}
                     >
                       <option value="Günlük">⚡ Günlük</option>
                       <option value="Haftalık">📅 Haftalık</option>
@@ -1766,14 +1766,14 @@ export default function GoalsAndSchedulePage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Miktar</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', marginBottom: 4 }}>Hedef Miktar</label>
                   <input
                     type="number"
                     min="1"
                     placeholder="Örn: 50"
                     value={newGoal.target}
                     onChange={e => setNewGoal(p => ({ ...p, target: Number(e.target.value) }))}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #0f172a)', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
                     required
                   />
                 </div>
@@ -1782,7 +1782,7 @@ export default function GoalsAndSchedulePage() {
                   <button
                     type="button"
                     onClick={() => setShowGoalModal(false)}
-                    style={{ padding: '0.65rem 1.1rem', borderRadius: '0.75rem', background: '#f1f5f9', border: 'none', color: '#475569', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer' }}
+                    style={{ padding: '0.65rem 1.1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f1f5f9)', border: 'none', color: 'var(--color-text-muted, #475569)', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer' }}
                   >
                     İptal
                   </button>

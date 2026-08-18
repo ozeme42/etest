@@ -6,6 +6,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useCurriculum } from '../context/CurriculumContext';
+import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import {
   BookOpen, ArrowRight, Star, Plus, X, ClipboardList, TrendingUp,
@@ -19,9 +20,8 @@ import {
 } from 'recharts';
 import { toUUID } from '../services/supabaseService';
 
-/* ── Constants ─── */
-const DEBUG_PROGRESS = false;
 
+/* ── Constants ─── */
 const DEFAULT_SUBJECTS = {
   'Türkçe': { d: '', y: '', b: '', net: '' },
   'Matematik': { d: '', y: '', b: '', net: '' },
@@ -42,13 +42,13 @@ const EXAM_PALETTES = [
 const pal = (i) => EXAM_PALETTES[i % EXAM_PALETTES.length];
 
 /* ── Mini circular progress ─── */
-function Ring({ pct, size = 52, stroke = 5, color }) {
+function Ring({ pct, size = 52, stroke = 5, color, isDark = false }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'} strokeWidth={stroke} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
         style={{ transition: 'stroke-dashoffset 0.7s ease' }} />
@@ -57,13 +57,13 @@ function Ring({ pct, size = 52, stroke = 5, color }) {
 }
 
 /* ── Stat card ─── */
-function KPI({ icon, label, value, iconBg = '#eff6ff', iconColor = '#6366f1', sub }) {
+function KPI({ icon, label, value, iconBg = 'var(--color-surface-hover)', iconColor = '#6366f1', sub }) {
   return (
     <div style={{
-      background: '#ffffff',
+      background: 'var(--color-surface)',
       borderRadius: 18,
       padding: '1.1rem 1.25rem',
-      border: '1.5px solid #e2e8f0',
+      border: '1.5px solid var(--color-border)',
       boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
       display: 'flex',
       alignItems: 'center',
@@ -84,9 +84,9 @@ function KPI({ icon, label, value, iconBg = '#eff6ff', iconColor = '#6366f1', su
         {React.cloneElement(icon, { size: 22, color: iconColor })}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{value}</div>
-        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', marginTop: 3 }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 3 }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -110,11 +110,9 @@ function ChartTip({ active, payload, label }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════
-   MAIN COMPONENT
-══════════════════════════════════════════════════════ */
 export default function StudentExamsPage() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { currentUser } = useAuth();
   const { homeworks = [], addHomework } = useHomework();
   const { books = [], bookTests = [], isLoading: booksLoading, addTrackedBook, addTrackedBookTest } = useTrackedBooks();
@@ -238,7 +236,7 @@ export default function StudentExamsPage() {
 
   const { data: curData } = useCurriculum();
 
-  /* ── Data derivations (same logic as before, untouched) ─── */
+  /* ── Data derivations ─── */
   const bookAssignments = useMemo(() => homeworks.filter(hw => {
     if (!hw.isBookAssignment) return false;
     return isHomeworkForStudent(hw, currentUser, curData?.grades);
@@ -266,7 +264,6 @@ export default function StudentExamsPage() {
       const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
 
       if (hasTestDueDates) {
-        // Kitap takibinden tarih girilmiş denemeler: Sadece tarihi girilen testler görünsün
         hwTestIdsRaw = Object.entries(hw.testDueDates)
           .filter(([_, dStr]) => dStr && String(dStr).trim() !== '')
           .map(([tId, _]) => tId);
@@ -436,12 +433,12 @@ export default function StudentExamsPage() {
 
         {!isEmpty && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 22 }}>
-            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} iconBg="rgba(37,99,235,0.12)" iconColor="#60a5fa" sub={`${overallStats.bookCount} fiziki · ${overallStats.mockCount} manuel`} />
-            <KPI icon={<Target />} label="Ortalama Net" value={overallStats.avgNet} iconBg="rgba(16,185,129,0.12)" iconColor="#34d399" />
-            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} iconBg="rgba(245,158,11,0.12)" iconColor="#fbbf24" />
-            <KPI icon={<Calendar />} label="Son Deneme" value={overallStats.lastDate} iconBg="rgba(139,92,246,0.12)" iconColor="#a78bfa" />
-            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} iconBg="rgba(5,150,105,0.12)" iconColor="#10b981" />
-            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} iconBg="rgba(225,29,72,0.12)" iconColor="#f43f5e" />
+            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} iconBg={isDark ? "rgba(37,99,235,0.18)" : "#eff6ff"} iconColor="#3b82f6" sub={`${overallStats.bookCount} fiziki · ${overallStats.mockCount} manuel`} />
+            <KPI icon={<Target />} label="Ortalama Net" value={overallStats.avgNet} iconBg={isDark ? "rgba(16,185,129,0.18)" : "#ecfdf5"} iconColor="#10b981" />
+            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} iconBg={isDark ? "rgba(245,158,11,0.18)" : "#fffbeb"} iconColor="#f59e0b" />
+            <KPI icon={<Calendar />} label="Son Deneme" value={overallStats.lastDate} iconBg={isDark ? "rgba(139,92,246,0.18)" : "#faf5ff"} iconColor="#8b5cf6" />
+            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} iconBg={isDark ? "rgba(5,150,105,0.18)" : "#f0fdf4"} iconColor="#059669" />
+            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} iconBg={isDark ? "rgba(225,29,72,0.18)" : "#fff1f2"} iconColor="#e11d48" />
           </div>
         )}
 
@@ -483,7 +480,7 @@ export default function StudentExamsPage() {
                 { key: 'book', label: `📚 Fiziki (${assignedBooks.length})` },
                 { key: 'mock', label: `✏️ Manuel (${studentMockExams.length})` },
               ].map(s => (
-                <button key={s.key} onClick={() => setActiveSection(s.key)} style={{ padding: '0.4rem 0.9rem', borderRadius: 8, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', background: activeSection === s.key ? 'rgba(37,99,235,0.12)' : 'transparent', color: activeSection === s.key ? '#60a5fa' : 'var(--color-text-muted)', whiteSpace: 'nowrap', transition: 'all 0.15s ease' }}>
+                <button key={s.key} onClick={() => setActiveSection(s.key)} style={{ padding: '0.4rem 0.9rem', borderRadius: 8, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', background: activeSection === s.key ? (isDark ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)') : 'transparent', color: activeSection === s.key ? '#818cf8' : 'var(--color-text-muted)', whiteSpace: 'nowrap', transition: 'all 0.15s ease' }}>
                   {s.label}
                 </button>
               ))}
@@ -491,12 +488,12 @@ export default function StudentExamsPage() {
             <div style={{ position: 'relative', flex: '1 1 180px' }}>
               <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Deneme ara…"
-                style={{ width: '100%', paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid var(--color-border)', fontSize: '0.82rem', fontWeight: 700, background: 'var(--color-surface)', outline: 'none', color: 'var(--color-text)', boxSizing: 'border-box' }} />
+                style={{ width: '100%', paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, background: 'var(--color-surface)', outline: 'none', color: 'var(--color-text)', boxSizing: 'border-box' }} />
             </div>
             <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface)', padding: 4, borderRadius: 12, border: '1.5px solid var(--color-border)' }}>
               {[{ k: 'cards', ic: <LayoutGrid size={15} /> }, { k: 'table', ic: <List size={15} /> }].map(m => (
                 <button key={m.k} onClick={() => setViewMode(m.k)}
-                  style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: viewMode === m.k ? 'rgba(37,99,235,0.12)' : 'transparent', color: viewMode === m.k ? '#60a5fa' : 'var(--color-text-muted)' }}>
+                  style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: viewMode === m.k ? (isDark ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)') : 'transparent', color: viewMode === m.k ? '#818cf8' : 'var(--color-text-muted)' }}>
                   {m.ic}
                 </button>
               ))}
@@ -507,14 +504,14 @@ export default function StudentExamsPage() {
         {/* ── EMPTY STATE ── */}
         {isEmpty && (
           booksLoading ? (
-            <div style={{ background: '#ffffff', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid #e2e8f0' }}>
-              <div style={{ width: 44, height: 44, border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
-              <div style={{ fontWeight: 800, color: '#64748b' }}>Denemeler yükleniyor…</div>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)' }}>
+              <div style={{ width: 44, height: 44, border: '4px solid var(--color-border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
+              <div style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>Denemeler yükleniyor…</div>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : (
-            <div style={{ background: '#ffffff', borderRadius: 20, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <div style={{ width: 90, height: 90, background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ width: 90, height: 90, background: isDark ? 'rgba(37,99,235,0.15)' : '#eff6ff', border: isDark ? '1.5px solid rgba(59,130,246,0.35)' : '1.5px solid #bfdbfe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                 <FileBarChart2 size={40} color="#3b82f6" />
               </div>
               <h2 style={{ margin: '0 0 8px', color: 'var(--color-text)', fontWeight: 900 }}>Henüz Deneme Yok</h2>
@@ -560,12 +557,12 @@ export default function StudentExamsPage() {
 
                   {/* Badge */}
                   {exam.isCompleted && !isMock && (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <Star size={10} fill="#34d399" color="#34d399" /> TAMAMLANDI
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5', border: isDark ? '1px solid rgba(16,185,129,0.4)' : '1px solid #a7f3d0', color: '#10b981', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Star size={10} fill="#10b981" color="#10b981" /> TAMAMLANDI
                     </div>
                   )}
                   {!isMock && !exam.isCompleted && exam.remainingDays !== undefined && (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: exam.remainingDays <= 3 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)', border: `1px solid ${exam.remainingDays <= 3 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`, color: exam.remainingDays <= 3 ? '#f87171' : '#fbbf24', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900 }}>
+                    <div style={{ position: 'absolute', top: 14, right: 14, background: exam.remainingDays <= 3 ? (isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2') : (isDark ? 'rgba(245,158,11,0.2)' : '#fffbeb'), border: exam.remainingDays <= 3 ? (isDark ? '1px solid rgba(239,68,68,0.4)' : '1px solid #fecaca') : (isDark ? '1px solid rgba(245,158,11,0.4)' : '1px solid #fde68a'), color: exam.remainingDays <= 3 ? '#ef4444' : '#d97706', padding: '0.22rem 0.6rem', borderRadius: 99, fontSize: '0.65rem', fontWeight: 900 }}>
                       ⏱ {exam.remainingDays}g kaldı
                     </div>
                   )}
@@ -578,7 +575,7 @@ export default function StudentExamsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)', lineHeight: 1.3, paddingRight: exam.remainingDays !== undefined || exam.isCompleted ? 70 : 0 }}>{exam.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <span style={{ background: isMock ? 'rgba(139,92,246,0.12)' : 'rgba(37,99,235,0.12)', color: isMock ? '#a78bfa' : '#60a5fa', border: `1px solid ${isMock ? 'rgba(139,92,246,0.25)' : '#3b82f6'}`, borderRadius: 6, padding: '0.18rem 0.55rem', fontSize: '0.68rem', fontWeight: 900 }}>
+                        <span style={{ background: isMock ? (isDark ? 'rgba(139,92,246,0.2)' : '#faf5ff') : (isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff'), color: isMock ? '#8b5cf6' : '#3b82f6', border: `1px solid ${isMock ? (isDark ? 'rgba(139,92,246,0.4)' : '#e9d5ff') : (isDark ? 'rgba(37,99,235,0.4)' : '#bfdbfe')}`, borderRadius: 6, padding: '0.18rem 0.55rem', fontSize: '0.68rem', fontWeight: 900 }}>
                           {isMock ? '✏️ Manuel' : '📚 Fiziki'}
                         </span>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{exam.date}</span>
@@ -593,7 +590,7 @@ export default function StudentExamsPage() {
                         <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Test İlerlemesi</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: '0.72rem', fontWeight: 900, color: p.to }}>%{exam.progressPct}</span>
-                          <Ring pct={exam.progressPct || 0} size={36} stroke={4} color={exam.isCompleted ? '#10b981' : p.from} />
+                          <Ring pct={exam.progressPct || 0} size={36} stroke={4} color={exam.isCompleted ? '#10b981' : p.from} isDark={isDark} />
                         </div>
                       </div>
                       <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
@@ -605,10 +602,10 @@ export default function StudentExamsPage() {
                   {/* D/Y/B + Net */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                     {[
-                      { l: 'Doğru', v: exam.d, c: '#34d399', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)' },
-                      { l: 'Yanlış', v: exam.y, c: '#f87171', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' },
+                      { l: 'Doğru', v: exam.d, c: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.3)' : '#bbf7d0' },
+                      { l: 'Yanlış', v: exam.y, c: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecdd3' },
                       { l: 'Boş',    v: exam.b, c: 'var(--color-text-muted)', bg: 'var(--color-surface-hover)', border: 'var(--color-border)' },
-                      { l: 'Net',    v: exam.net, c: '#a78bfa', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.25)' },
+                      { l: 'Net',    v: exam.net, c: '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.15)' : '#faf5ff', border: isDark ? 'rgba(139,92,246,0.3)' : '#e9d5ff' },
                     ].map((s, i) => (
                       <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.4rem 0.3rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '0.6rem', color: s.c, fontWeight: 900, textTransform: 'uppercase' }}>{s.l}</div>
@@ -631,7 +628,7 @@ export default function StudentExamsPage() {
                           <Pencil size={13} /> Düzenle
                         </button>
                         <button onClick={e => handleDeleteMock(e, exam.id)}
-                          style={{ flex: 1, padding: '0.55rem', background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          style={{ flex: 1, padding: '0.55rem', background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca', borderRadius: 8, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <Trash2 size={13} /> Sil
                         </button>
                       </div>
@@ -668,20 +665,20 @@ export default function StudentExamsPage() {
                     >
                       <td style={{ padding: '0.8rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: 'var(--color-text)' }}>
-                          {exam.type === 'mock' ? <ClipboardList size={16} color="#818cf8" /> : <BookOpen size={16} color={exam.isCompleted ? '#10b981' : '#60a5fa'} />}
+                          {exam.type === 'mock' ? <ClipboardList size={16} color="#818cf8" /> : <BookOpen size={16} color={exam.isCompleted ? '#10b981' : '#3b82f6'} />}
                           <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{exam.title}</span>
                         </div>
                       </td>
                       <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{exam.date}</td>
                       <td style={{ padding: '0.8rem 1rem' }}>
-                        <span style={{ background: exam.type === 'mock' ? 'rgba(139,92,246,0.12)' : exam.isCompleted ? 'rgba(16,185,129,0.12)' : 'rgba(37,99,235,0.12)', color: exam.type === 'mock' ? '#a78bfa' : exam.isCompleted ? '#34d399' : '#60a5fa', border: `1px solid ${exam.type === 'mock' ? 'rgba(139,92,246,0.25)' : exam.isCompleted ? 'rgba(16,185,129,0.25)' : '#3b82f6'}`, borderRadius: 6, padding: '0.22rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                        <span style={{ background: exam.type === 'mock' ? (isDark ? 'rgba(139,92,246,0.2)' : '#faf5ff') : exam.isCompleted ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff'), color: exam.type === 'mock' ? '#8b5cf6' : exam.isCompleted ? '#10b981' : '#3b82f6', border: `1px solid ${exam.type === 'mock' ? (isDark ? 'rgba(139,92,246,0.4)' : '#e9d5ff') : exam.isCompleted ? (isDark ? 'rgba(16,185,129,0.4)' : '#a7f3d0') : (isDark ? 'rgba(37,99,235,0.4)' : '#bfdbfe')}`, borderRadius: 6, padding: '0.22rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
                           {exam.type === 'mock' ? '✏️ Manuel' : exam.isCompleted ? '✅ Tamamlandı' : `📊 %${exam.progressPct}`}
                         </span>
                       </td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#34d399' }}>{exam.d}</td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#f87171' }}>{exam.y}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#10b981' }}>{exam.d}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#ef4444' }}>{exam.y}</td>
                       <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>{exam.b}</td>
-                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#a78bfa', fontSize: '1rem' }}>{exam.net}</td>
+                      <td style={{ padding: '0.8rem 1rem', fontWeight: 900, color: '#8b5cf6', fontSize: '1rem' }}>{exam.net}</td>
                       <td style={{ padding: '0.8rem 1rem', textAlign: 'right' }}>
                         {exam.type === 'book' ? (
                           <button onClick={e => { e.stopPropagation(); navigate(`/student/books/${exam.id}`); }}
@@ -695,7 +692,7 @@ export default function StudentExamsPage() {
                               <Pencil size={13} />
                             </button>
                             <button onClick={e => handleDeleteMock(e, exam.id)}
-                              style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)', padding: '0.38rem 0.55rem', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              style={{ background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca', padding: '0.38rem 0.55rem', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -719,12 +716,12 @@ export default function StudentExamsPage() {
           MANUEL MODAL
       ══════════════════════ */}
       {showMockModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
-          <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', animation: 'scaleIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.6))', backdropFilter: 'blur(6px)', padding: '1rem' }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.25)', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: '0 0 3px', fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>{editingMockId ? 'Deneme Sonucunu Düzenle' : 'Manuel Deneme Sonucu Ekle'}</h2>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Fiziki sınav veya dershanede giren denemenin sonuçlarını gir</p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Fiziki sınav veya dershanede girilen denemenin sonuçlarını gir</p>
               </div>
               <button onClick={() => setShowMockModal(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <X size={17} />
@@ -768,7 +765,7 @@ export default function StudentExamsPage() {
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubjectToMock(); } }}
                     style={{ flex: 1, padding: '0.65rem 0.85rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} />
                   <button type="button" onClick={addSubjectToMock}
-                    style={{ padding: '0.65rem 1rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', borderRadius: 8, fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
+                    style={{ padding: '0.65rem 1rem', background: isDark ? 'rgba(37,99,235,0.2)' : 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', borderRadius: 8, fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
                     Ekle
                   </button>
                 </div>
@@ -792,9 +789,9 @@ export default function StudentExamsPage() {
                         ))}
                         <input type="number" placeholder="Net" value={scores.net} step="0.25"
                           onChange={e => updateSubjectScore(sName, 'net', e.target.value)}
-                          style={{ padding: '0.45rem 0.3rem', borderRadius: 6, border: '1.5px solid #3b82f6', background: 'rgba(37,99,235,0.12)', fontSize: '0.8rem', fontWeight: 900, textAlign: 'center', color: '#60a5fa', outline: 'none', minWidth: 0 }} />
+                          style={{ padding: '0.45rem 0.3rem', borderRadius: 6, border: '1.5px solid #3b82f6', background: isDark ? 'rgba(37,99,235,0.2)' : 'rgba(37,99,235,0.12)', fontSize: '0.8rem', fontWeight: 900, textAlign: 'center', color: '#60a5fa', outline: 'none', minWidth: 0 }} />
                         <button type="button" onClick={() => removeSubjectFromMock(sName)}
-                          style={{ width: 30, height: 30, borderRadius: 6, border: 'none', background: 'rgba(239,68,68,0.15)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          style={{ width: 30, height: 30, borderRadius: 6, border: 'none', background: isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <X size={13} />
                         </button>
                       </div>
@@ -803,10 +800,10 @@ export default function StudentExamsPage() {
                   {/* Totals */}
                   <div style={{ borderTop: '2px dashed var(--color-border)', marginTop: 10, paddingTop: 10, display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 30px', gap: 6, fontWeight: 900, textAlign: 'center', fontSize: '0.82rem' }}>
                     <div style={{ textAlign: 'left', color: 'var(--color-text)' }}>TOPLAM</div>
-                    <div style={{ color: '#34d399' }}>{totalMockD}</div>
-                    <div style={{ color: '#f87171' }}>{totalMockY}</div>
+                    <div style={{ color: '#10b981' }}>{totalMockD}</div>
+                    <div style={{ color: '#ef4444' }}>{totalMockY}</div>
                     <div style={{ color: 'var(--color-text-muted)' }}>{totalMockB}</div>
-                    <div style={{ color: '#a78bfa', fontSize: '1rem' }}>{totalMockNet.toFixed(2)}</div>
+                    <div style={{ color: '#8b5cf6', fontSize: '1rem' }}>{totalMockNet.toFixed(2)}</div>
                     <div></div>
                   </div>
                 </div>
@@ -826,8 +823,8 @@ export default function StudentExamsPage() {
           ADD EXAM MODAL
       ══════════════════════ */}
       {isAddModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
-          <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', width: '100%', maxWidth: 480, padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', animation: 'scaleIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.6))', backdropFilter: 'blur(6px)', padding: '1rem' }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', width: '100%', maxWidth: 480, padding: '1.75rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.25)', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: '0 0 3px', fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>Kendi Denemeni Ekle</h2>
@@ -866,7 +863,7 @@ export default function StudentExamsPage() {
                       style={{ width: 60, padding: '0.6rem 0.4rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.8rem', fontWeight: 700, textAlign: 'center', outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} />
                     <button disabled={newBook.subjects.length <= 1}
                       onClick={() => setNewBook({ ...newBook, subjects: newBook.subjects.filter((_, i) => i !== idx) })}
-                      style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: newBook.subjects.length > 1 ? 'rgba(239,68,68,0.15)' : 'var(--color-surface-hover)', color: newBook.subjects.length > 1 ? '#f87171' : 'var(--color-text-muted)', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: newBook.subjects.length > 1 ? (isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)') : 'var(--color-surface-hover)', color: newBook.subjects.length > 1 ? '#f87171' : 'var(--color-text-muted)', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <X size={13} />
                     </button>
                   </div>
@@ -878,7 +875,7 @@ export default function StudentExamsPage() {
                   <span style={{ width: 32 }} />
                 </div>
                 <button onClick={() => setNewBook(p => ({ ...p, subjects: [...p.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
-                  style={{ padding: '0.5rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1.5px dashed #3b82f6', borderRadius: 8, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 2 }}>
+                  style={{ padding: '0.5rem', background: isDark ? 'rgba(37,99,235,0.2)' : 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1.5px dashed #3b82f6', borderRadius: 8, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 2 }}>
                   <Plus size={13} /> Yeni Ders Ekle
                 </button>
               </div>

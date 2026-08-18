@@ -6,7 +6,8 @@ import {
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, TrendingUp,
   BarChart3, Target, BookMarked, XCircle, Table, List, Home,
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
-  FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon
+  FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
+  LayoutGrid
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -21,29 +22,103 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 
-/* ── Subject Config ────────────────────────────────────────────────── */
+/* ── Subject Config ─────────────────────────────────────────── */
 const SUBJECTS = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Genel Testler'];
-const subjectThemes = {
-  'Matematik':       { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', icon: Ruler,         radar: '#3b82f6', light: '#f0f9ff' },
-  'Fen Bilimleri':   { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', icon: TestTube2,      radar: '#10b981', light: '#ecfdf5' },
-  'Türkçe':          { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: BookCopy,       radar: '#f97316', light: '#fffaf5' },
-  'Sosyal Bilgiler': { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff', icon: Globe,          radar: '#a855f7', light: '#fbf8ff' },
-  'İngilizce':       { bg: '#fff1f2', color: '#be123c', border: '#fecdd3', icon: MessageSquare,  radar: '#f43f5e', light: '#fff8f9' },
-  'Genel Testler':   { bg: '#f5f3ff', color: '#4338ca', border: '#ddd6fe', icon: Trophy,         radar: '#6366f1', light: '#faf8ff' },
-  'Diğer':           { bg: '#f8fafc', color: '#475569', border: '#e2e8f0', icon: BookOpen,       radar: '#94a3b8', light: '#f8fafc' },
+
+const getSubjectTheme = (subjKey, isDark) => {
+  const themes = {
+    'Matematik': {
+      bg: isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff',
+      color: '#3b82f6',
+      border: isDark ? 'rgba(59,130,246,0.35)' : '#bfdbfe',
+      icon: Ruler,
+      radar: '#3b82f6',
+      light: isDark ? 'rgba(59,130,246,0.1)' : '#f0f9ff'
+    },
+    'Fen Bilimleri': {
+      bg: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4',
+      color: '#10b981',
+      border: isDark ? 'rgba(16,185,129,0.35)' : '#bbf7d0',
+      icon: TestTube2,
+      radar: '#10b981',
+      light: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5'
+    },
+    'Türkçe': {
+      bg: isDark ? 'rgba(249,115,22,0.18)' : '#fff7ed',
+      color: '#f97316',
+      border: isDark ? 'rgba(249,115,22,0.35)' : '#fed7aa',
+      icon: BookCopy,
+      radar: '#f97316',
+      light: isDark ? 'rgba(249,115,22,0.1)' : '#fffaf5'
+    },
+    'Sosyal Bilgiler': {
+      bg: isDark ? 'rgba(168,85,247,0.18)' : '#faf5ff',
+      color: '#a855f7',
+      border: isDark ? 'rgba(168,85,247,0.35)' : '#e9d5ff',
+      icon: Globe,
+      radar: '#a855f7',
+      light: isDark ? 'rgba(168,85,247,0.1)' : '#fbf8ff'
+    },
+    'İngilizce': {
+      bg: isDark ? 'rgba(244,63,94,0.18)' : '#fff1f2',
+      color: '#f43f5e',
+      border: isDark ? 'rgba(244,63,94,0.35)' : '#fecdd3',
+      icon: MessageSquare,
+      radar: '#f43f5e',
+      light: isDark ? 'rgba(244,63,94,0.1)' : '#fff8f9'
+    },
+    'Genel Testler': {
+      bg: isDark ? 'rgba(99,102,241,0.18)' : '#f5f3ff',
+      color: '#818cf8',
+      border: isDark ? 'rgba(99,102,241,0.35)' : '#ddd6fe',
+      icon: Trophy,
+      radar: '#6366f1',
+      light: isDark ? 'rgba(99,102,241,0.1)' : '#faf8ff'
+    },
+    'Diğer': {
+      bg: isDark ? 'rgba(148,163,184,0.15)' : '#f8fafc',
+      color: '#94a3b8',
+      border: isDark ? 'rgba(148,163,184,0.3)' : '#e2e8f0',
+      icon: BookOpen,
+      radar: '#94a3b8',
+      light: isDark ? 'rgba(148,163,184,0.1)' : '#f8fafc'
+    }
+  };
+  return themes[subjKey] || themes['Diğer'];
 };
 
-const typeConfig = {
-  physicalExam: { label: '🏛️ Deneme',     bg: '#f5f3ff', color: '#4338ca', border: '#ddd6fe' },
-  homework:     { label: '📝 Ödev',        bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-  book:         { label: '📕 Kitap Testi', bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  individual:   { label: '⚡ Bireysel',    bg: '#f8fafc', color: '#475569', border: '#e2e8f0' },
-};
+const getTypeConfig = (isDark) => ({
+  physicalExam: {
+    label: '📋 Deneme',
+    bg: isDark ? 'rgba(99,102,241,0.18)' : '#f5f3ff',
+    color: '#818cf8',
+    border: isDark ? 'rgba(99,102,241,0.35)' : '#ddd6fe'
+  },
+  homework: {
+    label: '📝 Ödev',
+    bg: isDark ? 'rgba(249,115,22,0.18)' : '#fff7ed',
+    color: '#f97316',
+    border: isDark ? 'rgba(249,115,22,0.35)' : '#fed7aa'
+  },
+  book: {
+    label: '📚 Kitap Testi',
+    bg: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4',
+    color: '#10b981',
+    border: isDark ? 'rgba(16,185,129,0.35)' : '#bbf7d0'
+  },
+  individual: {
+    label: '⚡ Bireysel',
+    bg: isDark ? 'rgba(148,163,184,0.15)' : '#f8fafc',
+    color: '#94a3b8',
+    border: isDark ? 'rgba(148,163,184,0.3)' : '#e2e8f0'
+  },
+});
 
 function getSubjectKey(s) {
   const t = ((s.testTitle || '') + ' ' + (s.subjectKey || '')).toLowerCase();
@@ -56,26 +131,40 @@ function getSubjectKey(s) {
   return s.subjectKey || 'Diğer';
 }
 
-function getTypeKey(s) {
-  if (s.type === 'physicalExam') return 'physicalExam';
-  if (s.bookTestId) return 'book';
-  if (s.isHomework) return 'homework';
-  return 'individual';
-}
-
-function ScoreBadge({ score, type, isPendingEval, size = 'md' }) {
+function ScoreBadge({ score, type, isPendingEval, size = 'md', isDark = false }) {
   if (isPendingEval) {
     return (
-      <span style={{ fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem', fontWeight: 900, background: '#fffbeb', color: '#b45309', border: '1.5px solid #fde68a', borderRadius: 10, padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-        ✍️ Not Bekliyor
+      <span style={{
+        fontSize: size === 'lg' ? '0.9rem' : size === 'sm' ? '0.72rem' : '0.8rem',
+        fontWeight: 900,
+        background: isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb',
+        color: '#f59e0b',
+        border: isDark ? '1.5px solid rgba(245,158,11,0.35)' : '1.5px solid #fde68a',
+        borderRadius: 10,
+        padding: size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        whiteSpace: 'nowrap'
+      }}>
+        ⏳ Not Bekliyor
       </span>
     );
   }
   const fontSize = size === 'lg' ? '1.35rem' : size === 'sm' ? '0.8rem' : '0.95rem';
   const pad = size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem';
-  const color = score >= 80 ? '#15803d' : score >= 60 ? '#b45309' : '#b91c1c';
-  const bg = score >= 80 ? '#f0fdf4' : score >= 60 ? '#fffbeb' : '#fef2f2';
-  const border = score >= 80 ? '#bbf7d0' : score >= 60 ? '#fde68a' : '#fecaca';
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
+  const bg = score >= 80
+    ? (isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4')
+    : score >= 60
+    ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb')
+    : (isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2');
+  const border = score >= 80
+    ? (isDark ? 'rgba(16,185,129,0.35)' : '#bbf7d0')
+    : score >= 60
+    ? (isDark ? 'rgba(245,158,11,0.35)' : '#fde68a')
+    : (isDark ? 'rgba(239,68,68,0.35)' : '#fecaca');
+
   return (
     <span style={{ fontSize, fontWeight: 900, background: bg, color, border: `1.5px solid ${border}`, borderRadius: 10, padding: pad, display: 'inline-block', whiteSpace: 'nowrap' }}>
       {type === 'physicalExam' ? `${score} Net` : `%${score}`}
@@ -83,10 +172,10 @@ function ScoreBadge({ score, type, isPendingEval, size = 'md' }) {
   );
 }
 
-function StatusTag({ accuracy }) {
-  if (accuracy >= 80) return <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>🏆 Güçlü</span>;
-  if (accuracy >= 60) return <span style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>📈 Gelişiyor</span>;
-  return <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>⚠️ Kritik</span>;
+function StatusTag({ accuracy, isDark = false }) {
+  if (accuracy >= 80) return <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>🏆 Güçlü</span>;
+  if (accuracy >= 60) return <span style={{ background: isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb', color: '#f59e0b', border: isDark ? '1px solid rgba(245,158,11,0.35)' : '1px solid #fde68a', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>📈 Gelişiyor</span>;
+  return <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 8, padding: '0.18rem 0.6rem', fontSize: '0.7rem', fontWeight: 900, whiteSpace: 'nowrap' }}>⚠️ Kritik</span>;
 }
 
 const TAB_DEFS = [
@@ -95,20 +184,20 @@ const TAB_DEFS = [
   { key: 'subjects',  label: '📚 Ders & Konu',              icon: BookOpen },
   { key: 'bytype',    label: '📝 Ödev & Deneme',            icon: FileText },
   { key: 'trend',     label: '📈 Zaman Trendi',             icon: TrendingUp },
-  { key: 'all',       label: '🗃️ Tüm Sonuçlar',            icon: Table },
+  { key: 'all',       label: '📋 Tüm Sonuçlar',            icon: Table },
 ];
 
-/* ── Custom Tooltip ─────────────────────────────────────────────────── */
+/* ── Custom Tooltips ─────────────────────────────────────────── */
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload || {};
   return (
-    <div style={{ background: '#ffffff', color: '#0f172a', padding: '0.75rem 1rem', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', border: '1.5px solid #e2e8f0', minWidth: 160 }}>
-      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#4f46e5', marginBottom: 4 }}>{d.title || d.ders || label}</div>
+    <div style={{ background: 'var(--color-surface, #ffffff)', color: 'var(--color-text, #0f172a)', padding: '0.75rem 1rem', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', border: '1.5px solid var(--color-border, #e2e8f0)', minWidth: 160 }}>
+      <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#6366f1', marginBottom: 4 }}>{d.title || d.ders || label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 3 }}>
-          <span style={{ color: p.color || '#64748b', fontWeight: 700 }}>{p.name}</span>
-          <span style={{ fontWeight: 900, color: '#0f172a' }}>{typeof p.value === 'number' && p.name?.includes('%') ? `%${p.value}` : p.value}</span>
+        <div key={i} style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #64748b)', display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 3 }}>
+          <span style={{ color: p.color || 'var(--color-text-muted)', fontWeight: 700 }}>{p.name}</span>
+          <span style={{ fontWeight: 900, color: 'var(--color-text)' }}>{typeof p.value === 'number' && p.name?.includes('%') ? `%${p.value}` : p.value}</span>
         </div>
       ))}
     </div>
@@ -126,46 +215,46 @@ function CustomSubjectTooltip({ active, payload }) {
 
     return (
       <div style={{
-        background: '#ffffff',
-        border: '1.5px solid #e2e8f0',
+        background: 'var(--color-surface, #ffffff)',
+        border: '1.5px solid var(--color-border, #e2e8f0)',
         borderRadius: 14,
         padding: '0.75rem 1rem',
-        color: '#0f172a',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+        color: 'var(--color-text, #0f172a)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
         fontSize: '0.8rem',
         minWidth: 160
       }}>
-        <div style={{ fontWeight: 900, color: '#4f46e5', marginBottom: 6, fontSize: '0.9rem' }}>
+        <div style={{ fontWeight: 900, color: '#6366f1', marginBottom: 6, fontSize: '0.9rem' }}>
           {data.fullName || data.name || data.displayName}
         </div>
         {scoreVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#64748b' }}>Başarı Oranı:</span>
-            <span style={{ fontWeight: 900, color: scoreVal >= 70 ? '#15803d' : scoreVal >= 50 ? '#b45309' : '#b91c1c' }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Başarı Oranı:</span>
+            <span style={{ fontWeight: 900, color: scoreVal >= 70 ? '#10b981' : scoreVal >= 50 ? '#f59e0b' : '#ef4444' }}>
               %{scoreVal}
             </span>
           </div>
         )}
         {correctVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#16a34a' }}>✓ Doğru:</span>
-            <span style={{ fontWeight: 800, color: '#15803d' }}>{correctVal}</span>
+            <span style={{ color: '#10b981' }}>✓ Doğru:</span>
+            <span style={{ fontWeight: 800, color: '#10b981' }}>{correctVal}</span>
           </div>
         )}
         {wrongVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#dc2626' }}>✗ Yanlış:</span>
-            <span style={{ fontWeight: 800, color: '#b91c1c' }}>{wrongVal}</span>
+            <span style={{ color: '#ef4444' }}>✗ Yanlış:</span>
+            <span style={{ fontWeight: 800, color: '#ef4444' }}>{wrongVal}</span>
           </div>
         )}
         {blankVal !== undefined && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-            <span style={{ color: '#64748b' }}>○ Boş:</span>
-            <span style={{ fontWeight: 800, color: '#475569' }}>{blankVal}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>— Boş:</span>
+            <span style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>{blankVal}</span>
           </div>
         )}
         {totalVal !== undefined && (
-          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: '#0f172a', fontWeight: 800 }}>
+          <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 12, color: 'var(--color-text)', fontWeight: 800 }}>
             <span>Toplam Soru:</span>
             <span>{totalVal}</span>
           </div>
@@ -176,11 +265,12 @@ function CustomSubjectTooltip({ active, payload }) {
   return null;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    MAIN COMPONENT
-══════════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════ */
 export default function StudentResultsPage() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { submissions } = useEvaluation();
   const { users } = useUser();
   const { homeworks } = useHomework();
@@ -240,6 +330,9 @@ export default function StudentResultsPage() {
   const [selectedSubjFilter, setSelectedSubjFilter] = useState('all');
   const [topicChartSort, setTopicChartSort] = useState('accuracy_desc'); // 'accuracy_desc' | 'accuracy_asc' | 'totalQ_desc'
 
+  const typeConfig = useMemo(() => getTypeConfig(isDark), [isDark]);
+  const theme = (key) => getSubjectTheme(key, isDark);
+
   /* ── Curriculum test map ─── */
   const allCurTestsMap = useMemo(() => {
     const map = new Map();
@@ -261,7 +354,7 @@ export default function StudentResultsPage() {
     return map;
   }, [curData]);
 
-  /* ── Build studentSubmissions (Yalnızca aktif testler ve kitap testleri) ─── */
+  /* ── Build studentSubmissions ─── */
   const studentSubmissions = useMemo(() => {
     if (!selectedStudent) return [];
 
@@ -277,10 +370,10 @@ export default function StudentResultsPage() {
     const results = [];
     const processedTestKeys = new Set();
 
-    // 1. Process regular non-book homeworks (Kitap ödevi olmayan normal ödev/denemeler)
+    // 1. Process regular non-book homeworks
     activeHws.forEach(hw => {
       if (hw.isBookAssignment || hw.bookId || hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Kendi Eklediğim)')) {
-        return; // Kitap görevleri tek bir mega-sınav değildir, test bazlı aşağıda işlenir
+        return;
       }
 
       const subInHw = (hw.submissions || []).find(s => {
@@ -313,7 +406,6 @@ export default function StudentResultsPage() {
 
       const isEvaluated = isEval(sub);
       const isOpenEnded = Boolean(
-        hw.isOpenEnded ||
         hw.questionType === 'acik_uclu' ||
         hw.type === 'acik_uclu' ||
         hw.contentType === 'acik_uclu' ||
@@ -350,23 +442,22 @@ export default function StudentResultsPage() {
         score = Math.min(100, Math.max(0, Math.round(sub.scorePercentage)));
       } else if (raw.scorePercentage !== undefined && raw.scorePercentage !== null) {
         score = Math.min(100, Math.max(0, Math.round(raw.scorePercentage)));
-      } else if (isEvaluated && sub.score !== undefined && sub.score !== null) {
-        score = Math.min(100, Math.max(0, Math.round(sub.score)));
-      } else if (!isPendingEval && total > 0) {
+      } else if (total > 0) {
         score = Math.min(100, Math.round((correct / total) * 100));
       }
 
-      const isPhysical = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical;
-      const typeKey = isPhysical ? 'physicalExam' : 'homework';
-      const subjKey = getSubjectKey({ testTitle: hw.title, subjectKey: hw.subject || sub.subjectKey || '' });
+      const curInfo = allCurTestsMap.get(hw.id) || allCurTestsMap.get(sub.testId) || {};
+      const subjKey = getSubjectKey({
+        testTitle: hw.title || curInfo.title,
+        subjectKey: hw.subject || curInfo.subject || sub.subjectKey
+      });
 
-      processedTestKeys.add(String(hw.id));
-      if (toUUID(hw.id)) processedTestKeys.add(String(toUUID(hw.id)));
+      const isPhysicalExam = hw.type === 'physicalExam' || hw.isPhysicalExam;
+      const typeKey = isPhysicalExam ? 'physicalExam' : 'homework';
 
       results.push({
         ...sub,
         id: sub.id || `hw_sub_${hw.id}_${selectedStudent.id}`,
-        hwId: hw.id,
         testId: hw.id,
         testTitle: hw.title,
         subjectKey: subjKey,
@@ -383,8 +474,7 @@ export default function StudentResultsPage() {
       });
     });
 
-    // 2. Process all completed individual book tests (Kitap takibindeki gerçek çözülen testler)
-    // Her test için en iyi sonucu alarak mükerrerliği önle (StudentDashboard ile birebir aynı)
+    // 2. Process all completed individual book tests
     const bestBookSubsByTest = {};
 
     (submissions || []).forEach(sub => {
@@ -433,7 +523,7 @@ export default function StudentResultsPage() {
       const topicName = topicObj?.name || '';
 
       const fullTestTitle = topicName
-        ? `${cleanBookTitle} — ${subjectName} · ${topicName} (${testName})`
+        ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})`
         : `${cleanBookTitle} — ${subjectName} (${testName})`;
 
       const ansCount = Array.isArray(sub.answers) ? sub.answers.length : 0;
@@ -479,7 +569,7 @@ export default function StudentResultsPage() {
     Object.values(bestBookSubsByTest).forEach(item => results.push(item));
 
     return results.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
-  }, [homeworks, submissions, selectedStudent, curData, books, bookTests]);
+  }, [homeworks, submissions, selectedStudent, curData, books, bookTests, allCurTestsMap]);
 
   /* ── Overall Stats ─── */
   const overallStats = useMemo(() => {
@@ -513,7 +603,7 @@ export default function StudentResultsPage() {
     };
   }, [studentSubmissions]);
 
-  /* ── Radar data (per-subject average) ─── */
+  /* ── Radar data ─── */
   const radarData = useMemo(() => {
     const map = {};
     SUBJECTS.forEach(s => { map[s] = { sum: 0, count: 0, totalQ: 0, totalCorrect: 0 }; });
@@ -539,161 +629,102 @@ export default function StudentResultsPage() {
         count: count,
         totalQ: map[s].totalQ,
         totalCorrect: map[s].totalCorrect,
-        theme: subjectThemes[s] || subjectThemes['Diğer']
+        theme: getSubjectTheme(s, isDark)
       };
     });
-  }, [studentSubmissions]);
+  }, [studentSubmissions, isDark]);
 
   /* ── Pie / type breakdown ─── */
   const typeBreakdown = useMemo(() => {
     const counts = { physicalExam: 0, homework: 0, book: 0, individual: 0 };
     studentSubmissions.forEach(s => { counts[s.typeKey] = (counts[s.typeKey] || 0) + 1; });
     return [
-      { name: 'Deneme', value: counts.physicalExam, fill: '#6366f1' },
-      { name: 'Ödev',   value: counts.homework,     fill: '#f97316' },
-      { name: 'Kitap',  value: counts.book,          fill: '#10b981' },
-      { name: 'Bireysel',value: counts.individual,   fill: '#94a3b8' },
-    ].filter(d => d.value > 0);
+      { name: 'Ödevler', value: counts.homework, fill: '#f97316' },
+      { name: 'Kitap Testleri', value: counts.book, fill: '#10b981' },
+      { name: 'Denemeler', value: counts.physicalExam, fill: '#8b5cf6' },
+      { name: 'Bireysel', value: counts.individual, fill: '#64748b' }
+    ].filter(item => item.value > 0);
   }, [studentSubmissions]);
 
-  /* ── Subject breakdown (for Ders & Konu tab) ─── */
+  /* ── Subject & Topic Breakdown ─── */
   const subjectBreakdown = useMemo(() => {
     const map = {};
-    SUBJECTS.forEach(s => { map[s] = { tests: [], totalQ: 0, totalCorrect: 0, topics: {} }; });
     studentSubmissions.forEach(s => {
-      const sk = SUBJECTS.includes(s.subjectKey) ? s.subjectKey : 'Diğer';
-      if (!map[sk]) map[sk] = { tests: [], totalQ: 0, totalCorrect: 0, topics: {} };
-      map[sk].tests.push(s);
-      map[sk].totalQ += s.totalQuestions || 0;
-      map[sk].totalCorrect += s.correctCount || 0;
-      
-      const rawTopicName = s.topicName || s.unitTopic || s.testTitle || 'Genel Test';
-      const topicKey = String(rawTopicName).trim();
-      if (!map[sk].topics[topicKey]) {
-        map[sk].topics[topicKey] = { totalQ: 0, correctQ: 0, wrongQ: 0, blankQ: 0, testCount: 0 };
+      const subj = s.subjectKey;
+      if (!map[subj]) {
+        map[subj] = {
+          subj,
+          tests: [],
+          topics: {},
+          totalQ: 0,
+          totalCorrect: 0,
+          totalWrong: 0,
+          totalBlank: 0,
+          sumScore: 0
+        };
       }
-      map[sk].topics[topicKey].totalQ += s.totalQuestions || 0;
-      map[sk].topics[topicKey].correctQ += s.correctCount || 0;
-      map[sk].topics[topicKey].wrongQ += s.wrongCount || 0;
-      map[sk].topics[topicKey].blankQ += s.blankCount || 0;
-      map[sk].topics[topicKey].testCount += 1;
+      map[subj].tests.push(s);
+      map[subj].totalQ += s.totalQuestions || 0;
+      map[subj].totalCorrect += s.correctCount || 0;
+      map[subj].totalWrong += s.wrongCount || 0;
+      map[subj].totalBlank += s.blankCount || 0;
+      map[subj].sumScore += s.computedScore || 0;
+
+      const topicName = s.topicName || s.testName || s.testTitle || 'Genel Konu';
+      if (!map[subj].topics[topicName]) {
+        map[subj].topics[topicName] = {
+          name: topicName,
+          totalQ: 0,
+          correctQ: 0,
+          wrongQ: 0,
+          blankQ: 0,
+          testCount: 0
+        };
+      }
+      map[subj].topics[topicName].totalQ += s.totalQuestions || 0;
+      map[subj].topics[topicName].correctQ += s.correctCount || 0;
+      map[subj].topics[topicName].wrongQ += s.wrongCount || 0;
+      map[subj].topics[topicName].blankQ += s.blankCount || 0;
+      map[subj].topics[topicName].testCount++;
     });
-    return Object.entries(map)
-      .filter(([, v]) => v.tests.length > 0)
-      .map(([subj, v]) => {
-        const avgScore = v.tests.length > 0 ? Math.round(v.tests.reduce((a, s) => a + (s.computedScore || 0), 0) / v.tests.length) : 0;
-        const totalWrong = v.tests.reduce((a, s) => a + (s.wrongCount || 0), 0);
-        const totalBlank = v.tests.reduce((a, s) => a + (s.blankCount || 0), 0);
-        const topicArray = Object.entries(v.topics).map(([name, t]) => ({
-          name,
-          accuracy: t.totalQ > 0 ? Math.round((t.correctQ / t.totalQ) * 100) : 0,
-          totalQ: t.totalQ,
-          correctQ: t.correctQ,
-          wrongQ: t.wrongQ,
-          blankQ: t.blankQ,
-          testCount: t.testCount
-        })).sort((a, b) => b.accuracy - a.accuracy);
-        return { subj, ...v, avgScore, totalWrong, totalBlank, topicArray };
-      })
-      .sort((a, b) => b.avgScore - a.avgScore);
+
+    return Object.values(map).map(entry => {
+      const testCount = entry.tests.length;
+      const avgScore = entry.totalQ > 0
+        ? Math.round((entry.totalCorrect / entry.totalQ) * 100)
+        : (testCount > 0 ? Math.round(entry.sumScore / testCount) : 0);
+
+      const topicArray = Object.values(entry.topics).map(t => ({
+        ...t,
+        accuracy: t.totalQ > 0 ? Math.round((t.correctQ / t.totalQ) * 100) : 0
+      })).sort((a, b) => b.accuracy - a.accuracy);
+
+      return {
+        ...entry,
+        avgScore,
+        topicArray
+      };
+    }).sort((a, b) => b.totalQ - a.totalQ);
   }, [studentSubmissions]);
 
-  /* ── Subject Bar Chart Data ─── */
-  const subjectBarData = useMemo(() => {
-    return subjectBreakdown.map(sb => {
-      const th = subjectThemes[sb.subj] || subjectThemes['Diğer'];
-      return {
-        name: sb.subj,
-        fullName: sb.subj,
-        'Başarı %': sb.avgScore,
-        'Doğru': sb.totalCorrect,
-        'Yanlış': sb.totalWrong,
-        'Boş': sb.totalBlank,
-        'Soru Sayısı': sb.totalQ,
-        'Test Sayısı': sb.tests.length,
-        color: th.color,
-        barColor: th.radar || th.color
-      };
-    });
-  }, [subjectBreakdown]);
-
-  /* ── Subject Pie Chart Data ─── */
-  const subjectPieData = useMemo(() => {
-    return subjectBreakdown.map(sb => {
-      const th = subjectThemes[sb.subj] || subjectThemes['Diğer'];
-      return {
-        name: sb.subj,
-        value: sb.totalQ,
-        correct: sb.totalCorrect,
-        avgScore: sb.avgScore,
-        color: th.radar || th.color
-      };
-    });
-  }, [subjectBreakdown]);
-
-  /* ── Active Topic Chart Data for selected subject ─── */
-  const activeTopicChartData = useMemo(() => {
-    let list = [];
-    if (selectedSubjFilter === 'all') {
-      subjectBreakdown.forEach(sb => {
-        sb.topicArray.forEach(tp => {
-          list.push({
-            ...tp,
-            subject: sb.subj,
-            displayName: `${sb.subj} · ${tp.name}`
-          });
-        });
-      });
-    } else {
-      const match = subjectBreakdown.find(sb => sb.subj === selectedSubjFilter);
-      if (match) {
-        list = match.topicArray.map(tp => ({
-          ...tp,
-          subject: match.subj,
-          displayName: tp.name
-        }));
-      }
-    }
-
-    if (topicChartSort === 'accuracy_desc') {
-      list.sort((a, b) => b.accuracy - a.accuracy);
-    } else if (topicChartSort === 'accuracy_asc') {
-      list.sort((a, b) => a.accuracy - b.accuracy);
-    } else if (topicChartSort === 'totalQ_desc') {
-      list.sort((a, b) => b.totalQ - a.totalQ);
-    }
-
-    return list.slice(0, 15);
-  }, [subjectBreakdown, selectedSubjFilter, topicChartSort]);
-
-  /* ── Strong & Weak Topics ─── */
-  const { topStrongTopics, topWeakTopics } = useMemo(() => {
-    let all = [];
-    subjectBreakdown.forEach(sb => {
-      sb.topicArray.forEach(tp => {
-        all.push({ ...tp, subject: sb.subj });
-      });
-    });
-    const strong = all.filter(t => t.accuracy >= 75 && t.totalQ >= 3).sort((a, b) => b.accuracy - a.accuracy).slice(0, 4);
-    const weak = all.filter(t => t.accuracy < 60 && t.totalQ >= 3).sort((a, b) => a.accuracy - b.accuracy).slice(0, 4);
-    return { topStrongTopics: strong, topWeakTopics: weak };
-  }, [subjectBreakdown]);
-
-  /* ── Trend data ─── */
+  /* ── Trend chart data ─── */
   const trendData = useMemo(() => {
-    let data = [...studentSubmissions].sort((a, b) => new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0));
-    if (trendSubject !== 'all') data = data.filter(s => s.subjectKey === trendSubject);
-    return data.map((s, i) => ({
-      name: s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : `${i + 1}`,
-      title: s.testTitle,
-      'Başarı %': s.computedScore,
-      'Doğru': s.correctCount,
-      'Yanlış': s.wrongCount,
-      'Boş': s.blankCount,
-    }));
-  }, [studentSubmissions, trendSubject]);
+    const list = [...studentSubmissions].reverse();
+    return list.map((s, idx) => {
+      const d = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' }) : `#${idx + 1}`;
+      return {
+        name: d,
+        title: s.testTitle,
+        ders: s.subjectKey,
+        'Başarı %': s.computedScore,
+        Doğru: s.correctCount,
+        Yanlış: s.wrongCount,
+        Boş: s.blankCount
+      };
+    });
+  }, [studentSubmissions]);
 
-  /* ── Filtered for "Tüm Sonuçlar" tab ─── */
+  /* ── Filtered submissions for 'all' tab ─── */
   const filteredSubs = useMemo(() => {
     return studentSubmissions.filter(s => {
       const titleMatch = (s.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -710,19 +741,52 @@ export default function StudentResultsPage() {
     return map;
   }, [studentSubmissions]);
 
-  /* ── Helpers ─── */
-  const theme = (key) => subjectThemes[key] || subjectThemes['Diğer'];
+  /* ── Top Best / Weak Topics ─── */
+  const { topBestTopics, topWeakTopics } = useMemo(() => {
+    const allTopics = [];
+    subjectBreakdown.forEach(sb => {
+      sb.topicArray.forEach(t => {
+        allTopics.push({ ...t, subject: sb.subj });
+      });
+    });
+    const valid = allTopics.filter(t => t.totalQ >= 3);
+    const best = [...valid].sort((a, b) => b.accuracy - a.accuracy).slice(0, 4);
+    const weak = [...valid].filter(t => t.accuracy < 60).sort((a, b) => a.accuracy - b.accuracy).slice(0, 4);
+    return { topBestTopics: best, topWeakTopics: weak };
+  }, [subjectBreakdown]);
 
-  /* ══════════════════════════════════════
-     RENDER
-  ══════════════════════════════════════ */
+  /* ── Subject Bar & Pie Data ─── */
+  const subjectBarData = useMemo(() => {
+    return subjectBreakdown.map(sb => ({
+      name: sb.subj,
+      'Başarı %': sb.avgScore,
+      'Soru Sayısı': sb.totalQ,
+      barColor: getSubjectTheme(sb.subj, isDark).color
+    }));
+  }, [subjectBreakdown, isDark]);
+
+  const subjectPieData = useMemo(() => {
+    return subjectBreakdown.map(sb => ({
+      name: sb.subj,
+      value: sb.totalQ,
+      color: getSubjectTheme(sb.subj, isDark).color
+    }));
+  }, [subjectBreakdown, isDark]);
+
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc', padding: '1.25rem 1rem', fontFamily: "'Inter', system-ui, sans-serif", color: '#0f172a', boxSizing: 'border-box' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--color-bg)',
+      padding: '1.25rem 1.25rem',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      color: 'var(--color-text)',
+      boxSizing: 'border-box'
+    }}>
       <style>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .sr-anim { animation: fadeSlideUp 0.3s ease both; }
         .sr-card-hover { transition: transform 0.2s, box-shadow 0.2s; }
-        .sr-card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important; }
+        .sr-card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important; }
         @media (max-width: 768px) {
           .sr-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
           .sr-chart-grid { grid-template-columns: 1fr !important; }
@@ -741,36 +805,70 @@ export default function StudentResultsPage() {
         {/* ── HEADER ── */}
         <div className="sr-header-wrap" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => navigate('/student')} style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 12, padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: '0.8rem', color: '#334155', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+            <button
+              onClick={() => navigate('/student')}
+              style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border-input)',
+                borderRadius: 12,
+                padding: '0.5rem 1rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                color: 'var(--color-text)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              }}
+            >
               <ArrowLeft size={15} /> Geri
             </button>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Sparkles size={22} color="#6366f1" /> Gelişim Merkezi & Karne
               </h1>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>Ders bazlı · Konu bazlı · Ödev türü bazlı ayrıntılı analiz</p>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>Ders bazlı · Konu bazlı · Ödev türü bazlı ayrıntılı analiz</p>
             </div>
           </div>
 
-          {/* Student Selector (Only shown to Teachers and Admins) */}
+          {/* Student Selector */}
           {!isStudentRole ? (
-            <div style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 6, borderRadius: 16, border: '1.5px solid #e2e8f0', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 6, borderRadius: 16, border: '1.5px solid var(--color-border)', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
               {studentMembers.map(s => {
                 const active = selectedStudent?.id === s.id;
                 return (
-                  <button key={s.id} onClick={() => setSelectedStudent(s)} style={{ padding: '0.4rem 0.9rem', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: active ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f8fafc', color: active ? 'white' : '#475569', boxShadow: active ? '0 2px 8px rgba(99,102,241,0.3)' : 'none' }}>
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedStudent(s)}
+                    style={{
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: 10,
+                      border: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s',
+                      background: active ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--color-surface-hover)',
+                      color: active ? 'white' : 'var(--color-text-muted)',
+                      boxShadow: active ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                    }}
+                  >
                     <GraduationCap size={14} /> {s.name}
                   </button>
                 );
               })}
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ffffff', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface)', padding: '0.5rem 1rem', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 2px 8px rgba(99,102,241,0.2)' }}>
                 <GraduationCap size={18} />
               </div>
               <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent?.name || currentUser?.name || 'Öğrenci'}</div>
                 <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700 }}>Öğrenci Karnesi</div>
               </div>
             </div>
@@ -778,17 +876,37 @@ export default function StudentResultsPage() {
         </div>
 
         {/* ── TABS ── */}
-        <div className="sr-tabs-container" style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 6, borderRadius: 18, border: '1.5px solid #e2e8f0', marginBottom: 22, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+        <div className="sr-tabs-container" style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 6, borderRadius: 18, border: '1.5px solid var(--color-border)', marginBottom: 22, flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
           {TAB_DEFS.map(t => (
-            <button key={t.key} className="sr-tab-btn" onClick={() => setActiveTab(t.key)} style={{ flex: '1 1 auto', padding: '0.6rem 1rem', borderRadius: 12, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s', background: activeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f8fafc', color: activeTab === t.key ? 'white' : '#475569', boxShadow: activeTab === t.key ? '0 4px 14px rgba(99,102,241,0.3)' : 'none', whiteSpace: 'nowrap' }}>
+            <button
+              key={t.key}
+              className="sr-tab-btn"
+              onClick={() => setActiveTab(t.key)}
+              style={{
+                flex: '1 1 auto',
+                padding: '0.6rem 1rem',
+                borderRadius: 12,
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+                background: activeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                color: activeTab === t.key ? 'white' : 'var(--color-text-muted)',
+                boxShadow: activeTab === t.key ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
+                whiteSpace: 'nowrap'
+              }}
+            >
               {t.label}
             </button>
           ))}
         </div>
 
-        {/* ══════════════════════════════════════
-            TAB 2: GÜNLÜK / AYLIK PERİYODİK SORU ANALİZİ
-        ══════════════════════════════════════ */}
+        {/* ── TAB: PERIODIC ANALYTICS ── */}
         {activeTab === 'periodic' && (
           <div className="sr-anim">
             <PeriodicQuestionAnalytics
@@ -799,78 +917,65 @@ export default function StudentResultsPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════
-            TAB 1: GENEL BAKIŞ
-        ══════════════════════════════════════ */}
+        {/* ── TAB: OVERVIEW ── */}
         {activeTab === 'overview' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-            {/* KPI Cards */}
-            <div className="sr-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+            {/* KPI Grid */}
+            <div className="sr-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
               {[
-                { label: 'Çözülen Test', value: overallStats.total, icon: '📊', color: '#1e1b4b', bg: '#ffffff', iconBg: '#eff6ff', border: '#e2e8f0' },
-                { label: 'Ort. Başarı', value: `%${overallStats.avgScore}`, icon: '🎯', color: '#14532d', bg: '#ffffff', iconBg: '#f0fdf4', border: '#e2e8f0' },
-                { label: 'En Yüksek', value: `%${overallStats.maxScore}`, icon: '🏆', color: '#78350f', bg: '#ffffff', iconBg: '#fffbeb', border: '#e2e8f0' },
-                { label: 'Toplam Soru', value: overallStats.totalQ, icon: '📝', color: '#0c4a6e', bg: '#ffffff', iconBg: '#f0f9ff', border: '#e2e8f0' },
-                { label: 'Toplam Doğru', value: overallStats.totalCorrect, icon: '✅', color: '#064e3b', bg: '#ffffff', iconBg: '#f0fdf4', border: '#e2e8f0' },
-                { label: 'Kritik Ders', value: overallStats.weakSubjects, icon: '⚠️', color: '#881337', bg: '#ffffff', iconBg: '#fff1f2', border: '#e2e8f0' },
+                { label: 'Toplam Sınav / Test', val: overallStats.total, icon: '📋', bg: isDark ? 'rgba(37,99,235,0.18)' : '#eff6ff', border: isDark ? 'rgba(37,99,235,0.35)' : '#bfdbfe', iconBg: isDark ? 'rgba(37,99,235,0.25)' : '#dbeafe' },
+                { label: 'Genel Başarı Oranı', val: `%${overallStats.avgScore}`, icon: '🎯', bg: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.35)' : '#bbf7d0', iconBg: isDark ? 'rgba(16,185,129,0.25)' : '#dcfce7' },
+                { label: 'Toplam Çözülen Soru', val: overallStats.totalQ, icon: '⚡', bg: isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb', border: isDark ? 'rgba(245,158,11,0.35)' : '#fde68a', iconBg: isDark ? 'rgba(245,158,11,0.25)' : '#fef3c7' },
+                { label: 'Kritik Ders Sayısı', val: overallStats.weakSubjects, icon: '⚠️', bg: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', border: isDark ? 'rgba(239,68,68,0.35)' : '#fecaca', iconBg: isDark ? 'rgba(239,68,68,0.25)' : '#fee2e2' },
               ].map((k, i) => (
-                <div key={i} style={{ background: k.bg, borderRadius: 20, padding: '1.1rem 1.25rem', border: `1.5px solid ${k.border}`, boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
+                <div key={i} style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '1.1rem 1.25rem', border: `1.5px solid ${k.border}`, boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: 14, position: 'relative', overflow: 'hidden' }}>
                   <div style={{ width: 44, height: 44, borderRadius: 14, background: k.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.35rem', flexShrink: 0 }}>{k.icon}</div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: k.color, lineHeight: 1.1 }}>{k.value}</div>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', marginTop: 3 }}>{k.label}</div>
+                  <div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{k.val}</div>
+                    <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 3 }}>{k.label}</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Radar + Pie row */}
-            <div className="sr-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 16 }}>
-
-              {/* Radar + Performance Breakdown */}
-              <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.35rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      🕸️ Ders Bazlı Performans Haritası
-                    </h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Tüm derslerdeki ortalama başarı yüzdesi ve soru hacmi</p>
-                  </div>
-                  <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+            {/* Charts Row: Radar/Bar & Pie */}
+            <div className="sr-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: 16 }}>
+              {/* Performance Radar/Bar */}
+              <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.35rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Target size={18} color="#6366f1" /> Ders Yetkinlik Grafiği
+                  </h3>
+                  <div style={{ display: 'flex', background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
                     <button
                       onClick={() => setPerfViewMode('radar')}
                       style={{
-                        padding: '0.28rem 0.65rem',
-                        borderRadius: 8,
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 7,
                         border: 'none',
                         fontSize: '0.72rem',
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: perfViewMode === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                        color: perfViewMode === 'radar' ? '#ffffff' : '#64748b',
-                        boxShadow: perfViewMode === 'radar' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
-                        transition: 'all 0.15s'
+                        color: perfViewMode === 'radar' ? 'white' : 'var(--color-text-muted)'
                       }}
                     >
-                      🕸️ Radar
+                      Radar
                     </button>
                     <button
                       onClick={() => setPerfViewMode('bars')}
                       style={{
-                        padding: '0.28rem 0.65rem',
-                        borderRadius: 8,
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 7,
                         border: 'none',
                         fontSize: '0.72rem',
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: perfViewMode === 'bars' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                        color: perfViewMode === 'bars' ? '#ffffff' : '#64748b',
-                        boxShadow: perfViewMode === 'bars' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
-                        transition: 'all 0.15s'
+                        color: perfViewMode === 'bars' ? 'white' : 'var(--color-text-muted)'
                       }}
                     >
-                      📊 Çubuklar
+                      Sütun
                     </button>
                   </div>
                 </div>
@@ -879,37 +984,11 @@ export default function StudentResultsPage() {
                   <div style={{ width: '100%', height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData}>
-                        <defs>
-                          <linearGradient id="radarNeonGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.5} />
-                            <stop offset="100%" stopColor="#818cf8" stopOpacity={0.2} />
-                          </linearGradient>
-                        </defs>
-                        <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
-                        <PolarAngleAxis
-                          dataKey="subject"
-                          tick={{ fill: '#0f172a', fontSize: 11, fontWeight: 900 }}
-                        />
-                        <PolarRadiusAxis
-                          angle={90}
-                          domain={[0, 100]}
-                          stroke="#cbd5e1"
-                          tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
-                          tickCount={5}
-                        />
-                        <Radar
-                          name="Başarı"
-                          dataKey="value"
-                          stroke="#4f46e5"
-                          fill="url(#radarNeonGrad)"
-                          fillOpacity={0.65}
-                          strokeWidth={2.8}
-                          dot={{ r: 4.5, fill: '#4f46e5', stroke: '#ffffff', strokeWidth: 2 }}
-                        />
-                        <Tooltip
-                          formatter={(v, name, props) => [`%${v} (${props.payload.count || 0} Test · ${props.payload.totalQ || 0} Soru)`, props.payload.fullSubject || name]}
-                          contentStyle={{ background: '#ffffff', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
-                        />
+                        <PolarGrid stroke="var(--color-border)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: 11, fontWeight: 800 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} />
+                        <Radar name="Başarı %" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.4} strokeWidth={2.5} />
+                        <Tooltip content={<CustomSubjectTooltip />} />
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
@@ -917,13 +996,10 @@ export default function StudentResultsPage() {
                   <div style={{ width: '100%', height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={radarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="subject" tick={{ fill: '#0f172a', fontSize: 11, fontWeight: 900 }} />
-                        <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }} tickFormatter={v => `%${v}`} />
-                        <Tooltip
-                          formatter={(v, name, props) => [`%${v} (${props.payload.count || 0} Test · ${props.payload.totalQ || 0} Soru)`, props.payload.fullSubject || name]}
-                          contentStyle={{ background: '#ffffff', borderRadius: '0.85rem', border: '1.5px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                        <XAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                        <YAxis domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `%${v}`} />
+                        <Tooltip content={<CustomSubjectTooltip />} />
                         <Bar dataKey="value" name="Başarı" radius={[8, 8, 0, 0]}>
                           {radarData.map((entry, idx) => (
                             <Cell key={`cell-${idx}`} fill={entry.theme?.color || '#3b82f6'} />
@@ -934,12 +1010,12 @@ export default function StudentResultsPage() {
                   </div>
                 )}
 
-                {/* Direct High-Contrast Subject Breakdown Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, marginTop: 12, borderTop: '1.5px solid #e2e8f0', paddingTop: 12 }}>
+                {/* Subject Breakdown Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, marginTop: 12, borderTop: '1.5px solid var(--color-border)', paddingTop: 12 }}>
                   {radarData.map((d, i) => {
                     const hasTests = d.count > 0;
                     const SubIcon = d.theme?.icon || BookOpen;
-                    const color = d.theme?.color || '#2563eb';
+                    const color = d.theme?.color || '#3b82f6';
                     const isGood = d.value >= 70;
                     const isMid = d.value >= 50 && d.value < 70;
 
@@ -947,10 +1023,10 @@ export default function StudentResultsPage() {
                       <div
                         key={i}
                         style={{
-                          background: '#f8fafc',
+                          background: 'var(--color-surface-hover)',
                           borderRadius: 14,
                           padding: '0.65rem 0.75rem',
-                          border: `1.5px solid ${hasTests ? d.theme?.border || '#e2e8f0' : '#e2e8f0'}`,
+                          border: `1.5px solid ${hasTests ? d.theme?.border : 'var(--color-border)'}`,
                           display: 'flex',
                           flexDirection: 'column',
                           gap: 6
@@ -958,17 +1034,17 @@ export default function StudentResultsPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: d.theme?.bg || '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: d.theme?.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <SubIcon size={12} color={color} />
                             </div>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {d.fullSubject}
                             </span>
                           </div>
                           <span style={{
                             fontSize: '0.74rem',
                             fontWeight: 900,
-                            color: hasTests ? (isGood ? '#15803d' : isMid ? '#b45309' : '#b91c1c') : '#94a3b8',
+                            color: hasTests ? (isGood ? '#10b981' : isMid ? '#f59e0b' : '#ef4444') : 'var(--color-text-muted)',
                             flexShrink: 0
                           }}>
                             {hasTests ? `%${d.value}` : '—'}
@@ -976,7 +1052,7 @@ export default function StudentResultsPage() {
                         </div>
 
                         {/* Progress bar */}
-                        <div style={{ width: '100%', height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ width: '100%', height: 5, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
                           <div
                             style={{
                               height: '100%',
@@ -988,7 +1064,7 @@ export default function StudentResultsPage() {
                           />
                         </div>
 
-                        <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700 }}>
+                        <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                           {hasTests ? `${d.count} Test · ${d.totalQ} Soru` : 'Henüz test yok'}
                         </div>
                       </div>
@@ -997,10 +1073,10 @@ export default function StudentResultsPage() {
                 </div>
               </div>
 
-              {/* Pie + legend */}
-              <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
-                <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  🍩 Ödev Türü Dağılımı
+              {/* Pie + Legend */}
+              <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+                <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  📊 Ödev Türü Dağılımı
                 </h3>
                 {typeBreakdown.length > 0 ? (
                   <>
@@ -1008,101 +1084,182 @@ export default function StudentResultsPage() {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={typeBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={78} dataKey="value" paddingAngle={4}>
-                            {typeBreakdown.map((e, i) => <Cell key={i} fill={e.fill} stroke="#ffffff" strokeWidth={2} />)}
+                            {typeBreakdown.map((e, i) => <Cell key={i} fill={e.fill} stroke="var(--color-surface)" strokeWidth={2} />)}
                           </Pie>
-                          <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ background: '#ffffff', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', color: '#0f172a', fontWeight: 800, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }} />
+                          <Tooltip content={<ChartTooltip />} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                       {typeBreakdown.map((e, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, background: '#f8fafc', padding: '4px 10px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '4px 10px', borderRadius: 8, border: '1px solid var(--color-border)' }}>
                           <span style={{ width: 10, height: 10, borderRadius: 3, background: e.fill, flexShrink: 0 }} />
-                          <span style={{ color: '#475569' }}>{e.name}: <b style={{ color: '#0f172a' }}>{e.value}</b></span>
+                          <span style={{ color: 'var(--color-text-muted)' }}>{e.name}: <b style={{ color: 'var(--color-text)' }}>{e.value}</b></span>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
-                  <div style={{ color: '#94a3b8', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Henüz veri yok</div>
+                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Henüz veri yok</div>
                 )}
               </div>
             </div>
 
-            {/* Recent 5 tests */}
-            <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                🕐 Son 5 Sınav / Ödev
+            {/* Recent 5 Tests */}
+            <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                🕒 Son 5 Sınav / Ödev
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {studentSubmissions.slice(0, 5).map((s, i) => {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} className="sr-card-hover" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1.1rem', borderRadius: 14, background: '#f8fafc', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+                    <div key={i} className="sr-card-hover" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1.1rem', borderRadius: 14, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
                       <div style={{ width: 40, height: 40, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <SubIcon size={18} color={th.color} />
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.35 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.35 }}>
                           {s.bookTitle ? (
                             <>
-                              <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
-                              <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
+                              <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
+                              <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
                               <span>{s.subjectName || s.subjectKey}</span>
-                              {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
-                              <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
+                              {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
+                              <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
                             </>
                           ) : (
                             s.testTitle
                           )}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
-                          {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'} · {s.totalQuestions} Soru
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                          </span>
+                          <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 6, padding: '0.1rem 0.45rem', fontSize: '0.68rem', fontWeight: 900 }}>
+                            {typeConfig[s.typeKey]?.label}
+                          </span>
                         </div>
                       </div>
-                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" />
+
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                        <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                        <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
+                      </div>
+
+                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isDark={isDark} />
+
+                      {s.type !== 'physicalExam' ? (
+                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                          <Eye size={13} /> İncele
+                        </button>
+                      ) : (
+                        <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
+                          <Eye size={13} /> Karne
+                        </button>
+                      )}
                     </div>
                   );
                 })}
-                {studentSubmissions.length === 0 && <div style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem 0', fontWeight: 700 }}>Henüz sonuç bulunmuyor</div>}
+                {studentSubmissions.length === 0 && (
+                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '2rem 0', fontWeight: 700 }}>Henüz çözülmüş test veya deneme kaydı yok.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Strength / Weakness Highlights */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+              {/* Best Topics */}
+              <div style={{
+                background: isDark ? 'rgba(16,185,129,0.1)' : '#f0fdf4',
+                border: isDark ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid #bbf7d0',
+                borderRadius: 20,
+                padding: '1.1rem 1.35rem',
+                boxShadow: '0 4px 16px rgba(16,185,129,0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: isDark ? 'rgba(16,185,129,0.25)' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                    🏆
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#10b981', fontSize: '0.92rem', fontWeight: 900 }}>En Güçlü Olduğun Konular</h4>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>Yüksek doğruluk oranı</span>
+                  </div>
+                </div>
+
+                {topBestTopics.length === 0 ? (
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontStyle: 'italic', padding: '0.5rem 0' }}>Yeterli soru verisi henüz yok</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {topBestTopics.map((t, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface)', padding: '0.45rem 0.75rem', borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                          {t.subject ? `[${t.subject}] ` : ''}{t.name}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#10b981' }}>%{t.accuracy}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Weak Topics */}
+              <div style={{
+                background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                border: isDark ? '1.5px solid rgba(239,68,68,0.35)' : '1.5px solid #fecaca',
+                borderRadius: 20,
+                padding: '1.1rem 1.35rem',
+                boxShadow: '0 4px 16px rgba(239,68,68,0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: isDark ? 'rgba(239,68,68,0.25)' : '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                    ⚠️
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#ef4444', fontSize: '0.92rem', fontWeight: 900 }}>Öncelikli Tekrar Gereken Konular</h4>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>Doğruluk %60 altı olanlar</span>
+                  </div>
+                </div>
+
+                {topWeakTopics.length === 0 ? (
+                  <div style={{ fontSize: '0.76rem', color: '#10b981', fontWeight: 700, padding: '0.5rem 0' }}>Tebrikler! Kritik derecede zayıf konu bulunmuyor 🎉</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {topWeakTopics.map((t, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface)', padding: '0.45rem 0.75rem', borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                          {t.subject ? `[${t.subject}] ` : ''}{t.name}
+                        </span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#ef4444' }}>%{t.accuracy}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* ══════════════════════════════════════
-            TAB 2: DERS & KONU ANALİZİ (GELİŞMİŞ GRAFİKLER)
-        ══════════════════════════════════════ */}
+        {/* ── TAB: SUBJECTS & TOPICS ── */}
         {activeTab === 'subjects' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            
-            {/* 1. ÜST ANALİZ VE GRAFİK KARTI */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: 24,
-              border: '1.5px solid #e2e8f0',
-              padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.75rem',
-              boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
-            }}>
-              {/* Header with Switcher */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Chart Container */}
+            <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
-                    <BarChart3 size={22} />
+                    <BookOpen size={20} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                      Ders & Konu Başarı Karnesi
-                    </h2>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
-                      Dersler ve konular bazında çözülen sorular, doğruluk oranları ve yetkinlik grafiği
-                    </span>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>Ders Başarı Analizi</h3>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Tüm derslerdeki soru ve test başarı grafiği</p>
                   </div>
                 </div>
 
-                {/* Grafik Türü Seçici */}
-                <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', padding: 4, borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                {/* Chart Toggle Buttons */}
+                <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface-hover)', padding: 4, borderRadius: 14, border: '1px solid var(--color-border)' }}>
                   <button
                     onClick={() => setSubjChartType('bar')}
                     style={{
@@ -1116,12 +1273,12 @@ export default function StudentResultsPage() {
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'bar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: subjChartType === 'bar' ? '#fff' : '#64748b',
+                      color: subjChartType === 'bar' ? '#fff' : 'var(--color-text-muted)',
                       boxShadow: subjChartType === 'bar' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
                       transition: 'all 0.15s'
                     }}
                   >
-                    <BarChart3 size={14} /> Karşılaştırma
+                    <BarChart3 size={14} /> Başarı Dağılımı
                   </button>
                   <button
                     onClick={() => setSubjChartType('radar')}
@@ -1136,7 +1293,7 @@ export default function StudentResultsPage() {
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'radar' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: subjChartType === 'radar' ? '#fff' : '#64748b',
+                      color: subjChartType === 'radar' ? '#fff' : 'var(--color-text-muted)',
                       boxShadow: subjChartType === 'radar' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
                       transition: 'all 0.15s'
                     }}
@@ -1156,7 +1313,7 @@ export default function StudentResultsPage() {
                       fontWeight: 800,
                       cursor: 'pointer',
                       background: subjChartType === 'pie' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                      color: subjChartType === 'pie' ? '#fff' : '#64748b',
+                      color: subjChartType === 'pie' ? '#fff' : 'var(--color-text-muted)',
                       boxShadow: subjChartType === 'pie' ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
                       transition: 'all 0.15s'
                     }}
@@ -1168,7 +1325,7 @@ export default function StudentResultsPage() {
 
               {/* Chart Content */}
               {subjectBreakdown.length === 0 ? (
-                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
                   Henüz çözülmüş test verisi bulunmuyor
                 </div>
               ) : (
@@ -1176,22 +1333,22 @@ export default function StudentResultsPage() {
                   {subjChartType === 'bar' && (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={subjectBarData} margin={{ top: 10, right: 15, left: -20, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                         <XAxis
                           dataKey="name"
-                          tick={{ fill: '#0f172a', fontSize: isMobile ? 11 : 12, fontWeight: 700 }}
-                          axisLine={{ stroke: '#e2e8f0' }}
+                          tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 11 : 12, fontWeight: 700 }}
+                          axisLine={{ stroke: 'var(--color-border)' }}
                           tickLine={false}
                         />
                         <YAxis
                           domain={[0, 100]}
-                          tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                          tick={{ fill: 'var(--color-text-muted)', fontSize: 11, fontWeight: 700 }}
                           tickFormatter={v => `%${v}`}
-                          axisLine={{ stroke: '#e2e8f0' }}
+                          axisLine={{ stroke: 'var(--color-border)' }}
                           tickLine={false}
                         />
                         <Tooltip content={<CustomSubjectTooltip />} />
-                        <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.8} label={{ value: 'Hedef %70', fill: '#15803d', fontSize: 10, position: 'right' }} />
+                        <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.8} label={{ value: 'Hedef %70', fill: '#10b981', fontSize: 10, position: 'right' }} />
                         <Bar
                           dataKey="Başarı %"
                           radius={[8, 8, 0, 0]}
@@ -1208,10 +1365,10 @@ export default function StudentResultsPage() {
                   {subjChartType === 'radar' && (
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarData} outerRadius={isMobile ? '65%' : '75%'}>
-                        <PolarGrid stroke="#e2e8f0" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#0f172a', fontSize: isMobile ? 10 : 12, fontWeight: 800 }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#cbd5e1" tick={{ fill: '#64748b', fontSize: 9 }} />
-                        <Radar name="Başarı %" dataKey="value" stroke="#4f46e5" fill="#6366f1" fillOpacity={0.35} strokeWidth={2.5} />
+                        <PolarGrid stroke="var(--color-border)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--color-text)', fontSize: isMobile ? 10 : 12, fontWeight: 800 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-text-muted)', fontSize: 9 }} />
+                        <Radar name="Başarı %" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.35} strokeWidth={2.5} />
                         <Tooltip content={<CustomSubjectTooltip />} />
                       </RadarChart>
                     </ResponsiveContainer>
@@ -1231,12 +1388,12 @@ export default function StudentResultsPage() {
                           paddingAngle={3}
                         >
                           {subjectPieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--color-surface)" strokeWidth={2} />
                           ))}
                         </Pie>
                         <Tooltip content={<CustomSubjectTooltip />} />
                         <Legend
-                          formatter={(value) => <span style={{ color: '#334155', fontSize: '0.78rem', fontWeight: 700 }}>{value}</span>}
+                          formatter={(value) => <span style={{ color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 700 }}>{value}</span>}
                           layout="horizontal"
                           align="center"
                           verticalAlign="bottom"
@@ -1248,7 +1405,7 @@ export default function StudentResultsPage() {
               )}
             </div>
 
-            {/* 2. DERS FİLTRELEME PİLLERİ */}
+            {/* Subject Filter Pills */}
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, alignItems: 'center' }}>
               <button
                 onClick={() => setSelectedSubjFilter('all')}
@@ -1258,9 +1415,9 @@ export default function StudentResultsPage() {
                   gap: 6,
                   padding: '0.5rem 1rem',
                   borderRadius: 12,
-                  border: selectedSubjFilter === 'all' ? '1.5px solid #4f46e5' : '1.5px solid #e2e8f0',
-                  background: selectedSubjFilter === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#ffffff',
-                  color: selectedSubjFilter === 'all' ? '#ffffff' : '#475569',
+                  border: selectedSubjFilter === 'all' ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
+                  background: selectedSubjFilter === 'all' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                  color: selectedSubjFilter === 'all' ? '#ffffff' : 'var(--color-text-muted)',
                   fontWeight: 800,
                   fontSize: '0.8rem',
                   cursor: 'pointer',
@@ -1269,7 +1426,7 @@ export default function StudentResultsPage() {
                   transition: 'all 0.15s'
                 }}
               >
-                <span>🌟 Tüm Dersler ({subjectBreakdown.length})</span>
+                <span>🌐 Tüm Dersler ({subjectBreakdown.length})</span>
               </button>
 
               {subjectBreakdown.map(sb => {
@@ -1286,9 +1443,9 @@ export default function StudentResultsPage() {
                       gap: 6,
                       padding: '0.5rem 1rem',
                       borderRadius: 12,
-                      border: isSelected ? `1.5px solid ${th.color}` : '1.5px solid #e2e8f0',
-                      background: isSelected ? th.bg : '#ffffff',
-                      color: isSelected ? th.color : '#475569',
+                      border: isSelected ? `1.5px solid ${th.color}` : '1.5px solid var(--color-border)',
+                      background: isSelected ? th.bg : 'var(--color-surface)',
+                      color: isSelected ? th.color : 'var(--color-text-muted)',
                       fontWeight: 800,
                       fontSize: '0.8rem',
                       cursor: 'pointer',
@@ -1297,15 +1454,15 @@ export default function StudentResultsPage() {
                       transition: 'all 0.15s'
                     }}
                   >
-                    <SubIcon size={15} color={isSelected ? th.color : '#64748b'} />
+                    <SubIcon size={15} color={isSelected ? th.color : 'var(--color-text-muted)'} />
                     <span>{sb.subj}</span>
                     <span style={{
-                      background: isSelected ? th.color : '#f1f5f9',
-                      color: isSelected ? '#ffffff' : '#475569',
-                      fontSize: '0.68rem',
-                      fontWeight: 900,
+                      fontSize: '0.7rem',
                       padding: '1px 6px',
-                      borderRadius: 99
+                      borderRadius: 6,
+                      background: isSelected ? th.color : 'var(--color-surface-hover)',
+                      color: isSelected ? '#ffffff' : 'var(--color-text)',
+                      fontWeight: 900
                     }}>
                       %{sb.avgScore}
                     </span>
@@ -1314,171 +1471,7 @@ export default function StudentResultsPage() {
               })}
             </div>
 
-            {/* 3. KONU BAZLI DETAYLI GRAFİK VE GELİŞİM PANOSU */}
-            {activeTopicChartData.length > 0 && (
-              <div style={{
-                background: '#ffffff',
-                borderRadius: 24,
-                border: '1.5px solid #e2e8f0',
-                padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.75rem',
-                boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>📈 Konu Başarı & Soru Dağılım Grafiği</span>
-                      {selectedSubjFilter !== 'all' && (
-                        <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: 8 }}>
-                          {selectedSubjFilter}
-                        </span>
-                      )}
-                    </h3>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-                      Konulardaki Doğru / Yanlış / Boş soru dağılımları ve doğruluk yüzdesi
-                    </span>
-                  </div>
-
-                  {/* Sıralama Seçici */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>Sırala:</span>
-                    <select
-                      value={topicChartSort}
-                      onChange={e => setTopicChartSort(e.target.value)}
-                      style={{
-                        background: '#f8fafc',
-                        color: '#0f172a',
-                        border: '1.5px solid #cbd5e1',
-                        borderRadius: 10,
-                        padding: '0.35rem 0.65rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        outline: 'none'
-                      }}
-                    >
-                      <option value="accuracy_desc">🔥 En Yüksek Başarı</option>
-                      <option value="accuracy_asc">⚠️ En Düşük Başarı (Tekrar)</option>
-                      <option value="totalQ_desc">📊 En Çok Soru Çözülen</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Horizontal Bar Chart for Topics */}
-                <div style={{ height: Math.max(240, activeTopicChartData.length * 38), width: '100%' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      layout="vertical"
-                      data={activeTopicChartData}
-                      margin={{ top: 10, right: 25, left: isMobile ? 10 : 35, bottom: 10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                      <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} stroke="#e2e8f0" />
-                      <YAxis
-                        type="category"
-                        dataKey="displayName"
-                        width={isMobile ? 100 : 180}
-                        tick={{ fill: '#0f172a', fontSize: isMobile ? 10 : 11, fontWeight: 800 }}
-                        stroke="#e2e8f0"
-                        tickFormatter={v => v.length > 22 ? v.slice(0, 20) + '…' : v}
-                      />
-                      <Tooltip content={<CustomSubjectTooltip />} />
-                      <Legend
-                        formatter={(val) => <span style={{ color: '#334155', fontSize: '0.76rem', fontWeight: 700 }}>{val}</span>}
-                        verticalAlign="top"
-                        align="right"
-                      />
-                      <Bar dataKey="correctQ" name="Doğru" fill="#10b981" stackId="a" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="wrongQ" name="Yanlış" fill="#f43f5e" stackId="a" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="blankQ" name="Boş" fill="#94a3b8" stackId="a" radius={[0, 6, 6, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-
-            {/* 4. AKILLI ANALİZ KARTLARI (GÜÇLÜ YÖNLER & TEKRAR GEREKENLER) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-              {/* Güçlü Konular */}
-              <div style={{
-                background: '#f0fdf4',
-                border: '1.5px solid #bbf7d0',
-                borderRadius: 20,
-                padding: '1.1rem 1.35rem',
-                boxShadow: '0 4px 16px rgba(16,185,129,0.05)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
-                    🚀
-                  </div>
-                  <div>
-                    <h4 style={{ margin: 0, color: '#15803d', fontSize: '0.92rem', fontWeight: 900 }}>
-                      En Güçlü Olduğun Konular
-                    </h4>
-                    <span style={{ fontSize: '0.68rem', color: '#166534' }}>Doğruluk %75 ve üzeri olanlar</span>
-                  </div>
-                </div>
-
-                {topStrongTopics.length === 0 ? (
-                  <div style={{ fontSize: '0.76rem', color: '#64748b', fontStyle: 'italic', padding: '0.5rem 0' }}>
-                    Henüz yeterli soru çözülen güçlü konu tespit edilmedi.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {topStrongTopics.map((t, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '0.45rem 0.75rem', borderRadius: 10, border: '1px solid #dcfce7' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
-                          {t.subject ? `[${t.subject}] ` : ''}{t.name}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#15803d' }}>
-                          %{t.accuracy}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Tekrar Gereken Konular */}
-              <div style={{
-                background: '#fef2f2',
-                border: '1.5px solid #fecaca',
-                borderRadius: 20,
-                padding: '1.1rem 1.35rem',
-                boxShadow: '0 4px 16px rgba(239,68,68,0.05)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
-                    ⚠️
-                  </div>
-                  <div>
-                    <h4 style={{ margin: 0, color: '#b91c1c', fontSize: '0.92rem', fontWeight: 900 }}>
-                      Öncelikli Tekrar Gereken Konular
-                    </h4>
-                    <span style={{ fontSize: '0.68rem', color: '#991b1b' }}>Doğruluk %60 altı olanlar</span>
-                  </div>
-                </div>
-
-                {topWeakTopics.length === 0 ? (
-                  <div style={{ fontSize: '0.76rem', color: '#15803d', fontWeight: 700, padding: '0.5rem 0' }}>
-                    Tebrikler! Kritik derecede zayıf konu bulunmuyor 🎉
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {topWeakTopics.map((t, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '0.45rem 0.75rem', borderRadius: 10, border: '1px solid #fee2e2' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
-                          {t.subject ? `[${t.subject}] ` : ''}{t.name}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#dc2626' }}>
-                          %{t.accuracy}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 5. DERS VE KONU AKORDEON DETAYLARI */}
+            {/* Accordion list of subjects & topics */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {subjectBreakdown
                 .filter(sb => selectedSubjFilter === 'all' || sb.subj === selectedSubjFilter)
@@ -1487,7 +1480,7 @@ export default function StudentResultsPage() {
                   const SubIcon = th.icon;
                   const isExpanded = expandedSubject === subj || selectedSubjFilter === subj;
                   return (
-                    <div key={subj} style={{ background: '#ffffff', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : '#e2e8f0'}`, boxShadow: isExpanded ? '0 8px 30px rgba(0,0,0,0.05)' : '0 2px 10px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                    <div key={subj} style={{ background: 'var(--color-surface)', borderRadius: 20, border: `1.5px solid ${isExpanded ? th.border : 'var(--color-border)'}`, boxShadow: isExpanded ? '0 8px 30px rgba(0,0,0,0.05)' : '0 2px 10px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
                       {/* Subject Header */}
                       <button className="sr-subject-header-btn" onClick={() => setExpandedSubject(isExpanded && selectedSubjFilter === 'all' ? null : subj)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', background: isExpanded ? th.bg : 'transparent', border: 'none', cursor: 'pointer', gap: 12, flexWrap: 'wrap', transition: 'background 0.25s' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1495,40 +1488,40 @@ export default function StudentResultsPage() {
                             <SubIcon size={22} color={th.color} />
                           </div>
                           <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0f172a' }}>{subj}</div>
-                            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-                              {tests.length} test · {totalQ} soru (<span style={{ color: '#16a34a' }}>{totalCorrect} D</span> · <span style={{ color: '#dc2626' }}>{totalWrong} Y</span> · <span style={{ color: '#64748b' }}>{totalBlank} B</span>)
+                            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)' }}>{subj}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              {tests.length} test · {totalQ} soru (<span style={{ color: '#10b981' }}>{totalCorrect} D</span> · <span style={{ color: '#ef4444' }}>{totalWrong} Y</span> · <span style={{ color: 'var(--color-text-muted)' }}>{totalBlank} B</span>)
                             </div>
                           </div>
                         </div>
                         <div className="sr-subject-header-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <ScoreBadge score={avgScore} size="md" />
-                          <StatusTag accuracy={avgScore} />
-                          <ChevronRight size={18} color="#64748b" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                          <ScoreBadge score={avgScore} size="md" isDark={isDark} />
+                          <StatusTag accuracy={avgScore} isDark={isDark} />
+                          <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                         </div>
                       </button>
 
                       {/* Expanded: Topic horizontal bars */}
                       {isExpanded && topicArray.length > 0 && (
-                        <div style={{ padding: '1.25rem 1.4rem', background: '#f8fafc', borderTop: '1.5px solid #e2e8f0' }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
-                            📋 Konu / Test Bazlı Doğruluk Analizi
+                        <div style={{ padding: '1.25rem 1.4rem', background: 'var(--color-surface-hover)', borderTop: '1.5px solid var(--color-border)' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+                            🎯 Konu / Test Bazlı Doğruluk Analizi
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {topicArray.map((top, idx) => (
-                              <div key={idx} style={{ background: '#ffffff', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid #e2e8f0' }}>
+                              <div key={idx} style={{ background: 'var(--color-surface)', borderRadius: 12, padding: '0.75rem 1rem', border: '1px solid var(--color-border)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>{top.name}</span>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>{top.name}</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                                       {top.correctQ} D / {top.wrongQ} Y / {top.blankQ} B ({top.totalQ} Soru)
                                     </span>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#15803d' : top.accuracy >= 50 ? '#b45309' : '#b91c1c' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444' }}>
                                       %{top.accuracy}
                                     </span>
                                   </div>
                                 </div>
-                                <div style={{ background: '#e2e8f0', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                                <div style={{ background: 'var(--color-border)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
                                   <div style={{ width: `${top.accuracy}%`, height: '100%', background: top.accuracy >= 70 ? '#10b981' : top.accuracy >= 50 ? '#f59e0b' : '#ef4444', borderRadius: 99, transition: 'width 0.5s ease' }} />
                                 </div>
                               </div>
@@ -1540,234 +1533,311 @@ export default function StudentResultsPage() {
                   );
                 })}
             </div>
-
           </div>
         )}
 
-        {/* ══════════════════════════════════════
-            TAB 3: ÖDEV & DENEME TÜRÜ
-        ══════════════════════════════════════ */}
+        {/* ── TAB: BY TYPE ── */}
         {activeTab === 'bytype' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Sub tabs */}
-            <div style={{ display: 'flex', gap: 6, background: '#ffffff', padding: 6, borderRadius: 16, border: '1.5px solid #e2e8f0', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+            {/* Sub-tabs */}
+            <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 6, borderRadius: 16, border: '1.5px solid var(--color-border)', flexWrap: 'wrap' }}>
               {[
-                { key: 'homework',     label: '📝 Ödevler',        count: byTypeSubs.homework.length },
-                { key: 'physicalExam', label: '🏛️ Denemeler',      count: byTypeSubs.physicalExam.length },
-                { key: 'book',         label: '📕 Kitap Testleri', count: byTypeSubs.book.length },
-                { key: 'individual',   label: '⚡ Bireysel',        count: byTypeSubs.individual.length },
-              ].map(t => (
-                <button key={t.key} onClick={() => setByTypeTab(t.key)} style={{ padding: '0.45rem 0.95rem', borderRadius: 11, border: 'none', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', background: byTypeTab === t.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#f8fafc', color: byTypeTab === t.key ? 'white' : '#475569', boxShadow: byTypeTab === t.key ? '0 4px 14px rgba(99,102,241,0.25)' : 'none' }}>
-                  {t.label} ({t.count})
+                { key: 'homework',     label: '📝 Ödevler',            count: byTypeSubs.homework.length },
+                { key: 'book',         label: '📚 Kitap Testleri',     count: byTypeSubs.book.length },
+                { key: 'physicalExam', label: '📋 Denemeler',          count: byTypeSubs.physicalExam.length },
+                { key: 'individual',   label: '⚡ Bireysel Çözümler',  count: byTypeSubs.individual.length },
+              ].map(bt => (
+                <button
+                  key={bt.key}
+                  onClick={() => setByTypeTab(bt.key)}
+                  style={{
+                    padding: '0.5rem 1.1rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: byTypeTab === bt.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                    color: byTypeTab === bt.key ? 'white' : 'var(--color-text-muted)',
+                    boxShadow: byTypeTab === bt.key ? '0 4px 14px rgba(99,102,241,0.25)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {bt.label} <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>({bt.count})</span>
                 </button>
               ))}
             </div>
 
+            {/* List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {byTypeSubs[byTypeTab].map((s, i) => {
+              {(byTypeSubs[byTypeTab] || []).map((s, i) => {
                 const th = theme(s.subjectKey);
                 const SubIcon = th.icon;
                 return (
-                  <div key={i} className="sr-card-hover" style={{ background: '#ffffff', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 200 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, background: th.bg, border: `1px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <SubIcon size={20} color={th.color} />
+                  <div key={i} className="sr-card-hover" style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '1rem 1.25rem', border: '1.5px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 12, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <SubIcon size={20} color={th.color} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)', lineHeight: 1.35 }}>
+                        {s.bookTitle ? (
+                          <>
+                            <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
+                            <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
+                            <span>{s.subjectName || s.subjectKey}</span>
+                            {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
+                            <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
+                          </>
+                        ) : (
+                          s.testTitle
+                        )}
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
-                          {s.bookTitle ? (
-                            <>
-                              <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
-                              <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
-                              <span>{s.subjectName || s.subjectKey}</span>
-                              {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
-                              <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
-                            </>
-                          ) : (
-                            s.testTitle
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <span>📅 {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : '—'}</span>
-                          <span>📝 {s.totalQuestions} Soru</span>
-                          <span style={{ color: '#15803d', fontWeight: 800 }}>✓ {s.correctCount} D</span>
-                          <span style={{ color: '#dc2626', fontWeight: 800 }}>✗ {s.wrongCount} Y</span>
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>•</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          {s.totalQuestions} Soru
+                        </span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="md" />
-                      {s.type !== 'physicalExam' ? (
-                        <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.95rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                          <Eye size={14} /> İncele
-                        </button>
-                      ) : (
-                        <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.95rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
-                          <Eye size={14} /> Karne
-                        </button>
-                      )}
+
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                      <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                      <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.2rem 0.55rem', fontSize: '0.75rem', fontWeight: 900 }}>— {s.blankCount}</span>
                     </div>
+
+                    <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isDark={isDark} />
+
+                    {s.type !== 'physicalExam' ? (
+                      <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                        <Eye size={13} /> İncele
+                      </button>
+                    ) : (
+                      <button onClick={() => navigate(`/physical-exam/${s.hwId || s.testId}?studentId=${selectedStudent?.id}`)} style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', border: 'none', borderRadius: 10, padding: '0.45rem 0.9rem', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(79,70,229,0.25)' }}>
+                        <Eye size={13} /> Karne
+                      </button>
+                    )}
                   </div>
                 );
               })}
-              {byTypeSubs[byTypeTab].length === 0 && (
-                <div style={{ background: '#ffffff', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0' }}>
-                  Bu kategoride sonuç bulunmuyor
+              {(byTypeSubs[byTypeTab] || []).length === 0 && (
+                <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
+                  Bu kategoride henüz sonuç bulunamadı
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ══════════════════════════════════════
-            TAB 4: ZAMAN TRENDİ
-        ══════════════════════════════════════ */}
+        {/* ── TAB: TREND ── */}
         {activeTab === 'trend' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem 1.6rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  📈 Zaman İçindeki Başarı Trendi
+            <div style={{ background: 'var(--color-surface)', borderRadius: 22, padding: '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <TrendingUp size={18} color="#6366f1" /> Zaman İçinde Başarı Değişimi
                 </h3>
-                <select value={trendSubject} onChange={e => setTrendSubject(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', outline: 'none', cursor: 'pointer' }}>
-                  <option value="all">Tüm Dersler</option>
-                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                  Son {trendData.length} Test & Deneme
+                </span>
               </div>
+
               {trendData.length > 0 ? (
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
-                        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.05} />
+                        <linearGradient id="scoreTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
-                      <YAxis domain={[0, 100]} style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: 'var(--color-text-muted)', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `%${v}`} />
                       <Tooltip content={<ChartTooltip />} />
-                      <ReferenceLine y={70} stroke="#10b981" strokeDasharray="5 5" label={{ value: 'Hedef %70', fill: '#15803d', fontSize: 11, fontWeight: 800 }} />
-                      <Area type="monotone" dataKey="Başarı %" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#areaGrad)" dot={{ fill: '#8b5cf6', r: 4 }} activeDot={{ r: 7, fill: '#6366f1', stroke: '#ffffff', strokeWidth: 2 }} />
+                      <ReferenceLine y={70} stroke="#10b981" strokeDasharray="3 3" label={{ value: 'Hedef %70', fill: '#10b981', fontSize: 10, position: 'right' }} />
+                      <Area type="monotone" dataKey="Başarı %" stroke="#6366f1" strokeWidth={3} fill="url(#scoreTrendGrad)" dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 7, fill: '#4f46e5', stroke: 'var(--color-surface)', strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>Bu derse ait trend verisi yok</div>
+                <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem 0', fontWeight: 700 }}>Trend analizi için yeterli veri yok.</div>
               )}
             </div>
-
-            {/* Doğru/Yanlış/Boş Stacked/Grouped Bar */}
-            {trendData.length > 0 && (
-              <div style={{ background: '#ffffff', borderRadius: 22, padding: '1.4rem 1.6rem', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
-                <h3 style={{ margin: '0 0 1rem', fontWeight: 900, fontSize: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  📊 Doğru / Yanlış / Boş Dağılımı
-                </h3>
-                <div style={{ width: '100%', height: 250 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
-                      <YAxis style={{ fontSize: '0.72rem', fontWeight: 700 }} tick={{ fill: '#64748b' }} />
-                      <Tooltip content={<ChartTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: '0.8rem', fontWeight: 800, paddingTop: '0.5rem' }} />
-                      <Bar dataKey="Doğru"  fill="#10b981" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Yanlış" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Boş"    fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* ══════════════════════════════════════
-            TAB 5: TÜM SONUÇLAR
-        ══════════════════════════════════════ */}
+        {/* ── TAB: ALL RESULTS ── */}
         {activeTab === 'all' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Filter bar */}
-            <div className="sr-filter-bar" style={{ background: '#ffffff', borderRadius: 18, padding: '0.9rem 1.15rem', border: '1.5px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-              <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 140 }}>
-                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Sınav / ders ara..." style={{ width: '100%', paddingLeft: 32, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 12, border: '1.5px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }} />
+          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Filter Bar */}
+            <div className="sr-filter-bar" style={{ display: 'flex', gap: 10, background: 'var(--color-surface)', padding: 10, borderRadius: 16, border: '1.5px solid var(--color-border)', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: '1 1 200px' }}>
+                <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                <input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Test veya ders ara…"
+                  style={{
+                    width: '100%',
+                    paddingLeft: 32,
+                    paddingRight: 10,
+                    paddingTop: 8,
+                    paddingBottom: 8,
+                    borderRadius: 10,
+                    border: '1.5px solid var(--color-border-input)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-text)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
               </div>
-              <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', outline: 'none', cursor: 'pointer' }}>
+
+              <select
+                value={subjectFilter}
+                onChange={e => setSubjectFilter(e.target.value)}
+                style={{
+                  padding: '0.5rem 0.8rem',
+                  borderRadius: 10,
+                  border: '1.5px solid var(--color-border-input)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
                 <option value="all">Tüm Dersler</option>
                 {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{ padding: '0.45rem 0.9rem', borderRadius: 12, border: '1.5px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', background: '#f8fafc', color: '#0f172a', outline: 'none', cursor: 'pointer' }}>
+
+              <select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                style={{
+                  padding: '0.5rem 0.8rem',
+                  borderRadius: 10,
+                  border: '1.5px solid var(--color-border-input)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
                 <option value="all">Tüm Türler</option>
-                <option value="homework">📝 Ödevler</option>
-                <option value="physicalExam">🏛️ Denemeler</option>
-                <option value="book">📕 Kitap Testleri</option>
-                <option value="individual">⚡ Bireysel</option>
+                <option value="homework">Ödevler</option>
+                <option value="book">Kitap Testleri</option>
+                <option value="physicalExam">Denemeler</option>
+                <option value="individual">Bireysel</option>
               </select>
-              <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                {['table', 'cards'].map(m => (
-                  <button key={m} onClick={() => setViewMode(m)} style={{ padding: '0.35rem 0.8rem', borderRadius: 9, border: 'none', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', background: viewMode === m ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent', color: viewMode === m ? 'white' : '#64748b' }}>
-                    {m === 'table' ? '📋 Tablo' : '🃏 Kartlar'}
-                  </button>
-                ))}
+
+              <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface-hover)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
+                <button
+                  onClick={() => setViewMode('table')}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: 7,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: viewMode === 'table' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                    color: viewMode === 'table' ? 'white' : 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <List size={14} />
+                </button>
+                <button
+                  onClick={() => setViewMode('cards')}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: 7,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: viewMode === 'cards' ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                    color: viewMode === 'cards' ? 'white' : 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <LayoutGrid size={14} />
+                </button>
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>{filteredSubs.length} sonuç</span>
             </div>
 
             {/* TABLE VIEW */}
             {viewMode === 'table' && (
-              <div style={{ background: '#ffffff', borderRadius: 20, border: '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ background: 'var(--color-surface)', borderRadius: 18, border: '1.5px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+                <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700, fontSize: '0.82rem' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
-                        {['SINAV / BAŞLIK', 'DERS', 'TARİH', 'TÜR', 'D / Y / B', 'BAŞARI', 'EYLEM'].map(h => (
-                          <th key={h} style={{ padding: '0.9rem 1rem', fontWeight: 900, fontSize: '0.72rem', color: '#475569', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                      <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)' }}>
+                        {['TEST ADI', 'TÜR', 'TARİH', 'SORU', 'D / Y / B', 'BAŞARI', 'İŞLEM'].map(h => (
+                          <th key={h} style={{ padding: '0.85rem 1rem', fontWeight: 900, fontSize: '0.7rem', color: 'var(--color-text-muted)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSubs.map((s, i) => {
+                      {filteredSubs.map((s, idx) => {
                         const th = theme(s.subjectKey);
                         const SubIcon = th.icon;
                         return (
-                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 1 ? '#f8fafc' : '#ffffff', transition: 'background 0.15s' }}>
+                          <tr key={s.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)' }}>
                             <td style={{ padding: '0.8rem 1rem' }}>
-                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.86rem', lineHeight: 1.35 }}>
-                                {s.bookTitle ? (
-                                  <>
-                                    <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
-                                    <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
-                                    <span>{s.subjectName || s.subjectKey}</span>
-                                    {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
-                                    <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
-                                  </>
-                                ) : (
-                                  s.testTitle
-                                )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 8, background: th.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <SubIcon size={14} color={th.color} />
+                                </div>
+                                <div style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>
+                                    {s.bookTitle ? (
+                                      <>
+                                        <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
+                                        <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
+                                        <span>{s.subjectName || s.subjectKey}</span>
+                                        {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
+                                        <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
+                                      </>
+                                    ) : (
+                                      s.testTitle
+                                    )}
+                                  </span>
+                                </div>
                               </div>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: th.bg, color: th.color, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.22rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
-                                <SubIcon size={12} /> {s.subjectKey}
+                              <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 6, padding: '0.18rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                                {typeConfig[s.typeKey]?.label}
                               </span>
                             </td>
-                            <td style={{ padding: '0.8rem 1rem', color: '#64748b', fontWeight: 700, whiteSpace: 'nowrap' }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : '—'}</td>
-                            <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <span style={{ background: typeConfig[s.typeKey]?.bg || '#f8fafc', color: typeConfig[s.typeKey]?.color || '#0f172a', border: `1px solid ${typeConfig[s.typeKey]?.border || '#e2e8f0'}`, borderRadius: 8, padding: '0.22rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
-                                {typeConfig[s.typeKey]?.label || '⚡ Bireysel'}
-                              </span>
+                            <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
+                            </td>
+                            <td style={{ padding: '0.8rem 1rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                              {s.totalQuestions}
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 4 }}>
-                                <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
-                                <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
-                                <span style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>○{s.blankCount}</span>
+                                <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✓{s.correctCount}</span>
+                                <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>✗{s.wrongCount}</span>
+                                <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.18rem 0.45rem', fontSize: '0.72rem', fontWeight: 900 }}>—{s.blankCount}</span>
                               </div>
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
-                              <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" />
+                              <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} size="sm" isDark={isDark} />
                             </td>
                             <td style={{ padding: '0.8rem 1rem', whiteSpace: 'nowrap' }}>
                               {s.type !== 'physicalExam' ? (
@@ -1784,8 +1854,8 @@ export default function StudentResultsPage() {
                         );
                       })}
                       {filteredSubs.length === 0 && (
-                        <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
-                          <ListTree size={36} style={{ display: 'block', margin: '0 auto 8px', color: '#cbd5e1' }} />
+                        <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                          <ListTree size={36} style={{ display: 'block', margin: '0 auto 8px', color: 'var(--color-border)' }} />
                           Sonuç bulunamadı. Filtreleri değiştirin.
                         </td></tr>
                       )}
@@ -1802,38 +1872,38 @@ export default function StudentResultsPage() {
                   const th = theme(s.subjectKey);
                   const SubIcon = th.icon;
                   return (
-                    <div key={i} className="sr-card-hover" style={{ background: '#ffffff', borderRadius: 18, border: `1.5px solid ${th.border}`, padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.03)', position: 'relative', overflow: 'hidden' }}>
+                    <div key={i} className="sr-card-hover" style={{ background: 'var(--color-surface)', borderRadius: 18, border: `1.5px solid ${th.border}`, padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.03)', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ height: 4, background: th.color, position: 'absolute', top: 0, left: 0, right: 0 }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: th.bg, color: th.color, border: `1px solid ${th.border}`, borderRadius: 8, padding: '0.2rem 0.6rem', fontSize: '0.72rem', fontWeight: 900 }}>
                           <SubIcon size={13} /> {s.subjectKey}
                         </span>
-                        <span style={{ background: typeConfig[s.typeKey]?.bg || '#f8fafc', color: typeConfig[s.typeKey]?.color || '#0f172a', border: `1px solid ${typeConfig[s.typeKey]?.border || '#e2e8f0'}`, borderRadius: 8, padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
-                          {typeConfig[s.typeKey]?.label || '⚡'}
+                        <span style={{ background: typeConfig[s.typeKey]?.bg, color: typeConfig[s.typeKey]?.color, border: `1px solid ${typeConfig[s.typeKey]?.border}`, borderRadius: 8, padding: '0.2rem 0.55rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                          {typeConfig[s.typeKey]?.label}
                         </span>
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.35 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)', lineHeight: 1.35 }}>
                         {s.bookTitle ? (
                           <>
-                            <span style={{ color: '#4f46e5', fontWeight: 900 }}>{s.bookTitle}</span>
-                            <span style={{ color: '#94a3b8', margin: '0 4px' }}>—</span>
+                            <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
+                            <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
                             <span>{s.subjectName || s.subjectKey}</span>
-                            {s.topicName && <span style={{ color: '#64748b', fontWeight: 700 }}> · {s.topicName}</span>}
-                            <span style={{ color: '#0f172a', fontWeight: 900 }}> ({s.testName})</span>
+                            {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
+                            <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
                           </>
                         ) : (
                           s.testTitle
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <span style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                        <span style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                        <span style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>○ {s.blankCount}</span>
+                        <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
+                        <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
+                        <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 7, padding: '0.18rem 0.5rem', fontSize: '0.72rem', fontWeight: 900 }}>— {s.blankCount}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 8 }}>
                         <div>
-                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} />
-                          <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
+                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isDark={isDark} />
+                          <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
                         {s.type !== 'physicalExam' ? (
                           <button onClick={() => navigate(`/review/${s.id || s.testId || s.hwId}?studentId=${selectedStudent?.id || ''}`)} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 10, padding: '0.4rem 0.85rem', fontWeight: 800, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
@@ -1849,7 +1919,7 @@ export default function StudentResultsPage() {
                   );
                 })}
                 {filteredSubs.length === 0 && (
-                  <div style={{ gridColumn: '1/-1', background: '#ffffff', borderRadius: 18, padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0' }}>
+                  <div style={{ gridColumn: '1/-1', background: 'var(--color-surface)', borderRadius: 18, padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
                     Sonuç bulunamadı
                   </div>
                 )}

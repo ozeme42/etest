@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Save, CheckCircle2, Calendar, ArrowLeft, Layers, Target, BookOpen, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useTheme } from '../context/ThemeContext';
 import ProgramCenter, { normalizeWeeklyProgram } from '../components/ProgramCenter';
 
 function getWeekDateRange() {
@@ -19,6 +20,8 @@ function getWeekDateRange() {
 export default function StudentProgramPage() {
   const { currentUser } = useAuth();
   const { getCoachingProfileForStudent, saveCoachingProfile } = useCoaching();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const navigate = useNavigate();
 
   const studentId = currentUser?.id;
@@ -69,7 +72,17 @@ export default function StudentProgramPage() {
   if (!currentUser) return null;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.05) 0%, transparent 45%), #f8fafc', fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: '#0f172a', padding: '1.25rem 1rem', boxSizing: 'border-box' }}>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'var(--color-bg)',
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.10) 0%, transparent 45%), var(--color-bg)'
+        : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(236, 72, 153, 0.05) 0%, transparent 45%), var(--color-bg)',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      color: 'var(--color-text)',
+      padding: '1.25rem 1rem',
+      boxSizing: 'border-box'
+    }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .prog-anim { animation: fadeIn 0.25s ease both; }
@@ -93,8 +106,8 @@ export default function StudentProgramPage() {
           <button
             onClick={() => navigate('/student')}
             style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
               borderRadius: '0.75rem',
               padding: '0.5rem 0.95rem',
               cursor: 'pointer',
@@ -103,7 +116,7 @@ export default function StudentProgramPage() {
               gap: '0.45rem',
               fontWeight: 800,
               fontSize: '0.82rem',
-              color: '#1e293b',
+              color: 'var(--color-text, #1e293b)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               transition: 'all 0.15s'
             }}
@@ -115,27 +128,27 @@ export default function StudentProgramPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: '#e0e7ff',
-            border: '1px solid #c7d2fe',
+            background: isDark ? 'rgba(99, 102, 241, 0.15)' : '#e0e7ff',
+            border: isDark ? '1px solid rgba(165, 180, 252, 0.35)' : '1px solid #c7d2fe',
             padding: '0.35rem 0.85rem',
             borderRadius: '99px',
             fontSize: '0.76rem',
             fontWeight: 800,
-            color: '#4338ca'
+            color: isDark ? '#818cf8' : '#4338ca'
           }}>
-            <Calendar size={14} color="#4f46e5" />
+            <Calendar size={14} color={isDark ? '#818cf8' : '#4f46e5'} />
             <span>{weekRange}</span>
           </div>
         </div>
 
         {/* Hero Card with Profile & KPI Stats */}
         <div className="prog-hero-card prog-anim no-print" style={{
-          background: '#ffffff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--color-surface, #ffffff)',
+          border: '1.5px solid var(--color-border, #e2e8f0)',
           borderRadius: '1.25rem',
           padding: '1.15rem 1.4rem',
           marginBottom: '1.25rem',
-          boxShadow: '0 4px 20px rgba(100, 116, 139, 0.07)',
+          boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.35)' : '0 4px 20px rgba(100, 116, 139, 0.07)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -155,7 +168,7 @@ export default function StudentProgramPage() {
               fontWeight: 900,
               fontSize: '1.2rem',
               color: 'white',
-              border: '2.5px solid #ffffff',
+              border: isDark ? '2.5px solid rgba(255,255,255,0.2)' : '2.5px solid #ffffff',
               boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
               flexShrink: 0
             }}>
@@ -166,12 +179,12 @@ export default function StudentProgramPage() {
                 margin: 0,
                 fontWeight: 900,
                 fontSize: '1.25rem',
-                color: '#0f172a',
+                color: 'var(--color-text, #0f172a)',
                 lineHeight: 1.25
               }}>
                 Haftalık Ders Programım 📅
               </h1>
-              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 3 }}>
                 Merhaba <strong>{currentUser.name?.split(' ')[0]}</strong> 👋 · Kişisel Çalışma & Görev Takvimi
               </div>
             </div>
@@ -185,8 +198,8 @@ export default function StudentProgramPage() {
             minWidth: 220
           }}>
             <div style={{
-              background: '#f8fafc',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
               borderRadius: '1rem',
               padding: '0.65rem 0.95rem',
               textAlign: 'center',
@@ -194,20 +207,20 @@ export default function StudentProgramPage() {
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#4f46e5', lineHeight: 1 }}>
+              <div style={{ fontWeight: 900, fontSize: '1.25rem', color: isDark ? '#818cf8' : '#4f46e5', lineHeight: 1 }}>
                 %{weekPct}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#1e293b', fontWeight: 800, marginTop: 4 }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text, #1e293b)', fontWeight: 800, marginTop: 4 }}>
                 Haftalık İlerleme
               </div>
-              <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+              <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                 {doneItems} / {totalItems} Görev
               </div>
             </div>
 
             <div style={{
-              background: '#f8fafc',
-              border: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              border: '1.5px solid var(--color-border, #e2e8f0)',
               borderRadius: '1rem',
               padding: '0.65rem 0.95rem',
               textAlign: 'center',
@@ -215,13 +228,13 @@ export default function StudentProgramPage() {
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#16a34a', lineHeight: 1 }}>
+              <div style={{ fontWeight: 900, fontSize: '1.25rem', color: isDark ? '#34d399' : '#16a34a', lineHeight: 1 }}>
                 {doneTopics}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#1e293b', fontWeight: 800, marginTop: 4 }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text, #1e293b)', fontWeight: 800, marginTop: 4 }}>
                 Konu İlerleme
               </div>
-              <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+              <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                 {totalTopics} Toplam Konu
               </div>
             </div>
@@ -235,7 +248,7 @@ export default function StudentProgramPage() {
             setWeeklyProgram={setWeeklyProgram}
             topicPool={topicPool}
             setTopicPool={setTopicPool}
-            isDark={false}
+            isDark={isDark}
           />
         </div>
 

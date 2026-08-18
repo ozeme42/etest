@@ -993,19 +993,19 @@ export default function PhysicalExamRunner() {
 
       {/* ── FINISH CONFIRMATION MODAL ── */}
       {showFinishModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2rem', background: '#ffffff', borderRadius: '1.5rem', border: '1.5px solid #e2e8f0', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#0f172a', margin: '1rem' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#fef2f2', border: '2px solid #fecaca', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.75))', backdropFilter: 'blur(8px)' }}>
+          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2rem', background: 'var(--color-surface, #ffffff)', borderRadius: '1.5rem', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--color-text, #0f172a)', margin: '1rem' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', border: '2px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <CheckCircle2 size={30} />
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: '#0f172a' }}>Sınavı Bitiriyorsunuz</h3>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>
+            <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Sınavı Bitiriyorsunuz</h3>
+            <p style={{ margin: 0, color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', lineHeight: 1.5 }}>
               Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz? Gönderdikten sonra optik form kilitlenecektir.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
               <button 
                 onClick={() => setShowFinishModal(false)}
-                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: '#ffffff', border: '1.5px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
+                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #475569)', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
               >
                 Kontrole Dön
               </button>
@@ -1051,43 +1051,43 @@ export default function PhysicalExamRunner() {
       {isMobile && showMobileOpticModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(15, 23, 42, 0.65)',
+          background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.75))',
           backdropFilter: 'blur(8px)',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
         }} onClick={() => setShowMobileOpticModal(false)}>
           <div style={{
-            background: '#ffffff',
-            color: '#0f172a',
+            background: 'var(--color-surface, #ffffff)',
+            color: 'var(--color-text, #0f172a)',
             borderRadius: '1.5rem 1.5rem 0 0',
             maxHeight: '85vh',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
-            boxShadow: '0 -10px 35px rgba(0,0,0,0.15)',
-            borderTop: '1.5px solid #e2e8f0'
+            boxShadow: '0 -10px 35px rgba(0,0,0,0.25)',
+            borderTop: '1.5px solid var(--color-border, #e2e8f0)'
           }} onClick={e => e.stopPropagation()}>
 
             {/* Header with subject selector */}
             <div style={{
               padding: '1rem 1.25rem',
-              background: '#ffffff',
-              borderBottom: '1.5px solid #e2e8f0',
+              background: 'var(--color-surface, #ffffff)',
+              borderBottom: '1.5px solid var(--color-border, #e2e8f0)',
               display: 'flex', flexDirection: 'column', gap: '0.75rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                     📝 Optik Cevap Formu
                   </h3>
-                  <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                     Toplam {totalAnsweredCount}/{totalQuestionsCount} soru kodlandı
                   </p>
                 </div>
                 <button
                   onClick={() => setShowMobileOpticModal(false)}
                   style={{
-                    background: '#f1f5f9', border: 'none', borderRadius: '50%',
+                    background: 'var(--color-surface-hover, #f1f5f9)', border: 'none', borderRadius: '50%',
                     width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', color: '#475569'
+                    cursor: 'pointer', color: 'var(--color-text-muted, #475569)'
                   }}
                 >
                   <XIcon size={18} />
@@ -1108,9 +1108,9 @@ export default function PhysicalExamRunner() {
                       style={{
                         padding: '0.35rem 0.65rem',
                         borderRadius: 8,
-                        background: isActive ? '#4f46e5' : '#f8fafc',
-                        border: `1.5px solid ${isActive ? '#4338ca' : '#cbd5e1'}`,
-                        color: isActive ? 'white' : '#64748b',
+                        background: isActive ? '#4f46e5' : 'var(--color-surface-hover, #f8fafc)',
+                        border: `1.5px solid ${isActive ? '#4338ca' : 'var(--color-border-input, #cbd5e1)'}`,
+                        color: isActive ? 'white' : 'var(--color-text-muted, #64748b)',
                         fontWeight: 900,
                         fontSize: '0.72rem',
                         whiteSpace: 'nowrap',
@@ -1125,7 +1125,7 @@ export default function PhysicalExamRunner() {
             </div>
 
             {/* Body */}
-            <div style={{ padding: '1rem', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
+            <div style={{ padding: '1rem', overflowY: 'auto', flex: 1, background: 'var(--color-surface-hover, #f8fafc)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {activeSubject && Array.from({ length: activeSubject.count }).map((_, qIdx) => {
                   const qNo = qIdx + 1;
@@ -1138,8 +1138,8 @@ export default function PhysicalExamRunner() {
                       : ['A', 'B', 'C', 'D', 'E'];
 
                   return (
-                    <div key={qNo} style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '0.75rem', border: selected ? '1.5px solid #93c5fd' : '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: '#0f172a', minWidth: 60 }}>
+                    <div key={qNo} style={{ background: 'var(--color-surface, #ffffff)', padding: '0.75rem 0.85rem', borderRadius: '0.75rem', border: selected ? '1.5px solid #93c5fd' : '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text, #0f172a)', minWidth: 60 }}>
                         Soru {qNo}
                       </span>
 
@@ -1154,9 +1154,9 @@ export default function PhysicalExamRunner() {
                               style={{
                                 flex: 1, height: 36, borderRadius: '50%',
                                 fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer',
-                                border: isSelected ? '2px solid #4338ca' : '1.5px solid #cbd5e1',
-                                background: isSelected ? '#4f46e5' : '#ffffff',
-                                color: isSelected ? 'white' : '#334155',
+                                border: isSelected ? '2px solid #4338ca' : '1.5px solid var(--color-border-input, #cbd5e1)',
+                                background: isSelected ? '#4f46e5' : 'var(--color-surface, #ffffff)',
+                                color: isSelected ? 'white' : 'var(--color-text, #334155)',
                                 transition: 'all 0.12s'
                               }}
                             >
@@ -1172,7 +1172,7 @@ export default function PhysicalExamRunner() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '0.75rem 1.25rem', background: '#ffffff', borderTop: '1.5px solid #e2e8f0' }}>
+            <div style={{ padding: '0.75rem 1.25rem', background: 'var(--color-surface, #ffffff)', borderTop: '1.5px solid var(--color-border, #e2e8f0)' }}>
               <button
                 onClick={() => setShowMobileOpticModal(false)}
                 style={{

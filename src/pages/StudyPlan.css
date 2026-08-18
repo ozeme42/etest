@@ -1,4 +1,4 @@
-/* Light Theme Design Tokens for Study Plans Suite */
+/* Dual Theme Design Tokens for Study Plans Suite */
 .study-plans-page-container,
 .study-plan-container {
   min-height: 100vh;
@@ -7,13 +7,12 @@
   box-sizing: border-box;
   margin: 0;
   padding: 1.25rem 1.5rem 5rem 1.5rem;
-  background-color: #f8fafc;
+  background-color: var(--color-bg, #f8fafc);
   background-image: 
     radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
-    #f8fafc;
+    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%);
   background-attachment: fixed;
-  color: #0f172a;
+  color: var(--color-text, #0f172a);
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
@@ -22,17 +21,17 @@
 
 /* Glass Card */
 .study-glass-card {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-surface, #ffffff);
+  border: 1.5px solid var(--color-border, #e2e8f0);
   border-radius: 1.25rem;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #0f172a;
+  color: var(--color-text, #0f172a);
 }
 
 .study-glass-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-border-input, #cbd5e1);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.08);
 }
 
 /* KPI Grid */
@@ -49,22 +48,22 @@
 }
 
 .study-kpi-card {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-surface, #ffffff);
+  border: 1.5px solid var(--color-border, #e2e8f0);
   border-radius: 1.15rem;
   padding: 1.15rem 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  color: #0f172a;
+  color: var(--color-text, #0f172a);
 }
 
 .study-kpi-card:hover {
   transform: translateY(-2px);
-  border-color: #cbd5e1;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-border-input, #cbd5e1);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
 }
 
 .study-kpi-icon {
@@ -81,14 +80,14 @@
   font-size: 1.5rem;
   font-weight: 900;
   line-height: 1.1;
-  color: #0f172a;
+  color: var(--color-text, #0f172a);
   letter-spacing: -0.02em;
 }
 
 .study-kpi-lbl {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--color-text-muted, #64748b);
   margin-top: 0.15rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -103,21 +102,21 @@
 }
 
 .roadmap-card {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--color-surface, #ffffff);
+  border: 1.5px solid var(--color-border, #e2e8f0);
   border-radius: 1.25rem;
   padding: 1.4rem;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: all 0.25s ease;
-  color: #0f172a;
+  color: var(--color-text, #0f172a);
 }
 
 .roadmap-card:hover {
   transform: translateY(-3px);
-  border-color: #cbd5e1;
+  border-color: var(--color-border-input, #cbd5e1);
   box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.08);
 }
 
@@ -128,17 +127,17 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--color-surface-hover, #f1f5f9);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-border-input, #cbd5e1);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-text-muted, #94a3b8);
 }
 
 @media (max-width: 768px) {

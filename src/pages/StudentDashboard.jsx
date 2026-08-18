@@ -38,13 +38,13 @@ export const getCategoryName = (t) => t.subject || 'Diğer';
 
 /* ─── Subject Config ────────────────────────────────────────────── */
 const subjectConfig = {
-  'Matematik':            { icon: Ruler,        color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', badge: '#2563eb' },
-  'Fen Bilimleri':        { icon: TestTube2,     color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', badge: '#059669' },
-  'Türkçe':               { icon: BookCopy,      color: '#f97316', bg: '#fff7ed', border: '#fed7aa', badge: '#ea580c' },
-  'Sosyal Bilgiler':      { icon: Globe,         color: '#a855f7', bg: '#faf5ff', border: '#e9d5ff', badge: '#9333ea' },
-  'İngilizce':            { icon: MessageSquare, color: '#f43f5e', bg: '#fff1f2', border: '#fecdd3', badge: '#e11d48' },
-  'Genel Testler':        { icon: ClipboardList, color: '#6366f1', bg: '#eff6ff', border: '#c7d2fe', badge: '#4f46e5' },
-  'Diğer':                { icon: FileText,      color: '#64748b', bg: '#f8fafc', border: '#e2e8f0', badge: '#475569' },
+  'Matematik':            { icon: Ruler,        color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.35)', badge: '#60a5fa' },
+  'Fen Bilimleri':        { icon: TestTube2,     color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.35)', badge: '#34d399' },
+  'Türkçe':               { icon: BookCopy,      color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)', border: 'rgba(249, 115, 22, 0.35)', badge: '#fb923c' },
+  'Sosyal Bilgiler':      { icon: Globe,         color: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)', border: 'rgba(168, 85, 247, 0.35)', badge: '#c084fc' },
+  'İngilizce':            { icon: MessageSquare, color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.12)', border: 'rgba(244, 63, 94, 0.35)', badge: '#fb7185' },
+  'Genel Testler':        { icon: ClipboardList, color: '#6366f1', bg: 'rgba(99, 102, 241, 0.12)', border: 'rgba(99, 102, 241, 0.35)', badge: '#818cf8' },
+  'Diğer':                { icon: FileText,      color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)', border: 'rgba(100, 116, 139, 0.35)', badge: '#94a3b8' },
 };
 const getSubConf = (s) => subjectConfig[s] || subjectConfig['Diğer'];
 
@@ -82,12 +82,12 @@ const DAYS_OF_WEEK = [
 ];
 
 const GOAL_TYPE_THEMES = {
-  Soru:   { color: '#e11d48', bg: '#ffe4e6', light: '#fff1f2', text: '#be123c', border: '#fecdd3', icon: Target,      unit: 'soru', step: 10 },
-  Sayfa:  { color: '#0284c7', bg: '#e0f2fe', light: '#f0f9ff', text: '#0369a1', border: '#bae6fd', icon: BookOpen,    unit: 'sayfa', step: 5 },
-  Konu:   { color: '#7c3aed', bg: '#f3e8ff', light: '#faf5ff', text: '#6d28d9', border: '#e9d5ff', icon: Brain,       unit: 'konu', step: 1 },
-  Dakika: { color: '#059669', bg: '#d1fae5', light: '#ecfdf5', text: '#047857', border: '#a7f3d0', icon: Timer,       unit: 'dk', step: 15 },
-  Net:    { color: '#0891b2', bg: '#cffafe', light: '#ecfeff', text: '#0e7490', border: '#a5f3fc', icon: TrendingUp, unit: 'net', step: 1 },
-  Puan:   { color: '#d97706', bg: '#fef3c7', light: '#fffbeb', text: '#b45309', border: '#fde68a', icon: Trophy,     unit: 'puan', step: 5 },
+  Soru:   { color: '#e11d48', bg: 'rgba(225, 29, 72, 0.12)', light: 'rgba(225, 29, 72, 0.08)', text: '#fb7185', border: 'rgba(225, 29, 72, 0.3)', icon: Target,      unit: 'soru', step: 10 },
+  Sayfa:  { color: '#0284c7', bg: 'rgba(2, 132, 199, 0.12)', light: 'rgba(2, 132, 199, 0.08)', text: '#38bdf8', border: 'rgba(2, 132, 199, 0.3)', icon: BookOpen,    unit: 'sayfa', step: 5 },
+  Konu:   { color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.12)', light: 'rgba(124, 58, 237, 0.08)', text: '#c084fc', border: 'rgba(124, 58, 237, 0.3)', icon: Brain,       unit: 'konu', step: 1 },
+  Dakika: { color: '#059669', bg: 'rgba(5, 150, 105, 0.12)', light: 'rgba(5, 150, 105, 0.08)', text: '#34d399', border: 'rgba(5, 150, 105, 0.3)', icon: Timer,       unit: 'dk', step: 15 },
+  Net:    { color: '#0891b2', bg: 'rgba(8, 145, 178, 0.12)', light: 'rgba(8, 145, 178, 0.08)', text: '#22d3ee', border: 'rgba(8, 145, 178, 0.3)', icon: TrendingUp, unit: 'net', step: 1 },
+  Puan:   { color: '#d97706', bg: 'rgba(217, 119, 6, 0.12)', light: 'rgba(217, 119, 6, 0.08)', text: '#fbbf24', border: 'rgba(217, 119, 6, 0.3)', icon: Trophy,     unit: 'puan', step: 5 },
 };
 
 const DASHBOARD_QUOTES = [
@@ -1785,8 +1785,8 @@ export default function StudentDashboard() {
                   <span style={{
                     fontSize: isMobile ? '0.58rem' : '0.72rem',
                     fontWeight: 800,
-                    color: isSelected ? '#ffffff' : isCurrentToday ? '#4338ca' : '#64748b',
-                    background: isSelected ? 'rgba(255,255,255,0.22)' : '#e2e8f0',
+                    color: isSelected ? '#ffffff' : isCurrentToday ? '#6366f1' : 'var(--color-text-muted, #64748b)',
+                    background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface-hover, #e2e8f0)',
                     padding: isMobile ? '1px 3px' : '2px 6px',
                     borderRadius: 6
                   }}>
@@ -1798,7 +1798,7 @@ export default function StudentDashboard() {
                       ● Bugün
                     </span>
                   ) : taskCount > 0 ? (
-                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#4f46e5' }}>
+                    <span style={{ fontSize: isMobile ? '0.50rem' : '0.62rem', fontWeight: 800, color: isSelected ? '#ffffff' : '#6366f1' }}>
                       {taskCount} görev
                     </span>
                   ) : (
@@ -1837,11 +1837,11 @@ export default function StudentDashboard() {
                       <CheckSquare size={18} color="#ffffff" />
                     </div>
                     <div>
-                      <span style={{ fontSize: '1.02rem', fontWeight: 900, color: '#0f172a' }}>
+                      <span style={{ fontSize: '1.02rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                         {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacağım?' : `📅 ${dayProgramInfo.dayName} Görevleri`}
                       </span>
                       {dayProgramInfo.fullDateLabel && (
-                        <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 700, marginTop: 1 }}>
+                        <div style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 700, marginTop: 1 }}>
                           📌 {dayProgramInfo.fullDateLabel}
                         </div>
                       )}
@@ -1854,9 +1854,9 @@ export default function StudentDashboard() {
                       fontWeight: 900,
                       padding: '4px 11px',
                       borderRadius: 99,
-                      background: dayProgramInfo.hasAllCompleted ? '#dcfce7' : '#e0e7ff',
-                      color: dayProgramInfo.hasAllCompleted ? '#16a34a' : '#4338ca',
-                      border: dayProgramInfo.hasAllCompleted ? '1px solid #86efac' : '1px solid #c7d2fe'
+                      background: dayProgramInfo.hasAllCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                      color: dayProgramInfo.hasAllCompleted ? '#10b981' : '#6366f1',
+                      border: dayProgramInfo.hasAllCompleted ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(99, 102, 241, 0.35)'
                     }}>
                       {dayProgramInfo.completedCount}/{dayProgramInfo.totalCount} Tamamlandı
                     </span>
@@ -1900,8 +1900,8 @@ export default function StudentDashboard() {
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               gap: 10,
-                              background: task.done ? '#f0fdf4' : '#f8fafc',
-                              border: task.done ? '1px solid #86efac' : '1px solid #e2e8f0',
+                              background: task.done ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-hover, #f8fafc)',
+                              border: task.done ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--color-border, #e2e8f0)',
                               padding: '0.7rem 0.9rem',
                               borderRadius: 14,
                               cursor: 'pointer',
@@ -1917,7 +1917,7 @@ export default function StudentDashboard() {
                                   height: 21,
                                   marginTop: 2,
                                   borderRadius: 6,
-                                  border: task.done ? 'none' : '1.5px solid #94a3b8',
+                                  border: task.done ? 'none' : '1.5px solid var(--color-border-input, #94a3b8)',
                                   background: task.done ? '#22c55e' : 'transparent',
                                   display: 'flex',
                                   alignItems: 'center',
@@ -1936,9 +1936,9 @@ export default function StudentDashboard() {
                                     <span style={{
                                       fontSize: '0.62rem',
                                       fontWeight: 900,
-                                      color: '#2563eb',
-                                      background: '#dbeafe',
-                                      border: '1px solid #bfdbfe',
+                                      color: '#6366f1',
+                                      background: 'rgba(99, 102, 241, 0.12)',
+                                      border: '1px solid rgba(165, 180, 252, 0.35)',
                                       padding: '1px 6px',
                                       borderRadius: 5,
                                       flexShrink: 0
@@ -1949,7 +1949,7 @@ export default function StudentDashboard() {
                                   <span style={{
                                     fontSize: '0.84rem',
                                     fontWeight: 800,
-                                    color: task.done ? '#94a3b8' : '#0f172a',
+                                    color: task.done ? 'var(--color-text-muted, #94a3b8)' : 'var(--color-text, #0f172a)',
                                     textDecoration: task.done ? 'line-through' : 'none',
                                     wordBreak: 'break-word',
                                     lineHeight: 1.3
@@ -1958,9 +1958,9 @@ export default function StudentDashboard() {
                                   </span>
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 3 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 3 }}>
                                   {task.bookTitle && (
-                                    <span style={{ color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
+                                    <span style={{ color: 'var(--color-text, #334155)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 200 }}>
                                       📖 {task.bookTitle}
                                     </span>
                                   )}
@@ -2011,11 +2011,11 @@ export default function StudentDashboard() {
                         onClick={() => setShowAllDayTasks(prev => !prev)}
                         style={{
                           width: '100%',
-                          background: 'rgba(99, 102, 241, 0.08)',
-                          border: '1.5px dashed #a5b4fc',
+                          background: 'rgba(99, 102, 241, 0.1)',
+                          border: '1.5px dashed rgba(99, 102, 241, 0.4)',
                           borderRadius: 12,
                           padding: '0.55rem 0.8rem',
-                          color: '#4f46e5',
+                          color: '#6366f1',
                           fontWeight: 800,
                           fontSize: '0.76rem',
                           cursor: 'pointer',
@@ -2035,8 +2035,8 @@ export default function StudentDashboard() {
                     )}
                   </div>
                 ) : (
-                  <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.84rem', color: '#64748b', fontStyle: 'italic' }}>
+                  <div style={{ padding: '1.5rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)', textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.84rem', color: 'var(--color-text-muted, #64748b)', fontStyle: 'italic' }}>
                       {dayProgramInfo.isToday ? 'Bugün için kayıtlı görev yok. Harika gidiyorsun! 🎉' : `${dayProgramInfo.dayName} günü için görev bulunamadı.`}
                     </span>
                   </div>
@@ -2044,7 +2044,7 @@ export default function StudentDashboard() {
               </div>
 
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#4f46e5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                   Haftalık Programa Git <ChevronRight size={13} />
                 </Link>
               </div>
@@ -2072,9 +2072,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => navigate('/student/homeworks')}
                   style={{
-                    background: pendingCount > 0 ? '#fee2e2' : '#dcfce7',
-                    color: pendingCount > 0 ? '#dc2626' : '#16a34a',
-                    border: pendingCount > 0 ? '1px solid #fca5a5' : '1px solid #86efac',
+                    background: pendingCount > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                    color: pendingCount > 0 ? '#ef4444' : '#10b981',
+                    border: pendingCount > 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)',
                     borderRadius: 99,
                     padding: '0.3rem 0.8rem',
                     fontSize: '0.72rem',
@@ -2091,12 +2091,12 @@ export default function StudentDashboard() {
               </div>
 
               {homeworkSummaryGroups.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎉</div>
-                  <div style={{ fontWeight: 800, color: tests.length > 0 ? '#16a34a' : '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, color: tests.length > 0 ? '#10b981' : 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
                     {tests.length > 0 ? 'Tüm Ödevler Başarıyla Tamamlandı!' : 'Henüz atanmış bir ödeviniz yok'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
                     {tests.length > 0
                       ? 'Çözülmeyi bekleyen aktif ödeviniz bulunmuyor. Geçmiş ödevlerinizi görmek için tıklayın.'
                       : 'Öğretmeniniz veya koçunuz yeni ödev atadığında burada listelenecektir.'}
@@ -2110,8 +2110,8 @@ export default function StudentDashboard() {
                       onClick={() => navigate('/student/homeworks')}
                       className="sd-card"
                       style={{
-                        background: '#f8fafc',
-                        border: '1.5px solid #e2e8f0',
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1.5px solid var(--color-border, #e2e8f0)',
                         borderRadius: 16,
                         padding: '1rem 1.15rem',
                         cursor: 'pointer',
@@ -2119,16 +2119,16 @@ export default function StudentDashboard() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                           {group.title}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#16a34a' : '#dc2626' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: group.pct === 100 ? '#10b981' : '#ef4444' }}>
                           %{group.pct}
                         </span>
                       </div>
 
                       {/* Progress Bar */}
-                      <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
                         <div style={{
                           height: '100%',
                           width: `${group.pct}%`,
@@ -2138,8 +2138,8 @@ export default function StudentDashboard() {
                         }} />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
-                        <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#dc2626', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                        <span>{group.doneCount} / {group.totalCount} Test Tamamlandı {group.pendingCount > 0 && <span style={{ color: '#ef4444', fontWeight: 800 }}>({group.pendingCount} Bekleyen)</span>}</span>
                         <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
                           Detayları Gör <ChevronRight size={13} />
                         </span>
@@ -2149,6 +2149,7 @@ export default function StudentDashboard() {
                 </div>
               )}
             </div>
+
 
             {/* 📝 BÖLÜM 2: SON ÇÖZÜLEN TESTLER */}
             <div className="sd-card" style={{
@@ -2183,9 +2184,9 @@ export default function StudentDashboard() {
                   onClick={() => navigate('/student/results')}
                   className="sd-btn"
                   style={{
-                    background: '#dcfce7',
-                    color: '#16a34a',
-                    border: '1px solid #86efac',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
                     borderRadius: 99,
                     padding: '0.3rem 0.8rem',
                     fontSize: '0.72rem',
@@ -2202,21 +2203,21 @@ export default function StudentDashboard() {
               </div>
 
               {recentSolvedTests.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📊</div>
-                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
                     Henüz tamamlanmış bir test bulunmuyor
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
                     Kitap testlerinizi veya atanan ödevlerinizi çözdüğünüzde sonuçlarınız burada listelenecektir.
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {recentSolvedTests.map((test, idx) => {
-                    const pctColor = test.pct >= 80 ? '#16a34a' : test.pct >= 60 ? '#d97706' : '#dc2626';
-                    const pctBg = test.pct >= 80 ? '#dcfce7' : test.pct >= 60 ? '#fef3c7' : '#fee2e2';
-                    const pctBorder = test.pct >= 80 ? '#86efac' : test.pct >= 60 ? '#fde68a' : '#fca5a5';
+                    const pctColor = test.pct >= 80 ? '#10b981' : test.pct >= 60 ? '#f59e0b' : '#ef4444';
+                    const pctBg = test.pct >= 80 ? 'rgba(16, 185, 129, 0.15)' : test.pct >= 60 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+                    const pctBorder = test.pct >= 80 ? 'rgba(16, 185, 129, 0.35)' : test.pct >= 60 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)';
 
                     return (
                       <div
@@ -2224,8 +2225,8 @@ export default function StudentDashboard() {
                         onClick={() => navigate('/student/results')}
                         className="sd-card"
                         style={{
-                          background: '#f8fafc',
-                          border: '1.5px solid #e2e8f0',
+                          background: 'var(--color-surface-hover, #f8fafc)',
+                          border: '1.5px solid var(--color-border, #e2e8f0)',
                           borderRadius: 16,
                           padding: '0.9rem 1.1rem',
                           cursor: 'pointer',
@@ -2240,9 +2241,9 @@ export default function StudentDashboard() {
                         <div style={{ minWidth: 180, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
                             <span style={{
-                              background: '#e0e7ff',
-                              color: '#4338ca',
-                              border: '1px solid #c7d2fe',
+                              background: 'rgba(99, 102, 241, 0.12)',
+                              color: '#6366f1',
+                              border: '1px solid rgba(165, 180, 252, 0.35)',
                               borderRadius: 6,
                               fontSize: '0.65rem',
                               fontWeight: 800,
@@ -2251,34 +2252,34 @@ export default function StudentDashboard() {
                               {test.subject}
                             </span>
                             {test.date && (
-                              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
                                 🕐 {new Date(test.date).toLocaleDateString('tr-TR')}
                               </span>
                             )}
                           </div>
 
-                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.35, wordBreak: 'break-word' }}>
                             {test.title}
                           </div>
                           {test.subTitle && (
-                            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                               {test.subTitle}
                             </div>
                           )}
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                            <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                               ✓ {test.correctCount} D
                             </span>
-                            <span style={{ color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                               ✗ {test.wrongCount} Y
                             </span>
                             {test.emptyCount > 0 && (
-                              <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <span style={{ color: 'var(--color-text-muted, #64748b)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                                 ○ {test.emptyCount} B
                               </span>
                             )}
-                            <span style={{ color: '#475569', opacity: 0.8 }}>
+                            <span style={{ color: 'var(--color-text-muted, #475569)', opacity: 0.8 }}>
                               • {test.totalQuestions} Soru
                             </span>
                           </div>
@@ -2302,7 +2303,7 @@ export default function StudentDashboard() {
                             </div>
                           </div>
 
-                          <span style={{ color: '#4f46e5', display: 'flex', alignItems: 'center' }}>
+                          <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center' }}>
                             <ChevronRight size={16} />
                           </span>
                         </div>
@@ -2332,18 +2333,18 @@ export default function StudentDashboard() {
                   </div>
                 </div>
 
-                <span style={{ background: '#f3e8ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
+                <span style={{ background: 'rgba(124, 58, 237, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
                   {myRoadmaps.length} Harita
                 </span>
               </div>
 
               {myRoadmaps.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
-                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.92rem', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
                     Henüz atanmış bir yol haritanız yok
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
                     Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
                   </div>
                 </div>
@@ -2355,30 +2356,30 @@ export default function StudentDashboard() {
                       onClick={() => navigate(`/student/study-plan/${assignment.id}`)}
                       className="sd-card"
                       style={{
-                        background: '#f8fafc',
-                        border: '1.5px solid #e2e8f0',
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1.5px solid var(--color-border, #e2e8f0)',
                         borderRadius: 16,
                         padding: '1rem 1.15rem',
                         cursor: 'pointer'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text, #0f172a)' }}>
                           {plan.title}
                         </div>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#7c3aed' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#c084fc' }}>
                           %{pct}
                         </span>
                       </div>
 
                       {/* Progress Bar */}
-                      <div style={{ height: 7, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
                         <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #a855f7)', borderRadius: 99, transition: 'width 0.8s ease' }} />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                         <span>{doneTopics} / {totalTopics} Konu Tamamlandı</span>
-                        <span style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <span style={{ color: '#6366f1', display: 'flex', alignItems: 'center', gap: 2 }}>
                           Detayları Gör <ChevronRight size={13} />
                         </span>
                       </div>
@@ -2428,9 +2429,9 @@ export default function StudentDashboard() {
                       </h2>
                       {goalTrackingData.totalItemsCount > 0 && (
                         <span style={{
-                          background: '#f3e8ff',
-                          color: '#7c3aed',
-                          border: '1px solid #ddd6fe',
+                          background: 'rgba(124, 58, 237, 0.15)',
+                          color: '#c084fc',
+                          border: '1px solid rgba(168, 85, 247, 0.35)',
                           borderRadius: 99,
                           fontSize: '0.65rem',
                           fontWeight: 900,
@@ -2441,9 +2442,9 @@ export default function StudentDashboard() {
                       )}
                       {solvedQuestionsStats.today > 0 && (
                         <span style={{
-                          background: '#fee2e2',
-                          color: '#dc2626',
-                          border: '1px solid #fca5a5',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          color: '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
                           borderRadius: 99,
                           fontSize: '0.65rem',
                           fontWeight: 900,
@@ -2457,7 +2458,7 @@ export default function StudentDashboard() {
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.7rem', color: '#c084fc', fontWeight: 600 }}>
                       Sınav, net, soru ve alışkanlık hedefleriniz
                     </span>
                   </div>
@@ -2467,9 +2468,9 @@ export default function StudentDashboard() {
                   onClick={() => navigate('/goals')}
                   className="sd-btn"
                   style={{
-                    background: '#f3e8ff',
-                    border: '1px solid #ddd6fe',
-                    color: '#7c3aed',
+                    background: 'rgba(124, 58, 237, 0.15)',
+                    border: '1px solid rgba(168, 85, 247, 0.35)',
+                    color: '#c084fc',
                     borderRadius: 8,
                     padding: '0.3rem 0.75rem',
                     fontSize: '0.72rem',
@@ -2500,8 +2501,8 @@ export default function StudentDashboard() {
                         key={g.id}
                         className="sd-card"
                         style={{
-                          background: '#f8fafc',
-                          border: `1.5px solid #e2e8f0`,
+                          background: 'var(--color-surface-hover, #f8fafc)',
+                          border: `1.5px solid var(--color-border, #e2e8f0)`,
                           borderRadius: 14,
                           padding: '0.75rem 0.95rem'
                         }}
@@ -2509,8 +2510,8 @@ export default function StudentDashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{
-                              background: '#e0e7ff',
-                              color: '#4338ca',
+                              background: 'rgba(99, 102, 241, 0.15)',
+                              color: '#818cf8',
                               fontSize: '0.62rem',
                               fontWeight: 900,
                               padding: '1px 6px',
@@ -2521,13 +2522,13 @@ export default function StudentDashboard() {
                             }}>
                               <IconComp size={11} /> {g.type}
                             </span>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {g.title}
                             </span>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDone ? '#16a34a' : '#4f46e5' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDone ? '#10b981' : '#6366f1' }}>
                               %{pct}
                             </span>
                             {!isDone && (
@@ -2539,9 +2540,9 @@ export default function StudentDashboard() {
                                 }}
                                 title={`+${t.step} ${t.unit} İlerleme Ekle`}
                                 style={{
-                                  background: '#e0e7ff',
-                                  border: '1px solid #c7d2fe',
-                                  color: '#4338ca',
+                                  background: 'rgba(99, 102, 241, 0.15)',
+                                  border: '1px solid rgba(165, 180, 252, 0.35)',
+                                  color: '#818cf8',
                                   borderRadius: 6,
                                   padding: '1px 6px',
                                   fontSize: '0.68rem',
@@ -2556,7 +2557,7 @@ export default function StudentDashboard() {
                         </div>
 
                         {/* Progress Bar */}
-                        <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
                           <div style={{
                             height: '100%',
                             width: `${pct}%`,
@@ -2566,16 +2567,16 @@ export default function StudentDashboard() {
                           }} />
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                           <span>
                             {currentVal} / {g.target} {t.unit}
                             {g.type === 'Soru' && g.autoSystemValue > 0 && (
-                              <span style={{ marginLeft: 5, color: '#e11d48', fontWeight: 800, fontSize: '0.62rem' }}>
+                              <span style={{ marginLeft: 5, color: '#ef4444', fontWeight: 800, fontSize: '0.62rem' }}>
                                 (🔄 {g.autoSystemValue} sistemden)
                               </span>
                             )}
                           </span>
-                          <span style={{ color: isDone ? '#16a34a' : '#64748b' }}>
+                          <span style={{ color: isDone ? '#10b981' : 'var(--color-text-muted, #64748b)' }}>
                             {isDone ? '🎉 Hedefe Ulaşıldı' : `${Math.max(0, g.target - currentVal)} ${t.unit} kaldı`}
                           </span>
                         </div>
@@ -2589,36 +2590,36 @@ export default function StudentDashboard() {
               {(goalTrackingData.daily.length > 0 || goalTrackingData.weekly.length > 0 || goalTrackingData.monthly.length > 0) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {goalTrackingData.daily.slice(0, 2).map((item, idx) => (
-                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#1e293b' }}>
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: 'var(--color-text, #1e293b)' }}>
                       <span style={{ fontSize: '0.85rem' }}>⚡</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                         {item.text}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#e11d48', background: '#fee2e2', padding: '1px 5px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: 4 }}>
                         Günlük
                       </span>
                     </div>
                   ))}
 
                   {goalTrackingData.weekly.slice(0, 2).map((item, idx) => (
-                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#1e293b' }}>
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: 'var(--color-text, #1e293b)' }}>
                       <span style={{ fontSize: '0.85rem' }}>✨</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                         {item.text}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#7c3aed', background: '#f3e8ff', padding: '1px 5px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#c084fc', background: 'rgba(124, 58, 237, 0.15)', padding: '1px 5px', borderRadius: 4 }}>
                         Haftalık
                       </span>
                     </div>
                   ))}
 
                   {goalTrackingData.monthly.slice(0, 2).map((item, idx) => (
-                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: '#1e293b' }}>
+                    <div key={item.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: 10, padding: '0.45rem 0.75rem', fontSize: '0.75rem', color: 'var(--color-text, #1e293b)' }}>
                       <span style={{ fontSize: '0.85rem' }}>📅</span>
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>
                         {item.text}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '1px 5px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(2, 132, 199, 0.15)', padding: '1px 5px', borderRadius: 4 }}>
                         Aylık
                       </span>
                     </div>
@@ -2627,12 +2628,12 @@ export default function StudentDashboard() {
               )}
 
               {!goalTrackingData.hasAnyGoals && (
-                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: '#f8fafc', borderRadius: 16, border: '1px dashed #cbd5e1' }}>
+                <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
                   <div style={{ fontSize: '2rem', marginBottom: 4 }}>🎯</div>
-                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', marginBottom: 3 }}>
+                  <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.88rem', marginBottom: 3 }}>
                     Henüz Hedef Belirlenmedi
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: 10 }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', marginBottom: 10 }}>
                     Sınav, soru ve çalışma hedeflerinizi belirleyerek başarı yolculuğunuzu takip edin!
                   </div>
                   <button
@@ -2660,11 +2661,12 @@ export default function StudentDashboard() {
 
             {/* 🎯 BÖLÜM 5: GÜNÜN MOTİVASYONU & İLHAMI */}
             <div style={{
-              background: '#ffffff',
-              border: '1.5px solid #cbd5e1',
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
               borderRadius: 22,
               padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(100, 116, 139, 0.08)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+              color: 'var(--color-text)'
             }}>
               {(() => {
                 const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
@@ -2673,23 +2675,23 @@ export default function StudentDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                           Günün İlhamı ({currentQuote.category})
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setDashQuoteIdx(p => p + 1)}
-                        style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 8, padding: '0.25rem 0.5rem', color: '#334155', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '0.25rem 0.5rem', color: 'var(--color-text, #334155)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                       >
                         <RefreshCw size={11} /> Yeni
                       </button>
                     </div>
 
-                    <div style={{ fontSize: '0.85rem', color: '#1e293b', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
                       "{currentQuote.quote}"
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#7c3aed' }}>
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#c084fc' }}>
                       — {currentQuote.author}
                     </div>
                   </div>
@@ -2710,7 +2712,7 @@ export default function StudentDashboard() {
             {isMobile && <div style={{ width:40, height:4, background:'var(--color-border-input)', borderRadius:99, margin:'0 auto 1.25rem' }} />}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
               <h2 style={{ fontWeight:900, fontSize:'1.05rem', color:'var(--color-text)', margin:0 }}>🎯 Yeni Hedef Ekle</h2>
-              <button onClick={() => setShowGoalModal(false)} style={{ background:'var(--color-surface-hover)', border:'1px solid var(--color-border-input)', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'var(--color-text-secondary)' }}><X size={16} /></button>
+              <button onClick={() => setShowGoalModal(false)} style={{ background:'var(--color-surface-hover)', border:'1px solid var(--color-border-input)', borderRadius:10, padding:'0.45rem', cursor:'pointer', display:'flex', color:'var(--color-text-muted)' }}><X size={16} /></button>
             </div>
             <form onSubmit={handleSaveGoal} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
               <input placeholder="Hedef başlığı (örn: Günde 50 Matematik Sorusu)..." value={newGoal.title} onChange={e => setNewGoal(p => ({ ...p, title: e.target.value }))}
@@ -2718,15 +2720,15 @@ export default function StudentDashboard() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
                 <select value={newGoal.type} onChange={e => setNewGoal(p => ({ ...p, type: e.target.value }))}
                   style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid var(--color-border-input)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'var(--color-surface-hover)', color:'var(--color-text)' }}>
-                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'#ffffff', color:'#0f172a' }}>{v}</option>)}
+                  {['Soru','Sayfa','Dakika'].map(v => <option key={v} value={v} style={{ background:'var(--color-surface)', color:'var(--color-text)' }}>{v}</option>)}
                 </select>
                 <select value={newGoal.period} onChange={e => setNewGoal(p => ({ ...p, period: e.target.value }))}
-                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a' }}>
-                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'#ffffff', color:'#0f172a' }}>{v}</option>)}
+                  style={{ padding:'0.75rem 0.9rem', borderRadius:14, border:'1.5px solid var(--color-border-input)', fontSize:'0.85rem', fontFamily:'inherit', outline:'none', background:'var(--color-surface-hover)', color:'var(--color-text)' }}>
+                  {['Günlük','Haftalık','Aylık'].map(v => <option key={v} value={v} style={{ background:'var(--color-surface)', color:'var(--color-text)' }}>{v}</option>)}
                 </select>
               </div>
               <input type="number" min="1" placeholder="Hedef miktar" value={newGoal.target} onChange={e => setNewGoal(p => ({ ...p, target: e.target.value }))}
-                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid #cbd5e1', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'#f8fafc', color:'#0f172a', width:'100%' }} required />
+                style={{ padding:'0.8rem 1rem', borderRadius:14, border:'1.5px solid var(--color-border-input)', fontSize:'0.9rem', fontFamily:'inherit', outline:'none', background:'var(--color-surface-hover)', color:'var(--color-text)', width:'100%' }} required />
               <button type="submit" className="sd-btn"
                 style={{ padding:'0.9rem', borderRadius:14, background:'linear-gradient(135deg,#ea580c,#f97316)', color:'white', fontWeight:900, fontSize:'0.9rem', border:'none', cursor:'pointer', boxShadow:'0 6px 20px rgba(234,88,12,0.4)', marginTop:4 }}>
                 Hedefi Kaydet ✓

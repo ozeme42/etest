@@ -318,11 +318,11 @@ export default function PeriodicQuestionAnalytics({
             <BarChart3 size={isMobile ? 17 : 20} />
           </div>
           <div>
-            <div style={{ fontSize: isMobile ? '0.92rem' : '1.1rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
+            <div style={{ fontSize: isMobile ? '0.92rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', lineHeight: 1.2 }}>
               Soru & Başarı Analizi
             </div>
             {!isMobile && (
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
                 {studentName ? `${studentName} — ` : ''}Günlük, haftalık ve aylık çözüm temposu
               </div>
             )}
@@ -332,13 +332,13 @@ export default function PeriodicQuestionAnalytics({
         {/* Periyot Segment Butonları (iOS Tarzı Segmented Control) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           <div style={{
-            background: '#f1f5f9',
+            background: 'var(--color-surface-hover, #f1f5f9)',
             padding: '2px',
             borderRadius: '0.65rem',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 2,
-            border: '1px solid #e2e8f0'
+            border: '1px solid var(--color-border, #e2e8f0)'
           }}>
             {[
               { id: 'daily', label: 'Günlük' },
@@ -354,7 +354,7 @@ export default function PeriodicQuestionAnalytics({
                   borderRadius: '0.5rem',
                   border: 'none',
                   background: period === tab.id ? '#4f46e5' : 'transparent',
-                  color: period === tab.id ? '#ffffff' : '#64748b',
+                  color: period === tab.id ? '#ffffff' : 'var(--color-text-muted, #64748b)',
                   fontWeight: 900,
                   fontSize: isMobile ? '0.72rem' : '0.78rem',
                   cursor: 'pointer',
@@ -375,11 +375,11 @@ export default function PeriodicQuestionAnalytics({
               style={{
                 padding: isMobile ? '0.25rem 0.45rem' : '0.35rem 0.65rem',
                 borderRadius: '0.55rem',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
+                border: '1px solid var(--color-border-input, #cbd5e1)',
+                background: 'var(--color-surface-hover, #f8fafc)',
                 fontSize: isMobile ? '0.7rem' : '0.76rem',
                 fontWeight: 800,
-                color: '#334155',
+                color: 'var(--color-text, #334155)',
                 cursor: 'pointer'
               }}
             >
@@ -397,11 +397,11 @@ export default function PeriodicQuestionAnalytics({
               style={{
                 padding: isMobile ? '0.25rem 0.45rem' : '0.35rem 0.65rem',
                 borderRadius: '0.55rem',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
+                border: '1px solid var(--color-border-input, #cbd5e1)',
+                background: 'var(--color-surface-hover, #f8fafc)',
                 fontSize: isMobile ? '0.7rem' : '0.76rem',
                 fontWeight: 800,
-                color: '#334155',
+                color: 'var(--color-text, #334155)',
                 cursor: 'pointer',
                 maxWidth: isMobile ? 110 : 160
               }}
@@ -424,22 +424,22 @@ export default function PeriodicQuestionAnalytics({
       }}>
         {/* Toplam Soru */}
         <div style={{
-          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-          border: '1px solid #bfdbfe',
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.08) 100%)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
           borderRadius: isMobile ? '0.75rem' : '0.9rem',
           padding: isMobile ? '0.5rem 0.65rem' : '0.75rem 0.9rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
-          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase' }}>
             Toplam Soru
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 2 }}>
-            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#60a5fa', lineHeight: 1 }}>
               {totals.totQ}
             </span>
-            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: '#2563eb' }}>
+            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: '#93c5fd' }}>
               {totals.totTests} Test
             </span>
           </div>
@@ -447,22 +447,22 @@ export default function PeriodicQuestionAnalytics({
 
         {/* Doğru Sayısı */}
         <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-          border: '1px solid #bbf7d0',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
           borderRadius: isMobile ? '0.75rem' : '0.9rem',
           padding: isMobile ? '0.5rem 0.65rem' : '0.75rem 0.9rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
-          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>
             Doğru (D)
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 2 }}>
-            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#15803d', lineHeight: 1 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#34d399', lineHeight: 1 }}>
               {totals.totD}
             </span>
-            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: '#16a34a' }}>
+            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: '#6ee7b7' }}>
               %{totals.totQ > 0 ? Math.round((totals.totD / totals.totQ) * 100) : 0} D
             </span>
           </div>
@@ -470,22 +470,22 @@ export default function PeriodicQuestionAnalytics({
 
         {/* Yanlış & Boş */}
         <div style={{
-          background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-          border: '1px solid #fecaca',
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.08) 100%)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
           borderRadius: isMobile ? '0.75rem' : '0.9rem',
           padding: isMobile ? '0.5rem 0.65rem' : '0.75rem 0.9rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
-          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>
             Yanlış / Boş
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 2 }}>
-            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#b91c1c', lineHeight: 1 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#f87171', lineHeight: 1 }}>
               {totals.totY}
             </span>
-            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: '#94a3b8' }}>
+            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #94a3b8)' }}>
               {totals.totB} Boş
             </span>
           </div>
@@ -493,22 +493,22 @@ export default function PeriodicQuestionAnalytics({
 
         {/* Başarı Oranı */}
         <div style={{
-          background: totals.avgRate >= 70 ? 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)' : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-          border: `1px solid ${totals.avgRate >= 70 ? '#e9d5ff' : '#fde68a'}`,
+          background: totals.avgRate >= 70 ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.08) 100%)' : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%)',
+          border: `1px solid ${totals.avgRate >= 70 ? 'rgba(168, 85, 247, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
           borderRadius: isMobile ? '0.75rem' : '0.9rem',
           padding: isMobile ? '0.5rem 0.65rem' : '0.75rem 0.9rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
-          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: totals.avgRate >= 70 ? '#6b21a8' : '#92400e', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: totals.avgRate >= 70 ? '#c084fc' : '#fbbf24', textTransform: 'uppercase' }}>
             Başarı Oranı
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 2 }}>
-            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: totals.avgRate >= 70 ? '#7e22ce' : '#b45309', lineHeight: 1 }}>
+            <span style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: totals.avgRate >= 70 ? '#c084fc' : '#fbbf24', lineHeight: 1 }}>
               %{totals.avgRate}
             </span>
-            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: totals.avgRate >= 70 ? '#7e22ce' : '#b45309' }}>
+            <span style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: totals.avgRate >= 70 ? '#c084fc' : '#fbbf24' }}>
               {totals.avgRate >= 70 ? '🌟 Süper' : totals.avgRate >= 50 ? '📈 İyi' : '⚠️ Dikkat'}
             </span>
           </div>
@@ -517,14 +517,14 @@ export default function PeriodicQuestionAnalytics({
 
       {/* ── GRAFİK & DETAY GÖRÜNÜM SEÇİCİ SEKMELERİ (MOBİL İÇİN YERDEN TASARRUF) ── */}
       <div style={{
-        background: 'var(--color-surface-hover)',
+        background: 'var(--color-surface-hover, #f8fafc)',
         borderRadius: '0.75rem',
         padding: '3px',
         display: 'flex',
         alignItems: 'center',
         gap: 3,
         marginBottom: '0.85rem',
-        border: '1px solid var(--color-border)',
+        border: '1px solid var(--color-border, #e2e8f0)',
         overflowX: 'auto'
       }}>
         {[
@@ -544,8 +544,8 @@ export default function PeriodicQuestionAnalytics({
                 padding: isMobile ? '0.35rem 0.4rem' : '0.4rem 0.8rem',
                 borderRadius: '0.55rem',
                 border: 'none',
-                background: isActive ? 'var(--color-surface)' : 'transparent',
-                color: isActive ? '#818cf8' : 'var(--color-text-muted)',
+                background: isActive ? 'var(--color-surface, #ffffff)' : 'transparent',
+                color: isActive ? '#818cf8' : 'var(--color-text-muted, #64748b)',
                 fontWeight: 900,
                 fontSize: isMobile ? '0.72rem' : '0.78rem',
                 cursor: 'pointer',
@@ -563,9 +563,9 @@ export default function PeriodicQuestionAnalytics({
 
       {/* ── AKTİF GÖRÜNÜM İÇERİĞİ (ULTRA KOMPAKT VE ŞIK) ── */}
       <div style={{
-        background: '#ffffff',
+        background: 'var(--color-surface, #ffffff)',
         borderRadius: '0.85rem',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--color-border, #e2e8f0)',
         padding: isMobile ? '0.75rem 0.5rem 0.35rem' : '1rem 0.85rem',
         minHeight: isMobile ? 210 : 250
       }}>
@@ -574,7 +574,7 @@ export default function PeriodicQuestionAnalytics({
         {activeChartView === 'distribution' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 0.35rem 0.5rem' : '0 0.5rem 0.75rem' }}>
-              <span style={{ fontSize: isMobile ? '0.72rem' : '0.82rem', fontWeight: 800, color: '#334155' }}>
+              <span style={{ fontSize: isMobile ? '0.72rem' : '0.82rem', fontWeight: 800, color: 'var(--color-text, #334155)' }}>
                 Dönemsel Soru Hacmi (D / Y / B)
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800 }}>
@@ -584,7 +584,7 @@ export default function PeriodicQuestionAnalytics({
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#dc2626' }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: '#ef4444' }} /> Yanlış
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#64748b' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--color-text-muted, #64748b)' }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: '#94a3b8' }} /> Boş
                 </span>
               </div>
@@ -593,16 +593,16 @@ export default function PeriodicQuestionAnalytics({
             <div style={{ width: '100%', height: isMobile ? 180 : 220 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
                   <XAxis 
                     dataKey={isMobile ? "shortLabel" : "label"} 
-                    stroke="#94a3b8" 
+                    stroke="var(--color-text-muted, #94a3b8)" 
                     fontSize={isMobile ? 10 : 11} 
                     fontWeight={700}
                     tickLine={false} 
                   />
                   <YAxis 
-                    stroke="#94a3b8" 
+                    stroke="var(--color-text-muted, #94a3b8)" 
                     fontSize={isMobile ? 10 : 11} 
                     fontWeight={700}
                     tickLine={false}
@@ -622,10 +622,10 @@ export default function PeriodicQuestionAnalytics({
         {activeChartView === 'trend' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0 0.35rem 0.5rem' : '0 0.5rem 0.75rem' }}>
-              <span style={{ fontSize: isMobile ? '0.72rem' : '0.82rem', fontWeight: 800, color: '#334155' }}>
+              <span style={{ fontSize: isMobile ? '0.72rem' : '0.82rem', fontWeight: 800, color: 'var(--color-text, #334155)' }}>
                 Başarı Yüzdesi Gelişim Eğrisi (%)
               </span>
-              <span style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: 6, fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800 }}>
+              <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '1px 6px', borderRadius: 6, fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800 }}>
                 Hedef %70+
               </span>
             </div>
@@ -639,16 +639,16 @@ export default function PeriodicQuestionAnalytics({
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" vertical={false} />
                   <XAxis 
                     dataKey={isMobile ? "shortLabel" : "label"} 
-                    stroke="#94a3b8" 
+                    stroke="var(--color-text-muted, #94a3b8)" 
                     fontSize={isMobile ? 10 : 11} 
                     fontWeight={700}
                     tickLine={false} 
                   />
                   <YAxis 
-                    stroke="#94a3b8" 
+                    stroke="var(--color-text-muted, #94a3b8)" 
                     fontSize={isMobile ? 10 : 11} 
                     fontWeight={700}
                     domain={[0, 100]}
@@ -681,15 +681,15 @@ export default function PeriodicQuestionAnalytics({
             {subjectBreakdown.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: isMobile ? '230px' : '280px', overflowY: 'auto' }}>
                 {subjectBreakdown.map(sb => (
-                  <div key={sb.name} style={{ background: '#f8fafc', padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 0.8rem', borderRadius: '0.65rem', border: '1px solid #e2e8f0' }}>
+                  <div key={sb.name} style={{ background: 'var(--color-surface-hover, #f8fafc)', padding: isMobile ? '0.45rem 0.65rem' : '0.6rem 0.8rem', borderRadius: '0.65rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                      <span style={{ fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', color: '#0f172a' }}>{sb.name}</span>
-                      <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: sb.rate >= 70 ? '#15803d' : sb.rate >= 50 ? '#b45309' : '#b91c1c' }}>
+                      <span style={{ fontWeight: 800, fontSize: isMobile ? '0.75rem' : '0.82rem', color: 'var(--color-text, #0f172a)' }}>{sb.name}</span>
+                      <span style={{ fontWeight: 900, fontSize: isMobile ? '0.72rem' : '0.8rem', color: sb.rate >= 70 ? '#10b981' : sb.rate >= 50 ? '#f59e0b' : '#ef4444' }}>
                         %{sb.rate} Başarı
                       </span>
                     </div>
                     
-                    <div style={{ width: '100%', height: 5, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden', margin: '3px 0' }}>
+                    <div style={{ width: '100%', height: 5, background: 'var(--color-border, #e2e8f0)', borderRadius: 3, overflow: 'hidden', margin: '3px 0' }}>
                       <div style={{
                         width: `${Math.min(100, sb.rate)}%`,
                         height: '100%',
@@ -698,7 +698,7 @@ export default function PeriodicQuestionAnalytics({
                       }} />
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isMobile ? '0.64rem' : '0.7rem', color: '#64748b', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isMobile ? '0.64rem' : '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
                       <span>{sb.q} Soru ({sb.tests} Test)</span>
                       <span>✅ {sb.d} · ❌ {sb.y} {sb.b > 0 ? `· ⭕ ${sb.b}` : ''}</span>
                     </div>
@@ -706,7 +706,7 @@ export default function PeriodicQuestionAnalytics({
                 ))}
               </div>
             ) : (
-              <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem', padding: '2rem 0' }}>
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', fontSize: '0.75rem', padding: '2rem 0' }}>
                 Ders bazlı soru kaydı bulunmuyor.
               </div>
             )}
@@ -718,26 +718,26 @@ export default function PeriodicQuestionAnalytics({
           <div style={{ overflowX: 'auto', maxHeight: isMobile ? '230px' : '280px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', color: '#475569', position: 'sticky', top: 0, zIndex: 1 }}>
-                  <th style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'left' }}>Tarih / Periyot</th>
-                  <th style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'center' }}>Soru</th>
-                  <th style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'center' }}>D/Y</th>
-                  <th style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'center' }}>Başarı</th>
+                <tr style={{ background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text-muted, #475569)', position: 'sticky', top: 0, zIndex: 1 }}>
+                  <th style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'left' }}>Tarih / Periyot</th>
+                  <th style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'center' }}>Soru</th>
+                  <th style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'center' }}>D/Y</th>
+                  <th style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'center' }}>Başarı</th>
                 </tr>
               </thead>
               <tbody>
                 {chartData.map((d, idx) => (
-                  <tr key={d.key || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ border: '1px solid #e2e8f0', padding: '4px 6px', fontWeight: 800, color: '#0f172a' }}>
+                  <tr key={d.key || idx} style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)' }}>
+                    <td style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>
                       {d.shortLabel || d.label} {d.subLabel && period === 'daily' ? `(${d.subLabel})` : ''}
                     </td>
-                    <td style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'center', fontWeight: 800, color: '#2563eb' }}>
+                    <td style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'center', fontWeight: 800, color: '#3b82f6' }}>
                       {d.toplamSoru}
                     </td>
-                    <td style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'center', fontWeight: 700 }}>
-                      <span style={{ color: '#16a34a' }}>{d.doğru}</span>/<span style={{ color: '#dc2626' }}>{d.yanlış}</span>
+                    <td style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'center', fontWeight: 700 }}>
+                      <span style={{ color: '#10b981' }}>{d.doğru}</span>/<span style={{ color: '#ef4444' }}>{d.yanlış}</span>
                     </td>
-                    <td style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: 'center', fontWeight: 900, color: d.başarıOranı >= 70 ? '#15803d' : d.başarıOranı >= 50 ? '#b45309' : '#b91c1c' }}>
+                    <td style={{ border: '1px solid var(--color-border, #e2e8f0)', padding: '4px 6px', textAlign: 'center', fontWeight: 900, color: d.başarıOranı >= 70 ? '#10b981' : d.başarıOranı >= 50 ? '#f59e0b' : '#ef4444' }}>
                       %{d.başarıOranı}
                     </td>
                   </tr>

@@ -16,6 +16,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useGoal } from '../context/GoalContext';
 import { useUser } from '../context/UserContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 import ProgramCenter from '../components/ProgramCenter';
 import CoachingReportModal from '../components/CoachingReportModal';
@@ -169,6 +170,7 @@ function Progress({ value, max, color = '#7c3aed', label }) {
 export default function MyCoachingPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { isDark } = useTheme();
   const {
     getCoachingProfileForStudent, saveCoachingProfile, coachingProfiles,
     isStudentCoached, getMockExamsForStudent, addMockExam, deleteMockExam
@@ -1330,6 +1332,7 @@ export default function MyCoachingPage() {
               setTopicPool={setTopicPool}
               studentId={studentId}
               targetStudent={targetStudent}
+              isDark={isDark}
             />
           </div>
         )}
@@ -1337,8 +1340,8 @@ export default function MyCoachingPage() {
         {/* ═══ ÖZET ═══ */}
         {activeTab === 'ozet' && (
           <div>
-            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#0f172a', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Sparkles size={18} color="#7c3aed" /> Bugünkü Durumum
+            <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={18} color="#a855f7" /> Bugünkü Durumum
             </div>
 
             {/* Uzun Vadeli Hedef Vitrini (Özet Sekmesinde Çok Şık Görünüm) */}
@@ -1354,17 +1357,17 @@ export default function MyCoachingPage() {
                   <Card emoji="🏛️" title="Uzun Vadeli Hedeflerim & Sınav Planım">
                     {!showLongTermForm ? (
                       /* Hedef Belirlendiğinde Görünen Şık Özet Vitrini */
-                      <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: '0.85rem', padding: '1.15rem', border: '1.5px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1.15rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
                               {isGradeTracking ? (goals.gradeTarget === 'Onur' ? '⭐' : goals.gradeTarget === 'Takdir' ? '🏅' : '🧡') : '🏛️'}
                             </div>
                             <div>
-                              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                 {goals.examGoalType || 'Hedef Planı'}
                               </div>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                                 {isGradeTracking
                                   ? `${goals.gradeClass || 'Sınıf Belirtilmedi'} · ${goals.gradeTerm === 'yıllık' ? 'Yıllık' : `${goals.gradeTerm}. Dönem`} · Hedef: ${goals.gradeTarget || '—'}`
                                   : (goals.targetSchool || 'Hedef Okul / Bölüm Belirtilmedi')
@@ -1376,8 +1379,8 @@ export default function MyCoachingPage() {
                           <button
                             onClick={() => setIsEditingLongTermGoal(true)}
                             style={{
-                              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)',
-                              border: '1px solid #cbd5e1', color: '#475569', fontWeight: 800, fontSize: '0.8rem',
+                              padding: '0.45rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface, #ffffff)', backdropFilter: 'blur(16px)',
+                              border: '1px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #475569)', fontWeight: 800, fontSize: '0.8rem',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
                               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                             }}
@@ -1387,14 +1390,14 @@ export default function MyCoachingPage() {
                         </div>
 
                         {!isGradeTracking && (
-                          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.65rem', borderTop: '1px dashed #cbd5e1' }}>
+                          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.65rem', borderTop: '1px dashed var(--color-border-input, #cbd5e1)' }}>
                             {goals.targetScore && (
-                              <div style={{ background: '#dcfce7', border: '1px solid #86efac', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', color: '#15803d' }}>
+                              <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', color: '#10b981' }}>
                                 🏆 Hedef Puan: {goals.targetScore}
                               </div>
                             )}
                             {goals.targetNet && (
-                              <div style={{ background: '#e0e7ff', border: '1px solid #a5b4fc', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', color: '#4338ca' }}>
+                              <div style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontWeight: 800, fontSize: '0.8rem', color: '#818cf8' }}>
                                 🎯 Hedef Net: {goals.targetNet}
                               </div>
                             )}
@@ -1402,7 +1405,7 @@ export default function MyCoachingPage() {
                         )}
 
                         {isGradeTracking && goals.gradeTarget && (
-                          <div style={{ fontSize: '0.78rem', color: '#92400e', fontWeight: 700, background: '#fef3c7', padding: '0.55rem 0.85rem', borderRadius: '0.5rem', border: '1px solid #fde68a' }}>
+                          <div style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 700, background: 'rgba(245, 158, 11, 0.15)', padding: '0.55rem 0.85rem', borderRadius: '0.5rem', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
                             {goals.gradeTarget === 'Takdir' ? 'Tüm derslerden 85 ve üzeri ortalama hedefleniyor 💪' :
                              goals.gradeTarget === 'Teşekkür' ? 'Tüm derslerden 70 ve üzeri ortalama hedefleniyor 💪' :
                              goals.gradeTarget === 'Onur' ? 'Tüm derslerden Takdir belgesi hedefleniyor 🌟' :
@@ -1436,7 +1439,7 @@ export default function MyCoachingPage() {
                           {(!isStandardExam || goals.examGoalType === 'Özel Sınav') && (
                             <div>
                               <label style={lbl}>Özel Sınav Adı</label>
-                              <input style={{ ...inp, borderColor: '#7c3aed', background: '#faf5ff' }}
+                              <input style={{ ...inp, borderColor: '#a855f7', background: 'var(--color-surface-hover)' }}
                                 value={goals.customExamName || (goals.examGoalType !== 'Özel Sınav' ? goals.examGoalType : '')}
                                 onChange={e => {
                                   const val = e.target.value;
@@ -1501,9 +1504,9 @@ export default function MyCoachingPage() {
                             onClick={() => setIsEditingLongTermGoal(false)}
                             style={{
                               marginTop: '1rem', width: '100%', padding: '0.6rem', borderRadius: '0.65rem',
-                              background: '#4f46e5', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem',
+                              background: '#6366f1', color: 'white', border: 'none', fontWeight: 800, fontSize: '0.85rem',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)'
+                              boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)'
                             }}
                           >
                             <CheckCircle2 size={16} /> Hedefleri Kaydet & Vitrine Al
@@ -1539,16 +1542,16 @@ export default function MyCoachingPage() {
               const topSubjs = Object.entries(subjMap).sort((a, b) => (b[1].d + b[1].y + b[1].b) - (a[1].d + a[1].y + a[1].b)).slice(0, 5);
 
               const rateColor = successRate >= 70 ? '#10b981' : successRate >= 50 ? '#f59e0b' : '#ef4444';
-              const rateBg = successRate >= 70 ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' : successRate >= 50 ? 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)' : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
-              const rateBorder = successRate >= 70 ? '#6ee7b7' : successRate >= 50 ? '#fcd34d' : '#fca5a5';
+              const rateBg = successRate >= 70 ? 'rgba(16, 185, 129, 0.12)' : successRate >= 50 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+              const rateBorder = successRate >= 70 ? 'rgba(16, 185, 129, 0.35)' : successRate >= 50 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(239, 68, 68, 0.35)';
 
               return (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                  background: 'var(--color-surface, #ffffff)',
                   borderRadius: '1.25rem',
-                  border: '1.5px solid rgba(226, 232, 240, 0.9)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
                   padding: '1.25rem',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.03)',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
                   marginBottom: '1.25rem',
                   position: 'relative',
                   overflow: 'hidden'
@@ -1557,16 +1560,16 @@ export default function MyCoachingPage() {
                   <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
                   {/* Başlık ve Hızlı Geçiş Butonu */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem', paddingBottom: '0.65rem', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem', paddingBottom: '0.65rem', borderBottom: '1px solid var(--color-border, #f1f5f9)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 36, height: 36, borderRadius: '0.65rem', background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(79,70,229,0.25)' }}>
                         🎯
                       </div>
                       <div>
-                        <div style={{ fontWeight: 900, fontSize: '0.98rem', color: '#0f172a' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.98rem', color: 'var(--color-text, #0f172a)' }}>
                           Soru & Test Çözme Performansım
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
                           Sistemde çözülen tüm ödev ve konu testlerinin anlık karnesi
                         </div>
                       </div>
@@ -1577,9 +1580,9 @@ export default function MyCoachingPage() {
                         type="button"
                         onClick={() => setActiveTab('soruanaliz')}
                         style={{
-                          background: '#ecfdf5',
-                          color: '#059669',
-                          border: '1px solid #a7f3d0',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          color: '#10b981',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
                           borderRadius: '0.65rem',
                           padding: '0.35rem 0.8rem',
                           fontSize: '0.75rem',
@@ -1590,8 +1593,6 @@ export default function MyCoachingPage() {
                           gap: 4,
                           transition: 'all 0.15s ease'
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#059669'; e.currentTarget.style.color = 'white'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#ecfdf5'; e.currentTarget.style.color = '#059669'; }}
                       >
                         <span>📈 Günlük/Haftalık Analiz</span>
                         <span>→</span>
@@ -1600,9 +1601,9 @@ export default function MyCoachingPage() {
                         type="button"
                         onClick={() => setActiveTab('testlerim')}
                         style={{
-                          background: '#eef2ff',
-                          color: '#4f46e5',
-                          border: '1px solid #c7d2fe',
+                          background: 'rgba(99, 102, 241, 0.12)',
+                          color: '#818cf8',
+                          border: '1px solid rgba(165, 180, 252, 0.35)',
                           borderRadius: '0.65rem',
                           padding: '0.35rem 0.8rem',
                           fontSize: '0.75rem',
@@ -1613,8 +1614,6 @@ export default function MyCoachingPage() {
                           gap: 4,
                           transition: 'all 0.15s ease'
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#4f46e5'; e.currentTarget.style.color = 'white'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; }}
                       >
                         <span>Testlerimi İncele</span>
                         <span>→</span>
@@ -1626,26 +1625,26 @@ export default function MyCoachingPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
                     
                     {/* 1. Çözülen Test */}
-                    <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.35)', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Çözülen Test</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Çözülen Test</span>
                         <span style={{ fontSize: '1.1rem' }}>📝</span>
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1 }}>{totalTests}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#3b82f6', marginTop: 3 }}>Ödev & Konu Testi</div>
+                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#93c5fd', lineHeight: 1 }}>{totalTests}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#60a5fa', marginTop: 3 }}>Ödev & Konu Testi</div>
                       </div>
                     </div>
 
                     {/* 2. Toplam Soru */}
-                    <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', border: '1px solid #ddd6fe', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Toplam Soru</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Toplam Soru</span>
                         <span style={{ fontSize: '1.1rem' }}>✏️</span>
                       </div>
                       <div style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#4c1d95', lineHeight: 1 }}>{totalQ}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed', marginTop: 3 }}>Çözülen Soru Hacmi</div>
+                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#d8b4fe', lineHeight: 1 }}>{totalQ}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c084fc', marginTop: 3 }}>Çözülen Soru Hacmi</div>
                       </div>
                     </div>
 
@@ -1664,24 +1663,24 @@ export default function MyCoachingPage() {
                     </div>
 
                     {/* 4. D / Y / B Dağılımı */}
-                    <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', border: '1px solid #e2e8f0', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Cevap Dağılımı</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Cevap Dağılımı</span>
                         <span style={{ fontSize: '1.1rem' }}>📊</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
-                          <span style={{ color: '#16a34a' }}>✅ Doğru</span>
-                          <span style={{ color: '#15803d', background: '#dcfce7', padding: '1px 6px', borderRadius: 4 }}>{totalD}</span>
+                          <span style={{ color: '#10b981' }}>✅ Doğru</span>
+                          <span style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '1px 6px', borderRadius: 4 }}>{totalD}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
-                          <span style={{ color: '#dc2626' }}>❌ Yanlış</span>
-                          <span style={{ color: '#b91c1c', background: '#fee2e2', padding: '1px 6px', borderRadius: 4 }}>{totalY}</span>
+                          <span style={{ color: '#ef4444' }}>❌ Yanlış</span>
+                          <span style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)', padding: '1px 6px', borderRadius: 4 }}>{totalY}</span>
                         </div>
                         {totalB > 0 && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
-                            <span style={{ color: '#94a3b8' }}>⭕ Boş</span>
-                            <span style={{ color: '#64748b', background: '#e2e8f0', padding: '1px 6px', borderRadius: 4 }}>{totalB}</span>
+                            <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>⭕ Boş</span>
+                            <span style={{ color: 'var(--color-text-muted, #64748b)', background: 'var(--color-surface, #e2e8f0)', padding: '1px 6px', borderRadius: 4 }}>{totalB}</span>
                           </div>
                         )}
                       </div>
@@ -1691,8 +1690,8 @@ export default function MyCoachingPage() {
 
                   {/* Ders Bazlı Mini Başarı Şeridi */}
                   {topSubjs.length > 0 && (
-                    <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginRight: 4 }}>
+                    <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginRight: 4 }}>
                         📚 En Çok Çözülen Dersler:
                       </span>
                       {topSubjs.map(([sName, stat]) => {
@@ -1702,13 +1701,13 @@ export default function MyCoachingPage() {
                           <div
                             key={sName}
                             style={{
-                              background: 'white',
-                              border: '1px solid #cbd5e1',
+                              background: 'var(--color-surface, white)',
+                              border: '1px solid var(--color-border-input, #cbd5e1)',
                               borderRadius: '0.5rem',
                               padding: '0.25rem 0.6rem',
                               fontSize: '0.72rem',
                               fontWeight: 700,
-                              color: '#1e293b',
+                              color: 'var(--color-text, #1e293b)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 5,
@@ -1716,8 +1715,8 @@ export default function MyCoachingPage() {
                             }}
                           >
                             <span>{sName}</span>
-                            <span style={{ color: '#4f46e5', fontWeight: 800 }}>{sTotalQ} Soru</span>
-                            <span style={{ color: sRate >= 70 ? '#15803d' : sRate >= 50 ? '#b45309' : '#b91c1c', background: sRate >= 70 ? '#dcfce7' : sRate >= 50 ? '#fef3c7' : '#fee2e2', padding: '1px 5px', borderRadius: 4, fontWeight: 900, fontSize: '0.68rem' }}>
+                            <span style={{ color: '#818cf8', fontWeight: 800 }}>{sTotalQ} Soru</span>
+                            <span style={{ color: sRate >= 70 ? '#10b981' : sRate >= 50 ? '#f59e0b' : '#ef4444', background: sRate >= 70 ? 'rgba(16,185,129,0.15)' : sRate >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 900, fontSize: '0.68rem' }}>
                               %{sRate}
                             </span>
                           </div>
@@ -1732,15 +1731,15 @@ export default function MyCoachingPage() {
             {/* İlerleme kartları */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
               {[
-                { label: 'Aylık Hedefler', value: completedMonthly, max: (goals.monthlyGoals || []).length, color: '#2563eb', icon: '📅' },
-                { label: 'Haftalık Program', value: completedWeeklyItems, max: totalWeeklyItems, color: '#059669', icon: '⚡' },
-                { label: 'Günlük Rutinler', value: completedDaily, max: totalDaily, color: '#dc2626', icon: '🔥' },
-                { label: 'Konular Tamamlandı', value: completedTopics, max: totalTopics, color: '#7c3aed', icon: '✅' },
+                { label: 'Aylık Hedefler', value: completedMonthly, max: (goals.monthlyGoals || []).length, color: '#3b82f6', icon: '📅' },
+                { label: 'Haftalık Program', value: completedWeeklyItems, max: totalWeeklyItems, color: '#10b981', icon: '⚡' },
+                { label: 'Günlük Rutinler', value: completedDaily, max: totalDaily, color: '#ef4444', icon: '🔥' },
+                { label: 'Konular Tamamlandı', value: completedTopics, max: totalTopics, color: '#a855f7', icon: '✅' },
               ].map(item => (
-                <div key={item.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', border: '1px solid rgba(255,255,255,1)' }}>
+                <div key={item.label} style={{ background: 'var(--color-surface, #ffffff)', borderRadius: '0.85rem', padding: '0.85rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
                   <div style={{ fontSize: '1.2rem', marginBottom: 4 }}>{item.icon}</div>
-                  <div style={{ fontWeight: 900, fontSize: '1.3rem', color: item.color }}>{item.value}<span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>/{item.max || '—'}</span></div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>{item.label}</div>
+                  <div style={{ fontWeight: 900, fontSize: '1.3rem', color: item.color }}>{item.value}<span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/{item.max || '—'}</span></div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{item.label}</div>
                   {item.max > 0 && <Progress value={item.value} max={item.max} color={item.color} />}
                 </div>
               ))}
@@ -1751,10 +1750,10 @@ export default function MyCoachingPage() {
               <Card emoji="⏱️" title="Son Çalışmalarım">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {dailyLogs.slice(0, 5).map(log => (
-                    <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 0.85rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.65rem', fontSize: '0.82rem', border: '1px solid rgba(255,255,255,1)' }}>
-                      <span style={{ color: '#64748b', fontWeight: 700, minWidth: 80 }}>{log.date}</span>
-                      <span style={{ fontWeight: 900, color: '#4f46e5' }}>{log.studyHours}s</span>
-                      <span style={{ color: '#374151', fontWeight: 700 }}>{log.questions} soru</span>
+                    <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 0.85rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.65rem', fontSize: '0.82rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                      <span style={{ color: 'var(--color-text-muted, #64748b)', fontWeight: 700, minWidth: 80 }}>{log.date}</span>
+                      <span style={{ fontWeight: 900, color: '#818cf8' }}>{log.studyHours}s</span>
+                      <span style={{ color: 'var(--color-text, #374151)', fontWeight: 700 }}>{log.questions} soru</span>
                       {log.sport && <span>🏃</span>}
                     </div>
                   ))}
@@ -1764,12 +1763,12 @@ export default function MyCoachingPage() {
 
             {/* Son deneme */}
             {mySubmissions.length > 0 && (
-              <div style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)', border: '1.5px solid #bae6fd', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
-                <div style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0c4a6e', marginBottom: 6 }}>📊 Son Deneme: {mySubmissions[0].testTitle || '—'}</div>
+              <div style={{ background: 'rgba(14, 165, 233, 0.12)', border: '1.5px solid rgba(14, 165, 233, 0.35)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text, #0c4a6e)', marginBottom: 6 }}>📊 Son Deneme: {mySubmissions[0].testTitle || '—'}</div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <span style={{ background: '#0891b2', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.25rem 0.75rem', borderRadius: 99 }}>Net: {mySubmissions[0].score ?? '—'}</span>
-                  <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '0.82rem' }}>✅ {mySubmissions[0].correctCount ?? '—'} D</span>
-                  <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '0.82rem' }}>❌ {mySubmissions[0].wrongCount ?? '—'} Y</span>
+                  <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.82rem' }}>✅ {mySubmissions[0].correctCount ?? '—'} D</span>
+                  <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '0.82rem' }}>❌ {mySubmissions[0].wrongCount ?? '—'} Y</span>
                 </div>
               </div>
             )}
@@ -1911,7 +1910,7 @@ export default function MyCoachingPage() {
               </div>
 
               {/* Ders Çalışırken Yaşadığı Zorluklar Checkbox Grid */}
-              <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed #e2e8f0' }}>
+              <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed var(--color-border, #e2e8f0)' }}>
                 <label style={{ ...lbl, marginBottom: '0.5rem' }}>Ders Çalışırken Karşılaşılan Başlıca Zorluklar (Çoklu Seçim):</label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {[
@@ -1937,9 +1936,9 @@ export default function MyCoachingPage() {
                         }}
                         style={{
                           padding: '0.35rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.78rem', fontWeight: 800,
-                          border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
-                          background: isSelected ? '#f3e8ff' : '#f8fafc',
-                          color: isSelected ? '#6d28d9' : '#475569', cursor: 'pointer', transition: 'all 0.15s'
+                          border: isSelected ? '1.5px solid #a855f7' : '1px solid var(--color-border-input, #cbd5e1)',
+                          background: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'var(--color-surface-hover, #f8fafc)',
+                          color: isSelected ? '#c084fc' : 'var(--color-text-muted, #475569)', cursor: 'pointer', transition: 'all 0.15s'
                         }}
                       >
                         {isSelected ? '✓ ' : '+ '}{challenge}
@@ -2035,11 +2034,11 @@ export default function MyCoachingPage() {
 
             {/* Form if editing long term goal */}
             {isEditingLongTermGoal && (
-              <div style={{ background: 'white', borderRadius: 20, padding: '1.25rem', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+              <div style={{ background: 'var(--color-surface, white)', borderRadius: 20, padding: '1.25rem', border: '1.5px solid var(--color-border-input, #cbd5e1)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>Hedef Sınav</label>
-                    <select style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.82rem' }} value={goals.examGoalType} onChange={e => setGoals(p => ({ ...p, examGoalType: e.target.value }))}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Sınav</label>
+                    <select style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.examGoalType} onChange={e => setGoals(p => ({ ...p, examGoalType: e.target.value }))}>
                       <option value="LGS 2026">LGS (Liselere Geçiş)</option>
                       <option value="YKS (TYT/AYT) 2026">YKS (TYT / AYT)</option>
                       <option value="KPSS">KPSS</option>
@@ -2048,20 +2047,20 @@ export default function MyCoachingPage() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>Hedef Okul / Bölüm</label>
-                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetSchool || ''} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Fen Lisesi / Tıp" />
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Okul / Bölüm</label>
+                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetSchool || ''} onChange={e => setGoals(p => ({ ...p, targetSchool: e.target.value }))} placeholder="Örn: Fen Lisesi / Tıp" />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>Hedef Puan</label>
-                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetScore || ''} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Örn: 480" />
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Puan</label>
+                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetScore || ''} onChange={e => setGoals(p => ({ ...p, targetScore: e.target.value }))} placeholder="Örn: 480" />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: 4 }}>Hedef Net</label>
-                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetNet || ''} onChange={e => setGoals(p => ({ ...p, targetNet: e.target.value }))} placeholder="Örn: 85 Net" />
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 4 }}>Hedef Net</label>
+                    <input type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.82rem' }} value={goals.targetNet || ''} onChange={e => setGoals(p => ({ ...p, targetNet: e.target.value }))} placeholder="Örn: 85 Net" />
                   </div>
                 </div>
                 <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-                  <button onClick={() => setIsEditingLongTermGoal(false)} style={{ background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, padding: '0.5rem 1.2rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
+                  <button onClick={() => setIsEditingLongTermGoal(false)} style={{ background: '#6366f1', color: 'white', border: 'none', borderRadius: 10, padding: '0.5rem 1.2rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
                     Tamamlandı
                   </button>
                 </div>
@@ -2076,11 +2075,11 @@ export default function MyCoachingPage() {
                 const dTotal = (goals.dailyGoals || []).length;
                 const dPct = dTotal > 0 ? Math.round((dDone / dTotal) * 100) : 0;
                 return (
-                  <div style={{ background: '#fffbeb', borderRadius: 16, padding: '1rem', border: '1px solid #fef3c7' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#b45309', fontWeight: 800, textTransform: 'uppercase' }}>☀️ GÜNLÜK HEDEFLER</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#92400e', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(245, 158, 11, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase' }}>☀️ GÜNLÜK HEDEFLER</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fbbf24', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{dDone}/{dTotal}</span>
-                      <span style={{ fontSize: '0.8rem', background: '#fef3c7', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{dPct}</span>
+                      <span style={{ fontSize: '0.8rem', background: 'rgba(245, 158, 11, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{dPct}</span>
                     </div>
                   </div>
                 );
@@ -2092,11 +2091,11 @@ export default function MyCoachingPage() {
                 const wTotal = (goals.weeklyGoals || []).length;
                 const wPct = wTotal > 0 ? Math.round((wDone / wTotal) * 100) : 0;
                 return (
-                  <div style={{ background: '#f3e8ff', borderRadius: 16, padding: '1rem', border: '1px solid #e9d5ff' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#6b21a8', fontWeight: 800, textTransform: 'uppercase' }}>⚡ HAFTALIK HEDEFLER</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7e22ce', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(124, 58, 237, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(124, 58, 237, 0.3)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 800, textTransform: 'uppercase' }}>⚡ HAFTALIK HEDEFLER</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d8b4fe', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{wDone}/{wTotal}</span>
-                      <span style={{ fontSize: '0.8rem', background: '#e9d5ff', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{wPct}</span>
+                      <span style={{ fontSize: '0.8rem', background: 'rgba(124, 58, 237, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{wPct}</span>
                     </div>
                   </div>
                 );
@@ -2108,39 +2107,39 @@ export default function MyCoachingPage() {
                 const mTotal = (goals.monthlyGoals || []).length;
                 const mPct = mTotal > 0 ? Math.round((mDone / mTotal) * 100) : 0;
                 return (
-                  <div style={{ background: '#eff6ff', borderRadius: 16, padding: '1rem', border: '1px solid #dbeafe' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#1e40af', fontWeight: 800, textTransform: 'uppercase' }}>📅 AYLIK HEDEFLER</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1d4ed8', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#60a5fa', fontWeight: 800, textTransform: 'uppercase' }}>📅 AYLIK HEDEFLER</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#93c5fd', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>{mDone}/{mTotal}</span>
-                      <span style={{ fontSize: '0.8rem', background: '#dbeafe', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{mPct}</span>
+                      <span style={{ fontSize: '0.8rem', background: 'rgba(59, 130, 246, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>%{mPct}</span>
                     </div>
                   </div>
                 );
               })()}
 
               {/* Sayısal Sayaçlar */}
-              <div style={{ background: '#ecfdf5', borderRadius: 16, padding: '1rem', border: '1px solid #a7f3d0' }}>
-                <div style={{ fontSize: '0.68rem', color: '#065f46', fontWeight: 800, textTransform: 'uppercase' }}>📊 SAYISAL SAYAÇLAR</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#047857', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.12)', borderRadius: 16, padding: '1rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 800, textTransform: 'uppercase' }}>📊 SAYISAL SAYAÇLAR</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>{(goals.counterGoals || []).length} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Hedef</span></span>
-                  <span style={{ fontSize: '0.8rem', background: '#d1fae5', padding: '0.15rem 0.5rem', borderRadius: 6 }}>Soru/Sayfa</span>
+                  <span style={{ fontSize: '0.8rem', background: 'rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>Soru/Sayfa</span>
                 </div>
               </div>
             </div>
 
             {/* 3. TEK HEDEF & TAKİP PANOSU */}
             <div style={{
-              background: 'white', borderRadius: 24, padding: '1.5rem', border: '1px solid #e2e8f0',
+              background: 'var(--color-surface, white)', borderRadius: 24, padding: '1.5rem', border: '1.5px solid var(--color-border, #e2e8f0)',
               boxShadow: '0 8px 30px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1.25rem'
             }}>
-              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+              <div style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)', paddingBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.85rem' }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 14, background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
                     🎯
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Hedef Listesi & Canlı Takip Panosu</h3>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>Görev ve sayısal hedeflerinizi canlı takip edin.</div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Hedef Listesi & Canlı Takip Panosu</h3>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Görev ve sayısal hedeflerinizi canlı takip edin.</div>
                   </div>
                 </div>
 
@@ -2154,12 +2153,12 @@ export default function MyCoachingPage() {
                       handleAddUnifiedGoal(e);
                     }
                   }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#f8fafc', padding: '1rem', borderRadius: 16, border: '1px solid #cbd5e1' }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'var(--color-surface-hover, #f8fafc)', padding: '1rem', borderRadius: 16, border: '1.5px solid var(--color-border-input, #cbd5e1)' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem' }}>
                     {/* Periyot Seçimi */}
                     <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginRight: 2 }}>Periyot:</span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginRight: 2 }}>Periyot:</span>
                       {['Günlük', 'Haftalık', 'Aylık', 'Özel'].map(t => (
                         <button
                           key={t}
@@ -2167,8 +2166,8 @@ export default function MyCoachingPage() {
                           onClick={() => setNewGoalType(t)}
                           style={{
                             padding: '0.32rem 0.65rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
-                            background: newGoalType === t ? (t === 'Günlük' ? '#f59e0b' : t === 'Haftalık' ? '#7c3aed' : t === 'Aylık' ? '#2563eb' : '#059669') : 'white',
-                            color: newGoalType === t ? 'white' : '#64748b', border: newGoalType === t ? 'none' : '1px solid #cbd5e1'
+                            background: newGoalType === t ? (t === 'Günlük' ? '#f59e0b' : t === 'Haftalık' ? '#7c3aed' : t === 'Aylık' ? '#2563eb' : '#059669') : 'var(--color-surface, white)',
+                            color: newGoalType === t ? 'white' : 'var(--color-text-muted, #64748b)', border: newGoalType === t ? 'none' : '1px solid var(--color-border-input, #cbd5e1)'
                           }}
                         >
                           {t === 'Günlük' ? '☀️ Günlük' : t === 'Haftalık' ? '⚡ Haftalık' : t === 'Aylık' ? '📅 Aylık' : '⭐ Özel'}
@@ -2177,14 +2176,14 @@ export default function MyCoachingPage() {
                     </div>
 
                     {/* Hedef Tipi Seçimi */}
-                    <div style={{ display: 'flex', gap: 4, background: '#e2e8f0', padding: 3, borderRadius: 10 }}>
+                    <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface, #e2e8f0)', padding: 3, borderRadius: 10, border: '1px solid var(--color-border)' }}>
                       <button
                         type="button"
                         onClick={() => setAddKind('gorev')}
                         style={{
                           padding: '0.3rem 0.75rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', border: 'none', cursor: 'pointer',
                           background: addKind === 'gorev' ? '#7c3aed' : 'transparent',
-                          color: addKind === 'gorev' ? 'white' : '#475569', transition: 'all 0.15s'
+                          color: addKind === 'gorev' ? 'white' : 'var(--color-text-muted, #475569)', transition: 'all 0.15s'
                         }}
                       >
                         📝 Görev Ekle
@@ -2195,7 +2194,7 @@ export default function MyCoachingPage() {
                         style={{
                           padding: '0.3rem 0.75rem', borderRadius: 8, fontWeight: 800, fontSize: '0.75rem', border: 'none', cursor: 'pointer',
                           background: addKind === 'sayisal' ? '#4f46e5' : 'transparent',
-                          color: addKind === 'sayisal' ? 'white' : '#475569', transition: 'all 0.15s'
+                          color: addKind === 'sayisal' ? 'white' : 'var(--color-text-muted, #475569)', transition: 'all 0.15s'
                         }}
                       >
                         📊 Sayısal Sayaç Ekle
@@ -2212,7 +2211,7 @@ export default function MyCoachingPage() {
                           placeholder="Kategori..."
                           value={newGoalCategory}
                           onChange={e => setNewGoalCategory(e.target.value)}
-                          style={{ width: 120, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }}
+                          style={{ width: 120, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }}
                         />
                       )}
                       <input
@@ -2220,7 +2219,7 @@ export default function MyCoachingPage() {
                         placeholder={`${newGoalType} yapacağınız hedefi yazın (ör: Fizik 2. Ünite Testlerini Bitir)...`}
                         value={newGoalText}
                         onChange={e => setNewGoalText(e.target.value)}
-                        style={{ flex: 1, minWidth: 220, padding: '0.5rem 0.85rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}
+                        style={{ flex: 1, minWidth: 220, padding: '0.5rem 0.85rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 700 }}
                       />
                       <button
                         type="submit"
@@ -2232,16 +2231,16 @@ export default function MyCoachingPage() {
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', alignItems: 'end' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: 2 }}>Sayaç Adı</label>
-                        <input type="text" placeholder="ör: Paragraf Sorusu" value={newCounterTitle} onChange={e => setNewCounterTitle(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }} required />
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 2 }}>Sayaç Adı</label>
+                        <input type="text" placeholder="ör: Paragraf Sorusu" value={newCounterTitle} onChange={e => setNewCounterTitle(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }} required />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: 2 }}>Hedef Miktarı</label>
-                        <input type="number" min="1" placeholder="ör: 200" value={newCounterTarget} onChange={e => setNewCounterTarget(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }} required />
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 2 }}>Hedef Miktarı</label>
+                        <input type="number" min="1" placeholder="ör: 200" value={newCounterTarget} onChange={e => setNewCounterTarget(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }} required />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', marginBottom: 2 }}>Birim</label>
-                        <select value={newCounterUnit} onChange={e => setNewCounterUnit(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700 }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: 2 }}>Birim</label>
+                        <select value={newCounterUnit} onChange={e => setNewCounterUnit(e.target.value)} style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: 8, border: '1.5px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }}>
                           <option value="Soru">Soru</option>
                           <option value="Sayfa">Sayfa</option>
                           <option value="Saat">Saat</option>
@@ -2266,8 +2265,8 @@ export default function MyCoachingPage() {
                   const dCounters = (goals.counterGoals || []).filter(c => c.period === 'Günlük');
                   const dCount = dTasks.length + dCounters.length;
                   return (
-                    <div style={{ background: '#fffbeb', borderRadius: 18, padding: '1.15rem', border: '1px solid #fef3c7', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#b45309', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>☀️ Günlük Hedeflerim ({dTasks.filter(g=>g.done).length + dCounters.filter(c=>(c.current||0)>=(c.target||1)).length}/{dCount})</span>
                       </div>
 
@@ -2291,62 +2290,60 @@ export default function MyCoachingPage() {
                               <div
                                 key={cg.id}
                                 style={{
-                                  background: isCompleted
-                                    ? 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
-                                    : 'linear-gradient(135deg, #ffffff 0%, #fffdf5 100%)',
+                                  background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #ffffff)',
                                   borderRadius: 16,
                                   padding: '0.9rem 1.1rem',
-                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid #fcd34d',
-                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(245,158,11,0.06)',
+                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid rgba(245, 158, 11, 0.35)',
+                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(0,0,0,0.04)',
                                   display: 'flex', flexDirection: 'column', gap: '0.65rem'
                                 }}
                               >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? '#d1fae5' : '#fef3c7', color: isCompleted ? '#047857' : '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: isCompleted ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
                                       {icon}
                                     </div>
                                     <div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{cg.title}</span>
                                         {isCompleted && (
                                           <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>☀️ Günlük Hedef · {unitName}</div>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>☀️ Günlük Hedef · {unitName}</div>
                                     </div>
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e293b' }}>
-                                        {current} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
+                                        {current} <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/ {target} {unitName}</span>
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? '#d1fae5' : '#fef3c7', color: isCompleted ? '#047857' : '#b45309', border: isCompleted ? '1px solid #a7f3d0' : '1px solid #fde68a' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: isCompleted ? '#10b981' : '#f59e0b', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)' }}>
                                       %{pct}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={13} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ width: '100%', height: 8, background: '#fef3c7', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: 8, background: 'var(--color-border, #fef3c7)', borderRadius: 99, overflow: 'hidden' }}>
                                   <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     {[10, 20, 50].map(step => (
-                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: '#ffffff', color: '#b45309', border: '1px solid #fde68a', cursor: 'pointer' }}>
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', cursor: 'pointer' }}>
                                         +{step} {unitName}
                                       </button>
                                     ))}
                                   </div>
                                   <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
                                     <button type="submit" style={{ background: '#d97706', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
                                   </form>
                                 </div>
@@ -2372,13 +2369,13 @@ export default function MyCoachingPage() {
                   const wCounters = (goals.counterGoals || []).filter(c => c.period === 'Haftalık');
                   const wCount = wTasks.length + wCounters.length;
                   return (
-                    <div style={{ background: '#f3e8ff', borderRadius: 18, padding: '1.15rem', border: '1px solid #e9d5ff', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#6b21a8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(124, 58, 237, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(124, 58, 237, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c084fc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>⚡ Haftalık Hedeflerim ({wTasks.filter(g=>g.done).length + wCounters.filter(c=>(c.current||0)>=(c.target||1)).length}/{wCount})</span>
                       </div>
 
                       {wCount === 0 ? (
-                        <div style={{ color: '#7e22ce', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz haftalık hedef veya sayaç eklenmedi.</div>
+                        <div style={{ color: '#c084fc', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz haftalık hedef veya sayaç eklenmedi.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                           {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
@@ -2397,62 +2394,60 @@ export default function MyCoachingPage() {
                               <div
                                 key={cg.id}
                                 style={{
-                                  background: isCompleted
-                                    ? 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
-                                    : 'linear-gradient(135deg, #ffffff 0%, #faf5ff 100%)',
+                                  background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #ffffff)',
                                   borderRadius: 16,
                                   padding: '0.9rem 1.1rem',
-                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid #c084fc',
-                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(124,58,237,0.06)',
+                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid rgba(168, 85, 247, 0.35)',
+                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(0,0,0,0.04)',
                                   display: 'flex', flexDirection: 'column', gap: '0.65rem'
                                 }}
                               >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? '#d1fae5' : '#f3e8ff', color: isCompleted ? '#047857' : '#6b21a8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(124, 58, 237, 0.2)', color: isCompleted ? '#10b981' : '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
                                       {icon}
                                     </div>
                                     <div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{cg.title}</span>
                                         {isCompleted && (
                                           <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>⚡ Haftalık Hedef · {unitName}</div>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>⚡ Haftalık Hedef · {unitName}</div>
                                     </div>
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e293b' }}>
-                                        {current} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
+                                        {current} <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/ {target} {unitName}</span>
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? '#d1fae5' : '#f3e8ff', color: isCompleted ? '#047857' : '#6b21a8', border: isCompleted ? '1px solid #a7f3d0' : '1px solid #e9d5ff' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(124, 58, 237, 0.2)', color: isCompleted ? '#10b981' : '#c084fc', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(168, 85, 247, 0.4)' }}>
                                       %{pct}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={13} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ width: '100%', height: 8, background: '#e9d5ff', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: 8, background: 'var(--color-border, #e9d5ff)', borderRadius: 99, overflow: 'hidden' }}>
                                   <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     {[10, 20, 50].map(step => (
-                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: '#ffffff', color: '#6b21a8', border: '1px solid #e9d5ff', cursor: 'pointer' }}>
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)', cursor: 'pointer' }}>
                                         +{step} {unitName}
                                       </button>
                                     ))}
                                   </div>
                                   <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
                                     <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
                                   </form>
                                 </div>
@@ -2478,13 +2473,13 @@ export default function MyCoachingPage() {
                   const mCounters = (goals.counterGoals || []).filter(c => c.period === 'Aylık');
                   const mCount = mTasks.length + mCounters.length;
                   return (
-                    <div style={{ background: '#eff6ff', borderRadius: 18, padding: '1.15rem', border: '1px solid #dbeafe', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(59, 130, 246, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(59, 130, 246, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#60a5fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>📅 Aylık Hedeflerim ({mTasks.filter(g=>g.done).length + mCounters.filter(c=>(c.current||0)>=(c.target||1)).length}/{mCount})</span>
                       </div>
 
                       {mCount === 0 ? (
-                        <div style={{ color: '#1d4ed8', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz aylık hedef veya sayaç eklenmedi.</div>
+                        <div style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center', padding: '0.5rem' }}>Henüz aylık hedef veya sayaç eklenmedi.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                           {/* Sayısal Sayaçlar (Ultra Modern Tasarım) */}
@@ -2503,62 +2498,60 @@ export default function MyCoachingPage() {
                               <div
                                 key={cg.id}
                                 style={{
-                                  background: isCompleted
-                                    ? 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)'
-                                    : 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
+                                  background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, #ffffff)',
                                   borderRadius: 16,
                                   padding: '0.9rem 1.1rem',
-                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid #93c5fd',
-                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(37,99,235,0.06)',
+                                  border: isCompleted ? '1.5px solid #10b981' : '1px solid rgba(59, 130, 246, 0.35)',
+                                  boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.12)' : '0 4px 14px rgba(0,0,0,0.04)',
                                   display: 'flex', flexDirection: 'column', gap: '0.65rem'
                                 }}
                               >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? '#d1fae5' : '#dbeafe', color: isCompleted ? '#047857' : '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)', color: isCompleted ? '#10b981' : '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
                                       {icon}
                                     </div>
                                     <div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>{cg.title}</span>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>{cg.title}</span>
                                         {isCompleted && (
                                           <span style={{ fontSize: '0.65rem', background: '#10b981', color: 'white', padding: '0.1rem 0.45rem', borderRadius: 99, fontWeight: 900 }}>✓ Tamamlandı</span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>📅 Aylık Hedef · {unitName}</div>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>📅 Aylık Hedef · {unitName}</div>
                                     </div>
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#059669' : '#1e293b' }}>
-                                        {current} <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>/ {target} {unitName}</span>
+                                      <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #1e293b)' }}>
+                                        {current} <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>/ {target} {unitName}</span>
                                       </div>
                                     </div>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? '#d1fae5' : '#dbeafe', color: isCompleted ? '#047857' : '#1e40af', border: isCompleted ? '1px solid #a7f3d0' : '1px solid #bfdbfe' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 8, background: isCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)', color: isCompleted ? '#10b981' : '#60a5fa', border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(59, 130, 246, 0.4)' }}>
                                       %{pct}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} title="Sıfırla"><RotateCcw size={13} /></button>
-                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
+                                      <button type="button" onClick={() => handleResetSingleCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }} title="Sıfırla"><RotateCcw size={13} /></button>
+                                      <button type="button" onClick={() => handleDeleteCounterGoal(cg.id)} style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Sil"><Trash2 size={13} /></button>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ width: '100%', height: 8, background: '#dbeafe', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: 8, background: 'var(--color-border, #dbeafe)', borderRadius: 99, overflow: 'hidden' }}>
                                   <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)', borderRadius: 99, transition: 'width 0.4s ease' }} />
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 2 }}>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     {[10, 20, 50].map(step => (
-                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: '#ffffff', color: '#1e40af', border: '1px solid #bfdbfe', cursor: 'pointer' }}>
+                                      <button key={step} type="button" onClick={() => handleAddCounterProgress(cg.id, step)} style={{ padding: '0.18rem 0.45rem', borderRadius: 6, fontSize: '0.68rem', fontWeight: 800, background: 'var(--color-surface-hover, #ffffff)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)', cursor: 'pointer' }}>
                                         +{step} {unitName}
                                       </button>
                                     ))}
                                   </div>
                                   <form onSubmit={e => { e.preventDefault(); const amt = customAddInputs[cg.id]; if (amt) { handleAddCounterProgress(cg.id, amt); setCustomAddInputs(p => ({ ...p, [cg.id]: '' })); } }} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
+                                    <input type="number" placeholder="+ Miktar" value={customAddInputs[cg.id] || ''} onChange={e => setCustomAddInputs(p => ({ ...p, [cg.id]: e.target.value }))} style={{ width: 75, padding: '0.22rem 0.45rem', borderRadius: 6, border: '1px solid var(--color-border-input, #cbd5e1)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, outline: 'none' }} />
                                     <button type="submit" style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '0.22rem 0.55rem', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer' }}>+ Ekle</button>
                                   </form>
                                 </div>
@@ -2580,8 +2573,8 @@ export default function MyCoachingPage() {
 
                 {/* ⭐ ÖZEL HEDEFLERİM */}
                 {((goals.customGoals || []).length > 0 || (goals.counterGoals || []).some(c => c.period === 'Özel')) && (
-                  <div style={{ background: '#ecfdf5', borderRadius: 18, padding: '1.15rem', border: '1px solid #a7f3d0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#065f46', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: 18, padding: '1.15rem', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>⭐ Özel Kategori Hedeflerim</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -2641,7 +2634,7 @@ export default function MyCoachingPage() {
 
                 {/* Hızlı Çalışma Türü Seçimi */}
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>🎯 Çalışma Türü Seçimi:</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>🎯 Çalışma Türü Seçimi:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                     {[
                       { label: '📖 Konu Çalışması', type: 'Konu Çalışması' },
@@ -2665,9 +2658,9 @@ export default function MyCoachingPage() {
                           }}
                           style={{
                             padding: '0.32rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.76rem', fontWeight: 800,
-                            border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
-                            background: isSelected ? '#f3e8ff' : '#ffffff',
-                            color: isSelected ? '#6d28d9' : '#475569', cursor: 'pointer', transition: 'all 0.15s'
+                            border: isSelected ? '1.5px solid #a855f7' : '1px solid var(--color-border-input, #cbd5e1)',
+                            background: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'var(--color-surface, #ffffff)',
+                            color: isSelected ? '#c084fc' : 'var(--color-text, #475569)', cursor: 'pointer', transition: 'all 0.15s'
                           }}
                         >
                           {isSelected ? '✓ ' : ''}{act.label}
@@ -2679,7 +2672,7 @@ export default function MyCoachingPage() {
 
                 {/* Hızlı Süre Rozetleri */}
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>⏱️ Hızlı Süre Seçimi:</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>⏱️ Hızlı Süre Seçimi:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                     {[
                       { label: '15 dk', val: '0.25' },
@@ -2698,9 +2691,9 @@ export default function MyCoachingPage() {
                           onClick={() => setNewLog(p => ({ ...p, studyHours: preset.val }))}
                           style={{
                             padding: '0.32rem 0.7rem', borderRadius: '0.45rem', fontSize: '0.78rem', fontWeight: 800,
-                            border: isSelected ? '1.5px solid #7c3aed' : '1px solid #cbd5e1',
-                            background: isSelected ? '#f3e8ff' : '#f8fafc',
-                            color: isSelected ? '#6d28d9' : '#334155', cursor: 'pointer', transition: 'all 0.15s'
+                            border: isSelected ? '1.5px solid #a855f7' : '1px solid var(--color-border-input, #cbd5e1)',
+                            background: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'var(--color-surface-hover, #f8fafc)',
+                            color: isSelected ? '#c084fc' : 'var(--color-text, #334155)', cursor: 'pointer', transition: 'all 0.15s'
                           }}
                         >
                           {isSelected ? '✓ ' : ''}{preset.label}
@@ -2712,7 +2705,7 @@ export default function MyCoachingPage() {
 
                 {/* Hızlı Ders Seçim Rozetleri */}
                 <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '0.4rem' }}>📚 Hızlı Ders Seçimi:</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.4rem' }}>📚 Hızlı Ders Seçimi:</div>
                   <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                     {SUBJECTS.map(subName => {
                       const isSelected = (newLog.revision || '').includes(subName);
@@ -2730,9 +2723,9 @@ export default function MyCoachingPage() {
                           }}
                           style={{
                             padding: '0.32rem 0.65rem', borderRadius: '0.45rem', fontSize: '0.76rem', fontWeight: 800,
-                            border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
-                            background: isSelected ? '#eff6ff' : '#ffffff',
-                            color: isSelected ? '#1d4ed8' : '#475569', cursor: 'pointer', transition: 'all 0.15s'
+                            border: isSelected ? '1.5px solid #3b82f6' : '1px solid var(--color-border-input, #cbd5e1)',
+                            background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface, #ffffff)',
+                            color: isSelected ? '#60a5fa' : 'var(--color-text, #475569)', cursor: 'pointer', transition: 'all 0.15s'
                           }}
                         >
                           {isSelected ? '✓ ' : '+ '}{subName}
@@ -2743,7 +2736,7 @@ export default function MyCoachingPage() {
                 </div>
 
                 {/* Detay Kutuları Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--color-border, #e2e8f0)' }}>
                   <div>
                     <label style={lbl}>Tarih</label>
                     <input style={inp} type="date" value={newLog.date} onChange={e => setNewLog(p => ({ ...p, date: e.target.value }))} />
@@ -2768,7 +2761,7 @@ export default function MyCoachingPage() {
 
                 {/* Alt Aksiyon Çubuğu */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.4rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: '0.55rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.55rem' }}>
                     <input type="checkbox" checked={newLog.sport} onChange={e => setNewLog(p => ({ ...p, sport: e.target.checked }))} /> 🏃 Bugün Spor / Egzersiz Yaptım
                   </label>
 
@@ -2811,42 +2804,42 @@ export default function MyCoachingPage() {
                   {dailyLogs.map(log => (
                     <div key={log.id} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem',
-                      padding: '0.65rem 0.9rem', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.75rem', fontSize: '0.82rem',
-                      border: '1px solid rgba(255,255,255,1)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                      padding: '0.65rem 0.9rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.75rem', fontSize: '0.82rem',
+                      border: '1px solid var(--color-border, #e2e8f0)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 800, color: '#64748b', background: '#e2e8f0', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem' }}>
+                        <span style={{ fontWeight: 800, color: 'var(--color-text-muted, #64748b)', background: 'var(--color-surface, #e2e8f0)', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem' }}>
                           📅 {log.date}
                         </span>
                         {log.studyHours && (
-                          <span style={{ fontWeight: 900, color: '#7c3aed', background: '#f3e8ff', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #e9d5ff' }}>
+                          <span style={{ fontWeight: 900, color: '#a855f7', background: 'rgba(168, 85, 247, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid rgba(168, 85, 247, 0.35)' }}>
                             ⏱️ {log.studyHours} Saat
                           </span>
                         )}
                         {parseFloat(log.questions) > 0 && (
-                          <span style={{ fontWeight: 900, color: '#2563eb', background: '#eff6ff', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #bfdbfe' }}>
+                          <span style={{ fontWeight: 900, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid rgba(59, 130, 246, 0.35)' }}>
                             ✏️ {log.questions} Soru
                           </span>
                         )}
                         {log.sport && (
-                          <span style={{ fontWeight: 800, color: '#15803d', background: '#f0fdf4', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid #bbf7d0', fontSize: '0.73rem' }}>
+                          <span style={{ fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.35)', fontSize: '0.73rem' }}>
                             🏃 Spor Yapıldı
                           </span>
                         )}
                         {log.sleepTime && (
-                          <span style={{ fontWeight: 800, color: '#d97706', background: '#fffbeb', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.73rem' }}>
+                          <span style={{ fontWeight: 800, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.73rem' }}>
                             🌙 Yatış: {log.sleepTime}
                           </span>
                         )}
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <span style={{ color: '#334155', fontWeight: 700, fontSize: '0.8rem' }}>
+                        <span style={{ color: 'var(--color-text, #334155)', fontWeight: 700, fontSize: '0.8rem' }}>
                           {log.revision || 'Detay girilmedi'}
                         </span>
                         <button
                           onClick={() => setDailyLogs(p => p.filter(x => x.id !== log.id))}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2 }}
                           title="Kaydı Sil"
                         >
                           <Trash2 size={14} />
@@ -2962,18 +2955,18 @@ export default function MyCoachingPage() {
 
                 {/* 2. DİNAMİK CANLI KOÇ DEĞERLENDİRMESİ */}
                 <div style={{
-                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                  borderRadius: 20, padding: '1.25rem 1.5rem', border: '1.5px solid #a7f3d0',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                  borderRadius: 20, padding: '1.25rem 1.5rem', border: '1.5px solid rgba(16, 185, 129, 0.35)',
                   boxShadow: '0 4px 20px rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', gap: 14
                 }}>
                   <div style={{ width: 46, height: 46, borderRadius: 14, background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>
                     💡
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Akıllı Koç Değerlendirmesi & Canlı Tavsiye
                     </div>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#064e3b', marginTop: 2, lineHeight: 1.4 }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text, #064e3b)', marginTop: 2, lineHeight: 1.4 }}>
                       {totalCompletedGoals > 3
                         ? "🚀 Muazzam bir ivme yakaladın! Hedeflerini tek tek tamamlıyorsun. Bu disiplin seni istediğin liseye/üniversiteye taşıyacak!"
                         : totalSolved > 50
@@ -2985,18 +2978,18 @@ export default function MyCoachingPage() {
 
                 {/* 3. GÜNÜN MİNİ ZAFER MÜCADELESİ */}
                 <div style={{
-                  background: dailyQuestDone ? '#f0fdf4' : '#fffbeb',
+                  background: dailyQuestDone ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
                   borderRadius: 20, padding: '1.25rem 1.5rem',
-                  border: dailyQuestDone ? '1.5px solid #86efac' : '1.5px solid #fde68a',
+                  border: dailyQuestDone ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid rgba(245, 158, 11, 0.35)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ fontSize: '1.8rem' }}>{dailyQuestDone ? '🎉' : '🎯'}</div>
                     <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: dailyQuestDone ? '#166534' : '#92400e', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: dailyQuestDone ? '#10b981' : '#f59e0b', textTransform: 'uppercase' }}>
                         Günün Mini Zafer Görevi
                       </div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: dailyQuestDone ? '#14532d' : '#78350f', marginTop: 2 }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: dailyQuestDone ? '#10b981' : '#f59e0b', marginTop: 2 }}>
                         {dailyQuestDone ? "Harika! Bugünün Zafer Görevini Tamamladın (+50 XP Kazandın!)" : "Bugün 1 Konu Tekrarı Yap veya En Az 30 Soru Çöz!"}
                       </div>
                     </div>
@@ -3023,13 +3016,13 @@ export default function MyCoachingPage() {
 
                 {/* 4. İLHAM KÜTÜPHANESİ & KATEGORİK SÖZ KARTI */}
                 <div style={{
-                  background: 'white', borderRadius: 24, padding: '1.5rem', border: '1px solid #e2e8f0',
+                  background: 'var(--color-surface, #ffffff)', borderRadius: 24, padding: '1.5rem', border: '1px solid var(--color-border, #e2e8f0)',
                   boxShadow: '0 8px 30px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '1.1rem'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Sparkles size={22} color="#7c3aed" />
-                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Günün İlham Verici Sözü & Kütüphanesi</h3>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Günün İlham Verici Sözü & Kütüphanesi</h3>
                     </div>
 
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -3040,9 +3033,9 @@ export default function MyCoachingPage() {
                           onClick={() => { setSelectedQuoteCategory(cat); setQuoteIdx(0); }}
                           style={{
                             padding: '0.28rem 0.65rem', borderRadius: 8, fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
-                            background: selectedQuoteCategory === cat ? '#7c3aed' : '#f1f5f9',
-                            color: selectedQuoteCategory === cat ? 'white' : '#475569',
-                            border: selectedQuoteCategory === cat ? 'none' : '1px solid #cbd5e1'
+                            background: selectedQuoteCategory === cat ? '#7c3aed' : 'var(--color-surface-hover, #f1f5f9)',
+                            color: selectedQuoteCategory === cat ? 'white' : 'var(--color-text-muted, #475569)',
+                            border: selectedQuoteCategory === cat ? 'none' : '1px solid var(--color-border-input, #cbd5e1)'
                           }}
                         >
                           {cat}
@@ -3087,42 +3080,42 @@ export default function MyCoachingPage() {
                 {/* 5. KOÇTAN STRATEJİK TAVSİYELER */}
                 <Card emoji="💡" title="Koçtan Derece Yaptıran Çalışma Önerileri & Stratejiler">
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '1.3rem' }}>🧠</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>1. Aktif Hatırlama (Active Recall)</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>1. Aktif Hatırlama (Active Recall)</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
                         Sadece altını çizerek okuma! Bir konuyu okuduktan sonra kitabı kapatıp kendi cümlelerinle bir kâğıda yaz veya anlat.
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '1.3rem' }}>⏱️</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>2. Pomodoro & Odaklanma</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>2. Pomodoro & Odaklanma</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
                         25 dakika kesintisiz odaklan + 5 dakika mola. 4 blok sonrası 20 dakikalık uzun mola ver. Zihnin asla yorulmaz!
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '1.3rem' }}>✍️</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>3. Yanlış Defteri (Fener Defteri)</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>3. Yanlış Defteri (Fener Defteri)</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
                         Sınavı kazandıran doğru yaptıkların değil, yanlışlarından öğrendiklerindir. Yanlış sorularını bir not defterinde biriktir!
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', padding: '1rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '1.3rem' }}>📱</span>
-                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#1e293b' }}>4. Dijital Detoks & Sessiz Alan</span>
+                        <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>4. Dijital Detoks & Sessiz Alan</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.55, fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', lineHeight: 1.55, fontWeight: 600 }}>
                         Çalışırken telefonunu başka bir odaya koy veya sessize al. Bildirimler olmadan odaklanma kaliten 2 katına çıkar!
                       </div>
                     </div>
@@ -3133,7 +3126,7 @@ export default function MyCoachingPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
                   <Card emoji="⭐" title="Benim Haftalık Mottom">
                     <textarea
-                      style={{ ...ta, background: '#fffbeb', borderColor: '#fde68a', minHeight: 75, fontWeight: 700, color: '#92400e' }}
+                      style={{ ...ta, background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #92400e)' }}
                       value={motivation.weekQuote}
                       onChange={e => setMotivation(p => ({ ...p, weekQuote: e.target.value }))}
                       placeholder="Bu hafta seni ayağa kaldıracak kişisel cümleni yaz..."
@@ -3142,7 +3135,7 @@ export default function MyCoachingPage() {
 
                   <Card emoji="🏆" title="Bu Hafta Başardıklarım & Zaferlerim">
                     <textarea
-                      style={{ ...ta, background: '#f0fdf4', borderColor: '#bbf7d0', minHeight: 75, fontWeight: 700, color: '#166534' }}
+                      style={{ ...ta, background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #166534)' }}
                       value={motivation.achievements}
                       onChange={e => setMotivation(p => ({ ...p, achievements: e.target.value }))}
                       placeholder="Çözdüğün zor sorular, tamamladığın konular... Her başarını buraya yaz ve kendini kutla! 🎉"
@@ -3151,7 +3144,7 @@ export default function MyCoachingPage() {
 
                   <Card emoji="💌" title="Sınav Günü Kendime Not">
                     <textarea
-                      style={{ ...ta, background: '#f0f4ff', borderColor: '#c7d2fe', minHeight: 75, fontWeight: 700, color: '#3730a3' }}
+                      style={{ ...ta, background: 'rgba(99, 102, 241, 0.08)', borderColor: 'rgba(99, 102, 241, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #3730a3)' }}
                       value={motivation.selfNote}
                       onChange={e => setMotivation(p => ({ ...p, selfNote: e.target.value }))}
                       placeholder="Sınav günü masaya oturduğunda zihninde ne olmalı? Kendine güven mesajını yaz..."
@@ -3160,7 +3153,7 @@ export default function MyCoachingPage() {
 
                   <Card emoji="🎁" title="Hedef Ödül Sistemim">
                     <textarea
-                      style={{ ...ta, background: '#fdf2f8', borderColor: '#f0abfc', minHeight: 75, fontWeight: 700, color: '#831843' }}
+                      style={{ ...ta, background: 'rgba(236, 72, 153, 0.08)', borderColor: 'rgba(236, 72, 153, 0.35)', minHeight: 75, fontWeight: 700, color: 'var(--color-text, #831843)' }}
                       value={motivation.rewardSystem}
                       onChange={e => setMotivation(p => ({ ...p, rewardSystem: e.target.value }))}
                       placeholder="Hedeflerimi tamamlarsam kendime hediyem: Örn: 500 Soru = Sinema Bileti 🎬"
@@ -3201,20 +3194,20 @@ export default function MyCoachingPage() {
                 <div style={{ fontSize: '0.72rem', opacity: 0.8, marginTop: 4 }}>Kesintisiz alışkanlık seriniz</div>
               </div>
 
-              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>TOPLAM İŞARETLENEN</div>
+              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 4 }}>TOPLAM İŞARETLENEN</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981' }}>
                   {habits.reduce((sum, h) => sum + Object.values(h.days || {}).filter(Boolean).length, 0)} / {habits.length * 7}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>Haftalık yapılan alışkanlık</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 4 }}>Haftalık yapılan alışkanlık</div>
               </div>
 
-              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>ZİNCİRİ TAMAMLIYOR</div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#6366f1' }}>
+              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 4 }}>ZİNCİRİ TAMAMLIYOR</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#818cf8' }}>
                   {habits.filter(h => calculateHabitStreak(h).maxStreak >= 5).length} Alışkanlık
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>5+ gün üst üste yapılan</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 4 }}>5+ gün üst üste yapılan</div>
               </div>
             </div>
 
@@ -3231,19 +3224,19 @@ export default function MyCoachingPage() {
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', minWidth: 500 }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Alışkanlık</th>
+                      <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Alışkanlık</th>
                       <th style={{ textAlign: 'center', padding: '0.5rem', fontWeight: 800, fontSize: '0.75rem', color: '#ea580c', width: 95 }}>Seri / Zincir</th>
                       {weekDates.map(w => (
                         <th
                           key={w.dayName}
                           style={{
                             textAlign: 'center', width: 55, padding: '0.35rem 0.2rem',
-                            background: w.isToday ? '#ffedd5' : 'transparent',
+                            background: w.isToday ? 'rgba(234, 88, 12, 0.15)' : 'transparent',
                             borderRadius: w.isToday ? '0.5rem 0.5rem 0 0' : '0'
                           }}
                         >
-                          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: w.isToday ? '#c2410c' : '#475569' }}>{w.dayName}</div>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: w.isToday ? '#ea580c' : '#94a3b8' }}>{w.fullDateStr}</div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 900, color: w.isToday ? '#f97316' : 'var(--color-text-muted, #475569)' }}>{w.dayName}</div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: w.isToday ? '#ea580c' : 'var(--color-text-muted, #94a3b8)' }}>{w.fullDateStr}</div>
                         </th>
                       ))}
                       <th style={{ width: 35 }}></th>
@@ -3256,29 +3249,29 @@ export default function MyCoachingPage() {
 
                       return (
                         <tr key={h.id}>
-                          <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid rgba(255,255,255,1)', borderRight: 'none' }}>
+                          <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderRadius: '0.65rem 0 0 0.65rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderRight: 'none' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
                               <button
                                 onClick={() => setSelectedMonthlyHabit(h)}
-                                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                                 title="Aylık takvim ve detayını gör"
                               >
                                 <span>{h.label}</span>
-                                <span style={{ fontSize: '0.7rem', color: '#6366f1', background: '#eef2ff', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>📅 Aylık</span>
+                                <span style={{ fontSize: '0.7rem', color: '#818cf8', background: 'rgba(99, 102, 241, 0.15)', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>📅 Aylık</span>
                               </button>
-                              {count === 7 && <span style={{ fontSize: '0.68rem', background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 900 }}>⚡ 7/7</span>}
+                              {count === 7 && <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 900 }}>⚡ 7/7</span>}
                             </div>
                           </td>
 
                           {/* Seri Badgesi */}
-                          <td style={{ textAlign: 'center', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255,255,255,1)', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
+                          <td style={{ textAlign: 'center', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderLeft: 'none', borderRight: 'none', padding: '0.4rem 0.25rem' }}>
                             <button
                               onClick={() => setSelectedMonthlyHabit(h)}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.55rem', borderRadius: '1rem',
-                                background: streakInfo.currentStreak >= 3 ? '#ffedd5' : '#f1f5f9',
-                                color: streakInfo.currentStreak >= 3 ? '#c2410c' : '#64748b',
-                                fontWeight: 900, fontSize: '0.75rem', border: streakInfo.currentStreak >= 3 ? '1px solid #fed7aa' : '1px solid #e2e8f0',
+                                background: streakInfo.currentStreak >= 3 ? 'rgba(234, 88, 12, 0.15)' : 'var(--color-surface, #f1f5f9)',
+                                color: streakInfo.currentStreak >= 3 ? '#f97316' : 'var(--color-text-muted, #64748b)',
+                                fontWeight: 900, fontSize: '0.75rem', border: streakInfo.currentStreak >= 3 ? '1px solid rgba(234, 88, 12, 0.35)' : '1px solid var(--color-border, #e2e8f0)',
                                 cursor: 'pointer'
                               }}
                               title="Aylık takvimi incele"
@@ -3294,13 +3287,13 @@ export default function MyCoachingPage() {
                             const isToday = w.isToday;
 
                             return (
-                              <td key={d} style={{ textAlign: 'center', background: isToday ? '#fff7ed' : '#f8fafc', border: isToday ? '1px solid #fdba74' : '1px solid #e2e8f0', borderLeft: 'none', borderRight: 'none', padding: 4 }}>
+                              <td key={d} style={{ textAlign: 'center', background: isToday ? 'rgba(234, 88, 12, 0.08)' : 'var(--color-surface-hover, #f8fafc)', border: isToday ? '1px solid #fb923c' : '1px solid var(--color-border, #e2e8f0)', borderLeft: 'none', borderRight: 'none', padding: 4 }}>
                                 <button
                                   onClick={() => toggleHabitDay(h.id, d, w.isoDate)}
                                   style={{
                                     width: 32, height: 32, borderRadius: '50%',
-                                    background: isChecked ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'white',
-                                    border: isChecked ? 'none' : isToday ? '2px solid #fb923c' : '2px solid #cbd5e1',
+                                    background: isChecked ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'var(--color-surface, white)',
+                                    border: isChecked ? 'none' : isToday ? '2px solid #fb923c' : '2px solid var(--color-border-input, #cbd5e1)',
                                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 'auto',
                                     transition: 'all 0.15s',
                                     boxShadow: isChecked ? '0 2px 6px rgba(220, 38, 38, 0.3)' : 'none'
@@ -3313,8 +3306,8 @@ export default function MyCoachingPage() {
                             );
                           })}
 
-                          <td style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0 0.65rem 0.65rem 0', border: '1px solid rgba(255,255,255,1)', borderLeft: 'none', textAlign: 'center' }}>
-                            <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }} title="Sil">
+                          <td style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderRadius: '0 0.65rem 0.65rem 0', border: '1px solid var(--color-border, rgba(255,255,255,1))', borderLeft: 'none', textAlign: 'center' }}>
+                            <button onClick={() => setHabits(p => p.filter(x => x.id !== h.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 4 }} title="Sil">
                               <Trash2 size={14} />
                             </button>
                           </td>
@@ -3334,10 +3327,10 @@ export default function MyCoachingPage() {
             <Tip>Çözdüğün online sınavlar buraya otomatik yansır. Dışarıda girdiğin denemeleri de yukarıdaki buton ile ekleyebilirsin!</Tip>
 
             {/* Top Action Bar with Add Button */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: 'rgba(255, 255, 255, 0.5)', padding: '0.85rem 1.1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,1)', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', padding: '0.85rem 1.1rem', borderRadius: '1rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', flexWrap: 'wrap', gap: 10 }}>
               <div>
-                <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f172a' }}>Harici / Fiziki Deneme Kaydı</span>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Fiziki girdiğin denemelerin D/Y/B ve netlerini açılır pencereden kolayca ekle.</div>
+                <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text, #0f172a)' }}>Harici / Fiziki Deneme Kaydı</span>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>Fiziki girdiğin denemelerin D/Y/B ve netlerini açılır pencereden kolayca ekle.</div>
               </div>
               <button onClick={() => setShowMockModal(true)} style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.1rem', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(124,58,237,0.3)' }}>
                 <Plus size={16} /> ➕ Yeni Deneme Sonucu Ekle
@@ -3346,29 +3339,29 @@ export default function MyCoachingPage() {
 
             {/* 🏆 GENEL DENEME SINAVLARI */}
             {generalTrialExams.length === 0 && (
-              <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem', fontWeight: 700 }}>
-                <BarChart3 size={40} color="#e2e8f0" style={{ margin: '0 auto 1rem' }} />
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', padding: '3rem', fontWeight: 700 }}>
+                <BarChart3 size={40} color="var(--color-border, #e2e8f0)" style={{ margin: '0 auto 1rem' }} />
                 Henüz çözülmüş veya eklenmiş Genel Deneme Sınavı yok.
               </div>
             )}
 
             {generalTrialExams.length > 0 && (
               <div style={{ marginBottom: '2rem' }}>
-                <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--color-text, #0f172a)', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>🏆</span> Genel Testler ({generalTrialExams.length})
                 </div>
 
                 {/* Gelişim Grafiği */}
                 {generalTrialExams.length > 0 && (
-                  <div style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1.25rem', border: '1px solid rgba(255,255,255,1)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                  <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1.25rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #334155)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <TrendingUp size={18} style={{ color: '#7c3aed' }} /> Net Gelişim Grafiği
                       </div>
                       <select 
                         value={chartMetric} 
                         onChange={(e) => setChartMetric(e.target.value)}
-                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, color: '#334155', background: 'white', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input, #cbd5e1)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text, #334155)', background: 'var(--color-surface, white)', cursor: 'pointer', outline: 'none' }}
                       >
                         <option value="Toplam Net">Genel (Toplam Net)</option>
                         {Array.from(new Set(generalTrialExams.flatMap(e => Object.keys(e.scores || {})))).map(s => (
@@ -3389,11 +3382,11 @@ export default function MyCoachingPage() {
                            }
                            return { name: `D${i + 1}`, Net: parseFloat(Number(net).toFixed(2)), fullName: s.title, date: s.date };
                         })}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} domain={['dataMin - 5', 'dataMax + 5']} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border, #e2e8f0)" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted, #64748b)' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted, #64748b)' }} dx={-10} domain={['dataMin - 5', 'dataMax + 5']} />
                           <Tooltip 
-                            contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '0.8rem', fontWeight: 700 }}
+                            contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '0.8rem', fontWeight: 700, background: 'var(--color-surface, #ffffff)', color: 'var(--color-text, #0f172a)' }}
                             formatter={(value) => [`${value} Net`, 'Sonuç']}
                             labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
                           />
@@ -3407,14 +3400,14 @@ export default function MyCoachingPage() {
                 {/* Özet istatistik */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
                   {[
-                    { label: 'Toplam Deneme', value: generalTrialExams.length, color: '#7c3aed' },
-                    { label: 'Ortalama Net', value: (generalTrialExams.reduce((s, x) => s + (x.totalNet || 0), 0) / generalTrialExams.length).toFixed(1), color: '#2563eb' },
-                    { label: 'En Yüksek Net', value: Math.max(...generalTrialExams.map(x => x.totalNet || 0)).toFixed(1), color: '#059669' },
+                    { label: 'Toplam Deneme', value: generalTrialExams.length, color: '#a855f7' },
+                    { label: 'Ortalama Net', value: (generalTrialExams.reduce((s, x) => s + (x.totalNet || 0), 0) / generalTrialExams.length).toFixed(1), color: '#3b82f6' },
+                    { label: 'En Yüksek Net', value: Math.max(...generalTrialExams.map(x => x.totalNet || 0)).toFixed(1), color: '#10b981' },
                     { label: 'Son Deneme', value: generalTrialExams[0]?.totalNet ?? '—', color: '#f59e0b' },
                   ].map(s => (
-                    <div key={s.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
+                    <div key={s.label} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
                       <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -3422,36 +3415,36 @@ export default function MyCoachingPage() {
                 {/* Deneme Listesi */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {generalTrialExams.map((s, i) => (
-                    <div key={s.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0.85rem 1rem', background: i === 0 ? '#f5f3ff' : '#f8fafc', borderRadius: '0.85rem', border: i === 0 ? '1.5px solid #ddd6fe' : '1px solid #e2e8f0' }}>
+                    <div key={s.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0.85rem 1rem', background: i === 0 ? 'rgba(124, 58, 237, 0.1)' : 'var(--color-surface-hover, #f8fafc)', borderRadius: '0.85rem', border: i === 0 ? '1.5px solid rgba(124, 58, 237, 0.35)' : '1px solid var(--color-border, #e2e8f0)' }}>
                       <div 
                         onClick={() => toggleExamExpand(s.id)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
                       >
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#7c3aed' : '#e2e8f0', color: i === 0 ? 'white' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem', flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#7c3aed' : 'var(--color-surface, #e2e8f0)', color: i === 0 ? 'white' : 'var(--color-text-muted, #64748b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem', flexShrink: 0 }}>{i + 1}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{s.title}</span>
+                            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)' }}>{s.title}</span>
                             {s.sourceType === 'online' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.45rem', borderRadius: 4 }}>⚡ Online Sınav</span>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', padding: '0.15rem 0.45rem', borderRadius: 4 }}>⚡ Online Sınav</span>
                             )}
                             {s.sourceType === 'optik' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
                             )}
                             {s.sourceType === 'manual' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
                             )}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Tarih: {s.date}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700, marginTop: 2 }}>Tarih: {s.date}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: 6, fontSize: '0.75rem', fontWeight: 800, marginRight: 8, background: 'rgba(255,255,255,0.6)', padding: '0.2rem 0.6rem', borderRadius: 20 }}>
+                          <div style={{ display: 'flex', gap: 6, fontSize: '0.75rem', fontWeight: 800, marginRight: 8, background: 'var(--color-surface, rgba(255,255,255,0.6))', padding: '0.2rem 0.6rem', borderRadius: 20, border: '1px solid var(--color-border, transparent)' }}>
                              <span style={{ color: '#10b981' }}>{s.totalCorrect || 0}D</span>
                              <span style={{ color: '#ef4444' }}>{s.totalWrong || 0}Y</span>
-                             <span style={{ color: '#94a3b8' }}>{s.totalEmpty || 0}B</span>
+                             <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>{s.totalEmpty || 0}B</span>
                           </div>
-                          <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#7c3aed' }}>{s.totalNet}</span>
-                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>net</span>
-                          <ChevronDown size={18} style={{ color: '#94a3b8', transform: expandedExams[s.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginLeft: 4 }} />
+                          <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#a855f7' }}>{s.totalNet}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>net</span>
+                          <ChevronDown size={18} style={{ color: 'var(--color-text-muted, #94a3b8)', transform: expandedExams[s.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginLeft: 4 }} />
                           {isTeacherOrAdmin && (
                             <button type="button" onClick={(e) => {
                               e.stopPropagation();
@@ -3463,7 +3456,7 @@ export default function MyCoachingPage() {
                               } else {
                                 deleteSubmission(s.id);
                               }
-                            }} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
+                            }} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 4, marginLeft: 4 }}>
                               <Trash2 size={15} />
                             </button>
                           )}
@@ -3472,27 +3465,27 @@ export default function MyCoachingPage() {
 
                       {/* Ders bazlı detay tablosu */}
                       {expandedExams[s.id] && s.scores && Object.keys(s.scores).length > 0 && (
-                        <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', marginBottom: '0.5rem' }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
+                        <div style={{ marginTop: '0.75rem', borderTop: '1px dashed var(--color-border, #cbd5e1)', paddingTop: '0.75rem' }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted, #475569)', marginBottom: '0.5rem' }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
                           <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: '400px' }}>
                               <thead>
-                                <tr style={{ background: 'rgba(255, 255, 255, 0.5)', color: '#64748b' }}>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0' }}>Ders</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Doğru (D)</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Yanlış (Y)</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Boş (B)</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid #e2e8f0', textAlign: 'center' }}>Net</th>
+                                <tr style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', color: 'var(--color-text-muted, #64748b)' }}>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)' }}>Ders</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Doğru (D)</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Yanlış (Y)</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Boş (B)</th>
+                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Net</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {Object.entries(s.scores).map(([subName, sc], idx) => (
-                                  <tr key={subName} style={{ background: idx % 2 === 0 ? 'rgba(255,255,255,0.4)' : 'transparent', borderBottom: '1px solid #e2e8f0' }}>
-                                    <td style={{ padding: '0.5rem', fontWeight: 700, color: '#334155' }}>{subName}</td>
+                                  <tr key={subName} style={{ background: idx % 2 === 0 ? 'var(--color-surface-hover, rgba(255,255,255,0.4))' : 'transparent', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
+                                    <td style={{ padding: '0.5rem', fontWeight: 700, color: 'var(--color-text, #334155)' }}>{subName}</td>
                                     <td style={{ padding: '0.5rem', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>{sc.d || 0}</td>
                                     <td style={{ padding: '0.5rem', textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{sc.y || 0}</td>
-                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>{sc.b || 0}</td>
-                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#7c3aed', fontWeight: 900 }}>{Number(sc.net || 0).toFixed(2)}</td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>{sc.b || 0}</td>
+                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#a855f7', fontWeight: 900 }}>{Number(sc.net || 0).toFixed(2)}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -3521,32 +3514,32 @@ export default function MyCoachingPage() {
                 <div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>{schoolGrades.length} Yazılı Kayıtlı</div>
               </div>
 
-              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>EN YÜKSEK NOT</div>
+              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 4 }}>EN YÜKSEK NOT</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981' }}>
                   {schoolGrades.length > 0 ? `${Math.max(...schoolGrades.map(g => parseFloat(g.score) || 0))}` : '—'}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>En başarılı yazılınız</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 4 }}>En başarılı yazılınız</div>
               </div>
 
-              <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid rgba(255,255,255,1)' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>DERS ÇEŞİDİ</div>
+              <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.15rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginBottom: 4 }}>DERS ÇEŞİDİ</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f59e0b' }}>
                   {new Set(schoolGrades.map(g => g.subject)).size} Ders
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>Not girilen ders sayısı</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', marginTop: 4 }}>Not girilen ders sayısı</div>
               </div>
             </div>
 
             {/* Şablon Seçim Modu Butonları */}
-            <div style={{ display: 'flex', gap: '0.65rem', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', padding: '0.75rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,1)' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', padding: '0.75rem', borderRadius: '1rem', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
               <button
                 onClick={() => setGradeTemplateMode('ortaokul')}
                 style={{
                   flex: 1, padding: '0.75rem 1rem', borderRadius: '0.65rem', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
-                  background: gradeTemplateMode === 'ortaokul' ? '#4f46e5' : '#f8fafc',
-                  color: gradeTemplateMode === 'ortaokul' ? 'white' : '#475569',
-                  border: gradeTemplateMode === 'ortaokul' ? 'none' : '1px solid #cbd5e1',
+                  background: gradeTemplateMode === 'ortaokul' ? '#4f46e5' : 'var(--color-surface-hover, #f8fafc)',
+                  color: gradeTemplateMode === 'ortaokul' ? 'white' : 'var(--color-text-muted, #475569)',
+                  border: gradeTemplateMode === 'ortaokul' ? 'none' : '1px solid var(--color-border-input, #cbd5e1)',
                   transition: 'all 0.15s'
                 }}
               >
@@ -3557,9 +3550,9 @@ export default function MyCoachingPage() {
                 onClick={() => setGradeTemplateMode('lise')}
                 style={{
                   flex: 1, padding: '0.75rem 1rem', borderRadius: '0.65rem', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
-                  background: gradeTemplateMode === 'lise' ? '#7c3aed' : '#f8fafc',
-                  color: gradeTemplateMode === 'lise' ? 'white' : '#475569',
-                  border: gradeTemplateMode === 'lise' ? 'none' : '1px solid #cbd5e1',
+                  background: gradeTemplateMode === 'lise' ? '#7c3aed' : 'var(--color-surface-hover, #f8fafc)',
+                  color: gradeTemplateMode === 'lise' ? 'white' : 'var(--color-text-muted, #475569)',
+                  border: gradeTemplateMode === 'lise' ? 'none' : '1px solid var(--color-border-input, #cbd5e1)',
                   transition: 'all 0.15s'
                 }}
               >
@@ -3574,23 +3567,23 @@ export default function MyCoachingPage() {
               const allSubjectsForTable = Array.from(new Set([...templateSubjects, ...customSubjects, ...extraFromGrades]));
 
               return (
-                <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid rgba(255,255,255,1)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(16px)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>{SCHOOL_LEVEL_TEMPLATES[gradeTemplateMode].name}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Kutucuklara doğrudan puanınızı girin</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>Kutucuklara doğrudan puanınızı girin</span>
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                       <thead>
-                        <tr style={{ background: 'rgba(255, 255, 255, 0.5)', borderBottom: '2px solid #e2e8f0' }}>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: '#475569', fontWeight: 800 }}>Ders</th>
+                        <tr style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderBottom: '2px solid var(--color-border, #e2e8f0)' }}>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', color: 'var(--color-text-muted, #475569)', fontWeight: 800 }}>Ders</th>
                           {EXAM_TERMS.map(term => (
-                            <th key={term} style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: '#475569', fontWeight: 800, width: 110 }}>
+                            <th key={term} style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: 'var(--color-text-muted, #475569)', fontWeight: 800, width: 110 }}>
                               {term}
                             </th>
                           ))}
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: '#475569', fontWeight: 800, width: 90 }}>Ders Ort.</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.78rem', color: 'var(--color-text-muted, #475569)', fontWeight: 800, width: 90 }}>Ders Ort.</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3601,17 +3594,17 @@ export default function MyCoachingPage() {
                           const subAvg = subScores.length > 0 ? (subScores.reduce((a, b) => a + b, 0) / subScores.length).toFixed(1) : '—';
 
                           return (
-                            <tr key={subject} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '0.75rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <tr key={subject} style={{ borderBottom: '1px solid var(--color-border, #f1f5f9)' }}>
+                              <td style={{ padding: '0.75rem 1rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  {isCustom && <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#b45309', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 700 }}>Seçmeli</span>}
+                                  {isCustom && <span style={{ fontSize: '0.7rem', background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 700 }}>Seçmeli</span>}
                                   <span>{subject}</span>
                                 </div>
                                 {isCustom && (
                                   <button
                                     onClick={() => deleteCustomSubject(subject)}
                                     title="Seçmeli Dersi ve Notlarını Sil"
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2 }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2 }}
                                   >
                                     <Trash2 size={15} />
                                   </button>
@@ -3633,16 +3626,16 @@ export default function MyCoachingPage() {
                                       onChange={(e) => handleGradeInputChange(subject, term, e.target.value)}
                                       style={{
                                         width: 75, padding: '0.45rem', textAlign: 'center', borderRadius: '0.4rem',
-                                        border: currentVal !== '' ? '1.5px solid #6366f1' : '1px solid #cbd5e1',
-                                        background: currentVal !== '' ? '#eef2ff' : 'white',
-                                        fontWeight: 800, fontSize: '0.9rem', color: currentVal !== '' ? '#3730a3' : '#334155'
+                                        border: currentVal !== '' ? '1.5px solid #6366f1' : '1px solid var(--color-border-input, #cbd5e1)',
+                                        background: currentVal !== '' ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface, white)',
+                                        fontWeight: 800, fontSize: '0.9rem', color: currentVal !== '' ? '#818cf8' : 'var(--color-text, #334155)'
                                       }}
                                     />
                                   </td>
                                 );
                               })}
 
-                              <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 900, fontSize: '0.9rem', color: subAvg !== '—' ? '#10b981' : '#94a3b8' }}>
+                              <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 900, fontSize: '0.9rem', color: subAvg !== '—' ? '#10b981' : 'var(--color-text-muted, #94a3b8)' }}>
                                 {subAvg}
                               </td>
                             </tr>
@@ -3655,14 +3648,14 @@ export default function MyCoachingPage() {
                   {/* Liste Altında Seçmeli / Ekstra Ders Ekle Formu */}
                   <form
                     onSubmit={(e) => { e.preventDefault(); addCustomSubject(); }}
-                    style={{ display: 'flex', gap: '0.65rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed #e2e8f0', alignItems: 'center' }}
+                    style={{ display: 'flex', gap: '0.65rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed var(--color-border, #e2e8f0)', alignItems: 'center' }}
                   >
                     <input
                       type="text"
                       placeholder="➕ Liste dışı veya seçmeli ders adı ekleyin (ör: Almanca, Müzik, Görsel Sanatlar)..."
                       value={newCustomSubjectInput}
                       onChange={(e) => setNewCustomSubjectInput(e.target.value)}
-                      style={{ flex: 1, padding: '0.6rem 0.85rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}
+                      style={{ flex: 1, padding: '0.6rem 0.85rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input, #cbd5e1)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text, #1e293b)', background: 'var(--color-surface, white)' }}
                     />
                     <button
                       type="submit"
@@ -3708,14 +3701,14 @@ export default function MyCoachingPage() {
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
                       {[
-                        { label: 'Çözülen Test', value: otherHomeworkSubmissions.length, color: '#2563eb' },
-                        { label: 'Başarı Durumu', value: `%${hwSuccessRate}`, color: '#7c3aed' },
-                        { label: 'Toplam Doğru', value: hwTotalD, color: '#059669' },
-                        { label: 'Toplam Yanlış', value: hwTotalY, color: '#dc2626' },
+                        { label: 'Çözülen Test', value: otherHomeworkSubmissions.length, color: '#3b82f6' },
+                        { label: 'Başarı Durumu', value: `%${hwSuccessRate}`, color: '#a855f7' },
+                        { label: 'Toplam Doğru', value: hwTotalD, color: '#10b981' },
+                        { label: 'Toplam Yanlış', value: hwTotalY, color: '#ef4444' },
                       ].map(s => (
-                        <div key={s.label} style={{ background: 'rgba(255, 255, 255, 0.5)', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,255,255,1)' }}>
+                        <div key={s.label} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.5))', borderRadius: '0.85rem', padding: '0.85rem', textAlign: 'center', border: '1px solid var(--color-border, rgba(255,255,255,1))' }}>
                           <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 2 }}>{s.label}</div>
                         </div>
                       ))}
                     </div>
@@ -3734,13 +3727,13 @@ export default function MyCoachingPage() {
                     'Genel / Diğer': '📚'
                   };
                   const SUBJECT_COLORS = {
-                    'Matematik': { text: '#2563eb', bg: 'rgba(239, 246, 255, 0.7)', border: '#bfdbfe' },
-                    'Türkçe': { text: '#d97706', bg: 'rgba(255, 251, 235, 0.7)', border: '#fde68a' },
-                    'Fen Bilimleri': { text: '#059669', bg: 'rgba(240, 253, 244, 0.7)', border: '#bbf7d0' },
-                    'Sosyal Bilgiler': { text: '#dc2626', bg: 'rgba(254, 242, 242, 0.7)', border: '#fecaca' },
-                    'İngilizce': { text: '#7c3aed', bg: 'rgba(245, 243, 255, 0.7)', border: '#ddd6fe' },
-                    'Din Kültürü': { text: '#0891b2', bg: 'rgba(236, 254, 255, 0.7)', border: '#a5f3fc' },
-                    'Genel / Diğer': { text: '#475569', bg: 'rgba(248, 250, 252, 0.7)', border: '#e2e8f0' }
+                    'Matematik': { text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.35)' },
+                    'Türkçe': { text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.35)' },
+                    'Fen Bilimleri': { text: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.35)' },
+                    'Sosyal Bilgiler': { text: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.35)' },
+                    'İngilizce': { text: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)', border: 'rgba(168, 85, 247, 0.35)' },
+                    'Din Kültürü': { text: '#06b6d4', bg: 'rgba(6, 182, 212, 0.12)', border: 'rgba(6, 182, 212, 0.35)' },
+                    'Genel / Diğer': { text: 'var(--color-text-muted, #64748b)', bg: 'var(--color-surface-hover, rgba(248, 250, 252, 0.7))', border: 'var(--color-border, #e2e8f0)' }
                   };
 
                   const formatDateTR = (dateStr) => {
@@ -3799,9 +3792,9 @@ export default function MyCoachingPage() {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                       {/* Görünüm Modu ve Arama Çubuğu */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '0.75rem 0.9rem', background: 'rgba(255, 255, 255, 0.6)', borderRadius: '0.9rem', border: '1px solid rgba(255,255,255,0.9)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '0.75rem 0.9rem', background: 'var(--color-surface, rgba(255, 255, 255, 0.6))', borderRadius: '0.9rem', border: '1px solid var(--color-border, rgba(255,255,255,0.9))' }}>
                         {/* Görünüm Modu Seçici (Derslere Göre / Günlere Göre) */}
-                        <div style={{ display: 'flex', gap: 6, background: 'rgba(226, 232, 240, 0.8)', padding: 3, borderRadius: '0.65rem' }}>
+                        <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface-hover, rgba(226, 232, 240, 0.8))', padding: 3, borderRadius: '0.65rem' }}>
                           <button
                             type="button"
                             onClick={() => setHwGroupByMode('subject')}
@@ -3812,8 +3805,8 @@ export default function MyCoachingPage() {
                               fontWeight: 800,
                               cursor: 'pointer',
                               border: 'none',
-                              background: hwGroupByMode === 'subject' ? 'white' : 'transparent',
-                              color: hwGroupByMode === 'subject' ? '#4f46e5' : '#64748b',
+                              background: hwGroupByMode === 'subject' ? 'var(--color-surface, white)' : 'transparent',
+                              color: hwGroupByMode === 'subject' ? '#6366f1' : 'var(--color-text-muted, #64748b)',
                               boxShadow: hwGroupByMode === 'subject' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                               display: 'flex',
                               alignItems: 'center',
@@ -3832,8 +3825,8 @@ export default function MyCoachingPage() {
                               fontWeight: 800,
                               cursor: 'pointer',
                               border: 'none',
-                              background: hwGroupByMode === 'date' ? 'white' : 'transparent',
-                              color: hwGroupByMode === 'date' ? '#4f46e5' : '#64748b',
+                              background: hwGroupByMode === 'date' ? 'var(--color-surface, white)' : 'transparent',
+                              color: hwGroupByMode === 'date' ? '#6366f1' : 'var(--color-text-muted, #64748b)',
                               boxShadow: hwGroupByMode === 'date' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                               display: 'flex',
                               alignItems: 'center',
@@ -3856,10 +3849,10 @@ export default function MyCoachingPage() {
                               padding: '0.4rem 0.75rem',
                               fontSize: '0.8rem',
                               fontWeight: 600,
-                              color: '#0f172a',
-                              background: '#ffffff',
+                              color: 'var(--color-text, #0f172a)',
+                              background: 'var(--color-surface, #ffffff)',
                               borderRadius: '0.55rem',
-                              border: '1.5px solid #cbd5e1',
+                              border: '1.5px solid var(--color-border-input, #cbd5e1)',
                               outline: 'none',
                               boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
                             }}
@@ -3879,9 +3872,9 @@ export default function MyCoachingPage() {
                               fontSize: '0.75rem',
                               fontWeight: 800,
                               cursor: 'pointer',
-                              border: hwSubjectFilter === 'all' ? '1.5px solid #4f46e5' : '1px solid #e2e8f0',
-                              background: hwSubjectFilter === 'all' ? '#4f46e5' : 'white',
-                              color: hwSubjectFilter === 'all' ? 'white' : '#475569',
+                              border: hwSubjectFilter === 'all' ? '1.5px solid #6366f1' : '1px solid var(--color-border, #e2e8f0)',
+                              background: hwSubjectFilter === 'all' ? '#6366f1' : 'var(--color-surface, white)',
+                              color: hwSubjectFilter === 'all' ? 'white' : 'var(--color-text-muted, #475569)',
                               transition: 'all 0.15s ease'
                             }}
                           >
@@ -3929,8 +3922,8 @@ export default function MyCoachingPage() {
                                 key={dStr}
                                 onClick={() => setExpandedHwDates(prev => ({ ...prev, [dStr]: true }))}
                                 style={{
-                                  background: isBugun ? '#f0fdf4' : 'rgba(255,255,255,0.9)',
-                                  border: isBugun ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+                                  background: isBugun ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface, rgba(255,255,255,0.9))',
+                                  border: isBugun ? '1.5px solid #86efac' : '1px solid var(--color-border, #e2e8f0)',
                                   borderRadius: '0.7rem',
                                   padding: '0.5rem 0.75rem',
                                   minWidth: 140,
@@ -3939,18 +3932,18 @@ export default function MyCoachingPage() {
                                   flexShrink: 0
                                 }}
                               >
-                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isBugun ? '#15803d' : '#0f172a' }}>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isBugun ? '#10b981' : 'var(--color-text, #0f172a)' }}>
                                   📅 {dStr.split('-').reverse().join('.')}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#2563eb' }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6' }}>
                                     ✏️ {qCount} Soru
                                   </span>
-                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: rate >= 70 ? '#059669' : '#d97706' }}>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: rate >= 70 ? '#10b981' : '#f59e0b' }}>
                                     %{rate}
                                   </span>
                                 </div>
-                                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 2 }}>
                                   {tests.length} Test Çözüldü
                                 </div>
                               </div>
@@ -3961,14 +3954,14 @@ export default function MyCoachingPage() {
 
                       {/* Gruplanmış Akordiyon & Kart Listesi */}
                       {currentEntries.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontWeight: 600, background: 'rgba(255, 255, 255, 0.4)', borderRadius: '0.85rem', border: '1px dashed #cbd5e1' }}>
+                        <div style={{ textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', padding: '2rem', fontWeight: 600, background: 'var(--color-surface, rgba(255, 255, 255, 0.4))', borderRadius: '0.85rem', border: '1px dashed var(--color-border, #cbd5e1)' }}>
                           Aradığınız kriterlere uygun test bulunamadı.
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           {/* Hızlı Tümünü Aç / Kapat Butonları */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2px' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted, #64748b)' }}>
                               {hwGroupByMode === 'subject'
                                 ? 'Ders gruplarına tıklayarak detaylı test listesini görebilirsiniz:'
                                 : 'Günlere tıklayarak o gün çözülen tüm test ve soruları görebilirsiniz:'}
@@ -3983,9 +3976,9 @@ export default function MyCoachingPage() {
                                   else setExpandedHwDates(allOpen);
                                 }}
                                 style={{
-                                  background: '#eef2ff',
-                                  color: '#4f46e5',
-                                  border: '1px solid #c7d2fe',
+                                  background: 'rgba(99, 102, 241, 0.15)',
+                                  color: '#818cf8',
+                                  border: '1px solid rgba(99, 102, 241, 0.35)',
                                   borderRadius: '0.45rem',
                                   padding: '0.2rem 0.55rem',
                                   fontSize: '0.72rem',
@@ -4002,9 +3995,9 @@ export default function MyCoachingPage() {
                                   else setExpandedHwDates({});
                                 }}
                                 style={{
-                                  background: 'rgba(255, 255, 255, 0.8)',
-                                  color: '#64748b',
-                                  border: '1px solid #e2e8f0',
+                                  background: 'var(--color-surface, rgba(255, 255, 255, 0.8))',
+                                  color: 'var(--color-text-muted, #64748b)',
+                                  border: '1px solid var(--color-border, #e2e8f0)',
                                   borderRadius: '0.45rem',
                                   padding: '0.2rem 0.55rem',
                                   fontSize: '0.72rem',
@@ -4030,7 +4023,7 @@ export default function MyCoachingPage() {
                             const grpRate = grpTotalQ > 0 ? Math.round((grpD / grpTotalQ) * 100) : 0;
 
                             return (
-                              <div key={subjName} style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                              <div key={subjName} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: `1.5px solid ${col.border}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
                                 <div
                                   onClick={() => setExpandedHwSubjects(prev => ({ ...prev, [subjName]: !prev[subjName] }))}
                                   style={{
@@ -4049,17 +4042,17 @@ export default function MyCoachingPage() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <span style={{ fontSize: '1.1rem' }}>{ico}</span>
                                     <span style={{ fontWeight: 900, fontSize: '0.92rem', color: col.text }}>{subjName}</span>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: col.text, background: 'white', border: `1px solid ${col.border}`, padding: '1px 7px', borderRadius: 99 }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: col.text, background: 'var(--color-surface, white)', border: `1px solid ${col.border}`, padding: '1px 7px', borderRadius: 99 }}>
                                       {tests.length} Test · {grpTotalQ} Soru
                                     </span>
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                                      <span style={{ color: '#059669', background: 'white', border: '1px solid #86efac', padding: '2px 6px', borderRadius: '0.4rem' }}>
+                                      <span style={{ color: '#10b981', background: 'var(--color-surface, white)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '2px 6px', borderRadius: '0.4rem' }}>
                                         Ort. %{grpRate} Başarı
                                       </span>
-                                      <span style={{ color: '#475569', background: 'white', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '0.4rem' }}>
+                                      <span style={{ color: 'var(--color-text-muted, #475569)', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '2px 6px', borderRadius: '0.4rem' }}>
                                         ✅ {grpD} · ❌ {grpY}
                                       </span>
                                     </div>
@@ -4070,7 +4063,7 @@ export default function MyCoachingPage() {
                                 </div>
 
                                 {isOpen && (
-                                  <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.4)' }}>
+                                  <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.4))' }}>
                                     {tests.map((s, i) => {
                                       const d = s.correctCount || 0;
                                       const y = s.wrongCount || 0;
@@ -4082,9 +4075,9 @@ export default function MyCoachingPage() {
                                         <div
                                           key={s.id || i}
                                           style={{
-                                            background: 'white',
+                                            background: 'var(--color-surface, white)',
                                             borderRadius: '0.75rem',
-                                            border: '1px solid #e2e8f0',
+                                            border: '1px solid var(--color-border, #e2e8f0)',
                                             padding: '0.75rem 0.85rem',
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -4094,19 +4087,19 @@ export default function MyCoachingPage() {
                                           }}
                                         >
                                           <div>
-                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.35, wordBreak: 'break-word' }}>
                                               {s.title}
                                             </div>
-                                            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                                               <span>📅 {s.date}</span>
                                               <span>•</span>
-                                              <span style={{ fontWeight: 700, color: '#2563eb' }}>✏️ {totalQ} Soru</span>
+                                              <span style={{ fontWeight: 700, color: '#3b82f6' }}>✏️ {totalQ} Soru</span>
                                             </div>
                                           </div>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed #f1f5f9', gap: 6 }}>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>
-                                              ✅ {d} <span style={{ color: '#94a3b8' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: '#94a3b8' }}>·</span> ⭕ {b}</>}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--color-border, #f1f5f9)', gap: 6 }}>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted, #475569)' }}>
+                                              ✅ {d} <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ⭕ {b}</>}
                                             </div>
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -4114,9 +4107,9 @@ export default function MyCoachingPage() {
                                                 style={{
                                                   fontWeight: 900,
                                                   fontSize: '0.76rem',
-                                                  color: rate >= 70 ? '#15803d' : rate >= 50 ? '#b45309' : '#b91c1c',
-                                                  background: rate >= 70 ? '#dcfce7' : rate >= 50 ? '#fef3c7' : '#fee2e2',
-                                                  border: rate >= 70 ? '1px solid #86efac' : rate >= 50 ? '1px solid #fde68a' : '1px solid #fca5a5',
+                                                  color: rate >= 70 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444',
+                                                  background: rate >= 70 ? 'rgba(16, 185, 129, 0.15)' : rate >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                                  border: rate >= 70 ? '1px solid rgba(16, 185, 129, 0.35)' : rate >= 50 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(239, 68, 68, 0.35)',
                                                   padding: '2px 7px',
                                                   borderRadius: '0.4rem',
                                                   display: 'inline-flex',
@@ -4131,9 +4124,9 @@ export default function MyCoachingPage() {
                                                   type="button"
                                                   onClick={() => deleteSubmission(s.id)}
                                                   title="Testi Sil"
-                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2, display: 'flex', borderRadius: 4 }}
                                                   onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                                                  onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #cbd5e1)'}
                                                 >
                                                   <Trash2 size={14} />
                                                 </button>
@@ -4164,10 +4157,10 @@ export default function MyCoachingPage() {
                               <div
                                 key={dateKey}
                                 style={{
-                                  background: 'rgba(255, 255, 255, 0.7)',
+                                  background: 'var(--color-surface, rgba(255, 255, 255, 0.7))',
                                   backdropFilter: 'blur(12px)',
                                   borderRadius: '1rem',
-                                  border: isBugun ? '2px solid #86efac' : '1.5px solid #e2e8f0',
+                                  border: isBugun ? '2px solid #86efac' : '1.5px solid var(--color-border, #e2e8f0)',
                                   overflow: 'hidden',
                                   boxShadow: isBugun ? '0 4px 12px rgba(16,185,129,0.1)' : '0 2px 8px rgba(0,0,0,0.03)'
                                 }}
@@ -4182,35 +4175,35 @@ export default function MyCoachingPage() {
                                     flexWrap: 'wrap',
                                     gap: 8,
                                     padding: '0.75rem 1rem',
-                                    background: isBugun ? 'rgba(240, 253, 244, 0.8)' : 'rgba(248, 250, 252, 0.8)',
+                                    background: isBugun ? 'rgba(16, 185, 129, 0.15)' : 'var(--color-surface-hover, rgba(248, 250, 252, 0.8))',
                                     cursor: 'pointer',
-                                    borderBottom: isOpen ? (isBugun ? '1.5px solid #86efac' : '1.5px solid #e2e8f0') : 'none',
+                                    borderBottom: isOpen ? (isBugun ? '1.5px solid #86efac' : '1.5px solid var(--color-border, #e2e8f0)') : 'none',
                                     userSelect: 'none'
                                   }}
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '1.1rem' }}>📅</span>
-                                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: isBugun ? '#15803d' : '#0f172a' }}>
+                                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: isBugun ? '#10b981' : 'var(--color-text, #0f172a)' }}>
                                       {formatDateTR(dateKey)}
                                     </span>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', background: 'white', border: '1px solid #bfdbfe', padding: '1px 8px', borderRadius: 99 }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#3b82f6', background: 'var(--color-surface, white)', border: '1px solid rgba(59, 130, 246, 0.35)', padding: '1px 8px', borderRadius: 99 }}>
                                       {tests.length} Test
                                     </span>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#7c3aed', background: 'white', border: '1px solid #ddd6fe', padding: '1px 8px', borderRadius: 99 }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#a855f7', background: 'var(--color-surface, white)', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '1px 8px', borderRadius: 99 }}>
                                       ✏️ {grpTotalQ} Soru Çözüldü
                                     </span>
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 800 }}>
-                                      <span style={{ color: grpRate >= 70 ? '#15803d' : grpRate >= 50 ? '#b45309' : '#b91c1c', background: 'white', border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: '0.4rem' }}>
+                                      <span style={{ color: grpRate >= 70 ? '#10b981' : grpRate >= 50 ? '#f59e0b' : '#ef4444', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '2px 7px', borderRadius: '0.4rem' }}>
                                         Ort. %{grpRate} Başarı
                                       </span>
-                                      <span style={{ color: '#475569', background: 'white', border: '1px solid #e2e8f0', padding: '2px 7px', borderRadius: '0.4rem' }}>
+                                      <span style={{ color: 'var(--color-text-muted, #475569)', background: 'var(--color-surface, white)', border: '1px solid var(--color-border, #e2e8f0)', padding: '2px 7px', borderRadius: '0.4rem' }}>
                                         ✅ {grpD} · ❌ {grpY} {grpB > 0 && `· ⭕ ${grpB}`}
                                       </span>
                                     </div>
-                                    <div style={{ color: '#64748b', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
+                                    <div style={{ color: 'var(--color-text-muted, #64748b)', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease', display: 'flex' }}>
                                       <ChevronDown size={18} strokeWidth={2.5} />
                                     </div>
                                   </div>
@@ -4218,7 +4211,7 @@ export default function MyCoachingPage() {
 
                                 {/* Gün İçi Test Kartları Grid Düzeni */}
                                 {isOpen && (
-                                  <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.4)' }}>
+                                  <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.4))' }}>
                                     {tests.map((s, i) => {
                                       const d = s.correctCount || 0;
                                       const y = s.wrongCount || 0;
@@ -4233,9 +4226,9 @@ export default function MyCoachingPage() {
                                         <div
                                           key={s.id || i}
                                           style={{
-                                            background: 'white',
+                                            background: 'var(--color-surface, white)',
                                             borderRadius: '0.75rem',
-                                            border: '1px solid #e2e8f0',
+                                            border: '1px solid var(--color-border, #e2e8f0)',
                                             padding: '0.75rem 0.85rem',
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -4249,18 +4242,18 @@ export default function MyCoachingPage() {
                                               <span style={{ fontSize: '0.68rem', fontWeight: 800, color: col.text, background: col.bg, border: `1px solid ${col.border}`, padding: '1px 6px', borderRadius: '0.35rem' }}>
                                                 {ico} {subj}
                                               </span>
-                                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#2563eb' }}>
+                                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#3b82f6' }}>
                                                 ✏️ {totalQ} Soru
                                               </span>
                                             </div>
-                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.35, wordBreak: 'break-word' }}>
                                               {s.title}
                                             </div>
                                           </div>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed #f1f5f9', gap: 6 }}>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>
-                                              ✅ {d} <span style={{ color: '#94a3b8' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: '#94a3b8' }}>·</span> ⭕ {b}</>}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--color-border, #f1f5f9)', gap: 6 }}>
+                                            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted, #475569)' }}>
+                                              ✅ {d} <span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ❌ {y} {b > 0 && <><span style={{ color: 'var(--color-text-muted, #94a3b8)' }}>·</span> ⭕ {b}</>}
                                             </div>
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -4268,9 +4261,9 @@ export default function MyCoachingPage() {
                                                 style={{
                                                   fontWeight: 900,
                                                   fontSize: '0.76rem',
-                                                  color: rate >= 70 ? '#15803d' : rate >= 50 ? '#b45309' : '#b91c1c',
-                                                  background: rate >= 70 ? '#dcfce7' : rate >= 50 ? '#fef3c7' : '#fee2e2',
-                                                  border: rate >= 70 ? '1px solid #86efac' : rate >= 50 ? '1px solid #fde68a' : '1px solid #fca5a5',
+                                                  color: rate >= 70 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444',
+                                                  background: rate >= 70 ? 'rgba(16, 185, 129, 0.15)' : rate >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                                  border: rate >= 70 ? '1px solid rgba(16, 185, 129, 0.35)' : rate >= 50 ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(239, 68, 68, 0.35)',
                                                   padding: '2px 7px',
                                                   borderRadius: '0.4rem',
                                                   display: 'inline-flex',
@@ -4285,9 +4278,9 @@ export default function MyCoachingPage() {
                                                   type="button"
                                                   onClick={() => deleteSubmission(s.id)}
                                                   title="Testi Sil"
-                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
+                                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 2, display: 'flex', borderRadius: 4 }}
                                                   onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                                                  onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #cbd5e1)'}
                                                 >
                                                   <Trash2 size={14} />
                                                 </button>
@@ -4312,149 +4305,149 @@ export default function MyCoachingPage() {
           </div>
         )}
 
-            {/* ═══ DENEME EKLEME MODAL POPUP ═══ */}
-            {showMockModal && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-                <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.25rem', width: '100%', maxWidth: 650, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
-                  
-                  {/* Modal Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '2px solid #f1f5f9' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: '1.2rem' }}>📝</span>
-                      <div>
-                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#0f172a' }}>Yeni Deneme Sonucu Ekle</h3>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sonuçlarınız anında sisteme kaydedilecektir.</p>
-                      </div>
-                    </div>
-                    <button onClick={() => setShowMockModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
-                      <X size={18} />
-                    </button>
+        {/* ═══ DENEME EKLEME MODAL POPUP ═══ */}
+        {showMockModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+            <div style={{ background: 'var(--color-surface, #ffffff)', borderRadius: '1.25rem', width: '100%', maxWidth: 650, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', border: '1px solid var(--color-border, #e2e8f0)' }}>
+              
+              {/* Modal Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '2px solid var(--color-border, #f1f5f9)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1.2rem' }}>📝</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text, #0f172a)' }}>Yeni Deneme Sonucu Ekle</h3>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>Sonuçlarınız anında sisteme kaydedilecektir.</p>
                   </div>
-
-                  <form onSubmit={handleSaveManualMock}>
-                    {/* Header Info */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                      <div>
-                        <label style={lbl}>Deneme Adı / Yayın</label>
-                        <input style={inp} value={newManualMock.title} onChange={e => setNewManualMock(p => ({ ...p, title: e.target.value }))} placeholder="Örn: Özdebir Türkiye Geneli LGS-3" required />
-                      </div>
-                      <div>
-                        <label style={lbl}>Tarih</label>
-                        <input style={inp} type="date" value={newManualMock.date} onChange={e => setNewManualMock(p => ({ ...p, date: e.target.value }))} />
-                      </div>
-                    </div>
-
-                    {/* Subject Table / Grid */}
-                    <div style={{ fontWeight: 800, fontSize: '0.83rem', color: '#1e293b', marginBottom: 8 }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
-                    
-                    <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '0.85rem', overflow: 'hidden', marginBottom: '0.85rem' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                        <thead>
-                          <tr style={{ background: 'rgba(255, 255, 255, 0.5)', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontWeight: 800, fontSize: '0.73rem', textTransform: 'uppercase' }}>
-                            <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left' }}>Ders</th>
-                            <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#16a34a', width: 70 }}>Doğru (D)</th>
-                            <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#dc2626', width: 70 }}>Yanlış (Y)</th>
-                            <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#d97706', width: 70 }}>Boş (B)</th>
-                            <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#7c3aed', width: 85 }}>Net</th>
-                            <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', width: 36 }}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.keys(newManualMock.subjects).map((subName, idx) => {
-                            const sub = newManualMock.subjects[subName];
-                            const total = Object.keys(newManualMock.subjects).length;
-                            return (
-                              <tr key={subName} style={{ borderBottom: idx < total - 1 ? '1px solid #f1f5f9' : 'none', background: idx % 2 === 0 ? 'white' : '#fafafa' }}>
-                                <td style={{ padding: '0.55rem 0.75rem', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap' }}>{subName}</td>
-                                <td style={{ padding: '0.35rem', textAlign: 'center' }}>
-                                  <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: '#bbf7d0' }}
-                                    value={sub.d} onChange={e => updateSubjectScore(subName, 'd', e.target.value)} placeholder="0" />
-                                </td>
-                                <td style={{ padding: '0.35rem', textAlign: 'center' }}>
-                                  <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: '#fca5a5' }}
-                                    value={sub.y} onChange={e => updateSubjectScore(subName, 'y', e.target.value)} placeholder="0" />
-                                </td>
-                                <td style={{ padding: '0.35rem', textAlign: 'center' }}>
-                                  <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: '#fde68a' }}
-                                    value={sub.b} onChange={e => updateSubjectScore(subName, 'b', e.target.value)} placeholder="0" />
-                                </td>
-                                <td style={{ padding: '0.35rem', textAlign: 'center' }}>
-                                  <input type="number" step="0.25" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: 900, color: '#7c3aed', background: '#f5f3ff', borderColor: '#ddd6fe' }}
-                                    value={sub.net} onChange={e => updateSubjectScore(subName, 'net', e.target.value)} placeholder="0.00" />
-                                </td>
-                                <td style={{ padding: '0.35rem', textAlign: 'center' }}>
-                                  <button type="button" onClick={() => removeSubjectFromMock(subName)} title="Dersi kaldır"
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                    onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Ders Ekle Satırı */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', alignItems: 'center', background: 'rgba(255, 255, 255, 0.5)', border: '1.5px dashed #c7d2fe', borderRadius: '0.85rem', padding: '0.65rem 0.85rem' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366f1', whiteSpace: 'nowrap' }}>➕ Ders Ekle:</span>
-                      <select
-                        value={newSubjectName}
-                        onChange={e => setNewSubjectName(e.target.value)}
-                        style={{ ...inp, flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
-                      >
-                        <option value="">— Ders seç veya yaz —</option>
-                        {['Türkçe','Matematik','Fen Bilimleri','Sosyal Bilgiler','İngilizce','Din Kültürü','Yabancı Dil','Tarih','Coğrafya','Fizik','Kimya','Biyoloji','Edebiyat','Geometri','TYT Türkçe','TYT Matematik','TYT Fen','TYT Sosyal']
-                          .filter(s => !newManualMock.subjects[s])
-                          .map(s => <option key={s} value={s}>{s}</option>)
-                        }
-                      </select>
-                      <input
-                        type="text"
-                        value={newSubjectName}
-                        onChange={e => setNewSubjectName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSubjectToMock())}
-                        placeholder="veya özel ders adı yaz"
-                        style={{ ...inp, flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={addSubjectToMock}
-                        disabled={!newSubjectName.trim() || !!newManualMock.subjects[newSubjectName.trim()]}
-                        style={{ background: newSubjectName.trim() && !newManualMock.subjects[newSubjectName.trim()] ? '#6366f1' : '#e2e8f0', color: newSubjectName.trim() && !newManualMock.subjects[newSubjectName.trim()] ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.6rem', padding: '0.4rem 0.9rem', fontWeight: 800, fontSize: '0.82rem', cursor: newSubjectName.trim() ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
-                      >
-                        Ekle
-                      </button>
-                    </div>
-
-                    {/* Summary Bar */}
-                    <div style={{ background: '#f5f3ff', border: '1.5px solid #ddd6fe', borderRadius: '0.85rem', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 8 }}>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#4c1d95', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <span>✅ {totalMockD} Doğru</span>
-                        <span>❌ {totalMockY} Yanlış</span>
-                        <span>⭕ {totalMockB} Boş</span>
-                      </div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#6d28d9' }}>
-                        Toplam Net: <span style={{ fontSize: '1.2rem', color: '#7c3aed' }}>{totalMockNet.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {/* Buttons */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                      <button type="button" onClick={() => setShowMockModal(false)} style={{ background: 'rgba(255, 255, 255, 0.6)', color: '#64748b', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.2rem', fontWeight: 800, fontSize: '0.83rem', cursor: 'pointer' }}>
-                        Vazgeç
-                      </button>
-                      <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.4rem', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(124,58,237,0.3)' }}>
-                        <Plus size={16} /> Kaydet
-                      </button>
-                    </div>
-
-                  </form>
                 </div>
+                <button onClick={() => setShowMockModal(false)} style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.6))', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted, #64748b)' }}>
+                  <X size={18} />
+                </button>
               </div>
-            )}
+
+              <form onSubmit={handleSaveManualMock}>
+                {/* Header Info */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <label style={lbl}>Deneme Adı / Yayın</label>
+                    <input style={inp} value={newManualMock.title} onChange={e => setNewManualMock(p => ({ ...p, title: e.target.value }))} placeholder="Örn: Özdebir Türkiye Geneli LGS-3" required />
+                  </div>
+                  <div>
+                    <label style={lbl}>Tarih</label>
+                    <input style={inp} type="date" value={newManualMock.date} onChange={e => setNewManualMock(p => ({ ...p, date: e.target.value }))} />
+                  </div>
+                </div>
+
+                {/* Subject Table / Grid */}
+                <div style={{ fontWeight: 800, fontSize: '0.83rem', color: 'var(--color-text, #1e293b)', marginBottom: 8 }}>Ders Bazlı Doğru, Yanlış, Boş ve Net Sayıları:</div>
+                
+                <div style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '0.85rem', overflow: 'hidden', marginBottom: '0.85rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, fontSize: '0.73rem', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left' }}>Ders</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#10b981', width: 70 }}>Doğru (D)</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#ef4444', width: 70 }}>Yanlış (Y)</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#f59e0b', width: 70 }}>Boş (B)</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#a855f7', width: 85 }}>Net</th>
+                        <th style={{ padding: '0.6rem 0.4rem', textAlign: 'center', width: 36 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys(newManualMock.subjects).map((subName, idx) => {
+                        const sub = newManualMock.subjects[subName];
+                        const total = Object.keys(newManualMock.subjects).length;
+                        return (
+                          <tr key={subName} style={{ borderBottom: idx < total - 1 ? '1px solid var(--color-border, #f1f5f9)' : 'none', background: idx % 2 === 0 ? 'var(--color-surface, white)' : 'var(--color-surface-hover, #fafafa)' }}>
+                            <td style={{ padding: '0.55rem 0.75rem', fontWeight: 800, color: 'var(--color-text, #1e293b)', whiteSpace: 'nowrap' }}>{subName}</td>
+                            <td style={{ padding: '0.35rem', textAlign: 'center' }}>
+                              <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: 'rgba(16, 185, 129, 0.4)' }}
+                                value={sub.d} onChange={e => updateSubjectScore(subName, 'd', e.target.value)} placeholder="0" />
+                            </td>
+                            <td style={{ padding: '0.35rem', textAlign: 'center' }}>
+                              <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                                value={sub.y} onChange={e => updateSubjectScore(subName, 'y', e.target.value)} placeholder="0" />
+                            </td>
+                            <td style={{ padding: '0.35rem', textAlign: 'center' }}>
+                              <input type="number" min="0" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, borderColor: 'rgba(245, 158, 11, 0.4)' }}
+                                value={sub.b} onChange={e => updateSubjectScore(subName, 'b', e.target.value)} placeholder="0" />
+                            </td>
+                            <td style={{ padding: '0.35rem', textAlign: 'center' }}>
+                              <input type="number" step="0.25" style={{ ...inp, padding: '0.3rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: 900, color: '#a855f7', background: 'rgba(124, 58, 237, 0.1)', borderColor: 'rgba(124, 58, 237, 0.3)' }}
+                                value={sub.net} onChange={e => updateSubjectScore(subName, 'net', e.target.value)} placeholder="0.00" />
+                            </td>
+                            <td style={{ padding: '0.35rem', textAlign: 'center' }}>
+                              <button type="button" onClick={() => removeSubjectFromMock(subName)} title="Dersi kaldır"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #cbd5e1)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #cbd5e1)'}>
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Ders Ekle Satırı */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', alignItems: 'center', background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', border: '1.5px dashed rgba(99, 102, 241, 0.4)', borderRadius: '0.85rem', padding: '0.65rem 0.85rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#818cf8', whiteSpace: 'nowrap' }}>➕ Ders Ekle:</span>
+                  <select
+                    value={newSubjectName}
+                    onChange={e => setNewSubjectName(e.target.value)}
+                    style={{ ...inp, flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                  >
+                    <option value="">— Ders seç veya yaz —</option>
+                    {['Türkçe','Matematik','Fen Bilimleri','Sosyal Bilgiler','İngilizce','Din Kültürü','Yabancı Dil','Tarih','Coğrafya','Fizik','Kimya','Biyoloji','Edebiyat','Geometri','TYT Türkçe','TYT Matematik','TYT Fen','TYT Sosyal']
+                      .filter(s => !newManualMock.subjects[s])
+                      .map(s => <option key={s} value={s}>{s}</option>)
+                    }
+                  </select>
+                  <input
+                    type="text"
+                    value={newSubjectName}
+                    onChange={e => setNewSubjectName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSubjectToMock())}
+                    placeholder="veya özel ders adı yaz"
+                    style={{ ...inp, flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.82rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={addSubjectToMock}
+                    disabled={!newSubjectName.trim() || !!newManualMock.subjects[newSubjectName.trim()]}
+                    style={{ background: newSubjectName.trim() && !newManualMock.subjects[newSubjectName.trim()] ? '#6366f1' : 'var(--color-surface, #e2e8f0)', color: newSubjectName.trim() && !newManualMock.subjects[newSubjectName.trim()] ? 'white' : 'var(--color-text-muted, #94a3b8)', border: 'none', borderRadius: '0.6rem', padding: '0.4rem 0.9rem', fontWeight: 800, fontSize: '0.82rem', cursor: newSubjectName.trim() ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+                  >
+                    Ekle
+                  </button>
+                </div>
+
+                {/* Summary Bar */}
+                <div style={{ background: 'rgba(124, 58, 237, 0.1)', border: '1.5px solid rgba(124, 58, 237, 0.3)', borderRadius: '0.85rem', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text, #4c1d95)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <span>✅ {totalMockD} Doğru</span>
+                    <span>❌ {totalMockY} Yanlış</span>
+                    <span>⭕ {totalMockB} Boş</span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#a855f7' }}>
+                    Toplam Net: <span style={{ fontSize: '1.2rem', color: '#a855f7' }}>{totalMockNet.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <button type="button" onClick={() => setShowMockModal(false)} style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.6))', color: 'var(--color-text-muted, #64748b)', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.2rem', fontWeight: 800, fontSize: '0.83rem', cursor: 'pointer' }}>
+                    Vazgeç
+                  </button>
+                  <button type="submit" style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: '0.75rem', padding: '0.6rem 1.4rem', fontWeight: 900, fontSize: '0.83rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(124,58,237,0.3)' }}>
+                    <Plus size={16} /> Kaydet
+                  </button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        )}
 
       {/* ═══ AYLIK ALIŞKANLIK DETAY MODALI ═══ */}
       {selectedMonthlyHabit && (
@@ -4464,21 +4457,21 @@ export default function MyCoachingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
         }}>
           <div style={{
-            background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(16px)', borderRadius: '1.25rem', width: '100%', maxWidth: 540,
-            padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+            background: 'var(--color-surface, #ffffff)', borderRadius: '1.25rem', width: '100%', maxWidth: 540,
+            padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', border: '1px solid var(--color-border, #e2e8f0)',
             display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto'
           }}>
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem' }}>
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase' }}>📅 Aylık Takvim & Geçmiş</div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e293b', margin: '2px 0 0 0' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>📅 Aylık Takvim & Geçmiş</div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text, #1e293b)', margin: '2px 0 0 0' }}>
                   {selectedMonthlyHabit.label}
                 </h2>
               </div>
               <button
                 onClick={() => setSelectedMonthlyHabit(null)}
-                style={{ background: 'rgba(255, 255, 255, 0.6)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+                style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.6))', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted, #64748b)' }}
               >
                 <X size={18} />
               </button>
@@ -4498,36 +4491,36 @@ export default function MyCoachingPage() {
               return (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,1)', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>BU AY</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669', marginTop: 2 }}>{checkedInMonth} / {totalDaysInMonth}</div>
-                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Tamamlanan gün</div>
+                    <div style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>BU AY</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', marginTop: 2 }}>{checkedInMonth} / {totalDaysInMonth}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 600 }}>Tamamlanan gün</div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,1)', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>BAŞARI ORANI</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb', marginTop: 2 }}>%{percentage}</div>
-                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Aylık başarım</div>
+                    <div style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>BAŞARI ORANI</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#3b82f6', marginTop: 2 }}>%{percentage}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 600 }}>Aylık başarım</div>
                     </div>
 
-                    <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,1)', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>AKTİF SERİ</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626', marginTop: 2 }}>🔥 {streakInfo.currentStreak} Gün</div>
-                      <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600 }}>Kesintisiz zincir</div>
+                    <div style={{ background: 'var(--color-surface-hover, rgba(255, 255, 255, 0.5))', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-border, rgba(255,255,255,1))', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>AKTİF SERİ</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: 2 }}>🔥 {streakInfo.currentStreak} Gün</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 600 }}>Kesintisiz zincir</div>
                     </div>
                   </div>
 
                   {/* Monthly Calendar Grid */}
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#334155', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text, #334155)', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>📅 {monthInfo.monthName} {monthInfo.year} Takvimi</span>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Güne tıklayarak durumu değiştirebilirsin</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 600 }}>Güne tıklayarak durumu değiştirebilirsin</span>
                     </div>
 
                     {/* Grid Header Days */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', marginBottom: 4 }}>
                       {['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'].map(d => (
-                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', padding: '0.2rem' }}>{d}</div>
+                        <div key={d} style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', padding: '0.2rem' }}>{d}</div>
                       ))}
                     </div>
 
@@ -4547,9 +4540,9 @@ export default function MyCoachingPage() {
                             key={d.dateStr}
                             onClick={() => toggleHabitHistoryDate(activeHabit.id, d.dateStr)}
                             style={{
-                              height: 42, borderRadius: '0.5rem', border: d.isToday ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                              background: isChecked ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#f8fafc',
-                              color: isChecked ? 'white' : '#334155', cursor: 'pointer',
+                              height: 42, borderRadius: '0.5rem', border: d.isToday ? '2px solid #ef4444' : '1px solid var(--color-border, #e2e8f0)',
+                              background: isChecked ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'var(--color-surface-hover, #f8fafc)',
+                              color: isChecked ? 'white' : 'var(--color-text, #334155)', cursor: 'pointer',
                               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                               transition: 'all 0.15s', position: 'relative'
                             }}
@@ -4576,7 +4569,6 @@ export default function MyCoachingPage() {
           </div>
         </div>
       )}
-
       </div>
 
       {/* ── FLOATING SAVE ── */}

@@ -489,14 +489,13 @@ export default function StudyPlanDetail() {
             style={{
               padding: '0.7rem',
               borderRadius: '1rem',
-              background: 'rgba(255, 255, 255, 0.07)',
-              border: '1.5px solid rgba(255, 255, 255, 0.16)',
-              color: '#ffffff',
+              background: 'var(--color-surface-hover, #f1f5f9)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
+              color: 'var(--color-text, #0f172a)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              backdropFilter: 'blur(10px)'
+              justifyContent: 'center'
             }}
             title="Yol Haritalarına Dön"
           >
@@ -505,19 +504,19 @@ export default function StudyPlanDetail() {
           
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+              <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', letterSpacing: '-0.02em' }}>
                 {plan.title}
               </h1>
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(165,180,252,0.3)' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(165,180,252,0.3)' }}>
                 {subjects.length} Ünite • {totalTopicsCount} Konu Adımı
               </span>
               {assignedCount > 0 && (
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(236,72,153,0.2)', color: '#f472b6', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(244,114,182,0.3)' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(236,72,153,0.12)', color: '#ec4899', padding: '0.2rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(244,114,182,0.3)' }}>
                   👥 {assignedCount} Öğrenciye Atandı
                 </span>
               )}
             </div>
-            <p style={{ margin: '0.35rem 0 0 0', color: 'rgba(255, 255, 255, 0.65)', fontSize: '0.88rem', fontWeight: 600 }}>
+            <p style={{ margin: '0.35rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.88rem', fontWeight: 600 }}>
               {plan.description || 'Yol haritasındaki üniteleri, konuları, hedef tarihleri ve ders kaynaklarını düzenleyin.'}
             </p>
           </div>
@@ -531,9 +530,9 @@ export default function StudyPlanDetail() {
               style={{
                 padding: '0.65rem 1.15rem',
                 borderRadius: '0.75rem',
-                background: 'rgba(168, 85, 247, 0.2)',
+                background: 'rgba(168, 85, 247, 0.12)',
                 border: '1.5px solid rgba(192, 132, 252, 0.4)',
-                color: '#e9d5ff',
+                color: '#a855f7',
                 fontWeight: 800,
                 fontSize: '0.84rem',
                 display: 'flex',
@@ -552,9 +551,9 @@ export default function StudyPlanDetail() {
             style={{
               padding: '0.65rem 1.15rem',
               borderRadius: '0.75rem',
-              background: 'rgba(56, 189, 248, 0.18)',
+              background: 'rgba(56, 189, 248, 0.12)',
               border: '1.5px solid rgba(56, 189, 248, 0.35)',
-              color: '#38bdf8',
+              color: '#0284c7',
               fontWeight: 800,
               fontSize: '0.84rem',
               display: 'flex',
@@ -599,12 +598,12 @@ export default function StudyPlanDetail() {
       <div className="study-glass-card" style={{ padding: '1.75rem' }}>
         
         {/* Section Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid rgba(255,255,255,0.1)', paddingBottom: '0.85rem', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', paddingBottom: '0.85rem', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={19} style={{ color: '#818cf8' }} /> Üniteler ve Konu Takip Adımları
+            <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Layers size={19} style={{ color: '#6366f1' }} /> Üniteler ve Konu Takip Adımları
             </h2>
-            <span style={{ fontSize: '0.78rem', color: '#c7d2fe', background: 'rgba(99,102,241,0.2)', padding: '0.15rem 0.55rem', borderRadius: '0.5rem', fontWeight: 800 }}>
+            <span style={{ fontSize: '0.78rem', color: '#6366f1', background: 'rgba(99,102,241,0.12)', padding: '0.15rem 0.55rem', borderRadius: '0.5rem', fontWeight: 800 }}>
               {subjects.length} Ünite
             </span>
           </div>
@@ -615,14 +614,14 @@ export default function StudyPlanDetail() {
                 <button
                   type="button"
                   onClick={handleExpandAll}
-                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}
+                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
                 >
                   📂 Tümünü Aç
                 </button>
                 <button
                   type="button"
                   onClick={handleCollapseAll}
-                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'rgba(255,255,255,0.08)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}
+                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
                 >
                   📁 Tümünü Kapat
                 </button>
@@ -639,8 +638,8 @@ export default function StudyPlanDetail() {
 
         {/* Units List */}
         {subjects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'rgba(0,0,0,0.25)', borderRadius: '1rem', border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem', margin: 0, fontWeight: 700 }}>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '1rem', border: '1.5px dashed var(--color-border, #cbd5e1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.95rem', margin: 0, fontWeight: 700 }}>
               Bu yol haritasına henüz bir ünite veya konu eklenmemiş.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -652,7 +651,7 @@ export default function StudyPlanDetail() {
               </button>
               <button
                 onClick={() => { setBulkTopicModal({ isOpen: true, unitId: 'auto_create' }); setBulkTopicText(''); }}
-                style={{ padding: '0.65rem 1.25rem', background: 'rgba(56,189,248,0.2)', border: '1.5px solid rgba(56,189,248,0.4)', borderRadius: '0.65rem', color: '#38bdf8', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                style={{ padding: '0.65rem 1.25rem', background: 'rgba(56,189,248,0.12)', border: '1.5px solid rgba(56,189,248,0.4)', borderRadius: '0.65rem', color: '#0284c7', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
                 <ListPlus size={16} /> Direkt Satır Satır Konu Yapıştır
               </button>
@@ -665,38 +664,38 @@ export default function StudyPlanDetail() {
               const topics = unit.topics || [];
 
               return (
-                <div key={unit.id} style={{ border: '1.5px solid rgba(255,255,255,0.12)', borderRadius: '1rem', overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
+                <div key={unit.id} style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface, #ffffff)' }}>
                   
                   {/* Unit Header */}
                   <div 
                     onClick={() => toggleUnit(unit.id)}
                     style={{
-                      background: 'rgba(99, 102, 241, 0.12)',
+                      background: 'var(--color-surface-hover, #f8fafc)',
                       padding: '0.9rem 1.25rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       cursor: 'pointer',
-                      borderBottom: isExpanded ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                      borderBottom: isExpanded ? '1px solid var(--color-border, #e2e8f0)' : 'none',
                       flexWrap: 'wrap',
                       gap: '0.65rem'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1 }}>
-                      {isExpanded ? <ChevronDown size={20} style={{ color: '#818cf8' }} /> : <ChevronRight size={20} style={{ color: '#818cf8' }} />}
+                      {isExpanded ? <ChevronDown size={20} style={{ color: '#6366f1' }} /> : <ChevronRight size={20} style={{ color: '#6366f1' }} />}
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#ffffff', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Layers size={17} style={{ color: '#a5b4fc' }} /> {unit.name}
+                          <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Layers size={17} style={{ color: '#6366f1' }} /> {unit.name}
                           </h3>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(99,102,241,0.25)', color: '#c7d2fe', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)' }}>
                             {topics.length} Konu Adımı
                           </span>
                         </div>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
                           {unit.dueDate && (
-                            <span style={{ fontSize: '0.74rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
+                            <span style={{ fontSize: '0.74rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
                               <Calendar size={13} /> Hedef: {unit.dueDate}
                             </span>
                           )}
@@ -706,7 +705,7 @@ export default function StudyPlanDetail() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={e => e.stopPropagation()}
-                              style={{ fontSize: '0.74rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800, textDecoration: 'none' }}
+                              style={{ fontSize: '0.74rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800, textDecoration: 'none' }}
                             >
                               <Globe size={13} /> Genel Kaynak Linki ↗
                             </a>
@@ -719,28 +718,28 @@ export default function StudyPlanDetail() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }} onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => { setBulkTopicModal({ isOpen: true, unitId: unit.id }); setBulkTopicText(''); }}
-                        style={{ padding: '0.35rem 0.65rem', background: 'rgba(56,189,248,0.18)', border: '1px solid rgba(56,189,248,0.35)', borderRadius: '0.5rem', color: '#38bdf8', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                        style={{ padding: '0.35rem 0.65rem', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', borderRadius: '0.5rem', color: '#0284c7', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                         title="Toplu Konu Ekle (Satır Satır)"
                       >
                         <ListPlus size={14} /> Toplu Ekle
                       </button>
                       <button
                         onClick={() => openTopicModal(unit.id)}
-                        style={{ padding: '0.35rem 0.65rem', background: 'rgba(16,185,129,0.18)', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '0.5rem', color: '#34d399', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                        style={{ padding: '0.35rem 0.65rem', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '0.5rem', color: '#10b981', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                         title="Konu Ekle"
                       >
                         <Plus size={14} /> Konu Ekle
                       </button>
                       <button
                         onClick={() => openUnitModal(unit)}
-                        style={{ padding: '0.35rem 0.55rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.5rem', color: '#ffffff', cursor: 'pointer' }}
+                        style={{ padding: '0.35rem 0.55rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.5rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
                         title="Üniteyi Düzenle"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button
                         onClick={() => deleteUnit(unit.id)}
-                        style={{ padding: '0.35rem 0.55rem', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.5rem', color: '#f87171', cursor: 'pointer' }}
+                        style={{ padding: '0.35rem 0.55rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer' }}
                         title="Üniteyi Sil"
                       >
                         <Trash2 size={14} />
@@ -750,9 +749,9 @@ export default function StudyPlanDetail() {
 
                   {/* Topics List (Expanded Only) */}
                   {isExpanded && (
-                    <div style={{ padding: '1.15rem', background: 'rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    <div style={{ padding: '1.15rem', background: 'var(--color-surface-hover, #f8fafc)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                       {topics.length === 0 ? (
-                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>
+                        <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>
                           Bu ünitede henüz konu bulunmuyor. Yukarıdaki "Konu Ekle" butonunu kullanabilirsiniz.
                         </p>
                       ) : (
@@ -763,8 +762,8 @@ export default function StudyPlanDetail() {
                               style={{
                                 padding: '0.75rem 0.95rem',
                                 borderRadius: '0.75rem',
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.08)',
+                                background: 'var(--color-surface, #ffffff)',
+                                border: '1px solid var(--color-border, #e2e8f0)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -774,18 +773,18 @@ export default function StudyPlanDetail() {
                               <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                                   {topic.day && (
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(99,102,241,0.25)', color: '#a5b4fc', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(165,180,252,0.3)', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(165,180,252,0.3)', flexShrink: 0 }}>
                                       {topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`}
                                     </span>
                                   )}
-                                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {topic.name}
                                   </span>
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                                   {topic.dueDate && (
-                                    <span style={{ fontSize: '0.72rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
                                       <Calendar size={12} /> {topic.dueDate}
                                     </span>
                                   )}
@@ -794,7 +793,7 @@ export default function StudyPlanDetail() {
                                       href={topic.resourceUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      style={{ fontSize: '0.72rem', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontWeight: 800 }}
+                                      style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontWeight: 800 }}
                                     >
                                       <LinkIcon size={12} /> Link ↗
                                     </a>
@@ -804,18 +803,18 @@ export default function StudyPlanDetail() {
 
                               {/* Day Stepper & Actions */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: '0.45rem', border: '1px solid rgba(255,255,255,0.12)', padding: '0.1rem 0.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '0.45rem', border: '1px solid var(--color-border, #cbd5e1)', padding: '0.1rem 0.25rem' }}>
                                   <button
                                     onClick={() => {
                                       const cur = parseInt(String(topic.day || '1').replace(/\D/g, ''), 10) || 1;
                                       handleSetTopicDay(unit.id, topic.id, String(Math.max(1, cur - 1)));
                                     }}
-                                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
                                     title="Günü Azalt"
                                   >
                                     -
                                   </button>
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#c7d2fe', padding: '0 0.2rem' }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6366f1', padding: '0 0.2rem' }}>
                                     {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `G${topic.day}`) : '+G'}
                                   </span>
                                   <button
@@ -823,7 +822,7 @@ export default function StudyPlanDetail() {
                                       const cur = parseInt(String(topic.day || '0').replace(/\D/g, ''), 10) || 0;
                                       handleSetTopicDay(unit.id, topic.id, String(cur + 1));
                                     }}
-                                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
                                     title="Günü Artır"
                                   >
                                     +
@@ -832,14 +831,14 @@ export default function StudyPlanDetail() {
 
                                 <button
                                   onClick={() => openTopicModal(unit.id, topic)}
-                                  style={{ padding: '0.3rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.45rem', color: '#ffffff', cursor: 'pointer' }}
+                                  style={{ padding: '0.3rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.45rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
                                   title="Konuyu Düzenle"
                                 >
                                   <Edit2 size={13} />
                                 </button>
                                 <button
                                   onClick={() => deleteTopic(unit.id, topic.id)}
-                                  style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.45rem', color: '#f87171', cursor: 'pointer' }}
+                                  style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }}
                                   title="Konuyu Sil"
                                 >
                                   <Trash2 size={13} />
@@ -862,56 +861,56 @@ export default function StudyPlanDetail() {
 
       {/* ── MODAL: ÜNİTE EKLE / DÜZENLE ── */}
       {unitModal.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '480px', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', overflow: 'hidden' }}>
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '480px', borderRadius: '1.5rem', background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                 {unitModal.unit ? 'Üniteyi Düzenle' : 'Yeni Ünite Ekle'}
               </h3>
-              <button onClick={() => setUnitModal({ isOpen: false, unit: null })} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <button onClick={() => setUnitModal({ isOpen: false, unit: null })} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
             
             <div style={{ padding: '1.35rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Ünite Adı *</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Ünite Adı *</label>
                 <input
                   type="text"
                   value={unitForm.name}
                   onChange={(e) => setUnitForm({...unitForm, name: e.target.value})}
                   placeholder="Örn: 1. Ünite - Çarpanlar ve Katlar"
                   autoFocus
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Hedef Bitirme Tarihi (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Hedef Bitirme Tarihi (İsteğe Bağlı)</label>
                 <input
                   type="date"
                   value={unitForm.dueDate}
                   onChange={(e) => setUnitForm({...unitForm, dueDate: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Genel Kaynak / Video Linki (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Genel Kaynak / Video Linki (İsteğe Bağlı)</label>
                 <input
                   type="url"
                   value={unitForm.resourceUrl}
                   onChange={(e) => setUnitForm({...unitForm, resourceUrl: e.target.value})}
                   placeholder="https://youtube.com/..."
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setUnitModal({ isOpen: false, unit: null })}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -928,67 +927,67 @@ export default function StudyPlanDetail() {
 
       {/* ── MODAL: KONU EKLE / DÜZENLE ── */}
       {topicModal.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '480px', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', overflow: 'hidden' }}>
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '480px', borderRadius: '1.5rem', background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                 {topicModal.topic ? 'Konuyu Düzenle' : 'Yeni Konu Adımı Ekle'}
               </h3>
-              <button onClick={() => setTopicModal({ isOpen: false, unitId: null, topic: null })} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <button onClick={() => setTopicModal({ isOpen: false, unitId: null, topic: null })} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
             
             <div style={{ padding: '1.35rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Konu Adı *</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Konu Adı *</label>
                 <input
                   type="text"
                   value={topicForm.name}
                   onChange={(e) => setTopicForm({...topicForm, name: e.target.value})}
                   placeholder="Örn: Pozitif Tam Sayıların Çarpanları"
                   autoFocus
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Gün Numarası / Etiketi (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Gün Numarası / Etiketi (İsteğe Bağlı)</label>
                 <input
                   type="text"
                   value={topicForm.day || ''}
                   onChange={(e) => setTopicForm({...topicForm, day: e.target.value})}
                   placeholder="Örn: 1 veya Gün 1"
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Hedef Tarih (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Hedef Tarih (İsteğe Bağlı)</label>
                 <input
                   type="date"
                   value={topicForm.dueDate}
                   onChange={(e) => setTopicForm({...topicForm, dueDate: e.target.value})}
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#c7d2fe', marginBottom: '0.35rem' }}>Kaynak Linki (İsteğe Bağlı)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Kaynak Linki (İsteğe Bağlı)</label>
                 <input
                   type="url"
                   value={topicForm.resourceUrl}
                   onChange={(e) => setTopicForm({...topicForm, resourceUrl: e.target.value})}
                   placeholder="https://youtube.com/watch?v=..."
-                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setTopicModal({ isOpen: false, unitId: null, topic: null })}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -1005,18 +1004,18 @@ export default function StudyPlanDetail() {
 
       {/* ── MODAL: TOPLU KONU EKLE (SATIR SATIR) ── */}
       {bulkTopicModal.isOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '540px', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', overflow: 'hidden' }}>
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '540px', borderRadius: '1.5rem', background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#ffffff' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                   Toplu Konu Ekle
                 </h3>
-                <p style={{ margin: '0.2rem 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem' }}>
+                <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem' }}>
                   Her satıra bir konu gelecek şekilde yapıştırın.
                 </p>
               </div>
-              <button onClick={() => setBulkTopicModal({ isOpen: false, unitId: null })} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <button onClick={() => setBulkTopicModal({ isOpen: false, unitId: null })} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -1027,14 +1026,14 @@ export default function StudyPlanDetail() {
                 onChange={(e) => setBulkTopicText(e.target.value)}
                 placeholder="Çarpanlar ve Asal Çarpanlar&#10;EBOB ve EKOK Problemleri&#10;Tam Sayıların Kuvvetleri&#10;Üslü İfadelerle İşlemler"
                 rows={8}
-                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.9rem', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'none' }}
+                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'none' }}
               />
             </div>
 
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setBulkTopicModal({ isOpen: false, unitId: null })}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -1051,36 +1050,36 @@ export default function StudyPlanDetail() {
 
       {/* ── MODAL: TOPLU ÜNİTE & KONU İÇE AKTAR (TEXT / JSON) ── */}
       {jsonModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '680px', maxHeight: '90vh', borderRadius: '1.5rem', background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text, #0f172a)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <ListPlus size={22} style={{ color: '#38bdf8' }} /> Toplu Ünite &amp; Konu İçe Aktar
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ListPlus size={22} style={{ color: '#0284c7' }} /> Toplu Ünite &amp; Konu İçe Aktar
                 </h3>
-                <p style={{ margin: '0.2rem 0 0 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem' }}>
+                <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem' }}>
                   Düz metin veya JSON şablonu ile tüm müfredatı tek seferde yükleyin.
                 </p>
               </div>
-              <button onClick={() => setJsonModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <button onClick={() => setJsonModal(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
             {/* Mode Switcher & Example Buttons */}
             <div style={{ padding: '1rem 1.6rem 0.5rem 1.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '0.65rem', padding: '0.25rem', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div style={{ display: 'flex', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '0.65rem', padding: '0.25rem', border: '1px solid var(--color-border, #cbd5e1)' }}>
                 <button
                   onClick={() => setBulkMode('text')}
-                  style={{ padding: '0.4rem 0.85rem', borderRadius: '0.5rem', background: bulkMode === 'text' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none', border: 'none', color: '#ffffff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                  style={{ padding: '0.4rem 0.85rem', borderRadius: '0.5rem', background: bulkMode === 'text' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none', border: 'none', color: bulkMode === 'text' ? '#ffffff' : 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
                 >
                   📝 Düz Metin İle
                 </button>
                 <button
                   onClick={() => setBulkMode('json')}
-                  style={{ padding: '0.4rem 0.85rem', borderRadius: '0.5rem', background: bulkMode === 'json' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none', border: 'none', color: '#ffffff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                  style={{ padding: '0.4rem 0.85rem', borderRadius: '0.5rem', background: bulkMode === 'json' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'none', border: 'none', color: bulkMode === 'json' ? '#ffffff' : 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
                 >
                   {'{ }'} JSON İle
                 </button>
@@ -1090,7 +1089,7 @@ export default function StudyPlanDetail() {
                 <button
                   type="button"
                   onClick={() => setBulkText(`1. Ünite: Doğal Sayılar\n- Doğal Sayılarla İşlemler\n- Üslü Nicelikler\n- İşlem Önceliği\n\n2. Ünite: Çarpanlar ve Katlar\n- Asal Sayılar\n- Ortak Bölgenler ve Katlar`)}
-                  style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+                  style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0284c7', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', cursor: 'pointer' }}
                 >
                   ⚡ Örnek Şablon Yükle
                 </button>
@@ -1098,7 +1097,7 @@ export default function StudyPlanDetail() {
                 <button
                   type="button"
                   onClick={() => setJsonText(`[\n  {\n    "name": "1. Ünite: Doğal Sayılar",\n    "topics": [\n      { "name": "Doğal Sayılarla İşlemler" },\n      { "name": "Üslü Nicelikler" }\n    ]\n  }\n]`)}
-                  style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+                  style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0284c7', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', cursor: 'pointer' }}
                 >
                   ⚡ Örnek JSON Yükle
                 </button>
@@ -1114,10 +1113,10 @@ export default function StudyPlanDetail() {
                     onChange={(e) => setBulkText(e.target.value)}
                     placeholder={`1. Ünite: Üslü İfadeler\n- Üslü Nicelikler\n- Üslü Sayılarda Çarpma\n\n2. Ünite: Kareköklü İfadeler\n- Tam Kare Sayılar\n- Karekök Alma\n\n(veya Ünite > Konu formatında satır satır yapıştırabilirsiniz)`}
                     rows={10}
-                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.88rem', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'none' }}
+                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.88rem', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'none' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.45rem', lineHeight: 1.4 }}>
-                    💡 <strong>İpucu:</strong> <span style={{ color: '#c7d2fe' }}>Ünite İsmi:</span> yazdıktan sonra tire (-) veya yıldız (*) ile altındaki konuları yazabilirsiniz.
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', marginTop: '0.45rem', lineHeight: 1.4 }}>
+                    💡 <strong>İpucu:</strong> <span style={{ color: '#6366f1' }}>Ünite İsmi:</span> yazdıktan sonra tire (-) veya yıldız (*) ile altındaki konuları yazabilirsiniz.
                   </div>
                 </div>
               ) : (
@@ -1127,17 +1126,17 @@ export default function StudyPlanDetail() {
                     onChange={(e) => setJsonText(e.target.value)}
                     placeholder={'[\n  {\n    "name": "1. Ünite: Üslü Sayılar",\n    "dueDate": "2026-10-15",\n    "topics": [\n      { "name": "Konu 1", "dueDate": "2026-10-12" }\n    ]\n  }\n]'}
                     rows={10}
-                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.16)', color: '#ffffff', fontSize: '0.88rem', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'none' }}
+                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.88rem', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'none' }}
                   />
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
               <button
                 onClick={() => setJsonModal(false)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 İptal
               </button>
@@ -1155,19 +1154,19 @@ export default function StudyPlanDetail() {
 
       {/* ── MODAL: ÖĞRENCİYE ATA ── */}
       {assignModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(7,10,18,0.85)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '600px', maxHeight: '88vh', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%)', border: '1.5px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', color: '#ffffff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '600px', maxHeight: '88vh', borderRadius: '1.5rem', background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text, #0f172a)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Users size={22} style={{ color: '#ec4899' }} /> Yol Haritasını Öğrenciye Ata
                 </h3>
-                <p style={{ margin: '0.2rem 0 0 0', color: '#c7d2fe', fontSize: '0.84rem', fontWeight: 700 }}>
+                <p style={{ margin: '0.2rem 0 0 0', color: '#6366f1', fontSize: '0.84rem', fontWeight: 700 }}>
                   {plan.title}
                 </p>
               </div>
-              <button onClick={() => setAssignModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <button onClick={() => setAssignModal(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -1175,13 +1174,13 @@ export default function StudyPlanDetail() {
             {/* Search & Select All */}
             <div style={{ padding: '0.85rem 1.6rem 0.35rem 1.6rem', display: 'flex', gap: '0.65rem' }}>
               <div style={{ position: 'relative', flex: 1 }}>
-                <Search size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+                <Search size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted, #94a3b8)' }} />
                 <input
                   type="text"
                   value={studentSearchQuery}
                   onChange={(e) => setStudentSearchQuery(e.target.value)}
                   placeholder="Öğrenci ara..."
-                  style={{ width: '100%', padding: '0.6rem 0.85rem 0.6rem 2.3rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.6rem 0.85rem 0.6rem 2.3rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
               </div>
               <button
@@ -1197,7 +1196,7 @@ export default function StudyPlanDetail() {
                     setSelectedStudents(prev => Array.from(new Set([...prev, ...filteredIds])));
                   }
                 }}
-                style={{ padding: '0.6rem 0.85rem', borderRadius: '0.6rem', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(165,180,252,0.3)', color: '#c7d2fe', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '0.6rem 0.85rem', borderRadius: '0.6rem', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(165,180,252,0.3)', color: '#6366f1', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 Tümünü Seç / Kaldır
               </button>
@@ -1214,8 +1213,8 @@ export default function StudyPlanDetail() {
                       style={{
                         padding: '0.7rem 0.95rem',
                         borderRadius: '0.7rem',
-                        background: isChecked ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.03)',
-                        border: `1.5px solid ${isChecked ? 'rgba(165,180,252,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                        background: isChecked ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover, #f8fafc)',
+                        border: `1.5px solid ${isChecked ? 'rgba(165,180,252,0.6)' : 'var(--color-border, #e2e8f0)'}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -1230,17 +1229,17 @@ export default function StudyPlanDetail() {
                           style={{ width: '1.1rem', height: '1.1rem', accentColor: '#6366f1', cursor: 'pointer' }}
                         />
                         <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)' }}>
                             {student.name} {student.surname || ''}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)' }}>
                             {student.className || student.grade || 'Öğrenci'}
                           </div>
                         </div>
                       </div>
 
                       {isChecked && (
-                        <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.2)', color: '#34d399', padding: '0.12rem 0.45rem', borderRadius: '0.35rem' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '0.12rem 0.45rem', borderRadius: '0.35rem' }}>
                           Seçildi
                         </span>
                       )}
@@ -1249,14 +1248,14 @@ export default function StudyPlanDetail() {
                 })}
             </div>
 
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#c7d2fe' }}>
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#6366f1' }}>
                 {selectedStudents.length} Öğrenci Seçildi
               </span>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button
                   onClick={() => setAssignModal(false)}
-                  style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                  style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   İptal
                 </button>
@@ -1277,3 +1276,4 @@ export default function StudyPlanDetail() {
     </div>
   );
 }
+
