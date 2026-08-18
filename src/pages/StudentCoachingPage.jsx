@@ -4890,7 +4890,7 @@ export default function StudentCoachingPage() {
       <CoachingReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
-        studentName={personalInfo?.fullName || 'Öğrenci'}
+        studentName={targetStudent?.name || personalInfo?.fullName || 'Öğrenci'}
         gradeClass={personalInfo?.gradeClass || goals?.gradeClass || '8. Sınıf'}
         targetExam={goals?.examGoalType || 'LGS 2026'}
         targetSchool={goals?.targetSchool || ''}
@@ -4901,6 +4901,7 @@ export default function StudentCoachingPage() {
         counterGoals={goals?.counterGoals || []}
         teacherNote={personalInfo?.coachNotes || ''}
         submissions={submissions || []}
+        homeworkSubmissions={otherHomeworkSubmissions || []}
       />
 
     </div>
