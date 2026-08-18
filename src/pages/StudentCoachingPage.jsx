@@ -1896,6 +1896,194 @@ export default function StudentCoachingPage() {
               );
             })()}
 
+            {/* ─── Çözülen Testler & Soru Başarı Karnesi (Şık Hero Kartı) ─── */}
+            {(() => {
+              const hwList = otherHomeworkSubmissions || [];
+              const totalTests = hwList.length;
+              const totalD = hwList.reduce((a, b) => a + (b.correctCount || 0), 0);
+              const totalY = hwList.reduce((a, b) => a + (b.wrongCount || 0), 0);
+              const totalB = hwList.reduce((a, b) => a + (b.emptyCount || 0), 0);
+              const totalQ = totalD + totalY + totalB;
+              const successRate = totalQ > 0 ? Math.round((totalD / totalQ) * 100) : 0;
+
+              // Ders Bazlı Dağılım
+              const subjMap = {};
+              hwList.forEach(s => {
+                const subj = s.subject || 'Genel';
+                if (!subjMap[subj]) subjMap[subj] = { d: 0, y: 0, b: 0, count: 0 };
+                subjMap[subj].d += (s.correctCount || 0);
+                subjMap[subj].y += (s.wrongCount || 0);
+                subjMap[subj].b += (s.emptyCount || 0);
+                subjMap[subj].count += 1;
+              });
+              const topSubjs = Object.entries(subjMap).sort((a, b) => (b[1].d + b[1].y + b[1].b) - (a[1].d + a[1].y + a[1].b)).slice(0, 5);
+
+              const rateColor = successRate >= 70 ? '#10b981' : successRate >= 50 ? '#f59e0b' : '#ef4444';
+              const rateBg = successRate >= 70 ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' : successRate >= 50 ? 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)' : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+              const rateBorder = successRate >= 70 ? '#6ee7b7' : successRate >= 50 ? '#fcd34d' : '#fca5a5';
+
+              return (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                  borderRadius: '1.25rem',
+                  border: '1.5px solid rgba(226, 232, 240, 0.9)',
+                  padding: '1.25rem',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.03)',
+                  marginBottom: '1.25rem',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Arka plan süs efekti */}
+                  <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+                  {/* Başlık ve Hızlı Geçiş Butonu */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: '1rem', paddingBottom: '0.65rem', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '0.65rem', background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(79,70,229,0.25)' }}>
+                        🎯
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.98rem', color: '#0f172a' }}>
+                          Soru & Test Çözme Performansım
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                          Sistemde çözülen tüm ödev ve konu testlerinin anlık karnesi
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('testlerim')}
+                      style={{
+                        background: '#eef2ff',
+                        color: '#4f46e5',
+                        border: '1px solid #c7d2fe',
+                        borderRadius: '0.65rem',
+                        padding: '0.35rem 0.8rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#4f46e5'; e.currentTarget.style.color = 'white'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; }}
+                    >
+                      <span>Testlerimi İncele</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  {/* 4'lü İstatistik Kartları Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                    
+                    {/* 1. Çözülen Test */}
+                    <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Çözülen Test</span>
+                        <span style={{ fontSize: '1.1rem' }}>📝</span>
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1 }}>{totalTests}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#3b82f6', marginTop: 3 }}>Ödev & Konu Testi</div>
+                      </div>
+                    </div>
+
+                    {/* 2. Toplam Soru */}
+                    <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', border: '1px solid #ddd6fe', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Toplam Soru</span>
+                        <span style={{ fontSize: '1.1rem' }}>✏️</span>
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#4c1d95', lineHeight: 1 }}>{totalQ}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7c3aed', marginTop: 3 }}>Çözülen Soru Hacmi</div>
+                      </div>
+                    </div>
+
+                    {/* 3. Başarı Durumu */}
+                    <div style={{ background: rateBg, border: `1px solid ${rateBorder}`, borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: rateColor, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Başarı Durumu</span>
+                        <span style={{ fontSize: '1.1rem' }}>🏆</span>
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: '1.65rem', fontWeight: 900, color: rateColor, lineHeight: 1 }}>%{successRate}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: rateColor, marginTop: 3 }}>
+                          {successRate >= 70 ? 'Harika Başarı 🌟' : successRate >= 50 ? 'İyi Seviyede 👍' : 'Geliştirilmeli 🎯'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. D / Y / B Dağılımı */}
+                    <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', border: '1px solid #e2e8f0', borderRadius: '0.9rem', padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Cevap Dağılımı</span>
+                        <span style={{ fontSize: '1.1rem' }}>📊</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
+                          <span style={{ color: '#16a34a' }}>✅ Doğru</span>
+                          <span style={{ color: '#15803d', background: '#dcfce7', padding: '1px 6px', borderRadius: 4 }}>{totalD}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
+                          <span style={{ color: '#dc2626' }}>❌ Yanlış</span>
+                          <span style={{ color: '#b91c1c', background: '#fee2e2', padding: '1px 6px', borderRadius: 4 }}>{totalY}</span>
+                        </div>
+                        {totalB > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
+                            <span style={{ color: '#94a3b8' }}>⭕ Boş</span>
+                            <span style={{ color: '#64748b', background: '#e2e8f0', padding: '1px 6px', borderRadius: 4 }}>{totalB}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Ders Bazlı Mini Başarı Şeridi */}
+                  {topSubjs.length > 0 && (
+                    <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginRight: 4 }}>
+                        📚 En Çok Çözülen Dersler:
+                      </span>
+                      {topSubjs.map(([sName, stat]) => {
+                        const sTotalQ = stat.d + stat.y + stat.b;
+                        const sRate = sTotalQ > 0 ? Math.round((stat.d / sTotalQ) * 100) : 0;
+                        return (
+                          <div
+                            key={sName}
+                            style={{
+                              background: 'white',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '0.5rem',
+                              padding: '0.25rem 0.6rem',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              color: '#1e293b',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                            }}
+                          >
+                            <span>{sName}</span>
+                            <span style={{ color: '#4f46e5', fontWeight: 800 }}>{sTotalQ} Soru</span>
+                            <span style={{ color: sRate >= 70 ? '#15803d' : sRate >= 50 ? '#b45309' : '#b91c1c', background: sRate >= 70 ? '#dcfce7' : sRate >= 50 ? '#fef3c7' : '#fee2e2', padding: '1px 5px', borderRadius: 4, fontWeight: 900, fontSize: '0.68rem' }}>
+                              %{sRate}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* İlerleme kartları */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
               {[
