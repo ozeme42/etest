@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
+import { useUser } from '../context/UserContext';
 import { isHomeworkForStudent } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 
@@ -2243,7 +2244,15 @@ export function MonthlyListPanel({
 }
 
 /* ─── ProgramCenter (Main shared component) ─── */
-export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPool, setTopicPool, isDark = false }) {
+export default function ProgramCenter({
+  weeklyProgram,
+  setWeeklyProgram,
+  topicPool,
+  setTopicPool,
+  isDark = false,
+  studentId = null,
+  targetStudent = null
+}) {
   const [programTab, setProgramTab] = useState('haftalik');
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -2263,9 +2272,25 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
   const evalContext = useEvaluation();
   const currContext = useCurriculum();
   const trackedBooksContext = useTrackedBooks();
+  const userContext = useUser();
 
   const allHomeworks = hwContext?.homeworks || [];
   const currentUser = authContext?.currentUser;
+  const users = userContext?.users || [];
+
+  // Effective Student (Supports teacher viewing student's program)
+  const effectiveUser = useMemo(() => {
+    if (targetStudent) return targetStudent;
+    if (studentId) {
+      const found = users.find(u => String(u.id) === String(studentId));
+      if (found) return found;
+      return { id: studentId, name: 'Öğrenci', username: 'student' };
+    }
+    return currentUser;
+  }, [targetStudent, studentId, users, currentUser]);
+
+  const effectiveStudentId = effectiveUser?.id;
+
   const submissions = evalContext?.submissions || [];
   const curData = currContext?.curriculumData;
   const bookTests = trackedBooksContext?.bookTests || [];
@@ -2277,7 +2302,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
 
   const handleOpenTaskResult = useCallback((item) => {
     if (!item) return;
-    const sId = currentUser?.id;
+    const sId = effectiveStudentId;
 
     if (item.roadmapAssignmentId) {
       navigate(`/student/study-plan/${item.roadmapAssignmentId}`);
@@ -2306,7 +2331,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       navigate(`/quiz/${cleanId}${sId ? `?studentId=${sId}` : ''}`);
       return;
     }
-  }, [navigate, currentUser, allHomeworks]);
+  }, [navigate, effectiveStudentId, allHomeworks]);
 
   const weekInfo = useMemo(() => {
     const MONTHS_TR = [
@@ -2359,18 +2384,18 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
       };
     });
 
-    if (!currentUser) {
+    if (!effectiveUser) {
       return weeklyProgram.map(dayObj => ({
         ...dayObj,
         dateLabel: dayDateMap[dayObj.day]?.dateLabel || ''
       }));
     }
 
-    const studentId = currentUser.id;
+    const studentId = effectiveUser.id;
     const studentGrades = curData?.grades || [];
 
     const studentHomeworks = (allHomeworks || []).filter(hw => {
-      return isHomeworkForStudent(hw, currentUser, studentGrades);
+      return isHomeworkForStudent(hw, effectiveUser, studentGrades);
     });
 
     const allDailyItems = [];
@@ -3224,7 +3249,7 @@ export default function ProgramCenter({ weeklyProgram, setWeeklyProgram, topicPo
         <MonthlyListPanel
           weeklyProgram={weeklyProgram}
           allHomeworks={allHomeworks}
-          currentUser={currentUser}
+          currentUser={effectiveUser}
           submissions={submissions}
           curData={curData}
           books={books}

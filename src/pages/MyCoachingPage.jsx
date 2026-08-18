@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Target, Save, Plus, Trash2, Check, ChevronDown, ChevronRight,
   Star, BookOpen, Calendar, Flame, Moon, Dumbbell,
@@ -14,6 +14,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useGoal } from '../context/GoalContext';
+import { useUser } from '../context/UserContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ProgramCenter from '../components/ProgramCenter';
@@ -358,7 +359,8 @@ export default function MyCoachingPage() {
   const { data: curriculumData = [] } = useCurriculum() || {};
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
 
-  const studentId = currentUser?.id;
+  const { studentId: paramId } = useParams();
+  const studentId = paramId || currentUser?.id;
   const isCoached = useMemo(() => {
     if (!studentId) return false;
     // Teacher or admin can view any profile, student can only view if coached
@@ -367,6 +369,10 @@ export default function MyCoachingPage() {
   }, [studentId, currentUser?.role, isStudentCoached]);
 
   const existingProfile = useMemo(() => getCoachingProfileForStudent(studentId) || {}, [studentId, coachingProfiles]);
+  const { users = [] } = useUser() || {};
+  const targetStudent = useMemo(() => {
+    return users.find(u => String(u.id) === String(studentId)) || (studentId === currentUser?.id ? currentUser : null);
+  }, [users, studentId, currentUser]);
 
   const [saved, setSaved] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -1702,6 +1708,8 @@ export default function MyCoachingPage() {
               setWeeklyProgram={setWeeklyProgram}
               topicPool={topicPool}
               setTopicPool={setTopicPool}
+              studentId={studentId}
+              targetStudent={targetStudent}
             />
           </div>
         )}
