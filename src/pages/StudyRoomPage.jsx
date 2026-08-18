@@ -239,52 +239,67 @@ const THEMES = [
   {
     id: 'pastel',
     name: '☀️ Aydınlık Pastel',
-    bg: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #fdf2f8 100%)',
-    cardBg: 'rgba(255, 255, 255, 0.88)',
+    bg: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), #f8fafc',
+    cardBg: '#ffffff',
+    innerBg: '#f8fafc',
+    buttonBg: '#f1f5f9',
     border: '#e2e8f0',
     accent: '#4f46e5',
     text: '#0f172a',
-    subText: '#475569'
+    subText: '#64748b',
+    isDark: false
   },
   {
     id: 'cozy',
     name: '☕ Sıcak Çalışma Odası',
     bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
-    cardBg: 'rgba(30, 27, 75, 0.65)',
-    border: 'rgba(99, 102, 241, 0.3)',
-    accent: '#6366f1',
+    cardBg: 'rgba(30, 27, 75, 0.85)',
+    innerBg: 'rgba(0, 0, 0, 0.25)',
+    buttonBg: 'rgba(255, 255, 255, 0.12)',
+    border: 'rgba(99, 102, 241, 0.35)',
+    accent: '#818cf8',
     text: '#ffffff',
-    subText: '#c7d2fe'
+    subText: '#c7d2fe',
+    isDark: true
   },
   {
     id: 'zen',
     name: '🎋 Gece Zen / Minimal',
     bg: 'linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e293b 100%)',
-    cardBg: 'rgba(15, 23, 42, 0.75)',
-    border: 'rgba(148, 163, 184, 0.2)',
+    cardBg: 'rgba(15, 23, 42, 0.85)',
+    innerBg: 'rgba(0, 0, 0, 0.3)',
+    buttonBg: 'rgba(255, 255, 255, 0.1)',
+    border: 'rgba(148, 163, 184, 0.25)',
     accent: '#38bdf8',
     text: '#f8fafc',
-    subText: '#94a3b8'
+    subText: '#94a3b8',
+    isDark: true
   },
   {
     id: 'nature',
     name: '🌿 Orman & Doğa',
     bg: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%)',
-    cardBg: 'rgba(6, 78, 59, 0.65)',
-    border: 'rgba(52, 211, 153, 0.3)',
-    accent: '#10b981',
+    cardBg: 'rgba(6, 78, 59, 0.85)',
+    innerBg: 'rgba(0, 0, 0, 0.25)',
+    buttonBg: 'rgba(255, 255, 255, 0.12)',
+    border: 'rgba(52, 211, 153, 0.35)',
+    accent: '#34d399',
     text: '#ffffff',
-    subText: '#a7f3d0'
+    subText: '#a7f3d0',
+    isDark: true
   },
   {
     id: 'sunset',
     name: '🌅 Günbatımı Odaklanması',
     bg: 'linear-gradient(135deg, #4c0519 0%, #831843 50%, #9d174d 100%)',
-    cardBg: 'rgba(76, 5, 25, 0.65)',
-    border: 'rgba(244, 114, 182, 0.3)',
-    accent: '#f43f5e',
+    cardBg: 'rgba(76, 5, 25, 0.85)',
+    innerBg: 'rgba(0, 0, 0, 0.25)',
+    buttonBg: 'rgba(255, 255, 255, 0.12)',
+    border: 'rgba(244, 114, 182, 0.35)',
+    accent: '#fb7185',
     text: '#ffffff',
-    subText: '#fbcfe8'
+    subText: '#fbcfe8',
+    isDark: true
   }
 ];
 
@@ -557,7 +572,8 @@ export default function StudyRoomPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: `1px solid ${themeObj.border}`,
+        borderBottom: `1.5px solid ${themeObj.border}`,
+        background: themeObj.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.85)',
         backdropFilter: 'blur(12px)',
         zIndex: 10
       }}>
@@ -565,16 +581,17 @@ export default function StudyRoomPage() {
           <button
             onClick={() => navigate(-1)}
             style={{
-              background: 'rgba(255,255,255,0.12)',
-              border: `1px solid ${themeObj.border}`,
-              color: 'white',
+              background: themeObj.buttonBg,
+              border: `1.5px solid ${themeObj.border}`,
+              color: themeObj.text,
               borderRadius: 12,
               padding: '0.5rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backdropFilter: 'blur(8px)'
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.15s'
             }}
           >
             <ArrowLeft size={18} />
@@ -582,11 +599,11 @@ export default function StudyRoomPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: '1.2rem' }}>🎧</span>
-              <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'white' }}>
+              <h1 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', color: themeObj.text }}>
                 Odaklı Çalışma Odası
               </h1>
               <span style={{
-                background: 'rgba(255,255,255,0.15)',
+                background: themeObj.isDark ? 'rgba(255,255,255,0.15)' : '#eff6ff',
                 color: themeObj.accent,
                 fontSize: '0.65rem',
                 fontWeight: 900,
@@ -608,7 +625,7 @@ export default function StudyRoomPage() {
         {/* Action controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Theme Selector */}
-          <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.2)', padding: 4, borderRadius: 14, border: `1px solid ${themeObj.border}` }}>
+          <div style={{ display: 'flex', gap: 4, background: themeObj.innerBg, padding: 4, borderRadius: 14, border: `1.5px solid ${themeObj.border}` }}>
             {THEMES.map(t => (
               <button
                 key={t.id}
@@ -622,7 +639,7 @@ export default function StudyRoomPage() {
                   fontWeight: 800,
                   cursor: 'pointer',
                   background: activeTheme === t.id ? themeObj.accent : 'transparent',
-                  color: 'white',
+                  color: activeTheme === t.id ? '#ffffff' : themeObj.text,
                   transition: 'all 0.2s'
                 }}
               >
@@ -635,9 +652,9 @@ export default function StudyRoomPage() {
           <button
             onClick={toggleFullscreen}
             style={{
-              background: 'rgba(255,255,255,0.12)',
-              border: `1px solid ${themeObj.border}`,
-              color: 'white',
+              background: themeObj.buttonBg,
+              border: `1.5px solid ${themeObj.border}`,
+              color: themeObj.text,
               borderRadius: 12,
               padding: '0.5rem 0.75rem',
               cursor: 'pointer',
@@ -645,7 +662,8 @@ export default function StudyRoomPage() {
               alignItems: 'center',
               gap: 6,
               fontSize: '0.75rem',
-              fontWeight: 800
+              fontWeight: 800,
+              transition: 'all 0.15s'
             }}
           >
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -680,7 +698,7 @@ export default function StudyRoomPage() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            boxShadow: themeObj.isDark ? '0 20px 50px rgba(0,0,0,0.3)' : '0 4px 20px -2px rgba(0,0,0,0.04)',
             position: 'relative',
             overflow: 'hidden'
           }}>
@@ -689,10 +707,10 @@ export default function StudyRoomPage() {
             <div style={{
               display: 'flex',
               gap: 6,
-              background: 'rgba(0,0,0,0.25)',
+              background: themeObj.innerBg,
               padding: 6,
               borderRadius: 18,
-              border: `1px solid ${themeObj.border}`,
+              border: `1.5px solid ${themeObj.border}`,
               marginBottom: '1.75rem',
               maxWidth: '100%',
               overflowX: 'auto'
@@ -714,7 +732,7 @@ export default function StudyRoomPage() {
                     fontSize: '0.78rem',
                     cursor: 'pointer',
                     background: timerMode === m.key ? themeObj.accent : 'transparent',
-                    color: 'white',
+                    color: timerMode === m.key ? '#ffffff' : themeObj.text,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -724,7 +742,7 @@ export default function StudyRoomPage() {
                   }}
                 >
                   <span>{m.label}</span>
-                  <span style={{ fontSize: '0.62rem', opacity: 0.8 }}>{m.time}</span>
+                  <span style={{ fontSize: '0.62rem', opacity: timerMode === m.key ? 0.9 : 0.7 }}>{m.time}</span>
                 </button>
               ))}
             </div>
@@ -744,7 +762,7 @@ export default function StudyRoomPage() {
                   cx="120"
                   cy="120"
                   r="105"
-                  stroke="rgba(255,255,255,0.1)"
+                  stroke={themeObj.isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}
                   strokeWidth="10"
                   fill="transparent"
                 />
@@ -769,7 +787,8 @@ export default function StudyRoomPage() {
                   letterSpacing: '-0.04em',
                   lineHeight: 1,
                   fontVariantNumeric: 'tabular-nums',
-                  textShadow: `0 4px 20px ${themeObj.accent}88`
+                  color: themeObj.text,
+                  textShadow: themeObj.isDark ? `0 4px 20px ${themeObj.accent}88` : 'none'
                 }}>
                   {timerMode === 'stopwatch' ? formatTime(stopwatchSeconds) : formatTime(timeLeft)}
                 </div>
@@ -795,9 +814,9 @@ export default function StudyRoomPage() {
                   width: 48,
                   height: 48,
                   borderRadius: 16,
-                  background: 'rgba(255,255,255,0.1)',
-                  border: `1px solid ${themeObj.border}`,
-                  color: 'white',
+                  background: themeObj.buttonBg,
+                  border: `1.5px solid ${themeObj.border}`,
+                  color: themeObj.text,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -822,7 +841,7 @@ export default function StudyRoomPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  boxShadow: `0 8px 25px ${isRunning ? '#ef444466' : themeObj.accent + '66'}`,
+                  boxShadow: `0 8px 25px ${isRunning ? 'rgba(239,68,68,0.4)' : themeObj.accent + '44'}`,
                   transition: 'all 0.2s',
                   transform: isRunning ? 'scale(0.98)' : 'scale(1)'
                 }}
@@ -837,9 +856,9 @@ export default function StudyRoomPage() {
                   width: 48,
                   height: 48,
                   borderRadius: 16,
-                  background: showSettings ? themeObj.accent : 'rgba(255,255,255,0.1)',
-                  border: `1px solid ${themeObj.border}`,
-                  color: 'white',
+                  background: showSettings ? themeObj.accent : themeObj.buttonBg,
+                  border: `1.5px solid ${themeObj.border}`,
+                  color: showSettings ? 'white' : themeObj.text,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -864,8 +883,8 @@ export default function StudyRoomPage() {
                       width: 14,
                       height: 14,
                       borderRadius: 99,
-                      background: isDone ? '#10b981' : isCurrent ? themeObj.accent : 'rgba(255,255,255,0.2)',
-                      border: isCurrent ? '2px solid white' : 'none',
+                      background: isDone ? '#10b981' : isCurrent ? themeObj.accent : (themeObj.isDark ? 'rgba(255,255,255,0.2)' : '#e2e8f0'),
+                      border: isCurrent ? `2px solid ${themeObj.text}` : 'none',
                       boxShadow: isDone ? '0 0 10px #10b981' : isCurrent ? `0 0 10px ${themeObj.accent}` : 'none',
                       transition: 'all 0.3s'
                     }}
@@ -882,10 +901,10 @@ export default function StudyRoomPage() {
               <div style={{
                 marginTop: '1.5rem',
                 width: '100%',
-                background: 'rgba(0,0,0,0.35)',
+                background: themeObj.innerBg,
                 padding: '1.25rem',
                 borderRadius: 20,
-                border: `1px solid ${themeObj.border}`,
+                border: `1.5px solid ${themeObj.border}`,
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 10
@@ -902,7 +921,7 @@ export default function StudyRoomPage() {
                       setDurations(p => ({ ...p, pomodoro: val }));
                       if (timerMode === 'pomodoro') setTimeLeft(val * 60);
                     }}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: 10, border: `1px solid ${themeObj.border}`, background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 800, textAlign: 'center', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 10, border: `1.5px solid ${themeObj.border}`, background: themeObj.cardBg, color: themeObj.text, fontWeight: 800, textAlign: 'center', outline: 'none' }}
                   />
                 </div>
                 <div>
@@ -917,7 +936,7 @@ export default function StudyRoomPage() {
                       setDurations(p => ({ ...p, shortBreak: val }));
                       if (timerMode === 'shortBreak') setTimeLeft(val * 60);
                     }}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: 10, border: `1px solid ${themeObj.border}`, background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 800, textAlign: 'center', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 10, border: `1.5px solid ${themeObj.border}`, background: themeObj.cardBg, color: themeObj.text, fontWeight: 800, textAlign: 'center', outline: 'none' }}
                   />
                 </div>
                 <div>
@@ -932,7 +951,7 @@ export default function StudyRoomPage() {
                       setDurations(p => ({ ...p, longBreak: val }));
                       if (timerMode === 'longBreak') setTimeLeft(val * 60);
                     }}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: 10, border: `1px solid ${themeObj.border}`, background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 800, textAlign: 'center', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: 10, border: `1.5px solid ${themeObj.border}`, background: themeObj.cardBg, color: themeObj.text, fontWeight: 800, textAlign: 'center', outline: 'none' }}
                   />
                 </div>
               </div>
@@ -944,17 +963,18 @@ export default function StudyRoomPage() {
             background: themeObj.cardBg,
             backdropFilter: 'blur(16px)',
             borderRadius: 22,
-            border: `1px solid ${themeObj.border}`,
+            border: `1.5px solid ${themeObj.border}`,
             padding: '1rem 1.25rem',
             display: 'flex',
             alignItems: 'center',
-            gap: 12
+            gap: 12,
+            boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.02)'
           }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1.2rem' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: themeObj.isDark ? 'rgba(255,255,255,0.15)' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1.2rem' }}>
               ✨
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'white', lineHeight: 1.4, fontStyle: 'italic' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 700, color: themeObj.text, lineHeight: 1.4, fontStyle: 'italic' }}>
                 "{FOCUS_QUOTES[activeQuoteIndex]}"
               </div>
             </div>
@@ -967,9 +987,9 @@ export default function StudyRoomPage() {
             gap: 10
           }}>
             {[
-              { label: 'Bugün Odak', value: `${dailyStats.totalMinutes} dk`, icon: '⏱️', color: '#38bdf8' },
-              { label: 'Tamamlanan Seans', value: `${dailyStats.pomodorosDone}`, icon: '🎯', color: '#10b981' },
-              { label: 'Çözülen Soru', value: `${questionsSolved}`, icon: '✏️', color: '#f59e0b' }
+              { label: 'Bugün Odak', value: `${dailyStats.totalMinutes} dk`, icon: '⏱️', color: '#0284c7' },
+              { label: 'Tamamlanan Seans', value: `${dailyStats.pomodorosDone}`, icon: '🎯', color: '#16a34a' },
+              { label: 'Çözülen Soru', value: `${questionsSolved}`, icon: '✏️', color: '#d97706' }
             ].map((stat, i) => (
               <div
                 key={i}
@@ -977,18 +997,19 @@ export default function StudyRoomPage() {
                   background: themeObj.cardBg,
                   backdropFilter: 'blur(16px)',
                   borderRadius: 20,
-                  border: `1px solid ${themeObj.border}`,
+                  border: `1.5px solid ${themeObj.border}`,
                   padding: '1rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 4
+                  gap: 4,
+                  boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.02)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>{stat.icon}</span>
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: themeObj.subText }}>{stat.label}</span>
                 </div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'white' }}>{stat.value}</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: themeObj.text }}>{stat.value}</div>
               </div>
             ))}
           </div>
@@ -1005,12 +1026,12 @@ export default function StudyRoomPage() {
             borderRadius: 24,
             border: `1.5px solid ${themeObj.border}`,
             padding: '1.25rem',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+            boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Headphones size={18} color={themeObj.accent} />
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
                   Arka Plan Odak Sesleri
                 </h3>
               </div>
@@ -1029,9 +1050,9 @@ export default function StudyRoomPage() {
               ].map(snd => {
                 const vol = soundVolumes[snd.key] || 0;
                 return (
-                  <div key={snd.key} style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 14, padding: '0.65rem 0.85rem', border: `1px solid ${themeObj.border}` }}>
+                  <div key={snd.key} style={{ background: themeObj.innerBg, borderRadius: 14, padding: '0.65rem 0.85rem', border: `1.5px solid ${themeObj.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span>{snd.icon}</span> {snd.label}
                       </span>
                       <span style={{ fontSize: '0.7rem', fontWeight: 900, color: vol > 0 ? themeObj.accent : themeObj.subText }}>
@@ -1063,11 +1084,11 @@ export default function StudyRoomPage() {
             borderRadius: 24,
             border: `1.5px solid ${themeObj.border}`,
             padding: '1.25rem',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+            boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <Target size={18} color="#f59e0b" />
-              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'white' }}>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
                 Şu Anda Ne Çalışıyorsun?
               </h3>
             </div>
@@ -1083,8 +1104,8 @@ export default function StudyRoomPage() {
                   padding: '0.65rem 0.85rem',
                   borderRadius: 14,
                   border: `1.5px solid ${themeObj.border}`,
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'white',
+                  background: themeObj.innerBg,
+                  color: themeObj.text,
                   fontSize: '0.85rem',
                   fontWeight: 700,
                   outline: 'none',
@@ -1101,9 +1122,9 @@ export default function StudyRoomPage() {
                     key={idx}
                     onClick={() => setCurrentTask(t)}
                     style={{
-                      background: 'rgba(255,255,255,0.1)',
+                      background: themeObj.innerBg,
                       border: `1px solid ${themeObj.border}`,
-                      color: themeObj.subText,
+                      color: themeObj.isDark ? themeObj.subText : themeObj.accent,
                       borderRadius: 10,
                       padding: '0.25rem 0.6rem',
                       fontSize: '0.68rem',
@@ -1120,36 +1141,36 @@ export default function StudyRoomPage() {
 
             {/* Live Question Counter */}
             <div style={{
-              background: 'rgba(0,0,0,0.25)',
+              background: themeObj.innerBg,
               borderRadius: 16,
               padding: '0.85rem 1rem',
-              border: `1px solid ${themeObj.border}`,
+              border: `1.5px solid ${themeObj.border}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
               <div>
                 <div style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 700 }}>Çözülen Soru Sayısı</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#f59e0b' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#d97706' }}>
                   {questionsSolved} <span style={{ fontSize: '0.8rem', color: themeObj.subText }}>/ {targetQuestions} Hedef</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={() => setQuestionsSolved(Math.max(0, questionsSolved - 1))}
-                  style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+                  style={{ width: 36, height: 36, borderRadius: 10, background: themeObj.buttonBg, border: `1px solid ${themeObj.border}`, color: themeObj.text, fontWeight: 900, cursor: 'pointer' }}
                 >
                   -
                 </button>
                 <button
                   onClick={() => setQuestionsSolved(questionsSolved + 1)}
-                  style={{ width: 36, height: 36, borderRadius: 10, background: '#f59e0b', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer', fontSize: '1.1rem' }}
+                  style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer', fontSize: '1.1rem' }}
                 >
                   +
                 </button>
                 <button
                   onClick={() => setQuestionsSolved(questionsSolved + 5)}
-                  style={{ padding: '0 0.6rem', borderRadius: 10, background: 'rgba(245, 158, 11, 0.25)', border: '1px solid #f59e0b', color: '#f59e0b', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer' }}
+                  style={{ padding: '0 0.6rem', borderRadius: 10, background: themeObj.isDark ? 'rgba(245, 158, 11, 0.25)' : '#fffbeb', border: '1px solid #fde68a', color: '#b45309', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer' }}
                 >
                   +5
                 </button>
@@ -1164,7 +1185,7 @@ export default function StudyRoomPage() {
             borderRadius: 24,
             border: `1.5px solid ${themeObj.border}`,
             padding: '1.25rem',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            boxShadow: themeObj.isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px -2px rgba(0,0,0,0.03)',
             display: 'flex',
             flexDirection: 'column',
             gap: 12
@@ -1172,11 +1193,11 @@ export default function StudyRoomPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ListTodo size={18} color="#10b981" />
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: themeObj.text }}>
                   Hedef Görev Listesi
                 </h3>
               </div>
-              <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 800 }}>
+              <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 800 }}>
                 {todoList.filter(t => t.done).length}/{todoList.length} Tamamlandı
               </span>
             </div>
@@ -1187,10 +1208,10 @@ export default function StudyRoomPage() {
                   key={item.id}
                   onClick={() => setTodoList(todoList.map(t => t.id === item.id ? { ...t, done: !t.done } : t))}
                   style={{
-                    background: item.done ? 'rgba(16, 185, 129, 0.15)' : 'rgba(0,0,0,0.2)',
+                    background: item.done ? (themeObj.isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4') : themeObj.innerBg,
                     borderRadius: 12,
                     padding: '0.5rem 0.75rem',
-                    border: `1px solid ${item.done ? '#10b98155' : themeObj.border}`,
+                    border: `1.5px solid ${item.done ? '#bbf7d0' : themeObj.border}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1210,7 +1231,7 @@ export default function StudyRoomPage() {
                     }}>
                       {item.done && <Check size={12} color="white" strokeWidth={3} />}
                     </div>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: item.done ? '#a7f3d0' : 'white', textDecoration: item.done ? 'line-through' : 'none' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: item.done ? '#15803d' : themeObj.text, textDecoration: item.done ? 'line-through' : 'none' }}>
                       {item.text}
                     </span>
                   </div>
@@ -1219,7 +1240,7 @@ export default function StudyRoomPage() {
                       e.stopPropagation();
                       setTodoList(todoList.filter(t => t.id !== item.id));
                     }}
-                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2 }}
+                    style={{ background: 'none', border: 'none', color: themeObj.subText, cursor: 'pointer', padding: 2 }}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -1244,9 +1265,9 @@ export default function StudyRoomPage() {
                   flex: 1,
                   padding: '0.5rem 0.75rem',
                   borderRadius: 10,
-                  border: `1px solid ${themeObj.border}`,
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'white',
+                  border: `1.5px solid ${themeObj.border}`,
+                  background: themeObj.innerBg,
+                  color: themeObj.text,
                   fontSize: '0.78rem',
                   outline: 'none'
                 }}
@@ -1277,7 +1298,7 @@ export default function StudyRoomPage() {
             <div style={{ marginTop: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 <Edit3 size={15} color={themeObj.accent} />
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'white' }}>Hızlı Notlar & Karalama</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: themeObj.text }}>Hızlı Notlar & Karalama</span>
               </div>
               <textarea
                 placeholder="Çalışırken aklına gelen formülleri veya önemli notları buraya yaz..."
@@ -1288,9 +1309,9 @@ export default function StudyRoomPage() {
                   width: '100%',
                   padding: '0.65rem',
                   borderRadius: 12,
-                  border: `1px solid ${themeObj.border}`,
-                  background: 'rgba(0,0,0,0.25)',
-                  color: 'white',
+                  border: `1.5px solid ${themeObj.border}`,
+                  background: themeObj.innerBg,
+                  color: themeObj.text,
                   fontSize: '0.75rem',
                   outline: 'none',
                   resize: 'vertical',
